@@ -329,7 +329,7 @@ const kpiStats = computed<KpiStat[]>(() => [
     value: totalCategoryCount.value,
     label: '分类总数',
     hint: `${statisticsStore.rootCategoryCount} 个根分类`,
-    gradient: 'linear-gradient(135deg, var(--color-info) 0%, var(--color-primary-light) 100%)',
+    gradient: 'linear-gradient(135deg, var(--color-info) 0%, color-mix(in srgb, var(--color-info) 65%, var(--color-bg-secondary)) 100%)',
     to: '/categories',
   },
   {
@@ -337,7 +337,7 @@ const kpiStats = computed<KpiStat[]>(() => [
     value: overview.value.totalPublishedArticles,
     label: '已发布文章',
     hint: '面向前台的已发布内容',
-    gradient: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-primary-light) 100%)',
+    gradient: 'linear-gradient(135deg, var(--color-warning) 0%, color-mix(in srgb, var(--color-warning) 65%, var(--color-bg-secondary)) 100%)',
     to: '/articles',
   },
   {
@@ -984,17 +984,17 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.tag--info { background: var(--color-info-muted); color: var(--color-info); }
-.tag--slate { background: color-mix(in srgb, var(--color-secondary) 14%, transparent); color: var(--color-secondary); }
-.tag--emerald { background: var(--color-success-muted); color: var(--color-success); }
-.tag--sky { background: var(--color-info-muted); color: var(--color-info); }
+.tag--info { background: color-mix(in srgb, var(--color-info) 12%, var(--color-bg-secondary)); color: color-mix(in srgb, var(--color-info) 60%, var(--color-text)); }
+.tag--slate { background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-bg-secondary)); color: color-mix(in srgb, var(--color-secondary) 60%, var(--color-text)); }
+.tag--emerald { background: color-mix(in srgb, var(--color-success) 12%, var(--color-bg-secondary)); color: color-mix(in srgb, var(--color-success) 60%, var(--color-text)); }
+.tag--sky { background: color-mix(in srgb, var(--color-info) 12%, var(--color-bg-secondary)); color: color-mix(in srgb, var(--color-info) 60%, var(--color-text)); }
 .tag--violet { background: #ede9fe; color: #6d28d9; }
-.tag--amber { background: var(--color-warning-muted); color: var(--color-warning); }
+.tag--amber { background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg-secondary)); color: color-mix(in srgb, var(--color-warning) 60%, var(--color-text)); }
 .tag--fuchsia { background: #fae8ff; color: #a21caf; }
 .tag--rose { background: #ffe4e6; color: #be123c; }
 .tag--orange { background: #ffedd5; color: #c2410c; }
 .tag--cyan { background: #cffafe; color: #0e7490; }
-.tag--red { background: var(--color-danger-muted); color: var(--color-danger); }
+.tag--red { background: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg-secondary)); color: color-mix(in srgb, var(--color-danger) 60%, var(--color-text)); }
 
 .loading-placeholder,
 .empty-text {

@@ -173,7 +173,7 @@ const handleLogin = async () => {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-primary-dark);
+  color: color-mix(in srgb, var(--color-primary) 60%, var(--color-text));
 }
 
 .login-card__title {
@@ -222,7 +222,7 @@ const handleLogin = async () => {
 .login-form__error {
   margin: -4px 0 16px;
   font-size: 0.875rem;
-  color: var(--color-danger);
+  color: color-mix(in srgb, var(--color-danger) 60%, var(--color-text));
 }
 
 .login-form__submit {
@@ -234,7 +234,7 @@ const handleLogin = async () => {
   font-weight: 700;
   color: var(--color-text-inverse);
   cursor: pointer;
-  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-info) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary-dark) 65%, var(--color-bg-sidebar)) 0%, color-mix(in srgb, var(--color-info) 65%, var(--color-bg-sidebar)) 100%);
   box-shadow: var(--shadow-glow);
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
