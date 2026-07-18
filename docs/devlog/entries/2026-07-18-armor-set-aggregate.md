@@ -86,7 +86,8 @@
 - `6434a03` — lock serialized execution coordination.
 - `4e6fe02` — record the clean Task 1 baseline and review evidence.
 - `2b28764` — initial Task 2 public recipe-tree facade implementation; spec
-  review fix pending.
+  review found one mutable-list alias.
+- `5f0a774` — detach public recipe group names and close the Task 2 finding.
 
 ## Optional: Cross-Review
 
@@ -95,16 +96,18 @@
 - Findings: Important — `RecipeTreeNodeDTO.groupMemberNames` remains shallow
   copied through `BeanUtils`, so the public result can mutate cached source
   state; the facade test did not cover this mutable-list alias.
-- Disposition: needs fix by the original Task 2 implementer.
-- Re-review required: yes, specification review before quality review.
-- Resolved by: pending.
+- Disposition: fixed by a RED alias-mutation test and explicit detached copy;
+  specification re-review passed and quality review found no Critical or
+  Important issue.
+- Re-review required: no; completed.
+- Resolved by: Task 2 implementer at `5f0a774`.
 - Arbitration decision: accept the finding; it directly violates the approved
   deep-copy boundary.
 - Decision owner: coordinator.
 - Rationale: all mutable nested collections exposed publicly must be detached
   from the recipe-tree cache, even when they do not carry images.
-- Remaining risks: quality review is blocked until the fix and spec re-review
-  pass.
+- Remaining risks: Minor — string-based `BeanUtils` exclusions require a new
+  mutation assertion if a future mutable node collection is added.
 
 ## Optional: State Changes
 
@@ -156,6 +159,15 @@
 - Evidence: reviewer traced the shared list from `PublicRecipeTreeFacade` to
   `RecipeTreeNodeDTO`; the existing test fixture omitted the field.
 
+### 2026-07-18 22:48 CST
+
+- Change: Task 2 passed its fix loop, specification re-review, and code-quality
+  review; ownership advances to Task 3 armor aggregation.
+- Reason: `groupMemberNames` is now detached and the regression test observes
+  the original alias before the production fix.
+- Evidence: focused tests 4/4; spec re-review approved; quality review found no
+  Critical or Important issue and one future-proofing Minor.
+
 ## Optional: Multi-Agent Coordination
 
 - Coordinator: `/root` (Codex).
@@ -196,6 +208,20 @@
       implementer fixes findings and reviewers re-review.
     - Return format: role-specific template from
       `subagent-driven-development`.
+  - Task 2 public recipe-tree facade:
+    - Status: complete at `2b28764` + `5f0a774`; specification and quality
+      reviews approved after one Important deep-copy finding was fixed.
+    - Task scope: shared public recipe-tree copy/sanitizer and item controller
+      delegation.
+    - Allowed files: the four Task 2 files in the committed plan.
+    - Forbidden files: all frontend/data/crawler and coordinator devlog paths.
+    - Dependencies: Task 1 baseline.
+    - Validation: facade/controller focused Maven suite 4/4.
+    - Blockers: none.
+    - Handoff notes: all current mutable node collections are detached; later
+      armor aggregation must consume `PublicRecipeTreeFacade`, not the internal
+      tree service.
+    - Return format: complete.
   - Task 6 integration and closeout:
     - Status: pending Tasks 2–5 and final integrated review.
     - Task scope: full focused gates, frontend gate, authorized runtime smoke,
@@ -217,8 +243,8 @@
   - Consumer: frontend Task 5 and its executable contract.
   - Endpoint/schema/state: optional `pieceEffects` / `pieceRecipes` on existing
     armor detail `data`; no schema or data change.
-  - Version/hash: design `1696f83`, plan `eb85d36`; implementation hashes are
-    recorded after each task.
+  - Version/hash: design `1696f83`, plan `eb85d36`, public recipe producer
+    contract `5f0a774`; later implementation hashes are recorded per task.
   - Breaking or compatible: compatible; absent fields trigger legacy fallback.
   - Fixtures/types updated: backend DTO/controller tests and frontend public
     API type/contract.
