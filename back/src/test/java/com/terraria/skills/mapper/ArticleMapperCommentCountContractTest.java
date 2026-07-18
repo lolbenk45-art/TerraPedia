@@ -33,6 +33,14 @@ class ArticleMapperCommentCountContractTest {
     }
 
     @Test
+    void adminArticleListAppliesReviewStatusOnlyWhenTheOptionalFilterIsPresent() throws IOException {
+        String query = selectSql(Files.readString(Path.of("src/main/resources/mapper/ArticleMapper.xml")), "selectAdminArticlesPage");
+
+        assertTrue(query.contains("<if test=\"reviewStatus != null and reviewStatus != ''\">"));
+        assertTrue(query.contains("AND a.review_status = #{reviewStatus}"));
+    }
+
+    @Test
     void publicArticleQueriesCountOnlyVisibleRootComments() throws IOException {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ArticleMapper.xml"));
 

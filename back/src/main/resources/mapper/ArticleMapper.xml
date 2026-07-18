@@ -53,6 +53,9 @@
             <if test="status != null and status != ''">
                 AND a.status = #{status}
             </if>
+            <if test="reviewStatus != null and reviewStatus != ''">
+                AND a.review_status = #{reviewStatus}
+            </if>
         </where>
         ORDER BY
         <choose>

@@ -51,12 +51,13 @@ public class ArticleServiceImpl implements ArticleService {
     private final UserAvatarUrlResolver userAvatarUrlResolver;
 
     @Override
-    public Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status, String sortBy, String sortOrder) {
+    public Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status, String reviewStatus, String sortBy, String sortOrder) {
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
         return normalizeArticlePage(articleMapper.selectAdminArticlesPage(
             mpPage,
             AdminTextUtils.trimToNull(keyword),
             normalizeStatusAllowNull(status),
+            normalizeReviewStatusAllowNull(reviewStatus),
             normalizeAdminArticleSortBy(sortBy),
             normalizeSortOrder(sortOrder)
         ));
@@ -823,6 +824,14 @@ public class ArticleServiceImpl implements ArticleService {
             return normalized;
         }
         throw new IllegalArgumentException("Unsupported review status: " + normalized);
+    }
+
+    private String normalizeReviewStatusAllowNull(String value) {
+        String trimmed = AdminTextUtils.trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+        return normalizeReviewStatus(trimmed);
     }
 
     private String normalizeReviewAction(String value) {

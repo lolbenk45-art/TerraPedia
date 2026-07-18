@@ -175,29 +175,6 @@ const normalizeAdminArticleHtmlImages = (value: unknown): string => {
     })
 }
 
-const toOptionalCount = (...values: unknown[]) => {
-  for (const value of values) {
-    if (value == null || value === '') continue
-    const next = Number(value)
-    if (Number.isFinite(next)) return next
-  }
-  return undefined
-}
-
-const extractArticleCommentCount = (item: any) => toOptionalCount(
-  item?.commentCount,
-  item?.comment_count,
-  item?.commentsCount,
-  item?.comments_count,
-  item?.stats?.commentCount,
-  item?.stats?.comment_count,
-  item?.commentStats?.total,
-  item?.commentStats?.commentCount,
-  item?.commentStats?.comment_count,
-  item?.metrics?.commentCount,
-  item?.metrics?.comment_count,
-)
-
 const normalizeArticle = (item: any): AdminArticle => ({
   id: Number(item?.id ?? 0),
   title: String(item?.title ?? ''),
@@ -209,7 +186,7 @@ const normalizeArticle = (item: any): AdminArticle => ({
   authorAvatarUrl: normalizeAdminArticleImageUrl(item?.authorAvatarUrl ?? item?.author_avatar_url) || undefined,
   viewCount: item?.viewCount == null && item?.view_count == null ? undefined : Number(item?.viewCount ?? item?.view_count),
   likeCount: item?.likeCount == null && item?.like_count == null ? undefined : Number(item?.likeCount ?? item?.like_count),
-  commentCount: extractArticleCommentCount(item),
+  commentCount: item?.commentCount == null ? undefined : Number(item.commentCount),
   favoriteCount: item?.favoriteCount == null && item?.favorite_count == null ? undefined : Number(item?.favoriteCount ?? item?.favorite_count),
   contentHtml: normalizeAdminArticleHtmlImages(item?.contentHtml ?? item?.contentMarkdown ?? ''),
   contentMarkdown: item?.contentMarkdown != null ? normalizeAdminArticleHtmlImages(item.contentMarkdown) : undefined,
@@ -331,9 +308,6 @@ const toAbsoluteUploadUrl = (value: unknown): string => {
 export const useArticlesStore = defineStore('articles', () => {
   const articles = ref<AdminArticle[]>([])
   const loading = ref(false)
-  const commentCountRefreshing = ref(false)
-  const commentCountRefreshFailed = ref(false)
-  const commentCountRefreshFailedArticleIds = ref<number[]>([])
   const pagination = ref<PaginationState>(defaultPagination())
   const keyword = ref('')
   const status = ref<ArticleStatus | ''>('')
@@ -445,69 +419,6 @@ export const useArticlesStore = defineStore('articles', () => {
     return updated
   }
 
-  const fetchArticleCommentTotal = async (articleId: number) => {
-    const response: any = await get(`/admin/articles/${articleId}/comments`, {
-      page: 1,
-      limit: 1,
-    })
-    return toPagination(response, 1, 1, normalizeArticleComments(response).length).total
-  }
-
-  const refreshArticleCommentCounts = async (articleIds?: number[]) => {
-    const targetIds = new Set(articleIds)
-    const targets = articles.value.filter(item => item.id > 0 && (!articleIds || targetIds.has(item.id)))
-    if (!targets.length) return
-
-    commentCountRefreshing.value = true
-    commentCountRefreshFailed.value = false
-    commentCountRefreshFailedArticleIds.value = []
-    try {
-      const results = await Promise.allSettled(
-        targets.map(async article => ({
-          id: article.id,
-          commentCount: await fetchArticleCommentTotal(article.id),
-        }))
-      )
-
-      const failedIds: number[] = []
-      results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          const articleId = targets[index]?.id ?? 0
-          failedIds.push(articleId)
-          const articleIndex = articles.value.findIndex(item => item.id === articleId)
-          if (articleIndex >= 0) {
-            const current = articles.value[articleIndex]
-            if (current) {
-              articles.value.splice(articleIndex, 1, {
-                ...current,
-                commentCount: undefined,
-              })
-            }
-          }
-          return
-        }
-        const articleId = result.value.id
-        const articleIndex = articles.value.findIndex(item => item.id === articleId)
-        if (articleIndex < 0) return
-        const current = articles.value[articleIndex]
-        if (!current) return
-        articles.value.splice(articleIndex, 1, {
-          ...current,
-          commentCount: result.value.commentCount,
-        })
-      })
-
-      const cleanedFailedIds = failedIds.filter(Boolean)
-      commentCountRefreshFailedArticleIds.value = cleanedFailedIds
-      commentCountRefreshFailed.value = cleanedFailedIds.length > 0
-      if (cleanedFailedIds.length) {
-        showToast(`评论数校准失败：${cleanedFailedIds.length} 篇文章需要刷新后重试`, 'warning')
-      }
-    } finally {
-      commentCountRefreshing.value = false
-    }
-  }
-
   const fetchReviewLogs = async (id: number, page = 1, size = 20) => {
     const response: any = await get(`/admin/articles/${id}/review-logs`, { page, limit: size })
     const records = normalizeReviewLogs(response)
@@ -594,9 +505,6 @@ export const useArticlesStore = defineStore('articles', () => {
   return {
     articles,
     loading,
-    commentCountRefreshing,
-    commentCountRefreshFailed,
-    commentCountRefreshFailedArticleIds,
     pagination,
     keyword,
     status,
@@ -611,7 +519,6 @@ export const useArticlesStore = defineStore('articles', () => {
     reviewArticle,
     publishArticle,
     offlineArticle,
-    refreshArticleCommentCounts,
     fetchReviewLogs,
     fetchArticleComments,
     fetchArticleCommentReplies,

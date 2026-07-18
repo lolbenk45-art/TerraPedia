@@ -462,8 +462,6 @@ const commentsStore = useArticleCommentsStore()
 const {
   articles: articleRows,
   loading: articleListLoading,
-  commentCountRefreshing,
-  commentCountRefreshFailedArticleIds,
   pagination: articleListPagination,
   keyword: articleKeyword,
   status: articleStatus,
@@ -514,8 +512,6 @@ const reviewStatusLabel = (value: string) => ({
 const articleAuthorLabel = (row: AdminArticle) => row.authorDisplayName || (row.authorId ? `#${row.authorId}` : '未知')
 
 const articleCommentCountLabel = (row: AdminArticle) => {
-  if (commentCountRefreshFailedArticleIds.value.includes(row.id)) return '评论数校准失败'
-  if (commentCountRefreshing.value && row.commentCount == null) return '评论数校准中...'
   return `${formatCount(row.commentCount)} 评论`
 }
 
@@ -647,13 +643,8 @@ const validateFilters = () => {
   return true
 }
 
-const refreshVisibleArticleCommentCounts = async () => {
-  await articlesStore.refreshArticleCommentCounts(articleRows.value.map(row => row.id))
-}
-
 const handleArticleListSearch = async () => {
   await articlesStore.fetchArticles(1, articleListPagination.value.size)
-  await refreshVisibleArticleCommentCounts()
 }
 
 const handleArticleListReset = async () => {
@@ -662,12 +653,10 @@ const handleArticleListReset = async () => {
   articleListSortBy.value = 'commentCount'
   articleListSortOrder.value = 'desc'
   await articlesStore.fetchArticles(1, articleListPagination.value.size)
-  await refreshVisibleArticleCommentCounts()
 }
 
 const handleArticleListPageChange = async (page: number) => {
   await articlesStore.fetchArticles(page, articleListPagination.value.size)
-  await refreshVisibleArticleCommentCounts()
 }
 
 const openArticleCommentWorkspace = async (row: AdminArticle) => {
@@ -779,7 +768,6 @@ onMounted(async () => {
   articleListSortBy.value = 'commentCount'
   articleListSortOrder.value = 'desc'
   await articlesStore.fetchArticles(1, articleListPagination.value.size)
-  await refreshVisibleArticleCommentCounts()
 })
 </script>
 

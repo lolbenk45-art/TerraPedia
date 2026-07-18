@@ -51,7 +51,7 @@ function loadArticlesStore(mockGet) {
   }
 }
 
-test('articles store refreshes visible article comment counts from admin comment pagination totals', async () => {
+test('articles store uses admin list commentCount values without any per-article comments request', async () => {
   const calls = []
   const { useArticlesStore } = loadArticlesStore(async (url, params) => {
     calls.push({ url, params })
@@ -59,35 +59,28 @@ test('articles store refreshes visible article comment counts from admin comment
       return {
         data: {
           records: [
-            { id: 11, title: '蜂后攻略', status: 'PUBLISHED', reviewStatus: 'APPROVED', commentCount: 0 },
-            { id: 12, title: '史莱姆王', status: 'PUBLISHED', reviewStatus: 'APPROVED' },
+            { id: 11, title: '蜂后攻略', status: 'PUBLISHED', reviewStatus: 'APPROVED', commentCount: 7 },
+            { id: 12, title: '史莱姆王', status: 'PUBLISHED', reviewStatus: 'APPROVED', commentCount: 3 },
           ],
           pagination: { total: 2, page: 1, limit: 10 },
         },
       }
-    }
-    if (url === '/admin/articles/11/comments') {
-      return { data: [], pagination: { total: 7, page: 1, limit: 1 } }
-    }
-    if (url === '/admin/articles/12/comments') {
-      return { data: { records: [] }, dataTotal: 3, pagination: { total: 3, page: 1, limit: 1 } }
     }
     throw new Error(`Unexpected URL ${url}`)
   })
 
   const store = useArticlesStore()
   await store.fetchArticles(1, 10)
-  await store.refreshArticleCommentCounts(store.articles.value.map(row => row.id))
 
   assert.deepEqual(store.articles.value.map(row => [row.id, row.commentCount]), [
     [11, 7],
     [12, 3],
   ])
-  assert.equal(calls.filter(call => call.url.endsWith('/comments')).length, 2)
-  assert.deepEqual(JSON.parse(JSON.stringify(calls.find(call => call.url === '/admin/articles/11/comments')?.params)), { page: 1, limit: 1 })
+  assert.equal(store.refreshArticleCommentCounts, undefined)
+  assert.equal(calls.filter(call => call.url.endsWith('/comments')).length, 0)
 })
 
-test('articles store exposes comment count refresh failures instead of silently keeping zero', async () => {
+test('articles store keeps the list-provided zero commentCount without a comment-count refresh state', async () => {
   const { useArticlesStore, toastMessages } = loadArticlesStore(async (url) => {
     if (url === '/admin/articles') {
       return {
@@ -102,10 +95,10 @@ test('articles store exposes comment count refresh failures instead of silently 
 
   const store = useArticlesStore()
   await store.fetchArticles(1, 10)
-  await store.refreshArticleCommentCounts()
 
-  assert.equal(store.commentCountRefreshing.value, false)
-  assert.equal(store.commentCountRefreshFailed.value, true)
-  assert.equal(store.articles.value[0].commentCount, undefined)
-  assert.ok(toastMessages.some(item => item.type === 'warning' && item.message.includes('评论数校准失败')))
+  assert.equal(store.articles.value[0].commentCount, 0)
+  assert.equal(store.commentCountRefreshing, undefined)
+  assert.equal(store.commentCountRefreshFailed, undefined)
+  assert.equal(store.commentCountRefreshFailedArticleIds, undefined)
+  assert.equal(toastMessages.length, 0)
 })

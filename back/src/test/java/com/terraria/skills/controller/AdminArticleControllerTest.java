@@ -53,8 +53,22 @@ class AdminArticleControllerTest {
     }
 
     @Test
-    void shouldPassArticleListSortOptionsToService() throws Exception {
-        when(articleService.getAdminArticles(1, 20, null, null, "commentCount", "desc"))
+    void shouldPassArticleListReviewStatusAndSortOptionsToService() throws Exception {
+        when(articleService.getAdminArticles(1, 20, null, null, "PENDING_REVIEW", "commentCount", "desc"))
+            .thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 20));
+
+        mockMvc.perform(get("/admin/articles")
+                .param("reviewStatus", "PENDING_REVIEW")
+                .param("sortBy", "commentCount")
+                .param("sortOrder", "desc"))
+            .andExpect(status().isOk());
+
+        verify(articleService).getAdminArticles(1, 20, null, null, "PENDING_REVIEW", "commentCount", "desc");
+    }
+
+    @Test
+    void shouldPassNullReviewStatusWhenArticleListFilterIsOmitted() throws Exception {
+        when(articleService.getAdminArticles(1, 20, null, null, null, "commentCount", "desc"))
             .thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 20));
 
         mockMvc.perform(get("/admin/articles")
@@ -62,7 +76,7 @@ class AdminArticleControllerTest {
                 .param("sortOrder", "desc"))
             .andExpect(status().isOk());
 
-        verify(articleService).getAdminArticles(1, 20, null, null, "commentCount", "desc");
+        verify(articleService).getAdminArticles(1, 20, null, null, null, "commentCount", "desc");
     }
 
     @Test
