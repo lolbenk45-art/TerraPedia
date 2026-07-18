@@ -263,6 +263,12 @@ git commit -m "fix(admin): repair css tokens and add pagination to classificatio
 
 ### Task C4: 硬编码颜色 → 令牌（login/index/categories）
 
+**2026-07-18 执行状态:** `active`。`3a1d178` 已完成初始 token 迁移并通过
+规格审查、focused 19/19、typecheck 与 light/dark 运行态布局验收；质量审查阻断
+在小字号 tag / login 文案与按钮对比度、info/warning KPI 渐变跨色域，以及未覆盖
+这些语义风险的脆弱契约。修复必须保持五组受保护彩虹色与现有 token 层不变，
+并在 fresh 规格/质量复审后才能进入 C5。
+
 **Files:**
 - Modify: `data-query-app/pages/login.vue`（11 行 hex + 12 处 rgba，映射表见 scout-p1p2-frontend.md 项 4）
 - Modify: `data-query-app/pages/index.vue`（tag 类 L987-997 + script 渐变 L324/332/340/348）

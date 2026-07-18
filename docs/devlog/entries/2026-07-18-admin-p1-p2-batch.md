@@ -32,13 +32,15 @@
 - Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts and full admin unit suite; C1 icon/font contracts, typecheck, DOM inspection, and Playwright screenshots; C2 focused contracts, typecheck, diff check, and Chromium computed-box probes.
 - Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu. C2's final specificity contract observed the expected 10/11 RED under the old `:where` selector and 11/11 GREEN after `fd3689e`; independent typecheck and 11/11 rerun passed. Browser probes at 1280/1130/1024/900/800/761/760 measured all six controls at computed/actual 44px with no document, command-bar, or toolbar overflow; specification and quality re-review reported no remaining findings.
 - C3 initial implementation observed the expected focused 5/8 RED, then passed focused 8/8, admin typecheck, and specification review. Quality review found one Important transactional pagination failure and a related static-test weakness. The repair observed 6/13 RED then 13/13 GREEN, executes the actual aggregation/load/handler functions, and proves deferred commit, failed-target retry, 2→1/zero-result clamping, and waiting-state preservation. Final specification and quality re-review reported no findings.
-- Not run: C4-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
+- C4 initial implementation observed the expected focused 9/12 RED, then passed focused 12/12, combined 19/19, admin typecheck, diff check, specification review, and light/dark runtime geometry checks. Quality review found three Important accessibility/semantic issues and one related test-quality Minor; repair and re-review remain pending.
+- Not run: C5-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
 
 ## Result
 
 - Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, C1, and C2 with specification, quality, and required runtime approval.
 - Completed: C3 token repair and transactional shared pagination with specification and quality approval.
-- Not completed: C4-D6 implementation, final gates, and closeout.
+- In progress: C4 token migration is implemented and specification-approved, but its quality gate is blocked on contrast, gradient semantics, and contract coverage.
+- Not completed: C5-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -46,10 +48,11 @@
 - C2 runtime screenshots are stored in the ignored `reports/admin-p1-p2/c2-visual/` directory. Snap Chromium still does not rasterize CJK text reliably; exact DOM/computed-box measurements remain the acceptance source for this environment.
 - Broad backend baseline has previously documented unrelated failures; final focused gates must prove no new failures.
 - Shared `AppPagination` still has an existing 38px control-height and missing `aria-current` accessibility Minor. It is outside C3's two-file scope and should be handled in a separate component task.
+- C4's current semantic tag/login foreground-background pairs do not consistently meet 4.5:1 for normal-size text across both themes; info/warning KPI gradients also cross into the primary color domain. These are active review findings, not deferred risks.
 
 ## Follow-up
 
-- Coordinator `/root` advances the serialized plan to C4 with a fresh implementer; implementation, specification review, and quality review remain sequential.
+- Original C4 implementer repairs the recorded contrast, KPI-gradient, and test-contract findings; fresh specification review must pass before fresh quality re-review. C5 remains blocked until both approve.
 
 ## Commits
 
@@ -69,6 +72,7 @@
 - `c20d7b2` — repaired seven classification-audit tokens and added the initial shared five-section pager; its quality finding was resolved by `dcf214c`.
 - `1457ea3` — recorded the C3 transactional pagination review blocker in the coordinator-owned plan and devlog.
 - `dcf214c` — made classification-audit page/data commits transactional and added executable retry/clamp behavior coverage.
+- `3a1d178` — initial C4 hardcoded-color migration; specification-approved but quality-blocked pending contrast/semantic repair.
 
 ## Optional: Multi-Agent Coordination
 
@@ -122,6 +126,7 @@
 - C1 review: specification review confirmed the exact font stack, icon sizes/semantics, accessibility hiding, and four-file scope. Quality review found one non-blocking Minor that the source contract is more formatting-sensitive than necessary; deferred to `/root` for final batch test-contract cleanup. Runtime screenshots confirmed crisp Package/Folder/FileText rendering with measured 24px/18px bounds and no structural emoji.
 - C2 review: specification review approved the complete `1eee05f..fd3689e` code range after separating the legitimate coordinator-only docs commit from the implementation allowlist; its initial scope-only `COMMIT BLOCKED` verdict was withdrawn on clarified re-review. The first quality review found unreadable zero-minimum filter tracks and a media-query regex that could cross braces; `635f5ba` repaired both. Runtime then exposed the later 38px base rule overriding the intended 44px rule; `fd3689e` added a higher-specificity selector and regression contract. Final quality re-review reported no Critical, Important, or Minor findings and approved progression to C3. The coordinator's fresh seven-viewport probe confirmed 44px actual controls and no overflow; all temporary ports were closed.
 - C3 review: specification review approved `4abfd63..c20d7b2`. Quality review found one Important: `handlePageChange` committed `page` before the request, suppressing failed-target retry and allowing contraction to hide the pager on an out-of-range page. It also found the source-only contract did not execute aggregation or async transitions. `dcf214c` changed `loadAudit(targetPage)` to commit data/page only after a final valid response and to re-fetch a clamped page after contraction or zero results; executable tests cover `[2,2]` retry, `[2,1]` clamp, and preservation during the second pending request. Replacement specification and quality reviewers approved `4abfd63..dcf214c` with no Critical, Important, or Minor findings and allowed C4 progression. Existing AppPagination 38px/ARIA limitations remain a non-blocking shared-component follow-up outside C3 scope.
+- C4 review: specification review approved `45c5069..3a1d178` with exact preservation of violet/fuchsia/rose/orange/cyan and no out-of-scope token-layer edits. Quality review found three Important issues: semantic tag and login text/button pairs fall below 4.5:1 in one or both themes, info/warning KPI gradients use unrelated primary endpoints, and the contract does not enforce those semantic/contrast boundaries. The related Minor notes exact single-line CSS assertions are formatting-brittle. Disposition: verified against current token values, kept C4 active, assigned repair to the original implementer, and required fresh spec then quality re-review.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -188,3 +193,9 @@
 - Change: Closed the C3 review gate and advanced the serialized handoff to C4.
 - Reason: transactional page/data commit, failed-target retry, and contraction/zero-result clamp now have executable behavior evidence and both review stages approved the final range.
 - Evidence: commits `c20d7b2` and `dcf214c`; initial 5/8 RED→8/8 GREEN; repair 6/13 RED→13/13 GREEN; independent typecheck and focused 13/13; replacement specification approval; final quality review with no findings and `Ready to proceed to C4? Yes`.
+
+### 2026-07-18 22:30
+
+- Change: Kept C4 active and recorded its quality-review repair instead of advancing to C5.
+- Reason: initial token migration preserves scope and layout, but current foreground/background combinations fail normal-text contrast in light/dark themes, two KPI gradients cross semantic color domains, and the focused contract does not detect these regressions.
+- Evidence: commit `3a1d178`; expected focused 9/12 RED→12/12 GREEN; combined 19/19; admin typecheck; light/dark runtime geometry; specification approval; quality verdict `Ready to proceed to C5? No`; findings verified against current light/dark token definitions.
