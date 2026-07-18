@@ -1,0 +1,779 @@
+.armor-detail-hero {
+  padding: 18px 20px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.12), rgba(var(--theme-bg-2-rgb), 0.08) 48%, transparent),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    var(--tp-color-surface);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+}
+
+.armor-hero-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-hero-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.armor-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--tp-color-accent);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.armor-hero-eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.armor-detail-hero h1 {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 950;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.armor-detail-hero p {
+  max-width: 900px;
+  margin: 0;
+  color: var(--tp-color-text);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.armor-hero-tags {
+  margin-top: 2px;
+}
+
+.armor-hero-tags .tag {
+  min-height: 26px;
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.armor-hero-preview {
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+  min-width: 96px;
+  padding: 10px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background: var(--tp-color-surface-raised);
+}
+
+.armor-hero-preview :deep(.item-art) {
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
+}
+
+.armor-hero-preview span {
+  color: var(--tp-color-text-muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.armor-module-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.armor-module-head > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.armor-module-head h2 {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.armor-module-head p {
+  margin: 0;
+  color: var(--tp-color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.armor-source-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--tp-color-border);
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.armor-source-context span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 999px;
+  background: var(--tp-color-surface-raised);
+  overflow-wrap: anywhere;
+}
+
+.armor-analysis-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.armor-primary-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.35fr) minmax(300px, 1fr);
+  gap: 18px;
+  align-items: start;
+  min-width: 0;
+}
+
+.armor-module {
+  padding: 18px;
+}
+
+.armor-stat-module,
+.armor-preview-module,
+.armor-crafting-module {
+  min-width: 0;
+  align-content: start;
+}
+
+.armor-side-stack {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+  position: sticky;
+  top: 14px;
+}
+
+.armor-stat-groups {
+  display: grid;
+  gap: 18px;
+}
+
+.armor-effect-sections {
+  display: grid;
+  gap: 18px;
+}
+
+.armor-effect-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background: var(--tp-color-surface);
+}
+
+.armor-effect-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--tp-color-border);
+}
+
+.armor-effect-section-head h3 {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.armor-effect-section-head span {
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.armor-piece-effect-groups {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-piece-effect-group {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background: var(--tp-color-surface-raised);
+}
+
+.armor-effect-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background: var(--tp-color-surface-raised);
+}
+
+.armor-equipment-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-equipment-section h3 {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--tp-color-border);
+  color: var(--tp-color-text-strong);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.armor-equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-equipment-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 3%, transparent), color-mix(in srgb, var(--tp-color-positive) 2%, transparent)),
+    var(--tp-color-surface);
+}
+
+.armor-equipment-card-title {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 7px;
+  background: var(--tp-color-surface-raised);
+}
+
+.armor-equipment-card-title h4 {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: 16px;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.armor-equipment-card-image {
+  justify-self: center;
+}
+
+.armor-equipment-card-image :deep(.item-art) {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.armor-equipment-card-panel {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 7px;
+  background: var(--tp-color-surface);
+}
+
+.armor-equipment-card-panel b {
+  justify-self: stretch;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--tp-color-border);
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  text-align: center;
+}
+
+.armor-equipment-card-panel p {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.armor-equipment-card-panel strong {
+  color: var(--tp-color-text-muted);
+  font-weight: 900;
+}
+
+.armor-stat-group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.armor-stat-group h3,
+.armor-stat-group h4 {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.armor-stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.armor-effect-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 4%, transparent), color-mix(in srgb, var(--tp-color-positive) 3%, transparent)),
+    var(--tp-color-surface-raised);
+}
+
+.armor-effect-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-effect-card-head.has-stat-art {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+}
+
+.armor-stat-art {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    var(--tp-color-surface-raised);
+  color: var(--tp-color-text-strong);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tp-color-border) 55%, transparent);
+}
+
+.armor-stat-art :deep(.item-art) {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  box-shadow: 0 3px 10px rgba(var(--theme-text-rgb), 0.14);
+  overflow: hidden;
+}
+
+.armor-stat-art.is-offense {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.2), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 12%, transparent), color-mix(in srgb, var(--tp-color-positive) 5%, transparent));
+}
+
+.armor-stat-art.is-mobility {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 10%, transparent), color-mix(in srgb, var(--tp-color-accent) 4%, transparent));
+}
+
+.armor-stat-art.is-defense {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 9%, transparent), color-mix(in srgb, var(--tp-color-accent) 5%, transparent));
+}
+
+.armor-stat-art.is-resource {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 9%, transparent), color-mix(in srgb, var(--tp-color-positive) 6%, transparent));
+}
+
+.armor-stat-art.is-summon,
+.armor-stat-art.is-special {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 10%, transparent), color-mix(in srgb, var(--tp-color-positive) 5%, transparent));
+}
+
+.armor-stat-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.armor-stat-name {
+  display: inline-flex;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-stat-title small {
+  color: var(--tp-color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.armor-effect-card-value {
+  color: var(--tp-color-text-strong);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.armor-effect-card p {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.armor-effect-scope {
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-pieces-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
+  gap: 14px;
+  align-items: start;
+}
+
+.armor-fact-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.armor-fact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: baseline;
+  padding: 10px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background: var(--tp-color-surface-raised);
+}
+
+.armor-fact-row span,
+.armor-fact-row small {
+  min-width: 0;
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-fact-row strong {
+  color: var(--tp-color-text-strong);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.armor-fact-row small {
+  grid-column: 1 / -1;
+}
+
+.armor-piece-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.armor-piece-card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background: var(--tp-color-surface);
+}
+
+.armor-piece-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.armor-piece-card-head b {
+  color: var(--tp-color-text-strong);
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-piece-card-head span {
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.armor-piece-options {
+  display: grid;
+  gap: 9px;
+}
+
+.armor-piece-option {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--tp-color-border);
+}
+
+.armor-piece-option :deep(.item-art) {
+  justify-self: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
+}
+
+.armor-piece-option:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.armor-piece-option span {
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.armor-preview-strip {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.armor-preview-group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  align-content: start;
+}
+
+.armor-preview-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.armor-preview-group-head b {
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.armor-preview-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(156px, 156px));
+  justify-content: start;
+  gap: 16px;
+}
+
+.armor-preview-module--compact .armor-preview-strip {
+  grid-template-columns: repeat(auto-fit, minmax(128px, max-content));
+  gap: 16px;
+}
+
+.armor-preview-module--compact {
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.armor-side-stack .armor-preview-module--compact {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.armor-preview-module--compact .armor-preview-images {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 118px));
+}
+
+.armor-preview-tile :deep(.item-art) {
+  width: 156px;
+  height: 156px;
+  border-radius: 14px;
+  overflow: hidden;
+  --tp-preview-image-size: 156px;
+  --tp-preview-fallback-icon-size: 58px;
+}
+
+.armor-preview-tile :deep(.item-art img) {
+  width: auto;
+  height: auto;
+  max-width: 156px;
+  max-height: 156px;
+  object-fit: contain;
+}
+
+.armor-preview-module--compact .armor-preview-tile :deep(.item-art) {
+  width: 118px;
+  height: 118px;
+  border-radius: 12px;
+  --tp-preview-image-size: 118px;
+  --tp-preview-fallback-icon-size: 46px;
+}
+
+.armor-preview-module--compact .armor-preview-tile :deep(.item-art img) {
+  max-width: 118px;
+  max-height: 118px;
+}
+
+@media (max-width: 980px) {
+  .armor-primary-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .armor-side-stack {
+    position: static;
+  }
+
+  .armor-analysis-layout {
+    grid-template-columns: 1fr;
+  }
+  .armor-pieces-layout {
+    grid-template-columns: 1fr;
+  }
+
+}
+@media (max-width: 520px) {
+  .armor-detail-hero {
+    padding: 14px;
+  }
+
+  .armor-hero-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .armor-hero-preview {
+    grid-template-columns: 52px minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .armor-hero-preview :deep(.item-art) {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+  }
+
+  .armor-detail-hero h1 {
+    font-size: 24px;
+  }
+
+  .armor-detail-hero p {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .armor-effect-card-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .armor-effect-card-head.has-stat-art {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .armor-stat-art {
+    width: 38px;
+    height: 38px;
+  }
+
+  .armor-effect-card-value {
+    grid-column: 1 / -1;
+    justify-self: start;
+    font-size: 20px;
+  }
+}

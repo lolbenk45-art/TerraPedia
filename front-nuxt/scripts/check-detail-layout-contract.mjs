@@ -351,9 +351,34 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   const path = 'pages/armor-sets/[id].vue'
   const content = read(path)
   // WP-1 split: build 计算引擎(armorPieceGroups 等)迁至 composables/useArmorSetBuilds.ts,
-  // 涉及这些实现的断言改为在拼接源上执行,契约不变。
+  // 展示模板迁至 components/detail 下的三个组件。涉及这些实现的断言
+  // 改为在拼接源上执行,契约不变。
   const armorBuildsComposable = read('composables/useArmorSetBuilds.ts')
-  const combinedArmorSource = `${content}\n${armorBuildsComposable}`
+  const armorPageStyles = read('assets/css/domains/armor-set-detail-page.css')
+  const armorPresentationPaths = [
+    'components/detail/DetailArmorSetSkeleton.vue',
+    'components/detail/ArmorBuildMatrix.vue',
+    'components/detail/ArmorRecipeTable.vue',
+  ]
+  const armorPresentationSources = armorPresentationPaths.map((componentPath) => {
+    try {
+      return read(componentPath)
+    } catch {
+      violations.push(`${componentPath}: armor detail presentation component is required`)
+      return ''
+    }
+  })
+  const combinedArmorSource = [content, armorBuildsComposable, ...armorPresentationSources, armorPageStyles].join('\n')
+
+  for (const componentName of ['DetailArmorSetSkeleton', 'ArmorBuildMatrix', 'ArmorRecipeTable']) {
+    if (!content.includes(`<${componentName}`)) {
+      violations.push(`${path}: must render extracted ${componentName} component`)
+    }
+  }
+  const pageLineCount = content.trimEnd().split(/\r?\n/).length
+  if (pageLineCount >= 800) {
+    violations.push(`${path}: source must stay below 800 lines, found ${pageLineCount}`)
+  }
   for (const [pattern, message] of [
     [
       String.raw`const armorStatGroups = computed`,
@@ -376,7 +401,7 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must group recipe and preview modules in the same right rail',
     ],
     [
-      String.raw`class="armor-side-stack"[\s\S]*class="support-panel armor-module armor-crafting-module"[\s\S]*armor-preview-under-crafting[\s\S]*class="support-panel armor-module armor-preview-module"`,
+      String.raw`class="armor-side-stack"[\s\S]*<ArmorRecipeTable[\s\S]*armor-preview-under-crafting[\s\S]*class="support-panel armor-module armor-preview-module"`,
       'armor set preview images must render directly under the crafting recipe module in the right rail',
     ],
     [
@@ -518,7 +543,7 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   if (content.includes('armor-detail-icon-stage')) {
     violations.push(`${path}: armor set detail must not keep the previous image-led hero stage`)
   }
-  if (/\.armor-crafting-chip-line\s*\{[^}]*display:\s*flex;/.test(content)) {
+  if (/\.armor-crafting-chip-line\s*\{[^}]*display:\s*flex;/.test(combinedArmorSource)) {
     violations.push(`${path}: armor set recipe material table cell must not use flex display because it breaks column width`)
   }
 

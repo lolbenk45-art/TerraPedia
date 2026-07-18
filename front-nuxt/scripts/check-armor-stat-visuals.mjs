@@ -4,6 +4,11 @@ import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pagePath = resolve(__dirname, '../pages/armor-sets/[id].vue')
+const armorPresentationComponentPaths = [
+  resolve(__dirname, '../components/detail/DetailArmorSetSkeleton.vue'),
+  resolve(__dirname, '../components/detail/ArmorBuildMatrix.vue'),
+  resolve(__dirname, '../components/detail/ArmorRecipeTable.vue'),
+]
 // WP-1 split: 中文效果文案解析引擎迁至 utils/armorEffectParsing.ts,
 // build 计算引擎迁至 composables/useArmorSetBuilds.ts。
 // 合同标记可能落在页面或迁出文件,故把它们拼接后统一断言,保持契约不变。
@@ -11,8 +16,10 @@ const contractSourcePaths = [
   pagePath,
   resolve(__dirname, '../utils/armorEffectParsing.ts'),
   resolve(__dirname, '../composables/useArmorSetBuilds.ts'),
+  ...armorPresentationComponentPaths,
+  resolve(__dirname, '../assets/css/domains/armor-set-detail-page.css'),
 ]
-const source = contractSourcePaths
+const contractSources = contractSourcePaths
   .map((path) => {
     try {
       return readFileSync(path, 'utf8')
@@ -20,7 +27,9 @@ const source = contractSourcePaths
       return ''
     }
   })
+const source = contractSources
   .join('\n')
+const pageSource = contractSources[0] ?? ''
 
 const requiredMarkers = [
   'armor-build-board',
@@ -206,6 +215,21 @@ const requiredMarkers = [
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
+for (const componentPath of armorPresentationComponentPaths) {
+  const sourceIndex = contractSourcePaths.indexOf(componentPath)
+  if (!contractSources[sourceIndex]?.trim()) {
+    missing.push(`required armor presentation source ${componentPath}`)
+  }
+}
+for (const componentName of ['DetailArmorSetSkeleton', 'ArmorBuildMatrix', 'ArmorRecipeTable']) {
+  if (!pageSource.includes(`<${componentName}`)) {
+    missing.push(`page component reference ${componentName}`)
+  }
+}
+const pageLineCount = pageSource.trimEnd().split(/\r?\n/).length
+if (pageLineCount >= 800) {
+  missing.push(`armor set detail page line count ${pageLineCount} must stay below 800`)
+}
 const forbiddenMarkers = [
   'armor-stat-source-images',
   'armorStatPreviewItems',
