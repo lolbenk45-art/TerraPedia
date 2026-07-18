@@ -321,7 +321,7 @@ const kpiStats = computed<KpiStat[]>(() => [
     value: totalItemCount.value,
     label: '物品总数',
     hint: '已收录的物品主数据',
-    gradient: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
+    gradient: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)',
     to: '/items',
   },
   {
@@ -329,7 +329,7 @@ const kpiStats = computed<KpiStat[]>(() => [
     value: totalCategoryCount.value,
     label: '分类总数',
     hint: `${statisticsStore.rootCategoryCount} 个根分类`,
-    gradient: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
+    gradient: 'linear-gradient(135deg, var(--color-info) 0%, var(--color-primary-light) 100%)',
     to: '/categories',
   },
   {
@@ -337,7 +337,7 @@ const kpiStats = computed<KpiStat[]>(() => [
     value: overview.value.totalPublishedArticles,
     label: '已发布文章',
     hint: '面向前台的已发布内容',
-    gradient: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)',
+    gradient: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-primary-light) 100%)',
     to: '/articles',
   },
   {
@@ -345,7 +345,7 @@ const kpiStats = computed<KpiStat[]>(() => [
     value: statisticsStore.totalEntities,
     label: '实体总量',
     hint: 'Boss / NPC / Buff / 群系 / 套装 / 射弹',
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+    gradient: 'linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%)',
     to: '/entities/bosses',
   },
 ])
@@ -984,17 +984,17 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.tag--info { background: #dff5ff; color: #075985; }
-.tag--slate { background: #e2e8f0; color: #475569; }
-.tag--emerald { background: #dcfce7; color: #15803d; }
-.tag--sky { background: #e0f2fe; color: #0369a1; }
+.tag--info { background: var(--color-info-muted); color: var(--color-info); }
+.tag--slate { background: color-mix(in srgb, var(--color-secondary) 14%, transparent); color: var(--color-secondary); }
+.tag--emerald { background: var(--color-success-muted); color: var(--color-success); }
+.tag--sky { background: var(--color-info-muted); color: var(--color-info); }
 .tag--violet { background: #ede9fe; color: #6d28d9; }
-.tag--amber { background: #fef3c7; color: #b45309; }
+.tag--amber { background: var(--color-warning-muted); color: var(--color-warning); }
 .tag--fuchsia { background: #fae8ff; color: #a21caf; }
 .tag--rose { background: #ffe4e6; color: #be123c; }
 .tag--orange { background: #ffedd5; color: #c2410c; }
 .tag--cyan { background: #cffafe; color: #0e7490; }
-.tag--red { background: #fee2e2; color: #b91c1c; }
+.tag--red { background: var(--color-danger-muted); color: var(--color-danger); }
 
 .loading-placeholder,
 .empty-text {

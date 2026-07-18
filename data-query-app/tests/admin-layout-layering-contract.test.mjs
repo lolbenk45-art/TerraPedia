@@ -10,9 +10,11 @@ function read(relativePath) {
 }
 
 const variables = read('assets/css/variables.css')
+const mainCss = read('assets/css/main.css')
 const layout = read('layouts/default.vue')
 const dashboard = read('pages/index.vue')
 const login = read('pages/login.vue')
+const categories = read('pages/categories.vue')
 const categoryTreeNode = read('components/CategoryTreeNode.vue')
 const lookupInput = read('components/AdminItemLookupInput.vue')
 const articleEditorWorkspace = read('components/article/ArticleEditorWorkspace.vue')
@@ -21,6 +23,12 @@ const appModal = read('components/AppModal.vue')
 const appToast = read('components/AppToast.vue')
 const armorAttributesPage = read('pages/operations/armor-attributes.vue')
 const crawlerMonitorPage = read('pages/operations/crawler-monitor.vue')
+
+function scopedStyle(source) {
+  const match = source.match(/<style scoped>([\s\S]*?)<\/style>/)
+  assert.ok(match, 'expected a scoped style block')
+  return match[1]
+}
 
 test('admin typography and structural icons use deterministic platform fallbacks', () => {
   assert.match(
@@ -116,4 +124,67 @@ test('dashboard keeps panorama compact and prioritizes downstream data blocks', 
   assert.match(dashboard, /\.dashboard__split\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1\.25fr\) minmax\(320px, 0\.75fr\)/)
   assert.match(dashboard, /\.quick-action\s*\{[\s\S]*min-height:\s*64px/)
   assert.match(dashboard, /\.ops-card\s*\{[\s\S]*min-height:\s*62px/)
+})
+
+test('login theme colors come from semantic tokens without changing component geometry', () => {
+  const style = scopedStyle(login)
+
+  assert.doesNotMatch(style, /#[0-9a-f]{3,8}\b/i)
+  assert.doesNotMatch(style, /rgba?\(/i)
+  assert.match(style, /color-mix\(in srgb, var\(--color-primary\)/)
+  assert.match(style, /color-mix\(in srgb, var\(--color-info\)/)
+  assert.match(style, /var\(--color-bg\)/)
+  assert.match(style, /var\(--color-bg-shell\)/)
+  assert.match(style, /var\(--color-bg-secondary\)/)
+  assert.match(style, /var\(--color-surface-1\)/)
+  assert.match(style, /var\(--color-border\)/)
+  assert.match(style, /var\(--color-text\)/)
+  assert.match(style, /var\(--color-text-secondary\)/)
+  assert.match(style, /var\(--color-text-muted\)/)
+  assert.match(style, /var\(--color-text-inverse\)/)
+  assert.match(style, /var\(--color-danger\)/)
+  assert.match(style, /var\(--shadow-focus\)/)
+  assert.match(style, /var\(--shadow-(?:card|xl|glow)\)/)
+})
+
+test('dashboard KPI gradients and semantic tags follow theme tokens while category palettes stay fixed', () => {
+  const kpiStats = dashboard.match(/const kpiStats = computed<KpiStat\[]>\(\(\) => \[([\s\S]*?)\n\]\)/)?.[1]
+  assert.ok(kpiStats, 'expected the kpiStats definition')
+
+  const gradients = [...kpiStats.matchAll(/gradient:\s*'([^']+)'/g)].map((match) => match[1])
+  assert.equal(gradients.length, 4)
+  for (const gradient of gradients) {
+    assert.doesNotMatch(gradient, /#[0-9a-f]{3,8}\b/i)
+    assert.match(gradient, /^linear-gradient\(135deg, var\(--color-[a-z-]+\) 0%, var\(--color-[a-z-]+\) 100%\)$/)
+  }
+
+  assert.match(dashboard, /^\.tag--info \{ background: var\(--color-info-muted\); color: var\(--color-info\); \}$/m)
+  assert.match(dashboard, /^\.tag--slate \{ background: color-mix\(in srgb, var\(--color-secondary\) 14%, transparent\); color: var\(--color-secondary\); \}$/m)
+  assert.match(dashboard, /^\.tag--emerald \{ background: var\(--color-success-muted\); color: var\(--color-success\); \}$/m)
+  assert.match(dashboard, /^\.tag--sky \{ background: var\(--color-info-muted\); color: var\(--color-info\); \}$/m)
+  assert.match(dashboard, /^\.tag--amber \{ background: var\(--color-warning-muted\); color: var\(--color-warning\); \}$/m)
+  assert.match(dashboard, /^\.tag--red \{ background: var\(--color-danger-muted\); color: var\(--color-danger\); \}$/m)
+
+  assert.match(dashboard, /^\.tag--violet \{ background: #ede9fe; color: #6d28d9; \}$/m)
+  assert.match(dashboard, /^\.tag--fuchsia \{ background: #fae8ff; color: #a21caf; \}$/m)
+  assert.match(dashboard, /^\.tag--rose \{ background: #ffe4e6; color: #be123c; \}$/m)
+  assert.match(dashboard, /^\.tag--orange \{ background: #ffedd5; color: #c2410c; \}$/m)
+  assert.match(dashboard, /^\.tag--cyan \{ background: #cffafe; color: #0e7490; \}$/m)
+})
+
+test('categories delegates shared inputs and buttons to the global style layer', () => {
+  const style = scopedStyle(categories)
+
+  assert.doesNotMatch(style, /^\.input(?:--search|--textarea|:focus)?\s*\{/m)
+  assert.doesNotMatch(style, /^\.btn(?:-primary|-secondary)?(?::hover:not\(:disabled\)|:disabled)?\s*\{/m)
+
+  assert.match(mainCss, /^\.input,\n\.textarea\s*\{/m)
+  assert.match(mainCss, /^\.input--search\s*\{/m)
+  assert.match(mainCss, /^\.input:focus,\n\.textarea:focus\s*\{/m)
+  assert.match(mainCss, /^\.btn\s*\{/m)
+  assert.match(mainCss, /^\.btn:hover:not\(:disabled\)\s*\{/m)
+  assert.match(mainCss, /^\.btn:disabled\s*\{/m)
+  assert.match(mainCss, /^\.btn-primary,\n\.btn-strong\s*\{/m)
+  assert.match(mainCss, /^\.btn-primary:hover:not\(:disabled\),\n\.btn-strong:hover:not\(:disabled\)\s*\{/m)
+  assert.match(mainCss, /^\.btn-secondary,\n\.btn-ghost\s*\{/m)
 })

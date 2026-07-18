@@ -107,9 +107,9 @@ const handleLogin = async () => {
   overflow: hidden;
   padding: 24px;
   background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(14, 116, 144, 0.22), transparent 30%),
-    linear-gradient(160deg, #f4fbfa 0%, #eef7f6 45%, #f8fbff 100%);
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 34%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--color-info) 22%, transparent), transparent 30%),
+    linear-gradient(160deg, var(--color-bg) 0%, var(--color-bg-shell) 45%, var(--color-bg-secondary) 100%);
 }
 
 .login-page__bg {
@@ -124,7 +124,7 @@ const handleLogin = async () => {
   height: 320px;
   left: -80px;
   top: -80px;
-  background: rgba(20, 184, 166, 0.18);
+  background: color-mix(in srgb, var(--color-primary-light) 18%, transparent);
 }
 
 .login-page__bg--right {
@@ -132,7 +132,7 @@ const handleLogin = async () => {
   height: 280px;
   right: -60px;
   bottom: -40px;
-  background: rgba(14, 116, 144, 0.16);
+  background: color-mix(in srgb, var(--color-info) 16%, transparent);
 }
 
 .login-card {
@@ -141,9 +141,9 @@ const handleLogin = async () => {
   z-index: 1;
   border-radius: 28px;
   padding: 32px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+  background: var(--color-surface-1);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  box-shadow: var(--shadow-xl);
   backdrop-filter: blur(18px);
 }
 
@@ -162,9 +162,9 @@ const handleLogin = async () => {
   justify-content: center;
   border-radius: 18px;
   font-size: 1.75rem;
-  color: white;
-  background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
-  box-shadow: 0 14px 30px rgba(15, 118, 110, 0.24);
+  color: var(--color-text-inverse);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-info) 100%);
+  box-shadow: var(--shadow-glow);
 }
 
 .login-card__eyebrow {
@@ -173,20 +173,20 @@ const handleLogin = async () => {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: var(--color-primary-dark);
 }
 
 .login-card__title {
   margin: 0;
   font-size: 1.8rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .login-card__subtitle {
   margin: 0 0 24px;
   line-height: 1.65;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .login-form__group {
@@ -199,30 +199,30 @@ const handleLogin = async () => {
 .login-form__label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-secondary);
 }
 
 .login-form__input {
   width: 100%;
   padding: 13px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(255, 255, 255, 0.92);
-  color: #0f172a;
+  border: 1px solid color-mix(in srgb, var(--color-border) 92%, transparent);
+  background: color-mix(in srgb, var(--color-surface-2) 92%, transparent);
+  color: var(--color-text);
   font-size: 0.95rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .login-form__input:focus {
   outline: none;
-  border-color: #0f766e;
-  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 .login-form__error {
   margin: -4px 0 16px;
   font-size: 0.875rem;
-  color: #b91c1c;
+  color: var(--color-danger);
 }
 
 .login-form__submit {
@@ -232,10 +232,10 @@ const handleLogin = async () => {
   padding: 14px 16px;
   font-size: 0.95rem;
   font-weight: 700;
-  color: white;
+  color: var(--color-text-inverse);
   cursor: pointer;
-  background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
-  box-shadow: 0 16px 30px rgba(14, 116, 144, 0.22);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-info) 100%);
+  box-shadow: var(--shadow-glow);
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
@@ -254,7 +254,7 @@ const handleLogin = async () => {
   justify-content: space-between;
   gap: 16px;
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 560px) {
