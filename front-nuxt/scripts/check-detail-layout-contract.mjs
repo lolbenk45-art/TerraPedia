@@ -354,6 +354,7 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   // 展示模板迁至 components/detail 下的三个组件。涉及这些实现的断言
   // 改为在拼接源上执行,契约不变。
   const armorBuildsComposable = read('composables/useArmorSetBuilds.ts')
+  const armorEffectParser = read('utils/armorEffectParsing.ts')
   const armorPageStyles = read('assets/css/domains/armor-set-detail-page.css')
   const armorPresentationPaths = [
     'components/detail/DetailArmorSetSkeleton.vue',
@@ -368,7 +369,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       return ''
     }
   })
-  const combinedArmorSource = [content, armorBuildsComposable, ...armorPresentationSources, armorPageStyles].join('\n')
+  const combinedArmorPresentationSource = [content, ...armorPresentationSources, armorPageStyles].join('\n')
+  const combinedArmorSource = [combinedArmorPresentationSource, armorBuildsComposable, armorEffectParser].join('\n')
 
   for (const componentName of ['DetailArmorSetSkeleton', 'ArmorBuildMatrix', 'ArmorRecipeTable']) {
     if (!content.includes(`<${componentName}`)) {
@@ -540,11 +542,11 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     assertPattern(path, combinedArmorSource, pattern, message)
   }
 
-  if (content.includes('armor-detail-icon-stage')) {
-    violations.push(`${path}: armor set detail must not keep the previous image-led hero stage`)
+  if (combinedArmorPresentationSource.includes('armor-detail-icon-stage')) {
+    violations.push(`${path} or extracted armor presentation: must not keep the previous image-led hero stage`)
   }
-  if (/\.armor-crafting-chip-line\s*\{[^}]*display:\s*flex;/.test(combinedArmorSource)) {
-    violations.push(`${path}: armor set recipe material table cell must not use flex display because it breaks column width`)
+  if (/\.armor-crafting-chip-line\s*\{[^}]*display:\s*flex;/.test(combinedArmorPresentationSource)) {
+    violations.push(`${path} or extracted armor presentation: recipe material table cell must not use flex display because it breaks column width`)
   }
 
   for (const forbidden of [
@@ -561,8 +563,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     '{{ item.partRole',
     '{{ item.slotType',
   ]) {
-    if (content.includes(forbidden)) {
-      violations.push(`${path}: armor set detail must not expose backend/source fields via marker ${forbidden}`)
+    if (combinedArmorPresentationSource.includes(forbidden)) {
+      violations.push(`${path} or extracted armor presentation: must not expose backend/source fields via marker ${forbidden}`)
     }
   }
 }
