@@ -45,7 +45,8 @@
 - Completed: C4 accessible token migration, semantic KPI gradients, global categories control delegation, and executable light/dark contrast contract with specification and quality approval.
 - Completed: C5 exact audio status/cookie/URL reuse, items whitelist/transforms, request identity/submission safety, failure-aware recipe loads, and executable production-handler/store coverage with final specification and quality approval.
 - Completed: D1 35-owner trimToNull consolidation, Unicode-blank preservation, firstNonBlank source preservation, and focused utility coverage with final specification and quality approval.
-- Not completed: D2-D6 implementation, final gates, and closeout.
+- In progress: D2 trusted-proxy resolver migration is specification-approved but quality-blocked on seven missing resolver-result propagation assertions.
+- Not completed: D3-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -56,10 +57,11 @@
 - C4's focused CSS evaluator supports the current repository hex/rgb/rgba/`var()`/sRGB `color-mix()` subset. It can miss a future cross-semantic KPI mix, decorative page-layer contrast change, or unsupported CSS color syntax; current production expressions were independently checked and remain above 4.5:1.
 - C5's source-execution harness is intentionally scoped to the current SFC/store function syntax; future syntax changes may require adapting the extractor. Current store/page bodies and all relevant async orders execute in the 28-test focused suite.
 - D1's shared helper has a deliberate split: Object `trimToNull` preserves non-ASCII whitespace, while the Unicode-blank variant is limited to the five original `isBlank`/`hasText` owners. The broad backend suite has the same two baseline failures on main and D1: audio stream byte content under broad ordering and Wiki recipe Mockito unnecessary stubbing.
+- D2 production code has no known semantic defect, but seven controller tests stub `ClientIpResolver` while asserting `anyString()` at the downstream service/audit boundary; they would not catch a dropped, replaced, or naive client IP.
 
 ## Follow-up
 
-- Coordinator advances the serialized plan to D2 with a fresh implementer; implementation, specification review, and quality review remain sequential.
+- Original D2 implementer adds one resolver-result propagation assertion per uncovered controller; fresh specification review and then fresh quality review remain mandatory before D3.
 
 ## Commits
 
@@ -90,6 +92,7 @@
 - `a801455` — initial 35-owner AdminTextUtils consolidation; specification-blocked pending semantic and source-preservation repair.
 - `93990ab` — recorded the D1 specification blocker.
 - `d2a8782` — preserved Unicode blank semantics and firstNonBlank source bodies; final reviews approved.
+- `4ab211e7` — replaced eight naive controller IP parsers with trusted-proxy resolver injection; specification-approved, quality-blocked on seven test propagation assertions.
 
 ## Optional: Multi-Agent Coordination
 
@@ -97,7 +100,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, B2, C1, C2, C3, C4, C5, and D1 closed; D2 is the next fresh implementation assignment.
+    - Status: A2, B1, B2, C1, C2, C3, C4, C5, and D1 closed; D2 production implementation is committed and its original implementer owns a tests-only quality repair.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -149,6 +152,7 @@
 - C5 final review: `2e101c9` added an overloaded strict null-on-error store option used only by item edit, failure state gates, executable default/strict store failure behavior, legal empty success, stale-A-first/current-B-pending, and failed-submit coverage. Fresh specification review approved all three code ranges and caller compatibility. Final fresh quality review confirmed the original two Important findings and the later failure-path Important are resolved, reported no Critical/Important/Minor findings, and allowed D1 progression.
 - D1 review: specification review verified the 37-path/35-owner scope, local-definition removal, imports, method references, focused utility test, and unchanged firstNonBlank counts, but found a semantic audit error: five originals rely on Unicode-aware blank detection before ASCII trim. It also found seven firstNonBlank bodies changed only by qualification, violating the explicit no-change boundary. Coordinator verified the five baseline bodies and accepted the minimal repair: a separate Unicode-blank utility variant for only those five owners plus static imports that restore the seven original firstNonBlank bodies. Fresh spec then quality re-review is required.
 - D1 final review: `d2a8782` added a Unicode-blank helper used by exactly 24 calls in the five original Unicode-aware owners and restored all seven firstNonBlank bodies byte-identically through static import. Fresh specification review found no issues. Final quality review confirmed both initial blockers resolved, all 35 local definitions removed, method-reference compatibility, focused 10/10, normal compilation, and main-reproduced broad baselines; it reported no Critical/Important/Minor findings and allowed D2 progression.
+- D2 review: specification review approved `4ab211e7` for the exact eight-controller/eight-test scope, resolver injection, removal of naive parsers, request propagation, and no policy changes. Quality review found one Important coverage gap: seven tests mock a fixed resolver IP but verify downstream calls with `anyString()`, so they do not prove trusted resolver output reaches the audit/service boundary. Disposition: keep D2 active; original implementer adds one exact resolver-result assertion and resolver invocation verification for each uncovered controller, followed by fresh spec then quality re-review. Coordinator independently reran `mvn -Dtest='*Article*,*User*,*Auth*' test` (150/150) and `mvn -DskipTests compile` (BUILD SUCCESS) before the test-quality finding; those commands do not clear the missing assertion contract.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -257,3 +261,9 @@
 - Change: Closed the D1 review gate and advanced the serialized handoff to D2.
 - Reason: the repair restores the five Unicode-aware helper semantics and seven firstNonBlank source bodies without changing the 30-owner Object contract; fresh reviews found no remaining issues.
 - Evidence: commit `d2a8782`; four-error RED→focused 10/10 GREEN; normal compilation; local definitions 0; Unicode calls 24; fresh specification approval; final quality review with no Critical/Important/Minor findings and `Ready to proceed to D2? Yes`.
+
+### 2026-07-19 00:54
+
+- Change: Kept D2 active and assigned a tests-only quality repair instead of advancing to D3.
+- Reason: seven mocks accept `anyString()` downstream, so the new trusted-proxy resolver result is not behavior-proven at those service/audit boundaries.
+- Evidence: commit `4ab211e7`; expected constructor RED; owning 41/41 GREEN; coordinator rerun 150/150 and compilation success; fresh specification approval; quality verdict `Ready to proceed to D3? No` pending seven exact resolver-result assertions.
