@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 01:20 CST by Codex
+Last updated: 2026-07-19 02:12 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -40,7 +40,9 @@ Active branch: `fix/admin-p1-p2-batch`
   specification- and quality-approved after all eight controllers switched to
   trusted-proxy resolution and seven repaired tests prove routed-request identity
   plus exact downstream IP propagation. D3 is specification- and quality-approved
-  after category errors surface true 404/400/500 responses. Begin D4 next.
+  after category errors surface true 404/400/500 responses. D4 is specification-
+  and quality-approved after optional reviewStatus filtering and comment-count N+1
+  removal. Begin D5 next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -109,6 +111,10 @@ Active branch: `fix/admin-p1-p2-batch`
   MockMvc 404/400/500 coverage, final specification review, final quality review,
   and coordinator test/compile validation all pass.
 
+- D4 commit `c7835ee7` preserves no-filter blank reviewStatus semantics, adds the
+  parameterized mapper filter, and removes frontend count refreshes. Backend 62/62,
+  admin contracts 33/33, typecheck, and final reviews all pass.
+
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
   fail-closed behavior.
@@ -125,10 +131,9 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D4
-  with a fresh implementer. Relocate current admin article mapper/service/controller
-  reviewStatus flow and front-end comment-count callers before editing; retain the
-  serialized implementation → specification review → quality review gates.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D5
+  with a fresh implementer. Relocate `syncNpcShopEntries` condition cascade and
+  existing AdminNpcControllerTest Mockito setup before adding the three cases.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -138,7 +143,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- D4-D6 remain unimplemented, and their scout line numbers must be relocated on
+- D5-D6 remain unimplemented, and their scout line numbers must be relocated on
   the current branch. C4's focused CSS evaluator intentionally supports only the
   repository's current syntax subset and does not model future decorative
   background layering.

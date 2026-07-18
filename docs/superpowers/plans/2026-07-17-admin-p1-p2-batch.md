@@ -433,9 +433,9 @@ git commit -m "fix(back): let category management errors surface real HTTP statu
 - Modify: `data-query-app/tests/articles-comment-count-refresh-behavior.test.mjs`（行为断言迁移: 改写为"commentCount 直接取列表响应、零 /comments 调用"）
 - Modify: `data-query-app/tests/admin-global-comment-management-contract.test.mjs`（**评审修正——L61/L71/L72 正向锁定被删符号 `extractArticleCommentCount`/`refreshArticleCommentCounts`/`fetchArticleCommentTotal`，必须同步删/改这些断言，否则 test:unit 全量门禁必红**）
 
-- [ ] **Step 1: 后端三层加 reviewStatus 过滤（TDD：先在现有 AdminArticleControllerTest 风格下加过滤断言用例）**
-- [ ] **Step 2: 前端删 N+1 补偿，改读 commentCount 字段**；注意口径：admin 子查询是"根评论数"未过滤 deleted，如 article-comments 页显示语义需要总数，保持现字段并在 UI 文案注明"评论"即可，不做后端口径改动
-- [ ] **Step 3: 验证 + 提交**
+- [x] **Step 1: 后端三层加 reviewStatus 过滤（TDD：先在现有 AdminArticleControllerTest 风格下加过滤断言用例）**
+- [x] **Step 2: 前端删 N+1 补偿，改读 commentCount 字段**；注意口径：admin 子查询是"根评论数"未过滤 deleted，如 article-comments 页显示语义需要总数，保持现字段并在 UI 文案注明"评论"即可，不做后端口径改动
+- [x] **Step 3: 验证 + 提交**
 
 ```bash
 cd back && mvn test -Dtest='*Article*' 2>&1 | grep -E "Tests run.*Fail|BUILD"
