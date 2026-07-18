@@ -55,6 +55,7 @@ class UserSavedRouteControllerTest {
 
         mockMvc.perform(post("/user/saved-routes")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("X-D2-Request-Identity", "saved-route")
                 .content("""
                     {
                       "targetType": "CRAFTING_ITEM",
@@ -73,7 +74,9 @@ class UserSavedRouteControllerTest {
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
         verify(userSavedRouteService).saveRoute(userIdCaptor.capture(), any(UserSavedRouteRequestDTO.class), eq("203.0.113.9"));
-        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.argThat(request -> request != null
+            && "/user/saved-routes".equals(request.getRequestURI())
+            && "saved-route".equals(request.getHeader("X-D2-Request-Identity"))));
         assertEquals(42L, userIdCaptor.getValue());
     }
 

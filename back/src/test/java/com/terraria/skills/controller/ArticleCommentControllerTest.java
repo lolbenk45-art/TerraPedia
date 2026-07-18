@@ -103,6 +103,7 @@ class ArticleCommentControllerTest {
 
         mockMvc.perform(post("/articles/77/comments")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("X-D2-Request-Identity", "article-comment-create")
                 .content(objectMapper.writeValueAsString(request))
                 .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, claims(42L)))
             .andExpect(status().isOk())
@@ -111,7 +112,9 @@ class ArticleCommentControllerTest {
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
         verify(articleCommentService).createComment(userIdCaptor.capture(), eq(77L), eq("补充一个材料顺序。"), eq("203.0.113.9"));
-        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.argThat(httpRequest -> httpRequest != null
+            && "/articles/77/comments".equals(httpRequest.getRequestURI())
+            && "article-comment-create".equals(httpRequest.getHeader("X-D2-Request-Identity"))));
         assertEquals(42L, userIdCaptor.getValue());
     }
 

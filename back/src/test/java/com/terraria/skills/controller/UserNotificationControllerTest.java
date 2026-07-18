@@ -77,12 +77,15 @@ class UserNotificationControllerTest {
 
         mockMvc.perform(patch("/user/notifications/9/read")
                 .param("userId", "43")
+                .header("X-D2-Request-Identity", "notification-read")
                 .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, claims(42L)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.read").value(true));
 
         verify(userNotificationService).markRead(eq(42L), eq(9L), eq("203.0.113.9"));
-        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.argThat(request -> request != null
+            && "/user/notifications/9/read".equals(request.getRequestURI())
+            && "notification-read".equals(request.getHeader("X-D2-Request-Identity"))));
     }
 
     @Test

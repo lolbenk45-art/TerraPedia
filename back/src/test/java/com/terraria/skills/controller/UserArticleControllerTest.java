@@ -98,6 +98,7 @@ class UserArticleControllerTest {
 
             mockMvc.perform(post("/user/articles")
                     .contentType("application/json")
+                    .header("X-D2-Request-Identity", "user-article-create")
                     .content("{\"title\":\"Draft\",\"contentHtml\":\"<p>Body</p>\"}")
                     .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, claims(CURRENT_USER_ID)))
                 .andExpect(status().isCreated())
@@ -109,7 +110,9 @@ class UserArticleControllerTest {
                 eq("User " + CURRENT_USER_ID),
                 eq("203.0.113.9")
             );
-            verify(clientIpResolver).resolve(any());
+            verify(clientIpResolver).resolve(argThat(request -> request != null
+                && "/user/articles".equals(request.getRequestURI())
+                && "user-article-create".equals(request.getHeader("X-D2-Request-Identity"))));
         }
 
         @Test

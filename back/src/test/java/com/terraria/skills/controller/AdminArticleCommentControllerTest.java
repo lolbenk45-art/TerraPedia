@@ -106,6 +106,7 @@ class AdminArticleCommentControllerTest {
 
         mockMvc.perform(patch("/admin/articles/77/comments/9/status")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("X-D2-Request-Identity", "admin-comment-status")
                 .content("{\"status\":\"HIDDEN\",\"reason\":\"spam\"}")
                 .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, claims()))
             .andExpect(status().isOk())
@@ -114,7 +115,9 @@ class AdminArticleCommentControllerTest {
             .andExpect(jsonPath("$.data.deletedReason").value("spam"));
 
         verify(adminArticleCommentService).updateCommentStatus(eq(77L), eq(9L), eq("HIDDEN"), eq("spam"), eq("admin"), eq("203.0.113.9"));
-        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.argThat(request -> request != null
+            && "/admin/articles/77/comments/9/status".equals(request.getRequestURI())
+            && "admin-comment-status".equals(request.getHeader("X-D2-Request-Identity"))));
     }
 
     @Test

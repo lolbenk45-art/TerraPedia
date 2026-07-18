@@ -57,6 +57,7 @@ class UserReadingHistoryControllerTest {
 
         mockMvc.perform(post("/user/history/ARTICLE/77")
                 .param("userId", "43")
+                .header("X-D2-Request-Identity", "reading-history-record")
                 .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, UserTokenClaims.builder()
                     .userId(42L)
                     .email("user@example.com")
@@ -65,7 +66,9 @@ class UserReadingHistoryControllerTest {
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
         verify(userReadingHistoryService).record(userIdCaptor.capture(), eq("ARTICLE"), eq(77L), eq("203.0.113.9"));
-        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.argThat(request -> request != null
+            && "/user/history/ARTICLE/77".equals(request.getRequestURI())
+            && "reading-history-record".equals(request.getHeader("X-D2-Request-Identity"))));
         assertEquals(42L, userIdCaptor.getValue());
     }
 
