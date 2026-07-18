@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -1263,6 +1265,109 @@ class AdminNpcControllerTest {
     }
 
     @Test
+    void shouldCascadeInsertNormalizedShopConditionsWhenReplacingShopEntries() throws Exception {
+        stubNpcUpdateForShopEntries();
+        when(jdbcTemplate.queryForList("SELECT id FROM npc_shop_entries WHERE npc_id = ?", 7L)).thenReturn(List.of());
+        when(jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class)).thenReturn(99L);
+
+        mockMvc.perform(put("/admin/npcs/7")
+                .contentType(APPLICATION_JSON)
+                .content("""
+                    {
+                      "shopEntries": [
+                        {
+                          "itemId": 8,
+                          "conditions": [
+                            { "refType": "moon_phase", "refId": 5 }
+                          ]
+                        }
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+
+        verify(jdbcTemplate).update(
+            contains("INSERT INTO npc_shop_conditions"),
+            eq(99L),
+            eq("WORLD_CONTEXT"),
+            eq(5L),
+            eq("required"),
+            isNull(),
+            eq(1)
+        );
+        verify(jdbcTemplate, never()).update(
+            contains("DELETE FROM npc_shop_conditions WHERE shop_entry_id IN"),
+            any(Object[].class)
+        );
+    }
+
+    @Test
+    void shouldSkipShopConditionRowsWithInvalidRefTypeOrRefId() throws Exception {
+        stubNpcUpdateForShopEntries();
+        when(jdbcTemplate.queryForList("SELECT id FROM npc_shop_entries WHERE npc_id = ?", 7L)).thenReturn(List.of());
+        when(jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class)).thenReturn(99L);
+
+        mockMvc.perform(put("/admin/npcs/7")
+                .contentType(APPLICATION_JSON)
+                .content("""
+                    {
+                      "shopEntries": [
+                        {
+                          "itemId": 8,
+                          "conditions": [
+                            { "refType": "unknown", "refId": 5 },
+                            { "refType": "ITEM", "refId": 0 }
+                          ]
+                        }
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+
+        verify(jdbcTemplate, never()).update(
+            contains("INSERT INTO npc_shop_conditions"),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any()
+        );
+    }
+
+    @Test
+    void shouldDeleteOldShopConditionsByEntryIdsBeforeDeletingEntries() throws Exception {
+        stubNpcUpdateForShopEntries();
+        when(jdbcTemplate.queryForList("SELECT id FROM npc_shop_entries WHERE npc_id = ?", 7L)).thenReturn(List.of(
+            Map.of("id", 21L),
+            Map.of("id", 22L)
+        ));
+        when(jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class)).thenReturn(99L);
+
+        mockMvc.perform(put("/admin/npcs/7")
+                .contentType(APPLICATION_JSON)
+                .content("""
+                    {
+                      "shopEntries": [
+                        { "id": 21, "itemId": 8 }
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+
+        InOrder updates = inOrder(jdbcTemplate);
+        updates.verify(jdbcTemplate).update(
+            contains("DELETE FROM npc_shop_conditions WHERE shop_entry_id IN"),
+            eq(21L),
+            eq(22L)
+        );
+        updates.verify(jdbcTemplate).update("DELETE FROM npc_shop_entries WHERE npc_id = ?", 7L);
+    }
+
+    @Test
     void shouldReplaceOnlyNpcDropLootRowsWhenUpdatingNpcLootEntries() throws Exception {
         Npc existing = new Npc();
         existing.setId(7L);
@@ -1335,6 +1440,33 @@ class AdminNpcControllerTest {
             isNull(),
             eq(1)
         );
+    }
+
+    private void stubNpcUpdateForShopEntries() {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setNameZh("Guide Zh");
+        npc.setIsTownNpc(true);
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(npcMapper.selectCount(any())).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(22L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Guide")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Guide"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(7L))).thenReturn(List.of());
     }
 
     private Object timedNpcSupplementCache(Map<Long, Map<String, Object>> value) throws Exception {
