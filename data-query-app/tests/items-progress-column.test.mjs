@@ -10,7 +10,6 @@ const entitiesPage = readPage('entities', '[type].vue')
 const itemsPage = readPage('items.vue')
 const queryPage = readPage('query.vue')
 const usersPage = readPage('users.vue')
-const flexibleTrackPattern = /^minmax\(\s*0(?:px)?\s*,\s*(\d+(?:\.\d+)?|\.\d+)fr\s*\)$/
 
 const getCssRule = (source, selector) => {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -41,6 +40,35 @@ const splitGridTracks = (value) => {
 
   if (current) tracks.push(current)
   return tracks
+}
+
+const getBalancedBlock = (source, openingBraceIndex) => {
+  let depth = 0
+
+  for (let index = openingBraceIndex; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1
+    if (source[index] !== '}') continue
+
+    depth -= 1
+    if (depth === 0) return source.slice(openingBraceIndex + 1, index)
+  }
+
+  return ''
+}
+
+const getMediaBlock = (source, maxWidth) => {
+  const mediaPattern = new RegExp(`@media\\s*\\(\\s*max-width\\s*:\\s*${maxWidth}px\\s*\\)\\s*\\{`)
+  const match = mediaPattern.exec(source)
+  if (!match) return ''
+
+  const openingBraceIndex = source.indexOf('{', match.index)
+  return getBalancedBlock(source, openingBraceIndex)
+}
+
+const getReadableFractionTrackMinimum = (track) => {
+  const match = track.match(/^minmax\(\s*(\d+(?:\.\d+)?)px\s*,\s*(\d+(?:\.\d+)?|\.\d+)fr\s*\)$/)
+  if (!match || Number.parseFloat(match[2]) <= 0) return null
+  return Number.parseFloat(match[1])
 }
 
 test('items list progress column only renders game period', () => {
@@ -101,28 +129,46 @@ for (const { name, page, minimumActionWidth } of [
   })
 }
 
-test('article list toolbar uses shrinkable control tracks before its intrinsic action buttons', () => {
+test('article list command bar stacks a readable six-track toolbar by default', () => {
+  const commandBarRule = getCssRule(articleCommentsPage, '.article-list-command-bar')
   const toolbarRule = getCssRule(articleCommentsPage, '.article-list-toolbar')
-  const tracks = splitGridTracks(getDeclaration(toolbarRule, 'grid-template-columns'))
+  const controlRule = getCssRule(articleCommentsPage, '.article-list-toolbar :where(.comment-input, .page-btn)')
+  const commandBarTracks = splitGridTracks(getDeclaration(commandBarRule, 'grid-template-columns'))
+  const toolbarTracks = splitGridTracks(getDeclaration(toolbarRule, 'grid-template-columns'))
+  const controlHeight = Number.parseFloat(getDeclaration(controlRule, 'min-height'))
 
-  assert.equal(tracks.length, 6)
-  assert.ok(tracks.slice(0, 4).every((track) => {
-    const match = track.match(flexibleTrackPattern)
-    return match && Number.parseFloat(match[1]) > 0
-  }))
-  assert.deepEqual(tracks.slice(4), ['max-content', 'max-content'])
-  assert.match(articleCommentsPage, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.article-list-command-bar\s*\{\s*grid-template-columns:\s*1fr;/)
-  assert.match(articleCommentsPage, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.comment-toolbar\s*\{\s*grid-template-columns:\s*1fr;/)
+  assert.deepEqual(commandBarTracks, ['1fr'])
+  assert.equal(toolbarTracks.length, 6)
+  assert.ok((getReadableFractionTrackMinimum(toolbarTracks[0]) ?? 0) >= 220)
+  assert.deepEqual(toolbarTracks.slice(1, 4), ['150px', '130px', '100px'])
+  assert.deepEqual(toolbarTracks.slice(4), ['max-content', 'max-content'])
+  assert.match(getDeclaration(controlRule, 'min-height'), /^\d+(?:\.\d+)?px$/)
+  assert.ok(controlHeight >= 44)
 })
 
-test('article list command bar keeps both desktop tracks shrinkable above its mobile breakpoint', () => {
-  const commandBarRule = getCssRule(articleCommentsPage, '.article-list-command-bar')
-  const tracks = splitGridTracks(getDeclaration(commandBarRule, 'grid-template-columns'))
+test('article list toolbar uses four readable filter tracks at the intermediate breakpoint', () => {
+  const intermediateBlock = getMediaBlock(articleCommentsPage, 1200)
+  const commandBarRule = getCssRule(intermediateBlock, '.article-list-command-bar')
+  const toolbarRule = getCssRule(intermediateBlock, '.article-list-toolbar')
+  const commandBarTracks = splitGridTracks(getDeclaration(commandBarRule, 'grid-template-columns'))
+  const toolbarTracks = splitGridTracks(getDeclaration(toolbarRule, 'grid-template-columns'))
+  const minimumWidths = toolbarTracks.map(getReadableFractionTrackMinimum)
+  const intermediateIndex = articleCommentsPage.search(/@media\s*\(\s*max-width\s*:\s*1200px\s*\)/)
+  const mobileIndex = articleCommentsPage.search(/@media\s*\(\s*max-width\s*:\s*760px\s*\)/)
 
-  assert.equal(tracks.length, 2)
-  assert.ok(tracks.every((track) => {
-    const match = track.match(flexibleTrackPattern)
-    return match && Number.parseFloat(match[1]) > 0
-  }))
-  assert.match(articleCommentsPage, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.article-list-command-bar\s*\{\s*grid-template-columns:\s*1fr;/)
+  assert.notEqual(intermediateBlock, '')
+  assert.ok(intermediateIndex >= 0 && intermediateIndex < mobileIndex)
+  assert.deepEqual(commandBarTracks, ['1fr'])
+  assert.equal(toolbarTracks.length, 4)
+  assert.deepEqual(minimumWidths, [220, 130, 120, 100])
+})
+
+test('article list command and toolbar stay single-column inside the bounded mobile media block', () => {
+  const mobileBlock = getMediaBlock(articleCommentsPage, 760)
+  const commandBarRule = getCssRule(mobileBlock, '.article-list-command-bar')
+  const toolbarRule = getCssRule(mobileBlock, '.article-list-toolbar')
+
+  assert.notEqual(mobileBlock, '')
+  assert.deepEqual(splitGridTracks(getDeclaration(commandBarRule, 'grid-template-columns')), ['1fr'])
+  assert.deepEqual(splitGridTracks(getDeclaration(toolbarRule, 'grid-template-columns')), ['1fr'])
 })

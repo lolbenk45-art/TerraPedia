@@ -799,7 +799,7 @@ onMounted(async () => {
 }
 
 .article-list-command-bar {
-  grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr);
+  grid-template-columns: 1fr;
   align-items: end;
 }
 
@@ -816,7 +816,11 @@ onMounted(async () => {
 }
 
 .article-list-toolbar {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(220px, 1fr) 150px 130px 100px max-content max-content;
+}
+
+.article-list-toolbar :where(.comment-input, .page-btn) {
+  min-height: 44px;
 }
 
 .comment-filter-toolbar {
@@ -1548,6 +1552,16 @@ onMounted(async () => {
   color: var(--color-text);
 }
 
+@media (max-width: 1200px) {
+  .article-list-command-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .article-list-toolbar {
+    grid-template-columns: minmax(220px, 1fr) minmax(130px, .65fr) minmax(120px, .6fr) minmax(100px, .5fr);
+  }
+}
+
 @media (max-width: 980px) {
   .comment-moderation-workspace,
   .comment-detail-layout {
@@ -1578,7 +1592,8 @@ onMounted(async () => {
     justify-content: flex-start;
   }
 
-  .comment-toolbar {
+  .comment-toolbar,
+  .article-list-toolbar {
     grid-template-columns: 1fr;
   }
 }
