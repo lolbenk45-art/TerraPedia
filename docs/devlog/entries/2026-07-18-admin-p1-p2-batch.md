@@ -31,12 +31,14 @@
 
 - Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts and full admin unit suite; C1 icon/font contracts, typecheck, DOM inspection, and Playwright screenshots; C2 focused contracts, typecheck, diff check, and Chromium computed-box probes.
 - Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu. C2's final specificity contract observed the expected 10/11 RED under the old `:where` selector and 11/11 GREEN after `fd3689e`; independent typecheck and 11/11 rerun passed. Browser probes at 1280/1130/1024/900/800/761/760 measured all six controls at computed/actual 44px with no document, command-bar, or toolbar overflow; specification and quality re-review reported no remaining findings.
-- Not run: C3-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
+- C3 initial implementation observed the expected focused 5/8 RED, then passed focused 8/8, admin typecheck, and specification review. Quality review found one Important transactional pagination failure and a related static-test weakness; the repair and re-review remain pending.
+- Not run: C4-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
 
 ## Result
 
 - Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, C1, and C2 with specification, quality, and required runtime approval.
-- Not completed: C3-D6 implementation, final gates, and closeout.
+- In review repair: C3 token and initial pagination implementation is committed and specification-approved, but transactional failure/clamping behavior is not quality-approved.
+- Not completed: C3 quality repair, C4-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -46,7 +48,7 @@
 
 ## Follow-up
 
-- Coordinator `/root` advances the serialized plan to C3 with a fresh implementer; implementation, specification review, and quality review remain sequential.
+- Coordinator `/root` returns the C3 Important finding to the original implementer for a test-first transactional page-state and contraction-clamp repair, then repeats specification and quality review before C4.
 
 ## Commits
 
@@ -62,6 +64,8 @@
 - `6d66c8f` — recorded the first C2 quality-review blocker in the coordinator-owned plan and devlog.
 - `635f5ba` — restored readable tiered article filter tracks and replaced the media regex with brace-bounded parsing.
 - `fd3689e` — made the 44px toolbar control rule win the CSS cascade and added a specificity regression contract.
+- `4abfd63` — recorded C2 approval and advanced the serialized handoff to C3.
+- `c20d7b2` — repaired seven classification-audit tokens and added the initial shared five-section pager; quality repair remains open.
 
 ## Optional: Multi-Agent Coordination
 
@@ -69,7 +73,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, B2, C1, and C2 closed; C3 is the next fresh implementation assignment.
+    - Status: A2, B1, B2, C1, and C2 closed; C3 is active with a quality-review repair assigned to its original implementer.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -114,6 +118,7 @@
 - B2 review: specification review confirmed the exact eight-file scope, live parent/workbench preservation, and two minimal stale-contract corrections. Quality review independently passed focused contracts 35/35, typecheck, and full unit 367/367 with no findings.
 - C1 review: specification review confirmed the exact font stack, icon sizes/semantics, accessibility hiding, and four-file scope. Quality review found one non-blocking Minor that the source contract is more formatting-sensitive than necessary; deferred to `/root` for final batch test-contract cleanup. Runtime screenshots confirmed crisp Package/Folder/FileText rendering with measured 24px/18px bounds and no structural emoji.
 - C2 review: specification review approved the complete `1eee05f..fd3689e` code range after separating the legitimate coordinator-only docs commit from the implementation allowlist; its initial scope-only `COMMIT BLOCKED` verdict was withdrawn on clarified re-review. The first quality review found unreadable zero-minimum filter tracks and a media-query regex that could cross braces; `635f5ba` repaired both. Runtime then exposed the later 38px base rule overriding the intended 44px rule; `fd3689e` added a higher-specificity selector and regression contract. Final quality re-review reported no Critical, Important, or Minor findings and approved progression to C3. The coordinator's fresh seven-viewport probe confirmed 44px actual controls and no overflow; all temporary ports were closed.
+- C3 review: specification review approved `4abfd63..c20d7b2`. Quality review found one Important: `handlePageChange` commits `page` before the request, so failure preserves old response pagination while suppressing retry of the failed target; if data contracts from two pages to one, the unclamped backend response can also hide the pager on an out-of-range empty page. The same review found the source-only contract does not execute aggregation or async state transitions. Assigned repair: request a target page transactionally, commit page/data together only on success, automatically re-fetch a clamped valid page after contraction, and add behavior coverage before re-review. Existing AppPagination 38px/ARIA limitations are a non-blocking shared-component Minor outside C3 scope and require a separate follow-up.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -168,3 +173,9 @@
 - Change: Closed the C2 review/runtime gate and advanced the serialized handoff to C3.
 - Reason: readable tiered tracks, brace-bounded media parsing, and the final CSS-specificity repair cleared both review rounds and the runtime accessibility boundary.
 - Evidence: commits `635f5ba` and `fd3689e`; expected 10/11 RED then 11/11 GREEN; independent typecheck and focused 11/11; computed/actual 44px controls with no overflow at 1280/1130/1024/900/800/761/760; specification approval; quality re-review with no findings; ports 3010/9223/18088 closed.
+
+### 2026-07-18 21:31
+
+- Change: Kept C3 active and recorded its quality-review repair instead of advancing to C4.
+- Reason: request-first page state is not transactional, making failed targets unretryable from the pager and allowing a page-count contraction to hide navigation on an out-of-range empty page.
+- Evidence: commit `c20d7b2`; expected focused 5/8 RED then 8/8 GREEN; independent typecheck and focused 8/8; specification approval; quality verdict `Ready to proceed to C4? No`; Important finding assigned to the original implementer with behavior-test and re-review requirements.

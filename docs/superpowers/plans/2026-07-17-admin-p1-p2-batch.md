@@ -244,6 +244,11 @@ git commit -m "fix(admin): stop action-column wrapping and right-edge table clip
 
 ### Task C3: classification-audit 令牌修复 + 翻页
 
+**2026-07-18 执行状态:** `active`。实现提交 `c20d7b2` 已通过规格审查，
+但质量审查发现 Important：换页在请求成功前提交 `page`，失败后会让请求页
+与旧响应展示页失配；数据页数收缩时还可能隐藏分页器并把用户困在越界空页。
+须改为事务式提交页状态、对收缩后的末页自动重取，并补状态转换行为合同后复审。
+
 **Files:**
 - Modify: `data-query-app/pages/operations/classification-audit.vue`
 
