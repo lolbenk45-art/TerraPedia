@@ -47,14 +47,18 @@
 
 - Commands run: branch/worktree/ignore/remote-state checks, read-only chain
   inspection, spec and plan placeholder/contract scans, plan-audit coverage
-  checks, and `git diff --check`.
+  checks, `git diff --check`, worktree-local `pnpm install`, focused baseline
+  Maven controller tests, and the full public frontend gate.
 - Results: the base worktree is clean; the new task branch is stacked from
   `cbca943`; current armor, effects, and recipe entrypoints were verified; the
   existing item aggregate endpoint is deprecated and is not reused as the
   public contract; the written design and TDD plan self-reviews found no
   remaining critical or important placeholder, contract, boundary, evidence,
-  continuity, or type-consistency issue.
-- Not run: code tests and runtime acceptance; implementation has not started.
+  continuity, or type-consistency issue. Task 1 baseline passed 5/5 Maven tests
+  and `pnpm run check`; independent spec and quality reviews approved it with no
+  Critical or Important findings and no tracked/untracked scope pollution.
+- Not run: new-code tests and runtime acceptance; implementation has not
+  started.
 
 ## Result
 
@@ -65,8 +69,8 @@
 ## Residual Risks
 
 - Runtime request-count and hydration evidence require a serving build; they
-  must be recorded as not run if service lifecycle authorization remains out
-  of scope.
+  block closeout if no compatible process or service-lifecycle authorization
+  is available.
 - The recipe-tree public image policy currently lives in a controller and must
   be extracted without mutating cached internal DTOs.
 
@@ -79,7 +83,8 @@
 
 - `1696f83` — define the armor-set aggregate design contract.
 - `eb85d36` — define the audited TDD implementation plan.
-- Execution-coordination commit pending.
+- `6434a03` — lock serialized execution coordination.
+- Baseline-evidence commit pending.
 
 ## Optional: State Changes
 
@@ -113,6 +118,16 @@
   active entry, and `current.md`; implementers and reviewers are read/write or
   read-only within the task boundaries below.
 
+### 2026-07-18 22:25 CST
+
+- Change: Task 1 baseline and both review stages passed; ownership advances to
+  Task 2 public recipe-tree facade implementation.
+- Reason: production TDD may start only after the isolated baseline is proven
+  clean and independent reviewers confirm no setup pollution.
+- Evidence: Maven controller tests 5/5, full frontend gate exit 0, clean
+  tracked/staged/untracked scans, spec review approved, quality review found no
+  Critical or Important issue.
+
 ## Optional: Multi-Agent Coordination
 
 - Coordinator: `/root` (Codex).
@@ -120,7 +135,8 @@
   Task 6 integration/closeout execute serially.
 - Agent ownership:
   - Task 1 baseline implementer:
-    - Status: pending dispatch.
+    - Status: complete; implementer reported DONE_WITH_CONCERNS for baseline
+      warnings only, and both independent reviews approved.
     - Task scope: install worktree-local frontend dependencies and run the
       exact backend/frontend baseline commands from the committed plan.
     - Allowed files: no tracked files; package-manager-created ignored
@@ -131,7 +147,9 @@
     - Validation: plan Task 1 Steps 1–4.
     - Blockers: any baseline test failure or lockfile mutation request.
     - Handoff notes: report exact exit status and distinguish warnings from
-      failures; do not commit when no tracked file changes.
+      failures; no tracked or staged change was produced. Baseline warnings are
+      Node deprecation, duplicate `formatEffectValue`, Chromium DBus/UPower,
+      Maven unchecked notes, and the expected sanitizer log.
     - Return format: DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT,
       commands, results, tracked status, concerns.
   - Tasks 2–5 implementers and reviewers:
