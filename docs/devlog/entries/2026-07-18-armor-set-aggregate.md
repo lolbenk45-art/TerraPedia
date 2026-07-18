@@ -91,7 +91,8 @@
 - `8324bfd` — add the Task 3 armor aggregate DTO/service and focused tests.
 - `78a9220` — expose the Task 4 optional include controller contract.
 - `f7c43e7` — initial Task 5 frontend aggregate consumer; specification
-  contract hardening pending.
+  review found two contract blind spots.
+- `88d53e8` — harden present-null and shared-resolver contract coverage.
 
 ## Optional: Cross-Review
 
@@ -150,16 +151,18 @@
   present `null`, so a truthiness regression passes; page-source assertions do
   not require actual `resolveArmorAggregateOrFallback` calls, so a local chooser
   can bypass shared ownership while the contract stays green.
-- Disposition: needs test-contract fix by the original Task 5 implementer.
-- Re-review required: yes, specification review before quality review.
-- Resolved by: pending.
+- Disposition: fixed with an executable present-null case and an in-memory
+  resolver-bypass mutation proof; specification re-review passed and quality
+  review found no Critical or Important issue.
+- Re-review required: no; completed.
+- Resolved by: Task 5 implementer at `88d53e8`.
 - Arbitration decision: accept both findings.
 - Decision owner: coordinator.
 - Rationale: implementation is currently correct, but the approved contract
   explicitly requires present-null suppression and shared resolver ownership;
   mutation-resistant coverage is part of Task 5.
-- Remaining risks: quality review is blocked until both blind spots reject
-  representative mutations.
+- Remaining risks: Minor — ownership regex is formatting/order sensitive and
+  may reject a harmless resolver-call refactor.
 
 ## Optional: State Changes
 
@@ -247,6 +250,15 @@
 - Evidence: reviewer demonstrated that truthiness-based helper behavior and a
   page-local chooser could pass the current contract.
 
+### 2026-07-18 23:40 CST
+
+- Change: Task 5 passed the contract fix loop, specification re-review, and
+  quality review; ownership advances to Task 6 integration.
+- Reason: present-null suppression and shared resolver use are now executable
+  contract requirements, and the frontend acknowledges producer `78a9220`.
+- Evidence: focused contracts and Nuxt typecheck pass; full reviewer-run
+  `pnpm run check` passes; no Critical or Important finding remains.
+
 ## Optional: Multi-Agent Coordination
 
 - Coordinator: `/root` (Codex).
@@ -326,6 +338,20 @@
     - Handoff notes: producer fields are `pieceEffects` and `pieceRecipes`;
       requested empty maps are present, unrequested maps omitted.
     - Return format: complete.
+  - Task 5 frontend consumer:
+    - Status: complete at `f7c43e7` + `88d53e8`; specification and quality
+      reviews approved after two contract blind spots were fixed.
+    - Task scope: optional aggregate types/request, independent field-presence
+      fallback, page normalization, and executable contract.
+    - Allowed files: the six Task 5 files in the committed plan.
+    - Forbidden files: backend/data/crawler/coordinator docs.
+    - Dependencies: producer controller contract `78a9220`.
+    - Validation: armor aggregate/build/stat/detail contracts, Nuxt typecheck,
+      and reviewer-run full frontend gate.
+    - Blockers: none.
+    - Handoff notes: present `{}`/`null` suppresses legacy callbacks; absent
+      module independently triggers its old endpoint family.
+    - Return format: complete.
   - Task 6 integration and closeout:
     - Status: pending Tasks 2–5 and final integrated review.
     - Task scope: full focused gates, frontend gate, authorized runtime smoke,
@@ -353,7 +379,8 @@
   - Breaking or compatible: compatible; absent fields trigger legacy fallback.
   - Fixtures/types updated: backend DTO/controller tests and frontend public
     API type/contract.
-  - Consumer acknowledgement: pending backend contract commit and Task 5.
+  - Consumer acknowledgement: complete at `88d53e8` against producer
+    `78a9220`; field names/presence semantics match.
 - Serialization rule: Task 1 -> Task 2 implement/review -> Task 3
   implement/review -> Task 4 implement/review -> Task 5 implement/review ->
   Task 6 integrated review/validation/closeout.
