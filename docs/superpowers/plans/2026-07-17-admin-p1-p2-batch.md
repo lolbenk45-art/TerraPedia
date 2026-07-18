@@ -173,14 +173,14 @@ git commit -m "refactor(admin): remove panel-era dead code from crawler monitor"
 - Modify: `data-query-app/composables/useTownNpcMaintenance.ts`（删独占导出 `buildWikiTagLine`；其余导出有 Workbench 消费者不动）
 - Modify: `data-query-app/pages/operations/audio-assets.vue`（删 `.pill` L1087-1099、`.pill--muted` L1100-1103、`.audio-asset-table th` 重复 sticky 段 L1066-1071）
 
-- [ ] **Step 1: 按上述清单删除，每文件删后 grep 确认无残余引用**
-- [ ] **Step 2: 验证**
+- [x] **Step 1: 按上述清单删除，每文件删后 grep 确认无残余引用**
+- [x] **Step 2: 验证**
 
 ```bash
 cd data-query-app && pnpm run check && pnpm run test:unit 2>&1 | grep -E "^ℹ (pass|fail)"
 ```
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add -A data-query-app/pages/recipes/stations.vue data-query-app/pages/entities/town-npcs data-query-app/tests/npc-projection-json-visibility.test.mjs data-query-app/composables/useTownNpcMaintenance.ts data-query-app/pages/operations/audio-assets.vue

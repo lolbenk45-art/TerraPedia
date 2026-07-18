@@ -29,14 +29,14 @@
 
 ## Validation
 
-- Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts and admin typecheck.
-- Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54.
+- Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts, admin typecheck, and full admin unit suite.
+- Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates.
 - Not run: task-focused tests, broad backend/admin gates, screenshots, and runtime smoke remain pending implementation.
 
 ## Result
 
-- Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, and B1 with specification and quality approval.
-- Not completed: B2-D6 implementation, final gates, and closeout.
+- Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, and B2 with specification and quality approval.
+- Not completed: C1-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -46,7 +46,7 @@
 
 ## Follow-up
 
-- Coordinator `/root` advances to B2 with a fresh serialized implementer and repeats the two-stage review gate.
+- Coordinator `/root` advances to C1 with a fresh serialized implementer and repeats the two-stage review gate.
 
 ## Commits
 
@@ -55,6 +55,7 @@
 - `7b6d071` — representative null-user-id and wrong-type admin guard regression tests; quality re-review approved.
 - `b8bee99` — removed the 32-symbol crawler-monitor panel-era dead chain.
 - `c9afd60` — hardened the crawler-monitor dead-root absence contract after quality review.
+- `4a3e38a` — removed the confirmed stations/town-NPC/audio dead surfaces and aligned their contracts.
 
 ## Optional: Multi-Agent Coordination
 
@@ -62,7 +63,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2 and B1 closed; pending fresh B2 dispatch.
+    - Status: A2, B1, and B2 closed; pending fresh C1 dispatch.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -104,12 +105,13 @@
 - Findings: A2 specification review passed. A2 quality review found one Important coverage gap in the distinct admin type and user null-id guards.
 - Disposition: fixed by `7b6d071`; quality re-review independently passed the focused tests 10/10 and reported no remaining Critical, Important, or Minor issues.
 - B1 review: specification review confirmed exact 32-symbol deletion and protected-chain preservation. Quality review found one Minor brittle/misplaced absence assertion; `c9afd60` moved it to the panel replacement contract and broadened it to whole-symbol checks. Quality re-review reported no remaining findings.
+- B2 review: specification review confirmed the exact eight-file scope, live parent/workbench preservation, and two minimal stale-contract corrections. Quality review independently passed focused contracts 35/35, typecheck, and full unit 367/367 with no findings.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
 - Decision owner: `/root`.
 - Rationale: two-stage review is required by the selected execution workflow.
-- Remaining risks: none specific to A2 or B1; batch-wide risks remain listed above.
+- Remaining risks: none specific to A2, B1, or B2; batch-wide risks remain listed above.
 
 ### 2026-07-18 17:22
 
@@ -134,3 +136,9 @@
 - Change: Closed the B1 review gate and advanced the serialized handoff to B2.
 - Reason: all 32 audited panel-era symbols are removed, protected chains remain, and the only test-quality Minor was fixed and re-reviewed.
 - Evidence: expected RED, page contract 54/54, four-file crawler-monitor suite 140/140, admin typecheck, specification approval, and quality re-review with no remaining findings.
+
+### 2026-07-18 18:40
+
+- Change: Closed the B2 review gate and advanced the serialized handoff to C1.
+- Reason: all confirmed dead surfaces and their stale contracts were removed without losing live routes or behavior, and both review stages approved the result.
+- Evidence: expected absence RED, focused contracts 35/35, admin typecheck, full unit suite 367/367, specification approval, and quality review with no findings.
