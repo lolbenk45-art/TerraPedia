@@ -276,7 +276,7 @@
 </template>
 
 <script setup lang="ts">
-import { get, handleApiError } from '~/composables/useApi'
+import { get, handleApiError, resolveApiUrl, TOKEN_COOKIE_KEY } from '~/composables/useApi'
 
 definePageMeta({ title: '音频资产', navSection: '/operations/audio-assets', headerVariant: 'compact' })
 
@@ -344,8 +344,7 @@ const audioPlaybackErrors = reactive<Record<number, string>>({})
 const audioLoadingRows = reactive<Record<number, boolean>>({})
 const audioAbortControllers = new Map<number, AbortController>()
 let audioRequestGeneration = 0
-const runtimeConfig = useRuntimeConfig()
-const token = useCookie<string | null>('tp_admin_token')
+const token = useCookie<string | null>(TOKEN_COOKIE_KEY)
 const pagination = reactive<Pagination>({ total: 0, page: 1, limit: 20, size: 20, totalPages: 1 })
 const filters = reactive({
   search: '',
@@ -503,13 +502,7 @@ async function loadAudio(row: AudioAssetRow) {
 }
 
 function getAudioStreamUrl(row: AudioAssetRow) {
-  return joinApiUrl(runtimeConfig.public.apiBase, `/admin/audio-assets/${row.id}/stream`)
-}
-
-function joinApiUrl(baseUrl: string | undefined, path: string) {
-  const safeBase = (baseUrl || '').replace(/\/+$/, '')
-  const safePath = path.startsWith('/') ? path : `/${path}`
-  return `${safeBase}${safePath}`
+  return resolveApiUrl(`/admin/audio-assets/${row.id}/stream`)
 }
 
 function revokeAudioBlobUrl(rowId: number) {
@@ -587,8 +580,9 @@ function statusTone(status?: string | null) {
 
 function matchStatusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
-  if (normalized.includes('matched') && !normalized.includes('unmatched')) return 'success'
-  if (normalized.includes('unmatched')) return 'warning'
+  const tokens = new Set(normalized.split(/[\s,|/]+/).filter(Boolean))
+  if (tokens.has('unmatched')) return 'warning'
+  if (tokens.has('matched')) return 'success'
   return 'muted'
 }
 
@@ -602,8 +596,9 @@ function statusLabel(status?: string | null) {
 
 function matchStatusLabel(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
-  if (normalized.includes('unmatched')) return '未匹配 unmatched'
-  if (normalized.includes('matched')) return '已匹配 matched'
+  const tokens = new Set(normalized.split(/[\s,|/]+/).filter(Boolean))
+  if (tokens.has('unmatched')) return '未匹配 unmatched'
+  if (tokens.has('matched')) return '已匹配 matched'
   return normalized || '--'
 }
 

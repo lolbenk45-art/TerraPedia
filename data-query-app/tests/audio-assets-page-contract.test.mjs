@@ -10,6 +10,7 @@ function read(relativePath) {
 }
 
 const page = read('pages/operations/audio-assets.vue')
+const useApi = read('composables/useApi.ts')
 
 function extractAudioTags(source) {
   return source.match(/<audio\b[\s\S]*?(?:\/>|<\/audio>)/g) || []
@@ -100,14 +101,16 @@ test('audio assets table reuses the NPC entity table visual pattern', () => {
   assert.doesNotMatch(page, /audio-asset-table--grid|<colgroup>|audio-col-|border-right:/)
 })
 
-test('audio assets page fetches stream URL with the admin bearer token and blob src binding', () => {
-  assert.match(page, /const\s+runtimeConfig\s*=\s*useRuntimeConfig\(\)/)
-  assert.match(page, /runtimeConfig\.public\.apiBase/)
-  assert.match(page, /function\s+joinApiUrl\(/)
+test('audio assets page reuses the shared token cookie and API URL resolver for stream fetches', () => {
+  assert.match(useApi, /export\s+const\s+TOKEN_COOKIE_KEY\s*=\s*['"]tp_admin_token['"]/)
+  assert.match(page, /import\s+\{[^}]*\bTOKEN_COOKIE_KEY\b[^}]*\bresolveApiUrl\b[^}]*\}\s+from\s+['"]~\/composables\/useApi['"]|import\s+\{[^}]*\bresolveApiUrl\b[^}]*\bTOKEN_COOKIE_KEY\b[^}]*\}\s+from\s+['"]~\/composables\/useApi['"]/)
+  assert.doesNotMatch(page, /useRuntimeConfig\(\)|runtimeConfig\.public\.apiBase/)
+  assert.doesNotMatch(page, /function\s+joinApiUrl\(|\bjoinApiUrl\(/)
   assert.match(page, /function\s+getAudioStreamUrl\(row:\s*AudioAssetRow\)/)
-  assert.match(page, /joinApiUrl\(runtimeConfig\.public\.apiBase,\s*`\/admin\/audio-assets\/\$\{row\.id\}\/stream`\)/)
+  assert.match(page, /return\s+resolveApiUrl\(`\/admin\/audio-assets\/\$\{row\.id\}\/stream`\)/)
   assert.match(page, /fetch\(getAudioStreamUrl\(row\),\s*\{[\s\S]*signal:\s*controller\.signal[\s\S]*headers:\s*\{[\s\S]*Authorization:\s*`Bearer \$\{token\.value\}`/)
-  assert.match(page, /const\s+token\s*=\s*useCookie<string \| null>\('tp_admin_token'\)/)
+  assert.match(page, /const\s+token\s*=\s*useCookie<string \| null>\(TOKEN_COOKIE_KEY\)/)
+  assert.doesNotMatch(page, /['"]tp_admin_token['"]/)
   assert.match(page, /URL\.createObjectURL\(blob\)/)
   assert.match(page, /audioBlobUrls\[row\.id\]\s*=\s*blobUrl/)
   assert.match(page, /selectedAudioRowId\.value\s*=\s*row\.id/)
@@ -120,6 +123,34 @@ test('audio assets page fetches stream URL with the admin bearer token and blob 
   assert(loadBody.indexOf('audioBlobUrls[row.id] = blobUrl') < loadBody.indexOf('selectedAudioRowId.value = row.id'))
   assert(loadBody.indexOf('if (!response.ok)') < loadBody.indexOf('const blob = await response.blob()'))
   assert(loadBody.indexOf('selectedAudioRowId.value = row.id') > loadBody.indexOf('if (controller.signal.aborted || generation !== audioRequestGeneration)'))
+})
+
+test('audio asset match status helpers use exact delimited tokens with unmatched precedence', () => {
+  const toneBody = functionBody('matchStatusTone')
+  const labelBody = functionBody('matchStatusLabel')
+  const tone = new Function('status', toneBody)
+  const label = new Function('status', labelBody)
+
+  assert.doesNotMatch(toneBody, /\.includes\(/)
+  assert.doesNotMatch(labelBody, /\.includes\(/)
+  assert.match(toneBody, /const\s+normalized\s*=\s*String\(status \|\| ''\)\.toLowerCase\(\)/)
+  assert.match(labelBody, /const\s+normalized\s*=\s*String\(status \|\| ''\)\.toLowerCase\(\)/)
+  assert.ok(toneBody.includes('new Set(normalized.split(/[\\s,|/]+/).filter(Boolean))'))
+  assert.ok(labelBody.includes('new Set(normalized.split(/[\\s,|/]+/).filter(Boolean))'))
+
+  assert.equal(tone('matched'), 'success')
+  assert.equal(label('matched'), '已匹配 matched')
+  assert.equal(tone('unmatched'), 'warning')
+  assert.equal(label('unmatched'), '未匹配 unmatched')
+  assert.equal(tone('matched / downloaded|active,ready'), 'success')
+  assert.equal(label('matched / downloaded|active,ready'), '已匹配 matched')
+  assert.equal(tone('matched|unmatched'), 'warning')
+  assert.equal(label('matched|unmatched'), '未匹配 unmatched')
+
+  for (const status of ['notmatched', 'matched_extra', 'almost-unmatched']) {
+    assert.equal(tone(status), 'muted')
+    assert.equal(label(status), status)
+  }
 })
 
 test('audio assets page cleans up playback state before refresh and on unmount', () => {
@@ -178,7 +209,7 @@ test('audio assets page locks responsive sizing and accessibility-critical style
 })
 
 test('audio assets page stays read-only and does not expose absolute local paths', () => {
-  assert.match(page, /import\s+\{\s*get,\s*handleApiError\s*\}\s+from '~\/composables\/useApi'/)
+  assert.match(page, /import\s+\{[^}]*\bget\b[^}]*\bhandleApiError\b[^}]*\bresolveApiUrl\b[^}]*\bTOKEN_COOKIE_KEY\b[^}]*\}\s+from '~\/composables\/useApi'/)
   assert.doesNotMatch(page, /\b(post|put|patch|del)\s*\(/)
   assert.doesNotMatch(page, /\$fetch\s*\([^)]*method:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/)
   assert.doesNotMatch(page, /fetch\([^)]*\{[\s\S]*method:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/)

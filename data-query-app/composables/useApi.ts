@@ -2,7 +2,7 @@ type ApiFetchOptions = Record<string, any>
 
 type ApiFetchHook = (context: any) => void | Promise<void>
 
-const TOKEN_COOKIE_KEY = 'tp_admin_token'
+export const TOKEN_COOKIE_KEY = 'tp_admin_token'
 const USER_COOKIE_KEY = 'tp_admin_user'
 const EXPIRES_AT_COOKIE_KEY = 'tp_admin_expires_at'
 

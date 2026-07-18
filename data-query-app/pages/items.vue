@@ -348,6 +348,42 @@ definePageMeta({
   headerVariant: 'compact',
 })
 
+const FORM_DEFAULTS = {
+  name: '',
+  nameZh: '',
+  internalName: '',
+  categoryId: null,
+  relatedCategoryIds: [],
+  rarity: '白色',
+  status: 1,
+  gamePeriodId: 0,
+  gameModelId: 0,
+  isStackable: true,
+  stackSize: 1,
+  damage: null,
+  defense: null,
+  knockback: null,
+  useTime: null,
+  width: null,
+  height: null,
+  buy: null,
+  sell: null,
+  description: '',
+  descriptionZh: '',
+  tooltip: '',
+  tooltipZh: '',
+  imageUrl: '',
+} satisfies ItemPayload
+
+const FORM_FIELDS = Object.keys(FORM_DEFAULTS) as (keyof typeof FORM_DEFAULTS)[]
+
+function createFormDefaults() {
+  return {
+    ...FORM_DEFAULTS,
+    relatedCategoryIds: [...FORM_DEFAULTS.relatedCategoryIds],
+  }
+}
+
 const route = useRoute()
 const router = useRouter()
 const itemsStore = useItemsStore()
@@ -368,7 +404,7 @@ const editingId = ref<number | null>(null)
 const submitting = ref(false)
 const uploadingImage = ref(false)
 const recipeDrafts = ref<ItemRecipePayload[]>([])
-const form = reactive<ItemPayload>({ name: '', nameZh: '', internalName: '', categoryId: null, relatedCategoryIds: [], rarity: '白色', status: 1, gamePeriodId: 0, gameModelId: 0, isStackable: true, stackSize: 1, damage: null, defense: null, knockback: null, useTime: null, width: null, height: null, buy: null, sell: null, description: '', descriptionZh: '', tooltip: '', tooltipZh: '', imageUrl: '' })
+const form = reactive<ItemPayload>(createFormDefaults())
 
 const hasActiveFilters = computed(() => Boolean(searchForm.keyword.trim() || searchForm.categoryId != null || searchForm.rarity || searchForm.gamePeriodId != null))
 const selectedCount = computed(() => selectedIds.value.length)
@@ -501,22 +537,25 @@ async function closeDetailModal() {
 }
 
 function resetForm() {
-  Object.assign(form, { name: '', nameZh: '', internalName: '', categoryId: null, relatedCategoryIds: [], rarity: '白色', status: 1, gamePeriodId: 0, gameModelId: 0, isStackable: true, stackSize: 1, damage: null, defense: null, knockback: null, useTime: null, width: null, height: null, buy: null, sell: null, description: '', descriptionZh: '', tooltip: '', tooltipZh: '', imageUrl: '' })
+  Object.assign(form, createFormDefaults())
   recipeDrafts.value = []
   editingId.value = null
 }
 
 function handleAdd() { isEdit.value = false; selectedItem.value = null; resetForm(); formVisible.value = true }
 async function handleEdit(item: Item) {
+  resetForm()
   isEdit.value = true
   editingId.value = item.id
   selectedItem.value = item
-  Object.assign(form, {
-    ...item,
-    relatedCategoryIds: (item.relatedCategoryIds ?? []).filter((id) => id !== item.categoryId),
-    rarity: getRarityInfo(item).label,
-    imageUrl: item.imageUrl ?? '',
-  })
+  for (const key of FORM_FIELDS) {
+    if (key in item) {
+      Reflect.set(form, key, item[key])
+    }
+  }
+  form.rarity = getRarityInfo(item).label
+  form.relatedCategoryIds = (item.relatedCategoryIds ?? []).filter((id) => id !== item.categoryId)
+  form.imageUrl = item.imageUrl ?? ''
   formVisible.value = true
   recipeDrafts.value = toRecipeDrafts(await itemsStore.fetchItemRecipes(item.id))
 }

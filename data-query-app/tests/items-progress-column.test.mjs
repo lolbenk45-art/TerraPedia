@@ -11,6 +11,33 @@ const itemsPage = readPage('items.vue')
 const queryPage = readPage('query.vue')
 const usersPage = readPage('users.vue')
 
+const ITEM_FORM_FIELDS = [
+  'name',
+  'nameZh',
+  'internalName',
+  'categoryId',
+  'relatedCategoryIds',
+  'rarity',
+  'status',
+  'gamePeriodId',
+  'gameModelId',
+  'isStackable',
+  'stackSize',
+  'damage',
+  'defense',
+  'knockback',
+  'useTime',
+  'width',
+  'height',
+  'buy',
+  'sell',
+  'description',
+  'descriptionZh',
+  'tooltip',
+  'tooltipZh',
+  'imageUrl',
+]
+
 const getCssRule = (source, selector) => {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return source.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
@@ -56,6 +83,20 @@ const getBalancedBlock = (source, openingBraceIndex) => {
   return ''
 }
 
+const getFunctionBody = (source, name) => {
+  const match = new RegExp(`(?:async\\s+)?function\\s+${name}\\([^)]*\\)\\s*\\{`).exec(source)
+  assert.notEqual(match, null, `missing function ${name}`)
+  const openingBraceIndex = source.indexOf('{', match.index)
+  return getBalancedBlock(source, openingBraceIndex)
+}
+
+const getObjectLiteral = (source, constantName) => {
+  const match = new RegExp(`const\\s+${constantName}\\s*=\\s*\\{`).exec(source)
+  assert.notEqual(match, null, `missing constant ${constantName}`)
+  const openingBraceIndex = source.indexOf('{', match.index)
+  return `{${getBalancedBlock(source, openingBraceIndex)}}`
+}
+
 const getMediaBlock = (source, maxWidth) => {
   const mediaPattern = new RegExp(`@media\\s*\\(\\s*max-width\\s*:\\s*${maxWidth}px\\s*\\)\\s*\\{`)
   const match = mediaPattern.exec(source)
@@ -80,6 +121,69 @@ test('items list progress column only renders game period', () => {
 
 test('game model label does not treat missing value as normal mode', () => {
   assert.match(itemsPage, /gameModelId == null \? '未设置'/)
+})
+
+test('items form defines the complete field whitelist and creates fresh array defaults', () => {
+  const defaults = new Function(`return (${getObjectLiteral(itemsPage, 'FORM_DEFAULTS')})`)()
+  const createDefaultsBody = getFunctionBody(itemsPage, 'createFormDefaults')
+  const createDefaults = new Function('FORM_DEFAULTS', createDefaultsBody)
+  const first = createDefaults(defaults)
+  const second = createDefaults(defaults)
+
+  assert.deepEqual(Object.keys(defaults), ITEM_FORM_FIELDS)
+  assert.deepEqual(defaults, {
+    name: '',
+    nameZh: '',
+    internalName: '',
+    categoryId: null,
+    relatedCategoryIds: [],
+    rarity: '白色',
+    status: 1,
+    gamePeriodId: 0,
+    gameModelId: 0,
+    isStackable: true,
+    stackSize: 1,
+    damage: null,
+    defense: null,
+    knockback: null,
+    useTime: null,
+    width: null,
+    height: null,
+    buy: null,
+    sell: null,
+    description: '',
+    descriptionZh: '',
+    tooltip: '',
+    tooltipZh: '',
+    imageUrl: '',
+  })
+  assert.match(itemsPage, /const\s+FORM_FIELDS\s*=\s*Object\.keys\(FORM_DEFAULTS\)\s+as\s+\(keyof typeof FORM_DEFAULTS\)\[\]/)
+  assert.match(itemsPage, /const\s+form\s*=\s*reactive<ItemPayload>\(createFormDefaults\(\)\)/)
+  assert.match(getFunctionBody(itemsPage, 'resetForm'), /Object\.assign\(form,\s*createFormDefaults\(\)\)/)
+  assert.deepEqual(first, defaults)
+  assert.deepEqual(second, defaults)
+  assert.notEqual(first.relatedCategoryIds, defaults.relatedCategoryIds)
+  assert.notEqual(second.relatedCategoryIds, defaults.relatedCategoryIds)
+  assert.notEqual(first.relatedCategoryIds, second.relatedCategoryIds)
+  assert.equal('id' in defaults, false)
+  assert.equal('createdAt' in defaults, false)
+  assert.equal('updatedAt' in defaults, false)
+})
+
+test('items edit form copies only whitelisted fields before explicit presentation transforms', () => {
+  const editBody = getFunctionBody(itemsPage, 'handleEdit')
+  const loopIndex = editBody.indexOf('for (const key of FORM_FIELDS)')
+  const rarityIndex = editBody.indexOf('form.rarity = getRarityInfo(item).label')
+  const relatedCategoryIdsIndex = editBody.indexOf('form.relatedCategoryIds = (item.relatedCategoryIds ?? []).filter((id) => id !== item.categoryId)')
+  const imageUrlIndex = editBody.indexOf("form.imageUrl = item.imageUrl ?? ''")
+
+  assert.ok(loopIndex >= 0)
+  assert.match(editBody, /for\s*\(const key of FORM_FIELDS\)\s*\{[\s\S]*if\s*\(key in item\)\s*\{[\s\S]*Reflect\.set\(form,\s*key,\s*item\[key\]\)/)
+  assert.doesNotMatch(editBody, /\.\.\.item\b|Object\.assign\(form/)
+  assert.doesNotMatch(editBody, /form\.(?:id|createdAt|updatedAt)\s*=/)
+  assert.ok(rarityIndex > loopIndex)
+  assert.ok(relatedCategoryIdsIndex > rarityIndex)
+  assert.ok(imageUrlIndex > relatedCategoryIdsIndex)
 })
 
 test('items page uses Chinese-first catalog operator copy', () => {
