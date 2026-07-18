@@ -1,7 +1,7 @@
 /* Admin design tokens */
 
 :root {
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   --font-display: 'Plus Jakarta Sans', var(--font-sans);
 
   --color-primary: #0d9488;

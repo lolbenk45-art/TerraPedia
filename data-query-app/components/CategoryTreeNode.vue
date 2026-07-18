@@ -11,7 +11,10 @@
           {{ expanded ? '−' : '+' }}
         </button>
         <span v-else class="tree-node__toggle tree-node__toggle--ghost"></span>
-        <span class="tree-node__icon" aria-hidden="true">{{ hasChildren ? '📁' : '📄' }}</span>
+        <span class="tree-node__icon" aria-hidden="true">
+          <Folder v-if="hasChildren" :size="18" />
+          <FileText v-else :size="18" />
+        </span>
         <div class="tree-node__meta">
           <div class="tree-node__headline">
             <span class="tree-node__label">{{ node.name }}</span>
@@ -45,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { FileText, Folder } from 'lucide-vue-next'
 import type { Category } from '~/stores/categories'
 
 const props = defineProps<{
@@ -143,6 +147,7 @@ const levelTagClass = computed(() => {
 }
 
 .tree-node__icon {
+  display: inline-flex;
   font-size: 1.125rem;
   flex-shrink: 0;
   margin-top: 1px;

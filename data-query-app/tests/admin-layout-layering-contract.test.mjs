@@ -12,6 +12,8 @@ function read(relativePath) {
 const variables = read('assets/css/variables.css')
 const layout = read('layouts/default.vue')
 const dashboard = read('pages/index.vue')
+const login = read('pages/login.vue')
+const categoryTreeNode = read('components/CategoryTreeNode.vue')
 const lookupInput = read('components/AdminItemLookupInput.vue')
 const articleEditorWorkspace = read('components/article/ArticleEditorWorkspace.vue')
 const articleReviewWorkspace = read('components/article/ArticleReviewWorkspace.vue')
@@ -19,6 +21,24 @@ const appModal = read('components/AppModal.vue')
 const appToast = read('components/AppToast.vue')
 const armorAttributesPage = read('pages/operations/armor-attributes.vue')
 const crawlerMonitorPage = read('pages/operations/crawler-monitor.vue')
+
+test('admin typography and structural icons use deterministic platform fallbacks', () => {
+  assert.match(
+    variables,
+    /--font-sans:\s*'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';/
+  )
+  assert.match(variables, /--font-display:\s*'Plus Jakarta Sans', var\(--font-sans\);/)
+
+  assert.match(login, /import \{ Package \} from 'lucide-vue-next'/)
+  assert.match(login, /<span class="login-card__logo" aria-hidden="true">\s*<Package :size="24" \/>\s*<\/span>/)
+
+  assert.match(categoryTreeNode, /import \{ FileText, Folder \} from 'lucide-vue-next'/)
+  assert.match(categoryTreeNode, /<span class="tree-node__icon" aria-hidden="true">\s*<Folder v-if="hasChildren" :size="18" \/>\s*<FileText v-else :size="18" \/>\s*<\/span>/)
+  assert.match(categoryTreeNode, /\.tree-node__icon\s*\{[\s\S]*display:\s*inline-flex;/)
+
+  assert.doesNotMatch(login, /📦/)
+  assert.doesNotMatch(categoryTreeNode, /[📁📄]/)
+})
 
 test('admin shell owns the shared z-index scale', () => {
   assert.match(variables, /--z-page-popover:\s*70;/)

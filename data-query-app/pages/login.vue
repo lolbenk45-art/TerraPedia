@@ -5,7 +5,9 @@
 
     <section class="login-card">
       <div class="login-card__brand">
-        <span class="login-card__logo">📦</span>
+        <span class="login-card__logo" aria-hidden="true">
+          <Package :size="24" />
+        </span>
         <div>
           <p class="login-card__eyebrow">TerraPedia 管理端</p>
           <h1 class="login-card__title">后台登录</h1>
@@ -57,6 +59,8 @@
 </template>
 
 <script setup lang="ts">
+import { Package } from 'lucide-vue-next'
+
 definePageMeta({
   layout: false
 })
