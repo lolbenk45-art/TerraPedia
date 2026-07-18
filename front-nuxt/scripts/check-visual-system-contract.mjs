@@ -29,6 +29,156 @@ const requireRegex = (path, content, pattern, message) => {
   }
 }
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const stripCssComments = (content) => {
+  let result = ''
+  let quote = ''
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index]
+
+    if (quote) {
+      result += character
+      if (character === '\\') {
+        result += content[index + 1] ?? ''
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+      continue
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character
+      result += character
+    } else if (character === '/' && content[index + 1] === '*') {
+      index += 2
+      while (index < content.length && (content[index] !== '*' || content[index + 1] !== '/')) {
+        index += 1
+      }
+      index += 1
+    } else {
+      result += character
+    }
+  }
+
+  return result
+}
+
+const findMatchingBrace = (content, openingIndex) => {
+  let depth = 0
+  let quote = ''
+
+  for (let index = openingIndex; index < content.length; index += 1) {
+    const character = content[index]
+
+    if (quote) {
+      if (character === '\\') {
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+      continue
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character
+    } else if (character === '{') {
+      depth += 1
+    } else if (character === '}') {
+      depth -= 1
+      if (depth === 0) {
+        return index
+      }
+    }
+  }
+
+  return -1
+}
+
+const findExactTopLevelRuleBlock = (content, selector) => {
+  let ruleStart = 0
+  let depth = 0
+  let quote = ''
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index]
+
+    if (quote) {
+      if (character === '\\') {
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+      continue
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character
+      continue
+    }
+
+    if (character === '{') {
+      if (depth === 0 && content.slice(ruleStart, index).trim() === selector) {
+        const end = findMatchingBrace(content, index)
+        return end < 0 ? undefined : content.slice(index + 1, end + 1)
+      }
+      depth += 1
+      continue
+    }
+
+    if (character === '}') {
+      depth -= 1
+      if (depth === 0) {
+        ruleStart = index + 1
+      }
+      continue
+    }
+
+    if (character === ';' && depth === 0) {
+      ruleStart = index + 1
+    }
+  }
+
+  return null
+}
+
+const findCustomPropertyDeclarations = (content, property) => {
+  const declarationPattern = new RegExp(`(?:^|(?<=[;{}]))\\s*${escapeRegex(property)}\\s*:\\s*([^;{}]*)(?:;|})`, 'g')
+  return [...content.matchAll(declarationPattern)].map((match) => match[1].trim())
+}
+
+const requireRuleBlock = (path, content, selector) => {
+  const block = findExactTopLevelRuleBlock(content, selector)
+  if (block === null) {
+    violations.push(`${path}: missing exact selector block ${selector}`)
+    return ''
+  }
+
+  if (block === undefined) {
+    violations.push(`${path}: unterminated selector block ${selector}`)
+    return ''
+  }
+
+  return block
+}
+
+const requireDeclarations = (path, block, selector, declarations) => {
+  for (const [property, value] of Object.entries(declarations)) {
+    const values = findCustomPropertyDeclarations(block, property)
+
+    if (values.length !== 1) {
+      violations.push(`${path}: ${selector} must declare exactly one ${property}; found ${values.length}`)
+      continue
+    }
+
+    if (values[0] !== value) {
+      violations.push(`${path}: ${selector} must declare ${property}: ${value};`)
+    }
+  }
+}
+
 const cssOrder = [
   '~/assets/css/app.css',
   '~/assets/css/detail-layout.css',
@@ -87,6 +237,7 @@ const cssOrder = [
 {
   const path = 'assets/css/tokens.css'
   const content = requireFile(path)
+  const contentWithoutComments = stripCssComments(content)
 
   for (const marker of [
     '--tp-color-page:',
@@ -103,6 +254,64 @@ const cssOrder = [
     '--tp-dense-row-min-height: 44px;',
   ]) {
     requireIncludes(path, content, marker, `missing token marker ${marker}`)
+  }
+
+  const semanticThemeBlocks = {
+    ':root': {
+      '--tp-color-border': 'rgba(217, 185, 91, 0.18)',
+      '--tp-color-border-strong': 'rgba(217, 185, 91, 0.26)',
+      '--tp-color-surface-soft': 'rgba(244,234,208,0.025)',
+      '--tp-color-surface-raised': 'rgba(244,234,208,0.035)',
+      '--tp-color-accent': 'var(--gold)',
+      '--tp-shadow-control': 'inset 0 1px 0 rgba(244, 234, 208, 0.035)',
+    },
+    '[data-theme="light"],\n[data-theme="morning-paper"]': {
+      '--tp-color-border': 'rgba(122, 90, 33, 0.2)',
+      '--tp-color-border-strong': 'rgba(122, 90, 33, 0.34)',
+      '--tp-color-surface-soft': 'rgba(255, 250, 241, 0.72)',
+      '--tp-color-surface-raised': 'rgba(255, 250, 241, 0.92)',
+      '--tp-shadow-control': 'inset 0 1px 0 rgba(255, 255, 255, 0.66), 0 8px 18px rgba(30, 28, 24, 0.05)',
+    },
+    '[data-theme="warm-slate"]': {
+      '--tp-color-border': 'rgba(41, 50, 65, 0.18)',
+      '--tp-color-border-strong': 'rgba(41, 50, 65, 0.3)',
+      '--tp-color-surface-soft': 'rgba(255, 255, 255, 0.72)',
+      '--tp-color-surface-raised': 'rgba(255, 255, 255, 0.94)',
+      '--tp-shadow-control': 'inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 8px 18px rgba(0, 0, 0, 0.045)',
+    },
+  }
+
+  for (const [selector, declarations] of Object.entries(semanticThemeBlocks)) {
+    requireDeclarations(path, requireRuleBlock(path, contentWithoutComments, selector), selector, declarations)
+  }
+
+  const semanticLegacySources = {
+    '--tp-color-border': '--index-line',
+    '--tp-color-border-strong': '--index-line-strong',
+    '--tp-color-surface-soft': '--index-surface',
+    '--tp-color-surface-raised': '--index-surface-strong',
+    '--tp-color-accent': '--accent-gold',
+    '--tp-shadow-control': '--button-control-shadow',
+  }
+
+  const semanticProperties = Object.keys(semanticLegacySources)
+  const legacyProperties = Object.values(semanticLegacySources)
+  const legacyVariableReference = new RegExp(
+    `var\\(\\s*(?:${legacyProperties.map(escapeRegex).join('|')})(?![\\w-])`,
+  )
+
+  for (const semanticProperty of semanticProperties) {
+    for (const value of findCustomPropertyDeclarations(contentWithoutComments, semanticProperty)) {
+      if (legacyVariableReference.test(value)) {
+        violations.push(`${path}: ${semanticProperty} must not read a legacy alias`)
+      }
+    }
+  }
+
+  for (const legacyProperty of legacyProperties) {
+    if (findCustomPropertyDeclarations(contentWithoutComments, legacyProperty).length > 0) {
+      violations.push(`${path}: legacy property ${legacyProperty} must not be declared in tokens.css`)
+    }
   }
 }
 
@@ -220,6 +429,7 @@ const cssOrder = [
 {
   const path = 'assets/css/hifi-preview.css'
   const content = requireFile(path)
+  const contentWithoutComments = stripCssComments(content)
 
   for (const marker of [
     '.tp-page-shell',
@@ -255,6 +465,35 @@ const cssOrder = [
     '--button-control-active-shadow:',
     'light theme active controls must define a dedicated active shadow token',
   )
+
+  const legacyAliases = {
+    '--index-line': 'var(--tp-color-border)',
+    '--index-line-strong': 'var(--tp-color-border-strong)',
+    '--index-surface': 'var(--tp-color-surface-soft)',
+    '--index-surface-strong': 'var(--tp-color-surface-raised)',
+    '--accent-gold': 'var(--tp-color-accent)',
+    '--button-control-shadow': 'var(--tp-shadow-control)',
+  }
+  const withoutAccent = Object.fromEntries(
+    Object.entries(legacyAliases).filter(([property]) => property !== '--accent-gold'),
+  )
+
+  for (const [selector, declarations] of Object.entries({
+    ':root': legacyAliases,
+    '[data-theme="light"],\n[data-theme="morning-paper"],\n[data-theme="warm-slate"]': withoutAccent,
+    '[data-theme="light"],\n[data-theme="morning-paper"]': withoutAccent,
+    '[data-theme="warm-slate"]': withoutAccent,
+  })) {
+    requireDeclarations(path, requireRuleBlock(path, contentWithoutComments, selector), selector, declarations)
+  }
+
+  for (const [legacyProperty, semanticAlias] of Object.entries(legacyAliases)) {
+    for (const value of findCustomPropertyDeclarations(contentWithoutComments, legacyProperty)) {
+      if (value !== semanticAlias) {
+        violations.push(`${path}: ${legacyProperty} must only alias ${semanticAlias}`)
+      }
+    }
+  }
 }
 
 {
