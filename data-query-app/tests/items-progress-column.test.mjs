@@ -10,6 +10,7 @@ const entitiesPage = readPage('entities', '[type].vue')
 const itemsPage = readPage('items.vue')
 const queryPage = readPage('query.vue')
 const usersPage = readPage('users.vue')
+const flexibleTrackPattern = /^minmax\(\s*0(?:px)?\s*,\s*(\d+(?:\.\d+)?|\.\d+)fr\s*\)$/
 
 const getCssRule = (source, selector) => {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -103,7 +104,6 @@ for (const { name, page, minimumActionWidth } of [
 test('article list toolbar uses shrinkable control tracks before its intrinsic action buttons', () => {
   const toolbarRule = getCssRule(articleCommentsPage, '.article-list-toolbar')
   const tracks = splitGridTracks(getDeclaration(toolbarRule, 'grid-template-columns'))
-  const flexibleTrackPattern = /^minmax\(\s*0(?:px)?\s*,\s*(\d+(?:\.\d+)?)fr\s*\)$/
 
   assert.equal(tracks.length, 6)
   assert.ok(tracks.slice(0, 4).every((track) => {
@@ -113,4 +113,16 @@ test('article list toolbar uses shrinkable control tracks before its intrinsic a
   assert.deepEqual(tracks.slice(4), ['max-content', 'max-content'])
   assert.match(articleCommentsPage, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.article-list-command-bar\s*\{\s*grid-template-columns:\s*1fr;/)
   assert.match(articleCommentsPage, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.comment-toolbar\s*\{\s*grid-template-columns:\s*1fr;/)
+})
+
+test('article list command bar keeps both desktop tracks shrinkable above its mobile breakpoint', () => {
+  const commandBarRule = getCssRule(articleCommentsPage, '.article-list-command-bar')
+  const tracks = splitGridTracks(getDeclaration(commandBarRule, 'grid-template-columns'))
+
+  assert.equal(tracks.length, 2)
+  assert.ok(tracks.every((track) => {
+    const match = track.match(flexibleTrackPattern)
+    return match && Number.parseFloat(match[1]) > 0
+  }))
+  assert.match(articleCommentsPage, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.article-list-command-bar\s*\{\s*grid-template-columns:\s*1fr;/)
 })

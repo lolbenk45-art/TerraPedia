@@ -799,7 +799,7 @@ onMounted(async () => {
 }
 
 .article-list-command-bar {
-  grid-template-columns: minmax(280px, .9fr) minmax(420px, 1.2fr);
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr);
   align-items: end;
 }
 
