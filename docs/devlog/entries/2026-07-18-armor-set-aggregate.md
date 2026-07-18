@@ -88,6 +88,7 @@
 - `2b28764` — initial Task 2 public recipe-tree facade implementation; spec
   review found one mutable-list alias.
 - `5f0a774` — detach public recipe group names and close the Task 2 finding.
+- `8324bfd` — add the Task 3 armor aggregate DTO/service and focused tests.
 
 ## Optional: Cross-Review
 
@@ -108,6 +109,21 @@
   from the recipe-tree cache, even when they do not carry images.
 - Remaining risks: Minor — string-based `BeanUtils` exclusions require a new
   mutation assertion if a future mutable node collection is added.
+
+### Task 3 armor aggregate service
+
+- Reviewer: fresh specification and code-quality reviewers.
+- Scope: `6883fe8..8324bfd`, detail DTO, aggregate service, and focused tests.
+- Findings: none; both reviews approved.
+- Disposition: accepted.
+- Re-review required: no.
+- Resolved by: not applicable.
+- Arbitration decision: none required.
+- Decision owner: coordinator.
+- Rationale: exact base-instance compatibility, deterministic IDs/maps,
+  selective nullable fields, and per-piece degradation are covered.
+- Remaining risks: controller JSON serialization/presence remains owned by
+  Task 4 as planned.
 
 ## Optional: State Changes
 
@@ -168,6 +184,15 @@
 - Evidence: focused tests 4/4; spec re-review approved; quality review found no
   Critical or Important issue and one future-proofing Minor.
 
+### 2026-07-18 23:01 CST
+
+- Change: Task 3 passed specification and quality review without findings;
+  ownership advances to Task 4 controller contract.
+- Reason: aggregate orchestration is complete and must now be exposed without
+  altering the successful-null quirk or no-include JSON shape.
+- Evidence: focused service tests 5/5; both independent reviews approved; clean
+  worktree and diff check.
+
 ## Optional: Multi-Agent Coordination
 
 - Coordinator: `/root` (Codex).
@@ -222,6 +247,19 @@
       armor aggregation must consume `PublicRecipeTreeFacade`, not the internal
       tree service.
     - Return format: complete.
+  - Task 3 armor aggregate service:
+    - Status: complete at `8324bfd`; specification and quality reviews found no
+      issue.
+    - Task scope: optional detail DTO, include parsing, item aggregation, and
+      per-piece failure isolation.
+    - Allowed files: the three Task 3 files in the committed plan.
+    - Forbidden files: controllers/frontend/data/crawler and coordinator docs.
+    - Dependencies: Task 2 facade contract `5f0a774`.
+    - Validation: focused Maven service suite 5/5.
+    - Blockers: none.
+    - Handoff notes: controller must use the aggregate service and keep list
+      reads on `PublicArmorSetService`.
+    - Return format: complete.
   - Task 6 integration and closeout:
     - Status: pending Tasks 2–5 and final integrated review.
     - Task scope: full focused gates, frontend gate, authorized runtime smoke,
@@ -244,7 +282,8 @@
   - Endpoint/schema/state: optional `pieceEffects` / `pieceRecipes` on existing
     armor detail `data`; no schema or data change.
   - Version/hash: design `1696f83`, plan `eb85d36`, public recipe producer
-    contract `5f0a774`; later implementation hashes are recorded per task.
+    contract `5f0a774`, armor aggregate service `8324bfd`; later implementation
+    hashes are recorded per task.
   - Breaking or compatible: compatible; absent fields trigger legacy fallback.
   - Fixtures/types updated: backend DTO/controller tests and frontend public
     API type/contract.
