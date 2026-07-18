@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -133,7 +135,7 @@ public class AdminNpcController {
     @Transactional
     @Operation(summary = "Create NPC")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createNpc(@RequestBody Map<String, Object> request) {
-        String internalName = trimToNull(request.get("internalName"));
+        String internalName = AdminTextUtils.trimToNull(request.get("internalName"));
         Long gameId = firstNonNullLong(toLong(request.get("gameId")), toLong(request.get("sourceId")));
         if (internalName == null || gameId == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "gameId/sourceId and internalName are required"));
@@ -166,7 +168,7 @@ public class AdminNpcController {
         Long nextGameId = request.containsKey("gameId") || request.containsKey("sourceId")
             ? firstNonNullLong(toLong(request.get("gameId")), toLong(request.get("sourceId")))
             : existing.getGameId();
-        String nextInternalName = request.containsKey("internalName") ? trimToNull(request.get("internalName")) : existing.getInternalName();
+        String nextInternalName = request.containsKey("internalName") ? AdminTextUtils.trimToNull(request.get("internalName")) : existing.getInternalName();
         if (nextGameId == null || nextInternalName == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "gameId/sourceId and internalName are required"));
         }
@@ -203,32 +205,32 @@ public class AdminNpcController {
             npc.setGameId(firstNonNullLong(toLong(request.get("gameId")), toLong(request.get("sourceId"))));
         }
         if (creating || request.containsKey("internalName")) {
-            npc.setInternalName(trimToNull(request.get("internalName")));
+            npc.setInternalName(AdminTextUtils.trimToNull(request.get("internalName")));
         }
         if (request.containsKey("name")) {
-            npc.setName(trimToNull(request.get("name")));
+            npc.setName(AdminTextUtils.trimToNull(request.get("name")));
         }
         if (request.containsKey("nameZh")) {
-            npc.setNameZh(trimToNull(request.get("nameZh")));
+            npc.setNameZh(AdminTextUtils.trimToNull(request.get("nameZh")));
         }
         if (request.containsKey("subName")) {
-            npc.setSubName(trimToNull(request.get("subName")));
+            npc.setSubName(AdminTextUtils.trimToNull(request.get("subName")));
         }
         if (request.containsKey("subNameZh")) {
-            npc.setSubNameZh(trimToNull(request.get("subNameZh")));
+            npc.setSubNameZh(AdminTextUtils.trimToNull(request.get("subNameZh")));
         }
         if (request.containsKey("imageUrl")) {
-            npc.setImageUrl(trimToNull(request.get("imageUrl")));
+            npc.setImageUrl(AdminTextUtils.trimToNull(request.get("imageUrl")));
         }
         if (request.containsKey("categoryId")) npc.setCategoryId(toLong(request.get("categoryId")));
         if (request.containsKey("gamePeriodId")) npc.setGamePeriodId(toLong(request.get("gamePeriodId")));
         if (request.containsKey("gameModelId")) npc.setGameModelId(toLong(request.get("gameModelId")));
         if (request.containsKey("isBoss")) npc.setIsBoss(toBoolean(request.get("isBoss")));
         if (request.containsKey("bossGroupId")) npc.setBossGroupId(toLong(request.get("bossGroupId")));
-        if (request.containsKey("bossRole")) npc.setBossRole(trimToNull(request.get("bossRole")));
+        if (request.containsKey("bossRole")) npc.setBossRole(AdminTextUtils.trimToNull(request.get("bossRole")));
         if (request.containsKey("isFriendly")) npc.setIsFriendly(toBoolean(request.get("isFriendly")));
         if (request.containsKey("isTownNpc")) npc.setIsTownNpc(toBoolean(request.get("isTownNpc")));
-        if (request.containsKey("behaviorNotes")) npc.setBehaviorNotes(trimToNull(request.get("behaviorNotes")));
+        if (request.containsKey("behaviorNotes")) npc.setBehaviorNotes(AdminTextUtils.trimToNull(request.get("behaviorNotes")));
         if (request.containsKey("bannerSourceItemId")) npc.setBannerSourceItemId(toInteger(request.get("bannerSourceItemId")));
         if (request.containsKey("bannerItemId")) npc.setBannerItemId(toLong(request.get("bannerItemId")));
         if (request.containsKey("catchSourceItemId")) npc.setCatchSourceItemId(toInteger(request.get("catchSourceItemId")));
@@ -306,11 +308,11 @@ public class AdminNpcController {
         payload.put("gameId", gameId);
         payload.put("netId", firstNonNullInteger(toInteger(supplement.get("netId")), fallbackNetId));
         payload.put("name", npc.getName());
-        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh")), generatedZhName.nameZh()));
-        payload.put("nameEn", firstNonBlank(trimToNull(supplement.get("nameEn")), npc.getName()));
+        payload.put("nameZh", firstNonBlank(npc.getNameZh(), AdminTextUtils.trimToNull(supplement.get("nameZh")), generatedZhName.nameZh()));
+        payload.put("nameEn", firstNonBlank(AdminTextUtils.trimToNull(supplement.get("nameEn")), npc.getName()));
         payload.put("subName", npc.getSubName());
-        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh")), generatedZhName.subNameZh()));
-        payload.put("subNameEn", trimToNull(supplement.get("subNameEn")));
+        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), AdminTextUtils.trimToNull(supplement.get("subNameZh")), generatedZhName.subNameZh()));
+        payload.put("subNameEn", AdminTextUtils.trimToNull(supplement.get("subNameEn")));
         payload.put("internalName", npc.getInternalName());
         payload.put("categoryId", npc.getCategoryId());
         payload.put("categoryName", category == null ? null : category.getName());
@@ -335,8 +337,8 @@ public class AdminNpcController {
         payload.put("height", toInteger(supplement.get("height")));
         payload.put("scale", supplement.get("scale"));
         payload.put("value", toInteger(supplement.get("value")));
-        payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
-        payload.put("rawJson", trimToNull(supplement.get("rawJson")));
+        payload.put("buffImmune", AdminTextUtils.trimToNull(supplement.get("buffImmune")));
+        payload.put("rawJson", AdminTextUtils.trimToNull(supplement.get("rawJson")));
         payload.put("imageUrl", resolveNpcManagedImageUrl(npc, supplement));
         payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
         payload.put("bannerItemId", npc.getBannerItemId());
@@ -394,11 +396,11 @@ public class AdminNpcController {
         payload.put("gameId", gameId);
         payload.put("netId", firstNonNullInteger(toInteger(supplement.get("netId")), fallbackNetId));
         payload.put("name", npc.getName());
-        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh")), generatedZhName.nameZh()));
-        payload.put("nameEn", firstNonBlank(trimToNull(supplement.get("nameEn")), npc.getName()));
+        payload.put("nameZh", firstNonBlank(npc.getNameZh(), AdminTextUtils.trimToNull(supplement.get("nameZh")), generatedZhName.nameZh()));
+        payload.put("nameEn", firstNonBlank(AdminTextUtils.trimToNull(supplement.get("nameEn")), npc.getName()));
         payload.put("subName", npc.getSubName());
-        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh")), generatedZhName.subNameZh()));
-        payload.put("subNameEn", trimToNull(supplement.get("subNameEn")));
+        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), AdminTextUtils.trimToNull(supplement.get("subNameZh")), generatedZhName.subNameZh()));
+        payload.put("subNameEn", AdminTextUtils.trimToNull(supplement.get("subNameEn")));
         payload.put("internalName", npc.getInternalName());
         payload.put("categoryId", npc.getCategoryId());
         payload.put("categoryName", category == null ? null : category.getName());
@@ -423,8 +425,8 @@ public class AdminNpcController {
         payload.put("height", toInteger(supplement.get("height")));
         payload.put("scale", supplement.get("scale"));
         payload.put("value", toInteger(supplement.get("value")));
-        payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
-        payload.put("rawJson", trimToNull(supplement.get("rawJson")));
+        payload.put("buffImmune", AdminTextUtils.trimToNull(supplement.get("buffImmune")));
+        payload.put("rawJson", AdminTextUtils.trimToNull(supplement.get("rawJson")));
         payload.put("imageUrl", resolveNpcManagedImageUrl(npc, supplement));
         payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
         payload.put("bannerItemId", npc.getBannerItemId());
@@ -494,7 +496,7 @@ public class AdminNpcController {
             }
             for (Object recordRaw : records) {
                 if (recordRaw instanceof Map<?, ?> record) {
-                    String internalName = trimToNull(record.get("internalName"));
+                    String internalName = AdminTextUtils.trimToNull(record.get("internalName"));
                     mergeNpcZhName(result, internalName, npcZhNameFrom(record));
                     mergeNpcVariantZhName(result, internalName);
                 }
@@ -517,7 +519,7 @@ public class AdminNpcController {
             }
             for (Map.Entry<?, ?> entry : records.entrySet()) {
                 if (entry.getValue() instanceof Map<?, ?> value) {
-                    String internalName = firstNonBlank(trimToNull(value.get("internalName")), trimToNull(entry.getKey()));
+                    String internalName = firstNonBlank(AdminTextUtils.trimToNull(value.get("internalName")), AdminTextUtils.trimToNull(entry.getKey()));
                     mergeNpcZhName(result, internalName, npcZhNameFrom(value));
                     mergeNpcVariantZhName(result, internalName);
                 }
@@ -530,14 +532,14 @@ public class AdminNpcController {
     private NpcZhName npcZhNameFrom(Map<?, ?> value) {
         Map<?, ?> localizedZh = asMap(asMap(value.get("localized")).get("zh"));
         return new NpcZhName(
-            trimToNull(value.get("internalName")),
-            firstNonBlank(trimToNull(value.get("nameZh")), trimToNull(value.get("name_zh")), trimToNull(localizedZh.get("name"))),
-            firstNonBlank(trimToNull(value.get("subNameZh")), trimToNull(value.get("sub_name_zh")), trimToNull(localizedZh.get("namesub")))
+            AdminTextUtils.trimToNull(value.get("internalName")),
+            firstNonBlank(AdminTextUtils.trimToNull(value.get("nameZh")), AdminTextUtils.trimToNull(value.get("name_zh")), AdminTextUtils.trimToNull(localizedZh.get("name"))),
+            firstNonBlank(AdminTextUtils.trimToNull(value.get("subNameZh")), AdminTextUtils.trimToNull(value.get("sub_name_zh")), AdminTextUtils.trimToNull(localizedZh.get("namesub")))
         );
     }
 
     private void mergeNpcZhName(Map<String, NpcZhName> result, String internalName, NpcZhName next) {
-        String key = trimToNull(internalName);
+        String key = AdminTextUtils.trimToNull(internalName);
         if (key == null || next == null || (next.nameZh() == null && next.subNameZh() == null)) {
             return;
         }
@@ -550,7 +552,7 @@ public class AdminNpcController {
     }
 
     private void mergeNpcVariantZhName(Map<String, NpcZhName> result, String internalName) {
-        String key = trimToNull(internalName);
+        String key = AdminTextUtils.trimToNull(internalName);
         if (key == null || result.containsKey(key)) {
             return;
         }
@@ -578,7 +580,7 @@ public class AdminNpcController {
             }
             for (Object recordRaw : records) {
                 if (recordRaw instanceof Map<?, ?> record) {
-                    mergeNpcVariantZhName(result, trimToNull(record.get("internalName")));
+                    mergeNpcVariantZhName(result, AdminTextUtils.trimToNull(record.get("internalName")));
                 }
             }
         } catch (Exception exception) {
@@ -590,7 +592,7 @@ public class AdminNpcController {
         if (npc == null) {
             return NpcZhName.EMPTY;
         }
-        String internalName = trimToNull(npc.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(npc.getInternalName());
         if (internalName == null) {
             return NpcZhName.EMPTY;
         }
@@ -607,7 +609,7 @@ public class AdminNpcController {
     }
 
     private List<String> findNpcZhInternalNameMatches(String keyword) {
-        String normalizedKeyword = trimToNull(keyword);
+        String normalizedKeyword = AdminTextUtils.trimToNull(keyword);
         if (normalizedKeyword == null) {
             return List.of();
         }
@@ -620,11 +622,11 @@ public class AdminNpcController {
     }
 
     private String stripNpcVariantAffixes(String internalName) {
-        String text = trimToNull(internalName);
+        String text = AdminTextUtils.trimToNull(internalName);
         if (text == null) {
             return null;
         }
-        return trimToNull(text
+        return AdminTextUtils.trimToNull(text
             .replaceFirst("^(Big|Little|Large|Small)", "")
             .replaceFirst("(Fatty|Honey|Leafy|Spikey|Stingy)$", ""));
     }
@@ -667,10 +669,10 @@ public class AdminNpcController {
         Map<String, Object> payload = new LinkedHashMap<>();
         Map<?, ?> rawJson = parseMap(map.get("rawJson"));
         payload.put("imageUrl", firstNonBlank(
-            managedImageOrNull(trimToNull(map.get("imageUrl")), "admin npc supplement image.imageUrl"),
-            managedImageOrNull(trimToNull(map.get("image_url")), "admin npc supplement image.image_url"),
-            managedImageOrNull(trimToNull(rawJson.get("imageUrl")), "admin npc supplement rawJson.imageUrl"),
-            managedImageOrNull(trimToNull(rawJson.get("image_url")), "admin npc supplement rawJson.image_url")
+            managedImageOrNull(AdminTextUtils.trimToNull(map.get("imageUrl")), "admin npc supplement image.imageUrl"),
+            managedImageOrNull(AdminTextUtils.trimToNull(map.get("image_url")), "admin npc supplement image.image_url"),
+            managedImageOrNull(AdminTextUtils.trimToNull(rawJson.get("imageUrl")), "admin npc supplement rawJson.imageUrl"),
+            managedImageOrNull(AdminTextUtils.trimToNull(rawJson.get("image_url")), "admin npc supplement rawJson.image_url")
         ));
         payload.put("rawJson", map.get("rawJson"));
         payload.put("buffImmune", toJsonString(map.get("buffImmune")));
@@ -680,9 +682,9 @@ public class AdminNpcController {
         payload.put("npcType", firstNonNullInteger(toInteger(map.get("npcType")), toInteger(rawJson.get("type"))));
         payload.put("aiStyle", firstNonNullInteger(toInteger(rawJson.get("aiStyle")), toInteger(map.get("aiStyle"))));
         payload.put("netId", toInteger(rawJson.get("netID")));
-        payload.put("nameEn", trimToNull(rawJson.get("name")));
-        payload.put("nameZh", trimToNull(map.get("nameZh")));
-        payload.put("subNameZh", trimToNull(map.get("subNameZh")));
+        payload.put("nameEn", AdminTextUtils.trimToNull(rawJson.get("name")));
+        payload.put("nameZh", AdminTextUtils.trimToNull(map.get("nameZh")));
+        payload.put("subNameZh", AdminTextUtils.trimToNull(map.get("subNameZh")));
         payload.put("damage", toInteger(combat.get("damage")));
         payload.put("defense", toInteger(combat.get("defense")));
         payload.put("lifeMax", toInteger(combat.get("lifeMax")));
@@ -698,7 +700,7 @@ public class AdminNpcController {
         payload.put("isTownNpc", toBoolean(extras.get("townNPC")));
         Map<?, ?> localized = rawJson.get("localized") instanceof Map<?, ?> localizedMap ? localizedMap : Map.of();
         Map<?, ?> localizedEn = localized.get("en") instanceof Map<?, ?> localizedEnMap ? localizedEnMap : Map.of();
-        payload.put("subNameEn", trimToNull(localizedEn.get("namesub")));
+        payload.put("subNameEn", AdminTextUtils.trimToNull(localizedEn.get("namesub")));
         return payload;
     }
 
@@ -784,7 +786,7 @@ public class AdminNpcController {
         if (npcSourceId != null && countNpcDerivedLootEntriesBySourceId(npcSourceId) > 0) {
             return loadNpcDerivedLootEntriesBySourceId(npcSourceId);
         }
-        String normalizedNpcName = trimToNull(npcName);
+        String normalizedNpcName = AdminTextUtils.trimToNull(npcName);
         if (normalizedNpcName == null) {
             return List.of();
         }
@@ -926,7 +928,7 @@ public class AdminNpcController {
     private String resolveNpcManagedImageUrl(Npc npc, Map<String, Object> supplement) {
         return firstNonBlank(
             managedImageOrNull(npc == null ? null : npc.getImageUrl(), "admin npc image_url"),
-            managedImageOrNull(trimToNull(supplement == null ? null : supplement.get("imageUrl")), "admin npc supplement image")
+            managedImageOrNull(AdminTextUtils.trimToNull(supplement == null ? null : supplement.get("imageUrl")), "admin npc supplement image")
         );
     }
 
@@ -944,8 +946,8 @@ public class AdminNpcController {
             Map<String, Object> sanitizedRow = new LinkedHashMap<>(row);
             for (String fieldName : fieldNames) {
                 sanitizedRow.put(fieldName, requireBuffPrefix
-                    ? managedBuffImageOrNull(trimToNull(row.get(fieldName)), context + "." + fieldName)
-                    : managedImageOrNull(trimToNull(row.get(fieldName)), context + "." + fieldName));
+                    ? managedBuffImageOrNull(AdminTextUtils.trimToNull(row.get(fieldName)), context + "." + fieldName)
+                    : managedImageOrNull(AdminTextUtils.trimToNull(row.get(fieldName)), context + "." + fieldName));
             }
             sanitizedRows.add(sanitizedRow);
         }
@@ -953,7 +955,7 @@ public class AdminNpcController {
     }
 
     private String managedImageOrNull(String value, String context) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -965,7 +967,7 @@ public class AdminNpcController {
     }
 
     private String managedBuffImageOrNull(String value, String context) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -1068,18 +1070,18 @@ public class AdminNpcController {
                 dropSourceKind,
                 toInteger(row.get("quantityMin")),
                 toInteger(row.get("quantityMax")),
-                trimToNull(row.get("quantityText")),
+                AdminTextUtils.trimToNull(row.get("quantityText")),
                 toDecimal(row.get("chanceValue")),
-                trimToNull(row.get("chanceText")),
-                trimToNull(row.get("conditions")),
-                trimToNull(row.get("notes")),
+                AdminTextUtils.trimToNull(row.get("chanceText")),
+                AdminTextUtils.trimToNull(row.get("conditions")),
+                AdminTextUtils.trimToNull(row.get("notes")),
                 resolveSortOrder(row.get("sortOrder"), index)
             );
         }
     }
 
     private String normalizeManagedNpcDropSourceKind(Object rawDropSourceKind) {
-        String dropSourceKind = trimToNull(rawDropSourceKind);
+        String dropSourceKind = AdminTextUtils.trimToNull(rawDropSourceKind);
         if (dropSourceKind == null) return NPC_DROP_SOURCE_KIND;
         return switch (dropSourceKind.trim().toLowerCase(Locale.ROOT)) {
             case "npc_drop", "drop", "loot" -> NPC_DROP_SOURCE_KIND;
@@ -1104,12 +1106,12 @@ public class AdminNpcController {
                 npcId,
                 buffId,
                 buffSourceId,
-                defaultIfBlank(trimToNull(row.get("relationType")), "inflicts"),
+                defaultIfBlank(AdminTextUtils.trimToNull(row.get("relationType")), "inflicts"),
                 toInteger(row.get("durationTicks")),
                 toDecimal(row.get("chanceValue")),
-                trimToNull(row.get("chanceText")),
-                trimToNull(row.get("conditions")),
-                trimToNull(row.get("notes")),
+                AdminTextUtils.trimToNull(row.get("chanceText")),
+                AdminTextUtils.trimToNull(row.get("conditions")),
+                AdminTextUtils.trimToNull(row.get("notes")),
                 resolveSortOrder(row.get("sortOrder"), index)
             );
         }
@@ -1156,15 +1158,15 @@ public class AdminNpcController {
                 npcId,
                 itemId,
                 sourceItemId,
-                trimToNull(row.get("priceText")),
-                trimToNull(row.get("notes")),
+                AdminTextUtils.trimToNull(row.get("priceText")),
+                AdminTextUtils.trimToNull(row.get("notes")),
                 resolveSortOrder(row.get("sortOrder"), index)
             );
             Long shopEntryId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
             List<Map<String, Object>> conditions = normalizeObjectList(row.get("conditions"));
             for (int conditionIndex = 0; conditionIndex < conditions.size(); conditionIndex += 1) {
                 Map<String, Object> condition = conditions.get(conditionIndex);
-                String refType = normalizeConditionRefType(trimToNull(condition.get("refType")));
+                String refType = normalizeConditionRefType(AdminTextUtils.trimToNull(condition.get("refType")));
                 Long refId = toLong(condition.get("refId"));
                 if (refType == null || refId == null || refId <= 0) continue;
                 jdbcTemplate.update(
@@ -1176,8 +1178,8 @@ public class AdminNpcController {
                     shopEntryId,
                     refType,
                     refId,
-                    defaultIfBlank(trimToNull(condition.get("conditionRole")), "required"),
-                    trimToNull(condition.get("notes")),
+                    defaultIfBlank(AdminTextUtils.trimToNull(condition.get("conditionRole")), "required"),
+                    AdminTextUtils.trimToNull(condition.get("notes")),
                     resolveSortOrder(condition.get("sortOrder"), conditionIndex)
                 );
             }
@@ -1260,11 +1262,6 @@ public class AdminNpcController {
         }
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) return null;
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private Map<?, ?> asMap(Object value) {
         return value instanceof Map<?, ?> map ? map : Map.of();
@@ -1462,9 +1459,9 @@ public class AdminNpcController {
                 result.put(variantSourceId, new NpcLootInheritance(
                     variantSourceId,
                     sourceNpcId,
-                    trimToNull(row.get("sourceInternalName")),
-                    trimToNull(row.get("sourceName")),
-                    trimToNull(row.get("sourceNameZh")),
+                    AdminTextUtils.trimToNull(row.get("sourceInternalName")),
+                    AdminTextUtils.trimToNull(row.get("sourceName")),
+                    AdminTextUtils.trimToNull(row.get("sourceNameZh")),
                     total,
                     "prototype"
                 ));
@@ -1532,9 +1529,9 @@ public class AdminNpcController {
                 result.put(variantNpcId, new NpcLootInheritance(
                     toLong(row.get("sourceId")),
                     sourceNpcId,
-                    trimToNull(row.get("sourceInternalName")),
-                    trimToNull(row.get("sourceName")),
-                    trimToNull(row.get("sourceNameZh")),
+                    AdminTextUtils.trimToNull(row.get("sourceInternalName")),
+                    AdminTextUtils.trimToNull(row.get("sourceName")),
+                    AdminTextUtils.trimToNull(row.get("sourceNameZh")),
                     total,
                     "same_name"
                 ));
@@ -1585,7 +1582,7 @@ public class AdminNpcController {
         }
 
         List<String> normalizedNames = npcNames.stream()
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .filter(Objects::nonNull)
             .map(name -> name.toLowerCase(Locale.ROOT))
             .distinct()
@@ -1612,7 +1609,7 @@ public class AdminNpcController {
 
         Map<String, Integer> result = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
-            String normalizedName = trimToNull(row.get("normalizedName"));
+            String normalizedName = AdminTextUtils.trimToNull(row.get("normalizedName"));
             Integer total = toInteger(row.get("total"));
             if (normalizedName != null && total != null) {
                 result.put(normalizedName.toLowerCase(Locale.ROOT), total);
@@ -1629,7 +1626,7 @@ public class AdminNpcController {
         if (bySourceId > 0) {
             return bySourceId;
         }
-        String normalizedName = trimToNull(npc.getName());
+        String normalizedName = AdminTextUtils.trimToNull(npc.getName());
         if (normalizedName == null) {
             return 0;
         }
@@ -1696,7 +1693,7 @@ public class AdminNpcController {
                 return total;
             }
         }
-        String normalizedNpcName = trimToNull(npcName);
+        String normalizedNpcName = AdminTextUtils.trimToNull(npcName);
         if (normalizedNpcName == null) {
             return 0;
         }

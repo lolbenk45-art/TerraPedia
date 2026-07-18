@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,7 +61,7 @@ public class AdminRecipeGroupController {
         @RequestParam(required = false) String keyword
     ) {
         List<RecipeGroupDTO> groups = getCachedRecipeGroups();
-        String normalizedKeyword = trimToNull(keyword);
+        String normalizedKeyword = AdminTextUtils.trimToNull(keyword);
         if (normalizedKeyword != null) {
             String needle = normalizedKeyword.toLowerCase();
             groups = groups.stream()
@@ -229,12 +231,12 @@ public class AdminRecipeGroupController {
 
     private RecipeGroupDTO normalizeGroup(RecipeGroupDTO request, boolean canonicalNameRequired) {
         RecipeGroupDTO normalized = new RecipeGroupDTO();
-        normalized.setCanonicalName(trimToNull(request == null ? null : request.getCanonicalName()));
+        normalized.setCanonicalName(AdminTextUtils.trimToNull(request == null ? null : request.getCanonicalName()));
         normalized.setDisplayNameEn(firstNonBlank(
-            trimToNull(request == null ? null : request.getDisplayNameEn()),
+            AdminTextUtils.trimToNull(request == null ? null : request.getDisplayNameEn()),
             normalized.getCanonicalName()
         ));
-        normalized.setDisplayNameZh(trimToNull(request == null ? null : request.getDisplayNameZh()));
+        normalized.setDisplayNameZh(AdminTextUtils.trimToNull(request == null ? null : request.getDisplayNameZh()));
         normalized.setMembers(normalizeMembers(request == null ? Collections.emptyList() : request.getMembers()));
         if (canonicalNameRequired && normalized.getCanonicalName() == null) {
             throw new IllegalArgumentException("canonicalName is required");
@@ -250,10 +252,10 @@ public class AdminRecipeGroupController {
         for (RecipeGroupMemberDTO member : members == null ? Collections.<RecipeGroupMemberDTO>emptyList() : members) {
             RecipeGroupMemberDTO normalized = new RecipeGroupMemberDTO();
             normalized.setItemId(member == null ? null : member.getItemId());
-            normalized.setInternalName(trimToNull(member == null ? null : member.getInternalName()));
-            normalized.setName(trimToNull(member == null ? null : member.getName()));
-            normalized.setNameZh(trimToNull(member == null ? null : member.getNameZh()));
-            normalized.setImage(trimToNull(member == null ? null : member.getImage()));
+            normalized.setInternalName(AdminTextUtils.trimToNull(member == null ? null : member.getInternalName()));
+            normalized.setName(AdminTextUtils.trimToNull(member == null ? null : member.getName()));
+            normalized.setNameZh(AdminTextUtils.trimToNull(member == null ? null : member.getNameZh()));
+            normalized.setImage(AdminTextUtils.trimToNull(member == null ? null : member.getImage()));
             String key = firstNonBlank(normalized.getInternalName(), normalized.getName(), normalized.getNameZh());
             if (key == null) {
                 continue;
@@ -273,8 +275,8 @@ public class AdminRecipeGroupController {
         Set<String> internalNames = new LinkedHashSet<>();
         Set<String> names = new LinkedHashSet<>();
         for (RecipeGroupMemberDTO member : members) {
-            String internalName = trimToNull(member.getInternalName());
-            String name = trimToNull(member.getName());
+            String internalName = AdminTextUtils.trimToNull(member.getInternalName());
+            String name = AdminTextUtils.trimToNull(member.getName());
             if (internalName != null) {
                 internalNames.add(internalName);
             }
@@ -301,8 +303,8 @@ public class AdminRecipeGroupController {
         List<RecipeGroupMemberDTO> enrichedMembers = new ArrayList<>();
         for (RecipeGroupMemberDTO member : members) {
             Item resolved = null;
-            String internalName = trimToNull(member.getInternalName());
-            String name = trimToNull(member.getName());
+            String internalName = AdminTextUtils.trimToNull(member.getInternalName());
+            String name = AdminTextUtils.trimToNull(member.getName());
             if (internalName != null) {
                 resolved = itemsByInternalName.get(normalizeKey(internalName));
             }
@@ -313,8 +315,8 @@ public class AdminRecipeGroupController {
             next.setItemId(resolved == null ? member.getItemId() : resolved.getId());
             next.setInternalName(firstNonBlank(internalName, resolved == null ? null : resolved.getInternalName()));
             next.setName(firstNonBlank(name, resolved == null ? null : resolved.getName()));
-            next.setNameZh(firstNonBlank(trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
-            next.setImage(firstNonBlank(trimToNull(member.getImage()), resolved == null ? null : resolved.getImage()));
+            next.setNameZh(firstNonBlank(AdminTextUtils.trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
+            next.setImage(firstNonBlank(AdminTextUtils.trimToNull(member.getImage()), resolved == null ? null : resolved.getImage()));
             enrichedMembers.add(next);
         }
         enriched.setMembers(enrichedMembers);
@@ -381,7 +383,7 @@ public class AdminRecipeGroupController {
     }
 
     private String normalizeKey(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? "" : text.toLowerCase();
     }
 
@@ -389,19 +391,12 @@ public class AdminRecipeGroupController {
         return value != null && value.toLowerCase().contains(needle);
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String trimObjectToNull(Object value) {
         if (value == null) {
             return null;
         }
-        return trimToNull(String.valueOf(value));
+        return AdminTextUtils.trimToNull(String.valueOf(value));
     }
 
     private Long parseLong(Object value) {
@@ -420,7 +415,7 @@ public class AdminRecipeGroupController {
             return null;
         }
         for (String value : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }

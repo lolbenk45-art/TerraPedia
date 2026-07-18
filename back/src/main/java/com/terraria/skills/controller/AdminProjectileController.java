@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -226,7 +228,7 @@ public class AdminProjectileController {
     }
 
     private String resolveProjectileNameZh(String value, Set<String> seenInternalNames) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -250,7 +252,7 @@ public class AdminProjectileController {
     }
 
     private String managedImageOrNull(String value, String context) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -261,11 +263,6 @@ public class AdminProjectileController {
         return null;
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) return null;
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private String firstNonBlank(String... values) {
         if (values == null) return null;
@@ -338,7 +335,7 @@ public class AdminProjectileController {
                 continue;
             }
             Long itemId = numberValue(row, "itemId", "sourceItemId", "id", "sourceId");
-            String imageUrl = itemId == null ? null : trimToNull(imagesByItemId.get(itemId));
+            String imageUrl = itemId == null ? null : AdminTextUtils.trimToNull(imagesByItemId.get(itemId));
             if (imageUrl != null) {
                 row.put("image", imageUrl);
                 row.put("imageUrl", imageUrl);
@@ -363,7 +360,7 @@ public class AdminProjectileController {
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         Set<String> internalNames = rows.stream()
-            .map(row -> trimToNull(row.get("internalName")))
+            .map(row -> AdminTextUtils.trimToNull(row.get("internalName")))
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         Map<Long, String> imageByNpcId = new LinkedHashMap<>();
@@ -400,7 +397,7 @@ public class AdminProjectileController {
                     }
                     if (npc.getId() != null) imageByNpcId.putIfAbsent(npc.getId(), imageUrl);
                     if (npc.getGameId() != null) imageByGameId.putIfAbsent(npc.getGameId(), imageUrl);
-                    String internalName = trimToNull(npc.getInternalName());
+                    String internalName = AdminTextUtils.trimToNull(npc.getInternalName());
                     if (internalName != null) imageByInternalName.putIfAbsent(internalName, imageUrl);
                 });
         }
@@ -410,7 +407,7 @@ public class AdminProjectileController {
             }
             Long npcId = numberValue(row, "npcId", "id");
             Long gameId = numberValue(row, "gameId", "sourceId", "npcSourceId");
-            String internalName = trimToNull(row.get("internalName"));
+            String internalName = AdminTextUtils.trimToNull(row.get("internalName"));
             String imageUrl = firstNonBlank(
                 npcId == null ? null : imageByNpcId.get(npcId),
                 gameId == null ? null : imageByGameId.get(gameId),
@@ -443,26 +440,26 @@ public class AdminProjectileController {
         }
         Item item = new Item();
         item.setId(itemId);
-        item.setInternalName(trimToNull(row.get("internalName")));
-        item.setName(trimToNull(row.get("name")));
-        item.setNameZh(trimToNull(row.get("nameZh")));
-        item.setImage(trimToNull(row.get("image")));
+        item.setInternalName(AdminTextUtils.trimToNull(row.get("internalName")));
+        item.setName(AdminTextUtils.trimToNull(row.get("name")));
+        item.setNameZh(AdminTextUtils.trimToNull(row.get("nameZh")));
+        item.setImage(AdminTextUtils.trimToNull(row.get("image")));
         return item;
     }
 
     private boolean hasManagedSourceImage(Map<String, Object> row) {
         return managedImageOrNull(firstNonBlank(
-            trimToNull(row.get("image")),
-            trimToNull(row.get("imageUrl")),
-            trimToNull(row.get("itemImageUrl")),
-            trimToNull(row.get("npcImageUrl")),
-            trimToNull(row.get("itemImage")),
-            trimToNull(row.get("npcImage")),
-            trimToNull(row.get("image_url")),
-            trimToNull(row.get("item_image_url")),
-            trimToNull(row.get("npc_image_url")),
-            trimToNull(row.get("item_image")),
-            trimToNull(row.get("npc_image"))
+            AdminTextUtils.trimToNull(row.get("image")),
+            AdminTextUtils.trimToNull(row.get("imageUrl")),
+            AdminTextUtils.trimToNull(row.get("itemImageUrl")),
+            AdminTextUtils.trimToNull(row.get("npcImageUrl")),
+            AdminTextUtils.trimToNull(row.get("itemImage")),
+            AdminTextUtils.trimToNull(row.get("npcImage")),
+            AdminTextUtils.trimToNull(row.get("image_url")),
+            AdminTextUtils.trimToNull(row.get("item_image_url")),
+            AdminTextUtils.trimToNull(row.get("npc_image_url")),
+            AdminTextUtils.trimToNull(row.get("item_image")),
+            AdminTextUtils.trimToNull(row.get("npc_image"))
         ), "admin projectile source image") != null;
     }
 
@@ -484,7 +481,7 @@ public class AdminProjectileController {
         if (value instanceof Number number) {
             return number.longValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }

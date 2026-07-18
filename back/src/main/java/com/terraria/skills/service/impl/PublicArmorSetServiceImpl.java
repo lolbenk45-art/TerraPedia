@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.EquipmentEffectAttributeDTO;
@@ -133,14 +135,14 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
     ) {
         PublicArmorSetListDTO dto = new PublicArmorSetListDTO();
         dto.setId(toLong(row.get("id")));
-        dto.setTextKey(trimToNull(row.get("text_key")));
-        dto.setSourceKey(trimToNull(row.get("source_key")));
-        dto.setName(firstNonBlank(trimToNull(row.get("name_zh")), trimToNull(row.get("name")), trimToNull(row.get("name_en")), trimToNull(row.get("text_key"))));
-        dto.setNameZh(trimToNull(row.get("name_zh")));
-        dto.setNameEn(trimToNull(row.get("name_en")));
-        dto.setBenefitZh(trimToNull(row.get("benefit_zh")));
-        dto.setBenefitEn(trimToNull(row.get("benefit_en")));
-        dto.setPrimaryPart(trimToNull(row.get("primary_part")));
+        dto.setTextKey(AdminTextUtils.trimToNull(row.get("text_key")));
+        dto.setSourceKey(AdminTextUtils.trimToNull(row.get("source_key")));
+        dto.setName(firstNonBlank(AdminTextUtils.trimToNull(row.get("name_zh")), AdminTextUtils.trimToNull(row.get("name")), AdminTextUtils.trimToNull(row.get("name_en")), AdminTextUtils.trimToNull(row.get("text_key"))));
+        dto.setNameZh(AdminTextUtils.trimToNull(row.get("name_zh")));
+        dto.setNameEn(AdminTextUtils.trimToNull(row.get("name_en")));
+        dto.setBenefitZh(AdminTextUtils.trimToNull(row.get("benefit_zh")));
+        dto.setBenefitEn(AdminTextUtils.trimToNull(row.get("benefit_en")));
+        dto.setPrimaryPart(AdminTextUtils.trimToNull(row.get("primary_part")));
         dto.setSetCount(toInteger(row.get("set_count")));
         dto.setUniqueItemCount(toInteger(row.get("unique_item_count")));
         dto.setMaleImages(filterManagedImages(parseJsonArray(row.get("male_images"))));
@@ -249,20 +251,20 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
     private EquipmentEffectAttributeDTO toEffectDto(Map<String, Object> row) {
         EquipmentEffectAttributeDTO dto = new EquipmentEffectAttributeDTO();
-        dto.setStatKey(trimToNull(row.get("stat_key")));
-        dto.setStatLabelZh(trimToNull(row.get("stat_label_zh")));
-        dto.setClassScope(trimToNull(row.get("class_scope")));
-        dto.setOperation(trimToNull(row.get("operation")));
+        dto.setStatKey(AdminTextUtils.trimToNull(row.get("stat_key")));
+        dto.setStatLabelZh(AdminTextUtils.trimToNull(row.get("stat_label_zh")));
+        dto.setClassScope(AdminTextUtils.trimToNull(row.get("class_scope")));
+        dto.setOperation(AdminTextUtils.trimToNull(row.get("operation")));
         dto.setValueDecimal(toBigDecimal(row.get("value_decimal")));
         dto.setValueMaxDecimal(toBigDecimal(row.get("value_max_decimal")));
-        dto.setUnit(trimToNull(row.get("unit")));
-        dto.setApplyScope(trimToNull(row.get("apply_scope")));
-        dto.setVariantLabel(trimToNull(row.get("variant_label")));
-        dto.setItemInternalName(trimToNull(row.get("item_internal_name")));
-        dto.setSlotType(trimToNull(row.get("slot_type")));
-        dto.setConditionText(trimToNull(row.get("condition_text")));
-        dto.setRawText(trimToNull(row.get("raw_text")));
-        dto.setParseStatus(trimToNull(row.get("parse_status")));
+        dto.setUnit(AdminTextUtils.trimToNull(row.get("unit")));
+        dto.setApplyScope(AdminTextUtils.trimToNull(row.get("apply_scope")));
+        dto.setVariantLabel(AdminTextUtils.trimToNull(row.get("variant_label")));
+        dto.setItemInternalName(AdminTextUtils.trimToNull(row.get("item_internal_name")));
+        dto.setSlotType(AdminTextUtils.trimToNull(row.get("slot_type")));
+        dto.setConditionText(AdminTextUtils.trimToNull(row.get("condition_text")));
+        dto.setRawText(AdminTextUtils.trimToNull(row.get("raw_text")));
+        dto.setParseStatus(AdminTextUtils.trimToNull(row.get("parse_status")));
         return dto;
     }
 
@@ -293,7 +295,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         Map<Long, String> result = new LinkedHashMap<>();
         for (Map<String, Object> imageRow : imageRows) {
             Long itemId = toLong(imageRow.get("item_id"));
-            String imageUrl = trimToNull(imageRow.get("cached_url"));
+            String imageUrl = AdminTextUtils.trimToNull(imageRow.get("cached_url"));
             String normalizedImageUrl = managedImageUrlPolicy.normalizeManagedImagePath(imageUrl).orElse(null);
             if (itemId != null && !result.containsKey(itemId) && normalizedImageUrl != null) {
                 result.put(itemId, normalizedImageUrl);
@@ -318,7 +320,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
     }
 
     private List<Long> extractRelatedItemIds(Object raw) {
-        String text = trimToNull(raw);
+        String text = AdminTextUtils.trimToNull(raw);
         if (text == null) {
             return List.of();
         }
@@ -342,7 +344,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
     }
 
     private List<PublicArmorSetRelatedItemDTO> parseRelatedItems(Object raw, Map<Long, Integer> defenseByItemId) {
-        String text = trimToNull(raw);
+        String text = AdminTextUtils.trimToNull(raw);
         if (text == null) {
             return List.of();
         }
@@ -358,12 +360,12 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
                     item.setId(firstLong(map.get("id"), map.get("itemId"), map.get("item_id"), map.get("sourceId"), map.get("source_id")));
                     item.setItemId(firstLong(map.get("itemId"), map.get("item_id"), map.get("id"), map.get("sourceId"), map.get("source_id")));
                     item.setSourceId(firstLong(map.get("sourceId"), map.get("source_id"), map.get("itemId"), map.get("item_id"), map.get("id")));
-                    item.setInternalName(trimToNull(firstValue(map, "internalName", "internal_name")));
-                    item.setName(trimToNull(map.get("name")));
-                    item.setNameZh(trimToNull(firstValue(map, "nameZh", "name_zh")));
+                    item.setInternalName(AdminTextUtils.trimToNull(firstValue(map, "internalName", "internal_name")));
+                    item.setName(AdminTextUtils.trimToNull(map.get("name")));
+                    item.setNameZh(AdminTextUtils.trimToNull(firstValue(map, "nameZh", "name_zh")));
                     item.setImage(managedImageOrNull(firstValue(map, "image", "imageUrl", "image_url", "cachedUrl", "cached_url")));
-                    item.setPartRole(trimToNull(firstValue(map, "partRole", "part_role")));
-                    item.setSlotType(trimToNull(firstValue(map, "slotType", "slot_type")));
+                    item.setPartRole(AdminTextUtils.trimToNull(firstValue(map, "partRole", "part_role")));
+                    item.setSlotType(AdminTextUtils.trimToNull(firstValue(map, "slotType", "slot_type")));
                     item.setEquipmentSlotId(toInteger(firstValue(map, "equipmentSlotId", "equipment_slot_id")));
                     item.setSetVariantIndex(toInteger(firstValue(map, "setVariantIndex", "set_variant_index")));
                     item.setPartIndex(toInteger(firstValue(map, "partIndex", "part_index")));
@@ -388,20 +390,20 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
     }
 
     private String managedImageOrNull(Object value) {
-        String imageUrl = trimToNull(value);
+        String imageUrl = AdminTextUtils.trimToNull(value);
         return managedImageUrlPolicy.normalizeManagedImagePath(imageUrl).orElse(null);
     }
 
     private List<String> filterManagedImages(List<String> values) {
         return values.stream()
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .map(value -> managedImageUrlPolicy.normalizeManagedImagePath(value).orElse(null))
             .filter(java.util.Objects::nonNull)
             .toList();
     }
 
     private List<String> parseJsonArray(Object raw) {
-        String text = trimToNull(raw);
+        String text = AdminTextUtils.trimToNull(raw);
         if (text == null) {
             return List.of();
         }
@@ -419,7 +421,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         if (value instanceof Number number) {
             return number.longValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -434,7 +436,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         if (value instanceof Number number) {
             return number.intValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -455,7 +457,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         if (value instanceof Number number) {
             return BigDecimal.valueOf(number.doubleValue());
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -483,13 +485,6 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return null;
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private String firstNonBlank(String... values) {
         if (values == null) {

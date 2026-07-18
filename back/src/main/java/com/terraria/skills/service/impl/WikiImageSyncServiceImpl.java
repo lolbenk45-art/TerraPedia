@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.AdminWikiImageSyncRequestDTO;
@@ -335,11 +337,11 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         if (image.getDeleted() != null && image.getDeleted() != 0) {
             return false;
         }
-        String provider = trimToNull(image.getProvider());
+        String provider = AdminTextUtils.trimToNull(image.getProvider());
         if (provider != null && !WIKI_IMAGE_PROVIDERS.contains(provider)) {
             return false;
         }
-        String role = trimToNull(image.getRole());
+        String role = AdminTextUtils.trimToNull(image.getRole());
         return role == null || "icon".equals(role) || Boolean.TRUE.equals(image.getIsPrimary());
     }
 
@@ -361,8 +363,8 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         for (Buff buff : buffs) {
             String sourceUrl = resolveSourceUrl(buff.getImageOriginalUrl(), buff.getImage());
             String cachedUrl = firstNonBlank(
-                trimToNull(buff.getImageCachedUrl()),
-                isManagedUrl(buff.getImage()) ? trimToNull(buff.getImage()) : null
+                AdminTextUtils.trimToNull(buff.getImageCachedUrl()),
+                isManagedUrl(buff.getImage()) ? AdminTextUtils.trimToNull(buff.getImage()) : null
             );
             if (!shouldConsiderWikiSource(sourceUrl, cachedUrl)) {
                 continue;
@@ -418,24 +420,24 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
     private boolean shouldBackfillBuffImageFallback(Buff buff, String sourceUrl) {
         String cachedUrl = firstNonBlank(
-            trimToNull(buff.getImageCachedUrl()),
-            isManagedUrl(buff.getImage()) ? trimToNull(buff.getImage()) : null
+            AdminTextUtils.trimToNull(buff.getImageCachedUrl()),
+            isManagedUrl(buff.getImage()) ? AdminTextUtils.trimToNull(buff.getImage()) : null
         );
-        return !Objects.equals(trimToNull(buff.getImage()), cachedUrl)
+        return !Objects.equals(AdminTextUtils.trimToNull(buff.getImage()), cachedUrl)
             || !Objects.equals(normalizeFetchUrl(buff.getImageOriginalUrl()), sourceUrl);
     }
 
     private boolean itemImageMirroredFieldsEqual(ItemImage image, FileUploadResultDTO upload) {
-        return Objects.equals(trimToNull(image.getOriginalUrl()), trimToNull(upload.getSourceUrl()))
-            && Objects.equals(trimToNull(image.getCachedUrl()), trimToNull(upload.getUrl()))
-            && Objects.equals(trimToNull(image.getContentType()), trimToNull(upload.getContentType()));
+        return Objects.equals(AdminTextUtils.trimToNull(image.getOriginalUrl()), AdminTextUtils.trimToNull(upload.getSourceUrl()))
+            && Objects.equals(AdminTextUtils.trimToNull(image.getCachedUrl()), AdminTextUtils.trimToNull(upload.getUrl()))
+            && Objects.equals(AdminTextUtils.trimToNull(image.getContentType()), AdminTextUtils.trimToNull(upload.getContentType()));
     }
 
     private boolean buffMirroredFieldsEqual(Buff buff, FileUploadResultDTO upload) {
-        return Objects.equals(trimToNull(buff.getImage()), trimToNull(upload.getUrl()))
-            && Objects.equals(trimToNull(buff.getImageOriginalUrl()), trimToNull(upload.getSourceUrl()))
-            && Objects.equals(trimToNull(buff.getImageCachedUrl()), trimToNull(upload.getUrl()))
-            && Objects.equals(trimToNull(buff.getImageContentType()), trimToNull(upload.getContentType()));
+        return Objects.equals(AdminTextUtils.trimToNull(buff.getImage()), AdminTextUtils.trimToNull(upload.getUrl()))
+            && Objects.equals(AdminTextUtils.trimToNull(buff.getImageOriginalUrl()), AdminTextUtils.trimToNull(upload.getSourceUrl()))
+            && Objects.equals(AdminTextUtils.trimToNull(buff.getImageCachedUrl()), AdminTextUtils.trimToNull(upload.getUrl()))
+            && Objects.equals(AdminTextUtils.trimToNull(buff.getImageContentType()), AdminTextUtils.trimToNull(upload.getContentType()));
     }
 
     private void syncBiomeIcons(
@@ -448,7 +450,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             .orderByAsc(Biome::getId));
 
         for (Biome biome : biomes) {
-            String currentUrl = trimToNull(biome.getIconUrl());
+            String currentUrl = AdminTextUtils.trimToNull(biome.getIconUrl());
             if (!shouldConsiderWikiSource(currentUrl, currentUrl)) {
                 continue;
             }
@@ -475,7 +477,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/biomes/" + hashPrefix(currentUrl),
                     buildStableId(currentUrl, firstNonBlank(biome.getCode(), biome.getNameEn(), biome.getNameZh(), "biome"))
                 );
-                if (Objects.equals(trimToNull(biome.getIconUrl()), trimToNull(upload.getUrl()))) {
+                if (Objects.equals(AdminTextUtils.trimToNull(biome.getIconUrl()), AdminTextUtils.trimToNull(upload.getUrl()))) {
                     scope.setSkippedCount(scope.getSkippedCount() + 1);
                 } else {
                     biome.setIconUrl(upload.getUrl());
@@ -501,7 +503,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             .orderByAsc(WorldContext::getId));
 
         for (WorldContext context : contexts) {
-            String currentUrl = trimToNull(context.getIconUrl());
+            String currentUrl = AdminTextUtils.trimToNull(context.getIconUrl());
             if (!shouldConsiderWikiSource(currentUrl, currentUrl)) {
                 continue;
             }
@@ -528,7 +530,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/world-contexts/" + hashPrefix(currentUrl),
                     buildStableId(currentUrl, firstNonBlank(context.getCode(), context.getNameEn(), context.getNameZh(), "world-context"))
                 );
-                if (Objects.equals(trimToNull(context.getIconUrl()), trimToNull(upload.getUrl()))) {
+                if (Objects.equals(AdminTextUtils.trimToNull(context.getIconUrl()), AdminTextUtils.trimToNull(upload.getUrl()))) {
                     scope.setSkippedCount(scope.getSkippedCount() + 1);
                 } else {
                     context.setIconUrl(upload.getUrl());
@@ -898,7 +900,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     }
 
     private String normalizeFetchUrl(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return null;
         }
@@ -979,7 +981,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     }
 
     private String normalizePublicEndpoint(String endpoint) {
-        String value = trimToNull(endpoint);
+        String value = AdminTextUtils.trimToNull(endpoint);
         if (value == null) {
             throw new IllegalStateException("MinIO public endpoint is not configured");
         }
@@ -1003,13 +1005,6 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         return normalized;
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String[] splitCsv(String value) {
         String normalized = value == null ? "" : value;

@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.AdminRecipeConditionUpsertRequestDTO;
@@ -83,7 +85,7 @@ public class AdminRecipeConditionController {
             condition.setRefType(refType);
             condition.setRefId(item.getRefId());
             condition.setRequirementRole(defaultIfBlank(item.getRequirementRole(), "required"));
-            condition.setNotes(trimToNull(item.getNotes()));
+            condition.setNotes(AdminTextUtils.trimToNull(item.getNotes()));
             condition.setSortOrder(item.getSortOrder() == null ? index + 1 : item.getSortOrder());
             recipeContextRequirementMapper.insert(condition);
         }
@@ -152,7 +154,7 @@ public class AdminRecipeConditionController {
     }
 
     private String normalizeRefType(String rawType) {
-        String type = trimToNull(rawType);
+        String type = AdminTextUtils.trimToNull(rawType);
         if (type == null) {
             return null;
         }
@@ -166,15 +168,8 @@ public class AdminRecipeConditionController {
     }
 
     private String defaultIfBlank(String value, String fallback) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         return trimmed == null ? fallback : trimmed;
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

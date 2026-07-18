@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
@@ -87,7 +89,7 @@ public class ManagedItemImageResolverImpl implements ManagedItemImageResolver {
     }
 
     private Optional<String> normalizeUsableManagedImage(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null || isNonItemIconVariant(text)) {
             return Optional.empty();
         }
@@ -106,7 +108,7 @@ public class ManagedItemImageResolverImpl implements ManagedItemImageResolver {
     }
 
     private static boolean isNonItemIconVariant(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return false;
         }
@@ -118,13 +120,6 @@ public class ManagedItemImageResolverImpl implements ManagedItemImageResolver {
             || NON_ITEM_ICON_VARIANT_TOKEN.matcher(normalized).find();
     }
 
-    private static String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private static String safeDecode(String value) {
         try {

@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -213,15 +215,15 @@ public class AdminBiomeController {
         if (request.getAliasZh() != null) biome.setAliasZh(request.getAliasZh());
         if (request.getLayerType() != null) biome.setLayerType(request.getLayerType());
         if (request.getBiomeType() != null) biome.setBiomeType(request.getBiomeType());
-        if (request.getWikiGroupCode() != null) biome.setWikiGroupCode(trimToNull(request.getWikiGroupCode()));
-        if (request.getWikiGroupNameEn() != null) biome.setWikiGroupNameEn(trimToNull(request.getWikiGroupNameEn()));
-        if (request.getWikiGroupNameZh() != null) biome.setWikiGroupNameZh(trimToNull(request.getWikiGroupNameZh()));
-        if (request.getWikiParentGroupCode() != null) biome.setWikiParentGroupCode(trimToNull(request.getWikiParentGroupCode()));
-        if (request.getWikiParentGroupNameEn() != null) biome.setWikiParentGroupNameEn(trimToNull(request.getWikiParentGroupNameEn()));
-        if (request.getWikiParentGroupNameZh() != null) biome.setWikiParentGroupNameZh(trimToNull(request.getWikiParentGroupNameZh()));
+        if (request.getWikiGroupCode() != null) biome.setWikiGroupCode(AdminTextUtils.trimToNull(request.getWikiGroupCode()));
+        if (request.getWikiGroupNameEn() != null) biome.setWikiGroupNameEn(AdminTextUtils.trimToNull(request.getWikiGroupNameEn()));
+        if (request.getWikiGroupNameZh() != null) biome.setWikiGroupNameZh(AdminTextUtils.trimToNull(request.getWikiGroupNameZh()));
+        if (request.getWikiParentGroupCode() != null) biome.setWikiParentGroupCode(AdminTextUtils.trimToNull(request.getWikiParentGroupCode()));
+        if (request.getWikiParentGroupNameEn() != null) biome.setWikiParentGroupNameEn(AdminTextUtils.trimToNull(request.getWikiParentGroupNameEn()));
+        if (request.getWikiParentGroupNameZh() != null) biome.setWikiParentGroupNameZh(AdminTextUtils.trimToNull(request.getWikiParentGroupNameZh()));
         if (request.getWikiSectionLevel() != null) biome.setWikiSectionLevel(request.getWikiSectionLevel());
         if (request.getWikiSortOrder() != null) biome.setWikiSortOrder(request.getWikiSortOrder());
-        if (request.getWikiSectionAnchor() != null) biome.setWikiSectionAnchor(trimToNull(request.getWikiSectionAnchor()));
+        if (request.getWikiSectionAnchor() != null) biome.setWikiSectionAnchor(AdminTextUtils.trimToNull(request.getWikiSectionAnchor()));
         if (request.getDescription() != null) biome.setDescription(request.getDescription());
         if (request.getIconUrl() != null) biome.setIconUrl(request.getIconUrl());
         if (request.getSourceProvider() != null) biome.setSourceProvider(request.getSourceProvider());
@@ -238,12 +240,6 @@ public class AdminBiomeController {
         return value.trim().toLowerCase();
     }
 
-    private String trimToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
-    }
 
     private void replaceRelationsAndResources(Long biomeId, AdminBiomeUpsertRequestDTO request) {
         biomeRelationMapper.delete(new LambdaQueryWrapper<BiomeRelation>().eq(BiomeRelation::getBiomeId, biomeId));

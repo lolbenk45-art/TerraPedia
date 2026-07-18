@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.dto.AdminArticleCommentDTO;
@@ -30,7 +32,7 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
         int resolvedLimit = Math.max(1, Math.min(limit, 100));
         long offset = (long) (resolvedPage - 1) * resolvedLimit;
         String normalizedStatus = normalizeOptionalStatus(status);
-        String normalizedKeyword = trimToNull(keyword);
+        String normalizedKeyword = AdminTextUtils.trimToNull(keyword);
         String normalizedSortBy = normalizeSortBy(sortBy);
         String normalizedSortOrder = normalizeSortOrder(sortOrder);
 
@@ -69,8 +71,8 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
         requireExistingArticle(articleId);
         requireCommentId(commentId);
         String normalizedStatus = normalizeRequiredStatus(status);
-        String normalizedReason = trimToNull(reason);
-        String normalizedOperator = trimToNull(operator);
+        String normalizedReason = AdminTextUtils.trimToNull(reason);
+        String normalizedOperator = AdminTextUtils.trimToNull(operator);
         if (normalizedOperator == null) {
             normalizedOperator = "admin";
         }
@@ -128,7 +130,7 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
     }
 
     private String normalizeOptionalStatus(String status) {
-        String normalized = trimToNull(status);
+        String normalized = AdminTextUtils.trimToNull(status);
         if (normalized == null) {
             return null;
         }
@@ -136,7 +138,7 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
     }
 
     private String normalizeRequiredStatus(String status) {
-        String normalized = trimToNull(status);
+        String normalized = AdminTextUtils.trimToNull(status);
         if (normalized == null) {
             throw new IllegalArgumentException("comment status is required");
         }
@@ -148,7 +150,7 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
     }
 
     private String normalizeSortBy(String sortBy) {
-        String normalized = trimToNull(sortBy);
+        String normalized = AdminTextUtils.trimToNull(sortBy);
         if (normalized == null) {
             return "createdAt";
         }
@@ -159,7 +161,7 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
     }
 
     private String normalizeSortOrder(String sortOrder) {
-        String normalized = trimToNull(sortOrder);
+        String normalized = AdminTextUtils.trimToNull(sortOrder);
         if ("asc".equalsIgnoreCase(normalized)) {
             return "asc";
         }
@@ -192,11 +194,4 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
         return comment;
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

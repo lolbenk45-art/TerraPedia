@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -108,8 +110,8 @@ public class AdminBossController {
     @Transactional
     @Operation(summary = "Create boss group")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createBossGroup(@RequestBody Map<String, Object> request) {
-        String code = trimToNull(firstValue(request, "code"));
-        String nameEn = trimToNull(firstValue(request, "nameEn", "name"));
+        String code = AdminTextUtils.trimToNull(firstValue(request, "code"));
+        String nameEn = AdminTextUtils.trimToNull(firstValue(request, "nameEn", "name"));
         if (code == null || nameEn == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "code and nameEn are required"));
         }
@@ -132,7 +134,7 @@ public class AdminBossController {
         if (existing == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Boss group not found"));
         }
-        String nextCode = trimToNull(firstNonNull(request, "code"));
+        String nextCode = AdminTextUtils.trimToNull(firstNonNull(request, "code"));
         if (nextCode != null) {
             long duplicate = bossGroupMapper.selectCount(new LambdaQueryWrapper<BossGroup>()
                 .eq(BossGroup::getCode, nextCode)
@@ -191,9 +193,9 @@ public class AdminBossController {
         }
         return referenceMembers.stream()
             .map(member -> firstNonBlank(
-                trimToNull(member.get("nameZh")),
-                trimToNull(member.get("name")),
-                trimToNull(member.get("internalName"))
+                AdminTextUtils.trimToNull(member.get("nameZh")),
+                AdminTextUtils.trimToNull(member.get("name")),
+                AdminTextUtils.trimToNull(member.get("internalName"))
             ))
             .filter(Objects::nonNull)
             .limit(4)
@@ -256,7 +258,7 @@ public class AdminBossController {
         }
         return members.stream()
             .filter(Objects::nonNull)
-            .filter(member -> "primary".equalsIgnoreCase(trimToNull(member.getBossRole())))
+            .filter(member -> "primary".equalsIgnoreCase(AdminTextUtils.trimToNull(member.getBossRole())))
             .findFirst()
             .orElse(null);
     }
@@ -293,12 +295,12 @@ public class AdminBossController {
 
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("itemId", row == null ? null : toLong(row.get("itemId")));
-            item.put("internalName", firstNonBlank(row == null ? null : trimToNull(row.get("internalName")), ref.itemInternalName()));
-            item.put("name", firstNonBlank(row == null ? null : trimToNull(row.get("name")), ref.itemName()));
-            item.put("nameZh", row == null ? null : trimToNull(row.get("nameZh")));
+            item.put("internalName", firstNonBlank(row == null ? null : AdminTextUtils.trimToNull(row.get("internalName")), ref.itemInternalName()));
+            item.put("name", firstNonBlank(row == null ? null : AdminTextUtils.trimToNull(row.get("name")), ref.itemName()));
+            item.put("nameZh", row == null ? null : AdminTextUtils.trimToNull(row.get("nameZh")));
             item.put("imageUrl", row == null ? null : firstNonBlank(
-                managedImageOrNull(trimToNull(row.get("imageUrl"))),
-                managedImageOrNull(trimToNull(row.get("fallbackImageUrl")))
+                managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(AdminTextUtils.trimToNull(row.get("fallbackImageUrl")))
             ));
             item.put("role", ref.role());
             item.put("sourceText", sourceText);
@@ -316,7 +318,7 @@ public class AdminBossController {
 
         List<String> values = refs.stream()
             .flatMap(ref -> java.util.stream.Stream.of(ref.itemInternalName(), ref.itemName()))
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
@@ -375,7 +377,7 @@ public class AdminBossController {
     }
 
     private String summonLookupKey(Object value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? null : text.toLowerCase(Locale.ROOT);
     }
 
@@ -438,7 +440,7 @@ public class AdminBossController {
         }
         int count = 0;
         for (Map<String, Object> entry : lootEntries) {
-            if (kind.equalsIgnoreCase(trimToNull(entry.get("dropSourceKind")))) {
+            if (kind.equalsIgnoreCase(AdminTextUtils.trimToNull(entry.get("dropSourceKind")))) {
                 count += 1;
             }
         }
@@ -453,8 +455,8 @@ public class AdminBossController {
         for (Map<String, Object> entry : lootEntries) {
             String key = firstNonBlank(
                 toLong(entry.get("itemId")) == null ? null : "id:" + toLong(entry.get("itemId")),
-                trimToNull(entry.get("itemInternalName")) == null ? null : "internal:" + trimToNull(entry.get("itemInternalName")),
-                trimToNull(entry.get("itemName")) == null ? null : "name:" + trimToNull(entry.get("itemName")),
+                AdminTextUtils.trimToNull(entry.get("itemInternalName")) == null ? null : "internal:" + AdminTextUtils.trimToNull(entry.get("itemInternalName")),
+                AdminTextUtils.trimToNull(entry.get("itemName")) == null ? null : "name:" + AdminTextUtils.trimToNull(entry.get("itemName")),
                 toLong(entry.get("sourceItemId")) == null ? null : "source:" + toLong(entry.get("sourceItemId"))
             );
             if (key != null) {
@@ -511,7 +513,7 @@ public class AdminBossController {
     }
 
     private List<Map<String, Object>> loadReferenceMembers(BossGroup bossGroup, Map<String, Map<String, Object>> npcSupplementMap) {
-        List<String> codes = REFERENCE_BOSS_GROUP_CODES.getOrDefault(trimToNull(bossGroup.getCode()), List.of());
+        List<String> codes = REFERENCE_BOSS_GROUP_CODES.getOrDefault(AdminTextUtils.trimToNull(bossGroup.getCode()), List.of());
         if (codes.isEmpty()) {
             return List.of();
         }
@@ -524,7 +526,7 @@ public class AdminBossController {
 
         Map<String, BossGroup> byCode = new LinkedHashMap<>();
         for (BossGroup group : referencedGroups) {
-            String code = trimToNull(group.getCode());
+            String code = AdminTextUtils.trimToNull(group.getCode());
             if (code != null) {
                 byCode.put(code, group);
             }
@@ -540,9 +542,9 @@ public class AdminBossController {
         }
         return referenceMembers.stream()
             .sorted(Comparator
-                .comparing((Map<String, Object> member) -> roleSortOrder(trimToNull(member.get("bossRole"))))
-                .thenComparing(member -> trimToNull(member.get("sourceBossCode")), Comparator.nullsLast(String::compareTo))
-                .thenComparing(member -> trimToNull(member.get("internalName")), Comparator.nullsLast(String::compareTo))
+                .comparing((Map<String, Object> member) -> roleSortOrder(AdminTextUtils.trimToNull(member.get("bossRole"))))
+                .thenComparing(member -> AdminTextUtils.trimToNull(member.get("sourceBossCode")), Comparator.nullsLast(String::compareTo))
+                .thenComparing(member -> AdminTextUtils.trimToNull(member.get("internalName")), Comparator.nullsLast(String::compareTo))
                 .thenComparing(member -> toLong(member.get("id")), Comparator.nullsLast(Long::compareTo)))
             .toList();
     }
@@ -569,7 +571,7 @@ public class AdminBossController {
             return null;
         }
         return firstNonBlank(
-            managedImageOrNull(trimToNull(supplement.get("imageUrl"))),
+            managedImageOrNull(AdminTextUtils.trimToNull(supplement.get("imageUrl"))),
             managedImageOrNull(extractImageUrlFromRawJson(supplement.get("rawJson")))
         );
     }
@@ -584,8 +586,8 @@ public class AdminBossController {
                 return null;
             }
             return firstNonBlank(
-                trimToNull(map.get("imageUrl")),
-                trimToNull(map.get("image_url"))
+                AdminTextUtils.trimToNull(map.get("imageUrl")),
+                AdminTextUtils.trimToNull(map.get("image_url"))
             );
         } catch (Exception exception) {
             return null;
@@ -647,7 +649,7 @@ public class AdminBossController {
             }
             Map<String, Object> sanitizedRow = new LinkedHashMap<>(row);
             for (String fieldName : fieldNames) {
-                sanitizedRow.put(fieldName, managedImageOrNull(trimToNull(row.get(fieldName))));
+                sanitizedRow.put(fieldName, managedImageOrNull(AdminTextUtils.trimToNull(row.get(fieldName))));
             }
             sanitizedRows.add(sanitizedRow);
         }
@@ -655,7 +657,7 @@ public class AdminBossController {
     }
 
     private String managedBossImageOrNull(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -663,7 +665,7 @@ public class AdminBossController {
     }
 
     private String managedImageOrNull(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -679,7 +681,7 @@ public class AdminBossController {
         for (Npc npc : npcs) {
             npc.setIsBoss(true);
             npc.setBossGroupId(bossGroupId);
-            if (trimToNull(npc.getBossRole()) == null) {
+            if (AdminTextUtils.trimToNull(npc.getBossRole()) == null) {
                 npc.setBossRole("primary");
             }
             npcMapper.updateById(npc);
@@ -697,35 +699,35 @@ public class AdminBossController {
 
     private void applyFields(BossGroup target, Map<String, Object> request, boolean creating) {
         if (creating || request.containsKey("code")) {
-            target.setCode(trimToNull(firstValue(request, "code")));
+            target.setCode(AdminTextUtils.trimToNull(firstValue(request, "code")));
         }
         if (creating || request.containsKey("nameEn") || request.containsKey("name")) {
-            target.setNameEn(firstNonBlank(trimToNull(firstValue(request, "nameEn")), trimToNull(firstValue(request, "name"))));
+            target.setNameEn(firstNonBlank(AdminTextUtils.trimToNull(firstValue(request, "nameEn")), AdminTextUtils.trimToNull(firstValue(request, "name"))));
         }
         if (creating || request.containsKey("nameZh")) {
-            target.setNameZh(trimToNull(firstValue(request, "nameZh")));
+            target.setNameZh(AdminTextUtils.trimToNull(firstValue(request, "nameZh")));
         }
         if (creating || request.containsKey("bossType")) {
-            target.setBossType(trimToNull(firstValue(request, "bossType")));
+            target.setBossType(AdminTextUtils.trimToNull(firstValue(request, "bossType")));
         }
         if (creating || request.containsKey("imageUrl")) {
-            target.setImageUrl(managedBossImageOrNull(trimToNull(firstValue(request, "imageUrl"))));
+            target.setImageUrl(managedBossImageOrNull(AdminTextUtils.trimToNull(firstValue(request, "imageUrl"))));
         }
         if (creating || request.containsKey("progressionOrder")) {
             Integer progressionOrder = toInteger(firstValue(request, "progressionOrder"));
             target.setProgressionOrder(progressionOrder == null ? 0 : progressionOrder);
         }
         if (creating || request.containsKey("notes")) {
-            target.setNotes(trimToNull(firstValue(request, "notes")));
+            target.setNotes(AdminTextUtils.trimToNull(firstValue(request, "notes")));
         }
         if (creating || request.containsKey("summonMethod")) {
-            target.setSummonMethod(trimToNull(firstValue(request, "summonMethod")));
+            target.setSummonMethod(AdminTextUtils.trimToNull(firstValue(request, "summonMethod")));
         }
         if (creating || request.containsKey("sourcePage")) {
-            target.setSourcePage(trimToNull(firstValue(request, "sourcePage")));
+            target.setSourcePage(AdminTextUtils.trimToNull(firstValue(request, "sourcePage")));
         }
         if (creating || request.containsKey("sourceRevisionTimestamp")) {
-            target.setSourceRevisionTimestamp(parseDateTime(trimToNull(firstValue(request, "sourceRevisionTimestamp"))));
+            target.setSourceRevisionTimestamp(parseDateTime(AdminTextUtils.trimToNull(firstValue(request, "sourceRevisionTimestamp"))));
         }
         if (creating || request.containsKey("status")) {
             Integer status = toInteger(firstValue(request, "status"));
@@ -787,7 +789,7 @@ public class AdminBossController {
 
     private String firstNonBlank(String... values) {
         for (String value : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }
@@ -834,11 +836,4 @@ public class AdminBossController {
         }
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = String.valueOf(value).trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

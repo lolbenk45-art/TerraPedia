@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -200,7 +202,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     ) {
         RecipeTreeNodeDTO node = new RecipeTreeNodeDTO();
         node.setNodeType("ingredient");
-        String rawIngredientName = trimToNull(ingredient.getIngredientNameRaw());
+        String rawIngredientName = AdminTextUtils.trimToNull(ingredient.getIngredientNameRaw());
         node.setItemId(ingredient.getIngredientItemId());
         node.setItemInternalName(firstNonBlank(ingredient.getItemInternalName(), ingredient.getIngredientInternalName()));
         node.setItemName(firstNonBlank(ingredient.getItemName(), rawIngredientName));
@@ -304,7 +306,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private void applyDisplayQuantity(RecipeTreeNodeDTO node, RecipeIngredientDTO ingredient) {
-        String quantityText = trimToNull(ingredient.getQuantityText());
+        String quantityText = AdminTextUtils.trimToNull(ingredient.getQuantityText());
         Integer quantityMin = ingredient.getQuantityMin();
         Integer quantityMax = ingredient.getQuantityMax();
 
@@ -404,13 +406,13 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
                 .comparing(RecipeDTO::getSortOrder, Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(RecipeDTO::getId, Comparator.nullsLast(Long::compareTo)))
             .toList();
-        if (trimToNull(variantScope) == null && !primaryModernMatches.isEmpty()) {
+        if (AdminTextUtils.trimToNull(variantScope) == null && !primaryModernMatches.isEmpty()) {
             recipeCache.put(cacheKey, primaryModernMatches);
             return primaryModernMatches;
         }
 
         List<RecipeDTO> baseMatches = allRecipes.stream()
-            .filter(recipe -> trimToNull(recipe.getVersionScope()) == null)
+            .filter(recipe -> AdminTextUtils.trimToNull(recipe.getVersionScope()) == null)
             .sorted(Comparator
                 .comparing(RecipeDTO::getSortOrder, Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(RecipeDTO::getId, Comparator.nullsLast(Long::compareTo)))
@@ -453,12 +455,12 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         dto.setStationNameRaw(condition.getRefType());
         dto.setStationType("condition");
         dto.setRequirementRole(defaultIfBlank(condition.getRequirementRole(), "required"));
-        dto.setNotes(trimToNull(condition.getNotes()));
+        dto.setNotes(AdminTextUtils.trimToNull(condition.getNotes()));
         return dto;
     }
 
     private String chooseVariantScope(String requestedScope, RecipeDTO recipe) {
-        return trimToNull(recipe.getVersionScope()) == null ? requestedScope : recipe.getVersionScope();
+        return AdminTextUtils.trimToNull(recipe.getVersionScope()) == null ? requestedScope : recipe.getVersionScope();
     }
 
     private String variantKey(String versionScope) {
@@ -513,7 +515,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private String normalizeVersionScope(String versionScope) {
-        String raw = trimToNull(versionScope);
+        String raw = AdminTextUtils.trimToNull(versionScope);
         if (raw == null) {
             return null;
         }
@@ -566,12 +568,12 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         if (itemId != null) {
             return "id:" + itemId;
         }
-        String normalized = trimToNull(internalName);
+        String normalized = AdminTextUtils.trimToNull(internalName);
         return normalized == null ? "unknown" : "internal:" + normalized;
     }
 
     private String groupReferenceKey(String rawIngredientName) {
-        String normalized = trimToNull(rawIngredientName);
+        String normalized = AdminTextUtils.trimToNull(rawIngredientName);
         return normalized == null ? "group:unknown" : "group:" + normalized;
     }
 
@@ -678,7 +680,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private List<String> expandGroupAliasVariants(String alias) {
-        String normalizedAlias = trimToNull(alias);
+        String normalizedAlias = AdminTextUtils.trimToNull(alias);
         if (normalizedAlias == null) {
             return List.of();
         }
@@ -831,7 +833,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private String managedImageOrNull(String value) {
-        String image = trimToNull(value);
+        String image = AdminTextUtils.trimToNull(value);
         return image == null ? null : managedImageUrlPolicy.normalizeManagedImagePath(image).orElse(null);
     }
 
@@ -854,23 +856,16 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private String normalizeKey(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? "" : text.toLowerCase();
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String trimObjectToNull(Object value) {
         if (value == null) {
             return null;
         }
-        return trimToNull(String.valueOf(value));
+        return AdminTextUtils.trimToNull(String.valueOf(value));
     }
 
     private Long parseLong(Object value) {
@@ -962,7 +957,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             return null;
         }
         for (String value : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }
@@ -971,7 +966,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private String defaultIfBlank(String value, String fallback) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         return trimmed == null ? fallback : trimmed;
     }
 }

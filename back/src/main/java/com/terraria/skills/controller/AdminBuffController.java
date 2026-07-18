@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -115,7 +117,7 @@ public class AdminBuffController {
     @Transactional
     @Operation(summary = "Create buff")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createBuff(@RequestBody Map<String, Object> request) {
-        String internalName = trimToNull(request.get("internalName"));
+        String internalName = AdminTextUtils.trimToNull(request.get("internalName"));
         Integer sourceId = toInteger(request.get("sourceId"));
         if (internalName == null || sourceId == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId and internalName are required"));
@@ -146,7 +148,7 @@ public class AdminBuffController {
         }
 
         Integer nextSourceId = request.containsKey("sourceId") ? toInteger(request.get("sourceId")) : existing.getSourceId();
-        String nextInternalName = request.containsKey("internalName") ? trimToNull(request.get("internalName")) : existing.getInternalName();
+        String nextInternalName = request.containsKey("internalName") ? AdminTextUtils.trimToNull(request.get("internalName")) : existing.getInternalName();
         if (nextSourceId == null || nextInternalName == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId and internalName are required"));
         }
@@ -180,13 +182,13 @@ public class AdminBuffController {
 
     private void applyFields(Buff buff, Map<String, Object> request, boolean creating) {
         if (creating || request.containsKey("sourceId")) buff.setSourceId(toInteger(request.get("sourceId")));
-        if (creating || request.containsKey("internalName")) buff.setInternalName(trimToNull(request.get("internalName")));
-        if (request.containsKey("englishName")) buff.setEnglishName(trimToNull(request.get("englishName")));
-        if (request.containsKey("nameZh")) buff.setNameZh(trimToNull(request.get("nameZh")));
-        if (request.containsKey("tooltipEn")) buff.setTooltipEn(trimToNull(request.get("tooltipEn")));
-        if (request.containsKey("tooltipZh")) buff.setTooltipZh(trimToNull(request.get("tooltipZh")));
+        if (creating || request.containsKey("internalName")) buff.setInternalName(AdminTextUtils.trimToNull(request.get("internalName")));
+        if (request.containsKey("englishName")) buff.setEnglishName(AdminTextUtils.trimToNull(request.get("englishName")));
+        if (request.containsKey("nameZh")) buff.setNameZh(AdminTextUtils.trimToNull(request.get("nameZh")));
+        if (request.containsKey("tooltipEn")) buff.setTooltipEn(AdminTextUtils.trimToNull(request.get("tooltipEn")));
+        if (request.containsKey("tooltipZh")) buff.setTooltipZh(AdminTextUtils.trimToNull(request.get("tooltipZh")));
         if (request.containsKey("image") || request.containsKey("imagePath")) {
-            String image = normalizeAssetUrl(firstNonBlank(trimToNull(request.get("image")), trimToNull(request.get("imagePath"))));
+            String image = normalizeAssetUrl(firstNonBlank(AdminTextUtils.trimToNull(request.get("image")), AdminTextUtils.trimToNull(request.get("imagePath"))));
             buff.setImage(image);
             if (isManagedUrl(image)) {
                 buff.setImageCachedUrl(image);
@@ -195,16 +197,16 @@ public class AdminBuffController {
             }
         }
         if (request.containsKey("imageOriginalUrl")) {
-            String originalUrl = normalizeAssetUrl(trimToNull(request.get("imageOriginalUrl")));
+            String originalUrl = normalizeAssetUrl(AdminTextUtils.trimToNull(request.get("imageOriginalUrl")));
             buff.setImageOriginalUrl(originalUrl);
             if (originalUrl != null) {
                 buff.setImage(originalUrl);
             }
         }
         if (request.containsKey("imageUrl") || request.containsKey("imageCachedUrl")) {
-            buff.setImageCachedUrl(normalizeAssetUrl(firstNonBlank(trimToNull(request.get("imageCachedUrl")), trimToNull(request.get("imageUrl")))));
+            buff.setImageCachedUrl(normalizeAssetUrl(firstNonBlank(AdminTextUtils.trimToNull(request.get("imageCachedUrl")), AdminTextUtils.trimToNull(request.get("imageUrl")))));
         }
-        if (request.containsKey("buffType")) buff.setBuffType(trimToNull(request.get("buffType")));
+        if (request.containsKey("buffType")) buff.setBuffType(AdminTextUtils.trimToNull(request.get("buffType")));
         if (request.containsKey("sourceItemCount")) buff.setSourceItemCount(toInteger(request.get("sourceItemCount")));
         if (request.containsKey("immuneNpcCount")) buff.setImmuneNpcCount(toInteger(request.get("immuneNpcCount")));
         if (request.containsKey("sourceItemsJson")) buff.setSourceItemsJson(toJsonString(request.get("sourceItemsJson")));
@@ -227,8 +229,8 @@ public class AdminBuffController {
         payload.put("id", buff.getId());
         payload.put("sourceId", buff.getSourceId());
         payload.put("internalName", buff.getInternalName());
-        payload.put("englishName", firstNonBlank(buff.getEnglishName(), trimToNull(supplement.get("englishName"))));
-        payload.put("nameZh", firstNonBlank(buff.getNameZh(), trimToNull(supplement.get("nameZh"))));
+        payload.put("englishName", firstNonBlank(buff.getEnglishName(), AdminTextUtils.trimToNull(supplement.get("englishName"))));
+        payload.put("nameZh", firstNonBlank(buff.getNameZh(), AdminTextUtils.trimToNull(supplement.get("nameZh"))));
         String fallbackImageUrl = resolveBuffFallbackImageUrl(buff);
         String cachedImageUrl = resolveBuffCachedImageUrl(buff);
         String primaryImageUrl = firstNonBlank(cachedImageUrl, fallbackImageUrl);
@@ -240,7 +242,7 @@ public class AdminBuffController {
         payload.put("imageContentType", buff.getImageContentType());
         payload.put("imageLastVerifiedAt", buff.getImageLastVerifiedAt());
         payload.put("categoryId", null);
-        payload.put("buffType", firstNonBlank(buff.getBuffType(), trimToNull(supplement.get("buffType"))));
+        payload.put("buffType", firstNonBlank(buff.getBuffType(), AdminTextUtils.trimToNull(supplement.get("buffType"))));
         Integer storedSourceItemCount = buff.getSourceItemCount();
         boolean shouldResolveLinkedSourceItemCount = includeLinkedItems || storedSourceItemCount == null || storedSourceItemCount <= 0;
         List<Map<String, Object>> linkedSourceItems = shouldResolveLinkedSourceItemCount ? loadLinkedSourceItems(buff, supplement) : List.of();
@@ -251,8 +253,8 @@ public class AdminBuffController {
             0
         ));
         payload.put("immuneNpcCount", firstNonNullInteger(buff.getImmuneNpcCount(), toInteger(supplement.get("immuneNpcCount")), 0));
-        payload.put("tooltipEn", firstNonBlank(buff.getTooltipEn(), trimToNull(supplement.get("tooltipEn"))));
-        payload.put("tooltipZh", firstNonBlank(buff.getTooltipZh(), trimToNull(supplement.get("tooltipZh"))));
+        payload.put("tooltipEn", firstNonBlank(buff.getTooltipEn(), AdminTextUtils.trimToNull(supplement.get("tooltipEn"))));
+        payload.put("tooltipZh", firstNonBlank(buff.getTooltipZh(), AdminTextUtils.trimToNull(supplement.get("tooltipZh"))));
         payload.put("sourceItemsJson", firstNonBlank(projectionEvidence.sourceItemsJson(), buff.getSourceItemsJson(), "[]"));
         payload.put("inflictingNpcsJson", firstNonBlank(projectionEvidence.inflictingNpcsJson(), "[]"));
         payload.put("immuneNpcsJson", firstNonBlank(projectionEvidence.immuneNpcsJson(), "[]"));
@@ -284,7 +286,7 @@ public class AdminBuffController {
         if (buff.getSourceId() != null) {
             where = "source_id = ?";
             args.add(buff.getSourceId());
-        } else if (trimToNull(buff.getInternalName()) != null) {
+        } else if (AdminTextUtils.trimToNull(buff.getInternalName()) != null) {
             where = "internal_name = ?";
             args.add(buff.getInternalName());
         } else if (buff.getId() != null) {
@@ -306,10 +308,10 @@ public class AdminBuffController {
             if (rows.isEmpty()) return ProjectionBuffEvidence.empty();
             Map<String, Object> row = rows.get(0);
             return new ProjectionBuffEvidence(
-                trimToNull(row.get("source_items_json")),
-                trimToNull(row.get("inflicting_npcs_json")),
-                trimToNull(row.get("immune_npcs_json")),
-                trimToNull(row.get("source_evidence_json"))
+                AdminTextUtils.trimToNull(row.get("source_items_json")),
+                AdminTextUtils.trimToNull(row.get("inflicting_npcs_json")),
+                AdminTextUtils.trimToNull(row.get("immune_npcs_json")),
+                AdminTextUtils.trimToNull(row.get("source_evidence_json"))
             );
         } catch (Exception exception) {
             return ProjectionBuffEvidence.empty();
@@ -330,8 +332,8 @@ public class AdminBuffController {
                 """,
                 buff.getId(),
                 toInteger(item.get("sourceItemId")),
-                trimToNull(item.get("internalName")),
-                trimToNull(item.get("nameEn")) != null ? trimToNull(item.get("nameEn")) : trimToNull(item.get("name")),
+                AdminTextUtils.trimToNull(item.get("internalName")),
+                AdminTextUtils.trimToNull(item.get("nameEn")) != null ? AdminTextUtils.trimToNull(item.get("nameEn")) : AdminTextUtils.trimToNull(item.get("name")),
                 toLong(item.get("itemId")),
                 toInteger(item.get("buffTime")),
                 toInteger(item.get("sortOrder")) != null ? toInteger(item.get("sortOrder")) : index
@@ -344,7 +346,7 @@ public class AdminBuffController {
             snapshot.put("buffTime", item.get("buffTime"));
             snapshot.put("internalName", item.get("internalName"));
             snapshot.put("itemId", item.get("sourceItemId"));
-            snapshot.put("name", trimToNull(item.get("nameEn")) != null ? item.get("nameEn") : item.get("name"));
+            snapshot.put("name", AdminTextUtils.trimToNull(item.get("nameEn")) != null ? item.get("nameEn") : item.get("name"));
             return snapshot;
         }).toList()));
         buffMapper.updateById(buff);
@@ -361,20 +363,20 @@ public class AdminBuffController {
             Object entryRaw = rawList.get(index);
             if (!(entryRaw instanceof Map<?, ?> entry)) continue;
             Long itemId = toLong(firstNonNull(entry, "itemId"));
-            String internalName = trimToNull(firstNonNull(entry, "internalName"));
+            String internalName = AdminTextUtils.trimToNull(firstNonNull(entry, "internalName"));
             Integer sourceItemId = toInteger(firstNonNull(entry, "sourceItemId", "itemId"));
             Map<String, Object> resolvedItem = resolveItemReference(itemId, internalName, sourceItemId);
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("sourceItemId", firstNonNullInteger(sourceItemId, toInteger(resolvedItem.get("itemId"))));
             payload.put("itemId", toLong(resolvedItem.get("id")));
-            payload.put("internalName", firstNonBlank(internalName, trimToNull(resolvedItem.get("internalName"))));
-            payload.put("name", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh", "name")), trimToNull(resolvedItem.get("nameZh")), trimToNull(resolvedItem.get("name"))));
-            payload.put("nameEn", firstNonBlank(trimToNull(firstNonNull(entry, "nameEn")), trimToNull(resolvedItem.get("name"))));
-            payload.put("nameZh", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh")), trimToNull(resolvedItem.get("nameZh"))));
+            payload.put("internalName", firstNonBlank(internalName, AdminTextUtils.trimToNull(resolvedItem.get("internalName"))));
+            payload.put("name", firstNonBlank(AdminTextUtils.trimToNull(firstNonNull(entry, "nameZh", "name")), AdminTextUtils.trimToNull(resolvedItem.get("nameZh")), AdminTextUtils.trimToNull(resolvedItem.get("name"))));
+            payload.put("nameEn", firstNonBlank(AdminTextUtils.trimToNull(firstNonNull(entry, "nameEn")), AdminTextUtils.trimToNull(resolvedItem.get("name"))));
+            payload.put("nameZh", firstNonBlank(AdminTextUtils.trimToNull(firstNonNull(entry, "nameZh")), AdminTextUtils.trimToNull(resolvedItem.get("nameZh"))));
             payload.put("image", firstNonBlank(
-                managedImageOrNull(trimToNull(firstNonNull(entry, "image"))),
-                managedImageOrNull(trimToNull(resolvedItem.get("image")))
+                managedImageOrNull(AdminTextUtils.trimToNull(firstNonNull(entry, "image"))),
+                managedImageOrNull(AdminTextUtils.trimToNull(resolvedItem.get("image")))
             ));
             payload.put("buffTime", toInteger(firstNonNull(entry, "buffTime")));
             payload.put("sortOrder", toInteger(firstNonNull(entry, "sortOrder")) != null ? toInteger(firstNonNull(entry, "sortOrder")) : index);
@@ -397,11 +399,11 @@ public class AdminBuffController {
         Set<Integer> npcIds = new LinkedHashSet<>();
         Set<String> displayNames = new LinkedHashSet<>();
         for (Map<String, Object> entry : rawEntries) {
-            String internalName = trimToNull(firstNonNull(entry, "internalName", "internal_name"));
+            String internalName = AdminTextUtils.trimToNull(firstNonNull(entry, "internalName", "internal_name"));
             Integer npcId = toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id"));
             String displayName = firstNonBlank(
-                trimToNull(firstNonNull(entry, "name")),
-                trimToNull(firstNonNull(entry, "nameZh"))
+                AdminTextUtils.trimToNull(firstNonNull(entry, "name")),
+                AdminTextUtils.trimToNull(firstNonNull(entry, "nameZh"))
             );
             if (internalName != null) internalNames.add(internalName);
             if (npcId != null) npcIds.add(npcId);
@@ -436,9 +438,9 @@ public class AdminBuffController {
         List<Map<String, Object>> unresolved = new ArrayList<>();
         for (Map<String, Object> entry : rawEntries) {
             Integer requestedNpcId = toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id"));
-            String requestedInternalName = trimToNull(firstNonNull(entry, "internalName", "internal_name"));
-            String requestedName = trimToNull(firstNonNull(entry, "name"));
-            String requestedNameZh = trimToNull(firstNonNull(entry, "nameZh"));
+            String requestedInternalName = AdminTextUtils.trimToNull(firstNonNull(entry, "internalName", "internal_name"));
+            String requestedName = AdminTextUtils.trimToNull(firstNonNull(entry, "name"));
+            String requestedNameZh = AdminTextUtils.trimToNull(firstNonNull(entry, "nameZh"));
             String displayName = firstNonBlank(requestedName, requestedNameZh);
 
             Map<String, Object> npcRow = Map.of();
@@ -491,7 +493,7 @@ public class AdminBuffController {
             Map<String, Object> supplement = npcSupplementMap.getOrDefault(String.valueOf(resolvedNpcId), Map.of());
 
             String npcImage = firstNonBlank(
-                managedImageOrNull(trimToNull(supplement.get("imageUrl"))),
+                managedImageOrNull(AdminTextUtils.trimToNull(supplement.get("imageUrl"))),
                 managedImageOrNull(extractNpcImageUrl(npcRow.get("rawJson")))
             );
             Long bannerItemId = toLong(npcRow.get("bannerItemId"));
@@ -503,16 +505,16 @@ public class AdminBuffController {
             String image = firstNonBlank(
                 npcImage,
                 itemFallbackImage,
-                managedImageOrNull(trimToNull(firstNonNull(entry, "image", "imageUrl")))
+                managedImageOrNull(AdminTextUtils.trimToNull(firstNonNull(entry, "image", "imageUrl")))
             );
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("npcDbId", resolvedNpcDbId);
             payload.put("npcId", resolvedNpcId);
-            payload.put("internalName", firstNonBlank(trimToNull(npcRow.get("internalName")), requestedInternalName));
-            payload.put("name", firstNonBlank(trimToNull(npcRow.get("name")), requestedName));
-            payload.put("nameZh", firstNonBlank(trimToNull(npcRow.get("nameZh")), requestedNameZh));
-            payload.put("subNameZh", firstNonBlank(trimToNull(firstNonNull(entry, "subNameZh")), trimToNull(npcRow.get("subNameZh"))));
+            payload.put("internalName", firstNonBlank(AdminTextUtils.trimToNull(npcRow.get("internalName")), requestedInternalName));
+            payload.put("name", firstNonBlank(AdminTextUtils.trimToNull(npcRow.get("name")), requestedName));
+            payload.put("nameZh", firstNonBlank(AdminTextUtils.trimToNull(npcRow.get("nameZh")), requestedNameZh));
+            payload.put("subNameZh", firstNonBlank(AdminTextUtils.trimToNull(firstNonNull(entry, "subNameZh")), AdminTextUtils.trimToNull(npcRow.get("subNameZh"))));
             payload.put("image", image);
             payload.put("imageUrl", image);
             payload.put("resolutionStatus", resolutionStatus);
@@ -520,7 +522,7 @@ public class AdminBuffController {
                 payload.put("matchCount", matchedRows.size());
                 payload.put("matchedNpcIds", matchedRows.stream().map(row -> toInteger(row.get("npcId"))).filter(Objects::nonNull).toList());
                 payload.put("matchedNpcDbIds", matchedRows.stream().map(row -> toLong(row.get("npcDbId"))).filter(Objects::nonNull).toList());
-                payload.put("matchedInternalNames", matchedRows.stream().map(row -> trimToNull(row.get("internalName"))).filter(Objects::nonNull).toList());
+                payload.put("matchedInternalNames", matchedRows.stream().map(row -> AdminTextUtils.trimToNull(row.get("internalName"))).filter(Objects::nonNull).toList());
             }
             resolved.add(payload);
         }
@@ -584,7 +586,7 @@ public class AdminBuffController {
         Set<Long> fallbackItemIds = new LinkedHashSet<>();
         for (Map<String, Object> row : rows) {
             String directImage = firstNonBlank(
-                managedImageOrNull(trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl"))),
                 managedImageOrNull(extractNpcImageUrl(row.get("rawJson")))
             );
             if (directImage != null) continue;
@@ -604,11 +606,11 @@ public class AdminBuffController {
                 catchItemId == null ? null : itemImagesById.get(catchItemId)
             );
             String image = firstNonBlank(
-                managedImageOrNull(trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl"))),
                 managedImageOrNull(extractNpcImageUrl(row.get("rawJson"))),
                 itemFallbackImage
             );
-            String notes = trimToNull(row.get("notes"));
+            String notes = AdminTextUtils.trimToNull(row.get("notes"));
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("relationId", row.get("relationId"));
@@ -620,9 +622,9 @@ public class AdminBuffController {
             payload.put("subNameZh", row.get("subNameZh"));
             payload.put("image", image);
             payload.put("imageUrl", image);
-            payload.put("relationType", firstNonBlank(trimToNull(row.get("relationType")), "inflicts"));
+            payload.put("relationType", firstNonBlank(AdminTextUtils.trimToNull(row.get("relationType")), "inflicts"));
             payload.put("durationTicks", row.get("durationTicks"));
-            String rawDurationText = firstNonBlank(trimToNull(row.get("durationText")), extractNotesValue(notes, "duration"));
+            String rawDurationText = firstNonBlank(AdminTextUtils.trimToNull(row.get("durationText")), extractNotesValue(notes, "duration"));
             payload.put("durationText", formatWikiDurationText(rawDurationText));
             payload.put("rawDurationText", rawDurationText);
             payload.put("chanceValue", row.get("chanceValue"));
@@ -641,14 +643,14 @@ public class AdminBuffController {
         for (String part : notes.split(";")) {
             String text = part.trim();
             if (text.startsWith(prefix)) {
-                return trimToNull(text.substring(prefix.length()));
+                return AdminTextUtils.trimToNull(text.substring(prefix.length()));
             }
         }
         return null;
     }
 
     private String formatWikiDurationText(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) return null;
         String cleanedDurationText = formatWikiDurationTextClean(text);
         if (cleanedDurationText != null) return cleanedDurationText;
@@ -657,7 +659,7 @@ public class AdminBuffController {
         StringBuffer buffer = new StringBuffer();
         boolean replaced = false;
         while (durationMatcher.find()) {
-            String durationValue = trimToNull(durationMatcher.group(1));
+            String durationValue = AdminTextUtils.trimToNull(durationMatcher.group(1));
             durationMatcher.appendReplacement(buffer, Matcher.quoteReplacement(formatDurationValue(durationValue)));
             replaced = true;
         }
@@ -686,7 +688,7 @@ public class AdminBuffController {
     }
 
     private String formatDurationValue(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) return "";
         return text.replace('–', '-').replace('—', '-') + " 秒";
     }
@@ -734,7 +736,7 @@ public class AdminBuffController {
         Matcher matcher = DURATION_TEMPLATE_PATTERN.matcher(value);
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
-            String durationValue = trimToNull(matcher.group(1));
+            String durationValue = AdminTextUtils.trimToNull(matcher.group(1));
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(formatDurationValueClean(durationValue)));
         }
         matcher.appendTail(buffer);
@@ -742,7 +744,7 @@ public class AdminBuffController {
     }
 
     private String formatDurationValueClean(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) return "";
         return normalizeDurationDashes(text) + " \u79d2";
     }
@@ -751,7 +753,7 @@ public class AdminBuffController {
         Matcher matcher = pattern.matcher(value);
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
-            String content = stripModeLabel(trimToNull(matcher.group(1)), label);
+            String content = stripModeLabel(AdminTextUtils.trimToNull(matcher.group(1)), label);
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(content == null ? "" : label + ": " + content));
         }
         matcher.appendTail(buffer);
@@ -794,7 +796,7 @@ public class AdminBuffController {
         }
 
         for (String part : parts) {
-            String segment = trimToNull(part);
+            String segment = AdminTextUtils.trimToNull(part);
             if (segment == null) continue;
             int delimiter = segment.indexOf('=');
             if (delimiter < 0) continue;
@@ -812,19 +814,19 @@ public class AdminBuffController {
     }
 
     private void addModeRow(List<String> rows, String label, String value) {
-        String cleaned = stripModeLabel(trimToNull(value), label);
+        String cleaned = stripModeLabel(AdminTextUtils.trimToNull(value), label);
         if (cleaned == null || cleaned.equalsIgnoreCase("y") || cleaned.equalsIgnoreCase("no")) return;
         rows.add(label + ": " + cleaned);
     }
 
     private String stripModeLabel(String value, String label) {
-        String cleaned = trimToNull(value);
+        String cleaned = AdminTextUtils.trimToNull(value);
         if (cleaned == null) return null;
         String prefix = label + ":";
         if (cleaned.startsWith(prefix)) {
             cleaned = cleaned.substring(prefix.length()).trim();
         }
-        return trimToNull(cleaned);
+        return AdminTextUtils.trimToNull(cleaned);
     }
 
     private List<Map<String, Object>> toObjectMapList(Object raw) {
@@ -888,7 +890,7 @@ public class AdminBuffController {
         );
         Map<String, List<Map<String, Object>>> lookup = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
-            String internalName = trimToNull(row.get("internalName"));
+            String internalName = AdminTextUtils.trimToNull(row.get("internalName"));
             if (internalName != null) {
                 lookup.computeIfAbsent(internalName, ignored -> new ArrayList<>()).add(new LinkedHashMap<>(row));
             }
@@ -981,7 +983,7 @@ public class AdminBuffController {
         for (Map<String, Object> row : rows) {
             Long itemId = toLong(row.get("id"));
             if (itemId != null) {
-                lookup.put(itemId, managedImageOrNull(trimToNull(row.get("image"))));
+                lookup.put(itemId, managedImageOrNull(AdminTextUtils.trimToNull(row.get("image"))));
             }
         }
         return lookup;
@@ -1008,7 +1010,7 @@ public class AdminBuffController {
 
     private String extractNpcImageUrl(Object rawJson) {
         Map<?, ?> raw = parseMap(rawJson);
-        return normalizeAssetUrl(trimToNull(firstNonNull(raw, "imageUrl", "image_url")));
+        return normalizeAssetUrl(AdminTextUtils.trimToNull(firstNonNull(raw, "imageUrl", "image_url")));
     }
 
     private void collectNpcFallbackItemIds(Map<String, Object> npcRow, Set<Long> itemIds) {
@@ -1060,13 +1062,13 @@ public class AdminBuffController {
 
     private boolean matchesEnglishLookupKey(Map<String, Object> row, String normalizedTarget) {
         if (normalizedTarget == null) return false;
-        return matchesLookupKey(trimToNull(row.get("name")), normalizedTarget)
+        return matchesLookupKey(AdminTextUtils.trimToNull(row.get("name")), normalizedTarget)
             || matchesLookupKey(extractNestedText(parseMap(row.get("rawJson")), "localized", "en", "name"), normalizedTarget);
     }
 
     private boolean matchesChineseLookupKey(Map<String, Object> row, String normalizedTarget) {
         if (normalizedTarget == null) return false;
-        return matchesLookupKey(trimToNull(row.get("nameZh")), normalizedTarget)
+        return matchesLookupKey(AdminTextUtils.trimToNull(row.get("nameZh")), normalizedTarget)
             || matchesLookupKey(extractNestedText(parseMap(row.get("rawJson")), "localized", "zh", "name"), normalizedTarget);
     }
 
@@ -1082,18 +1084,18 @@ public class AdminBuffController {
     ) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("npcId", toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id")));
-        payload.put("internalName", trimToNull(firstNonNull(entry, "internalName", "internal_name")));
-        payload.put("name", trimToNull(firstNonNull(entry, "name")));
-        payload.put("nameZh", trimToNull(firstNonNull(entry, "nameZh")));
-        payload.put("subNameZh", trimToNull(firstNonNull(entry, "subNameZh")));
-        payload.put("image", managedImageOrNull(trimToNull(firstNonNull(entry, "image", "imageUrl"))));
-        payload.put("imageUrl", managedImageOrNull(trimToNull(firstNonNull(entry, "image", "imageUrl"))));
+        payload.put("internalName", AdminTextUtils.trimToNull(firstNonNull(entry, "internalName", "internal_name")));
+        payload.put("name", AdminTextUtils.trimToNull(firstNonNull(entry, "name")));
+        payload.put("nameZh", AdminTextUtils.trimToNull(firstNonNull(entry, "nameZh")));
+        payload.put("subNameZh", AdminTextUtils.trimToNull(firstNonNull(entry, "subNameZh")));
+        payload.put("image", managedImageOrNull(AdminTextUtils.trimToNull(firstNonNull(entry, "image", "imageUrl"))));
+        payload.put("imageUrl", managedImageOrNull(AdminTextUtils.trimToNull(firstNonNull(entry, "image", "imageUrl"))));
         payload.put("resolutionStatus", resolutionStatus);
         payload.put("matchCount", matches == null ? 0 : matches.size());
         if (matches != null && !matches.isEmpty()) {
             payload.put("matchedNpcIds", matches.stream().map(row -> toInteger(row.get("npcId"))).filter(Objects::nonNull).toList());
             payload.put("matchedNpcDbIds", matches.stream().map(row -> toLong(row.get("npcDbId"))).filter(Objects::nonNull).toList());
-            payload.put("matchedInternalNames", matches.stream().map(row -> trimToNull(row.get("internalName"))).filter(Objects::nonNull).toList());
+            payload.put("matchedInternalNames", matches.stream().map(row -> AdminTextUtils.trimToNull(row.get("internalName"))).filter(Objects::nonNull).toList());
         }
         return payload;
     }
@@ -1101,8 +1103,8 @@ public class AdminBuffController {
     private List<String> extractNpcLookupKeys(Map<String, Object> npcRow) {
         if (npcRow == null || npcRow.isEmpty()) return List.of();
         Set<String> keys = new LinkedHashSet<>();
-        addNpcLookupKey(keys, trimToNull(npcRow.get("name")));
-        addNpcLookupKey(keys, trimToNull(npcRow.get("nameZh")));
+        addNpcLookupKey(keys, AdminTextUtils.trimToNull(npcRow.get("name")));
+        addNpcLookupKey(keys, AdminTextUtils.trimToNull(npcRow.get("nameZh")));
         Map<?, ?> rawJson = parseMap(npcRow.get("rawJson"));
         addNpcLookupKey(keys, extractNestedText(rawJson, "localized", "en", "name"));
         addNpcLookupKey(keys, extractNestedText(rawJson, "localized", "zh", "name"));
@@ -1117,7 +1119,7 @@ public class AdminBuffController {
     }
 
     private String normalizeLookupKey(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) return null;
         return text.toLowerCase(Locale.ROOT);
     }
@@ -1130,7 +1132,7 @@ public class AdminBuffController {
             }
             current = currentMap.get(segment);
         }
-        return trimToNull(current);
+        return AdminTextUtils.trimToNull(current);
     }
 
     private Object[] concatArgs(List<String> left, List<String> right) {
@@ -1235,7 +1237,7 @@ public class AdminBuffController {
                 payload.put("nameEn", row.get("nameEn"));
                 payload.put("nameZh", row.get("nameZh"));
                 payload.put("internalName", row.get("internalName"));
-                payload.put("image", managedImageOrNull(trimToNull(row.get("image"))));
+                payload.put("image", managedImageOrNull(AdminTextUtils.trimToNull(row.get("image"))));
                 payload.put("buffTime", row.get("buffTime"));
                 payload.put("sortOrder", row.get("sortOrder"));
                 return payload;
@@ -1269,11 +1271,11 @@ public class AdminBuffController {
                 Map<String, Object> payload = new LinkedHashMap<>();
                 payload.put("sourceItemId", row.get("sourceItemId"));
                 payload.put("itemId", row.get("id"));
-                payload.put("name", firstNonBlank(trimToNull(row.get("nameZh")), trimToNull(row.get("name"))));
+                payload.put("name", firstNonBlank(AdminTextUtils.trimToNull(row.get("nameZh")), AdminTextUtils.trimToNull(row.get("name"))));
                 payload.put("nameEn", row.get("name"));
                 payload.put("nameZh", row.get("nameZh"));
                 payload.put("internalName", row.get("internalName"));
-                payload.put("image", managedImageOrNull(trimToNull(row.get("image"))));
+                payload.put("image", managedImageOrNull(AdminTextUtils.trimToNull(row.get("image"))));
                 payload.put("buffTime", null);
                 payload.put("sortOrder", 0);
                 payload.put("sourcePage", sourcePage);
@@ -1295,7 +1297,7 @@ public class AdminBuffController {
             if (!(recordsRaw instanceof List<?> records)) return null;
             for (Object recordRaw : records) {
                 if (!(recordRaw instanceof Map<?, ?> record)) continue;
-                if (!internalName.equals(trimToNull(record.get("internalName")))) continue;
+                if (!internalName.equals(AdminTextUtils.trimToNull(record.get("internalName")))) continue;
                 return extractBuffSourcePage(new LinkedHashMap<>((Map<String, Object>) record));
             }
             return null;
@@ -1309,12 +1311,12 @@ public class AdminBuffController {
         if (!(localizedRaw instanceof Map<?, ?> localized)) return null;
         Object englishRaw = localized.get("en");
         if (englishRaw instanceof Map<?, ?> english) {
-            String page = trimToNull(english.get("page"));
+            String page = AdminTextUtils.trimToNull(english.get("page"));
             if (page != null) return page;
         }
         Object chineseRaw = localized.get("zh");
         if (chineseRaw instanceof Map<?, ?> chinese) {
-            return trimToNull(chinese.get("page"));
+            return AdminTextUtils.trimToNull(chinese.get("page"));
         }
         return null;
     }
@@ -1397,7 +1399,7 @@ public class AdminBuffController {
     }
 
     private boolean isManagedUrl(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         return normalized != null && managedImageUrlPolicy.isManagedImageUrl(normalized);
     }
 
@@ -1407,11 +1409,6 @@ public class AdminBuffController {
         return value.replaceAll("(?i)%20", "_").replace(" ", "_");
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) return null;
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private Object firstNonNull(Map<?, ?> source, String... keys) {
         if (source == null || keys == null) return null;

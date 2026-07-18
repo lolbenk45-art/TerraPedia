@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -752,7 +754,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorActionDefinition rule,
         String requestedResumeMode
     ) {
-        String resumeMode = trimToNull(requestedResumeMode);
+        String resumeMode = AdminTextUtils.trimToNull(requestedResumeMode);
         if (resumeMode == null) {
             return Map.of();
         }
@@ -778,7 +780,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorActionDefinition rule,
         String requestedFailureMode
     ) {
-        String failureMode = trimToNull(requestedFailureMode);
+        String failureMode = AdminTextUtils.trimToNull(requestedFailureMode);
         if (failureMode == null) {
             return Map.of();
         }
@@ -1066,13 +1068,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return null;
         }
         List<String> parts = new ArrayList<>();
-        if (trimToNull(item.getBlockedByDomain()) != null) {
+        if (AdminTextUtils.trimToNull(item.getBlockedByDomain()) != null) {
             parts.add("域 " + item.getBlockedByDomain());
         }
-        if (trimToNull(item.getBlockedByActionId()) != null) {
+        if (AdminTextUtils.trimToNull(item.getBlockedByActionId()) != null) {
             parts.add("动作 " + item.getBlockedByActionId());
         }
-        if (trimToNull(item.getBlockedByDispatchId()) != null) {
+        if (AdminTextUtils.trimToNull(item.getBlockedByDispatchId()) != null) {
             parts.add("派发 " + item.getBlockedByDispatchId());
         }
         return parts.isEmpty() ? null : String.join(" / ", parts);
@@ -1141,7 +1143,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorDispatchRequestDTO request,
         String operator
     ) {
-        if (request == null || trimToNull(request.getAttemptId()) == null || request.getExpectedStateVersion() == null) {
+        if (request == null || AdminTextUtils.trimToNull(request.getAttemptId()) == null || request.getExpectedStateVersion() == null) {
             throw new IllegalArgumentException("V2 控制请求必须提供 attemptId 和 expectedStateVersion");
         }
         CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
@@ -1201,7 +1203,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatchUnderPermit(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
-        String controlAction = trimToNull(request == null ? null : request.getControlAction());
+        String controlAction = AdminTextUtils.trimToNull(request == null ? null : request.getControlAction());
         if ("forceReclaimAll".equals(controlAction)) {
             return reclaimAllWikiMonitorDispatches(repoRoot, "管理员清空运行/队列任务");
         }
@@ -1376,7 +1378,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private CrawlerMonitorDispatchResultDTO cancelQueuedWikiMonitorDispatch(Path repoRoot, CrawlerMonitorDispatchRequestDTO request) {
-        String queueId = trimToNull(request == null ? null : request.getQueueId());
+        String queueId = AdminTextUtils.trimToNull(request == null ? null : request.getQueueId());
         if (queueId == null) {
             CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
             result.setAccepted(false);
@@ -1485,11 +1487,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private boolean isDomainSmokeControl(CrawlerMonitorDispatchRequestDTO request) {
-        return request != null && "wiki-monitor-domain-smoke".equals(trimToNull(request.getActionId()));
+        return request != null && "wiki-monitor-domain-smoke".equals(AdminTextUtils.trimToNull(request.getActionId()));
     }
 
     private CrawlerMonitorDispatchResultDTO controlWikiMonitorDomainSmoke(Path repoRoot, CrawlerMonitorDispatchRequestDTO request) {
-        String controlAction = trimToNull(request.getControlAction());
+        String controlAction = AdminTextUtils.trimToNull(request.getControlAction());
         if (!"cancel".equals(controlAction)) {
             CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
                 "wiki-monitor-domain-smoke-control",
@@ -2234,10 +2236,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return rejectedDispatch(rule, "retry_limit", "该 Wiki 派发任务已达到重试次数上限，请检查报告后手动重新加入队列。");
         }
         LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
-        String inheritedResumeMode = trimToNull(asString(latestPayload.get("resumeMode")));
+        String inheritedResumeMode = AdminTextUtils.trimToNull(asString(latestPayload.get("resumeMode")));
         if (inheritedResumeMode != null) {
             metadata.put("resumeMode", inheritedResumeMode);
-            String inheritedResumeStatePath = trimToNull(asString(latestPayload.get("resumeStatePath")));
+            String inheritedResumeStatePath = AdminTextUtils.trimToNull(asString(latestPayload.get("resumeStatePath")));
             if (inheritedResumeStatePath != null) {
                 metadata.put("resumeStatePath", inheritedResumeStatePath);
             }
@@ -2334,7 +2336,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private List<String> normalizeDomainSmokeDomains(CrawlerMonitorDispatchRequestDTO request) {
         List<String> rawDomains = request == null ? null : request.getDomains();
-        if ((rawDomains == null || rawDomains.isEmpty()) && request != null && trimToNull(request.getDomain()) != null && !"all".equals(request.getDomain())) {
+        if ((rawDomains == null || rawDomains.isEmpty()) && request != null && AdminTextUtils.trimToNull(request.getDomain()) != null && !"all".equals(request.getDomain())) {
             rawDomains = List.of(request.getDomain());
         }
         if (rawDomains == null || rawDomains.isEmpty()) {
@@ -2360,7 +2362,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private String normalizeDomainSmokeQueueMode(CrawlerMonitorDispatchRequestDTO request) {
-        String value = request == null ? null : trimToNull(request.getQueueMode());
+        String value = request == null ? null : AdminTextUtils.trimToNull(request.getQueueMode());
         if (value == null || "single".equals(value)) {
             return "single";
         }
@@ -2488,7 +2490,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private String queueItemLogPath(WikiMonitorQueueItem item) {
-        if (item == null || trimToNull(item.getDispatchId()) == null) {
+        if (item == null || AdminTextUtils.trimToNull(item.getDispatchId()) == null) {
             return null;
         }
         if ("domain_smoke".equals(item.getLane())) {
@@ -2854,11 +2856,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (request == null) {
             throw new IllegalArgumentException("派发请求不能为空，请刷新页面后重试。");
         }
-        String domain = trimToNull(request.getDomain());
+        String domain = AdminTextUtils.trimToNull(request.getDomain());
         if (domain == null) {
             throw new IllegalArgumentException("域不能为空，请选择要派发的域。");
         }
-        String actionId = trimToNull(request.getActionId());
+        String actionId = AdminTextUtils.trimToNull(request.getActionId());
         if (actionId == null) {
             throw new IllegalArgumentException("动作不能为空，请选择要执行的任务。");
         }
@@ -2869,8 +2871,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private CrawlerMonitorActionDefinition resolveV2WikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
-        String domain = trimToNull(request == null ? null : request.getDomain());
-        String actionId = trimToNull(request == null ? null : request.getActionId());
+        String domain = AdminTextUtils.trimToNull(request == null ? null : request.getDomain());
+        String actionId = AdminTextUtils.trimToNull(request == null ? null : request.getActionId());
         if ("crawler_queue_v2_fixture".equals(domain) && "crawler-queue-v2-fixture".equals(actionId)) {
             return CrawlerMonitorActionRegistry.fixture();
         }
@@ -2881,8 +2883,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (request == null) {
             throw new IllegalArgumentException("派发控制请求不能为空，请刷新页面后重试。");
         }
-        String domain = trimToNull(request.getDomain());
-        String actionId = trimToNull(request.getActionId());
+        String domain = AdminTextUtils.trimToNull(request.getDomain());
+        String actionId = AdminTextUtils.trimToNull(request.getActionId());
         if (actionId == null) {
             throw new IllegalArgumentException("动作不能为空，请选择要操作的任务。");
         }
@@ -2905,7 +2907,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private Optional<WikiMonitorQueueItem> controlQueueItem(CrawlerMonitorDispatchRequestDTO request) {
-        String queueId = trimToNull(request == null ? null : request.getQueueId());
+        String queueId = AdminTextUtils.trimToNull(request == null ? null : request.getQueueId());
         return queueId == null ? Optional.empty() : queueRepository.findItem(queueId);
     }
 
@@ -2930,7 +2932,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (item == null || !item.isWaiting()) {
             return Optional.empty();
         }
-        String blockedByDispatchId = trimToNull(item.getBlockedByDispatchId());
+        String blockedByDispatchId = AdminTextUtils.trimToNull(item.getBlockedByDispatchId());
         if (blockedByDispatchId != null) {
             Optional<WikiMonitorQueueItem> blocker = queueRepository.findByDispatchId(blockedByDispatchId)
                 .filter(candidate -> !candidate.isTerminal());
@@ -2938,8 +2940,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 return blocker;
             }
         }
-        String blockedByDomain = trimToNull(item.getBlockedByDomain());
-        String blockedByActionId = trimToNull(item.getBlockedByActionId());
+        String blockedByDomain = AdminTextUtils.trimToNull(item.getBlockedByDomain());
+        String blockedByActionId = AdminTextUtils.trimToNull(item.getBlockedByActionId());
         if (blockedByDomain == null && blockedByActionId == null) {
             return Optional.empty();
         }
@@ -2955,8 +2957,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (item == null || !item.isWaiting()) {
             return Optional.empty();
         }
-        String blockedByDomain = trimToNull(item.getBlockedByDomain());
-        String blockedByActionId = trimToNull(item.getBlockedByActionId());
+        String blockedByDomain = AdminTextUtils.trimToNull(item.getBlockedByDomain());
+        String blockedByActionId = AdminTextUtils.trimToNull(item.getBlockedByActionId());
         if (blockedByActionId == null) {
             return Optional.empty();
         }
@@ -3330,7 +3332,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     ) {
         String timestamp = Instant.now(clock).toString();
         String dispatchId = "wiki-monitor-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
-        String queueId = queueItem == null ? null : trimToNull(queueItem.getQueueId());
+        String queueId = queueItem == null ? null : AdminTextUtils.trimToNull(queueItem.getQueueId());
         Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
         LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
         lockPayload.put("dispatchId", dispatchId);
@@ -3439,15 +3441,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return Map.of();
         }
         LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
-        String resumeMode = trimToNull(queueItem.getResumeMode());
+        String resumeMode = AdminTextUtils.trimToNull(queueItem.getResumeMode());
         if (resumeMode != null) {
             metadata.put("resumeMode", resumeMode);
         }
-        String resumeStatePath = trimToNull(queueItem.getResumeStatePath());
+        String resumeStatePath = AdminTextUtils.trimToNull(queueItem.getResumeStatePath());
         if (resumeStatePath != null) {
             metadata.put("resumeStatePath", resumeStatePath);
         }
-        String failureMode = trimToNull(queueItem.getFailureMode());
+        String failureMode = AdminTextUtils.trimToNull(queueItem.getFailureMode());
         if (failureMode != null) {
             metadata.put("failureMode", failureMode);
         }
@@ -3457,7 +3459,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private WikiMonitorQueueStartResult startDomainSmokeQueueItemRaw(Path repoRoot, WikiMonitorQueueItem queueItem) {
         String timestamp = Instant.now(clock).toString();
         String dispatchId = "wiki-monitor-domain-smoke-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
-        String queueId = queueItem == null ? null : trimToNull(queueItem.getQueueId());
+        String queueId = queueItem == null ? null : AdminTextUtils.trimToNull(queueItem.getQueueId());
         List<String> coveredDomains = domainSmokeCoveredDomains(queueItem);
         Path lockPath = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
         LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
@@ -3760,7 +3762,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void applyFailureModeEnvironment(Map<String, String> environment, CrawlerMonitorActionDefinition rule, Map<String, Object> metadata) {
-        String failureMode = trimToNull(asString(metadata == null ? null : metadata.get("failureMode")));
+        String failureMode = AdminTextUtils.trimToNull(asString(metadata == null ? null : metadata.get("failureMode")));
         if (failureMode == null) {
             return;
         }
@@ -3775,7 +3777,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private String normalizeLaunchResumeMode(Map<String, Object> metadata) {
-        String resumeMode = trimToNull(asString(metadata == null ? null : metadata.get("resumeMode")));
+        String resumeMode = AdminTextUtils.trimToNull(asString(metadata == null ? null : metadata.get("resumeMode")));
         if (resumeMode == null) {
             return null;
         }
@@ -3839,16 +3841,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String requireOperator(String value, String field) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             throw new IllegalArgumentException(field + " 不可为空");
         }
@@ -5679,7 +5674,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Map<String, Object>> progressDomainsById = new LinkedHashMap<>();
         if (progress.readable()) {
             for (Map<String, Object> domain : asMapList(payload.get("domains"))) {
-                String domainId = trimToNull(asString(domain.get("domain")));
+                String domainId = AdminTextUtils.trimToNull(asString(domain.get("domain")));
                 if (domainId != null) {
                     progressDomainsById.put(domainId, domain);
                 }

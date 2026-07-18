@@ -1,10 +1,11 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.terraria.skills.service.WikiImageLocalizationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.net.URI;
 import java.util.Locale;
@@ -57,15 +58,9 @@ public class DisabledWikiImageLocalizationService implements WikiImageLocalizati
         return sourceUrl;
     }
 
-    private String trimToNull(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-        return value.trim();
-    }
 
     private URI parseHttpUri(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return null;
         }

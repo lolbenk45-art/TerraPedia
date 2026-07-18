@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -115,11 +117,11 @@ public class AdminNpcRelationController {
             entry.setDropSourceKind(dropSourceKind);
             entry.setQuantityMin(toInteger(row.get("quantityMin")));
             entry.setQuantityMax(toInteger(row.get("quantityMax")));
-            entry.setQuantityText(trimToNull(row.get("quantityText")));
+            entry.setQuantityText(AdminTextUtils.trimToNull(row.get("quantityText")));
             entry.setChanceValue(toDecimal(row.get("chanceValue")));
-            entry.setChanceText(trimToNull(row.get("chanceText")));
-            entry.setConditions(trimToNull(row.get("conditions")));
-            entry.setNotes(trimToNull(row.get("notes")));
+            entry.setChanceText(AdminTextUtils.trimToNull(row.get("chanceText")));
+            entry.setConditions(AdminTextUtils.trimToNull(row.get("conditions")));
+            entry.setNotes(AdminTextUtils.trimToNull(row.get("notes")));
             entry.setSortOrder(resolveSortOrder(row.get("sortOrder"), index));
             entry.setStatus(1);
             entry.setDeleted(0);
@@ -129,7 +131,7 @@ public class AdminNpcRelationController {
     }
 
     private String normalizeManagedNpcDropSourceKind(Object rawDropSourceKind) {
-        String dropSourceKind = trimToNull(rawDropSourceKind);
+        String dropSourceKind = AdminTextUtils.trimToNull(rawDropSourceKind);
         if (dropSourceKind == null) {
             return NPC_DROP_SOURCE_KIND;
         }
@@ -171,12 +173,12 @@ public class AdminNpcRelationController {
             relation.setNpcId(npcId);
             relation.setBuffId(buffId);
             relation.setBuffSourceId(buffSourceId);
-            relation.setRelationType(defaultIfBlank(trimToNull(row.get("relationType")), "inflicts"));
+            relation.setRelationType(defaultIfBlank(AdminTextUtils.trimToNull(row.get("relationType")), "inflicts"));
             relation.setDurationTicks(toInteger(row.get("durationTicks")));
             relation.setChanceValue(toDecimal(row.get("chanceValue")));
-            relation.setChanceText(trimToNull(row.get("chanceText")));
-            relation.setConditions(trimToNull(row.get("conditions")));
-            relation.setNotes(trimToNull(row.get("notes")));
+            relation.setChanceText(AdminTextUtils.trimToNull(row.get("chanceText")));
+            relation.setConditions(AdminTextUtils.trimToNull(row.get("conditions")));
+            relation.setNotes(AdminTextUtils.trimToNull(row.get("notes")));
             relation.setSortOrder(resolveSortOrder(row.get("sortOrder"), index));
             relation.setStatus(1);
             relation.setDeleted(0);
@@ -223,8 +225,8 @@ public class AdminNpcRelationController {
             entry.setNpcId(npcId);
             entry.setItemId(itemId);
             entry.setSourceItemId(sourceItemId);
-            entry.setPriceText(trimToNull(row.get("priceText")));
-            entry.setNotes(trimToNull(row.get("notes")));
+            entry.setPriceText(AdminTextUtils.trimToNull(row.get("priceText")));
+            entry.setNotes(AdminTextUtils.trimToNull(row.get("notes")));
             entry.setSortOrder(resolveSortOrder(row.get("sortOrder"), index));
             entry.setStatus(1);
             entry.setDeleted(0);
@@ -233,7 +235,7 @@ public class AdminNpcRelationController {
             List<Map<String, Object>> conditions = normalizeObjectList(row.get("conditions"));
             for (int conditionIndex = 0; conditionIndex < conditions.size(); conditionIndex += 1) {
                 Map<String, Object> conditionRow = conditions.get(conditionIndex);
-                String refType = normalizeConditionRefType(trimToNull(conditionRow.get("refType")));
+                String refType = normalizeConditionRefType(AdminTextUtils.trimToNull(conditionRow.get("refType")));
                 Long refId = toLong(conditionRow.get("refId"));
                 if (refType == null || refId == null || refId <= 0) {
                     continue;
@@ -242,8 +244,8 @@ public class AdminNpcRelationController {
                 condition.setShopEntryId(entry.getId());
                 condition.setRefType(refType);
                 condition.setRefId(refId);
-                condition.setConditionRole(defaultIfBlank(trimToNull(conditionRow.get("conditionRole")), "required"));
-                condition.setNotes(trimToNull(conditionRow.get("notes")));
+                condition.setConditionRole(defaultIfBlank(AdminTextUtils.trimToNull(conditionRow.get("conditionRole")), "required"));
+                condition.setNotes(AdminTextUtils.trimToNull(conditionRow.get("notes")));
                 condition.setSortOrder(resolveSortOrder(conditionRow.get("sortOrder"), conditionIndex));
                 npcShopConditionMapper.insert(condition);
             }
@@ -288,7 +290,7 @@ public class AdminNpcRelationController {
         if (npcSourceId != null && countDerivedLootBySourceId(npcSourceId) > 0) {
             return loadDerivedLootBySourceId(npcSourceId);
         }
-        String normalizedNpcName = trimToNull(npcName);
+        String normalizedNpcName = AdminTextUtils.trimToNull(npcName);
         if (normalizedNpcName == null) {
             return List.of();
         }
@@ -468,8 +470,8 @@ public class AdminNpcRelationController {
             Map<String, Object> sanitized = new LinkedHashMap<>(row);
             for (String fieldName : fieldNames) {
                 sanitized.put(fieldName, requireBuffPrefix
-                    ? managedBuffImageOrNull(trimToNull(sanitized.get(fieldName)), context + "." + fieldName)
-                    : managedImageOrNull(trimToNull(sanitized.get(fieldName)), context + "." + fieldName));
+                    ? managedBuffImageOrNull(AdminTextUtils.trimToNull(sanitized.get(fieldName)), context + "." + fieldName)
+                    : managedImageOrNull(AdminTextUtils.trimToNull(sanitized.get(fieldName)), context + "." + fieldName));
             }
             sanitizedRows.add(sanitized);
         }
@@ -477,7 +479,7 @@ public class AdminNpcRelationController {
     }
 
     private String managedImageOrNull(String value, String context) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -489,7 +491,7 @@ public class AdminNpcRelationController {
     }
 
     private String managedBuffImageOrNull(String value, String context) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -652,11 +654,4 @@ public class AdminNpcRelationController {
         }
     }
 
-    private String trimToNull(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        String text = String.valueOf(raw).trim();
-        return text.isEmpty() ? null : text;
-    }
 }

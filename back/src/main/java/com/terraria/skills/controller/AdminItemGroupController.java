@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,7 +76,7 @@ public class AdminItemGroupController {
                 .filter(group -> group.getDomains().stream().map(this::normalizeDomain).anyMatch(normalizedDomain::equals))
                 .toList();
         }
-        String normalizedKeyword = trimToNull(keyword);
+        String normalizedKeyword = AdminTextUtils.trimToNull(keyword);
         if (normalizedKeyword != null) {
             String needle = normalizedKeyword.toLowerCase();
             groups = groups.stream()
@@ -372,18 +374,18 @@ public class AdminItemGroupController {
 
     private ItemGroupDTO normalizeGroup(ItemGroupDTO request, boolean canonicalNameRequired, boolean sourceRequired) {
         ItemGroupDTO normalized = new ItemGroupDTO();
-        normalized.setCanonicalName(trimToNull(request == null ? null : request.getCanonicalName()));
+        normalized.setCanonicalName(AdminTextUtils.trimToNull(request == null ? null : request.getCanonicalName()));
         normalized.setDisplayNameEn(firstNonBlank(request == null ? null : request.getDisplayNameEn(), normalized.getCanonicalName()));
-        normalized.setDisplayNameZh(trimToNull(request == null ? null : request.getDisplayNameZh()));
+        normalized.setDisplayNameZh(AdminTextUtils.trimToNull(request == null ? null : request.getDisplayNameZh()));
         normalized.setAliases(normalizeStringList(request == null ? null : request.getAliases()));
         normalized.setDomains(normalizeDomains(request == null ? null : request.getDomains()));
         normalized.setSourceKind(firstNonBlank(request == null ? null : request.getSourceKind(), "manual_wiki_source"));
-        normalized.setSourceProvider(trimToNull(request == null ? null : request.getSourceProvider()));
-        normalized.setSourcePage(trimToNull(request == null ? null : request.getSourcePage()));
-        normalized.setSourceRevisionTimestamp(trimToNull(request == null ? null : request.getSourceRevisionTimestamp()));
-        normalized.setSourceUpdatedAt(trimToNull(request == null ? null : request.getSourceUpdatedAt()));
-        normalized.setSourceLabel(trimToNull(request == null ? null : request.getSourceLabel()));
-        normalized.setSourceFile(trimToNull(request == null ? null : request.getSourceFile()));
+        normalized.setSourceProvider(AdminTextUtils.trimToNull(request == null ? null : request.getSourceProvider()));
+        normalized.setSourcePage(AdminTextUtils.trimToNull(request == null ? null : request.getSourcePage()));
+        normalized.setSourceRevisionTimestamp(AdminTextUtils.trimToNull(request == null ? null : request.getSourceRevisionTimestamp()));
+        normalized.setSourceUpdatedAt(AdminTextUtils.trimToNull(request == null ? null : request.getSourceUpdatedAt()));
+        normalized.setSourceLabel(AdminTextUtils.trimToNull(request == null ? null : request.getSourceLabel()));
+        normalized.setSourceFile(AdminTextUtils.trimToNull(request == null ? null : request.getSourceFile()));
         normalized.setSourceUrls(normalizeStringList(request == null ? null : request.getSourceUrls()));
         normalized.setManualOnly(request != null && request.isManualOnly());
         normalized.setMembers(normalizeMembers(request == null ? Collections.emptyList() : request.getMembers()));
@@ -393,14 +395,14 @@ public class AdminItemGroupController {
         if (normalized.getMembers().isEmpty()) {
             throw new IllegalArgumentException("At least one member is required");
         }
-        if (sourceRequired && trimToNull(normalized.getSourceProvider()) == null) {
+        if (sourceRequired && AdminTextUtils.trimToNull(normalized.getSourceProvider()) == null) {
             throw new IllegalArgumentException("sourceProvider is required");
         }
         if (
             sourceRequired
-            && trimToNull(normalized.getSourcePage()) == null
+            && AdminTextUtils.trimToNull(normalized.getSourcePage()) == null
             && normalized.getSourceUrls().isEmpty()
-            && trimToNull(normalized.getSourceFile()) == null
+            && AdminTextUtils.trimToNull(normalized.getSourceFile()) == null
         ) {
             throw new IllegalArgumentException("At least one source page, URL, or file is required");
         }
@@ -415,10 +417,10 @@ public class AdminItemGroupController {
         for (ItemGroupMemberDTO member : members == null ? Collections.<ItemGroupMemberDTO>emptyList() : members) {
             ItemGroupMemberDTO normalized = new ItemGroupMemberDTO();
             normalized.setItemId(member == null ? null : member.getItemId());
-            normalized.setInternalName(trimToNull(member == null ? null : member.getInternalName()));
-            normalized.setName(trimToNull(member == null ? null : member.getName()));
-            normalized.setNameZh(trimToNull(member == null ? null : member.getNameZh()));
-            normalized.setImage(trimToNull(member == null ? null : member.getImage()));
+            normalized.setInternalName(AdminTextUtils.trimToNull(member == null ? null : member.getInternalName()));
+            normalized.setName(AdminTextUtils.trimToNull(member == null ? null : member.getName()));
+            normalized.setNameZh(AdminTextUtils.trimToNull(member == null ? null : member.getNameZh()));
+            normalized.setImage(AdminTextUtils.trimToNull(member == null ? null : member.getImage()));
             String key = firstNonBlank(normalized.getInternalName(), normalized.getName(), normalized.getNameZh());
             if (key == null) {
                 continue;
@@ -436,8 +438,8 @@ public class AdminItemGroupController {
         Set<String> names = new LinkedHashSet<>();
         for (ItemGroupMemberDTO member : members) {
             Long itemId = member.getItemId();
-            String internalName = trimToNull(member.getInternalName());
-            String name = trimToNull(member.getName());
+            String internalName = AdminTextUtils.trimToNull(member.getInternalName());
+            String name = AdminTextUtils.trimToNull(member.getName());
             if (itemId != null) {
                 itemIds.add(itemId);
             }
@@ -481,8 +483,8 @@ public class AdminItemGroupController {
         for (ItemGroupMemberDTO member : members) {
             Item resolved = null;
             Long itemId = member.getItemId();
-            String internalName = trimToNull(member.getInternalName());
-            String name = trimToNull(member.getName());
+            String internalName = AdminTextUtils.trimToNull(member.getInternalName());
+            String name = AdminTextUtils.trimToNull(member.getName());
             if (itemId != null) {
                 resolved = itemsById.get(itemId);
             }
@@ -496,7 +498,7 @@ public class AdminItemGroupController {
             next.setItemId(resolved == null ? member.getItemId() : resolved.getId());
             next.setInternalName(firstNonBlank(internalName, resolved == null ? null : resolved.getInternalName()));
             next.setName(firstNonBlank(name, resolved == null ? null : resolved.getName()));
-            next.setNameZh(firstNonBlank(trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
+            next.setNameZh(firstNonBlank(AdminTextUtils.trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
             next.setImage(firstNonBlank(
                 usableImageUrl(member.getImage()),
                 resolved == null ? null : usableImageUrl(resolved.getImage()),
@@ -528,7 +530,7 @@ public class AdminItemGroupController {
                 if (itemId == null || imagesByItemId.containsKey(itemId) || !isWikiImageProvider(image.getProvider())) {
                     return;
                 }
-                String sourcePage = trimToNull(image.getSourcePage());
+                String sourcePage = AdminTextUtils.trimToNull(image.getSourcePage());
                 String imageUrl = preferredImageUrl(image);
                 if (sourcePage != null && imageUrl != null) {
                     imagesByItemId.put(itemId, imageUrl);
@@ -551,7 +553,7 @@ public class AdminItemGroupController {
     }
 
     private String usableImageUrl(String value) {
-        String imageUrl = trimToNull(value);
+        String imageUrl = AdminTextUtils.trimToNull(value);
         if (imageUrl == null) {
             return null;
         }
@@ -648,7 +650,7 @@ public class AdminItemGroupController {
     private List<String> normalizeStringList(Collection<String> values) {
         LinkedHashSet<String> result = new LinkedHashSet<>();
         for (String value : values == null ? Collections.<String>emptyList() : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 result.add(trimmed);
             }
@@ -665,7 +667,7 @@ public class AdminItemGroupController {
     }
 
     private String normalizeDomain(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? null : text.toLowerCase().replace('-', '_');
     }
 
@@ -707,7 +709,7 @@ public class AdminItemGroupController {
     }
 
     private String normalizeKey(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? "" : text.toLowerCase();
     }
 
@@ -715,19 +717,12 @@ public class AdminItemGroupController {
         return value != null && value.toLowerCase().contains(needle);
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String trimObjectToNull(Object value) {
         if (value == null) {
             return null;
         }
-        return trimToNull(String.valueOf(value));
+        return AdminTextUtils.trimToNull(String.valueOf(value));
     }
 
     private Long parseLong(Object value) {
@@ -754,7 +749,7 @@ public class AdminItemGroupController {
             return null;
         }
         for (String value : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }

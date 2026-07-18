@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.config.MinioStorageProperties;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -26,7 +28,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
 
     @Override
     public boolean isManagedImageUrl(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return false;
         }
@@ -80,7 +82,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
 
     @Override
     public Optional<String> normalizeManagedImagePath(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return Optional.empty();
         }
@@ -100,7 +102,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private Optional<String> normalizeManagedPath(String path) {
-        String normalizedPath = stripQueryAndFragment(trimToNull(path));
+        String normalizedPath = stripQueryAndFragment(AdminTextUtils.trimToNull(path));
         if (normalizedPath == null || !normalizedPath.startsWith("/")) {
             return Optional.empty();
         }
@@ -230,7 +232,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private List<String> splitObjectPrefixes(String configuredPrefixes) {
-        String normalized = trimToNull(configuredPrefixes);
+        String normalized = AdminTextUtils.trimToNull(configuredPrefixes);
         if (normalized == null) {
             return List.of();
         }
@@ -256,7 +258,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private String normalizeEndpoint(String endpoint) {
-        String value = trimToNull(endpoint);
+        String value = AdminTextUtils.trimToNull(endpoint);
         if (value == null) {
             return null;
         }
@@ -270,7 +272,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private URI parseHttpUri(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null || normalized.startsWith("//")) {
             return null;
         }
@@ -353,11 +355,4 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
         return normalized;
     }
 
-    private String trimToNull(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

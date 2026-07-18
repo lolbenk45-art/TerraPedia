@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.ItemImageSql;
 import com.terraria.skills.common.PageQuery;
@@ -315,17 +317,17 @@ public class PublicItemServiceImpl implements PublicItemService {
         dto.setId(nullableLong(resultSet, "id"));
         dto.setBuffId(nullableLong(resultSet, "buffId"));
         dto.setBuffSourceId(nullableInteger(resultSet, "buffSourceId"));
-        dto.setBuffInternalName(trimToNull(resultSet.getString("buffInternalName")));
-        dto.setBuffNameEn(trimToNull(resultSet.getString("buffNameEn")));
-        dto.setBuffNameZh(trimToNull(resultSet.getString("buffNameZh")));
+        dto.setBuffInternalName(AdminTextUtils.trimToNull(resultSet.getString("buffInternalName")));
+        dto.setBuffNameEn(AdminTextUtils.trimToNull(resultSet.getString("buffNameEn")));
+        dto.setBuffNameZh(AdminTextUtils.trimToNull(resultSet.getString("buffNameZh")));
         dto.setImageUrl(managedBuffImageUrl(resultSet.getString("imageUrl")));
-        dto.setRelationType(trimToNull(resultSet.getString("relationType")));
+        dto.setRelationType(AdminTextUtils.trimToNull(resultSet.getString("relationType")));
         dto.setRelationLabel("buff_source_item".equals(dto.getRelationType()) ? "来源物品" : null);
         dto.setDurationTicks(nullableInteger(resultSet, "durationTicks"));
         dto.setDurationText(formatDurationText(dto.getDurationTicks()));
         dto.setChanceValue(nullableBigDecimal(resultSet, "chanceValue"));
-        dto.setChanceText(trimToNull(resultSet.getString("chanceText")));
-        dto.setConditions(trimToNull(resultSet.getString("conditions")));
+        dto.setChanceText(AdminTextUtils.trimToNull(resultSet.getString("chanceText")));
+        dto.setConditions(AdminTextUtils.trimToNull(resultSet.getString("conditions")));
         return dto;
     }
 
@@ -333,17 +335,17 @@ public class PublicItemServiceImpl implements PublicItemService {
         PublicItemArmorAttributeDTO dto = new PublicItemArmorAttributeDTO();
         dto.setId(nullableLong(resultSet, "id"));
         dto.setItemId(nullableLong(resultSet, "itemId"));
-        dto.setItemInternalName(trimToNull(resultSet.getString("itemInternalName")));
-        dto.setItemNameZh(trimToNull(resultSet.getString("itemNameZh")));
-        dto.setItemPageTitle(trimToNull(resultSet.getString("itemPageTitle")));
-        dto.setItemHref(trimToNull(resultSet.getString("itemHref")));
-        dto.setSectionCode(trimToNull(resultSet.getString("sectionCode")));
-        dto.setSlotGroup(trimToNull(resultSet.getString("slotGroup")));
+        dto.setItemInternalName(AdminTextUtils.trimToNull(resultSet.getString("itemInternalName")));
+        dto.setItemNameZh(AdminTextUtils.trimToNull(resultSet.getString("itemNameZh")));
+        dto.setItemPageTitle(AdminTextUtils.trimToNull(resultSet.getString("itemPageTitle")));
+        dto.setItemHref(AdminTextUtils.trimToNull(resultSet.getString("itemHref")));
+        dto.setSectionCode(AdminTextUtils.trimToNull(resultSet.getString("sectionCode")));
+        dto.setSlotGroup(AdminTextUtils.trimToNull(resultSet.getString("slotGroup")));
         dto.setDefenseValue(nullableInteger(resultSet, "defenseValue"));
-        dto.setRawCellsJson(trimToNull(resultSet.getString("rawCellsJson")));
-        dto.setSourceProvider(trimToNull(resultSet.getString("sourceProvider")));
-        dto.setSourcePage(trimToNull(resultSet.getString("sourcePage")));
-        dto.setSourceRevisionTimestamp(trimToNull(resultSet.getString("sourceRevisionTimestamp")));
+        dto.setRawCellsJson(AdminTextUtils.trimToNull(resultSet.getString("rawCellsJson")));
+        dto.setSourceProvider(AdminTextUtils.trimToNull(resultSet.getString("sourceProvider")));
+        dto.setSourcePage(AdminTextUtils.trimToNull(resultSet.getString("sourcePage")));
+        dto.setSourceRevisionTimestamp(AdminTextUtils.trimToNull(resultSet.getString("sourceRevisionTimestamp")));
         return dto;
     }
 
@@ -351,22 +353,22 @@ public class PublicItemServiceImpl implements PublicItemService {
         PublicItemEquipmentEffectDTO dto = new PublicItemEquipmentEffectDTO();
         dto.setId(nullableLong(resultSet, "id"));
         dto.setItemId(nullableLong(resultSet, "itemId"));
-        dto.setItemInternalName(trimToNull(resultSet.getString("itemInternalName")));
-        dto.setOwnerKind(trimToNull(resultSet.getString("ownerKind")));
-        dto.setOwnerKey(trimToNull(resultSet.getString("ownerKey")));
-        dto.setSourceKind(trimToNull(resultSet.getString("sourceKind")));
-        dto.setSourceLine(trimToNull(resultSet.getString("sourceLine")));
+        dto.setItemInternalName(AdminTextUtils.trimToNull(resultSet.getString("itemInternalName")));
+        dto.setOwnerKind(AdminTextUtils.trimToNull(resultSet.getString("ownerKind")));
+        dto.setOwnerKey(AdminTextUtils.trimToNull(resultSet.getString("ownerKey")));
+        dto.setSourceKind(AdminTextUtils.trimToNull(resultSet.getString("sourceKind")));
+        dto.setSourceLine(AdminTextUtils.trimToNull(resultSet.getString("sourceLine")));
         dto.setEffectIndex(nullableInteger(resultSet, "effectIndex"));
-        dto.setApplyScope(trimToNull(resultSet.getString("applyScope")));
-        dto.setSlotType(trimToNull(resultSet.getString("slotType")));
-        dto.setStatKey(trimToNull(resultSet.getString("statKey")));
-        dto.setStatLabelZh(trimToNull(resultSet.getString("statLabelZh")));
-        dto.setClassScope(trimToNull(resultSet.getString("classScope")));
-        dto.setOperation(trimToNull(resultSet.getString("operation")));
+        dto.setApplyScope(AdminTextUtils.trimToNull(resultSet.getString("applyScope")));
+        dto.setSlotType(AdminTextUtils.trimToNull(resultSet.getString("slotType")));
+        dto.setStatKey(AdminTextUtils.trimToNull(resultSet.getString("statKey")));
+        dto.setStatLabelZh(AdminTextUtils.trimToNull(resultSet.getString("statLabelZh")));
+        dto.setClassScope(AdminTextUtils.trimToNull(resultSet.getString("classScope")));
+        dto.setOperation(AdminTextUtils.trimToNull(resultSet.getString("operation")));
         dto.setValueDecimal(nullableBigDecimal(resultSet, "valueDecimal"));
-        dto.setUnit(trimToNull(resultSet.getString("unit")));
-        dto.setRawText(trimToNull(resultSet.getString("rawText")));
-        dto.setParseStatus(trimToNull(resultSet.getString("parseStatus")));
+        dto.setUnit(AdminTextUtils.trimToNull(resultSet.getString("unit")));
+        dto.setRawText(AdminTextUtils.trimToNull(resultSet.getString("rawText")));
+        dto.setParseStatus(AdminTextUtils.trimToNull(resultSet.getString("parseStatus")));
         return dto;
     }
 
@@ -375,24 +377,24 @@ public class PublicItemServiceImpl implements PublicItemService {
         dto.setId(nullableLong(resultSet, "id"));
         dto.setTreasureBagItemId(nullableLong(resultSet, "treasureBagItemId"));
         dto.setItemId(nullableLong(resultSet, "itemId"));
-        dto.setItemName(trimToNull(resultSet.getString("itemName")));
-        dto.setItemNameZh(trimToNull(resultSet.getString("itemNameZh")));
-        dto.setItemInternalName(trimToNull(resultSet.getString("itemInternalName")));
+        dto.setItemName(AdminTextUtils.trimToNull(resultSet.getString("itemName")));
+        dto.setItemNameZh(AdminTextUtils.trimToNull(resultSet.getString("itemNameZh")));
+        dto.setItemInternalName(AdminTextUtils.trimToNull(resultSet.getString("itemInternalName")));
         dto.setItemImage(managedItemImageUrl(resultSet.getString("itemImage")));
         dto.setSourceNpcId(nullableLong(resultSet, "sourceNpcId"));
-        dto.setSourceNpcName(trimToNull(resultSet.getString("sourceNpcName")));
-        dto.setSourceNpcNameZh(trimToNull(resultSet.getString("sourceNpcNameZh")));
+        dto.setSourceNpcName(AdminTextUtils.trimToNull(resultSet.getString("sourceNpcName")));
+        dto.setSourceNpcNameZh(AdminTextUtils.trimToNull(resultSet.getString("sourceNpcNameZh")));
         dto.setSourceNpcImageUrl(managedNpcImageUrl(resultSet.getString("sourceNpcImageUrl")));
         dto.setSourceNpcDetailPath(dto.getSourceNpcId() == null ? null : "/npcs/" + dto.getSourceNpcId());
-        dto.setDropSourceKind(trimToNull(resultSet.getString("dropSourceKind")));
+        dto.setDropSourceKind(AdminTextUtils.trimToNull(resultSet.getString("dropSourceKind")));
         dto.setDropSourceKindLabel(RuntimeDropSourceKindLabels.label(dto.getDropSourceKind()));
         dto.setQuantityMin(nullableInteger(resultSet, "quantityMin"));
         dto.setQuantityMax(nullableInteger(resultSet, "quantityMax"));
-        dto.setQuantityText(trimToNull(resultSet.getString("quantityText")));
+        dto.setQuantityText(AdminTextUtils.trimToNull(resultSet.getString("quantityText")));
         dto.setChanceValue(nullableBigDecimal(resultSet, "chanceValue"));
-        dto.setChanceText(trimToNull(resultSet.getString("chanceText")));
-        dto.setConditions(trimToNull(resultSet.getString("conditions")));
-        dto.setNotes(trimToNull(resultSet.getString("notes")));
+        dto.setChanceText(AdminTextUtils.trimToNull(resultSet.getString("chanceText")));
+        dto.setConditions(AdminTextUtils.trimToNull(resultSet.getString("conditions")));
+        dto.setNotes(AdminTextUtils.trimToNull(resultSet.getString("notes")));
         dto.setSortOrder(nullableInteger(resultSet, "sortOrder"));
         return dto;
     }
@@ -555,13 +557,6 @@ public class PublicItemServiceImpl implements PublicItemService {
         return value == null ? "" : value.trim();
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private Long nullableLong(ResultSet resultSet, String columnLabel) throws SQLException {
         long value = resultSet.getLong(columnLabel);
@@ -592,17 +587,17 @@ public class PublicItemServiceImpl implements PublicItemService {
     }
 
     private String managedBuffImageUrl(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return managedImageUrlPolicy.normalizeManagedImagePathForDomain(text, "buffs").orElse(null);
     }
 
     private String managedItemImageUrl(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return managedImageUrlForDomain(text, "items");
     }
 
     private String managedNpcImageUrl(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return managedImageUrlForDomain(text, "npcs");
     }
 

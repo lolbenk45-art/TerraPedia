@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.dto.AdminRecipeConditionUpsertRequestDTO;
 import com.terraria.skills.dto.AdminRecipeIngredientUpsertRequestDTO;
@@ -246,10 +248,10 @@ public class RecipeServiceImpl implements RecipeService {
             recipe.setResultItemId(itemId);
             recipe.setResultInternalName(firstNonBlank(request.getResultInternalName(), item.getInternalName()));
             recipe.setResultQuantity(request.getResultQuantity() == null || request.getResultQuantity() < 1 ? 1 : request.getResultQuantity());
-            recipe.setVersionScope(trimToNull(request.getVersionScope()));
-            recipe.setNotes(trimToNull(request.getNotes()));
+            recipe.setVersionScope(AdminTextUtils.trimToNull(request.getVersionScope()));
+            recipe.setNotes(AdminTextUtils.trimToNull(request.getNotes()));
             recipe.setSourceProvider(defaultIfBlank(request.getSourceProvider(), "manual_admin"));
-            recipe.setSourcePage(trimToNull(request.getSourcePage()));
+            recipe.setSourcePage(AdminTextUtils.trimToNull(request.getSourcePage()));
             recipe.setSourceRevisionTimestamp(parseDateTime(request.getSourceRevisionTimestamp()));
             recipe.setSortOrder(resolveSortOrder(request.getSortOrder(), recipeIndex));
             recipe.setStatus(1);
@@ -267,7 +269,7 @@ public class RecipeServiceImpl implements RecipeService {
                 RecipeIngredient ingredient = new RecipeIngredient();
                 ingredient.setRecipeId(recipe.getId());
                 ingredient.setIngredientItemId(ingredientRequest.getIngredientItemId());
-                ingredient.setIngredientInternalName(trimToNull(ingredientRequest.getIngredientInternalName()));
+                ingredient.setIngredientInternalName(AdminTextUtils.trimToNull(ingredientRequest.getIngredientInternalName()));
                 ingredient.setIngredientNameRaw(resolvePreferredIngredientNameRaw(ingredientRequest));
                 ingredient.setIngredientGroupType(defaultIfBlank(ingredientRequest.getIngredientGroupType(), "item"));
                 ingredient.setQuantityMin(ingredientRequest.getQuantityMin());
@@ -312,7 +314,7 @@ public class RecipeServiceImpl implements RecipeService {
                 condition.setRefType(normalizeConditionRefType(conditionRequest.getRefType()));
                 condition.setRefId(conditionRequest.getRefId());
                 condition.setRequirementRole(defaultIfBlank(conditionRequest.getRequirementRole(), "required"));
-                condition.setNotes(trimToNull(conditionRequest.getNotes()));
+                condition.setNotes(AdminTextUtils.trimToNull(conditionRequest.getNotes()));
                 condition.setSortOrder(resolveSortOrder(conditionRequest.getSortOrder(), conditionIndex));
                 recipeContextRequirementMapper.insert(condition);
             }
@@ -459,7 +461,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private int scopeSpecificityScore(String versionScope) {
-        return trimToNull(versionScope) == null ? 0 : 1;
+        return AdminTextUtils.trimToNull(versionScope) == null ? 0 : 1;
     }
 
     private String ingredientQuantitySignature(RecipeIngredient ingredient) {
@@ -467,7 +469,7 @@ public class RecipeServiceImpl implements RecipeService {
             return "1";
         }
 
-        String quantityText = trimToNull(ingredient.getQuantityText());
+        String quantityText = AdminTextUtils.trimToNull(ingredient.getQuantityText());
         Integer quantityMin = ingredient.getQuantityMin();
         Integer quantityMax = ingredient.getQuantityMax();
         boolean missingQuantity = quantityText == null && quantityMin == null && quantityMax == null;
@@ -501,7 +503,7 @@ public class RecipeServiceImpl implements RecipeService {
         if (ingredient.getIngredientItemId() != null) {
             return "id:" + ingredient.getIngredientItemId();
         }
-        String internalName = trimToNull(ingredient.getIngredientInternalName());
+        String internalName = AdminTextUtils.trimToNull(ingredient.getIngredientInternalName());
         if (internalName != null) {
             return "internal:" + internalName.toLowerCase();
         }
@@ -518,14 +520,14 @@ public class RecipeServiceImpl implements RecipeService {
         if (craftingStation != null && craftingStation.getItemId() != null) {
             return "id:" + craftingStation.getItemId();
         }
-        String stationInternalName = trimToNull(craftingStation == null ? null : craftingStation.getInternalName());
+        String stationInternalName = AdminTextUtils.trimToNull(craftingStation == null ? null : craftingStation.getInternalName());
         if (stationInternalName != null) {
             return "internal:" + stationInternalName.toLowerCase();
         }
         if (station.getStationItemId() != null) {
             return "id:" + station.getStationItemId();
         }
-        String internalName = trimToNull(station.getStationInternalName());
+        String internalName = AdminTextUtils.trimToNull(station.getStationInternalName());
         if (internalName != null) {
             return "internal:" + internalName.toLowerCase();
         }
@@ -554,11 +556,11 @@ public class RecipeServiceImpl implements RecipeService {
     private boolean hasCanonicalStationIdentity(RecipeStation station) {
         return station.getStationId() != null
             || station.getStationItemId() != null
-            || trimToNull(station.getStationInternalName()) != null;
+            || AdminTextUtils.trimToNull(station.getStationInternalName()) != null;
     }
 
     private String normalizeRecipeScope(String versionScope) {
-        String raw = trimToNull(versionScope);
+        String raw = AdminTextUtils.trimToNull(versionScope);
         if (raw == null) {
             return null;
         }
@@ -597,12 +599,12 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private boolean matchesScopeMode(String versionScope, String scopeMode) {
-        String normalizedMode = trimToNull(scopeMode);
+        String normalizedMode = AdminTextUtils.trimToNull(scopeMode);
         if (normalizedMode == null || "all".equalsIgnoreCase(normalizedMode) || "full".equalsIgnoreCase(normalizedMode)) {
             return true;
         }
 
-        String normalizedScope = trimToNull(versionScope);
+        String normalizedScope = AdminTextUtils.trimToNull(versionScope);
         if ("desktop".equalsIgnoreCase(normalizedMode)) {
             if (normalizedScope == null) {
                 return true;
@@ -652,10 +654,10 @@ public class RecipeServiceImpl implements RecipeService {
             return;
         }
 
-        boolean missingQuantity = trimToNull(dto.getQuantityText()) == null
+        boolean missingQuantity = AdminTextUtils.trimToNull(dto.getQuantityText()) == null
             && dto.getQuantityMin() == null
             && dto.getQuantityMax() == null;
-        boolean zeroQuantity = trimToNull(dto.getQuantityText()) == null
+        boolean zeroQuantity = AdminTextUtils.trimToNull(dto.getQuantityText()) == null
             && dto.getQuantityMin() != null
             && dto.getQuantityMax() != null
             && dto.getQuantityMin() == 0
@@ -716,8 +718,8 @@ public class RecipeServiceImpl implements RecipeService {
     private boolean hasIngredientContent(AdminRecipeIngredientUpsertRequestDTO request) {
         return request != null && (
             request.getIngredientItemId() != null
-                || trimToNull(request.getIngredientNameRaw()) != null
-                || trimToNull(request.getQuantityText()) != null
+                || AdminTextUtils.trimToNull(request.getIngredientNameRaw()) != null
+                || AdminTextUtils.trimToNull(request.getQuantityText()) != null
                 || request.getQuantityMin() != null
                 || request.getQuantityMax() != null
         );
@@ -727,7 +729,7 @@ public class RecipeServiceImpl implements RecipeService {
         return request != null && (
             request.getStationId() != null
                 || request.getStationItemId() != null
-                || trimToNull(request.getStationNameRaw()) != null
+                || AdminTextUtils.trimToNull(request.getStationNameRaw()) != null
         );
     }
 
@@ -748,7 +750,7 @@ public class RecipeServiceImpl implements RecipeService {
             if (recipe.getResultQuantity() != null && recipe.getResultQuantity() < 1) {
                 throw new IllegalArgumentException("配方 #" + displayIndex + " 的产出数量必须大于 0");
             }
-            String sourceProvider = trimToNull(recipe.getSourceProvider());
+            String sourceProvider = AdminTextUtils.trimToNull(recipe.getSourceProvider());
             if (sourceProvider != null && providerRank(sourceProvider) > RECIPE_PROVIDER_PRIORITY.size()) {
                 throw new IllegalArgumentException("配方 #" + displayIndex + " 的 sourceProvider 不在允许列表中");
             }
@@ -776,7 +778,7 @@ public class RecipeServiceImpl implements RecipeService {
                 if (!hasIngredientContent(ingredient)) {
                     throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " 不能为空");
                 }
-                if (ingredient.getIngredientItemId() == null && trimToNull(ingredient.getIngredientNameRaw()) == null) {
+                if (ingredient.getIngredientItemId() == null && AdminTextUtils.trimToNull(ingredient.getIngredientNameRaw()) == null) {
                     throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " 必须填写物品 ID 或原料名称");
                 }
                 String groupType = defaultIfBlank(ingredient.getIngredientGroupType(), "item");
@@ -800,7 +802,7 @@ public class RecipeServiceImpl implements RecipeService {
                 if (!hasStationContent(station)) {
                     throw new IllegalArgumentException("配方 #" + displayIndex + " 的工作台 #" + stationDisplayIndex + " 不能为空");
                 }
-                if (station.getStationId() == null && station.getStationItemId() == null && trimToNull(station.getStationNameRaw()) == null) {
+                if (station.getStationId() == null && station.getStationItemId() == null && AdminTextUtils.trimToNull(station.getStationNameRaw()) == null) {
                     throw new IllegalArgumentException("配方 #" + displayIndex + " 的工作台 #" + stationDisplayIndex + " 必须填写制作站 ID、物品 ID 或工作台名称");
                 }
             }
@@ -813,20 +815,13 @@ public class RecipeServiceImpl implements RecipeService {
         }
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String firstNonBlank(String... values) {
         if (values == null) {
             return null;
         }
         for (String value : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }
@@ -835,12 +830,12 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private String managedImageOrNull(String value) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         return trimmed != null && managedImageUrlPolicy.isManagedImageUrl(trimmed) ? trimmed : null;
     }
 
     private String defaultIfBlank(String value, String fallback) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         return trimmed == null ? fallback : trimmed;
     }
 
@@ -859,7 +854,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private String normalizeRecipeProvider(String provider) {
-        String trimmed = trimToNull(provider);
+        String trimmed = AdminTextUtils.trimToNull(provider);
         if (trimmed == null) {
             return "";
         }
@@ -878,7 +873,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private String resolveQuantityText(AdminRecipeIngredientUpsertRequestDTO ingredient) {
-        String text = trimToNull(ingredient.getQuantityText());
+        String text = AdminTextUtils.trimToNull(ingredient.getQuantityText());
         if (text != null) {
             return text;
         }
@@ -895,7 +890,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private String resolvePreferredIngredientNameRaw(AdminRecipeIngredientUpsertRequestDTO request) {
-        String direct = trimToNull(request.getIngredientNameRaw());
+        String direct = AdminTextUtils.trimToNull(request.getIngredientNameRaw());
         if (request.getIngredientItemId() == null) {
             return direct;
         }
@@ -910,7 +905,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private String resolvePreferredStationNameRaw(AdminRecipeStationUpsertRequestDTO request, CraftingStation craftingStation) {
-        String direct = trimToNull(request.getStationNameRaw());
+        String direct = AdminTextUtils.trimToNull(request.getStationNameRaw());
         if (craftingStation != null) {
             String preferred = firstNonBlank(craftingStation.getNameZh(), craftingStation.getNameEn(), direct);
             if (preferred != null) {
@@ -948,7 +943,7 @@ public class RecipeServiceImpl implements RecipeService {
     private String resolvePreferredStationInternalName(AdminRecipeStationUpsertRequestDTO request, CraftingStation craftingStation) {
         return firstNonBlank(
             craftingStation == null ? null : craftingStation.getInternalName(),
-            trimToNull(request.getStationInternalName())
+            AdminTextUtils.trimToNull(request.getStationInternalName())
         );
     }
 
@@ -1014,7 +1009,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private String normalizeConditionRefType(String rawType) {
-        String type = trimToNull(rawType);
+        String type = AdminTextUtils.trimToNull(rawType);
         if (type == null) {
             return null;
         }
@@ -1028,7 +1023,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private LocalDateTime parseDateTime(String value) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         if (trimmed == null) {
             return null;
         }

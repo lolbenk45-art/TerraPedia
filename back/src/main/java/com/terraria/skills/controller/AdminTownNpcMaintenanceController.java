@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
@@ -88,8 +90,8 @@ public class AdminTownNpcMaintenanceController {
             artifact == null ? null : artifact.relativePath,
             artifact == null ? null : artifact.updatedAt,
             normalizeObject(report.getOrDefault("summary", Collections.emptyMap())),
-            trimToNull(report.get("generatedAt")),
-            trimToNull(report.get("sourceMode")),
+            AdminTextUtils.trimToNull(report.get("generatedAt")),
+            AdminTextUtils.trimToNull(report.get("sourceMode")),
             importArtifact != null,
             importArtifact == null ? null : importArtifact.path.getFileName().toString(),
             importArtifact == null ? null : importArtifact.relativePath,
@@ -148,7 +150,7 @@ public class AdminTownNpcMaintenanceController {
         Map<String, Map<String, Object>> itemLookup
     ) {
         Long currentGamePeriodId = toLong(row.get("gamePeriodId"));
-        String behaviorNotes = trimToNull(row.get("behaviorNotes"));
+        String behaviorNotes = AdminTextUtils.trimToNull(row.get("behaviorNotes"));
         int shopEntryCount = toInteger(row.get("shopEntryCount"), 0);
 
         row.put("gamePeriodLabel", supportDomainService.getGamePeriodLabel(currentGamePeriodId));
@@ -176,8 +178,8 @@ public class AdminTownNpcMaintenanceController {
             return;
         }
 
-        String functionSummary = trimToNull(scraped.get("functionSummary"));
-        String moveInSummary = trimToNull(scraped.get("moveInSummary"));
+        String functionSummary = AdminTextUtils.trimToNull(scraped.get("functionSummary"));
+        String moveInSummary = AdminTextUtils.trimToNull(scraped.get("moveInSummary"));
         List<Map<String, Object>> moveInConditions = normalizeObjectList(scraped.get("moveInConditions"));
         List<Map<String, Object>> scrapedShopItems = normalizeObjectList(scraped.get("shopItems"));
         List<Map<String, Object>> suggestedShopEntries = buildSuggestedShopEntries(scrapedShopItems, itemLookup);
@@ -192,19 +194,19 @@ public class AdminTownNpcMaintenanceController {
         row.put("scrapedShopItemCount", scrapedShopItems.size());
         row.put("suggestedGamePeriodId", suggestedGamePeriodId);
         row.put("suggestedGamePeriodLabel", supportDomainService.getGamePeriodLabel(suggestedGamePeriodId));
-        row.put("suggestedGamePeriodReason", trimToNull(scraped.get("suggestedGamePeriodReason")));
+        row.put("suggestedGamePeriodReason", AdminTextUtils.trimToNull(scraped.get("suggestedGamePeriodReason")));
         row.put("suggestedBehaviorNotes", buildSuggestedBehaviorNotes(functionSummary, moveInSummary));
         row.put("suggestedShopEntries", suggestedShopEntries);
         row.put("matchedSuggestedShopEntryCount", suggestedShopEntries.size());
         row.put("unmatchedShopItems", unmatchedShopItems);
-        row.put("sourcePageTitle", trimToNull(scraped.get("pageTitle")));
-        row.put("sourcePageUrl", trimToNull(scraped.get("pageUrl")));
+        row.put("sourcePageTitle", AdminTextUtils.trimToNull(scraped.get("pageTitle")));
+        row.put("sourcePageUrl", AdminTextUtils.trimToNull(scraped.get("pageUrl")));
     }
 
     private Map<String, Object> buildSummary(List<Map<String, Object>> rows) {
         long total = rows.size();
         long missingGamePeriod = rows.stream().filter(row -> toLong(row.get("gamePeriodId")) == null || toLong(row.get("gamePeriodId")) == 0).count();
-        long missingBehaviorNotes = rows.stream().filter(row -> trimToNull(row.get("behaviorNotes")) == null).count();
+        long missingBehaviorNotes = rows.stream().filter(row -> AdminTextUtils.trimToNull(row.get("behaviorNotes")) == null).count();
         long missingShopEntries = rows.stream().filter(row -> toInteger(row.get("shopEntryCount"), 0) <= 0).count();
         long scrapedCount = rows.stream().filter(row -> Boolean.TRUE.equals(row.get("scrapeAvailable"))).count();
         long suggestedShopCoverage = rows.stream().filter(row -> toInteger(row.get("matchedSuggestedShopEntryCount"), 0) > 0).count();
@@ -213,7 +215,7 @@ public class AdminTownNpcMaintenanceController {
         long unmatchedShopItemCount = rows.stream().mapToLong(row -> normalizeObjectList(row.get("unmatchedShopItems")).size()).sum();
         long rowsNeedingAttentionCount = rows.stream().filter(row ->
             (toLong(row.get("gamePeriodId")) == null || toLong(row.get("gamePeriodId")) == 0)
-                || trimToNull(row.get("behaviorNotes")) == null
+                || AdminTextUtils.trimToNull(row.get("behaviorNotes")) == null
                 || toInteger(row.get("shopEntryCount"), 0) <= 0
                 || !Boolean.TRUE.equals(row.get("scrapeAvailable"))
                 || !normalizeObjectList(row.get("unmatchedShopItems")).isEmpty()
@@ -278,7 +280,7 @@ public class AdminTownNpcMaintenanceController {
                   AND name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')
                 """.formatted(AdminItemImageSql.preferredItemImageExpression("items")),
             rs -> {
-                String name = trimToNull(rs.getString("name"));
+                String name = AdminTextUtils.trimToNull(rs.getString("name"));
                 String image = managedImageOrNull(rs.getString("image"), "admin town npc coin icon");
                 if (name == null || image == null) {
                     return;
@@ -364,11 +366,11 @@ public class AdminTownNpcMaintenanceController {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("id", rs.getLong("id"));
                 row.put("itemId", rs.getLong("itemId"));
-                row.put("priceText", trimToNull(rs.getString("priceText")));
-                row.put("notes", trimToNull(rs.getString("notes")));
-                row.put("name", trimToNull(rs.getString("name")));
-                row.put("nameZh", trimToNull(rs.getString("nameZh")));
-                row.put("internalName", trimToNull(rs.getString("internalName")));
+                row.put("priceText", AdminTextUtils.trimToNull(rs.getString("priceText")));
+                row.put("notes", AdminTextUtils.trimToNull(rs.getString("notes")));
+                row.put("name", AdminTextUtils.trimToNull(rs.getString("name")));
+                row.put("nameZh", AdminTextUtils.trimToNull(rs.getString("nameZh")));
+                row.put("internalName", AdminTextUtils.trimToNull(rs.getString("internalName")));
                 row.put("image", managedImageOrNull(rs.getString("image"), "admin town npc current shop item image"));
                 row.put("buyPrice", rs.getObject("buyPrice"));
                 row.put("sellPrice", rs.getObject("sellPrice"));
@@ -432,15 +434,15 @@ public class AdminTownNpcMaintenanceController {
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("itemId", itemId);
-            row.put("priceText", trimToNull(scrapedItem.get("priceText")));
-            row.put("notes", trimToNull(scrapedItem.get("availability")));
+            row.put("priceText", AdminTextUtils.trimToNull(scrapedItem.get("priceText")));
+            row.put("notes", AdminTextUtils.trimToNull(scrapedItem.get("availability")));
             row.put("sortOrder", index + 1);
-            row.put("itemName", trimToNull(matchedItem.get("name")));
-            row.put("itemNameZh", trimToNull(matchedItem.get("nameZh")));
-            row.put("itemInternalName", trimToNull(matchedItem.get("internalName")));
-            row.put("itemImage", managedImageOrNull(trimToNull(matchedItem.get("image")), "admin town npc suggested shop item image"));
-            row.put("sourceNameZh", trimToNull(scrapedItem.get("nameZh")));
-            row.put("sourceNameEn", trimToNull(scrapedItem.get("nameEn")));
+            row.put("itemName", AdminTextUtils.trimToNull(matchedItem.get("name")));
+            row.put("itemNameZh", AdminTextUtils.trimToNull(matchedItem.get("nameZh")));
+            row.put("itemInternalName", AdminTextUtils.trimToNull(matchedItem.get("internalName")));
+            row.put("itemImage", managedImageOrNull(AdminTextUtils.trimToNull(matchedItem.get("image")), "admin town npc suggested shop item image"));
+            row.put("sourceNameZh", AdminTextUtils.trimToNull(scrapedItem.get("nameZh")));
+            row.put("sourceNameEn", AdminTextUtils.trimToNull(scrapedItem.get("nameEn")));
             suggestions.add(row);
         }
 
@@ -454,8 +456,8 @@ public class AdminTownNpcMaintenanceController {
         Set<String> matchedNames = new LinkedHashSet<>();
         for (Map<String, Object> row : suggestedShopEntries) {
             for (String value : List.of(
-                trimToNull(row.get("sourceNameZh")),
-                trimToNull(row.get("sourceNameEn"))
+                AdminTextUtils.trimToNull(row.get("sourceNameZh")),
+                AdminTextUtils.trimToNull(row.get("sourceNameEn"))
             )) {
                 String name = normalizeLookupKey(value);
                 if (name != null) {
@@ -466,17 +468,17 @@ public class AdminTownNpcMaintenanceController {
 
         List<Map<String, Object>> unmatched = new ArrayList<>();
         for (Map<String, Object> scrapedItem : scrapedShopItems) {
-            String normalizedNameEn = normalizeLookupKey(trimToNull(scrapedItem.get("nameEn")));
-            String normalizedNameZh = normalizeLookupKey(trimToNull(scrapedItem.get("nameZh")));
+            String normalizedNameEn = normalizeLookupKey(AdminTextUtils.trimToNull(scrapedItem.get("nameEn")));
+            String normalizedNameZh = normalizeLookupKey(AdminTextUtils.trimToNull(scrapedItem.get("nameZh")));
             if ((normalizedNameEn != null && matchedNames.contains(normalizedNameEn))
                 || (normalizedNameZh != null && matchedNames.contains(normalizedNameZh))) {
                 continue;
             }
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("nameZh", trimToNull(scrapedItem.get("nameZh")));
-            row.put("nameEn", trimToNull(scrapedItem.get("nameEn")));
-            row.put("priceText", trimToNull(scrapedItem.get("priceText")));
-            row.put("availability", trimToNull(scrapedItem.get("availability")));
+            row.put("nameZh", AdminTextUtils.trimToNull(scrapedItem.get("nameZh")));
+            row.put("nameEn", AdminTextUtils.trimToNull(scrapedItem.get("nameEn")));
+            row.put("priceText", AdminTextUtils.trimToNull(scrapedItem.get("priceText")));
+            row.put("availability", AdminTextUtils.trimToNull(scrapedItem.get("availability")));
             unmatched.add(row);
         }
         return unmatched;
@@ -487,8 +489,8 @@ public class AdminTownNpcMaintenanceController {
             return null;
         }
         for (String candidate : List.of(
-            trimToNull(scrapedItem.get("nameZh")),
-            trimToNull(scrapedItem.get("nameEn"))
+            AdminTextUtils.trimToNull(scrapedItem.get("nameZh")),
+            AdminTextUtils.trimToNull(scrapedItem.get("nameEn"))
         )) {
             String key = normalizeLookupKey(candidate);
             if (key != null && itemLookup.containsKey(key)) {
@@ -649,7 +651,7 @@ public class AdminTownNpcMaintenanceController {
     }
 
     private String previewText(String value, int maxLength) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -672,7 +674,7 @@ public class AdminTownNpcMaintenanceController {
     }
 
     private String normalizeLookupKey(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -684,16 +686,9 @@ public class AdminTownNpcMaintenanceController {
             .toLowerCase(Locale.ROOT);
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private String managedImageOrNull(Object value, String context) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }

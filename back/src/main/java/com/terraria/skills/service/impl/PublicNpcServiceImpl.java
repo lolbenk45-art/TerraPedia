@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -224,7 +226,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             args.add(npc.getGameId());
             args.add(npc.getGameId());
         }
-        String internalName = trimToNull(npc.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(npc.getInternalName());
         if (internalName != null) {
             predicates.add("nbr.npc_internal_name = ?");
             args.add(internalName);
@@ -421,7 +423,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private String relationDedupKey(String relationType, Integer buffSourceId) {
-        String type = trimToNull(relationType);
+        String type = AdminTextUtils.trimToNull(relationType);
         return type == null || buffSourceId == null ? null : type + ":" + buffSourceId;
     }
 
@@ -531,11 +533,11 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (npc == null || isMultipartHead(npc) || !isMultipartSegment(npc)) {
             return npc;
         }
-        String name = trimToNull(npc.getName());
+        String name = AdminTextUtils.trimToNull(npc.getName());
         if (name == null) {
             return npc;
         }
-        String root = trimToNull(multipartRoot(npc.getInternalName()));
+        String root = AdminTextUtils.trimToNull(multipartRoot(npc.getInternalName()));
         if (root == null) {
             return npc;
         }
@@ -549,30 +551,30 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private boolean isMultipartRepresentativeSearch(String search) {
-        String text = trimToNull(search);
+        String text = AdminTextUtils.trimToNull(search);
         return text != null && !text.matches("\\d+");
     }
 
     private boolean isMultipartSegment(Npc npc) {
-        String internalName = trimToNull(npc == null ? null : npc.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(npc == null ? null : npc.getInternalName());
         return internalName != null && internalName.matches(".*" + MULTIPART_SEGMENT_SUFFIX_REGEX);
     }
 
     private boolean isMultipartHead(Npc npc) {
-        String internalName = trimToNull(npc == null ? null : npc.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(npc == null ? null : npc.getInternalName());
         return internalName != null && internalName.matches(".*Head$");
     }
 
     private String multipartSegmentRoot(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null || !text.matches(".*" + MULTIPART_SEGMENT_SUFFIX_REGEX)) {
             return null;
         }
-        return trimToNull(multipartRoot(text));
+        return AdminTextUtils.trimToNull(multipartRoot(text));
     }
 
     private String multipartRoot(String internalName) {
-        String text = trimToNull(internalName);
+        String text = AdminTextUtils.trimToNull(internalName);
         if (text == null) {
             return "";
         }
@@ -647,7 +649,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setLootItemsJson(listItem.getLootItemsJson());
         dto.setShopItemsJson(listItem.getShopItemsJson());
         dto.setSourceItemsJson(listItem.getSourceItemsJson());
-        dto.setBehaviorNotes(trimToNull(npc.getBehaviorNotes()));
+        dto.setBehaviorNotes(AdminTextUtils.trimToNull(npc.getBehaviorNotes()));
         dto.setStatus(npc.getStatus());
         dto.setWikiAssets(parseWikiAssets(npc.getWikiAssetsJson()));
         dto.setLivingPreferences(enrichLivingPreferenceTargetImages(parseLivingPreferences(npc.getLivingPreferencesJson())));
@@ -657,7 +659,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private NpcWikiAssetsDTO parseWikiAssets(String json) {
-        String text = trimToNull(json);
+        String text = AdminTextUtils.trimToNull(json);
         if (text == null) {
             return null;
         }
@@ -678,7 +680,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private List<NpcLivingPreferenceDTO> parseLivingPreferences(String json) {
-        String text = trimToNull(json);
+        String text = AdminTextUtils.trimToNull(json);
         if (text == null) {
             return List.of();
         }
@@ -711,7 +713,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return List.of();
         }
         List<Long> targetIds = preferences.stream()
-            .filter(preference -> "npc".equalsIgnoreCase(trimToNull(preference.getTargetType())))
+            .filter(preference -> "npc".equalsIgnoreCase(AdminTextUtils.trimToNull(preference.getTargetType())))
             .map(NpcLivingPreferenceDTO::getTargetId)
             .filter(Objects::nonNull)
             .distinct()
@@ -1243,7 +1245,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private String managedDisplayImageUrl(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -1251,7 +1253,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private String managedBuffImageUrl(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return managedImageUrlPolicy.normalizeManagedImagePathForDomain(text, "buffs").orElse(null);
     }
 
@@ -1403,13 +1405,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return text.isEmpty() ? null : Boolean.parseBoolean(text.toLowerCase(Locale.ROOT));
     }
 
-    private static String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private static String textOrNull(JsonNode node) {
         if (node == null || node.isMissingNode() || node.isNull()) {
@@ -1446,7 +1441,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private JsonNode parseJson(String text) {
-        String value = trimToNull(text);
+        String value = AdminTextUtils.trimToNull(text);
         if (value == null) {
             return objectMapper.createObjectNode();
         }

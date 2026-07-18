@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.ApiResponse;
@@ -79,7 +81,7 @@ public class AdminConditionTermController {
     @Operation(summary = "Create condition term")
     public ResponseEntity<ApiResponse<ConditionTerm>> createConditionTerm(@RequestBody ConditionTerm request) {
         String code = normalizeCode(request == null ? null : request.getCode());
-        if (code == null || trimToNull(request.getNameEn()) == null || normalizeCode(request.getTermType()) == null) {
+        if (code == null || AdminTextUtils.trimToNull(request.getNameEn()) == null || normalizeCode(request.getTermType()) == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "code, nameEn and termType are required"));
         }
         long duplicate = conditionTermMapper.selectCount(new LambdaQueryWrapper<ConditionTerm>().eq(ConditionTerm::getCode, code));
@@ -126,26 +128,26 @@ public class AdminConditionTermController {
         if (creating || normalizeCode(request.getCode()) != null) {
             target.setCode(normalizeCode(request.getCode()));
         }
-        if (creating || trimToNull(request.getNameEn()) != null) {
-            target.setNameEn(trimToNull(request.getNameEn()));
+        if (creating || AdminTextUtils.trimToNull(request.getNameEn()) != null) {
+            target.setNameEn(AdminTextUtils.trimToNull(request.getNameEn()));
         }
         if (request.getNameZh() != null || creating) {
-            target.setNameZh(trimToNull(request.getNameZh()));
+            target.setNameZh(AdminTextUtils.trimToNull(request.getNameZh()));
         }
         if (creating || normalizeCode(request.getTermType()) != null) {
             target.setTermType(normalizeCode(request.getTermType()));
         }
         if (request.getDescription() != null || creating) {
-            target.setDescription(trimToNull(request.getDescription()));
+            target.setDescription(AdminTextUtils.trimToNull(request.getDescription()));
         }
         if (request.getSourceProvider() != null || creating) {
-            target.setSourceProvider(trimToNull(request.getSourceProvider()));
+            target.setSourceProvider(AdminTextUtils.trimToNull(request.getSourceProvider()));
         }
         if (request.getSourcePage() != null || creating) {
-            target.setSourcePage(trimToNull(request.getSourcePage()));
+            target.setSourcePage(AdminTextUtils.trimToNull(request.getSourcePage()));
         }
         if (request.getRawJson() != null || creating) {
-            target.setRawJson(trimToNull(request.getRawJson()));
+            target.setRawJson(AdminTextUtils.trimToNull(request.getRawJson()));
         }
         if (request.getSortOrder() != null || creating) {
             target.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
@@ -159,15 +161,8 @@ public class AdminConditionTermController {
     }
 
     private String normalizeCode(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? null : text.toUpperCase();
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

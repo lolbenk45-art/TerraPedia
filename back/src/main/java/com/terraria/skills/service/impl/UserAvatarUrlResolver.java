@@ -1,9 +1,10 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.terraria.skills.config.MinioConnectionDetails;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,7 @@ public class UserAvatarUrlResolver {
             return buildProxyUrl(normalizedObjectKey);
         }
 
-        String normalizedUrl = trimToNull(avatarUrl);
+        String normalizedUrl = AdminTextUtils.trimToNull(avatarUrl);
         if (normalizedUrl == null) {
             return null;
         }
@@ -51,7 +52,7 @@ public class UserAvatarUrlResolver {
     }
 
     private String normalizeAvatarObjectKey(String objectKey) {
-        String normalized = trimToNull(objectKey);
+        String normalized = AdminTextUtils.trimToNull(objectKey);
         if (normalized == null) {
             return null;
         }
@@ -67,7 +68,7 @@ public class UserAvatarUrlResolver {
     }
 
     private String trimTrailingSlash(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return "";
         }
@@ -77,10 +78,4 @@ public class UserAvatarUrlResolver {
         return normalized;
     }
 
-    private String trimToNull(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-        return value.trim();
-    }
 }

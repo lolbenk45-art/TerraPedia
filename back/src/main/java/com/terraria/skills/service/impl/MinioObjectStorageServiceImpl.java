@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.StoredObjectDTO;
@@ -257,7 +259,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
     }
 
     private String normalizeReadableObjectKey(String objectKey) {
-        String normalized = trimToNull(objectKey);
+        String normalized = AdminTextUtils.trimToNull(objectKey);
         if (normalized == null) {
             throw new IllegalArgumentException("Object key is required");
         }
@@ -299,7 +301,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         if (userId == null || userId <= 0) {
             return null;
         }
-        String normalized = trimToNull(objectKey);
+        String normalized = AdminTextUtils.trimToNull(objectKey);
         if (normalized == null) {
             return null;
         }
@@ -312,7 +314,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
     }
 
     private String resolveObjectPrefix(String entityDomain) {
-        String normalizedDomain = trimToNull(entityDomain);
+        String normalizedDomain = AdminTextUtils.trimToNull(entityDomain);
         if (normalizedDomain != null) {
             String lowered = normalizedDomain.toLowerCase(Locale.ROOT);
             if ("items".equals(lowered) || "npcs".equals(lowered) || "projectiles".equals(lowered) || "buffs".equals(lowered) || "bosses".equals(lowered) || "articles".equals(lowered)) {
@@ -361,7 +363,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
     }
 
     private String normalizePublicEndpoint(String endpoint) {
-        String value = trimToNull(endpoint);
+        String value = AdminTextUtils.trimToNull(endpoint);
         if (value == null) {
             throw new IllegalStateException("MinIO public endpoint is not configured");
         }
@@ -385,11 +387,4 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         return normalized;
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

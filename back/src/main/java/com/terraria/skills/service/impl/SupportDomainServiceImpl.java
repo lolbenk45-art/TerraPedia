@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.dto.SupportCategoryOptionDTO;
@@ -110,8 +112,8 @@ public class SupportDomainServiceImpl implements SupportDomainService {
         dto.setId(gamePeriod.getId());
         dto.setCode(gamePeriod.getCode());
         dto.setLabel(chooseLabel(gamePeriod.getDisplayNameZh(), gamePeriod.getDisplayNameEn(), gamePeriod.getCode()));
-        dto.setLabelZh(trimToNull(gamePeriod.getDisplayNameZh()));
-        dto.setLabelEn(trimToNull(gamePeriod.getDisplayNameEn()));
+        dto.setLabelZh(AdminTextUtils.trimToNull(gamePeriod.getDisplayNameZh()));
+        dto.setLabelEn(AdminTextUtils.trimToNull(gamePeriod.getDisplayNameEn()));
         dto.setSortOrder(gamePeriod.getSortOrder());
         dto.setStatus(gamePeriod.getStatus());
         return dto;
@@ -122,9 +124,9 @@ public class SupportDomainServiceImpl implements SupportDomainService {
         dto.setId(worldContext.getId());
         dto.setCode(worldContext.getCode());
         dto.setLabel(chooseLabel(worldContext.getNameZh(), worldContext.getNameEn(), worldContext.getCode()));
-        dto.setLabelZh(trimToNull(worldContext.getNameZh()));
-        dto.setLabelEn(trimToNull(worldContext.getNameEn()));
-        dto.setContextType(trimToNull(worldContext.getContextType()));
+        dto.setLabelZh(AdminTextUtils.trimToNull(worldContext.getNameZh()));
+        dto.setLabelEn(AdminTextUtils.trimToNull(worldContext.getNameEn()));
+        dto.setContextType(AdminTextUtils.trimToNull(worldContext.getContextType()));
         dto.setSortOrder(worldContext.getSortOrder());
         dto.setStatus(worldContext.getStatus());
         return dto;
@@ -135,9 +137,9 @@ public class SupportDomainServiceImpl implements SupportDomainService {
         dto.setId(conditionTerm.getId());
         dto.setCode(conditionTerm.getCode());
         dto.setLabel(chooseLabel(conditionTerm.getNameZh(), conditionTerm.getNameEn(), conditionTerm.getCode()));
-        dto.setLabelZh(trimToNull(conditionTerm.getNameZh()));
-        dto.setLabelEn(trimToNull(conditionTerm.getNameEn()));
-        dto.setContextType(trimToNull(conditionTerm.getTermType()));
+        dto.setLabelZh(AdminTextUtils.trimToNull(conditionTerm.getNameZh()));
+        dto.setLabelEn(AdminTextUtils.trimToNull(conditionTerm.getNameEn()));
+        dto.setContextType(AdminTextUtils.trimToNull(conditionTerm.getTermType()));
         dto.setSortOrder(conditionTerm.getSortOrder());
         dto.setStatus(conditionTerm.getStatus());
         return dto;
@@ -151,22 +153,15 @@ public class SupportDomainServiceImpl implements SupportDomainService {
     }
 
     private String chooseLabel(String primary, String secondary, String fallback) {
-        String first = trimToNull(primary);
+        String first = AdminTextUtils.trimToNull(primary);
         if (first != null) {
             return first;
         }
-        String second = trimToNull(secondary);
+        String second = AdminTextUtils.trimToNull(secondary);
         if (second != null) {
             return second;
         }
-        return trimToNull(fallback);
+        return AdminTextUtils.trimToNull(fallback);
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

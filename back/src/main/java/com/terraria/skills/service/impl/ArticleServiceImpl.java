@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.config.ArticleReviewProperties;
@@ -53,7 +55,7 @@ public class ArticleServiceImpl implements ArticleService {
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
         return normalizeArticlePage(articleMapper.selectAdminArticlesPage(
             mpPage,
-            trimToNull(keyword),
+            AdminTextUtils.trimToNull(keyword),
             normalizeStatusAllowNull(status),
             normalizeAdminArticleSortBy(sortBy),
             normalizeSortOrder(sortOrder)
@@ -81,8 +83,8 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = new Article();
         article.setTitle(request.getTitle().trim());
         article.setSlug(resolveUniqueSlug(request.getSlug(), request.getTitle(), null));
-        article.setSummary(trimToNull(request.getSummary()));
-        article.setCoverImage(trimToNull(request.getCoverImage()));
+        article.setSummary(AdminTextUtils.trimToNull(request.getSummary()));
+        article.setCoverImage(AdminTextUtils.trimToNull(request.getCoverImage()));
         article.setContentHtml(request.getContentHtml().trim());
         article.setAuthorId(null);
         article.setReviewStatus(ArticleReviewStatus.DRAFT);
@@ -131,8 +133,8 @@ public class ArticleServiceImpl implements ArticleService {
 
         article.setTitle(request.getTitle().trim());
         article.setSlug(resolveUniqueSlug(request.getSlug(), request.getTitle(), id));
-        article.setSummary(trimToNull(request.getSummary()));
-        article.setCoverImage(trimToNull(request.getCoverImage()));
+        article.setSummary(AdminTextUtils.trimToNull(request.getSummary()));
+        article.setCoverImage(AdminTextUtils.trimToNull(request.getCoverImage()));
         article.setContentHtml(request.getContentHtml().trim());
 
         boolean directPublishCompat = applyLegacyStatusCompatIfNeeded(article, normalizedStatus, normalizedOperator, now);
@@ -248,7 +250,7 @@ public class ArticleServiceImpl implements ArticleService {
 
         String normalizedAction = normalizeReviewAction(action);
         String normalizedOperator = normalizeOperatorName(operatorName);
-        String normalizedComment = trimToNull(comment);
+        String normalizedComment = AdminTextUtils.trimToNull(comment);
         LocalDateTime now = LocalDateTime.now();
 
         String toReviewStatus;
@@ -365,7 +367,7 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     public Page<ArticleDTO> getPublishedArticles(int page, int limit, String keyword) {
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
-        return normalizeArticlePage(articleMapper.selectPublishedArticlesPage(mpPage, trimToNull(keyword)));
+        return normalizeArticlePage(articleMapper.selectPublishedArticlesPage(mpPage, AdminTextUtils.trimToNull(keyword)));
     }
 
     @Override
@@ -383,7 +385,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public ArticleDTO getPublishedArticleBySlug(String slug) {
-        String normalizedSlug = trimToNull(slug);
+        String normalizedSlug = AdminTextUtils.trimToNull(slug);
         if (normalizedSlug == null) {
             throw new IllegalArgumentException("slug is required");
         }
@@ -399,7 +401,7 @@ public class ArticleServiceImpl implements ArticleService {
     public Page<ArticleDTO> getUserArticles(Long userId, int page, int limit, String keyword) {
         Long normalizedUserId = requireUserId(userId);
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
-        return normalizeArticlePage(articleMapper.selectUserArticlesPage(mpPage, normalizedUserId, trimToNull(keyword)));
+        return normalizeArticlePage(articleMapper.selectUserArticlesPage(mpPage, normalizedUserId, AdminTextUtils.trimToNull(keyword)));
     }
 
     @Override
@@ -455,8 +457,8 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = new Article();
         article.setTitle(request.getTitle().trim());
         article.setSlug(resolveUniqueSlug(request.getSlug(), request.getTitle(), null));
-        article.setSummary(trimToNull(request.getSummary()));
-        article.setCoverImage(trimToNull(request.getCoverImage()));
+        article.setSummary(AdminTextUtils.trimToNull(request.getSummary()));
+        article.setCoverImage(AdminTextUtils.trimToNull(request.getCoverImage()));
         article.setContentHtml(request.getContentHtml().trim());
         article.setAuthorId(normalizedUserId);
         article.setReviewStatus(ArticleReviewStatus.DRAFT);
@@ -497,8 +499,8 @@ public class ArticleServiceImpl implements ArticleService {
 
         article.setTitle(request.getTitle().trim());
         article.setSlug(resolveUniqueSlug(request.getSlug(), request.getTitle(), id));
-        article.setSummary(trimToNull(request.getSummary()));
-        article.setCoverImage(trimToNull(request.getCoverImage()));
+        article.setSummary(AdminTextUtils.trimToNull(request.getSummary()));
+        article.setCoverImage(AdminTextUtils.trimToNull(request.getCoverImage()));
         article.setContentHtml(request.getContentHtml().trim());
         resetToDraft(article);
         article.setUpdatedAt(LocalDateTime.now());
@@ -707,7 +709,7 @@ public class ArticleServiceImpl implements ArticleService {
         logItem.setAction(action);
         logItem.setFromReviewStatus(fromReviewStatus);
         logItem.setToReviewStatus(toReviewStatus);
-        logItem.setComment(trimToNull(comment));
+        logItem.setComment(AdminTextUtils.trimToNull(comment));
         logItem.setReviewerName(normalizeOperatorName(reviewerName));
         logItem.setCreatedAt(LocalDateTime.now());
 
@@ -731,7 +733,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private String resolveUniqueSlug(String slug, String title, Long currentArticleId) {
-        String initial = trimToNull(slug);
+        String initial = AdminTextUtils.trimToNull(slug);
         if (initial == null) {
             initial = toSlug(title);
         } else {
@@ -778,7 +780,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private String normalizeStatusAllowNull(String value) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         if (trimmed == null) {
             return null;
         }
@@ -786,7 +788,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private String normalizeAdminArticleSortBy(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return "commentCount";
         }
@@ -797,7 +799,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private String normalizeSortOrder(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         return "asc".equalsIgnoreCase(normalized) ? "asc" : "desc";
     }
 
@@ -832,22 +834,15 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private String normalizeOperatorName(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         return normalized == null ? "UNKNOWN_ADMIN" : normalized;
     }
 
     private String normalizeUserOperatorName(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         return normalized == null ? "UNKNOWN_USER" : normalized;
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private ArticleDTO toArticleDTO(Article article) {
         ArticleDTO dto = new ArticleDTO();

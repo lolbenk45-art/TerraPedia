@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
@@ -298,7 +300,7 @@ public class AdminArmorSetController {
     @Transactional
     @Operation(summary = "Create armor set")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createArmorSet(@RequestBody Map<String, Object> request) {
-        String sourceKey = firstNonBlank(trimToNull(request.get("sourceKey")), trimToNull(request.get("internalCode")));
+        String sourceKey = firstNonBlank(AdminTextUtils.trimToNull(request.get("sourceKey")), AdminTextUtils.trimToNull(request.get("internalCode")));
         if (sourceKey == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceKey is required"));
         }
@@ -315,16 +317,16 @@ public class AdminArmorSetController {
                 Statement.RETURN_GENERATED_KEYS
             );
             statement.setString(1, sourceKey);
-            statement.setString(2, firstNonBlank(trimToNull(request.get("textKey")), trimToNull(request.get("name")), sourceKey));
-            statement.setString(3, trimToNull(firstNonNull(request, "benefitExpression", "setBonusDesc", "set_bonus_desc")));
-            statement.setString(4, trimToNull(firstNonNull(request, "primaryPart", "primary_part")));
+            statement.setString(2, firstNonBlank(AdminTextUtils.trimToNull(request.get("textKey")), AdminTextUtils.trimToNull(request.get("name")), sourceKey));
+            statement.setString(3, AdminTextUtils.trimToNull(firstNonNull(request, "benefitExpression", "setBonusDesc", "set_bonus_desc")));
+            statement.setString(4, AdminTextUtils.trimToNull(firstNonNull(request, "primaryPart", "primary_part")));
             statement.setInt(5, toInt(request.get("setCount"), 0));
             statement.setInt(6, toInt(request.get("uniqueItemCount"), 0));
             statement.setString(7, normalizeJsonField(firstNonNull(request, "setsJson", "sets_json")));
             statement.setString(8, normalizeJsonField(firstNonNull(request, "uniqueItemIdsJson", "unique_item_ids_json")));
-            statement.setString(9, trimToNull(firstNonNull(request, "maleImages", "male_images")));
-            statement.setString(10, trimToNull(firstNonNull(request, "femaleImages", "female_images")));
-            statement.setString(11, trimToNull(firstNonNull(request, "specialImages", "special_images")));
+            statement.setString(9, AdminTextUtils.trimToNull(firstNonNull(request, "maleImages", "male_images")));
+            statement.setString(10, AdminTextUtils.trimToNull(firstNonNull(request, "femaleImages", "female_images")));
+            statement.setString(11, AdminTextUtils.trimToNull(firstNonNull(request, "specialImages", "special_images")));
             statement.setInt(12, toInt(request.get("status"), 1));
             return statement;
         }, keyHolder);
@@ -359,16 +361,16 @@ public class AdminArmorSetController {
             WHERE id = ?
             """,
             request.containsKey("sourceKey") || request.containsKey("internalCode")
-                ? firstNonBlank(trimToNull(request.get("sourceKey")), trimToNull(request.get("internalCode")), trimToNull(existing.get("source_key")))
+                ? firstNonBlank(AdminTextUtils.trimToNull(request.get("sourceKey")), AdminTextUtils.trimToNull(request.get("internalCode")), AdminTextUtils.trimToNull(existing.get("source_key")))
                 : existing.get("source_key"),
             request.containsKey("textKey") || request.containsKey("name")
-                ? firstNonBlank(trimToNull(request.get("textKey")), trimToNull(request.get("name")), trimToNull(existing.get("text_key")))
+                ? firstNonBlank(AdminTextUtils.trimToNull(request.get("textKey")), AdminTextUtils.trimToNull(request.get("name")), AdminTextUtils.trimToNull(existing.get("text_key")))
                 : existing.get("text_key"),
             request.containsKey("benefitExpression") || request.containsKey("setBonusDesc") || request.containsKey("set_bonus_desc")
-                ? trimToNull(firstNonNull(request, "benefitExpression", "setBonusDesc", "set_bonus_desc"))
+                ? AdminTextUtils.trimToNull(firstNonNull(request, "benefitExpression", "setBonusDesc", "set_bonus_desc"))
                 : existing.get("benefit_expression"),
             request.containsKey("primaryPart") || request.containsKey("primary_part")
-                ? trimToNull(firstNonNull(request, "primaryPart", "primary_part"))
+                ? AdminTextUtils.trimToNull(firstNonNull(request, "primaryPart", "primary_part"))
                 : existing.get("primary_part"),
             request.containsKey("setCount") ? toInt(request.get("setCount"), 0) : toInt(existing.get("set_count"), 0),
             request.containsKey("uniqueItemCount") ? toInt(request.get("uniqueItemCount"), 0) : toInt(existing.get("unique_item_count"), 0),
@@ -379,13 +381,13 @@ public class AdminArmorSetController {
                 ? normalizeJsonField(firstNonNull(request, "uniqueItemIdsJson", "unique_item_ids_json"))
                 : existing.get("unique_item_ids_json"),
             request.containsKey("maleImages") || request.containsKey("male_images")
-                ? trimToNull(firstNonNull(request, "maleImages", "male_images"))
+                ? AdminTextUtils.trimToNull(firstNonNull(request, "maleImages", "male_images"))
                 : existing.get("male_images"),
             request.containsKey("femaleImages") || request.containsKey("female_images")
-                ? trimToNull(firstNonNull(request, "femaleImages", "female_images"))
+                ? AdminTextUtils.trimToNull(firstNonNull(request, "femaleImages", "female_images"))
                 : existing.get("female_images"),
             request.containsKey("specialImages") || request.containsKey("special_images")
-                ? trimToNull(firstNonNull(request, "specialImages", "special_images"))
+                ? AdminTextUtils.trimToNull(firstNonNull(request, "specialImages", "special_images"))
                 : existing.get("special_images"),
             request.containsKey("status") ? toInt(request.get("status"), 1) : toInt(existing.get("status"), 1),
             id
@@ -412,7 +414,7 @@ public class AdminArmorSetController {
     }
 
     private String buildArmorSearchWhere(String search, List<Object> args) {
-        String keyword = trimToNull(search);
+        String keyword = AdminTextUtils.trimToNull(search);
         if (keyword == null) return "";
         String pattern = "%" + keyword + "%";
         args.add(pattern);
@@ -423,7 +425,7 @@ public class AdminArmorSetController {
 
     private String buildProjectionArmorWhere(String search, String compositionKind, List<Object> args) {
         List<String> conditions = new ArrayList<>();
-        String keyword = trimToNull(search);
+        String keyword = AdminTextUtils.trimToNull(search);
         if (keyword != null) {
             String pattern = "%" + keyword + "%";
             for (int index = 0; index < 8; index += 1) {
@@ -446,7 +448,7 @@ public class AdminArmorSetController {
     }
 
     private String normalizeProjectionCompositionKind(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null || "all".equals(normalized)) return null;
         if ("traditional_set".equals(normalized)
             || "single_piece_set".equals(normalized)
@@ -458,29 +460,29 @@ public class AdminArmorSetController {
 
     private Map<String, Object> normalizeProjectionArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        String textKey = trimToNull(row.get("text_key"));
-        String nameZh = firstNonBlank(trimToNull(row.get("name_zh")), trimToNull(row.get("name")), textKey);
-        String nameEn = firstNonBlank(trimToNull(row.get("name_en")), trimToNull(row.get("name")), textKey);
-        String benefitExpression = trimToNull(row.get("benefit_expression"));
+        String textKey = AdminTextUtils.trimToNull(row.get("text_key"));
+        String nameZh = firstNonBlank(AdminTextUtils.trimToNull(row.get("name_zh")), AdminTextUtils.trimToNull(row.get("name")), textKey);
+        String nameEn = firstNonBlank(AdminTextUtils.trimToNull(row.get("name_en")), AdminTextUtils.trimToNull(row.get("name")), textKey);
+        String benefitExpression = AdminTextUtils.trimToNull(row.get("benefit_expression"));
         WikiArmorSetSourceRecord sourceRecord = findWikiArmorSetSourceRecord(
-            trimToNull(row.get("source_key")),
+            AdminTextUtils.trimToNull(row.get("source_key")),
             nameZh,
             nameEn,
             textKey
         );
         String benefitZh = firstReadableBenefitText(
-            trimToNull(row.get("benefit_zh")),
+            AdminTextUtils.trimToNull(row.get("benefit_zh")),
             sourceRecord == null ? null : sourceRecord.effectText(),
             benefitExpression
         );
-        String benefitEn = firstReadableBenefitText(trimToNull(row.get("benefit_en")), null, benefitExpression);
+        String benefitEn = firstReadableBenefitText(AdminTextUtils.trimToNull(row.get("benefit_en")), null, benefitExpression);
         ArmorSetImageGroup snapshotImageGroup = findArmorSetImageGroup(textKey, snapshotImages);
         String snapshotMaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.maleCsv();
         String snapshotFemaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.femaleCsv();
         String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
-        String maleImages = firstManagedImageCsv(trimToNull(row.get("male_images")), snapshotMaleImages);
-        String femaleImages = firstManagedImageCsv(trimToNull(row.get("female_images")), snapshotFemaleImages);
-        String specialImages = firstManagedImageCsv(trimToNull(row.get("special_images")), snapshotSpecialImages);
+        String maleImages = firstManagedImageCsv(AdminTextUtils.trimToNull(row.get("male_images")), snapshotMaleImages);
+        String femaleImages = firstManagedImageCsv(AdminTextUtils.trimToNull(row.get("female_images")), snapshotFemaleImages);
+        String specialImages = firstManagedImageCsv(AdminTextUtils.trimToNull(row.get("special_images")), snapshotSpecialImages);
         Object rawSets = parseJson(row.get("sets_json"));
         List<Map<String, Object>> equipmentItems = attachArmorEquipmentManagementRefs(
             enrichProjectionEquipmentItems(normalizeArmorEquipmentItems(parseJson(row.get("related_items_json")))),
@@ -490,9 +492,9 @@ public class AdminArmorSetController {
         List<String> fallbackImages = wearManagedImageCount > 0 ? List.of() : collectManagedEquipmentImages(equipmentItems);
         String relatedPreviewImage = fallbackImages.stream().findFirst().orElse(null);
         String previewImage = firstNonBlank(maleImages, femaleImages, specialImages, relatedPreviewImage);
-        String mappingStatus = firstNonBlank(trimToNull(row.get("mapping_status")), "mapped");
-        String entityType = firstNonBlank(trimToNull(row.get("entity_type")), "armor_set");
-        String compositionKind = firstNonBlank(trimToNull(row.get("composition_kind")), inferArmorSetCompositionKind(row));
+        String mappingStatus = firstNonBlank(AdminTextUtils.trimToNull(row.get("mapping_status")), "mapped");
+        String entityType = firstNonBlank(AdminTextUtils.trimToNull(row.get("entity_type")), "armor_set");
+        String compositionKind = firstNonBlank(AdminTextUtils.trimToNull(row.get("composition_kind")), inferArmorSetCompositionKind(row));
         int managedImageCount = wearManagedImageCount + fallbackImages.size();
         int sourceImageCount = sourceRecord == null ? 0 : sourceRecord.sourceImageCount();
         List<String> dataQualityWarnings = buildArmorDataQualityWarnings(
@@ -513,26 +515,26 @@ public class AdminArmorSetController {
         payload.put("name", firstNonBlank(nameZh, nameEn, textKey));
         payload.put("nameZh", nameZh);
         payload.put("nameEn", nameEn);
-        payload.put("internalCode", firstNonBlank(trimToNull(row.get("source_key")), textKey));
+        payload.put("internalCode", firstNonBlank(AdminTextUtils.trimToNull(row.get("source_key")), textKey));
         payload.put("textKey", textKey);
         payload.put("textZh", nameZh);
         payload.put("textEn", nameEn);
-        payload.put("sourceKey", firstNonBlank(trimToNull(row.get("source_key")), textKey));
+        payload.put("sourceKey", firstNonBlank(AdminTextUtils.trimToNull(row.get("source_key")), textKey));
         payload.put("benefitExpression", benefitExpression);
         payload.put("benefitZh", firstNonBlank(benefitZh, benefitExpression));
         payload.put("benefitEn", firstNonBlank(benefitEn, benefitExpression));
         payload.put("primaryPart", row.get("primary_part"));
         payload.put("setCount", toInt(row.get("set_count"), 0));
         payload.put("uniqueItemCount", toInt(row.get("unique_item_count"), 0));
-        payload.put("setsJson", firstNonBlank(trimToNull(row.get("sets_json")), "[]"));
-        payload.put("uniqueItemIdsJson", firstNonBlank(trimToNull(row.get("unique_item_ids_json")), "[]"));
-        payload.put("currentItemIdsJson", firstNonBlank(trimToNull(row.get("current_item_ids_json")), "[]"));
+        payload.put("setsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("sets_json")), "[]"));
+        payload.put("uniqueItemIdsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("unique_item_ids_json")), "[]"));
+        payload.put("currentItemIdsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("current_item_ids_json")), "[]"));
         payload.put("definitionTextKey", textKey);
         payload.put("definitionBenefitExpression", benefitExpression);
         payload.put("definitionPrimaryPart", row.get("primary_part"));
         payload.put("definitionSetCount", toInt(row.get("set_count"), 0));
-        payload.put("definitionSetsJson", firstNonBlank(trimToNull(row.get("sets_json")), "[]"));
-        payload.put("definitionUniqueItemIdsJson", firstNonBlank(trimToNull(row.get("unique_item_ids_json")), "[]"));
+        payload.put("definitionSetsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("sets_json")), "[]"));
+        payload.put("definitionUniqueItemIdsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("unique_item_ids_json")), "[]"));
         payload.put("definitionMappingStatus", mappingStatus);
         payload.put("status", toInt(row.get("status"), 1));
         payload.put("categoryId", null);
@@ -581,34 +583,34 @@ public class AdminArmorSetController {
         if (currentItemIds.isEmpty()) {
             currentItemIds = parts.stream().filter(value -> value != null && value > 0).toList();
         }
-        String sourceKey = trimToNull(row.get("source_key"));
-        String textKey = firstNonBlank(trimToNull(row.get("text_key")), trimToNull(definition.get("textKey")), sourceKey);
+        String sourceKey = AdminTextUtils.trimToNull(row.get("source_key"));
+        String textKey = firstNonBlank(AdminTextUtils.trimToNull(row.get("text_key")), AdminTextUtils.trimToNull(definition.get("textKey")), sourceKey);
         String nameZh = firstNonBlank(
-            trimToNull(definition.get("nameZh")),
-            trimToNull(definition.get("textZh")),
-            trimToNull(definition.get("name")),
+            AdminTextUtils.trimToNull(definition.get("nameZh")),
+            AdminTextUtils.trimToNull(definition.get("textZh")),
+            AdminTextUtils.trimToNull(definition.get("name")),
             textKey
         );
         String nameEn = firstNonBlank(
-            trimToNull(definition.get("nameEn")),
-            trimToNull(definition.get("textEn")),
+            AdminTextUtils.trimToNull(definition.get("nameEn")),
+            AdminTextUtils.trimToNull(definition.get("textEn")),
             textKey
         );
         String benefitExpression = firstNonBlank(
-            trimToNull(definition.get("benefitExpression")),
-            trimToNull(row.get("benefit_expression"))
+            AdminTextUtils.trimToNull(definition.get("benefitExpression")),
+            AdminTextUtils.trimToNull(row.get("benefit_expression"))
         );
         WikiArmorSetSourceRecord sourceRecord = findWikiArmorSetSourceRecord(sourceKey, nameZh, nameEn, textKey);
         String benefitZh = firstNonBlank(
             firstReadableBenefitText(
-                trimToNull(definition.get("benefitZh")),
+                AdminTextUtils.trimToNull(definition.get("benefitZh")),
                 sourceRecord == null ? null : sourceRecord.effectText(),
                 benefitExpression
             ),
             benefitExpression
         );
         String benefitEn = firstNonBlank(
-            firstReadableBenefitText(trimToNull(definition.get("benefitEn")), null, benefitExpression),
+            firstReadableBenefitText(AdminTextUtils.trimToNull(definition.get("benefitEn")), null, benefitExpression),
             benefitExpression
         );
         ArmorSetImageGroup snapshotImageGroup = snapshotImages.get(textKey);
@@ -617,21 +619,21 @@ public class AdminArmorSetController {
         String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
         String snapshotPreviewImage = firstManagedImageCsv(snapshotMaleImages, snapshotFemaleImages, snapshotSpecialImages);
         List<Map<String, Object>> relatedItems = loadRelatedItems(definition, currentItemIds);
-        Object rawSets = parseJson(firstNonBlank(trimToNull(definition.get("setsJson")), trimToNull(row.get("sets_json"))));
+        Object rawSets = parseJson(firstNonBlank(AdminTextUtils.trimToNull(definition.get("setsJson")), AdminTextUtils.trimToNull(row.get("sets_json"))));
         List<Map<String, Object>> equipmentItems = attachArmorEquipmentManagementRefs(
             normalizeArmorEquipmentItems(relatedItems),
             rawSets
         );
         String relatedPreviewImage = relatedItems.stream()
-            .map(item -> trimToNull(item.get("image")))
+            .map(item -> AdminTextUtils.trimToNull(item.get("image")))
             .filter(this::isManagedImageUrl)
             .filter(value -> value != null && !value.isBlank())
             .findFirst()
             .orElse(null);
         String previewImage = firstNonBlank(snapshotPreviewImage, relatedPreviewImage);
-        String maleImages = firstManagedImageCsv(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage);
-        String femaleImages = firstManagedImageCsv(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages);
-        String specialImages = firstManagedImageCsv(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages);
+        String maleImages = firstManagedImageCsv(AdminTextUtils.trimToNull(row.get("male_images")), AdminTextUtils.trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage);
+        String femaleImages = firstManagedImageCsv(AdminTextUtils.trimToNull(row.get("female_images")), AdminTextUtils.trimToNull(definition.get("femaleImages")), snapshotFemaleImages);
+        String specialImages = firstManagedImageCsv(AdminTextUtils.trimToNull(row.get("special_images")), AdminTextUtils.trimToNull(definition.get("specialImages")), snapshotSpecialImages);
         int managedImageCount = countCsvEntries(maleImages) + countCsvEntries(femaleImages) + countCsvEntries(specialImages);
         int sourceImageCount = sourceRecord == null ? 0 : sourceRecord.sourceImageCount();
 
@@ -642,8 +644,8 @@ public class AdminArmorSetController {
         payload.put("nameEn", nameEn);
         payload.put("internalCode", sourceKey);
         payload.put("textKey", definition.getOrDefault("textKey", textKey));
-        payload.put("textZh", firstNonBlank(trimToNull(definition.get("textZh")), nameZh));
-        payload.put("textEn", firstNonBlank(trimToNull(definition.get("textEn")), textKey));
+        payload.put("textZh", firstNonBlank(AdminTextUtils.trimToNull(definition.get("textZh")), nameZh));
+        payload.put("textEn", firstNonBlank(AdminTextUtils.trimToNull(definition.get("textEn")), textKey));
         payload.put("sourceKey", sourceKey);
         payload.put("benefitExpression", benefitExpression);
         payload.put("benefitZh", benefitZh);
@@ -651,8 +653,8 @@ public class AdminArmorSetController {
         payload.put("primaryPart", definition.getOrDefault("primaryPart", row.get("primary_part")));
         payload.put("setCount", definition.getOrDefault("currentSetCount", definition.getOrDefault("setCount", toInt(row.get("set_count"), currentItemIds.isEmpty() ? 0 : 1))));
         payload.put("uniqueItemCount", definition.getOrDefault("currentUniqueItemCount", definition.getOrDefault("uniqueItemCount", currentItemIds.isEmpty() ? uniqueParts.size() : currentItemIds.size())));
-        payload.put("setsJson", definition.getOrDefault("setsJson", firstNonBlank(trimToNull(row.get("sets_json")), "[]")));
-        payload.put("uniqueItemIdsJson", definition.getOrDefault("uniqueItemIdsJson", firstNonBlank(trimToNull(row.get("unique_item_ids_json")), "[]")));
+        payload.put("setsJson", definition.getOrDefault("setsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("sets_json")), "[]")));
+        payload.put("uniqueItemIdsJson", definition.getOrDefault("uniqueItemIdsJson", firstNonBlank(AdminTextUtils.trimToNull(row.get("unique_item_ids_json")), "[]")));
         payload.put("currentItemIdsJson", toJson(currentItemIds));
         payload.put("definitionTextKey", definition.get("textKey"));
         payload.put("definitionBenefitExpression", definition.get("benefitExpression"));
@@ -681,15 +683,15 @@ public class AdminArmorSetController {
         payload.put("dataQualityWarnings", buildArmorDataQualityWarnings(
             true,
             benefitExpression,
-            trimToNull(payload.get("benefitZh")),
+            AdminTextUtils.trimToNull(payload.get("benefitZh")),
             managedImageCount,
             sourceImageCount
         ));
         payload.put(
             "effectRows",
             buildArmorEffectRows(
-                trimToNull(payload.get("benefitZh")),
-                trimToNull(payload.get("benefitEn")),
+                AdminTextUtils.trimToNull(payload.get("benefitZh")),
+                AdminTextUtils.trimToNull(payload.get("benefitEn")),
                 benefitExpression,
                 payload.get("primaryPart"),
                 payload.get("definitionMappingStatus")
@@ -701,11 +703,11 @@ public class AdminArmorSetController {
     }
 
     private String firstReadableBenefitText(String preferred, String sourceEffectText, String benefitExpression) {
-        String preferredText = trimToNull(preferred);
+        String preferredText = AdminTextUtils.trimToNull(preferred);
         if (!isBenefitExpressionValue(preferredText, benefitExpression)) {
             return preferredText;
         }
-        String sourceText = trimToNull(sourceEffectText);
+        String sourceText = AdminTextUtils.trimToNull(sourceEffectText);
         return sourceText == null ? preferredText : sourceText;
     }
 
@@ -742,11 +744,11 @@ public class AdminArmorSetController {
     }
 
     private String benefitZh(Map<String, Object> payload) {
-        return trimToNull(payload.get("benefitZh"));
+        return AdminTextUtils.trimToNull(payload.get("benefitZh"));
     }
 
     private String benefitEn(Map<String, Object> payload) {
-        return trimToNull(payload.get("benefitEn"));
+        return AdminTextUtils.trimToNull(payload.get("benefitEn"));
     }
 
     private List<Map<String, Object>> normalizeArmorEquipmentItems(Object rawItems) {
@@ -765,12 +767,12 @@ public class AdminArmorSetController {
             payload.put("id", id);
             payload.put("itemId", firstNonNullLong(itemId, id));
             payload.put("sourceId", sourceId);
-            payload.put("internalName", firstNonBlank(trimToNull(firstMapValue(item, "internalName", "internal_name", "itemInternalName", "item_internal_name"))));
-            payload.put("name", firstNonBlank(trimToNull(firstMapValue(item, "name", "itemName", "item_name"))));
-            payload.put("nameZh", firstNonBlank(trimToNull(firstMapValue(item, "nameZh", "name_zh", "itemNameZh", "item_name_zh"))));
-            payload.put("image", firstManagedImage(trimToNull(firstMapValue(item, "image", "imageUrl", "image_url", "itemImage", "item_image"))));
-            payload.put("partRole", firstNonBlank(trimToNull(firstMapValue(item, "partRole", "part_role"))));
-            payload.put("slotType", firstNonBlank(trimToNull(firstMapValue(item, "slotType", "slot_type"))));
+            payload.put("internalName", firstNonBlank(AdminTextUtils.trimToNull(firstMapValue(item, "internalName", "internal_name", "itemInternalName", "item_internal_name"))));
+            payload.put("name", firstNonBlank(AdminTextUtils.trimToNull(firstMapValue(item, "name", "itemName", "item_name"))));
+            payload.put("nameZh", firstNonBlank(AdminTextUtils.trimToNull(firstMapValue(item, "nameZh", "name_zh", "itemNameZh", "item_name_zh"))));
+            payload.put("image", firstManagedImage(AdminTextUtils.trimToNull(firstMapValue(item, "image", "imageUrl", "image_url", "itemImage", "item_image"))));
+            payload.put("partRole", firstNonBlank(AdminTextUtils.trimToNull(firstMapValue(item, "partRole", "part_role"))));
+            payload.put("slotType", firstNonBlank(AdminTextUtils.trimToNull(firstMapValue(item, "slotType", "slot_type"))));
             payload.put("equipmentSlotId", toNullableInt(firstMapValue(item, "equipmentSlotId", "equipment_slot_id")));
             payload.put("setVariantIndex", toInt(firstMapValue(item, "setVariantIndex", "set_variant_index"), 0));
             payload.put("partIndex", toInt(firstMapValue(item, "partIndex", "part_index"), result.size()));
@@ -831,16 +833,16 @@ public class AdminArmorSetController {
                 copy.put("id", firstNonNullLong(copy.get("id"), projectionId));
                 copy.put("itemId", firstNonNullLong(copy.get("itemId"), projectionId));
                 copy.put("sourceId", firstNonNullLong(copy.get("sourceId"), projectionId));
-                copy.put("name", firstNonBlank(trimToNull(copy.get("name")), trimToNull(projectionItem.get("name"))));
-                copy.put("nameZh", firstNonBlank(trimToNull(copy.get("nameZh")), trimToNull(projectionItem.get("name_zh"))));
-                copy.put("internalName", firstNonBlank(trimToNull(copy.get("internalName")), trimToNull(projectionItem.get("internal_name"))));
+                copy.put("name", firstNonBlank(AdminTextUtils.trimToNull(copy.get("name")), AdminTextUtils.trimToNull(projectionItem.get("name"))));
+                copy.put("nameZh", firstNonBlank(AdminTextUtils.trimToNull(copy.get("nameZh")), AdminTextUtils.trimToNull(projectionItem.get("name_zh"))));
+                copy.put("internalName", firstNonBlank(AdminTextUtils.trimToNull(copy.get("internalName")), AdminTextUtils.trimToNull(projectionItem.get("internal_name"))));
             }
             String managedItemImage = firstManagedImageForLookupIds(managedItemImagesById, armorEquipmentLookupIds(copy));
             copy.put(
                 "image",
                 firstManagedImage(
-                    projectionItem == null ? null : trimToNull(projectionItem.get("image")),
-                    trimToNull(copy.get("image")),
+                    projectionItem == null ? null : AdminTextUtils.trimToNull(projectionItem.get("image")),
+                    AdminTextUtils.trimToNull(copy.get("image")),
                     managedItemImage
                 )
             );
@@ -969,17 +971,17 @@ public class AdminArmorSetController {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", toLong(row.get("id")));
         payload.put("itemId", toLong(row.get("item_id")));
-        payload.put("itemInternalName", trimToNull(row.get("item_internal_name")));
-        payload.put("itemNameZh", trimToNull(row.get("item_name_zh")));
-        payload.put("itemPageTitle", trimToNull(row.get("item_page_title")));
-        payload.put("itemHref", trimToNull(row.get("item_href")));
-        payload.put("slotGroup", trimToNull(row.get("slot_group")));
-        payload.put("sectionCode", trimToNull(row.get("section_code")));
+        payload.put("itemInternalName", AdminTextUtils.trimToNull(row.get("item_internal_name")));
+        payload.put("itemNameZh", AdminTextUtils.trimToNull(row.get("item_name_zh")));
+        payload.put("itemPageTitle", AdminTextUtils.trimToNull(row.get("item_page_title")));
+        payload.put("itemHref", AdminTextUtils.trimToNull(row.get("item_href")));
+        payload.put("slotGroup", AdminTextUtils.trimToNull(row.get("slot_group")));
+        payload.put("sectionCode", AdminTextUtils.trimToNull(row.get("section_code")));
         payload.put("defenseValue", toNullableInt(row.get("defense_value")));
         payload.put("rawCells", parseJsonObject(row.get("raw_cells_json")));
         payload.put("effectCount", firstNonNullLong(row.get("effect_count"), 0L));
-        payload.put("sourceProvider", trimToNull(row.get("source_provider")));
-        payload.put("sourcePage", trimToNull(row.get("source_page")));
+        payload.put("sourceProvider", AdminTextUtils.trimToNull(row.get("source_provider")));
+        payload.put("sourcePage", AdminTextUtils.trimToNull(row.get("source_page")));
         payload.put("sourceRevisionTimestamp", timestampText(row.get("source_revision_timestamp")));
         return payload;
     }
@@ -988,25 +990,25 @@ public class AdminArmorSetController {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", toLong(row.get("id")));
         payload.put("ownerId", toLong(row.get("owner_id")));
-        payload.put("itemInternalName", trimToNull(row.get("item_internal_name")));
-        payload.put("ownerKind", trimToNull(row.get("owner_kind")));
-        payload.put("ownerKey", trimToNull(row.get("owner_key")));
-        payload.put("sourceKind", trimToNull(row.get("source_kind")));
-        payload.put("sourceLine", trimToNull(row.get("source_line")));
+        payload.put("itemInternalName", AdminTextUtils.trimToNull(row.get("item_internal_name")));
+        payload.put("ownerKind", AdminTextUtils.trimToNull(row.get("owner_kind")));
+        payload.put("ownerKey", AdminTextUtils.trimToNull(row.get("owner_key")));
+        payload.put("sourceKind", AdminTextUtils.trimToNull(row.get("source_kind")));
+        payload.put("sourceLine", AdminTextUtils.trimToNull(row.get("source_line")));
         payload.put("sourceLineIndex", toNullableInt(row.get("source_line_index")));
         payload.put("effectIndex", toNullableInt(row.get("effect_index")));
-        payload.put("applyScope", trimToNull(row.get("apply_scope")));
-        payload.put("slotType", trimToNull(row.get("slot_type")));
-        payload.put("statKey", trimToNull(row.get("stat_key")));
-        payload.put("statLabelZh", trimToNull(row.get("stat_label_zh")));
-        payload.put("classScope", trimToNull(row.get("class_scope")));
-        payload.put("operation", trimToNull(row.get("operation")));
+        payload.put("applyScope", AdminTextUtils.trimToNull(row.get("apply_scope")));
+        payload.put("slotType", AdminTextUtils.trimToNull(row.get("slot_type")));
+        payload.put("statKey", AdminTextUtils.trimToNull(row.get("stat_key")));
+        payload.put("statLabelZh", AdminTextUtils.trimToNull(row.get("stat_label_zh")));
+        payload.put("classScope", AdminTextUtils.trimToNull(row.get("class_scope")));
+        payload.put("operation", AdminTextUtils.trimToNull(row.get("operation")));
         payload.put("valueDecimal", decimalObject(row.get("value_decimal")));
         payload.put("valueMaxDecimal", decimalObject(row.get("value_max_decimal")));
-        payload.put("unit", trimToNull(row.get("unit")));
-        payload.put("conditionText", trimToNull(row.get("condition_text")));
-        payload.put("rawText", trimToNull(row.get("raw_text")));
-        payload.put("parseStatus", trimToNull(row.get("parse_status")));
+        payload.put("unit", AdminTextUtils.trimToNull(row.get("unit")));
+        payload.put("conditionText", AdminTextUtils.trimToNull(row.get("condition_text")));
+        payload.put("rawText", AdminTextUtils.trimToNull(row.get("raw_text")));
+        payload.put("parseStatus", AdminTextUtils.trimToNull(row.get("parse_status")));
         return payload;
     }
 
@@ -1036,7 +1038,7 @@ public class AdminArmorSetController {
 
             Map<String, Object> itemDetailRef = new LinkedHashMap<>();
             itemDetailRef.put("itemId", detailItemId);
-            itemDetailRef.put("internalName", trimToNull(copy.get("internalName")));
+            itemDetailRef.put("internalName", AdminTextUtils.trimToNull(copy.get("internalName")));
             itemDetailRef.put("canOpenItemDetail", detailItemId != null && detailItemId > 0);
             itemDetailRef.put("membershipVariantIndexes", membershipVariantIndexes);
             copy.put("membershipVariantIndexes", membershipVariantIndexes);
@@ -1141,7 +1143,7 @@ public class AdminArmorSetController {
             Map<Long, String> result = new LinkedHashMap<>();
             for (Map<String, Object> row : rows) {
                 Long itemId = toLong(row.get("item_id"));
-                String imageUrl = trimToNull(row.get("cached_url"));
+                String imageUrl = AdminTextUtils.trimToNull(row.get("cached_url"));
                 if (itemId != null && !result.containsKey(itemId) && isManagedImageUrl(imageUrl)) {
                     result.put(itemId, imageUrl);
                 }
@@ -1159,7 +1161,7 @@ public class AdminArmorSetController {
         }
         Set<String> seen = new LinkedHashSet<>();
         for (Map<String, Object> item : equipmentItems) {
-            String image = firstManagedImage(trimToNull(item.get("image")), trimToNull(item.get("imageUrl")));
+            String image = firstManagedImage(AdminTextUtils.trimToNull(item.get("image")), AdminTextUtils.trimToNull(item.get("imageUrl")));
             if (image != null) {
                 seen.add(image);
             }
@@ -1188,7 +1190,7 @@ public class AdminArmorSetController {
 
         Map<String, Map<Long, Map<String, Object>>> grouped = new LinkedHashMap<>();
         for (Map<String, Object> item : equipmentItems) {
-            String partRole = normalizeArmorPartRole(trimToNull(item.get("partRole")));
+            String partRole = normalizeArmorPartRole(AdminTextUtils.trimToNull(item.get("partRole")));
             Long sourceId = firstNonNullLong(item.get("sourceId"), item.get("id"));
             if (sourceId == null || sourceId <= 0) {
                 continue;
@@ -1307,7 +1309,7 @@ public class AdminArmorSetController {
         Object mappingStatus
     ) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        String benefitExpressionKey = trimToNull(benefitExpression);
+        String benefitExpressionKey = AdminTextUtils.trimToNull(benefitExpression);
         List<String> statements = benefitExpressionKey == null
             ? List.of()
             : loadArmorBenefitStatements().getOrDefault(benefitExpressionKey, List.of());
@@ -1323,8 +1325,8 @@ public class AdminArmorSetController {
             addEffectRow(rows, "\u82f1\u6587\u6548\u679c", benefitEn);
         }
         addEffectRow(rows, "Benefit Expression", benefitExpressionKey);
-        addEffectRow(rows, "Primary Part", trimToNull(primaryPart));
-        addEffectRow(rows, "Mapping Status", trimToNull(mappingStatus));
+        addEffectRow(rows, "Primary Part", AdminTextUtils.trimToNull(primaryPart));
+        addEffectRow(rows, "Mapping Status", AdminTextUtils.trimToNull(mappingStatus));
         return rows;
     }
 
@@ -1381,15 +1383,15 @@ public class AdminArmorSetController {
     }
 
     private WikiArmorSetSourceRecord toWikiArmorSetSourceRecord(Map<?, ?> record) {
-        String nameZh = trimToNull(record.get("nameZh"));
-        String nameEn = trimToNull(record.get("nameEn"));
-        String pageTitle = trimToNull(record.get("pageTitle"));
-        String effectText = trimToNull(record.get("effectText"));
+        String nameZh = AdminTextUtils.trimToNull(record.get("nameZh"));
+        String nameEn = AdminTextUtils.trimToNull(record.get("nameEn"));
+        String pageTitle = AdminTextUtils.trimToNull(record.get("pageTitle"));
+        String effectText = AdminTextUtils.trimToNull(record.get("effectText"));
         int sourceImageCount = 0;
         Object imagesRaw = record.get("images");
         if (imagesRaw instanceof List<?> images) {
             for (Object rawImage : images) {
-                if (rawImage instanceof Map<?, ?> image && trimToNull(image.get("url")) != null) {
+                if (rawImage instanceof Map<?, ?> image && AdminTextUtils.trimToNull(image.get("url")) != null) {
                     sourceImageCount += 1;
                 }
             }
@@ -1438,7 +1440,7 @@ public class AdminArmorSetController {
     }
 
     private String normalizeLookupKey(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -1446,7 +1448,7 @@ public class AdminArmorSetController {
     }
 
     private boolean isBenefitExpressionValue(String value, String benefitExpression) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return true;
         }
@@ -1465,7 +1467,7 @@ public class AdminArmorSetController {
 
         try {
             Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
-            String content = trimToNull(root.get("content"));
+            String content = AdminTextUtils.trimToNull(root.get("content"));
             armorBenefitStatementCache = content == null ? Map.of() : parseArmorBenefitStatements(content);
             return armorBenefitStatementCache;
         } catch (Exception exception) {
@@ -1515,7 +1517,7 @@ public class AdminArmorSetController {
     }
 
     private String humanizeArmorBenefitStatement(String statement) {
-        String text = trimToNull(statement);
+        String text = AdminTextUtils.trimToNull(statement);
         if (text == null) {
             return null;
         }
@@ -1624,7 +1626,7 @@ public class AdminArmorSetController {
     }
 
     private void addEffectRow(List<Map<String, Object>> rows, String label, String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return;
         }
@@ -1683,9 +1685,9 @@ public class AdminArmorSetController {
                 if (!(imageRaw instanceof Map<?, ?> image)) {
                     continue;
                 }
-                String textKey = trimToNull(image.get("textKey"));
-                String role = trimToNull(image.get("imageRole"));
-                String url = firstManagedImage(trimToNull(image.get("cachedUrl")));
+                String textKey = AdminTextUtils.trimToNull(image.get("textKey"));
+                String role = AdminTextUtils.trimToNull(image.get("imageRole"));
+                String url = firstManagedImage(AdminTextUtils.trimToNull(image.get("cachedUrl")));
                 if (textKey == null || role == null || url == null) {
                     continue;
                 }
@@ -1845,7 +1847,7 @@ public class AdminArmorSetController {
         Map<String, Long> sourceIdByInternalName = new LinkedHashMap<>();
         for (Object entry : records) {
             if (!(entry instanceof Map<?, ?> record)) continue;
-            String internalName = trimToNull(record.get("internalName"));
+            String internalName = AdminTextUtils.trimToNull(record.get("internalName"));
             Long sourceId = toLong(record.get("id"));
             if (internalName != null && sourceId != null) {
                 sourceIdByInternalName.putIfAbsent(internalName, sourceId);
@@ -1855,7 +1857,7 @@ public class AdminArmorSetController {
         Map<Long, Long> result = new LinkedHashMap<>();
         for (Map<String, Object> item : dbItems) {
             Long dbId = toLong(item.get("id"));
-            String internalName = trimToNull(item.get("internal_name"));
+            String internalName = AdminTextUtils.trimToNull(item.get("internal_name"));
             Long sourceId = internalName == null ? null : sourceIdByInternalName.get(internalName);
             if (dbId != null && sourceId != null) {
                 result.put(dbId, sourceId);
@@ -1904,8 +1906,8 @@ public class AdminArmorSetController {
                 armorSetId,
                 index,
                 itemId,
-                trimToNull(item.get("internal_name")),
-                trimToNull(item.get("name"))
+                AdminTextUtils.trimToNull(item.get("internal_name")),
+                AdminTextUtils.trimToNull(item.get("name"))
             );
         }
     }
@@ -1939,7 +1941,7 @@ public class AdminArmorSetController {
             payload.put("name", row.get("name"));
             payload.put("nameZh", row.get("name_zh"));
             payload.put("internalName", row.get("internal_name"));
-            payload.put("image", firstManagedImage(trimToNull(row.get("image"))));
+            payload.put("image", firstManagedImage(AdminTextUtils.trimToNull(row.get("image"))));
             return payload;
         }).toList();
     }
@@ -1962,11 +1964,6 @@ public class AdminArmorSetController {
         return null;
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) return null;
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private Long toLong(Object value) {
         if (value == null) return null;
@@ -2011,7 +2008,7 @@ public class AdminArmorSetController {
             return null;
         }
         for (String value : values) {
-            String normalized = trimToNull(value);
+            String normalized = AdminTextUtils.trimToNull(value);
             if (isManagedImageUrl(normalized)) {
                 return normalized;
             }
@@ -2033,13 +2030,13 @@ public class AdminArmorSetController {
     }
 
     private String managedImageCsv(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return null;
         }
         List<String> managedUrls = new ArrayList<>();
         for (String entry : normalized.split("\\s*,\\s*")) {
-            String imageUrl = trimToNull(entry);
+            String imageUrl = AdminTextUtils.trimToNull(entry);
             if (isManagedImageUrl(imageUrl)) {
                 managedUrls.add(imageUrl);
             }
@@ -2048,13 +2045,13 @@ public class AdminArmorSetController {
     }
 
     private int countCsvEntries(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return 0;
         }
         int count = 0;
         for (String entry : normalized.split("\\s*,\\s*")) {
-            if (trimToNull(entry) != null) {
+            if (AdminTextUtils.trimToNull(entry) != null) {
                 count += 1;
             }
         }
@@ -2062,7 +2059,7 @@ public class AdminArmorSetController {
     }
 
     private boolean isManagedImageUrl(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return false;
         }
@@ -2078,7 +2075,7 @@ public class AdminArmorSetController {
     }
 
     private String normalizeJsonField(Object value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return "[]";
         }
@@ -2141,7 +2138,7 @@ public class AdminArmorSetController {
         if (value instanceof Timestamp timestamp) {
             return timestamp.toInstant().toString().replace("Z", "");
         }
-        return trimToNull(value);
+        return AdminTextUtils.trimToNull(value);
     }
 
     private List<Long> extractLongList(Object value) {

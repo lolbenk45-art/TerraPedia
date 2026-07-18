@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.dto.ItemImageDTO;
 import com.terraria.skills.entity.Item;
@@ -11,7 +13,6 @@ import com.terraria.skills.service.ManagedImageUrlPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -56,7 +57,7 @@ public class ItemImageServiceImpl implements ItemImageService {
         }
 
         Item item = itemMapper.selectById(itemId);
-        String legacyImage = item == null ? null : trimToNull(item.getImage());
+        String legacyImage = item == null ? null : AdminTextUtils.trimToNull(item.getImage());
         ItemImageDTO fallback = buildLegacyFallback(itemId, legacyImage);
         return fallback == null ? Collections.emptyList() : List.of(fallback);
     }
@@ -89,8 +90,8 @@ public class ItemImageServiceImpl implements ItemImageService {
         if (preferredUrl == null) {
             return null;
         }
-        dto.setOriginalUrl(trimToNull(dto.getOriginalUrl()));
-        dto.setCachedUrl(trimToNull(dto.getCachedUrl()));
+        dto.setOriginalUrl(AdminTextUtils.trimToNull(dto.getOriginalUrl()));
+        dto.setCachedUrl(AdminTextUtils.trimToNull(dto.getCachedUrl()));
         dto.setImageUrl(preferredUrl);
         return dto;
     }
@@ -106,17 +107,10 @@ public class ItemImageServiceImpl implements ItemImageService {
         return image.getSortOrder();
     }
 
-    private static String trimToNull(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String preferredDisplayImageUrl(String originalUrl, String cachedUrl) {
-        String cached = trimToNull(cachedUrl);
-        String original = trimToNull(originalUrl);
+        String cached = AdminTextUtils.trimToNull(cachedUrl);
+        String original = AdminTextUtils.trimToNull(originalUrl);
         if (isNonItemIconVariant(original) || isNonItemIconVariant(cached)) {
             return null;
         }
@@ -130,12 +124,12 @@ public class ItemImageServiceImpl implements ItemImageService {
     }
 
     private boolean isManagedImageUrl(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text != null && managedImageUrlPolicy.isManagedImageUrl(text);
     }
 
     private static boolean isNonItemIconVariant(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return false;
         }

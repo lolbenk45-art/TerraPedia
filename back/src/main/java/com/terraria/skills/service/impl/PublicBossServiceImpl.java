@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -179,7 +181,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setImageUrl(managedBossImageOrNull(bossGroup.getImageUrl()));
         dto.setProgressionOrder(bossGroup.getProgressionOrder());
         dto.setSummonMethod(BossSummonContractResolver.resolveExplicitSummonMethod(bossGroup));
-        dto.setNotes(trimToNull(bossGroup.getNotes()));
+        dto.setNotes(AdminTextUtils.trimToNull(bossGroup.getNotes()));
     }
 
     private List<Npc> loadMembers(Long bossGroupId) {
@@ -198,7 +200,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         }
         return members.stream()
             .filter(Objects::nonNull)
-            .filter(member -> "primary".equalsIgnoreCase(trimToNull(member.getBossRole())))
+            .filter(member -> "primary".equalsIgnoreCase(AdminTextUtils.trimToNull(member.getBossRole())))
             .findFirst()
             .orElseGet(() -> members.stream().filter(Objects::nonNull).findFirst().orElse(null));
     }
@@ -228,7 +230,7 @@ public class PublicBossServiceImpl implements PublicBossService {
     }
 
     private List<PublicBossMemberDTO> loadReferenceMembers(BossGroup bossGroup, Map<String, Map<String, Object>> npcSupplementMap) {
-        List<String> codes = REFERENCE_BOSS_GROUP_CODES.getOrDefault(trimToNull(bossGroup.getCode()), List.of());
+        List<String> codes = REFERENCE_BOSS_GROUP_CODES.getOrDefault(AdminTextUtils.trimToNull(bossGroup.getCode()), List.of());
         if (codes.isEmpty()) {
             return List.of();
         }
@@ -242,7 +244,7 @@ public class PublicBossServiceImpl implements PublicBossService {
 
         Map<String, BossGroup> byCode = new LinkedHashMap<>();
         for (BossGroup group : referencedGroups) {
-            String code = trimToNull(group.getCode());
+            String code = AdminTextUtils.trimToNull(group.getCode());
             if (code != null) {
                 byCode.put(code, group);
             }
@@ -361,11 +363,11 @@ public class PublicBossServiceImpl implements PublicBossService {
 
         Map<String, String> icons = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
-            String image = managedImageOrNull(trimToNull(row.get("image")));
+            String image = managedImageOrNull(AdminTextUtils.trimToNull(row.get("image")));
             if (image == null) {
                 continue;
             }
-            String name = trimToNull(row.get("name"));
+            String name = AdminTextUtils.trimToNull(row.get("name"));
             if (name == null) {
                 continue;
             }
@@ -420,12 +422,12 @@ public class PublicBossServiceImpl implements PublicBossService {
             }
             BossSummonItemDTO dto = new BossSummonItemDTO();
             dto.setItemId(row == null ? null : toLong(row.get("itemId")));
-            dto.setInternalName(firstNonBlank(row == null ? null : trimToNull(row.get("internalName")), ref.itemInternalName()));
-            dto.setName(firstNonBlank(row == null ? null : trimToNull(row.get("name")), ref.itemName()));
-            dto.setNameZh(row == null ? null : trimToNull(row.get("nameZh")));
+            dto.setInternalName(firstNonBlank(row == null ? null : AdminTextUtils.trimToNull(row.get("internalName")), ref.itemInternalName()));
+            dto.setName(firstNonBlank(row == null ? null : AdminTextUtils.trimToNull(row.get("name")), ref.itemName()));
+            dto.setNameZh(row == null ? null : AdminTextUtils.trimToNull(row.get("nameZh")));
             dto.setImageUrl(row == null ? null : firstNonBlank(
-                managedImageOrNull(trimToNull(row.get("imageUrl"))),
-                managedImageOrNull(trimToNull(row.get("fallbackImageUrl")))
+                managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(AdminTextUtils.trimToNull(row.get("fallbackImageUrl")))
             ));
             dto.setRole(ref.role());
             dto.setSourceText(sourceText);
@@ -443,7 +445,7 @@ public class PublicBossServiceImpl implements PublicBossService {
 
         List<String> values = refs.stream()
             .flatMap(ref -> java.util.stream.Stream.of(ref.itemInternalName(), ref.itemName()))
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
@@ -502,7 +504,7 @@ public class PublicBossServiceImpl implements PublicBossService {
     }
 
     private String summonLookupKey(Object value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? null : text.toLowerCase(Locale.ROOT);
     }
 
@@ -604,28 +606,28 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setId(toLong(row.get("id")));
         dto.setItemId(toLong(row.get("itemId")));
         dto.setSourceItemId(toInteger(row.get("sourceItemId")));
-        dto.setDropSourceKind(trimToNull(row.get("dropSourceKind")));
+        dto.setDropSourceKind(AdminTextUtils.trimToNull(row.get("dropSourceKind")));
         dto.setDropSourceKindLabel(RuntimeDropSourceKindLabels.label(dto.getDropSourceKind()));
         dto.setQuantityMin(toInteger(row.get("quantityMin")));
         dto.setQuantityMax(toInteger(row.get("quantityMax")));
-        dto.setQuantityText(trimToNull(row.get("quantityText")));
+        dto.setQuantityText(AdminTextUtils.trimToNull(row.get("quantityText")));
         dto.setChanceValue(toBigDecimal(row.get("chanceValue")));
-        dto.setChanceText(trimToNull(row.get("chanceText")));
-        dto.setConditions(trimToNull(row.get("conditions")));
-        dto.setNotes(trimToNull(row.get("notes")));
+        dto.setChanceText(AdminTextUtils.trimToNull(row.get("chanceText")));
+        dto.setConditions(AdminTextUtils.trimToNull(row.get("conditions")));
+        dto.setNotes(AdminTextUtils.trimToNull(row.get("notes")));
         dto.setSortOrder(toInteger(row.get("sortOrder")));
-        dto.setItemName(trimToNull(row.get("itemName")));
-        dto.setItemNameZh(trimToNull(row.get("itemNameZh")));
-        dto.setItemInternalName(trimToNull(row.get("itemInternalName")));
-        dto.setItemImage(managedImageOrNull(trimToNull(row.get("itemImage"))));
+        dto.setItemName(AdminTextUtils.trimToNull(row.get("itemName")));
+        dto.setItemNameZh(AdminTextUtils.trimToNull(row.get("itemNameZh")));
+        dto.setItemInternalName(AdminTextUtils.trimToNull(row.get("itemInternalName")));
+        dto.setItemImage(managedImageOrNull(AdminTextUtils.trimToNull(row.get("itemImage"))));
         dto.setSourceId(toLong(row.get("sourceId")));
-        dto.setSourceType(trimToNull(row.get("sourceType")));
-        dto.setSourceRefType(trimToNull(row.get("sourceRefType")));
+        dto.setSourceType(AdminTextUtils.trimToNull(row.get("sourceType")));
+        dto.setSourceRefType(AdminTextUtils.trimToNull(row.get("sourceRefType")));
         dto.setSourceRefId(toLong(row.get("sourceRefId")));
-        dto.setSourceRefName(trimToNull(row.get("sourceRefName")));
-        dto.setSourceProvider(trimToNull(row.get("sourceProvider")));
-        dto.setSourcePage(trimToNull(row.get("sourcePage")));
-        dto.setSourceRevisionTimestamp(trimToNull(row.get("sourceRevisionTimestamp")));
+        dto.setSourceRefName(AdminTextUtils.trimToNull(row.get("sourceRefName")));
+        dto.setSourceProvider(AdminTextUtils.trimToNull(row.get("sourceProvider")));
+        dto.setSourcePage(AdminTextUtils.trimToNull(row.get("sourcePage")));
+        dto.setSourceRevisionTimestamp(AdminTextUtils.trimToNull(row.get("sourceRevisionTimestamp")));
         dto.setSourceFactKey(buildLootSourceFactKey(dto));
         return dto;
     }
@@ -649,7 +651,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         }
         int count = 0;
         for (PublicBossLootEntryDTO entry : lootEntries) {
-            if (kind.equalsIgnoreCase(trimToNull(entry.getDropSourceKind()))) {
+            if (kind.equalsIgnoreCase(AdminTextUtils.trimToNull(entry.getDropSourceKind()))) {
                 count += 1;
             }
         }
@@ -664,8 +666,8 @@ public class PublicBossServiceImpl implements PublicBossService {
         for (PublicBossLootEntryDTO entry : lootEntries) {
             String key = firstNonBlank(
                 entry.getItemId() == null ? null : "id:" + entry.getItemId(),
-                trimToNull(entry.getItemInternalName()) == null ? null : "internal:" + trimToNull(entry.getItemInternalName()),
-                trimToNull(entry.getItemName()) == null ? null : "name:" + trimToNull(entry.getItemName()),
+                AdminTextUtils.trimToNull(entry.getItemInternalName()) == null ? null : "internal:" + AdminTextUtils.trimToNull(entry.getItemInternalName()),
+                AdminTextUtils.trimToNull(entry.getItemName()) == null ? null : "name:" + AdminTextUtils.trimToNull(entry.getItemName()),
                 entry.getSourceItemId() == null ? null : "source:" + entry.getSourceItemId()
             );
             if (key != null) {
@@ -735,7 +737,7 @@ public class PublicBossServiceImpl implements PublicBossService {
             return null;
         }
         return firstNonBlank(
-            managedImageOrNull(trimToNull(supplement.get("imageUrl"))),
+            managedImageOrNull(AdminTextUtils.trimToNull(supplement.get("imageUrl"))),
             managedImageOrNull(extractImageUrlFromRawJson(supplement.get("rawJson")))
         );
     }
@@ -750,8 +752,8 @@ public class PublicBossServiceImpl implements PublicBossService {
                 return null;
             }
             return firstNonBlank(
-                trimToNull(map.get("imageUrl")),
-                trimToNull(map.get("image_url"))
+                AdminTextUtils.trimToNull(map.get("imageUrl")),
+                AdminTextUtils.trimToNull(map.get("image_url"))
             );
         } catch (Exception exception) {
             return null;
@@ -759,7 +761,7 @@ public class PublicBossServiceImpl implements PublicBossService {
     }
 
     private Map<String, Object> parseObjectJson(String rawJson) {
-        String text = trimToNull(rawJson);
+        String text = AdminTextUtils.trimToNull(rawJson);
         if (text == null) {
             return Map.of();
         }
@@ -844,7 +846,7 @@ public class PublicBossServiceImpl implements PublicBossService {
     }
 
     private String managedBossImageOrNull(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -852,27 +854,20 @@ public class PublicBossServiceImpl implements PublicBossService {
     }
 
     private String managedImageOrNull(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
         return managedImageUrlPolicy.normalizeManagedImagePath(text).orElse(null);
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private String firstNonBlank(String... values) {
         if (values == null) {
             return null;
         }
         for (String value : values) {
-            String normalized = trimToNull(value);
+            String normalized = AdminTextUtils.trimToNull(value);
             if (normalized != null) {
                 return normalized;
             }
@@ -884,7 +879,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         if (value instanceof Number number) {
             return number.longValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -899,7 +894,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         if (value instanceof Number number) {
             return number.intValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -917,7 +912,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         if (value instanceof Number number) {
             return java.math.BigDecimal.valueOf(number.doubleValue());
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }

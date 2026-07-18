@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -148,7 +150,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             if (buff.getSourceId() != null) {
                 sourceIds.add(buff.getSourceId());
             }
-            String internalName = trimToNull(buff.getInternalName());
+            String internalName = AdminTextUtils.trimToNull(buff.getInternalName());
             if (internalName != null) {
                 internalNames.add(internalName);
             }
@@ -171,7 +173,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                     toInteger(row.get("immune_npc_count"))
                 );
                 Integer sourceId = toInteger(row.get("source_id"));
-                String internalName = trimToNull(row.get("internal_name"));
+                String internalName = AdminTextUtils.trimToNull(row.get("internal_name"));
                 if (sourceId != null) {
                     byKey.put("source:" + sourceId, counts);
                 }
@@ -192,7 +194,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         if (buff.getSourceId() != null) {
             return "source:" + buff.getSourceId();
         }
-        String internalName = trimToNull(buff.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(buff.getInternalName());
         if (internalName != null) {
             return "internal:" + internalName;
         }
@@ -238,10 +240,10 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 List<PublicBuffDetailDTO.FactSummary> localFacts = rows.stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
                     .id(toLong(row.get("id")))
                     .sourceId(toInteger(row.get("sourceId")))
-                    .internalName(trimToNull(row.get("internalName")))
-                    .name(trimToNull(row.get("name")))
-                    .nameZh(trimToNull(row.get("nameZh")))
-                    .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "items"))
+                    .internalName(AdminTextUtils.trimToNull(row.get("internalName")))
+                    .name(AdminTextUtils.trimToNull(row.get("name")))
+                    .nameZh(AdminTextUtils.trimToNull(row.get("nameZh")))
+                    .imageUrl(managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl")), "items"))
                     .durationTicks(toInteger(row.get("durationTicks")))
                     .sourceProvider("terraria.wiki.gg")
                     .sourcePage(firstNonBlank(buff.getNameZh(), buff.getEnglishName(), buff.getInternalName()))
@@ -314,18 +316,18 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             ).stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
                 .id(toLong(row.get("id")))
                 .sourceId(toInteger(row.get("sourceId")))
-                .internalName(trimToNull(row.get("internalName")))
-                .name(trimToNull(row.get("name")))
-                .nameZh(trimToNull(row.get("nameZh")))
-                .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "items"))
-                .relationType(firstNonBlank(trimToNull(row.get("relationType")), "buff_source_item"))
+                .internalName(AdminTextUtils.trimToNull(row.get("internalName")))
+                .name(AdminTextUtils.trimToNull(row.get("name")))
+                .nameZh(AdminTextUtils.trimToNull(row.get("nameZh")))
+                .imageUrl(managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl")), "items"))
+                .relationType(firstNonBlank(AdminTextUtils.trimToNull(row.get("relationType")), "buff_source_item"))
                 .durationTicks(toInteger(row.get("durationTicks")))
-                .chanceText(trimToNull(row.get("chanceText")))
-                .conditions(trimToNull(row.get("conditions")))
-                .sourceProvider(firstNonBlank(trimToNull(row.get("sourceProvider")), "terraria.wiki.gg"))
-                .sourcePage(trimToNull(row.get("sourcePage")))
+                .chanceText(AdminTextUtils.trimToNull(row.get("chanceText")))
+                .conditions(AdminTextUtils.trimToNull(row.get("conditions")))
+                .sourceProvider(firstNonBlank(AdminTextUtils.trimToNull(row.get("sourceProvider")), "terraria.wiki.gg"))
+                .sourcePage(AdminTextUtils.trimToNull(row.get("sourcePage")))
                 .sourceSection("From item")
-                .sourceRevisionTimestamp(trimToNull(row.get("sourceRevisionTimestamp")))
+                .sourceRevisionTimestamp(AdminTextUtils.trimToNull(row.get("sourceRevisionTimestamp")))
                 .build())
             .toList();
         } catch (Exception ignored) {
@@ -395,14 +397,14 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 ).stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
                     .id(toLong(row.get("id")))
                     .sourceId(toInteger(row.get("sourceId")))
-                    .internalName(trimToNull(row.get("internalName")))
-                    .name(trimToNull(row.get("name")))
-                    .nameZh(trimToNull(row.get("nameZh")))
-                    .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "npcs"))
-                    .relationType(firstNonBlank(trimToNull(row.get("relationType")), "inflicts"))
+                    .internalName(AdminTextUtils.trimToNull(row.get("internalName")))
+                    .name(AdminTextUtils.trimToNull(row.get("name")))
+                    .nameZh(AdminTextUtils.trimToNull(row.get("nameZh")))
+                    .imageUrl(managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl")), "npcs"))
+                    .relationType(firstNonBlank(AdminTextUtils.trimToNull(row.get("relationType")), "inflicts"))
                     .durationTicks(toInteger(row.get("durationTicks")))
-                    .chanceText(trimToNull(row.get("chanceText")))
-                    .conditions(trimToNull(row.get("conditions")))
+                    .chanceText(AdminTextUtils.trimToNull(row.get("chanceText")))
+                    .conditions(AdminTextUtils.trimToNull(row.get("conditions")))
                     .sourceProvider("terraria.wiki.gg")
                     .sourceSection("来自敌怪")
                     .build())
@@ -443,14 +445,14 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             ).stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
                 .id(toLong(row.get("id")))
                 .sourceId(toInteger(row.get("sourceId")))
-                .internalName(trimToNull(row.get("internalName")))
-                .name(trimToNull(row.get("name")))
-                .nameZh(trimToNull(row.get("nameZh")))
-                .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "npcs"))
-                .relationType(firstNonBlank(trimToNull(row.get("relationType")), "inflicts"))
+                .internalName(AdminTextUtils.trimToNull(row.get("internalName")))
+                .name(AdminTextUtils.trimToNull(row.get("name")))
+                .nameZh(AdminTextUtils.trimToNull(row.get("nameZh")))
+                .imageUrl(managedImageOrNull(AdminTextUtils.trimToNull(row.get("imageUrl")), "npcs"))
+                .relationType(firstNonBlank(AdminTextUtils.trimToNull(row.get("relationType")), "inflicts"))
                 .durationTicks(toInteger(row.get("durationTicks")))
-                .chanceText(trimToNull(row.get("chanceText")))
-                .conditions(trimToNull(row.get("conditions")))
+                .chanceText(AdminTextUtils.trimToNull(row.get("chanceText")))
+                .conditions(AdminTextUtils.trimToNull(row.get("conditions")))
                 .sourceProvider("terraria.wiki.gg")
                 .sourceSection("来自敌怪")
                 .build())
@@ -494,10 +496,10 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             return new ProjectionBuffEvidence(
                 toInteger(rows.get(0).get("source_item_count")),
                 toInteger(rows.get(0).get("immune_npc_count")),
-                trimToNull(rows.get(0).get("source_items_json")),
-                trimToNull(rows.get(0).get("inflicting_npcs_json")),
-                trimToNull(rows.get(0).get("immune_npcs_json")),
-                trimToNull(rows.get(0).get("source_evidence_json"))
+                AdminTextUtils.trimToNull(rows.get(0).get("source_items_json")),
+                AdminTextUtils.trimToNull(rows.get(0).get("inflicting_npcs_json")),
+                AdminTextUtils.trimToNull(rows.get(0).get("immune_npcs_json")),
+                AdminTextUtils.trimToNull(rows.get(0).get("source_evidence_json"))
             );
         } catch (Exception ignored) {
             return new ProjectionBuffEvidence(
@@ -531,7 +533,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
 
     private String loadProjectionBuffJsonColumn(ProjectionBuffLookup lookup, String column) {
         Object value = loadProjectionBuffScalarColumn(lookup, column);
-        return trimToNull(value);
+        return AdminTextUtils.trimToNull(value);
     }
 
     private Object loadProjectionBuffScalarColumn(ProjectionBuffLookup lookup, String column) {
@@ -561,18 +563,18 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             facts.add(PublicBuffDetailDTO.FactSummary.builder()
                 .id(toLong(firstValue(row, npcFact ? new String[]{"npcDbId", "npc_db_id", "dbId", "db_id"} : new String[]{"itemDbId", "item_db_id", "dbId", "db_id"})))
                 .sourceId(toInteger(firstValue(row, npcFact ? new String[]{"sourceId", "source_id", "npcId", "npc_id"} : new String[]{"sourceId", "source_id", "itemId", "item_id", "npcId", "npc_id"})))
-                .internalName(trimToNull(firstValue(row, "internalName", "internal_name", "itemInternalName", "item_internal_name", "npcInternalName", "npc_internal_name")))
-                .name(trimToNull(firstValue(row, "name", "nameEn", "name_en", "itemName", "item_name", "npcName", "npc_name")))
-                .nameZh(trimToNull(firstValue(row, "nameZh", "name_zh", "itemNameZh", "item_name_zh", "npcNameZh", "npc_name_zh")))
-                .imageUrl(managedImageOrNull(trimToNull(firstValue(row, "imageUrl", "image_url", "image", "itemImageUrl", "item_image_url", "npcImageUrl", "npc_image_url")), imageDomain))
-                .relationType(trimToNull(firstValue(row, "relationType", "relation_type")))
+                .internalName(AdminTextUtils.trimToNull(firstValue(row, "internalName", "internal_name", "itemInternalName", "item_internal_name", "npcInternalName", "npc_internal_name")))
+                .name(AdminTextUtils.trimToNull(firstValue(row, "name", "nameEn", "name_en", "itemName", "item_name", "npcName", "npc_name")))
+                .nameZh(AdminTextUtils.trimToNull(firstValue(row, "nameZh", "name_zh", "itemNameZh", "item_name_zh", "npcNameZh", "npc_name_zh")))
+                .imageUrl(managedImageOrNull(AdminTextUtils.trimToNull(firstValue(row, "imageUrl", "image_url", "image", "itemImageUrl", "item_image_url", "npcImageUrl", "npc_image_url")), imageDomain))
+                .relationType(AdminTextUtils.trimToNull(firstValue(row, "relationType", "relation_type")))
                 .durationTicks(toInteger(firstValue(row, "durationTicks", "buffTime")))
-                .chanceText(trimToNull(firstValue(row, "chanceText", "chance_text")))
-                .conditions(trimToNull(firstValue(row, "conditions")))
-                .sourceProvider(firstNonBlank(trimToNull(firstValue(row, "sourceProvider", "source_provider")), "terraria.wiki.gg"))
-                .sourcePage(trimToNull(firstValue(row, "sourcePage", "source_page", "pageTitle")))
-                .sourceSection(firstNonBlank(trimToNull(firstValue(row, "sourceSection", "source_section")), sourceSection))
-                .sourceRevisionTimestamp(trimToNull(firstValue(row, "sourceRevisionTimestamp", "source_revision_timestamp")))
+                .chanceText(AdminTextUtils.trimToNull(firstValue(row, "chanceText", "chance_text")))
+                .conditions(AdminTextUtils.trimToNull(firstValue(row, "conditions")))
+                .sourceProvider(firstNonBlank(AdminTextUtils.trimToNull(firstValue(row, "sourceProvider", "source_provider")), "terraria.wiki.gg"))
+                .sourcePage(AdminTextUtils.trimToNull(firstValue(row, "sourcePage", "source_page", "pageTitle")))
+                .sourceSection(firstNonBlank(AdminTextUtils.trimToNull(firstValue(row, "sourceSection", "source_section")), sourceSection))
+                .sourceRevisionTimestamp(AdminTextUtils.trimToNull(firstValue(row, "sourceRevisionTimestamp", "source_revision_timestamp")))
                 .build());
         }
         return facts;
@@ -590,13 +592,13 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         for (PublicBuffDetailDTO.FactSummary fact : facts) {
             if (fact.getId() != null) ids.add(fact.getId());
             if (fact.getSourceId() != null) sourceIds.add(fact.getSourceId());
-            String internalName = trimToNull(fact.getInternalName());
+            String internalName = AdminTextUtils.trimToNull(fact.getInternalName());
             if (internalName != null) internalNames.add(internalName);
-            String name = trimToNull(fact.getName());
+            String name = AdminTextUtils.trimToNull(fact.getName());
             if (name != null) names.add(name);
-            String nameZh = trimToNull(fact.getNameZh());
+            String nameZh = AdminTextUtils.trimToNull(fact.getNameZh());
             if (nameZh != null) names.add(nameZh);
-            String sourcePage = trimToNull(fact.getSourcePage());
+            String sourcePage = AdminTextUtils.trimToNull(fact.getSourcePage());
             if (sourcePage != null) names.add(sourcePage);
         }
         if (ids.isEmpty() && sourceIds.isEmpty() && internalNames.isEmpty() && names.isEmpty()) {
@@ -647,7 +649,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 putIntegerKey(bySourceId, row.get("sourceId"), row);
                 putIntegerKey(bySourceId, row.get("rawSourceId"), row);
                 putIntegerKey(bySourceId, row.get("gameId"), row);
-                String internalName = trimToNull(row.get("internalName"));
+                String internalName = AdminTextUtils.trimToNull(row.get("internalName"));
                 if (internalName != null) byInternalName.putIfAbsent(internalName, row);
                 String normalizedInternalName = normalizeLookupText(internalName);
                 if (normalizedInternalName != null) byNormalizedInternalName.putIfAbsent(normalizedInternalName, row);
@@ -692,15 +694,15 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         if (fact.getSourceId() != null) {
             return "sourceId:" + fact.getSourceId();
         }
-        String internalName = trimToNull(fact.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(fact.getInternalName());
         if (internalName != null) {
             return "internalName:" + internalName;
         }
-        String name = trimToNull(fact.getName());
+        String name = AdminTextUtils.trimToNull(fact.getName());
         if (name != null) {
             return "name:" + name;
         }
-        String sourcePage = trimToNull(fact.getSourcePage());
+        String sourcePage = AdminTextUtils.trimToNull(fact.getSourcePage());
         if (sourcePage != null) {
             return "sourcePage:" + sourcePage;
         }
@@ -723,11 +725,11 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         }
 
         List<Map<String, Object>> expansionCandidates = null;
-        String sourcePage = trimToNull(fact.getSourcePage());
+        String sourcePage = AdminTextUtils.trimToNull(fact.getSourcePage());
         if (sourcePage != null) expansionCandidates = nameMatches(byName, sourcePage);
-        String name = trimToNull(fact.getName());
+        String name = AdminTextUtils.trimToNull(fact.getName());
         if (expansionCandidates == null && name != null) expansionCandidates = nameMatches(byName, name);
-        String nameZh = trimToNull(fact.getNameZh());
+        String nameZh = AdminTextUtils.trimToNull(fact.getNameZh());
         if (expansionCandidates == null && nameZh != null) expansionCandidates = nameMatches(byName, nameZh);
         Map<String, Object> representative = uniqueMultipartRepresentative(expansionCandidates);
         if (representative != null) {
@@ -739,7 +741,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 .toList();
         }
 
-        String internalName = trimToNull(fact.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(fact.getInternalName());
         if (npc == null && internalName != null) npc = byInternalName.get(internalName);
         String normalizedInternalName = normalizeLookupText(internalName);
         if (npc == null && normalizedInternalName != null) npc = byNormalizedInternalName.get(normalizedInternalName);
@@ -759,10 +761,10 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         return PublicBuffDetailDTO.FactSummary.builder()
             .id(firstNonNullLong(toLong(npc.get("id")), fact.getId()))
             .sourceId(firstNonNullInteger(toInteger(firstValue(npc, "sourceId", "rawSourceId", "gameId")), fact.getSourceId()))
-            .internalName(firstNonBlank(trimToNull(npc.get("internalName")), fact.getInternalName()))
-            .name(firstNonBlank(fact.getName(), trimToNull(npc.get("name"))))
-            .nameZh(firstNonBlank(fact.getNameZh(), trimToNull(npc.get("nameZh"))))
-            .imageUrl(firstNonBlank(managedImageOrNull(trimToNull(npc.get("imageUrl")), "npcs"), fact.getImageUrl()))
+            .internalName(firstNonBlank(AdminTextUtils.trimToNull(npc.get("internalName")), fact.getInternalName()))
+            .name(firstNonBlank(fact.getName(), AdminTextUtils.trimToNull(npc.get("name"))))
+            .nameZh(firstNonBlank(fact.getNameZh(), AdminTextUtils.trimToNull(npc.get("nameZh"))))
+            .imageUrl(firstNonBlank(managedImageOrNull(AdminTextUtils.trimToNull(npc.get("imageUrl")), "npcs"), fact.getImageUrl()))
             .relationType(fact.getRelationType())
             .durationTicks(fact.getDurationTicks())
             .chanceText(fact.getChanceText())
@@ -782,7 +784,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private void putTextKey(Map<String, List<Map<String, Object>>> target, Object key, Map<String, Object> row) {
-        String textKey = trimToNull(key);
+        String textKey = AdminTextUtils.trimToNull(key);
         if (textKey != null) {
             target.computeIfAbsent(textKey, ignored -> new ArrayList<>()).add(row);
         }
@@ -805,7 +807,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private String normalizeLookupText(String value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? null : text.toLowerCase(java.util.Locale.ROOT);
     }
 
@@ -826,12 +828,12 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private boolean isMultipartSegmentRow(Map<String, Object> row) {
-        String internalName = trimToNull(row == null ? null : row.get("internalName"));
+        String internalName = AdminTextUtils.trimToNull(row == null ? null : row.get("internalName"));
         return internalName != null && internalName.matches(".*" + MULTIPART_SEGMENT_SUFFIX_REGEX);
     }
 
     private boolean isMultipartHeadRow(Map<String, Object> row) {
-        String internalName = trimToNull(row == null ? null : row.get("internalName"));
+        String internalName = AdminTextUtils.trimToNull(row == null ? null : row.get("internalName"));
         return internalName != null && internalName.matches(".*Head$");
     }
 
@@ -873,12 +875,12 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             return null;
         }
         return PublicBuffDetailDTO.SourceEvidence.builder()
-            .provider(firstNonBlank(trimToNull(firstValue(payload, "provider", "sourceProvider", "source_provider")), "terraria.wiki.gg"))
-            .pageTitle(trimToNull(firstValue(payload, "pageTitle", "page_title")))
-            .canonicalPageTitle(trimToNull(firstValue(payload, "canonicalPageTitle", "canonical_page_title")))
+            .provider(firstNonBlank(AdminTextUtils.trimToNull(firstValue(payload, "provider", "sourceProvider", "source_provider")), "terraria.wiki.gg"))
+            .pageTitle(AdminTextUtils.trimToNull(firstValue(payload, "pageTitle", "page_title")))
+            .canonicalPageTitle(AdminTextUtils.trimToNull(firstValue(payload, "canonicalPageTitle", "canonical_page_title")))
             .revisionId(toLong(firstValue(payload, "revisionId", "revision_id")))
-            .revisionTimestamp(trimToNull(firstValue(payload, "revisionTimestamp", "revision_timestamp", "sourceRevisionTimestamp", "source_revision_timestamp")))
-            .parseStatus(trimToNull(firstValue(payload, "parseStatus", "parse_status")))
+            .revisionTimestamp(AdminTextUtils.trimToNull(firstValue(payload, "revisionTimestamp", "revision_timestamp", "sourceRevisionTimestamp", "source_revision_timestamp")))
+            .parseStatus(AdminTextUtils.trimToNull(firstValue(payload, "parseStatus", "parse_status")))
             .sectionAnchors(parseStringList(firstValue(payload, "sectionAnchors", "section_anchors")))
             .unresolvedFacts(parseObjectListValue(firstValue(payload, "unresolvedFacts", "unresolved_facts")))
             .build();
@@ -900,7 +902,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         if (!(value instanceof List<?> list)) {
             return List.of();
         }
-        return list.stream().map(this::trimToNull).filter(java.util.Objects::nonNull).toList();
+        return list.stream().map(AdminTextUtils::trimToNull).filter(java.util.Objects::nonNull).toList();
     }
 
     private List<Map<String, Object>> parseObjectListValue(Object value) {
@@ -986,19 +988,12 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         return null;
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 
     private Integer toInteger(Object value) {
         if (value instanceof Number number) {
             return number.intValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }
@@ -1013,7 +1008,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         if (value instanceof Number number) {
             return number.longValue();
         }
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text == null) {
             return null;
         }

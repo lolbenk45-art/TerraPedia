@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.ApiResponse;
@@ -72,7 +74,7 @@ public class AdminCraftingStationController {
         String normalizedUsageState = normalizeUsageState(usageState);
 
         List<AdminCraftingStationDTO> stations = getStationSnapshot().orderedStations();
-        String normalizedSearch = trimToNull(search);
+        String normalizedSearch = AdminTextUtils.trimToNull(search);
         if (normalizedSearch != null) {
             String needle = normalizedSearch.toLowerCase();
             stations = stations.stream()
@@ -198,12 +200,12 @@ public class AdminCraftingStationController {
             return;
         }
         target.setItemId(request.getItemId());
-        target.setInternalName(trimToNull(request.getInternalName()));
-        target.setNameEn(trimToNull(request.getNameEn()));
-        target.setNameZh(trimToNull(request.getNameZh()));
-        target.setStationType(trimToNull(request.getStationType()) == null ? "crafting_station" : request.getStationType().trim());
-        target.setNotes(trimToNull(request.getNotes()));
-        target.setImageUrl(trimToNull(request.getImageUrl()));
+        target.setInternalName(AdminTextUtils.trimToNull(request.getInternalName()));
+        target.setNameEn(AdminTextUtils.trimToNull(request.getNameEn()));
+        target.setNameZh(AdminTextUtils.trimToNull(request.getNameZh()));
+        target.setStationType(AdminTextUtils.trimToNull(request.getStationType()) == null ? "crafting_station" : request.getStationType().trim());
+        target.setNotes(AdminTextUtils.trimToNull(request.getNotes()));
+        target.setImageUrl(AdminTextUtils.trimToNull(request.getImageUrl()));
         target.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
         if (creating) {
             target.setStatus(request.getStatus() == null ? 1 : request.getStatus());
@@ -213,20 +215,13 @@ public class AdminCraftingStationController {
         }
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private String firstNonBlank(String... values) {
         if (values == null) {
             return null;
         }
         for (String value : values) {
-            String trimmed = trimToNull(value);
+            String trimmed = AdminTextUtils.trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }
@@ -235,9 +230,9 @@ public class AdminCraftingStationController {
     }
 
     private String validateRequest(CraftingStation request) {
-        if (trimToNull(request.getNameEn()) == null
-            && trimToNull(request.getNameZh()) == null
-            && trimToNull(request.getInternalName()) == null) {
+        if (AdminTextUtils.trimToNull(request.getNameEn()) == null
+            && AdminTextUtils.trimToNull(request.getNameZh()) == null
+            && AdminTextUtils.trimToNull(request.getInternalName()) == null) {
             return "at least one of nameEn, nameZh, internalName is required";
         }
         if (request.getItemId() != null && itemMapper.selectById(request.getItemId()) == null) {
@@ -247,7 +242,7 @@ public class AdminCraftingStationController {
     }
 
     private String normalizeUsageState(String usageState) {
-        String value = trimToNull(usageState);
+        String value = AdminTextUtils.trimToNull(usageState);
         if (value == null) {
             return null;
         }
@@ -282,7 +277,7 @@ public class AdminCraftingStationController {
     }
 
     private boolean hasDuplicateStation(CraftingStation request, Long excludeId) {
-        String internalName = trimToNull(request.getInternalName());
+        String internalName = AdminTextUtils.trimToNull(request.getInternalName());
         if (internalName != null) {
             LambdaQueryWrapper<CraftingStation> wrapper = new LambdaQueryWrapper<CraftingStation>()
                 .eq(CraftingStation::getInternalName, internalName);
@@ -401,19 +396,19 @@ public class AdminCraftingStationController {
             .toList();
         List<String> internalNames = stations.stream()
             .map(CraftingStation::getInternalName)
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
         List<String> englishNames = stations.stream()
             .map(CraftingStation::getNameEn)
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
         List<String> chineseNames = stations.stream()
             .map(CraftingStation::getNameZh)
-            .map(this::trimToNull)
+            .map(AdminTextUtils::trimToNull)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
@@ -464,8 +459,8 @@ public class AdminCraftingStationController {
             }
             addToIndex(byStationId, recipeStation.getStationId(), recipeStation);
             addToIndex(byStationItemId, recipeStation.getStationItemId(), recipeStation);
-            addToIndex(byStationInternalName, trimToNull(recipeStation.getStationInternalName()), recipeStation);
-            addToIndex(byStationNameRaw, trimToNull(recipeStation.getStationNameRaw()), recipeStation);
+            addToIndex(byStationInternalName, AdminTextUtils.trimToNull(recipeStation.getStationInternalName()), recipeStation);
+            addToIndex(byStationNameRaw, AdminTextUtils.trimToNull(recipeStation.getStationNameRaw()), recipeStation);
         }
 
         Map<Long, List<RecipeStation>> recipeStationsByStationId = new LinkedHashMap<>();
@@ -478,9 +473,9 @@ public class AdminCraftingStationController {
             LinkedHashMap<Long, RecipeStation> matchedRecipeStations = new LinkedHashMap<>();
             collectRecipeStations(matchedRecipeStations, byStationId.get(station.getId()));
             collectRecipeStations(matchedRecipeStations, byStationItemId.get(station.getItemId()));
-            collectRecipeStations(matchedRecipeStations, byStationInternalName.get(trimToNull(station.getInternalName())));
-            collectRecipeStations(matchedRecipeStations, byStationNameRaw.get(trimToNull(station.getNameEn())));
-            collectRecipeStations(matchedRecipeStations, byStationNameRaw.get(trimToNull(station.getNameZh())));
+            collectRecipeStations(matchedRecipeStations, byStationInternalName.get(AdminTextUtils.trimToNull(station.getInternalName())));
+            collectRecipeStations(matchedRecipeStations, byStationNameRaw.get(AdminTextUtils.trimToNull(station.getNameEn())));
+            collectRecipeStations(matchedRecipeStations, byStationNameRaw.get(AdminTextUtils.trimToNull(station.getNameZh())));
 
             List<RecipeStation> matchedList = matchedRecipeStations.isEmpty()
                 ? List.of()
@@ -611,7 +606,7 @@ public class AdminCraftingStationController {
     }
 
     private String normalizeComboComponentKey(String value) {
-        String trimmed = trimToNull(value);
+        String trimmed = AdminTextUtils.trimToNull(value);
         if (trimmed == null) {
             return null;
         }
@@ -697,8 +692,8 @@ public class AdminCraftingStationController {
         if (recipe.getResultItemId() != null) {
             return "item:" + recipe.getResultItemId();
         }
-        if (trimToNull(recipe.getResultInternalName()) != null) {
-            return "internal:" + trimToNull(recipe.getResultInternalName());
+        if (AdminTextUtils.trimToNull(recipe.getResultInternalName()) != null) {
+            return "internal:" + AdminTextUtils.trimToNull(recipe.getResultInternalName());
         }
         return "recipe:" + recipe.getId();
     }

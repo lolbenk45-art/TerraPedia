@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
@@ -152,11 +154,11 @@ public class AdminShimmerController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Shimmer context not found"));
         }
 
-        String nameEn = firstValue(request, "nameEn", "name_en", trimToNull(existing.get("nameEn")));
-        String nameZh = firstValue(request, "nameZh", "name_zh", trimToNull(existing.get("nameZh")));
-        String contextType = firstValue(request, "contextType", "context_type", trimToNull(existing.get("contextType")));
-        String description = firstValue(request, "description", null, trimToNull(existing.get("description")));
-        String iconUrl = firstValue(request, "iconUrl", "icon_url", trimToNull(existing.get("iconUrl")));
+        String nameEn = firstValue(request, "nameEn", "name_en", AdminTextUtils.trimToNull(existing.get("nameEn")));
+        String nameZh = firstValue(request, "nameZh", "name_zh", AdminTextUtils.trimToNull(existing.get("nameZh")));
+        String contextType = firstValue(request, "contextType", "context_type", AdminTextUtils.trimToNull(existing.get("contextType")));
+        String description = firstValue(request, "description", null, AdminTextUtils.trimToNull(existing.get("description")));
+        String iconUrl = firstValue(request, "iconUrl", "icon_url", AdminTextUtils.trimToNull(existing.get("iconUrl")));
         Integer sortOrder = firstInteger(request, "sortOrder", "sort_order", toInteger(existing.get("sortOrder"), 30));
         Integer status = firstInteger(request, "status", null, toInteger(existing.get("status"), 1));
 
@@ -198,7 +200,7 @@ public class AdminShimmerController {
         DatasetSpec spec = requireDataset(dataset);
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 200);
-        String keyword = trimToNull(search);
+        String keyword = AdminTextUtils.trimToNull(search);
 
         String whereSql = buildWhereSql(spec, keyword);
         List<Object> params = buildParams(spec, keyword);
@@ -267,7 +269,7 @@ public class AdminShimmerController {
 
         List<Object> values = buildColumnValues(spec, request, false, existing);
         List<Object> params = new ArrayList<>(values);
-        String sourceRevisionTimestamp = firstValue(request, "sourceRevisionTimestamp", "source_revision_timestamp", trimToNull(existing.get("sourceRevisionTimestamp")));
+        String sourceRevisionTimestamp = firstValue(request, "sourceRevisionTimestamp", "source_revision_timestamp", AdminTextUtils.trimToNull(existing.get("sourceRevisionTimestamp")));
         params.add(sourceRevisionTimestamp);
         params.add(id);
         jdbcTemplate.update(
@@ -291,7 +293,7 @@ public class AdminShimmerController {
     }
 
     private DatasetSpec requireDataset(String dataset) {
-        DatasetSpec spec = DATASETS.get(trimToNull(dataset));
+        DatasetSpec spec = DATASETS.get(AdminTextUtils.trimToNull(dataset));
         if (spec == null) {
             throw new IllegalArgumentException("Unsupported shimmer dataset: " + dataset);
         }
@@ -459,10 +461,10 @@ public class AdminShimmerController {
     private void validatePayload(DatasetSpec spec, Map<String, Object> payload) {
         for (ColumnDef column : spec.columns) {
             Object value = payload.get(column.requestKey);
-            if (column.required && trimToNull(value) == null) {
+            if (column.required && AdminTextUtils.trimToNull(value) == null) {
                 throw new IllegalArgumentException(column.requestKey + " is required");
             }
-            if (column.type == ValueType.JSON && trimToNull(value) != null) {
+            if (column.type == ValueType.JSON && AdminTextUtils.trimToNull(value) != null) {
                 try {
                     objectMapper.readTree(String.valueOf(value));
                 } catch (Exception error) {
@@ -482,11 +484,11 @@ public class AdminShimmerController {
 
     private Object normalizeValue(ValueType type, Object rawValue, boolean required, boolean creating) {
         return switch (type) {
-            case NUMBER -> rawValue == null || trimToNull(rawValue) == null
+            case NUMBER -> rawValue == null || AdminTextUtils.trimToNull(rawValue) == null
                 ? (required && creating ? 0 : null)
                 : toInteger(rawValue, 0);
-            case JSON -> trimToNull(rawValue);
-            case TEXT -> trimToNull(rawValue);
+            case JSON -> AdminTextUtils.trimToNull(rawValue);
+            case TEXT -> AdminTextUtils.trimToNull(rawValue);
         };
     }
 
@@ -532,7 +534,7 @@ public class AdminShimmerController {
     }
 
     private void addInternalName(Set<String> internalNames, Object value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         if (text != null) {
             internalNames.add(text);
         }
@@ -548,11 +550,11 @@ public class AdminShimmerController {
         List<Map<String, Object>> preview = new ArrayList<>();
         for (Map<String, Object> output : parseObjectList(outputsJson)) {
             Map<String, Object> next = new LinkedHashMap<>();
-            next.put("kind", trimToNull(output.get("kind")));
-            next.put("nameZh", trimToNull(output.get("nameZh")));
-            next.put("nameEn", trimToNull(output.get("nameEn")));
-            next.put("internalName", trimToNull(output.get("internalName")));
-            next.put("quantityText", trimToNull(output.get("quantityText")));
+            next.put("kind", AdminTextUtils.trimToNull(output.get("kind")));
+            next.put("nameZh", AdminTextUtils.trimToNull(output.get("nameZh")));
+            next.put("nameEn", AdminTextUtils.trimToNull(output.get("nameEn")));
+            next.put("internalName", AdminTextUtils.trimToNull(output.get("internalName")));
+            next.put("quantityText", AdminTextUtils.trimToNull(output.get("quantityText")));
             next.put("imageUrl", resolveImageUrl(output.get("internalName"), imageLookup));
             preview.add(next);
         }
@@ -560,7 +562,7 @@ public class AdminShimmerController {
     }
 
     private List<Map<String, Object>> parseObjectList(Object jsonValue) {
-        String text = trimToNull(jsonValue);
+        String text = AdminTextUtils.trimToNull(jsonValue);
         if (text == null) {
             return List.of();
         }
@@ -573,7 +575,7 @@ public class AdminShimmerController {
 
     private String firstPreviewImage(List<Map<String, Object>> preview) {
         for (Map<String, Object> output : preview) {
-            String imageUrl = trimToNull(output.get("imageUrl"));
+            String imageUrl = AdminTextUtils.trimToNull(output.get("imageUrl"));
             if (imageUrl != null) {
                 return imageUrl;
             }
@@ -584,15 +586,15 @@ public class AdminShimmerController {
     private void putImageFields(Map<String, Object> row, String prefix, Object internalName, Map<String, Map<String, Object>> imageLookup) {
         String key = normalizeLookupKey(internalName);
         Map<String, Object> image = key == null ? null : imageLookup.get(key);
-        row.put(prefix + "ImageUrl", image == null ? null : trimToNull(image.get("imageUrl")));
-        row.put(prefix + "ImageName", image == null ? null : trimToNull(image.get("name")));
-        row.put(prefix + "ImageNameZh", image == null ? null : trimToNull(image.get("nameZh")));
+        row.put(prefix + "ImageUrl", image == null ? null : AdminTextUtils.trimToNull(image.get("imageUrl")));
+        row.put(prefix + "ImageName", image == null ? null : AdminTextUtils.trimToNull(image.get("name")));
+        row.put(prefix + "ImageNameZh", image == null ? null : AdminTextUtils.trimToNull(image.get("nameZh")));
     }
 
     private String resolveImageUrl(Object internalName, Map<String, Map<String, Object>> imageLookup) {
         String key = normalizeLookupKey(internalName);
         Map<String, Object> image = key == null ? null : imageLookup.get(key);
-        return image == null ? null : trimToNull(image.get("imageUrl"));
+        return image == null ? null : AdminTextUtils.trimToNull(image.get("imageUrl"));
     }
 
     private Map<String, Map<String, Object>> loadImageLookup(Set<String> internalNames) {
@@ -633,7 +635,7 @@ public class AdminShimmerController {
     }
 
     private String normalizeLookupKey(Object value) {
-        String text = trimToNull(value);
+        String text = AdminTextUtils.trimToNull(value);
         return text == null ? null : text.toLowerCase();
     }
 
@@ -642,11 +644,11 @@ public class AdminShimmerController {
     }
 
     private String firstValue(Map<String, Object> source, String primaryKey, String fallbackKey, String fallback) {
-        String primary = trimToNull(source == null ? null : source.get(primaryKey));
+        String primary = AdminTextUtils.trimToNull(source == null ? null : source.get(primaryKey));
         if (primary != null) {
             return primary;
         }
-        String alternate = fallbackKey == null ? null : trimToNull(source == null ? null : source.get(fallbackKey));
+        String alternate = fallbackKey == null ? null : AdminTextUtils.trimToNull(source == null ? null : source.get(fallbackKey));
         return alternate != null ? alternate : fallback;
     }
 
@@ -671,13 +673,6 @@ public class AdminShimmerController {
         }
     }
 
-    private String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = String.valueOf(value).trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private record DatasetSpec(
         String key,

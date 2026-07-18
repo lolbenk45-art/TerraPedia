@@ -1,5 +1,7 @@
 package com.terraria.skills.service;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.terraria.skills.entity.BossGroup;
 
 import java.util.List;
@@ -81,7 +83,7 @@ public final class BossSummonContractResolver {
         if (bossGroup == null) {
             return null;
         }
-        return trimToNull(bossGroup.getSummonMethod());
+        return AdminTextUtils.trimToNull(bossGroup.getSummonMethod());
     }
 
     public static String resolveSummonMethodResolved(BossGroup bossGroup) {
@@ -92,7 +94,7 @@ public final class BossSummonContractResolver {
         if (explicit != null) {
             return explicit;
         }
-        String code = trimToNull(bossGroup.getCode());
+        String code = AdminTextUtils.trimToNull(bossGroup.getCode());
         if (code == null) {
             return null;
         }
@@ -103,7 +105,7 @@ public final class BossSummonContractResolver {
         if (bossGroup == null) {
             return List.of();
         }
-        String code = trimToNull(bossGroup.getCode());
+        String code = AdminTextUtils.trimToNull(bossGroup.getCode());
         if (code == null) {
             return List.of();
         }
@@ -114,11 +116,4 @@ public final class BossSummonContractResolver {
         return new SummonItemRef(itemInternalName, itemName, "summon");
     }
 
-    private static String trimToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? null : text;
-    }
 }

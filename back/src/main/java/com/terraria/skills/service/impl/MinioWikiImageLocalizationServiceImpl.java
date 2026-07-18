@@ -1,5 +1,7 @@
 package com.terraria.skills.service.impl;
 
+import com.terraria.skills.common.AdminTextUtils;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -214,7 +216,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
 
     @Override
     public boolean isManagedImageUrl(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return false;
         }
@@ -231,7 +233,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
 
     @Override
     public Optional<String> normalizeManagedImagePath(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return Optional.empty();
         }
@@ -411,7 +413,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private URI parseHttpUri(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return null;
         }
@@ -509,7 +511,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private String normalizeFetchUrl(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return null;
         }
@@ -668,7 +670,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private String normalizePublicEndpoint(String endpoint) {
-        String value = trimToNull(endpoint);
+        String value = AdminTextUtils.trimToNull(endpoint);
         if (value == null) {
             throw new IllegalStateException("MinIO public endpoint is not configured");
         }
@@ -812,7 +814,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private String normalizeContentType(String contentType) {
-        String value = trimToNull(contentType);
+        String value = AdminTextUtils.trimToNull(contentType);
         if (value == null) {
             return null;
         }
@@ -840,7 +842,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private String trimObjectPath(String value) {
-        String normalized = trimToNull(value);
+        String normalized = AdminTextUtils.trimToNull(value);
         if (normalized == null) {
             return "image";
         }
@@ -868,13 +870,6 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         return value.substring(0, endIndex);
     }
 
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 
     private record FetchedWikiImage(String sourceUrl, HttpResponse<byte[]> response) {
     }
