@@ -90,6 +90,8 @@
 - `5f0a774` — detach public recipe group names and close the Task 2 finding.
 - `8324bfd` — add the Task 3 armor aggregate DTO/service and focused tests.
 - `78a9220` — expose the Task 4 optional include controller contract.
+- `f7c43e7` — initial Task 5 frontend aggregate consumer; specification
+  contract hardening pending.
 
 ## Optional: Cross-Review
 
@@ -139,6 +141,25 @@
 - Rationale: no-include, combined, partial, unknown, and successful-null JSON
   behavior is covered while list/detail service ownership remains separated.
 - Remaining risks: frontend consumer acknowledgement remains pending Task 5.
+
+### Task 5 frontend consumer
+
+- Reviewer: fresh specification reviewer.
+- Scope: `4f890905..f7c43e7`, frontend types/request/page/helper/contract/gate.
+- Findings: Important — the executable helper test covers present `{}` but not
+  present `null`, so a truthiness regression passes; page-source assertions do
+  not require actual `resolveArmorAggregateOrFallback` calls, so a local chooser
+  can bypass shared ownership while the contract stays green.
+- Disposition: needs test-contract fix by the original Task 5 implementer.
+- Re-review required: yes, specification review before quality review.
+- Resolved by: pending.
+- Arbitration decision: accept both findings.
+- Decision owner: coordinator.
+- Rationale: implementation is currently correct, but the approved contract
+  explicitly requires present-null suppression and shared resolver ownership;
+  mutation-resistant coverage is part of Task 5.
+- Remaining risks: quality review is blocked until both blind spots reject
+  representative mutations.
 
 ## Optional: State Changes
 
@@ -216,6 +237,15 @@
   without changing list or missing-detail behavior.
 - Evidence: four-class focused backend suite 16/16; specification and quality
   reviews approved; clean worktree.
+
+### 2026-07-18 23:27 CST
+
+- Change: Task 5 remains active after specification review found two contract
+  blind spots, while production behavior itself remains correct.
+- Reason: present-null and shared resolver ownership were asserted only
+  indirectly or not at all.
+- Evidence: reviewer demonstrated that truthiness-based helper behavior and a
+  page-local chooser could pass the current contract.
 
 ## Optional: Multi-Agent Coordination
 
