@@ -96,7 +96,7 @@ class ArticleCommentControllerTest {
 
     @Test
     void shouldCreateArticleCommentForCurrentClaimsUserOnly() throws Exception {
-        when(articleCommentService.createComment(eq(42L), eq(77L), eq("补充一个材料顺序。"), anyString())).thenReturn(comment());
+        when(articleCommentService.createComment(eq(42L), eq(77L), eq("补充一个材料顺序。"), eq("203.0.113.9"))).thenReturn(comment());
 
         ArticleCommentCreateRequestDTO request = new ArticleCommentCreateRequestDTO();
         request.setContent("补充一个材料顺序。");
@@ -110,7 +110,8 @@ class ArticleCommentControllerTest {
             .andExpect(jsonPath("$.data.content").value("这条路线很清楚。"));
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(articleCommentService).createComment(userIdCaptor.capture(), eq(77L), eq("补充一个材料顺序。"), anyString());
+        verify(articleCommentService).createComment(userIdCaptor.capture(), eq(77L), eq("补充一个材料顺序。"), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
         assertEquals(42L, userIdCaptor.getValue());
     }
 

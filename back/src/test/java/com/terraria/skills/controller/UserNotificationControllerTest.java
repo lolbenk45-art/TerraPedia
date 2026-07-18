@@ -73,7 +73,7 @@ class UserNotificationControllerTest {
 
     @Test
     void shouldMarkNotificationReadForCurrentClaimsUserOnly() throws Exception {
-        when(userNotificationService.markRead(eq(42L), eq(9L), anyString())).thenReturn(notification(9L, true));
+        when(userNotificationService.markRead(eq(42L), eq(9L), eq("203.0.113.9"))).thenReturn(notification(9L, true));
 
         mockMvc.perform(patch("/user/notifications/9/read")
                 .param("userId", "43")
@@ -81,7 +81,8 @@ class UserNotificationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.read").value(true));
 
-        verify(userNotificationService).markRead(eq(42L), eq(9L), anyString());
+        verify(userNotificationService).markRead(eq(42L), eq(9L), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

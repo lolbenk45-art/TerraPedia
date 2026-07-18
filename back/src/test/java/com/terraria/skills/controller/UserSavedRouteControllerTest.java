@@ -50,7 +50,7 @@ class UserSavedRouteControllerTest {
 
     @Test
     void shouldSaveRouteForCurrentClaimsUserOnly() throws Exception {
-        when(userSavedRouteService.saveRoute(eq(42L), any(UserSavedRouteRequestDTO.class), anyString()))
+        when(userSavedRouteService.saveRoute(eq(42L), any(UserSavedRouteRequestDTO.class), eq("203.0.113.9")))
             .thenReturn(route(7L, 88L, "真永夜刃"));
 
         mockMvc.perform(post("/user/saved-routes")
@@ -72,7 +72,8 @@ class UserSavedRouteControllerTest {
             .andExpect(jsonPath("$.data.targetId").value(88));
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(userSavedRouteService).saveRoute(userIdCaptor.capture(), any(UserSavedRouteRequestDTO.class), anyString());
+        verify(userSavedRouteService).saveRoute(userIdCaptor.capture(), any(UserSavedRouteRequestDTO.class), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
         assertEquals(42L, userIdCaptor.getValue());
     }
 

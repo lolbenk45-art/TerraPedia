@@ -101,7 +101,7 @@ class AdminArticleCommentControllerTest {
         AdminArticleCommentDTO hidden = comment(9L, 77L, "HIDDEN");
         hidden.setDeleted(true);
         hidden.setDeletedReason("spam");
-        when(adminArticleCommentService.updateCommentStatus(eq(77L), eq(9L), eq("HIDDEN"), eq("spam"), eq("admin"), anyString()))
+        when(adminArticleCommentService.updateCommentStatus(eq(77L), eq(9L), eq("HIDDEN"), eq("spam"), eq("admin"), eq("203.0.113.9")))
             .thenReturn(hidden);
 
         mockMvc.perform(patch("/admin/articles/77/comments/9/status")
@@ -113,7 +113,8 @@ class AdminArticleCommentControllerTest {
             .andExpect(jsonPath("$.data.deleted").value(true))
             .andExpect(jsonPath("$.data.deletedReason").value("spam"));
 
-        verify(adminArticleCommentService).updateCommentStatus(eq(77L), eq(9L), eq("HIDDEN"), eq("spam"), eq("admin"), anyString());
+        verify(adminArticleCommentService).updateCommentStatus(eq(77L), eq(9L), eq("HIDDEN"), eq("spam"), eq("admin"), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

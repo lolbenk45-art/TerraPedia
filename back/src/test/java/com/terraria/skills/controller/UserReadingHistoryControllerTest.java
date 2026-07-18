@@ -46,7 +46,7 @@ class UserReadingHistoryControllerTest {
 
     @Test
     void shouldRecordArticleHistoryForCurrentClaimsUserOnly() throws Exception {
-        when(userReadingHistoryService.record(eq(42L), eq("ARTICLE"), eq(77L), anyString()))
+        when(userReadingHistoryService.record(eq(42L), eq("ARTICLE"), eq(77L), eq("203.0.113.9")))
             .thenReturn(UserReadingHistoryDTO.builder()
                 .targetType("ARTICLE")
                 .targetId(77L)
@@ -64,7 +64,8 @@ class UserReadingHistoryControllerTest {
             .andExpect(status().isOk());
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(userReadingHistoryService).record(userIdCaptor.capture(), eq("ARTICLE"), eq(77L), anyString());
+        verify(userReadingHistoryService).record(userIdCaptor.capture(), eq("ARTICLE"), eq(77L), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
         assertEquals(42L, userIdCaptor.getValue());
     }
 

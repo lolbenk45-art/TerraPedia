@@ -87,6 +87,32 @@ class UserArticleControllerTest {
         }
 
         @Test
+        void shouldCreateArticleWithTrustedResolverIp() throws Exception {
+            ArticleDTO article = articleDto(ARTICLE_ID, CURRENT_USER_ID, ArticleStatus.DRAFT, ArticleReviewStatus.DRAFT);
+            when(articleService.createUserArticle(
+                eq(CURRENT_USER_ID),
+                any(UserArticleUpsertRequestDTO.class),
+                eq("User " + CURRENT_USER_ID),
+                eq("203.0.113.9")
+            )).thenReturn(article);
+
+            mockMvc.perform(post("/user/articles")
+                    .contentType("application/json")
+                    .content("{\"title\":\"Draft\",\"contentHtml\":\"<p>Body</p>\"}")
+                    .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, claims(CURRENT_USER_ID)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.id").value(ARTICLE_ID));
+
+            verify(articleService).createUserArticle(
+                eq(CURRENT_USER_ID),
+                any(UserArticleUpsertRequestDTO.class),
+                eq("User " + CURRENT_USER_ID),
+                eq("203.0.113.9")
+            );
+            verify(clientIpResolver).resolve(any());
+        }
+
+        @Test
         void shouldWithdrawArticleForCurrentClaimsUserOnly() throws Exception {
             ArticleDTO article = articleDto(ARTICLE_ID, CURRENT_USER_ID, ArticleStatus.DRAFT, ArticleReviewStatus.DRAFT);
             when(articleService.withdrawUserArticle(eq(CURRENT_USER_ID), eq(ARTICLE_ID))).thenReturn(article);

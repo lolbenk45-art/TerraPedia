@@ -13,7 +13,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -42,7 +41,7 @@ class UserFavoriteControllerTest {
             .targetId(77L)
             .favorited(true)
             .build();
-        when(userFavoriteService.favoriteItem(eq(42L), eq(77L), anyString())).thenReturn(status);
+        when(userFavoriteService.favoriteItem(eq(42L), eq(77L), eq("203.0.113.9"))).thenReturn(status);
 
         mockMvc.perform(put("/user/favorites/items/77")
                 .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, UserTokenClaims.builder()
@@ -52,7 +51,8 @@ class UserFavoriteControllerTest {
             .andExpect(status().isOk());
 
         ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(userFavoriteService).favoriteItem(userIdCaptor.capture(), eq(77L), anyString());
+        verify(userFavoriteService).favoriteItem(userIdCaptor.capture(), eq(77L), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
         assertEquals(42L, userIdCaptor.getValue());
     }
 }
