@@ -147,17 +147,17 @@ git commit -m "fix(back): unify missing-claims auth failures to HTTP 401"
 - Modify: `data-query-app/pages/operations/crawler-monitor.vue`
 - Modify: `data-query-app/tests/crawler-monitor-page-contract.test.mjs`（**只删 L625** `assert.match(page, /monitorPanels\.value\[0\]/)`；L33-36 负向断言保留）
 
-- [ ] **Step 1: 按 scout-p1-deadcode.md 项 1 的符号清单删除**
+- [x] **Step 1: 按 scout-p1-deadcode.md 项 1 的符号清单删除**
 
 核心链: `monitorPanels`(L908-949)、`activeMonitorPanelMeta`(L950)、`activeMonitorPanel`(L346)、`setActiveMonitorPanel`(L957-969)、`v4StatusStrip`(L833-861)、`v4MetricCards`(L862-907)、`crawlerHealthCards`(L566-625)、`blockedDomainFocus`(L1067-1096)、`selectBlockedDomainFocus`(L1838-1850)、4 个 helper(L3483-3499)、类型 MonitorPanelMeta/MonitorPanelKey(L330-339)。删除顺序: 先删消费端再删定义端，每删一组 grep 确认无残余引用。
 
-- [ ] **Step 2: 删 contract 测试 L625，验证**
+- [x] **Step 2: 将旧正向 contract 改为 whole-symbol 负向断言并验证**
 
 ```bash
 cd data-query-app && pnpm run check && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-unified-status.test.mjs tests/crawler-monitor-triage-workbench.test.mjs tests/crawler-monitor-execution-overview.test.mjs
 ```
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add data-query-app/pages/operations/crawler-monitor.vue data-query-app/tests/crawler-monitor-page-contract.test.mjs
