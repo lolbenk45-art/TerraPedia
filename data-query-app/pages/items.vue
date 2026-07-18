@@ -328,7 +328,7 @@
       </div>
       <template #footer>
         <button type="button" class="btn btn-secondary" @click="formVisible = false">取消</button>
-        <button type="button" class="btn btn-strong" :disabled="submitting" @click="handleFormSubmit">{{ submitting ? '提交中...' : isEdit ? '保存更改' : '创建物品' }}</button>
+        <button type="button" class="btn btn-strong" :disabled="submitting || recipeLoading" @click="handleFormSubmit">{{ submitting ? '提交中...' : isEdit ? '保存更改' : '创建物品' }}</button>
       </template>
     </AppModal>
   </div>
@@ -402,9 +402,11 @@ const formVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref<number | null>(null)
 const submitting = ref(false)
+const recipeLoading = ref(false)
 const uploadingImage = ref(false)
 const recipeDrafts = ref<ItemRecipePayload[]>([])
 const form = reactive<ItemPayload>(createFormDefaults())
+let editRequestGeneration = 0
 
 const hasActiveFilters = computed(() => Boolean(searchForm.keyword.trim() || searchForm.categoryId != null || searchForm.rarity || searchForm.gamePeriodId != null))
 const selectedCount = computed(() => selectedIds.value.length)
@@ -542,8 +544,17 @@ function resetForm() {
   editingId.value = null
 }
 
-function handleAdd() { isEdit.value = false; selectedItem.value = null; resetForm(); formVisible.value = true }
+function handleAdd() {
+  editRequestGeneration += 1
+  recipeLoading.value = false
+  isEdit.value = false
+  selectedItem.value = null
+  resetForm()
+  formVisible.value = true
+}
 async function handleEdit(item: Item) {
+  const requestGeneration = ++editRequestGeneration
+  recipeLoading.value = true
   resetForm()
   isEdit.value = true
   editingId.value = item.id
@@ -557,10 +568,19 @@ async function handleEdit(item: Item) {
   form.relatedCategoryIds = (item.relatedCategoryIds ?? []).filter((id) => id !== item.categoryId)
   form.imageUrl = item.imageUrl ?? ''
   formVisible.value = true
-  recipeDrafts.value = toRecipeDrafts(await itemsStore.fetchItemRecipes(item.id))
+  try {
+    const recipes = await itemsStore.fetchItemRecipes(item.id)
+    if (requestGeneration !== editRequestGeneration) return
+    recipeDrafts.value = toRecipeDrafts(recipes)
+  } finally {
+    if (requestGeneration === editRequestGeneration) {
+      recipeLoading.value = false
+    }
+  }
 }
 
 async function handleFormSubmit() {
+  if (recipeLoading.value) return
   if (!form.name.trim()) { showToast('请输入物品名称', 'warning'); return }
   if (form.categoryId == null) { showToast('请选择分类', 'warning'); return }
   submitting.value = true

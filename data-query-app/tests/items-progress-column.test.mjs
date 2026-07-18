@@ -97,6 +97,102 @@ const getObjectLiteral = (source, constantName) => {
   return `{${getBalancedBlock(source, openingBraceIndex)}}`
 }
 
+const deferred = () => {
+  let resolve
+  const promise = new Promise((resolvePromise) => {
+    resolve = resolvePromise
+  })
+  return { promise, resolve }
+}
+
+const createItemsPageHarness = ({ fetchItemRecipes = async () => [] } = {}) => {
+  const defaults = new Function(`return (${getObjectLiteral(itemsPage, 'FORM_DEFAULTS')})`)()
+  const createFormDefaults = new Function('FORM_DEFAULTS', getFunctionBody(itemsPage, 'createFormDefaults')).bind(null, defaults)
+  const form = createFormDefaults()
+  const recipeDrafts = { value: [] }
+  const editingId = { value: null }
+  const isEdit = { value: false }
+  const selectedItem = { value: null }
+  const formVisible = { value: false }
+  const recipeLoading = { value: false }
+  const submitting = { value: false }
+  const calls = { updateItem: [], createItem: [], updateItemRecipes: [], toasts: [] }
+  const itemsStore = {
+    fetchItemRecipes,
+    async updateItem(id, payload) {
+      calls.updateItem.push({ id, payload })
+      return { id, ...payload }
+    },
+    async createItem(payload) {
+      calls.createItem.push(payload)
+      return { id: 999, ...payload }
+    },
+    async updateItemRecipes(id, recipes) {
+      calls.updateItemRecipes.push({ id, recipes })
+      return recipes
+    },
+  }
+  const resetForm = new Function(
+    'form',
+    'createFormDefaults',
+    'recipeDrafts',
+    'editingId',
+    `return function resetForm() {${getFunctionBody(itemsPage, 'resetForm')}}`,
+  )(form, createFormDefaults, recipeDrafts, editingId)
+  const handlers = new Function(
+    'resetForm',
+    'isEdit',
+    'editingId',
+    'selectedItem',
+    'FORM_FIELDS',
+    'form',
+    'getRarityInfo',
+    'formVisible',
+    'recipeDrafts',
+    'itemsStore',
+    'toRecipeDrafts',
+    'recipeLoading',
+    'submitting',
+    'showToast',
+    `
+      let editRequestGeneration = 0
+      return {
+        handleAdd: function handleAdd() {${getFunctionBody(itemsPage, 'handleAdd')}},
+        handleEdit: async function handleEdit(item) {${getFunctionBody(itemsPage, 'handleEdit')}},
+        handleFormSubmit: async function handleFormSubmit() {${getFunctionBody(itemsPage, 'handleFormSubmit')}},
+      }
+    `,
+  )(
+    resetForm,
+    isEdit,
+    editingId,
+    selectedItem,
+    Object.keys(defaults),
+    form,
+    item => ({ label: `rarity:${item.rarityId ?? item.rarity}` }),
+    formVisible,
+    recipeDrafts,
+    itemsStore,
+    recipes => recipes.map(recipe => ({ ...recipe })),
+    recipeLoading,
+    submitting,
+    (message, tone) => calls.toasts.push({ message, tone }),
+  )
+
+  return {
+    ...handlers,
+    calls,
+    editingId,
+    form,
+    formVisible,
+    isEdit,
+    recipeDrafts,
+    recipeLoading,
+    selectedItem,
+    submitting,
+  }
+}
+
 const getMediaBlock = (source, maxWidth) => {
   const mediaPattern = new RegExp(`@media\\s*\\(\\s*max-width\\s*:\\s*${maxWidth}px\\s*\\)\\s*\\{`)
   const match = mediaPattern.exec(source)
@@ -170,8 +266,40 @@ test('items form defines the complete field whitelist and creates fresh array de
   assert.equal('updatedAt' in defaults, false)
 })
 
-test('items edit form copies only whitelisted fields before explicit presentation transforms', () => {
+test('items edit form executes reset and whitelisted presentation mapping without aliases', async () => {
   const editBody = getFunctionBody(itemsPage, 'handleEdit')
+  const harness = createItemsPageHarness()
+  const relatedCategoryIds = [7, 9]
+  Object.assign(harness.form, {
+    description: '上一项描述',
+    tooltip: '上一项提示',
+    damage: 123,
+    relatedCategoryIds: [88],
+  })
+
+  await harness.handleEdit({
+    id: 42,
+    name: 'New Item',
+    categoryId: 7,
+    relatedCategoryIds,
+    rarity: '旧展示值',
+    rarityId: 5,
+    imageUrl: null,
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-02',
+  })
+
+  assert.equal(harness.form.description, '')
+  assert.equal(harness.form.tooltip, '')
+  assert.equal(harness.form.damage, null)
+  assert.equal(harness.form.rarity, 'rarity:5')
+  assert.deepEqual(harness.form.relatedCategoryIds, [9])
+  assert.notEqual(harness.form.relatedCategoryIds, relatedCategoryIds)
+  assert.equal(harness.form.imageUrl, '')
+  assert.equal('id' in harness.form, false)
+  assert.equal('createdAt' in harness.form, false)
+  assert.equal('updatedAt' in harness.form, false)
+
   const loopIndex = editBody.indexOf('for (const key of FORM_FIELDS)')
   const rarityIndex = editBody.indexOf('form.rarity = getRarityInfo(item).label')
   const relatedCategoryIdsIndex = editBody.indexOf('form.relatedCategoryIds = (item.relatedCategoryIds ?? []).filter((id) => id !== item.categoryId)')
@@ -184,6 +312,56 @@ test('items edit form copies only whitelisted fields before explicit presentatio
   assert.ok(rarityIndex > loopIndex)
   assert.ok(relatedCategoryIdsIndex > rarityIndex)
   assert.ok(imageUrlIndex > relatedCategoryIdsIndex)
+})
+
+test('items edit blocks destructive submit while recipes are loading', async () => {
+  const recipes = deferred()
+  const harness = createItemsPageHarness({ fetchItemRecipes: () => recipes.promise })
+  const editPromise = harness.handleEdit({ id: 11, name: 'Item A', categoryId: 3, rarity: '白色' })
+
+  await harness.handleFormSubmit()
+  recipes.resolve([])
+  await editPromise
+
+  assert.equal(harness.calls.updateItem.length, 0)
+  assert.equal(harness.calls.createItem.length, 0)
+  assert.equal(harness.calls.updateItemRecipes.length, 0)
+  assert.match(itemsPage, /:disabled="submitting \|\| recipeLoading"/)
+  assert.match(getFunctionBody(itemsPage, 'handleFormSubmit'), /if\s*\(recipeLoading\.value\)\s*return/)
+})
+
+test('items edit keeps the newest recipes when requests resolve out of order and invalidates on add', async () => {
+  const requests = new Map()
+  const harness = createItemsPageHarness({
+    fetchItemRecipes(id) {
+      const request = deferred()
+      requests.set(id, request)
+      return request.promise
+    },
+  })
+
+  const editA = harness.handleEdit({ id: 21, name: 'Item A', categoryId: 3, rarity: '白色' })
+  const editB = harness.handleEdit({ id: 22, name: 'Item B', categoryId: 4, rarity: '蓝色' })
+  requests.get(22).resolve([{ recipe: 'B' }])
+  await editB
+  requests.get(21).resolve([{ recipe: 'A' }])
+  await editA
+
+  assert.equal(harness.editingId.value, 22)
+  assert.equal(harness.form.name, 'Item B')
+  assert.deepEqual(harness.recipeDrafts.value, [{ recipe: 'B' }])
+  assert.equal(harness.recipeLoading.value, false)
+
+  const editC = harness.handleEdit({ id: 23, name: 'Item C', categoryId: 5, rarity: '绿色' })
+  harness.handleAdd()
+  requests.get(23).resolve([{ recipe: 'C' }])
+  await editC
+
+  assert.equal(harness.isEdit.value, false)
+  assert.equal(harness.editingId.value, null)
+  assert.equal(harness.form.name, '')
+  assert.deepEqual(harness.recipeDrafts.value, [])
+  assert.equal(harness.recipeLoading.value, false)
 })
 
 test('items page uses Chinese-first catalog operator copy', () => {
