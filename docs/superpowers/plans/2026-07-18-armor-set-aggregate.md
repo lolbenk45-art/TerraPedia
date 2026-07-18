@@ -83,7 +83,7 @@ git status --short --branch -uall
 git branch -vv --list feat/front-p1-wp10-armor-aggregate refactor/front-p1-tail main
 ```
 
-Expected: current branch is `feat/front-p1-wp10-armor-aggregate`, the worktree is clean, and its first parent is the approved design commit on top of `cbca943`.
+Expected: current branch is `feat/front-p1-wp10-armor-aggregate`, the worktree is clean, and history contains plan commit `eb85d36` on top of design commit `1696f83` and base `cbca943`.
 
 - [ ] **Step 2: Install frontend dependencies in this worktree**
 

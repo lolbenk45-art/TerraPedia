@@ -72,13 +72,14 @@
 
 ## Follow-up
 
-- User selects the plan execution mode; execute the committed plan on this
-  branch without push or merge.
+- Execute the committed plan through serialized subagent-driven development on
+  this branch without push or merge.
 
 ## Commits
 
 - `1696f83` — define the armor-set aggregate design contract.
-- Implementation-plan commit pending.
+- `eb85d36` — define the audited TDD implementation plan.
+- Execution-coordination commit pending.
 
 ## Optional: State Changes
 
@@ -101,3 +102,84 @@
 - Evidence: plan self-review and TerraPedia plan audit found and repaired the
   runtime-closure, executable fallback-test, controller-fixture, and type/detail
   gaps; no critical or important plan defect remains.
+
+### 2026-07-18 22:11 CST
+
+- Change: the user selected subagent-driven execution; coordination ownership
+  is locked before Task 1 dispatch.
+- Reason: implementation tasks share contracts and must execute serially with
+  independent specification and quality reviews.
+- Evidence: `/root` is coordinator; only the coordinator edits the plan,
+  active entry, and `current.md`; implementers and reviewers are read/write or
+  read-only within the task boundaries below.
+
+## Optional: Multi-Agent Coordination
+
+- Coordinator: `/root` (Codex).
+- Parallel work allowed: no; Task 1 baseline, Tasks 2–5 implementation, and
+  Task 6 integration/closeout execute serially.
+- Agent ownership:
+  - Task 1 baseline implementer:
+    - Status: pending dispatch.
+    - Task scope: install worktree-local frontend dependencies and run the
+      exact backend/frontend baseline commands from the committed plan.
+    - Allowed files: no tracked files; package-manager-created ignored
+      dependency links only.
+    - Forbidden files: all source, test, plan, spec, devlog, data, and service
+      lifecycle files.
+    - Dependencies: commits `1696f83`, `eb85d36`, and this coordination state.
+    - Validation: plan Task 1 Steps 1–4.
+    - Blockers: any baseline test failure or lockfile mutation request.
+    - Handoff notes: report exact exit status and distinguish warnings from
+      failures; do not commit when no tracked file changes.
+    - Return format: DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT,
+      commands, results, tracked status, concerns.
+  - Tasks 2–5 implementers and reviewers:
+    - Status: pending sequential assignment after the prior task's two-stage
+      review passes.
+    - Task scope: exactly one complete task from the committed plan per fresh
+      implementer, followed by fresh spec and quality reviewers.
+    - Allowed files: only that task's Files list.
+    - Forbidden files: plan, spec, devlog/current, active entry, data, crawler,
+      and service lifecycle state.
+    - Dependencies: prior task commit and both prior reviews approved.
+    - Validation: exact RED/GREEN and focused commands in the assigned task.
+    - Blockers: contract drift, unexpected shared-file need, failing baseline,
+      or unresolved reviewer finding.
+    - Handoff notes: implementers commit; reviewers are read-only; the same
+      implementer fixes findings and reviewers re-review.
+    - Return format: role-specific template from
+      `subagent-driven-development`.
+  - Task 6 integration and closeout:
+    - Status: pending Tasks 2–5 and final integrated review.
+    - Task scope: full focused gates, frontend gate, authorized runtime smoke,
+      final review, and coordinator-owned devlog closeout.
+    - Allowed files: coordinator-only devlog paths; reviewers are read-only.
+    - Forbidden files: feature code unless a failing test and review finding
+      require a serialized repair task.
+    - Dependencies: all implementation tasks and reviews approved.
+    - Validation: plan Task 6.
+    - Blockers: missing runtime authorization/process or material review gap.
+    - Handoff notes: no task closeout without runtime request-count evidence.
+    - Return format: validation evidence, findings, disposition, residual risk.
+- Shared files or state: `PublicItemRecipeController`,
+  `PublicArmorSetController`, armor detail page/contracts, git index, and all
+  devlog files are serialized; no parallel writes.
+- Parent entry: this entry.
+- Contract handoff:
+  - Producer: backend Tasks 2–4.
+  - Consumer: frontend Task 5 and its executable contract.
+  - Endpoint/schema/state: optional `pieceEffects` / `pieceRecipes` on existing
+    armor detail `data`; no schema or data change.
+  - Version/hash: design `1696f83`, plan `eb85d36`; implementation hashes are
+    recorded after each task.
+  - Breaking or compatible: compatible; absent fields trigger legacy fallback.
+  - Fixtures/types updated: backend DTO/controller tests and frontend public
+    API type/contract.
+  - Consumer acknowledgement: pending backend contract commit and Task 5.
+- Serialization rule: Task 1 -> Task 2 implement/review -> Task 3
+  implement/review -> Task 4 implement/review -> Task 5 implement/review ->
+  Task 6 integrated review/validation/closeout.
+- Result merge owner: coordinator; this task does not authorize a merge.
+- Cross-boundary validation: focused Maven suite, `pnpm run check`, executable
+  aggregate/fallback contract, and authorized runtime browser request capture.
