@@ -48,7 +48,8 @@
 - Completed: D2 eight-controller trusted-proxy resolver migration, direct-constructor test adaptation, exact IP propagation contracts, and routed-request identity coverage with final specification and quality approval.
 - Completed: D3 category-management error status propagation with focused 404/400/500 MockMvc coverage and final specification and quality approval.
 - Completed: D4 reviewStatus filtering with blank-as-no-filter semantics and admin comment-count N+1 removal with final specification and quality approval.
-- Not completed: D5-D6 implementation, final gates, and closeout.
+- Completed: D5 NPC shop-entry conditions cascade coverage with final specification and quality approval.
+- Not completed: D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -98,6 +99,7 @@
 - `c86ddcd1` — constrained seven resolver tests to unique routed request URI/header identity; final reviews approved.
 - `c13ce117` — surfaced category-management error HTTP statuses with focused 404/400/500 coverage; final reviews approved.
 - `c7835ee7` — added optional article reviewStatus filtering and removed comment-count N+1; final reviews approved.
+- `8c5feff9` — covered NPC shop-entry conditions cascade writes; final reviews approved.
 
 ## Optional: Multi-Agent Coordination
 

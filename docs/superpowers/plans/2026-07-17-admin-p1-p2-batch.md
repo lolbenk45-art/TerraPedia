@@ -449,8 +449,8 @@ git commit -m "feat(admin): reviewStatus filter for admin articles; drop comment
 **Files:**
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminNpcControllerTest.java`
 
-- [ ] **Step 1: 按 scout-p2-backend.md 项 8 给出的 3 个用例名与 verify 断言补测试**（Mockito @Mock JdbcTemplate 基建已支持；覆盖 L1163-1182 conditions 级联写入）
-- [ ] **Step 2: 验证 + 提交**
+- [x] **Step 1: 按 scout-p2-backend.md 项 8 给出的 3 个用例名与 verify 断言补测试**（Mockito @Mock JdbcTemplate 基建已支持；覆盖 L1163-1182 conditions 级联写入）
+- [x] **Step 2: 验证 + 提交**
 
 ```bash
 cd back && mvn -Dtest=AdminNpcControllerTest test

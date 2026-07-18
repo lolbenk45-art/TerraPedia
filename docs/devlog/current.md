@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 02:12 CST by Codex
+Last updated: 2026-07-19 02:21 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -42,7 +42,8 @@ Active branch: `fix/admin-p1-p2-batch`
   plus exact downstream IP propagation. D3 is specification- and quality-approved
   after category errors surface true 404/400/500 responses. D4 is specification-
   and quality-approved after optional reviewStatus filtering and comment-count N+1
-  removal. Begin D5 next.
+  removal. D5 is specification- and quality-approved after NPC shop condition
+  cascade coverage. Begin D6 next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -143,7 +144,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- D5-D6 remain unimplemented, and their scout line numbers must be relocated on
+- D6 remains unimplemented, and its scout line numbers must be relocated on
   the current branch. C4's focused CSS evaluator intentionally supports only the
   repository's current syntax subset and does not model future decorative
   background layering.
