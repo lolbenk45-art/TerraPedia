@@ -470,8 +470,8 @@ git commit -m "test(back): cover npc shop entry conditions cascade"
 2. statusTone 两处（domain-acceptance:442 / data-source-acceptance:302）**非逐字等价**（前者 success 集多 'ready'、warning 集多 'needs_confirmation'）——合并取超集，行为是可接受的扩张，commit message 注明。
 3. coin-chip CSS: Task B2 已删掉 town-npcs 两个僵尸页的两份副本，**本 task 实际只剩 2 份**（town-npcs/index.vue L633-668 + TownNpcWorkbenchModal L1435-1484，约 86 行）。
 
-- [ ] **Step 1: 建 utils、6 处 formatDateTime + 2 处 statusTone 替换、2 份 coin-chip CSS 下沉**
-- [ ] **Step 2: 验证 + 提交**
+- [x] **Step 1: 建 utils、6 处 formatDateTime + 2 处 statusTone 替换、2 份 coin-chip CSS 下沉**
+- [x] **Step 2: 验证 + 提交**
 
 ```bash
 cd data-query-app && pnpm run check && pnpm run test:unit 2>&1 | grep -E "^ℹ (pass|fail)"
@@ -483,8 +483,8 @@ git commit -m "refactor(admin): consolidate formatDateTime and coin-chip styles"
 
 ## 收尾
 
-- [ ] 后端: `mvn test -Dtest='Admin*Test,Auth*Test,*Article*'`（存量 7 失败已知，对照 devlog 基线不新增）
-- [ ] 管理端: `pnpm run check` + `pnpm run test:unit` 全绿
+- [x] 后端: `mvn test -Dtest='Admin*Test,Auth*Test,*Article*'`（305 项仅复现 2 个已记录 main 基线失败，无新增失败）
+- [x] 管理端: `pnpm run check` + `pnpm run test:unit` 全绿（400/400）
 - [ ] 重截关键页截图对比（query/items/users/login/categories/classification-audit）
 - [ ] devlog 记录 + 决定是否合 main（用户裁决）
 

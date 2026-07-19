@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 16:15 CST by Codex
+Last updated: 2026-07-19 16:23 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -43,8 +43,8 @@ Active branch: `fix/admin-p1-p2-batch`
   after category errors surface true 404/400/500 responses. D4 is specification-
   and quality-approved after optional reviewStatus filtering and comment-count N+1
   removal. D5 is specification- and quality-approved after NPC shop condition
-  cascade coverage. D6 production implementation is specification-approved;
-  quality review found one Minor in greedy CSS test regexes, assigned for repair.
+  cascade coverage. D6 is specification- and quality-approved after the CSS
+  contract matcher repair. All A2-D6 implementation tasks are complete.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -133,9 +133,8 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D5
-  with a fresh implementer. Relocate `syncNpcShopEntries` condition cascade and
-  existing AdminNpcControllerTest Mockito setup before adding the three cases.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan. Code is complete;
+  authenticated runtime screenshots and the user's merge decision remain.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -145,8 +144,9 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- D6 implementation is committed at `513ab4db`, but final review remains open
-  until CSS contract regexes are rule-block bounded. C4's focused CSS evaluator intentionally supports only the
+- D6 is committed at `513ab4db` with test repair `fda1484c`; final admin gates
+  pass 400/400. Runtime screenshots remain pending under the explicit no-service-
+  lifecycle boundary. C4's focused CSS evaluator intentionally supports only the
   repository's current syntax subset and does not model future decorative
   background layering.
 

@@ -49,8 +49,8 @@
 - Completed: D3 category-management error status propagation with focused 404/400/500 MockMvc coverage and final specification and quality approval.
 - Completed: D4 reviewStatus filtering with blank-as-no-filter semantics and admin comment-count N+1 removal with final specification and quality approval.
 - Completed: D5 NPC shop-entry conditions cascade coverage with final specification and quality approval.
-- In progress: D6 implementation is specification-approved; quality review found one Minor greedy CSS contract matcher pending repair.
-- Not completed: final gates and closeout.
+- Completed: D6 admin formatting/status/CSS consolidation and rule-bounded CSS contracts with final specification and quality approval.
+- Not completed: authenticated runtime screenshots and user merge decision.
 
 ## Residual Risks
 
@@ -64,7 +64,7 @@
 
 ## Follow-up
 
-- D6 implementer bounds CSS assertions to individual rule blocks; fresh quality re-review follows before final gates.
+- Runtime screenshot owner: coordinator after explicit service-lifecycle authorization; then user decides merge disposition.
 
 ## Commits
 
@@ -102,6 +102,7 @@
 - `c7835ee7` — added optional article reviewStatus filtering and removed comment-count N+1; final reviews approved.
 - `8c5feff9` — covered NPC shop-entry conditions cascade writes; final reviews approved.
 - `513ab4db` — consolidated admin formatting, status tones, and coin styles; specification-approved, quality Minor pending test repair.
+- `fda1484c` — bounded CSS property contracts to individual rules; final quality review approved.
 
 ## Optional: Multi-Agent Coordination
 
@@ -165,6 +166,7 @@
 - D3 review: specification review confirmed the exact six catch removals, the new bare-null `ResourceNotFoundException` path, global 404 mapping, and standalone MockMvc 404/400/500 coverage. Final quality review found no Critical/Important/Minor issue: specific handlers are not shadowed, the 500 body remains sanitized, and scope is limited to controller/handler/exception/test. Coordinator reran the focused MockMvc suite 3/3, compilation, and diff check successfully; D4 may proceed.
 - D4 review: specification review confirmed allow-null reviewStatus normalization, parameterized mapper condition, unchanged commentCount SQL, and removed N+1 surfaces. Final quality review found no Critical/Important/Minor issue: sort/pagination and response shape remain intact, invalid values retain HTTP 400, and actual comment workflows remain. Coordinator reran backend 62/62, admin typecheck, three front contracts 33/33, and diff check; D5 may proceed.
 - D6 review: specification review approved the exact six/two/two consolidation scope and protected 2-digit variants. Quality review found one Minor: CSS contract regexes can cross rule boundaries via greedy `[\s\S]*`; production behavior is correct. Disposition: repair tests with rule-bounded matching and run fresh quality re-review.
+- D6 final review: `fda1484c` bounds all six CSS assertions to their rule bodies; mutation evidence proved property loss fails. Fresh quality review found no remaining issues. Coordinator reran admin typecheck and 400/400 unit tests. The backend final gate ran 305 tests and reproduced only the two D1/main baselines: audio stream bytes and Wiki Mockito unnecessary stubbing.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
