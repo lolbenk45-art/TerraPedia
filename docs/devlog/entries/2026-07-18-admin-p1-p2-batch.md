@@ -49,7 +49,8 @@
 - Completed: D3 category-management error status propagation with focused 404/400/500 MockMvc coverage and final specification and quality approval.
 - Completed: D4 reviewStatus filtering with blank-as-no-filter semantics and admin comment-count N+1 removal with final specification and quality approval.
 - Completed: D5 NPC shop-entry conditions cascade coverage with final specification and quality approval.
-- Not completed: D6 implementation, final gates, and closeout.
+- In progress: D6 implementation is specification-approved; quality review found one Minor greedy CSS contract matcher pending repair.
+- Not completed: final gates and closeout.
 
 ## Residual Risks
 
@@ -63,7 +64,7 @@
 
 ## Follow-up
 
-- Coordinator advances the serialized plan to D3 with a fresh implementer; implementation, specification review, and quality review remain sequential.
+- D6 implementer bounds CSS assertions to individual rule blocks; fresh quality re-review follows before final gates.
 
 ## Commits
 
@@ -100,6 +101,7 @@
 - `c13ce117` — surfaced category-management error HTTP statuses with focused 404/400/500 coverage; final reviews approved.
 - `c7835ee7` — added optional article reviewStatus filtering and removed comment-count N+1; final reviews approved.
 - `8c5feff9` — covered NPC shop-entry conditions cascade writes; final reviews approved.
+- `513ab4db` — consolidated admin formatting, status tones, and coin styles; specification-approved, quality Minor pending test repair.
 
 ## Optional: Multi-Agent Coordination
 
@@ -162,6 +164,7 @@
 - D2 review: specification review approved `4ab211e7` for the exact eight-controller/eight-test scope, resolver injection, removal of naive parsers, request propagation, and no policy changes. Quality review found one Important coverage gap: seven tests mock a fixed resolver IP but verify downstream calls with `anyString()`, so they do not prove trusted resolver output reaches the audit/service boundary. `7d6457fc` added exact fixed-IP and resolver-invocation assertions, with a seven-call wrong-IP mutation producing 7 failures across 38 tests before restoration. Fresh repair specification review found an Important remaining gap: all seven invocation checks use `resolve(any())`, which does not prove the actual routed request is supplied. `c86ddcd1` replaced them with non-null URI-plus-unique-header `argThat` matchers; a wrong UserFavorite identity header produced the expected resolver-matcher failure before restoration. Final fresh specification and quality reviews reported no Critical/Important/Minor findings and approved D3. Coordinator reran `mvn -Dtest='*Article*,*User*,*Auth*' test` (151/151) and `mvn -DskipTests compile` (BUILD SUCCESS) on the final range.
 - D3 review: specification review confirmed the exact six catch removals, the new bare-null `ResourceNotFoundException` path, global 404 mapping, and standalone MockMvc 404/400/500 coverage. Final quality review found no Critical/Important/Minor issue: specific handlers are not shadowed, the 500 body remains sanitized, and scope is limited to controller/handler/exception/test. Coordinator reran the focused MockMvc suite 3/3, compilation, and diff check successfully; D4 may proceed.
 - D4 review: specification review confirmed allow-null reviewStatus normalization, parameterized mapper condition, unchanged commentCount SQL, and removed N+1 surfaces. Final quality review found no Critical/Important/Minor issue: sort/pagination and response shape remain intact, invalid values retain HTTP 400, and actual comment workflows remain. Coordinator reran backend 62/62, admin typecheck, three front contracts 33/33, and diff check; D5 may proceed.
+- D6 review: specification review approved the exact six/two/two consolidation scope and protected 2-digit variants. Quality review found one Minor: CSS contract regexes can cross rule boundaries via greedy `[\s\S]*`; production behavior is correct. Disposition: repair tests with rule-bounded matching and run fresh quality re-review.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.

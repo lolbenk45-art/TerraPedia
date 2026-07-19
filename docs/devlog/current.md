@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 02:21 CST by Codex
+Last updated: 2026-07-19 16:15 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -43,7 +43,8 @@ Active branch: `fix/admin-p1-p2-batch`
   after category errors surface true 404/400/500 responses. D4 is specification-
   and quality-approved after optional reviewStatus filtering and comment-count N+1
   removal. D5 is specification- and quality-approved after NPC shop condition
-  cascade coverage. Begin D6 next.
+  cascade coverage. D6 production implementation is specification-approved;
+  quality review found one Minor in greedy CSS test regexes, assigned for repair.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -144,8 +145,8 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- D6 remains unimplemented, and its scout line numbers must be relocated on
-  the current branch. C4's focused CSS evaluator intentionally supports only the
+- D6 implementation is committed at `513ab4db`, but final review remains open
+  until CSS contract regexes are rule-block bounded. C4's focused CSS evaluator intentionally supports only the
   repository's current syntax subset and does not model future decorative
   background layering.
 
