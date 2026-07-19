@@ -49,22 +49,30 @@ test('persist config uses pick (persistedstate 4.x) not paths', () => {
   const source = fs.readFileSync(path.join(repoRoot, 'stores/uiPreferences.ts'), 'utf8')
   assert.match(source, /persist:\s*\{[\s\S]*pick:\s*\[/)
   assert.doesNotMatch(source, /paths:/)
+  assert.match(source, /pick:\s*\['desktopSidebarCollapsed'\]/)
+  assert.doesNotMatch(source, /pick:\s*\[[^\]]*collapsedSectionLabels/)
 })
 
-test('applySectionDefaults seeds collapsed labels once and is idempotent', () => {
+test('initializeSections opens only the active section and replaces stale state', () => {
   const store = loadUiPreferencesStore()()
 
   assert.deepEqual(labels(store), [])
-  assert.equal(store.sectionDefaultsApplied.value, false)
 
-  store.applySectionDefaults(['数据运维', '资产工具'])
-  assert.deepEqual(labels(store), ['数据运维', '资产工具'])
-  assert.equal(store.sectionDefaultsApplied.value, true)
+  store.initializeSections(['资料目录', '制作管理', '内容运营'], '资料目录')
+  assert.deepEqual(labels(store), ['制作管理', '内容运营'])
 
-  // Second call must be a no-op even with different defaults (user prefs win).
-  store.toggleSection('数据运维')
-  store.applySectionDefaults(['内容运营'])
-  assert.deepEqual(labels(store), ['资产工具'])
+  store.toggleSection('制作管理')
+  assert.deepEqual(labels(store), ['内容运营'])
+
+  store.initializeSections(['资料目录', '制作管理', '内容运营'], '内容运营')
+  assert.deepEqual(labels(store), ['资料目录', '制作管理'])
+})
+
+test('initializeSections collapses every section when the route has no menu owner', () => {
+  const store = loadUiPreferencesStore()()
+
+  store.initializeSections(['资料目录', '制作管理'], null)
+  assert.deepEqual(labels(store), ['资料目录', '制作管理'])
 })
 
 test('toggleSection adds and removes symmetrically', () => {
@@ -76,18 +84,6 @@ test('toggleSection adds and removes symmetrically', () => {
   assert.deepEqual(labels(store), ['数据运维'])
   store.toggleSection('数据运维')
   assert.equal(store.isSectionCollapsed('数据运维'), false)
-  assert.deepEqual(labels(store), [])
-})
-
-test('expandSection removes a collapsed label and no-ops when already expanded', () => {
-  const store = loadUiPreferencesStore()()
-
-  store.applySectionDefaults(['数据运维'])
-  store.expandSection('数据运维')
-  assert.equal(store.isSectionCollapsed('数据运维'), false)
-
-  // No-op path: expanding an already-expanded section keeps state stable.
-  store.expandSection('资产工具')
   assert.deepEqual(labels(store), [])
 })
 

@@ -262,17 +262,28 @@ test('page-owned fixed drawers stay below admin navigation and reserve shell spa
   assert.doesNotMatch(crawlerMonitorPage, /\.report-drawer\s*\{[\s\S]*inset:\s*0;[\s\S]*z-index:\s*calc\(var\(--z-modal\)/)
 })
 
-test('active sidebar navigation scrolls the selected menu item into view', () => {
+test('sidebar initializes only the entry-route section before scrolling the active item', () => {
   assert.match(layout, /ref="sidebarNavRef"/)
   assert.match(layout, /:ref="\(\(el\) => setMenuLinkRef\(item\.path, el\)\)"/)
   assert.match(layout, /function findActiveMenuEntry\(\)/)
-  assert.match(layout, /function revealActiveMenuItem\(\)/)
-  assert.match(layout, /uiPreferences\.expandSection\(activeEntry\.section\.label\)/)
+  assert.match(layout, /const menuSectionLabels = menuSections\.map\(\(section\) => section\.label\)/)
+  assert.match(layout, /function scrollActiveMenuItemIntoView\(\)/)
+  assert.match(layout, /uiPreferences\.initializeSections\(menuSectionLabels, activeEntry\?\.section\.label \?\? null\)/)
+  assert.doesNotMatch(layout, /uiPreferences\.expandSection/)
   assert.match(layout, /function scrollSidebarLinkIntoView\(activeLink: HTMLElement\)/)
   assert.match(layout, /sidebarNav\.scrollTop = nextScrollTop/)
   assert.doesNotMatch(layout, /behavior:\s*'smooth'/)
   assert.doesNotMatch(layout, /scrollIntoView\(/)
-  assert.match(layout, /watch\(\s*\(\) => route\.fullPath,[\s\S]*revealActiveMenuItem\(\)/)
+  assert.match(layout, /onMounted\(\(\) => \{[\s\S]*uiPreferences\.initializeSections[\s\S]*scrollActiveMenuItemIntoView\(\)/)
+})
+
+test('route changes preserve manual sidebar section toggles', () => {
+  const routeWatcher = layout.match(/watch\(\s*\(\) => route\.fullPath,([\s\S]*?)\n\)/)?.[1] ?? ''
+
+  assert.match(routeWatcher, /scrollActiveMenuItemIntoView\(\)/)
+  assert.doesNotMatch(routeWatcher, /initializeSections/)
+  assert.doesNotMatch(routeWatcher, /expandSection/)
+  assert.doesNotMatch(routeWatcher, /toggleSection/)
 })
 
 test('collapsed sidebar uses compact navigation without overflow-prone expanded groups', () => {

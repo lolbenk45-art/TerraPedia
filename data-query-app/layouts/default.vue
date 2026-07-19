@@ -254,7 +254,6 @@ type MenuItem = {
 type MenuSection = {
   label: string
   items: MenuItem[]
-  defaultCollapsed?: boolean
 }
 
 type HeaderVariant = 'default' | 'compact'
@@ -308,7 +307,6 @@ const menuSections: MenuSection[] = [
   },
   {
     label: '数据运维',
-    defaultCollapsed: true,
     items: [
       { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
       { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
@@ -319,7 +317,6 @@ const menuSections: MenuSection[] = [
   },
   {
     label: '资产工具',
-    defaultCollapsed: true,
     items: [
       { name: '盔甲属性表', path: '/operations/armor-attributes', hint: '核验单件装备字段', icon: FileSearch },
       { name: '音频资产', path: '/operations/audio-assets', hint: '查看 BGM 与 NPC 音效入库状态', icon: Music },
@@ -330,9 +327,7 @@ const menuSections: MenuSection[] = [
 
 const flatMenuItems = menuSections.flatMap((section) => section.items)
 const flatMenuEntries = menuSections.flatMap((section) => section.items.map((item) => ({ section, item })))
-const defaultCollapsedSectionLabels = menuSections
-  .filter((section) => section.defaultCollapsed)
-  .map((section) => section.label)
+const menuSectionLabels = menuSections.map((section) => section.label)
 
 const desktopCollapsed = computed(() => !isMobile.value && uiPreferences.desktopSidebarCollapsed)
 const headerVariant = computed<HeaderVariant>(() => (route.meta.headerVariant === 'compact' ? 'compact' : 'default'))
@@ -437,15 +432,11 @@ function scrollSidebarLinkIntoView(activeLink: HTMLElement) {
   sidebarNav.scrollTop = nextScrollTop
 }
 
-async function revealActiveMenuItem() {
+async function scrollActiveMenuItemIntoView() {
   if (typeof window === 'undefined' || (isMobile.value && !isMobileNavOpen.value)) return
 
   const activeEntry = findActiveMenuEntry()
   if (!activeEntry) return
-
-  if (!desktopCollapsed.value) {
-    uiPreferences.expandSection(activeEntry.section.label)
-  }
 
   await nextTick()
 
@@ -504,14 +495,15 @@ watch(
     if (isMobile.value) {
       isMobileNavOpen.value = false
     }
-    revealActiveMenuItem()
+    scrollActiveMenuItemIntoView()
   },
 )
 
 onMounted(() => {
-  uiPreferences.applySectionDefaults(defaultCollapsedSectionLabels)
+  const activeEntry = findActiveMenuEntry()
+  uiPreferences.initializeSections(menuSectionLabels, activeEntry?.section.label ?? null)
   syncViewportState()
-  revealActiveMenuItem()
+  scrollActiveMenuItemIntoView()
 
   window.addEventListener('resize', syncViewportState)
   window.addEventListener('pointerdown', handleDocumentPointerDown)

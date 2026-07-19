@@ -37,6 +37,19 @@
 
 ## Validation
 
+- 2026-07-19 sidebar follow-up: focused contracts observed the intended 5/20
+  RED against the old persistence/route-expansion behavior, then passed 20/20;
+  the adjacent Chinese-copy contract was updated from the obsolete initializer
+  and the combined sidebar suite passed 27/27. Admin typecheck passed and the
+  full unit suite passed 402/402. Read-only Chromium acceptance proved a fresh
+  `/` opens only `资料目录`, a fresh `/articles` opens only `内容运营`, manually
+  opening `制作管理` leaves both groups open after client navigation to `/users`,
+  every toggle reports the matching `aria-expanded`, and there are no console
+  errors or target request failures. Dashboard, login, and article editor diffs
+  are zero. `ui-ux-pro-max` recommendations were read, but its optional search
+  script could not run because this checkout installs `scripts`/`data` as files
+  rather than directories; no project dependency or code path is affected.
+
 - 2026-07-19 acceptance follow-up: both focused contracts observed the intended RED before implementation, then passed 36/36. Fresh closeout reruns passed the same 36/36 contracts, Admin typecheck, the full 401/401 unit suite, and the production build. Read-only Chromium acceptance at 1280x900 confirmed the login computed styles match `3a1d1780^`, article `31` renders two shared recipe graphs and four content references in the new public-effect view, switching views emits zero editor input events, and no save/review request occurs. Ports `13010`, `15183`, and `18197` are listening; the login, article editor, public frontend, and article API probes return HTTP 200. Ignored evidence: `reports/admin-p1-p2/acceptance-followup/`.
 
 - Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts and full admin unit suite; C1 icon/font contracts, typecheck, DOM inspection, and Playwright screenshots; C2 focused contracts, typecheck, diff check, and Chromium computed-box probes.
@@ -49,6 +62,12 @@
 - Not run: C5-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
 
 ## Result
+
+- Sidebar follow-up complete: each fresh admin layout mount resets section state
+  to only the current route's owning group, while all later manual toggles remain
+  authoritative across client-side navigation. Section expansion is no longer
+  persisted across refreshes; desktop sidebar width preference remains persisted.
+  See git for code-level diff details.
 
 - Acceptance follow-up complete: restored the Git-authoritative pre-token-migration login visual treatment while retaining the Lucide package icon. Article `31` required no data update; the editor now exposes a clean `编辑` / `前台效果` switch backed by the existing shared admin runtime preview, with the editable DOM kept as the sole save source.
 
@@ -76,7 +95,9 @@
 
 ## Follow-up
 
-- User reviews `docs/superpowers/specs/2026-07-19-admin-sidebar-initial-expansion-design.md`; after approval, write the implementation plan and implement the sidebar behavior with focused TDD. Login and article acceptance remain available on the running stack.
+- User re-accepts the sidebar, restored login page, and article public-effect
+  preview, then chooses branch integration disposition. No implementation work
+  remains unless acceptance finds another issue.
 
 ## Commits
 
