@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -59,7 +59,9 @@
 - C5 observed audio 7/10 RED then 10/10 GREEN and items 11/13 RED then 13/13 GREEN; initial focused 23/23, admin typecheck, diff check, and specification review passed. Quality review found submission/stale-edit races and a source-only whitelist test. The first repair observed 13/15 RED then 15/15 GREEN and combined 25/25; the second observed 15/18 RED then 18/18 GREEN and combined 28/28, preserving default store callers while blocking strict edit failures. Final fresh specification and quality reviews report no findings.
 - D1 initial implementation observed the expected missing-class RED, then focused 5/5 GREEN, seven successful compile checkpoints, and 35-owner structural scans. Specification review found five former `isBlank`/`hasText` variants are not equivalent for Unicode-only whitespace and seven `firstNonBlank` bodies were textually modified; repair and re-review remain pending.
 - D1 repair observed four expected missing-method RED compile errors, then focused 10/10 GREEN and normal-JVM compilation success. It preserves 24 Unicode-blank calls in five owners and restores seven firstNonBlank bodies byte-for-byte; final fresh specification and quality reviews report no findings.
-- Not run: C5-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
+- Merge closeout reran the complete Admin gate successfully: typecheck, 402/402
+  unit tests, and production build. Backend `mvn -DskipTests test-compile`
+  completed with `BUILD SUCCESS`.
 
 ## Result
 
@@ -95,12 +97,17 @@
 
 ## Follow-up
 
-- User re-accepts the sidebar, restored login page, and article public-effect
-  preview, then chooses branch integration disposition. No implementation work
-  remains unless acceptance finds another issue.
+- User authorized local integration into `main`. No implementation or acceptance
+  follow-up remains. Merge, push, and worktree cleanup remain separate actions;
+  this closeout performs only the authorized local merge. Commit SHA pending in
+  final response.
 
 ## Commits
 
+- `0f906c9a` — completed sidebar implementation-plan evidence after runtime acceptance.
+- `64b45947` — initialized only the entry route's sidebar section and preserved later manual toggles.
+- `21d15da6` — defined the approved sidebar initial-expansion behavior.
+- `8485aed8` — restored the Git-authoritative login style and added the article public-effect preview.
 - `9fd5260` — rebased plan and active traceability baseline.
 - `cd800b0` — A2 missing-claims HTTP 401 implementation.
 - `7b6d071` — representative null-user-id and wrong-type admin guard regression tests; quality re-review approved.
