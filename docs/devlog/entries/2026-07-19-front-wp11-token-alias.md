@@ -54,7 +54,7 @@
 - `6b39591a` — repair the execution plan.
 - `8e925237` — lock theme token ownership.
 - `509d5d04` — add the theme token parity harness.
-- `commit SHA pending in final response` — centralize theme token aliases and close WP-11.1.
+- `257bde19` — centralize theme token aliases and close WP-11.1.
 
 ## Optional: Multi-Agent Coordination
 

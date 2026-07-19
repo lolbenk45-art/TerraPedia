@@ -109,7 +109,7 @@
 - `88d53e8` — harden present-null and shared-resolver contract coverage.
 - `97b956d2` — restore armor catalog/detail client navigation and record the
   integrated runtime evidence.
-- `commit SHA pending in final response` — close the WP-10 local handoff.
+- `34a7edb3` — close the WP-10 local handoff.
 
 ## Optional: Cross-Review
 
