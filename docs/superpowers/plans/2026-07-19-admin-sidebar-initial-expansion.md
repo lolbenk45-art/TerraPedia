@@ -107,6 +107,6 @@ Run `git diff --check`, `git status --short`, and `git diff --cached --stat`; ex
 git commit -m "feat(admin): initialize active sidebar section"
 ```
 
-- [ ] **Step 5: Preserve acceptance environment**
+- [x] **Step 5: Preserve acceptance environment**
 
 Verify the worktree is clean and ports `13010`, `15183`, and `18197` remain available. Do not merge, push, or clean the worktree.
