@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -50,7 +50,7 @@
 - Completed: D4 reviewStatus filtering with blank-as-no-filter semantics and admin comment-count N+1 removal with final specification and quality approval.
 - Completed: D5 NPC shop-entry conditions cascade coverage with final specification and quality approval.
 - Completed: D6 admin formatting/status/CSS consolidation and rule-bounded CSS contracts with final specification and quality approval.
-- Not completed: authenticated runtime screenshots and user merge decision.
+- Completed: authenticated 1280px runtime screenshots for login/query/items/users/categories/classification-audit, stable-state console/network checks, and local stack shutdown.
 
 ## Residual Risks
 
@@ -64,7 +64,7 @@
 
 ## Follow-up
 
-- Runtime screenshot owner: coordinator after explicit service-lifecycle authorization; then user decides merge disposition.
+- User chooses branch integration disposition; no implementation or acceptance work remains.
 
 ## Commits
 
@@ -167,6 +167,12 @@
 - D4 review: specification review confirmed allow-null reviewStatus normalization, parameterized mapper condition, unchanged commentCount SQL, and removed N+1 surfaces. Final quality review found no Critical/Important/Minor issue: sort/pagination and response shape remain intact, invalid values retain HTTP 400, and actual comment workflows remain. Coordinator reran backend 62/62, admin typecheck, three front contracts 33/33, and diff check; D5 may proceed.
 - D6 review: specification review approved the exact six/two/two consolidation scope and protected 2-digit variants. Quality review found one Minor: CSS contract regexes can cross rule boundaries via greedy `[\s\S]*`; production behavior is correct. Disposition: repair tests with rule-bounded matching and run fresh quality re-review.
 - D6 final review: `fda1484c` bounds all six CSS assertions to their rule bodies; mutation evidence proved property loss fails. Fresh quality review found no remaining issues. Coordinator reran admin typecheck and 400/400 unit tests. The backend final gate ran 305 tests and reproduced only the two D1/main baselines: audio stream bytes and Wiki Mockito unnecessary stubbing.
+
+### 2026-07-19 16:33
+
+- Change: Closed the A2-D6 batch after authenticated runtime acceptance.
+- Reason: all implementation/review gates are complete, six required pages render without horizontal overflow or header/main overlap, and stable-state browser probes report no console errors or failed requests.
+- Evidence: screenshots and metrics under ignored `reports/admin-p1-p2/final-visual/`; login/query/items/users/categories/classification-audit HTTP 200 at 1280x900; admin 400/400 plus typecheck; backend 305 with only two main-reproduced baselines; target stack ports 18197/15183/13010 stopped. Commit SHA pending in final response.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.

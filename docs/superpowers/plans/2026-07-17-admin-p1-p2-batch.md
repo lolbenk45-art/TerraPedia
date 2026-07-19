@@ -485,7 +485,7 @@ git commit -m "refactor(admin): consolidate formatDateTime and coin-chip styles"
 
 - [x] 后端: `mvn test -Dtest='Admin*Test,Auth*Test,*Article*'`（305 项仅复现 2 个已记录 main 基线失败，无新增失败）
 - [x] 管理端: `pnpm run check` + `pnpm run test:unit` 全绿（400/400）
-- [ ] 重截关键页截图对比（query/items/users/login/categories/classification-audit）
+- [x] 重截关键页截图对比（query/items/users/login/categories/classification-audit）
 - [ ] devlog 记录 + 决定是否合 main（用户裁决）
 
 **明确不做清单（转后续）**: 10 字段制作站协议 composable（stations 重构时一并做）、legacy API 410 退役、DOMPurify 对齐、[type].vue 拆分、AdminItemRarityControllerTest 补齐、firstNonBlank 语义组收编、window.prompt 换 Modal。

@@ -1,17 +1,10 @@
 # Current Devlog
 
-Last updated: 2026-07-19 16:23 CST by Codex
+Last updated: 2026-07-19 16:33 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
 ## Open Work
-
-- Admin P1+P2 audit follow-up is active on branch `fix/admin-p1-p2-batch`
-  in worktree `/home/lolben/.config/superpowers/worktrees/TerraPedia/admin-p1-p2-batch`.
-  Owner/coordinator: `/root`; parent entry:
-  `entries/2026-07-18-admin-p1-p2-batch.md`; status: `active`; dependencies:
-  P0 B already merged, A1 verified and skipped; contract handoff: execute A2-D6
-  serially with per-task spec and quality review.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
@@ -44,7 +37,7 @@ Active branch: `fix/admin-p1-p2-batch`
   and quality-approved after optional reviewStatus filtering and comment-count N+1
   removal. D5 is specification- and quality-approved after NPC shop condition
   cascade coverage. D6 is specification- and quality-approved after the CSS
-  contract matcher repair. All A2-D6 implementation tasks are complete.
+  contract matcher repair. All A2-D6 tasks and runtime acceptance are complete.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -133,8 +126,8 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan. Code is complete;
-  authenticated runtime screenshots and the user's merge decision remain.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan. The batch is
+  closed; the user chooses whether to merge, push/PR, keep, or discard the branch.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -145,8 +138,8 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Current Risks
 
 - D6 is committed at `513ab4db` with test repair `fda1484c`; final admin gates
-  pass 400/400. Runtime screenshots remain pending under the explicit no-service-
-  lifecycle boundary. C4's focused CSS evaluator intentionally supports only the
+  pass 400/400. Runtime screenshots pass at six 1280px routes with stable-state
+  zero console/network errors and no page overflow. C4's focused CSS evaluator intentionally supports only the
   repository's current syntax subset and does not model future decorative
   background layering.
 
@@ -161,6 +154,11 @@ Active branch: `fix/admin-p1-p2-batch`
   data; their route and fail-closed contracts remain the acceptance boundary.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-18-admin-p1-p2-batch.md`
+  - branch: `fix/admin-p1-p2-batch`
+  - status: `closed`
+  - commit: pending in final response
 
 - `docs/devlog/entries/2026-07-17-admin-p0-security-batch.md`
   - branch: `dev/post-merge-acceptance`
