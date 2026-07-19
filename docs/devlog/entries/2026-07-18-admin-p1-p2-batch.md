@@ -15,6 +15,12 @@
 
 ## Direction / Decisions
 
+- 2026-07-19 sidebar acceptance follow-up: on each fresh admin layout mount,
+  collapse every menu group except the current route's group. After this initial
+  setup, manual toggles are authoritative and route changes must not automatically
+  expand or collapse groups. Dashboard, login, article, and sidebar styling are
+  out of scope.
+
 - 2026-07-19 user acceptance reopened the branch for two findings. Login styling must be restored exactly from `3a1d1780^` rather than redesigned; keep the later Lucide icon. Article `31` has complete stored HTML, so no data migration is allowed. Add an edit/public-effect switch that reuses `AdminArticleRuntimePreview` without serializing runtime graph DOM.
 
 - Chosen approach: Execute A2-D6 as 14 serialized tasks, each with focused TDD where behavior changes, a focused commit, specification review, and code-quality review.
@@ -70,7 +76,7 @@
 
 ## Follow-up
 
-- User re-accepts the restored login page and article public-effect preview, then chooses branch integration disposition. No implementation work remains unless acceptance finds another issue.
+- User reviews `docs/superpowers/specs/2026-07-19-admin-sidebar-initial-expansion-design.md`; after approval, write the implementation plan and implement the sidebar behavior with focused TDD. Login and article acceptance remain available on the running stack.
 
 ## Commits
 

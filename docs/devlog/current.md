@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 22:25 CST by Codex
+Last updated: 2026-07-19 22:51 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -8,12 +8,13 @@ Active branch: `fix/admin-p1-p2-batch`
 
 - Admin P1+P2 user acceptance follow-up is active on branch
   `fix/admin-p1-p2-batch` in this worktree. Scope is limited to restoring the
-  Git-authoritative login styling and adding a non-destructive public-effect
-  preview to the admin article editor. Implementation and fresh gates are
-  complete and the three acceptance services are responding; awaiting user
-  re-acceptance. See
+  Git-authoritative login styling, adding a non-destructive public-effect
+  preview to the admin article editor, and the newly approved sidebar initial
+  expansion behavior. Login/article implementation and fresh gates are complete;
+  sidebar design is approved and awaiting written-spec review before
+  implementation. See
   `docs/devlog/entries/2026-07-18-admin-p1-p2-batch.md` and
-  `docs/superpowers/plans/2026-07-19-admin-acceptance-followup.md`.
+  `docs/superpowers/specs/2026-07-19-admin-sidebar-initial-expansion-design.md`.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
