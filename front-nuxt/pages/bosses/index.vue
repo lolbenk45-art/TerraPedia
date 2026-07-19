@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicBosses } from '~/composables/usePublicBosses'
 import type { PublicBossQuery } from '~/types/public-api'
 
@@ -115,8 +117,6 @@ watch(bossTotalPages, (pages) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -253,7 +253,4 @@ watch(bossTotalPages, (pages) => {
         @page-change="goToBossPage"
       />
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'home-screen' })
+
 const {
-  itemTotalLabel,
   hero,
   explorationNodes,
   featuredRoute,
@@ -26,8 +27,6 @@ useHead({
 </script>
 
 <template>
-  <section class="screen home-screen active">
-    <TerraNav />
 
     <main class="home-main">
       <HomeHero v-bind="hero" />
@@ -39,9 +38,6 @@ useHead({
           <HomeBossProgression :route="bossRoute" />
           <HomeCodexBand :codex="codex" />
         </div>
-
-        <TerraFooter :item-total-label="itemTotalLabel" />
       </section>
     </main>
-  </section>
 </template>

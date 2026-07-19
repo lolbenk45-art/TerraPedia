@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicProjectiles } from '~/composables/usePublicProjectiles'
 import type { PublicProjectileQuery } from '~/types/public-api'
 
@@ -166,8 +168,6 @@ watch(projectileTotalPages, (pages) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -342,7 +342,4 @@ watch(projectileTotalPages, (pages) => {
         @page-size-change="setProjectilePageSize"
       />
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

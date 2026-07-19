@@ -27,9 +27,7 @@ const goHome = () => clearError({ redirect: '/' })
 </script>
 
 <template>
-  <section class="screen error-screen active">
-    <TerraNav />
-
+  <NuxtLayout name="default" public-screen-class="error-screen">
     <main class="error-layout">
       <section class="error-hero" aria-labelledby="error-page-title">
         <div class="error-status-card" aria-hidden="true">
@@ -60,7 +58,5 @@ const goHome = () => clearError({ redirect: '/' })
         </a>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
+  </NuxtLayout>
 </template>

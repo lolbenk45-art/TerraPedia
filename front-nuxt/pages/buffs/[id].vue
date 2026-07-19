@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicBuffDetail } from '~/composables/usePublicBuffDetail'
 import type { PublicBuffFactSummary } from '~/types/public-api'
 
@@ -126,8 +128,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main class="support-layout detail-support-layout" :aria-busy="buffDetailVisualLoading">
@@ -229,9 +229,6 @@ onMounted(() => {
         </div>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

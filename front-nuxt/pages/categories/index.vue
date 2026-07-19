@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 const { data: categoryNavigation, pending, error, refresh } = await usePublicCategoryNavigation()
 
 const navigationEntries = computed(() => categoryNavigation.value ?? [])
@@ -26,8 +28,6 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -118,7 +118,4 @@ useSeoMeta({
         </article>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

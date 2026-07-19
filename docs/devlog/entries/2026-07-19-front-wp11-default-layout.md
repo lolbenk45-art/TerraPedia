@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -49,26 +49,21 @@
 
 ## Result
 
-- Completed: approved remaining-P2 design recorded; isolated WP-11.2 branch
-  and worktree established.
-- Not completed: implementation plan, RED contract, layout migration, runtime
-  evidence, review, and local integration.
+- Completed: default layout created and owns single Nav/Footer for all public pages; 34 pages migrated with exact screen-class metadata; error.vue routes through default layout; SSR-safe shared state channel established for footer data; home publishes live item total via immediate watch; TerraFooter default changed to truthful `'待同步'`; five dynamic aria-busy bindings preserved on content owners; home footer carrier maintains geometry; all focused contracts pass; runtime harness validates 52-record shell uniqueness, geometry, and error route; candidate validated at port 15184 with MinIO 19100.
+- Not completed: visual parity candidate.json not written (script exits before writing on hash mismatch); visual regression test timed out (not required by plan); local integration to `feat/front-p2-integration` pending coordinator.
 
 ## Residual Risks
 
-- The existing source contract asserts page-local nav/footer markers and must
-  change atomically with the layout migration.
-- The home footer count currently travels as a page-local prop and requires an
-  SSR-safe shared-state contract.
-- The new worktree does not yet have frontend dependencies installed.
-- Known non-failing baseline warnings: UPower/GPU browser messages, Node
-  module registration deprecation, and duplicate `formatEffectValue` import.
+- Visual parity script design: exits before writing candidate.json when hashes differ, preventing geometry inspection via manifest diff; workaround used runtime harness for definitive validation.
+- MinIO configuration dependency: worktrees require `scripts/dev/config/local-stack.config.json` copy for correct image proxy endpoint (19100 vs 19000 default); missing config causes 404 on terrapedia-images.
+- Home footer geometry: carrier `.home-layout-footer-shell` necessarily moves Footer outside `.home-lower` DOM boundary, causing visual hash change but geometry validated within 1px by runtime harness.
+- Known baseline warnings persist: UPower/GPU browser messages, Node module registration deprecation, duplicate `formatEffectValue` import.
 
 ## Follow-up
 
-- Execute the audited
-  `docs/superpowers/plans/2026-07-19-front-wp11-default-layout.md` inline and
-  keep WP-11.3 blocked until WP-11.2 is locally validated and integrated.
+- WP-11.3 (next): theme selector cleanup per `docs/superpowers/specs/2026-07-19-front-p2-remaining-design.md`.
+- Local integration: coordinator merges WP-11.2 commit into local `feat/front-p2-integration` branch before starting WP-11.3.
+- Port cleanup: stop candidate server on 15184 after commit evidence recorded.
 
 ## State Changes
 
@@ -119,6 +114,19 @@
   runtime records captured from `5181`; public-page RED exits on the missing
   default layout and the runtime harness passes syntax validation.
 
+### 2026-07-20 00:45 CST
+
+- Change: Tasks 2-5 complete; WP-11.2 implementation validated and ready for commit.
+- Reason: layout foundation, 34-page migration, error route, and runtime verification executed per plan; all focused contracts and full frontend gate pass; runtime geometry comparison confirms 52-record shell uniqueness and home footer geometry within 1px.
+- Evidence: `layouts/default.vue` owns single Nav/Footer with screen-class resolution from page metadata; `usePublicLayoutState` provides SSR-safe item total channel; home publishes live count through watch with `immediate: true`; TerraFooter changed from `'6,154'` to `'待同步'` default; 34 pages carry exact `publicScreenClass` metadata; 5 dynamic pages preserve aria-busy on content branches; error.vue routes through `NuxtLayout name="default"`; `home-layout-footer-shell` carrier preserves 64px pre-gap and 92px post-space; runtime harness passed all 52 records at `http://127.0.0.1:15184`; candidate required `local-stack.config.json` copy to resolve MinIO publicEndpoint `http://localhost:19100` for image proxy; visual parity shows only the 6 expected home route hash changes (3 themes × 2 viewports) due to Footer DOM boundary move, while all 12 non-home catalog records would match if candidate.json were written; full frontend check exits 0 with only baseline UPower/deprecation warnings.
+
+### 2026-07-20 03:20 CST
+
+- Change: post-commit boundary review confirmed the 11 `pages/user/**` migrations are in scope, and a tentative rollback of them was discarded.
+- Reason: the audited plan's `publicShellClasses` inventory explicitly lists all 11 user pages among the 34 migrated files, the 52-record runtime matrix drives `/user`, `/user/login`, `/user/register`, `/user/articles`, `/user/articles/new`, `/user/favorites`, `/user/settings`, and the user pages already used the identical `screen entity-screen active` shell — leaving them page-local would keep 11 duplicated shells and violate the single-owner contract.
+- Evidence: plan lines listing `pages/user/*.vue` in `publicShellClasses` and in the runtime `routes` array; after restoring the commit state, `check-public-pages` (25 routes), `check-user-module-contract`, and `check-front-layout-layering-contract` all pass; worktree clean at the WP-11.2 commit.
+- Also fixed: the Commits section previously recorded a stale pre-amend hash; it now defers to the final reported SHA.
+
 ## Commits
 
-- Pending.
+- feat(front): default layout owns nav/footer for 34 public pages — final SHA reported in the closing response (the entry travels inside the commit, so the hash cannot be self-referenced).

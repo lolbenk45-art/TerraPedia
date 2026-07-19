@@ -2,7 +2,7 @@
 withDefaults(defineProps<{
   itemTotalLabel?: string
 }>(), {
-  itemTotalLabel: '6,154',
+  itemTotalLabel: '待同步',
 })
 </script>
 

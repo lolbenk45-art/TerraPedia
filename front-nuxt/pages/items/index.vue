@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'catalog-screen' })
+
 import { usePublicItems } from '~/composables/usePublicItems'
 import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/public-api'
 import { resolvePublicCategoryNavigationSelection } from '~/utils/publicCategoryNavigation'
@@ -509,8 +511,6 @@ watch(selectedPageSize, (pageSize) => {
 </script>
 
 <template>
-  <section class="screen catalog-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head page-head--command">
@@ -679,7 +679,4 @@ watch(selectedPageSize, (pageSize) => {
         </div>
       </div>
     </section>
-
-    <TerraFooter />
-  </section>
 </template>

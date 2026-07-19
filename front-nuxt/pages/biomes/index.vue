@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicBiomes } from '~/composables/usePublicBiomes'
 
 useSeoMeta({
@@ -145,8 +147,6 @@ watch(biomeGroupOptions, (options) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head biome-environment-hero">
@@ -366,7 +366,4 @@ watch(biomeGroupOptions, (options) => {
         </button>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

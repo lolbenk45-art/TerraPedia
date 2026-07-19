@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import type { PublicUserProfile } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
@@ -53,8 +55,6 @@ function publicArticlePath(slug?: string | null) {
 </script>
 
 <template>
-  <section class="screen entity-screen active" :aria-busy="loading">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -68,7 +68,7 @@ function publicArticlePath(slug?: string | null) {
       </div>
     </div>
 
-    <main v-if="loading" class="user-layout">
+  <main v-if="loading" class="user-layout" :aria-busy="loading">
       <section class="user-hero support-panel account-state-loading">
         <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
         <div>
@@ -79,7 +79,7 @@ function publicArticlePath(slug?: string | null) {
       </section>
     </main>
 
-    <main v-else-if="notFound" class="user-layout">
+  <main v-else-if="notFound" class="user-layout" :aria-busy="loading">
       <section class="support-panel user-empty-state">
         <b>没有找到这个公开作者页</b>
         <span>该用户不存在、未启用，或当前没有可公开的资料。</span>
@@ -87,7 +87,7 @@ function publicArticlePath(slug?: string | null) {
       </section>
     </main>
 
-    <main v-else-if="profile" class="user-layout">
+  <main v-else-if="profile" class="user-layout" :aria-busy="loading">
       <section class="user-hero support-panel account-state-authenticated">
         <div class="user-avatar public-user-avatar">
           <img v-if="profileAvatarUrl" :src="profileAvatarUrl" :alt="`${displayName} 的头像`" />
@@ -144,9 +144,6 @@ function publicArticlePath(slug?: string | null) {
         </aside>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

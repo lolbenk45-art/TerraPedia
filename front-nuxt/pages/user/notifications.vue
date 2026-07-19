@@ -2,7 +2,7 @@
 import type { UserNotification } from '~/types/public-api'
 import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
-definePageMeta({ requiresUserAuth: true })
+definePageMeta({ requiresUserAuth: true, publicScreenClass: 'entity-screen' })
 
 const notificationsStore = useUserNotificationsStore()
 const loadError = ref('')
@@ -53,8 +53,6 @@ await loadNotifications()
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -153,9 +151,6 @@ await loadNotifications()
         <button class="favorite-page-button" type="button" :disabled="currentPage >= totalPages || notificationsStore.loading" @click="loadNotifications(currentPage + 1)">下一页</button>
       </nav>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

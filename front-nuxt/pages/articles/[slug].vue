@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'article-screen' })
+
 import DOMPurify from 'dompurify'
 import type { ApiResponse, ContentReferenceResolveInput, NormalizedContentReference, PublicItemRecipeTree, PublicItemRecipeTreeNode, PublicItemRecipeTreeVariant, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
@@ -1194,11 +1196,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="screen article-screen active" :aria-busy="articleLoading">
-    <TerraNav />
     <TerraBreadcrumb />
 
-    <main v-if="articleLoading" class="article-detail-layout article-detail-loading" aria-live="polite">
+  <main v-if="articleLoading" class="article-detail-layout article-detail-loading" aria-live="polite" :aria-busy="articleLoading">
       <div class="article-detail-grid">
         <section class="article-body-panel article-detail-loading-body">
           <header class="article-inline-header">
@@ -1235,7 +1235,7 @@ onMounted(() => {
       </div>
     </main>
 
-    <main v-else-if="notFoundState" class="article-detail-layout">
+  <main v-else-if="notFoundState" class="article-detail-layout" :aria-busy="articleLoading">
       <article class="article-detail-hero">
         <span class="eyebrow">资料手札 · 未找到</span>
         <h1>没有找到这篇文章</h1>
@@ -1247,7 +1247,7 @@ onMounted(() => {
       </article>
     </main>
 
-    <main v-else-if="article" class="article-detail-layout">
+  <main v-else-if="article" class="article-detail-layout" :aria-busy="articleLoading">
       <div class="article-detail-grid">
         <section class="article-body-panel">
           <header class="article-inline-header">
@@ -1373,9 +1373,6 @@ onMounted(() => {
         </aside>
       </div>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

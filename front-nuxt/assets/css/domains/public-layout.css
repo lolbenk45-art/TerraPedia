@@ -1,0 +1,28 @@
+.public-layout-footer-shell {
+  display: contents;
+}
+
+.home-screen .home-lower {
+  padding-bottom: 0;
+}
+
+.home-layout-footer-shell {
+  display: block;
+  overflow: hidden;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    var(--home-lower-bg);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: 64px 42px 92px;
+}
+
+.home-layout-footer-shell .camp-footer {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .home-layout-footer-shell {
+    padding: 28px 18px 54px;
+  }
+}

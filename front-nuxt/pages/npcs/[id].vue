@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import type {
   PublicNpcBuffRelation,
   PublicNpcLivingPreference,
@@ -491,11 +493,9 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'è
 </script>
 
 <template>
-  <section class="screen entity-screen active" :aria-busy="loadingState">
-    <TerraNav />
     <TerraBreadcrumb />
 
-    <main :class="['entity-detail-layout', detailLayout.detailShellClass]">
+  <main :class="['entity-detail-layout', detailLayout.detailShellClass]" :aria-busy="loadingState">
       <section v-if="loadingState" class="npc-detail-hero">
         <div class="npc-detail-portrait">
           <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
@@ -832,9 +832,6 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'è
         </section>
       </template>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

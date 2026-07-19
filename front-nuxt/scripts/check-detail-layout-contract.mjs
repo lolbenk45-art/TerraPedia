@@ -9,7 +9,7 @@ const read = (path) => readFileSync(file(path), 'utf8')
 const violations = []
 const detailPages = {
   'pages/items/[id].vue': [
-    String.raw`<div v-else :class="\['detail-layout', detailLayout\.detailShellClass\]">`,
+    String.raw`<div v-else :class="\['detail-layout', detailLayout\.detailShellClass\]"`,
     String.raw`:class="\['detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass\]"`,
     String.raw`:class="\['detail-module dark-card item-recipe-summary-module', detailLayout\.detailModuleClass\]"`,
     String.raw`:class="\['detail-module dark-card item-source-module', detailLayout\.detailModuleClass\]"`,

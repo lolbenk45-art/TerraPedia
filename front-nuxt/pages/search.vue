@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { fetchPublicItems } from '~/composables/usePublicItems'
 import type { CatalogItem, PublicItemsResult } from '~/types/public-api'
 
@@ -81,8 +83,6 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -264,7 +264,4 @@ useSeoMeta({
         </a>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

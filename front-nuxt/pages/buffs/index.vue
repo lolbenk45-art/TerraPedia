@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicBuffs } from '~/composables/usePublicBuffs'
 import type { PublicBuffQuery } from '~/types/public-api'
 
@@ -90,8 +92,6 @@ watch(buffTotalPages, (pages) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -199,7 +199,4 @@ watch(buffTotalPages, (pages) => {
         @page-change="goToBuffPage"
       />
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

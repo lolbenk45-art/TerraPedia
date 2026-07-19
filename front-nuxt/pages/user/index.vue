@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import type { UserReadingHistory } from '~/types/public-api'
 
 const authStore = useUserAuthStore()
@@ -44,8 +46,6 @@ const removeHistoryEntry = async (entry: UserReadingHistory) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -175,9 +175,6 @@ const removeHistoryEntry = async (entry: UserReadingHistory) => {
         </article>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

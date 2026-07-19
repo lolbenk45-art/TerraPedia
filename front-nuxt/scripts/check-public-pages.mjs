@@ -1276,7 +1276,7 @@ for (const path of scanFiles) {
 
     for (const forbiddenMarker of [
       'Page not found',
-      'Nuxt',
+      'Nuxt Error',
       'Stack trace',
       'statusMessage',
     ]) {
@@ -1600,10 +1600,6 @@ for (const path of scanFiles) {
 
     if (homeAuditContent.includes('195bfda5955641b5bf340322fdd26eba.png')) {
       violations.push(`${path}: home page must not use the Iron Pickaxe placeholder image in showcase sections`)
-    }
-
-    if (!homeDataContent.includes('publicLayoutItemTotalLabel.value = itemTotalLabel.value')) {
-      violations.push(`${path}: home data must publish the live item total to the shared public layout state`)
     }
 
     for (const term of forbiddenHomepageLaunchTerms) {
@@ -3464,7 +3460,7 @@ for (const path of scanFiles) {
   if (path === 'pages/search.vue') {
     for (const marker of [
       '<TerraBreadcrumb',
-      'class="screen entity-screen active"',
+      "publicScreenClass: 'entity-screen'",
       'class="support-layout discovery-search-page search-layout"',
       'class="search-command search-console support-panel"',
       'class="search-input-shell search-input-primary"',
@@ -3510,7 +3506,7 @@ for (const path of scanFiles) {
 
   if (path === 'pages/search-tool.vue') {
     for (const marker of [
-      'class="screen home-screen search-tool-screen active"',
+      "publicScreenClass: 'home-screen search-tool-screen'",
       'class="home-tool-hero"',
       'class="home-tool-search"',
       'class="home-suggestion-list"',
@@ -3880,6 +3876,15 @@ for (const path of scanFiles) {
   if (path === 'composables/usePublicLayoutState.ts') {
     for (const marker of ["useState<string>('public-layout-item-total-label'", "'待同步'", 'itemTotalLabel']) {
       if (!content.includes(marker)) violations.push(`${path}: missing SSR-safe layout state marker ${marker}`)
+    }
+  }
+
+  if (path === 'composables/useHomeData.ts') {
+    for (const marker of ['watch(', 'itemTotalLabel,', 'publicLayoutItemTotalLabel.value = value', '{ immediate: true }']) {
+      if (!content.includes(marker)) violations.push(`${path}: home data must publish the live item total via marker ${marker}`)
+    }
+    if (content.indexOf('usePublicLayoutState()') > content.indexOf('await Promise.all')) {
+      violations.push(`${path}: Nuxt layout state must be acquired before the first await preserves setup context`)
     }
   }
 

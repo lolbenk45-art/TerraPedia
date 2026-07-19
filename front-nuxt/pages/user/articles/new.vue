@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ requiresUserAuth: true })
+definePageMeta({ requiresUserAuth: true, publicScreenClass: 'entity-screen' })
 
 import UserArticleEditorLayout from '~/components/user/UserArticleEditorLayout.vue'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
@@ -151,8 +151,6 @@ const submitForAdminReview = async () => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div ref="compactHeadRef" class="article-compact-head" :class="{ 'article-compact-head--writing': writingModeEnabled }">
@@ -232,9 +230,6 @@ const submitForAdminReview = async () => {
         </UserArticleEditorLayout>
       </form>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped src="../../../assets/css/domains/user-article-editor-page.css"></style>

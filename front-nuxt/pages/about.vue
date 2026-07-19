@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 useSeoMeta({
   title: 'TerraPedia · 关于与资料来源',
   description: 'TerraPedia 是非官方 Terraria 中文资料站，说明公开资料边界、来源整理方式和权利声明。',
@@ -6,8 +8,6 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main class="about-layout">
@@ -60,7 +60,4 @@ useSeoMeta({
         </div>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

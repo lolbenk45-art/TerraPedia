@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ requiresUserAuth: true })
+definePageMeta({ requiresUserAuth: true, publicScreenClass: 'entity-screen' })
 
 const authStore = useUserAuthStore()
 const preferencesStore = useUserPreferencesStore()
@@ -119,8 +119,6 @@ const submitPreferences = async () => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -241,9 +239,6 @@ const submitPreferences = async () => {
         </form>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

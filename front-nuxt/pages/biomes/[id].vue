@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicBiomeDetail } from '~/composables/usePublicBiomeDetail'
 import type { PublicBiomeItemRelation, PublicBiomeItemSource, PublicBiomeNpcRelation, PublicBiomeResource } from '~/types/public-api'
 
@@ -203,8 +205,6 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb :items="biomeTrailItems" />
 
     <main class="support-layout detail-support-layout" :aria-busy="biomeDetailVisualLoading">
@@ -433,9 +433,6 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
         </section>
       </template>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

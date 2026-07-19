@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicBossDetail } from '~/composables/usePublicBossDetail'
 import {
   formatTerrariaPriceTokens,
@@ -258,8 +260,6 @@ const bossLootGroups = computed(() => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main :class="['boss-detail-shell', detailLayout.detailShellClass]" :aria-busy="bossDetailVisualLoading">
@@ -486,9 +486,6 @@ const bossLootGroups = computed(() => {
         </section>
       </template>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

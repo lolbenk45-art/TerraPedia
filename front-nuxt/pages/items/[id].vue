@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'detail-screen' })
+
 import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, toPriceNumber, type TerrariaPriceToken } from '~/utils/price'
@@ -875,13 +877,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="screen detail-screen active" :aria-busy="detailLoadingState">
-    <TerraNav />
     <TerraBreadcrumb />
 
-    <DetailItemDetailSkeleton v-if="detailLoadingState" />
+  <DetailItemDetailSkeleton v-if="detailLoadingState" :aria-busy="detailLoadingState" />
 
-    <div v-else-if="notFoundState" :class="['detail-layout', detailLayout.detailShellClass]">
+  <div v-else-if="notFoundState" :class="['detail-layout', detailLayout.detailShellClass]" :aria-busy="detailLoadingState">
       <section class="detail-hero dark-card">
         <div class="detail-main">
           <span class="eyebrow">物品 #{{ itemId || '未知' }} · {{ detailError ? '加载失败' : '未找到' }}</span>
@@ -897,7 +897,7 @@ onMounted(() => {
       </section>
     </div>
 
-    <div v-else :class="['detail-layout', detailLayout.detailShellClass]">
+  <div v-else :class="['detail-layout', detailLayout.detailShellClass]" :aria-busy="detailLoadingState">
       <section class="detail-hero dark-card">
         <div class="detail-icon-stage">
           <CommonPreviewImage
@@ -1199,9 +1199,6 @@ onMounted(() => {
         </aside>
       </div>
     </div>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { isUnknownCategorySlug } from '~/utils/publicCategoryNavigation'
 
 const route = useRoute()
@@ -29,8 +31,6 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main class="support-layout detail-support-layout">
@@ -108,7 +108,4 @@ useSeoMeta({
         <a href="/articles"><b>按攻略推进</b><span>阶段专题承接分类结果</span></a>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

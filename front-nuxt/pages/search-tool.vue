@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'home-screen search-tool-screen' })
+
 import type { ItemSuggestion } from '~/composables/usePublicItems'
 
 const route = useRoute()
@@ -85,8 +87,6 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="screen home-screen search-tool-screen active">
-    <TerraNav />
 
     <main class="home-main">
       <section class="home-tool-hero" aria-labelledby="search-title">
@@ -174,8 +174,5 @@ useSeoMeta({
           </NuxtLink>
         </article>
       </section>
-
-      <TerraFooter />
     </main>
-  </section>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ guestOnly: true })
+definePageMeta({ guestOnly: true, publicScreenClass: 'entity-screen' })
 
 const authStore = useUserAuthStore()
 
@@ -50,8 +50,6 @@ const submit = async () => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main class="user-auth-layout">
@@ -101,7 +99,4 @@ const submit = async () => {
         </div>
       </form>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

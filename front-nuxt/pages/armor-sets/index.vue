@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import { usePublicArmorSets } from '~/composables/usePublicArmorSets'
 import type { PublicArmorSetQuery } from '~/types/public-api'
 import { armorSummary, effectLabel, effectToneClass, shownEffects } from '~/utils/armorSetPresentation'
@@ -103,8 +105,6 @@ watch(armorTotalPages, (pages) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -221,7 +221,4 @@ watch(armorTotalPages, (pages) => {
         @page-change="goToArmorPage"
       />
     </main>
-
-    <TerraFooter />
-  </section>
 </template>

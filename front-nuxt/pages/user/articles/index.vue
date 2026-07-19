@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ requiresUserAuth: true })
+definePageMeta({ requiresUserAuth: true, publicScreenClass: 'entity-screen' })
 
 import type { UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
@@ -138,8 +138,6 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -337,9 +335,6 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
         </nav>
       </section>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

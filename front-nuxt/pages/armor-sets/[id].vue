@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import ArmorBuildMatrix from '~/components/detail/ArmorBuildMatrix.vue'
 import ArmorRecipeTable from '~/components/detail/ArmorRecipeTable.vue'
 import DetailArmorSetSkeleton from '~/components/detail/DetailArmorSetSkeleton.vue'
@@ -582,8 +584,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main class="support-layout detail-support-layout" :class="detailLayout.detailShellClass" :aria-busy="armorDetailVisualLoading">
@@ -701,9 +701,6 @@ onMounted(() => {
         </div>
       </div>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped src="../../assets/css/domains/armor-set-detail-page.css"></style>

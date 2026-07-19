@@ -433,6 +433,16 @@ const pageContracts = [
 for (const contract of pageContracts) {
   const content = assertFile(contract.path)
   for (const marker of contract.required) {
+    if (marker === 'definePageMeta({ guestOnly: true })') {
+      assertIncludes(contract.path, content, 'guestOnly: true', 'page contract must retain guestOnly metadata')
+      assertIncludes(contract.path, content, "publicScreenClass: 'entity-screen'", 'page contract must retain public layout screen metadata')
+      continue
+    }
+    if (marker === 'definePageMeta({ requiresUserAuth: true })') {
+      assertIncludes(contract.path, content, 'requiresUserAuth: true', 'page contract must retain user auth metadata')
+      assertIncludes(contract.path, content, "publicScreenClass: 'entity-screen'", 'page contract must retain public layout screen metadata')
+      continue
+    }
     assertIncludes(contract.path, content, marker, `page contract must include ${marker}`)
   }
   for (const marker of contract.forbidden) {
@@ -558,7 +568,8 @@ for (const selector of ['.article-compact-head', '.article-writing-toggle', '.ar
 }
 
 const commonUserArticleEditorPageOnlyMarkers = [
-  'definePageMeta({ requiresUserAuth: true })',
+  'requiresUserAuth: true',
+  "publicScreenClass: 'entity-screen'",
   'useUserAuthStore',
   'useUserArticleCoverCropper',
   'useArticleDraftGuard',

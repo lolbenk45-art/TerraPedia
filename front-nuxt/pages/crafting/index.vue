@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen crafting-screen' })
+
 import { useCraftingRecipeModel } from '~/composables/useCraftingRecipeModel'
 import { usePublicItems } from '~/composables/usePublicItems'
 import { usePublicRecipeTree } from '~/composables/usePublicRecipeTree'
@@ -175,8 +177,6 @@ const saveCurrentRoute = async () => {
 </script>
 
 <template>
-  <section class="screen entity-screen crafting-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <main class="tp-page-shell crafting-page" data-crafting-role="page" :aria-busy="recipePending">
@@ -354,9 +354,6 @@ const saveCurrentRoute = async () => {
         </section>
       </div>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

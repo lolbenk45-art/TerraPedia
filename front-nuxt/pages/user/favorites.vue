@@ -2,7 +2,7 @@
 import type { UserFavorite, UserFavoriteTypeFilter } from '~/types/public-api'
 import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
-definePageMeta({ requiresUserAuth: true })
+definePageMeta({ requiresUserAuth: true, publicScreenClass: 'entity-screen' })
 
 const favoritesStore = useUserFavoritesStore()
 const preferencesStore = useUserPreferencesStore()
@@ -57,8 +57,6 @@ await loadFavorites(preferencesStore.preferences.defaultFavoritesFilter)
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head">
@@ -143,9 +141,6 @@ await loadFavorites(preferencesStore.preferences.defaultFavoritesFilter)
         </button>
       </nav>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
 
 <style scoped>

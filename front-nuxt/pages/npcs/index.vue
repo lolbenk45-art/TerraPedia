@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ publicScreenClass: 'entity-screen' })
+
 import type { NpcCatalogCard, PublicNpcQuery } from '~/types/public-api'
 
 const route = useRoute()
@@ -303,8 +305,6 @@ watch(selectedPageSize, (pageSize) => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
-    <TerraNav />
     <TerraBreadcrumb />
 
     <div class="page-head entity-head page-head--command">
@@ -460,7 +460,4 @@ watch(selectedPageSize, (pageSize) => {
         <NuxtLink v-if="selectedNpc" class="primary-button full-button" :to="selectedNpc.detailPath">打开详情</NuxtLink>
       </aside>
     </main>
-
-    <TerraFooter />
-  </section>
 </template>
