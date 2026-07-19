@@ -172,7 +172,7 @@
 
 - Change: Closed the A2-D6 batch after authenticated runtime acceptance.
 - Reason: all implementation/review gates are complete, six required pages render without horizontal overflow or header/main overlap, and stable-state browser probes report no console errors or failed requests.
-- Evidence: screenshots and metrics under ignored `reports/admin-p1-p2/final-visual/`; login/query/items/users/categories/classification-audit HTTP 200 at 1280x900; admin 400/400 plus typecheck; backend 305 with only two main-reproduced baselines; target stack ports 18197/15183/13010 stopped. Commit SHA pending in final response.
+- Evidence: screenshots and metrics under ignored `reports/admin-p1-p2/final-visual/`; login/query/items/users/categories/classification-audit HTTP 200 at 1280x900; admin 400/400 plus typecheck; backend 305 with only two main-reproduced baselines; target stack ports 18197/15183/13010 stopped. Closeout commit: `9c28a6d4`.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
