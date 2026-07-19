@@ -3,10 +3,10 @@
   --tp-color-page-raised: var(--bg-2);
   --tp-color-surface: var(--panel);
   --tp-color-surface-strong: var(--panel-2);
-  --tp-color-surface-soft: var(--index-surface);
-  --tp-color-surface-raised: var(--index-surface-strong);
-  --tp-color-border: var(--index-line);
-  --tp-color-border-strong: var(--index-line-strong);
+  --tp-color-surface-soft: rgba(244,234,208,0.025);
+  --tp-color-surface-raised: rgba(244,234,208,0.035);
+  --tp-color-border: rgba(217, 185, 91, 0.18);
+  --tp-color-border-strong: rgba(217, 185, 91, 0.26);
   --tp-color-text: var(--text-main);
   --tp-color-text-strong: var(--text-strong);
   --tp-color-text-muted: var(--text-muted);
@@ -58,7 +58,7 @@
 
   --tp-shadow-surface: var(--shadow);
   --tp-shadow-raised: var(--shadow-heavy);
-  --tp-shadow-control: var(--button-control-shadow);
+  --tp-shadow-control: inset 0 1px 0 rgba(244, 234, 208, 0.035);
 
   --tp-z-base: 0;
   --tp-z-raised: 10;
@@ -108,6 +108,23 @@
   --tp-data-cell-gap: var(--tp-space-2);
   --tp-data-meta-font-size: 12px;
   --tp-data-meta-line-height: 1.45;
+}
+
+[data-theme="light"],
+[data-theme="morning-paper"] {
+  --tp-color-surface-soft: rgba(255, 250, 241, 0.72);
+  --tp-color-surface-raised: rgba(255, 250, 241, 0.92);
+  --tp-color-border: rgba(122, 90, 33, 0.2);
+  --tp-color-border-strong: rgba(122, 90, 33, 0.34);
+  --tp-shadow-control: inset 0 1px 0 rgba(255, 255, 255, 0.66), 0 8px 18px rgba(30, 28, 24, 0.05);
+}
+
+[data-theme="warm-slate"] {
+  --tp-color-surface-soft: rgba(255, 255, 255, 0.72);
+  --tp-color-surface-raised: rgba(255, 255, 255, 0.94);
+  --tp-color-border: rgba(41, 50, 65, 0.18);
+  --tp-color-border-strong: rgba(41, 50, 65, 0.3);
+  --tp-shadow-control: inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 8px 18px rgba(0, 0, 0, 0.045);
 }
 
 @media (max-width: 720px) {

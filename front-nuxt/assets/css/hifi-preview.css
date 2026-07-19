@@ -19,7 +19,7 @@
   --text-link: #ffd765;
   --text-on-accent: #172016;
   --gold: #d6b15a;
-  --accent-gold: var(--gold);
+  --accent-gold: var(--tp-color-accent);
   --gold-2: #f0cf74;
   --nav-unread-bg:
     linear-gradient(135deg, rgba(240, 207, 116, 0.18), rgba(214, 177, 90, 0.07)),
@@ -37,10 +37,10 @@
   --index-bg: #0a130d;
   --index-grid-x: linear-gradient(90deg, rgba(244,234,208,0.028) 1px, transparent 1px);
   --index-grid-y: linear-gradient(rgba(244,234,208,0.022) 1px, transparent 1px);
-  --index-line: rgba(217, 185, 91, 0.18);
-  --index-line-strong: rgba(217, 185, 91, 0.26);
-  --index-surface: rgba(244,234,208,0.025);
-  --index-surface-strong: rgba(244,234,208,0.035);
+  --index-line: var(--tp-color-border);
+  --index-line-strong: var(--tp-color-border-strong);
+  --index-surface: var(--tp-color-surface-soft);
+  --index-surface-strong: var(--tp-color-surface-raised);
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
   --shadow-heavy: 0 36px 90px rgba(0, 0, 0, 0.44);
   --control-radius: 8px;
@@ -68,7 +68,7 @@
   --button-control-fg: var(--text-muted);
   --button-control-hover-fg: var(--button-control-active-fg);
   --button-control-border: var(--index-line);
-  --button-control-shadow: inset 0 1px 0 rgba(244, 234, 208, 0.035);
+  --button-control-shadow: var(--tp-shadow-control);
   --button-control-active-bg: rgba(217, 185, 91, 0.14);
   --button-control-active-fg: #ffe8a1;
   --button-control-active-border: var(--index-line-strong);
@@ -128,10 +128,10 @@
   --index-bg: #f4eddc;
   --index-grid-x: linear-gradient(90deg, rgba(50, 64, 39, 0.07) 1px, transparent 1px);
   --index-grid-y: linear-gradient(rgba(50, 64, 39, 0.055) 1px, transparent 1px);
-  --index-line: rgba(94, 72, 28, 0.2);
-  --index-line-strong: rgba(94, 72, 28, 0.32);
-  --index-surface: rgba(255, 250, 236, 0.68);
-  --index-surface-strong: rgba(255, 247, 225, 0.88);
+  --index-line: var(--tp-color-border);
+  --index-line-strong: var(--tp-color-border-strong);
+  --index-surface: var(--tp-color-surface-soft);
+  --index-surface-strong: var(--tp-color-surface-raised);
   --shadow: 0 18px 45px rgba(63, 45, 18, 0.12);
   --shadow-heavy: 0 28px 70px rgba(63, 45, 18, 0.18);
   --button-primary-bg:
@@ -153,7 +153,7 @@
   --button-control-fg: rgba(24, 36, 22, 0.78);
   --button-control-hover-fg: rgba(24, 36, 22, 0.9);
   --button-control-border: rgba(24, 36, 22, 0.14);
-  --button-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  --button-control-shadow: var(--tp-shadow-control);
   --button-control-active-bg:
     linear-gradient(180deg, rgba(255, 250, 236, 0.92), rgba(247, 240, 220, 0.76)),
     linear-gradient(90deg, rgba(54, 88, 42, 0.14), rgba(108, 74, 16, 0.08));
@@ -194,10 +194,10 @@
   --index-bg: #f3ead8;
   --index-grid-x: linear-gradient(90deg, rgba(122, 90, 33, 0.045) 1px, transparent 1px);
   --index-grid-y: linear-gradient(rgba(122, 90, 33, 0.036) 1px, transparent 1px);
-  --index-line: rgba(122, 90, 33, 0.2);
-  --index-line-strong: rgba(122, 90, 33, 0.34);
-  --index-surface: rgba(255, 250, 241, 0.72);
-  --index-surface-strong: rgba(255, 250, 241, 0.92);
+  --index-line: var(--tp-color-border);
+  --index-line-strong: var(--tp-color-border-strong);
+  --index-surface: var(--tp-color-surface-soft);
+  --index-surface-strong: var(--tp-color-surface-raised);
   --shadow: 0 4px 16px rgba(30, 28, 24, 0.08);
   --shadow-heavy: 0 18px 42px rgba(30, 28, 24, 0.13);
   --button-primary-bg:
@@ -219,7 +219,7 @@
   --button-control-fg: rgba(26, 31, 24, 0.76);
   --button-control-hover-fg: rgba(26, 31, 24, 0.92);
   --button-control-border: rgba(122, 90, 33, 0.16);
-  --button-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66), 0 8px 18px rgba(30, 28, 24, 0.05);
+  --button-control-shadow: var(--tp-shadow-control);
   --button-control-active-bg:
     linear-gradient(180deg, rgba(255, 250, 241, 0.94), rgba(234, 220, 195, 0.78)),
     linear-gradient(90deg, rgba(122, 90, 33, 0.16), rgba(46, 92, 36, 0.1));
@@ -295,10 +295,10 @@
   --index-bg: #eef1f4;
   --index-grid-x: linear-gradient(90deg, rgba(41, 50, 65, 0.036) 1px, transparent 1px);
   --index-grid-y: linear-gradient(rgba(41, 50, 65, 0.03) 1px, transparent 1px);
-  --index-line: rgba(41, 50, 65, 0.18);
-  --index-line-strong: rgba(41, 50, 65, 0.3);
-  --index-surface: rgba(255, 255, 255, 0.72);
-  --index-surface-strong: rgba(255, 255, 255, 0.94);
+  --index-line: var(--tp-color-border);
+  --index-line-strong: var(--tp-color-border-strong);
+  --index-surface: var(--tp-color-surface-soft);
+  --index-surface-strong: var(--tp-color-surface-raised);
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   --shadow-heavy: 0 16px 36px rgba(0, 0, 0, 0.11);
   --button-primary-bg:
@@ -320,7 +320,7 @@
   --button-control-fg: rgba(29, 36, 48, 0.74);
   --button-control-hover-fg: rgba(29, 36, 48, 0.92);
   --button-control-border: rgba(41, 50, 65, 0.15);
-  --button-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 8px 18px rgba(0, 0, 0, 0.045);
+  --button-control-shadow: var(--tp-shadow-control);
   --button-control-active-bg:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(226, 231, 237, 0.82)),
     linear-gradient(90deg, rgba(41, 50, 65, 0.14), rgba(192, 122, 32, 0.08));

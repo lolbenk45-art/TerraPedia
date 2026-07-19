@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -29,27 +29,32 @@
 - Baseline completed before plan repair: `cd front-nuxt && pnpm install --frozen-lockfile`, `node scripts/check-visual-system-contract.mjs`, and `pnpm run check` all exited `0`.
 - Commands run: source/contract inspection before plan creation and two independent read-only plan reviews.
 - Results: the original one-file alias wording would cycle for border/surface/shadow tokens; revised two-file ownership preserves selector specificity. The original plan did not prove all values/blocks and named a screenshot harness that neither sets a theme nor compares images.
-- Not run: RED/GREEN ownership contract, dedicated theme-aware parity capture/comparison, and post-migration full frontend check.
+- Final validation (2026-07-19 CST): the GREEN ownership contract, four sentinel classes, old/current theme-aware parity, and post-migration full frontend check all ran successfully.
 - RED evidence (2026-07-19 01:16 CST): `cd front-nuxt && node scripts/check-visual-system-contract.mjs` exited `1` as intended after the ownership assertions were added. It reported missing root/light/warm semantic owner declarations and raw legacy hifi definitions; no parser/runtime error occurred. `git diff --check` exited `0`.
 
 ## Result
 
-- Completed: approved design and executable plan drafted; two independent reviews returned material plan findings.
-- Completed: repaired plan/spec re-review; selector ownership, runtime-theme terminology, commit preflight, visual parity acceptance, shell execution, and harness-evidence handoff are executable.
-- Not completed: documentation checkpoint, implementation, validation, and local commits.
+- Completed: semantic tokens own the six theme values and all 21 legacy declarations are compatibility aliases without consumer or layout changes.
+- Completed: the parity harness bounds screenshot/frame CDP calls by remaining time, emits hash/DOM diagnostics, defers complete-matrix publication, preserves prior evidence on failure, and requires three consecutive equal full-viewport hashes after font/image/geometry/compositor readiness.
+- Completed: old CSS at `509d5d04` captured 18/18 twice with `changed=0`; current CSS compared equal to that baseline 18/18 twice and its two candidate manifests also reported `changed=0`.
 
 ## Residual Risks
 
 - The data-audit branch remains blocked on an absent archival comparison database; this P2 branch is preview-only.
-- Screenshot validation requires a compatible local frontend/backend stack and must not be inferred from static contracts.
+- Screenshot evidence is local and ignored; it depends on the verified local runtime and is not a release or data-readiness claim.
 
 ## Follow-up
 
-- Complete WP-11.1 and create a separate plan for the next P2 package.
+- Start WP-11.2 or later only under a separate plan; this task does not unblock the data-audit or crawler-stability prerequisites.
 
 ## Commits
 
 - `aaa58cf7` — record approved design, executable plan, and preview-only task entry.
+- `4a86a96f` — record coordinated plan reviews.
+- `6b39591a` — repair the execution plan.
+- `8e925237` — lock theme token ownership.
+- `509d5d04` — add the theme token parity harness.
+- `commit SHA pending in final response` — centralize theme token aliases and close WP-11.1.
 
 ## Optional: Multi-Agent Coordination
 
@@ -104,6 +109,24 @@
 - Readiness spec review: `/root/wp11_parity_readiness_spec_review` approved with no findings and confirmed all path/body/theme/matrix requirements remain intact. `/root/wp11_parity_readiness_quality_review` is assigned final read-only quality review before runtime capture.
 - Readiness quality review: `/root/wp11_parity_readiness_quality_review` approved with no findings. It verified actual page-root selectors, busy semantics, route/geometry diagnostics, navigation/theme ordering, resource bounds, deferred artifacts, and atomic baseline writes. Runtime capture is unblocked.
 - Runtime evidence (2026-07-19 16:28 CST): coordinator started only the worktree Nuxt on `127.0.0.1:5181` and backend on `127.0.0.1:18088` using the existing local config, database proxy, and Redis. Flyway validated 54 migrations and reported schema version 54 current with no migration necessary. Public items and armor-set proxy requests returned HTTP 200. `THEME_TOKEN_PARITY_MODE=capture` then passed 18/18 records (3 themes x 3 routes x 2 viewports); the manifest had 18 unique keys and valid SHA-256 fields. Output remains local under `front-nuxt/test-results/theme-token-parity/` and is not staged. The parity harness and evidence are ready for a focused local commit.
+- Commit: `509d5d04` — `test(front): add theme token parity harness`.
+- Execution assignment: `/root/wp11_css_migration` is active after `509d5d04`; it may modify only `front-nuxt/assets/css/tokens.css` and `front-nuxt/assets/css/hifi-preview.css`, must turn the ownership contract GREEN without changing consumers/layouts, and must not edit docs or commit. Coordinator owns reviews, parity comparison, and closeout.
+- Execution result: `/root/wp11_css_migration` changed only the two assigned CSS files. The ownership contract moved from intended RED exit `1` to GREEN exit `0`; `pnpm run check` and `git diff --check` exited `0`, and tokens.css contains no migrated legacy declarations. Known non-failing Node/DBus/UPower and duplicate-import warnings remain. `/root/wp11_css_spec_review` is assigned read-only review before quality review.
+- CSS spec review: `/root/wp11_css_spec_review` approved with no findings. It confirmed exact raw semantic values/selectors, 21 hifi aliases (6 root plus 5 in each theme block), root-only accent alias, and zero consumer/layout/active-shadow/gold scope drift. `/root/wp11_css_quality_review` is assigned final read-only quality review.
+- CSS quality review: `/root/wp11_css_quality_review` approved with no findings. It confirmed acyclic semantic-to-compatibility direction, equal selector specificity with later token load order, identical moved values, and no maintained path that loads hifi without tokens. The 18-case parity comparison remains the final runtime acceptance step.
+- Runtime parity blocker (2026-07-19 17:18 CST): after restoring Nuxt on `127.0.0.1:5181` and the public backend on `127.0.0.1:18088`, both `/api/public/items` and `/api/public/armor-sets` returned HTTP 200. Two unchanged 18-case candidate runs then differed from each other in 11 keys. Paired evidence localizes large differences to the items transition/content mount and lazy/async armor images; the remaining home-mobile difference is confined to the right-edge scrollbar. The existing baseline and candidate timing are therefore non-deterministic and cannot prove or reject CSS equivalence. Commit remains blocked and this entry remains active.
+- Runtime blocker review: `/root/wp11_parity_diagnosis` completed a read-only review with no writes or service changes. It confirmed the current readiness checks only the outer settled container, does not wait for the actual grid, visible image load/decode, fonts, scroll normalization, or stable frames, and recommended repairing those boundaries without weakening exact SHA comparison. Coordinator accepted the finding and repaired Task 4 of the execution plan.
+- Repair ownership: coordinator owns the plan/devlog and service lifecycle. A serialized implementation agent may modify only `front-nuxt/scripts/check-theme-token-visual-parity.mjs`; specification review must approve before quality review. After both approve, coordinator will capture a fresh baseline from a detached read-only worktree at `509d5d04`, compare current CSS twice, run the focused/full gates, and only then close and commit WP-11.1.
+- Determinism plan review: `/root/wp11_determinism_plan_review` initially rejected missing staged script scope, abstract settling rules, single-run old baseline, unpreserved A/B manifests, and undefined detached-worktree dependency reuse. Coordinator repaired all findings with exact route selectors, bounded font/image/three-frame geometry settling, identical `--hide-scrollbars` policy, named failure probes, old/current double-run evidence, authoritative `run-old-a/baseline.json`, ignored dependency symlink checks, and complete staged paths. Final re-review approved with no remaining blockers; implementation is serialized to one script owner.
+- First rebuilt-baseline result (2026-07-19): the repaired harness captured 18/18 twice from detached old CSS commit `509d5d04`, but exact A/B comparison still changed 7 keys. Decoded pixels proved real raster differences rather than PNG metadata: dark home desktop changed 22,756 pixels only in `y=0..90` (the sticky/backdrop-filter nav outside `.home-main`), while morning items changed only 58 desktop and 25 mobile pixels across rendered edges. Armor was 6/6 stable. Three-frame content geometry therefore does not observe all full-viewport compositor state. Baseline promotion and current-CSS comparison remain blocked; the plan now requires two consecutive identical full-viewport screenshot hashes per record before artifact acceptance.
+- Pixel-stability plan review: `/root/wp11_pixel_plan_review` accepted exact consecutive PNG hashes and bounded execution but rejected one important artifact-integrity gap: a never-stable record could still overwrite partial compare evidence. Coordinator accepted the finding and repaired the plan to require a pixel-instability sentinel probe plus complete-matrix, same-parent temporary publication; any timeout or baseline mismatch must preserve existing baseline/candidate/capture/compare evidence byte-for-byte.
+- Pixel-stability spec review: `/root/wp11_pixel_spec_review` rejected two important implementation gaps. CDP screenshot/frame operations could time out through the generic command deadline without attempt-hash/DOM diagnostics or bounded remaining time; publication cleanup could fail after replacing evidence while rollback state was already treated as committed. Commit remains blocked. `/root/wp11_pixel_implementer` owns a serialized repair and must rerun all sentinel probes before spec re-review.
+- Pixel-stability repair (2026-07-19): CDP commands now accept a per-call timeout; screenshot and frame waits receive only the remaining pixel deadline, and either operation failure is wrapped with the accumulated `attemptHashes` plus DOM signature. Artifact publication still rolls back any pre-commit or replacement failure, while backup/temporary cleanup after both atomic replacements is best-effort and cannot turn already-published evidence into a false failure. See git for code-level diff details.
+- Sentinel evidence (2026-07-19): `node --check` and the focused source contract exited `0`; an unreachable loopback capture exited nonzero with its sentinel baseline unchanged and no capture directory; a selector-free loopback page exited nonzero with route, selector/content count, image-state, and geometry diagnostics; a deterministic three-color full-viewport animation exited nonzero through both deadline and bounded frame-command paths with `attemptHashes` plus DOM signature, while pre-existing baseline, candidate, capture, and compare artifacts remained byte-for-byte unchanged. `git diff --check` exited `0`.
+- Pixel-stability specification re-review: approved both Important repairs with no remaining finding. The remaining-time bound is applied at each screenshot/frame CDP boundary, all pixel failure paths preserve diagnostics, and publication cannot report failure after replacing old evidence solely because backup cleanup failed.
+- Pixel-stability quality review: approved with no findings. The change reuses the existing CDP timeout mechanism, keeps rollback strict before commit, isolates post-commit cleanup as best-effort, and does not weaken exact PNG hashes, matrix completeness, or deferred publication.
+- Final runtime evidence (2026-07-19 CST): WSL restarted during the first old-baseline run, terminating the services and shell; disk/inodes were healthy and the interrupted ignored output was discarded. The standard local-stack entrypoint was restored at front `5181` and backend `18088`; Flyway validated 54 migrations and reported schema version 54 current with no migration. Snap Chromium had a post-restart mount-namespace failure, so all fresh browser gates used the existing native Playwright Chromium via `CHROMIUM_BIN`. The old detached worktree ran on `5182` with the same backend and image origin, then was stopped and removed with its dependency symlink and temporary `.git/info/exclude` entry.
+- Final gate evidence (2026-07-19 CST): `node scripts/check-visual-system-contract.mjs`, `node --check scripts/check-theme-token-visual-parity.mjs`, `pnpm run check`, and `git diff --check` exited `0`. Known non-failing UPower, Node deprecation, and duplicate-import warnings remain unchanged. Generated parity artifacts stayed ignored and unstaged.
 - Serialization rule: both reviews → coordinator resolves/commits plan findings → repaired-plan re-review → one implementation agent → spec review → quality review → runtime validation agent.
 - Result merge owner: `/root`.
 - Cross-boundary validation: focused contract, full frontend check, and preview screenshot evidence.
