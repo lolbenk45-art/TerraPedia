@@ -60,8 +60,9 @@
 
 ## Follow-up
 
-- User reviews the written design, then the coordinator writes and audits the
-  WP-11.2 implementation plan before any production edit.
+- Execute the audited
+  `docs/superpowers/plans/2026-07-19-front-wp11-default-layout.md` inline and
+  keep WP-11.3 blocked until WP-11.2 is locally validated and integrated.
 
 ## State Changes
 
@@ -77,6 +78,31 @@
 - Evidence: revised
   `docs/superpowers/specs/2026-07-19-front-p2-remaining-design.md` and the two
   existing SQL-seed guard scripts.
+
+### 2026-07-19 22:35 CST
+
+- Change: WP-11.2 implementation is decomposed into RED shell ownership,
+  layout/state foundation, exact 34-page plus error migration, runtime parity,
+  and review/closeout tasks.
+- Reason: the homepage footer is nested inside the old home lower region,
+  five pages carry dynamic busy state on the removed root, and `error.vue`
+  bypasses normal page-layout activation; each needs an explicit contract.
+- Evidence:
+  `docs/superpowers/plans/2026-07-19-front-wp11-default-layout.md`.
+
+### 2026-07-19 23:05 CST
+
+- Change: plan audit repaired page-meta typing, five busy-state ownership
+  contracts, non-home footer wrapper transparency, error-layout completeness,
+  evidence preservation, and a 52-record runtime geometry harness.
+- Reason: source-only shell assertions could pass while page metadata failed
+  typecheck, busy semantics disappeared, ordinary footer geometry changed, or
+  the unavoidable home Footer DOM move exceeded the approved geometry
+  boundary.
+- Evidence: no Critical or Important plan defect remains; the execution-ready
+  smoke is the 25-route plus missing-route runtime matrix at two viewports, and
+  final validation combines focused contracts, full frontend check, 18-record
+  theme parity, runtime geometry comparison, and live/fallback footer probes.
 
 ## Commits
 
