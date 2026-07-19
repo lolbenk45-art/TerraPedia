@@ -97,10 +97,10 @@
 
 ## Follow-up
 
-- User authorized local integration into `main`. No implementation or acceptance
-  follow-up remains. Merge, push, and worktree cleanup remain separate actions;
-  this closeout performs only the authorized local merge. Commit SHA pending in
-  final response.
+- User-authorized local integration into `main` completed by fast-forward at
+  `b778e57f`. No implementation or acceptance follow-up remains. Push and
+  worktree/branch cleanup remain separate, unauthorized actions and were not
+  performed.
 
 ## Commits
 

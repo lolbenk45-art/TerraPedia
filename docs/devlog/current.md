@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 23:08 CST by Codex
+Last updated: 2026-07-19 23:12 CST by Codex
 
 Active branch: `main`
 
@@ -18,26 +18,9 @@ Active branch: `main`
 
 ## Active Focus
 
-- Continue the admin/backend P1+P2 batch from current local `main@218dfc0`.
-  Do not take code from archived branch `fix/admin-p0-batch`; A2 through C1
-  are approved. C2 is now specification- and quality-approved after the readable
-  responsive layout, brace-bounded contract, and 44px control-height repair.
-  C3 is now specification- and quality-approved after transactional page-state,
-  retry, and contraction-clamp behavior coverage. C4 is specification- and
-  quality-approved after accessible token contrast, semantic KPI gradients, and
-  executable light/dark color contracts. C5 implementation is specification-
-  approved. C5 is now specification- and quality-approved after exact audio status,
-  single-source cookie/URL handling, whitelist mapping, recipe request identity,
-  and failure-aware submission safety. D1 is specification- and quality-approved
-  after Unicode-blank preservation and firstNonBlank body restoration. D2 is
-  specification- and quality-approved after all eight controllers switched to
-  trusted-proxy resolution and seven repaired tests prove routed-request identity
-  plus exact downstream IP propagation. D3 is specification- and quality-approved
-  after category errors surface true 404/400/500 responses. D4 is specification-
-  and quality-approved after optional reviewStatus filtering and comment-count N+1
-  removal. D5 is specification- and quality-approved after NPC shop condition
-  cascade coverage. D6 is specification- and quality-approved after the CSS
-  contract matcher repair. All A2-D6 tasks and runtime acceptance are complete.
+- Admin/backend P1+P2 batch is closed and locally integrated into `main` at
+  `b778e57f`. The task branch and worktree are intentionally preserved; no push
+  or cleanup has been performed.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -125,9 +108,9 @@ Active branch: `main`
 
 ## Next Agent Should Start Here
 
-- For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan. The batch is
-  closed; the user chooses whether to merge, push/PR, keep, or discard the branch.
+- Admin P1+P2 requires no further action. Read
+  `entries/2026-07-18-admin-p1-p2-batch.md` only for historical context. The
+  local task branch/worktree remain available for acceptance follow-up.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
