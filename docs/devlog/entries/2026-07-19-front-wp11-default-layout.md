@@ -38,10 +38,14 @@
 
 ## Validation
 
-- Commands run: baseline public-page contract from `front-nuxt`.
-- Results: passed for 25 Nuxt routes on base `257bde19`.
-- Not run: dependency-backed full frontend check and runtime capture; these
-  belong to implementation after the plan is approved.
+- Commands run: baseline public-page/full frontend gates, 18-record theme
+  parity capture, 52-record default-layout runtime capture, and intentional
+  RED public-shell ownership contract.
+- Results: 25-route public contract and `pnpm run check` passed; both captures
+  passed against the WP-11.1 preview at `5181`; RED exited `1` because
+  `layouts/default.vue` is absent, while the new runtime harness syntax passed.
+- Not run: candidate GREEN/runtime comparison; production implementation has
+  not started.
 
 ## Result
 
@@ -57,6 +61,8 @@
 - The home footer count currently travels as a page-local prop and requires an
   SSR-safe shared-state contract.
 - The new worktree does not yet have frontend dependencies installed.
+- Known non-failing baseline warnings: UPower/GPU browser messages, Node
+  module registration deprecation, and duplicate `formatEffectValue` import.
 
 ## Follow-up
 
@@ -103,6 +109,15 @@
   smoke is the 25-route plus missing-route runtime matrix at two viewports, and
   final validation combines focused contracts, full frontend check, 18-record
   theme parity, runtime geometry comparison, and live/fallback footer probes.
+
+### 2026-07-19 23:20 CST
+
+- Change: Task 0 baseline and Task 1 RED ownership contract are complete.
+- Reason: TDD requires the old page-local shell to fail the new single-layout
+  ownership contract before any layout or page implementation is written.
+- Evidence: 25-route/full frontend gates green; 18 theme-parity records and 52
+  runtime records captured from `5181`; public-page RED exits on the missing
+  default layout and the runtime harness passes syntax validation.
 
 ## Commits
 

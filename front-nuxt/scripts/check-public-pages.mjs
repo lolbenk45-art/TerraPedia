@@ -232,6 +232,28 @@ const publicPageFiles = [
   ...requiredRoutes,
 ]
 
+const publicShellClasses = new Map([
+  ['pages/index.vue', 'home-screen'],
+  ['pages/search-tool.vue', 'home-screen search-tool-screen'],
+  ['pages/articles/index.vue', 'article-screen'],
+  ['pages/articles/[slug].vue', 'article-screen'],
+  ['pages/items/index.vue', 'catalog-screen'],
+  ['pages/items/[id].vue', 'detail-screen'],
+  ['pages/crafting/index.vue', 'entity-screen crafting-screen'],
+  ...[
+    ...publicPageFiles,
+    'pages/user/forgot-password.vue',
+    'pages/user/notifications.vue',
+    'pages/user/routes.vue',
+    'pages/user/articles/[id].vue',
+    'pages/users/[id].vue',
+  ].filter((path) => ![
+    'pages/index.vue', 'pages/search-tool.vue', 'pages/articles/index.vue',
+    'pages/articles/[slug].vue', 'pages/items/index.vue', 'pages/items/[id].vue',
+    'pages/crafting/index.vue',
+  ].includes(path)).map((path) => [path, 'entity-screen']),
+])
+
 const removedDesignPreviewFiles = [
   'pages/home-hero-options.vue',
   'assets/css/home-hero-options.css',
@@ -450,6 +472,13 @@ if (!existsSync(file('components/TerraFooter.vue'))) {
 if (!existsSync(file('components/TerraNav.vue'))) {
   console.error('Missing public navigation component:\n- components/TerraNav.vue')
   process.exit(1)
+}
+
+for (const path of ['layouts/default.vue', 'composables/usePublicLayoutState.ts']) {
+  if (!existsSync(file(path))) {
+    console.error(`Missing default public layout owner:\n- ${path}`)
+    process.exit(1)
+  }
 }
 
 if (!existsSync(file('error.vue'))) {
@@ -1016,6 +1045,8 @@ if (Math.abs(emblemBalance.xOffset) > 8 || Math.abs(emblemBalance.yOffset) > 18)
 const scanFiles = [
   ...publicPageFiles,
   'app.vue',
+  'layouts/default.vue',
+  'composables/usePublicLayoutState.ts',
   'error.vue',
   'nuxt.config.ts',
   'package.json',
@@ -1087,6 +1118,46 @@ const forbiddenHomepageLaunchTerms = [
   '社区共建',
   '收藏路线',
 ]
+
+for (const [path, screenClass] of publicShellClasses) {
+  const content = readFileSync(file(path), 'utf8')
+  if (content.includes('<TerraNav') || content.includes('<TerraFooter')) {
+    violations.push(`${path}: public shell navigation and footer belong only to layouts/default.vue`)
+  }
+  if (!content.includes(`publicScreenClass: '${screenClass}'`)) {
+    violations.push(`${path}: page metadata must preserve public screen classes ${screenClass}`)
+  }
+  if (/<section\s+class="screen\b/.test(content)) {
+    violations.push(`${path}: page must not retain the layout-owned screen root`)
+  }
+}
+
+const pageBusyMarkers = new Map([
+  ['pages/articles/index.vue', ['<main class="tp-public-page-shell article-layout discovery-articles-page article-route-shell tp-page-shell" :aria-busy="articleLoading">']],
+  ['pages/articles/[slug].vue', [
+    '<main v-if="articleLoading" class="article-detail-layout article-detail-loading" aria-live="polite" :aria-busy="articleLoading">',
+    '<main v-else-if="notFoundState" class="article-detail-layout" :aria-busy="articleLoading">',
+    '<main v-else-if="article" class="article-detail-layout" :aria-busy="articleLoading">',
+  ]],
+  ['pages/npcs/[id].vue', ['<main :class="[\'entity-detail-layout\', detailLayout.detailShellClass]" :aria-busy="loadingState">']],
+  ['pages/users/[id].vue', [
+    '<main v-if="loading" class="user-layout" :aria-busy="loading">',
+    '<main v-else-if="notFound" class="user-layout" :aria-busy="loading">',
+    '<main v-else-if="profile" class="user-layout" :aria-busy="loading">',
+  ]],
+])
+
+for (const [path, markers] of pageBusyMarkers) {
+  const content = readFileSync(file(path), 'utf8')
+  for (const marker of markers) {
+    if (!content.includes(marker)) violations.push(`${path}: migrated page must preserve busy-state marker ${marker}`)
+  }
+}
+
+const itemDetailContent = readFileSync(file('pages/items/[id].vue'), 'utf8')
+if ((itemDetailContent.match(/:aria-busy="detailLoadingState"/g) || []).length !== 3) {
+  violations.push('pages/items/[id].vue: skeleton and both detail branches must preserve detailLoadingState')
+}
 
 const requiredLightVisualSelectors = [
   `${lightThemeSelector} .item-cell:hover`,
@@ -1180,16 +1251,13 @@ for (const path of scanFiles) {
     }
   }
 
-  if (publicPageFiles.includes(path) && !content.includes('<TerraFooter')) {
-    violations.push(`${path}: public page must render the shared TerraFooter`)
-  }
-
   if (path === 'error.vue') {
     for (const marker of [
       'defineProps',
       'clearError',
-      'TerraNav',
-      'TerraFooter',
+      'NuxtLayout',
+      'name="default"',
+      'public-screen-class="error-screen"',
       'error-screen',
       'error-status-code',
       '404',
@@ -1200,6 +1268,10 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: custom Nuxt error page must include marker ${marker}`)
       }
+    }
+
+    if (content.includes('<TerraNav') || content.includes('<TerraFooter')) {
+      violations.push(`${path}: custom error shell belongs to layouts/default.vue`)
     }
 
     for (const forbiddenMarker of [
@@ -1213,10 +1285,6 @@ for (const path of scanFiles) {
       }
     }
   }
-
-    if (publicPageFiles.includes(path) && !content.includes('<TerraNav')) {
-      violations.push(`${path}: public page must render the shared TerraNav`)
-    }
 
     const semanticContent = path === 'pages/index.vue' ? homeTemplateContent : content
 
@@ -1534,8 +1602,8 @@ for (const path of scanFiles) {
       violations.push(`${path}: home page must not use the Iron Pickaxe placeholder image in showcase sections`)
     }
 
-    if (!content.includes('<TerraFooter :item-total-label="itemTotalLabel"')) {
-      violations.push(`${path}: home footer must reuse the live item total label instead of showing a stale static total`)
+    if (!homeDataContent.includes('publicLayoutItemTotalLabel.value = itemTotalLabel.value')) {
+      violations.push(`${path}: home data must publish the live item total to the shared public layout state`)
     }
 
     for (const term of forbiddenHomepageLaunchTerms) {
@@ -1602,6 +1670,12 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: shared footer must allow the home page to pass the live item total label via marker ${marker}`)
       }
+    }
+    if (!content.includes("itemTotalLabel: '待同步'")) {
+      violations.push(`${path}: shared footer must use a truthful pending item total fallback`)
+    }
+    if (content.includes("itemTotalLabel: '6,154'")) {
+      violations.push(`${path}: shared footer must not retain the stale 6,154 fallback`)
     }
   }
 
@@ -3771,8 +3845,10 @@ for (const path of scanFiles) {
   }
 
   if (path === 'app.vue') {
-    if (!content.includes('<NuxtPage')) {
-      violations.push(`${path}: app shell must render NuxtPage directly so file-system routes are active at runtime`)
+    for (const marker of ['<NuxtLayout>', '<NuxtPage />', '</NuxtLayout>']) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: app shell must activate the default Nuxt layout via ${marker}`)
+      }
     }
 
     if (content.includes('<App')) {
@@ -3789,6 +3865,21 @@ for (const path of scanFiles) {
 
     if (content.includes('localStorage') || content.includes('innerHTML')) {
       violations.push(`${path}: app shell must not inject raw theme scripts`)
+    }
+  }
+
+  if (path === 'layouts/default.vue') {
+    for (const marker of ['<section :class="screenClasses">', '<TerraNav />', '<slot />', '<TerraFooter :item-total-label="itemTotalLabel" />', 'route.meta.publicScreenClass', 'public-layout-footer-shell', 'home-layout-footer-shell']) {
+      if (!content.includes(marker)) violations.push(`${path}: missing default shell marker ${marker}`)
+    }
+    if ((content.match(/<TerraNav\b/g) || []).length !== 1 || (content.match(/<TerraFooter\b/g) || []).length !== 1) {
+      violations.push(`${path}: default layout must render exactly one nav and footer`)
+    }
+  }
+
+  if (path === 'composables/usePublicLayoutState.ts') {
+    for (const marker of ["useState<string>('public-layout-item-total-label'", "'待同步'", 'itemTotalLabel']) {
+      if (!content.includes(marker)) violations.push(`${path}: missing SSR-safe layout state marker ${marker}`)
     }
   }
 
