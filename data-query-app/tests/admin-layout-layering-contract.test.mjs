@@ -295,25 +295,15 @@ test('dashboard keeps panorama compact and prioritizes downstream data blocks', 
   assert.match(dashboard, /\.ops-card\s*\{[\s\S]*min-height:\s*62px/)
 })
 
-test('login theme colors come from semantic tokens without changing component geometry', () => {
+test('login restoration keeps the established component geometry', () => {
   const style = scopedStyle(login)
 
-  assert.doesNotMatch(style, /#[0-9a-f]{3,8}\b/i)
-  assert.doesNotMatch(style, /rgba?\(/i)
-  assert.match(style, /color-mix\(in srgb, var\(--color-primary\)/)
-  assert.match(style, /color-mix\(in srgb, var\(--color-info\)/)
-  assert.match(style, /var\(--color-bg\)/)
-  assert.match(style, /var\(--color-bg-shell\)/)
-  assert.match(style, /var\(--color-bg-secondary\)/)
-  assert.match(style, /var\(--color-surface-1\)/)
-  assert.match(style, /var\(--color-border\)/)
-  assert.match(style, /var\(--color-text\)/)
-  assert.match(style, /var\(--color-text-secondary\)/)
-  assert.match(style, /var\(--color-text-muted\)/)
-  assert.match(style, /var\(--color-text-inverse\)/)
-  assert.match(style, /var\(--color-danger\)/)
-  assert.match(style, /var\(--shadow-focus\)/)
-  assert.match(style, /var\(--shadow-(?:card|xl|glow)\)/)
+  assert.match(style, /\.login-page\s*\{[\s\S]*min-height:\s*100vh[\s\S]*place-items:\s*center[\s\S]*padding:\s*24px/)
+  assert.match(style, /\.login-card\s*\{[\s\S]*width:\s*min\(100%, 440px\)[\s\S]*border-radius:\s*28px[\s\S]*padding:\s*32px/)
+  assert.match(style, /\.login-card__logo\s*\{[\s\S]*width:\s*56px[\s\S]*height:\s*56px[\s\S]*border-radius:\s*18px/)
+  assert.match(style, /\.login-form__input\s*\{[\s\S]*padding:\s*13px 14px[\s\S]*border-radius:\s*14px/)
+  assert.equal(cssValue(style, '.login-form__submit', 'padding'), '14px 16px')
+  assert.equal(cssValue(style, '.login-form__submit', 'border-radius'), '14px')
 })
 
 test('dashboard KPI gradients remain token-driven and within their semantic color domains', () => {
@@ -374,30 +364,15 @@ test('semantic dashboard tags meet normal-text contrast in light and dark themes
   }
 })
 
-test('login critical text and submit gradient endpoints meet normal-text contrast in both themes', () => {
+test('login preserves the established pre-token-migration visual treatment', () => {
   const style = scopedStyle(login)
-  for (const theme of ['light', 'dark']) {
-    const tokens = themeTokens(theme)
-    const surface = resolveColor(cssValue(style, '.login-card', 'background'), tokens)
-    for (const pageToken of ['--color-bg', '--color-bg-shell', '--color-bg-secondary']) {
-      const cardBackground = composite(surface, resolveColor(`var(${pageToken})`, tokens))
-      for (const [selector, semanticToken] of [['.login-card__eyebrow', 'primary'], ['.login-form__error', 'danger']]) {
-        const foregroundValue = cssValue(style, selector, 'color')
-        assert.match(foregroundValue, new RegExp(`var\\(--color-${semanticToken}\\)`))
-        const foreground = resolveColor(foregroundValue, tokens)
-        assertContrast(foreground, cardBackground, `${theme} ${selector} over ${pageToken}`)
-      }
-    }
-
-    const submitText = resolveColor(cssValue(style, '.login-form__submit', 'color'), tokens)
-    const stops = gradientStops(cssValue(style, '.login-form__submit', 'background'))
-    assert.equal(stops.length, 2)
-    assert.match(stops[0], /var\(--color-primary-dark\)/)
-    assert.match(stops[1], /var\(--color-info\)/)
-    for (const [index, stop] of stops.entries()) {
-      assertContrast(submitText, resolveColor(stop, tokens), `${theme} submit stop ${index + 1}`)
-    }
-  }
+  assert.match(style, /linear-gradient\(160deg, #f4fbfa 0%, #eef7f6 45%, #f8fbff 100%\)/)
+  assert.match(cssValue(style, '.login-card', 'background'), /rgba\(255, 255, 255, 0\.82\)/)
+  assert.equal(cssValue(style, '.login-card__logo', 'background'), 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)')
+  assert.equal(cssValue(style, '.login-form__input', 'border'), '1px solid rgba(148, 163, 184, 0.4)')
+  assert.equal(cssValue(style, '.login-form__submit', 'background'), 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)')
+  assert.equal(cssValue(style, '.login-form__submit', 'box-shadow'), '0 16px 30px rgba(14, 116, 144, 0.22)')
+  assert.doesNotMatch(style, /color-mix\(in srgb, var\(--color-primary-dark\) 65%, var\(--color-bg-sidebar\)\)/)
 })
 
 test('categories delegates shared inputs and buttons to the global style layer', () => {

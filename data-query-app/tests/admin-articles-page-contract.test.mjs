@@ -114,6 +114,19 @@ test('admin article editor preview renders content references like the public ar
   assert.match(editorWorkspace, /\.article-preview__body :deep\(\.tp-content-ref-fallback\)/)
 })
 
+test('admin article editor offers a non-destructive public-effect preview', () => {
+  assert.match(editorWorkspace, /const viewMode = ref<'edit' \| 'preview'>\('edit'\)/)
+  assert.match(editorWorkspace, />编辑<\/button>/)
+  assert.match(editorWorkspace, />前台效果<\/button>/)
+  assert.match(editorWorkspace, /v-show="viewMode === 'edit'"[\s\S]*ref="editorRef"[\s\S]*class="rich-editor"/)
+  assert.match(editorWorkspace, /v-show="viewMode === 'edit'" class="document-title-panel"/)
+  assert.match(editorWorkspace, /v-show="viewMode === 'edit'"[\s\S]*class="editor-toolbar document-toolbar-band"/)
+  assert.match(editorWorkspace, /v-show="viewMode === 'edit'" class="editor-stage__tips"/)
+  assert.match(editorWorkspace, /v-if="viewMode === 'preview'"[\s\S]*<AdminArticleRuntimePreview[\s\S]*:html="editor\.previewHtml"/)
+  assert.match(editorWorkspace, /<AdminArticleRuntimePreview[\s\S]*mode="editor"/)
+  assert.doesNotMatch(editorWorkspace, /editor\.form\.contentHtml\s*=\s*editor\.previewHtml/)
+})
+
 test('admin article editor opens content references in the side inspector while staying in writing mode', () => {
   assert.match(editorWorkspace, /class="[^"]*toolbar-tool--reference[^"]*"/)
   assert.match(editorWorkspace, /@click="editor\.openReferencePanel"/)

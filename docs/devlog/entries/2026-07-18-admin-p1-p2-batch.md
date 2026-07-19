@@ -2,7 +2,7 @@
 
 ## Status
 
-`closed`
+`active`
 
 ## Context
 
@@ -14,6 +14,8 @@
 - Related prior entries: `docs/devlog/entries/2026-07-17-admin-p0-security-batch.md`; archived branch entry `docs/devlog/entries/2026-07-17-admin-p0-fixes.md` is read-only handoff context.
 
 ## Direction / Decisions
+
+- 2026-07-19 user acceptance reopened the branch for two findings. Login styling must be restored exactly from `3a1d1780^` rather than redesigned; keep the later Lucide icon. Article `31` has complete stored HTML, so no data migration is allowed. Add an edit/public-effect switch that reuses `AdminArticleRuntimePreview` without serializing runtime graph DOM.
 
 - Chosen approach: Execute A2-D6 as 14 serialized tasks, each with focused TDD where behavior changes, a focused commit, specification review, and code-quality review.
 - Reasoning: P0 B already covers A1 more strongly; the only commit after the handoff base changes an unrelated cutover script. The remaining plan is still applicable after symbol-level relocation on the current code.
@@ -29,6 +31,8 @@
 
 ## Validation
 
+- 2026-07-19 acceptance follow-up: both focused contracts observed the intended RED before implementation, then passed 36/36. Fresh closeout reruns passed the same 36/36 contracts, Admin typecheck, the full 401/401 unit suite, and the production build. Read-only Chromium acceptance at 1280x900 confirmed the login computed styles match `3a1d1780^`, article `31` renders two shared recipe graphs and four content references in the new public-effect view, switching views emits zero editor input events, and no save/review request occurs. Ports `13010`, `15183`, and `18197` are listening; the login, article editor, public frontend, and article API probes return HTTP 200. Ignored evidence: `reports/admin-p1-p2/acceptance-followup/`.
+
 - Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts and full admin unit suite; C1 icon/font contracts, typecheck, DOM inspection, and Playwright screenshots; C2 focused contracts, typecheck, diff check, and Chromium computed-box probes.
 - Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu. C2's final specificity contract observed the expected 10/11 RED under the old `:where` selector and 11/11 GREEN after `fd3689e`; independent typecheck and 11/11 rerun passed. Browser probes at 1280/1130/1024/900/800/761/760 measured all six controls at computed/actual 44px with no document, command-bar, or toolbar overflow; specification and quality re-review reported no remaining findings.
 - C3 initial implementation observed the expected focused 5/8 RED, then passed focused 8/8, admin typecheck, and specification review. Quality review found one Important transactional pagination failure and a related static-test weakness. The repair observed 6/13 RED then 13/13 GREEN, executes the actual aggregation/load/handler functions, and proves deferred commit, failed-target retry, 2→1/zero-result clamping, and waiting-state preservation. Final specification and quality re-review reported no findings.
@@ -39,6 +43,8 @@
 - Not run: C5-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
 
 ## Result
+
+- Acceptance follow-up complete: restored the Git-authoritative pre-token-migration login visual treatment while retaining the Lucide package icon. Article `31` required no data update; the editor now exposes a clean `编辑` / `前台效果` switch backed by the existing shared admin runtime preview, with the editable DOM kept as the sole save source.
 
 - Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, C1, and C2 with specification, quality, and required runtime approval.
 - Completed: C3 token repair and transactional shared pagination with specification and quality approval.
@@ -64,7 +70,7 @@
 
 ## Follow-up
 
-- User chooses branch integration disposition; no implementation or acceptance work remains.
+- User re-accepts the restored login page and article public-effect preview, then chooses branch integration disposition. No implementation work remains unless acceptance finds another issue.
 
 ## Commits
 

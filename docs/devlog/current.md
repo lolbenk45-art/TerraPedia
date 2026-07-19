@@ -1,10 +1,19 @@
 # Current Devlog
 
-Last updated: 2026-07-19 20:41 CST by Codex
+Last updated: 2026-07-19 22:25 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
 ## Open Work
+
+- Admin P1+P2 user acceptance follow-up is active on branch
+  `fix/admin-p1-p2-batch` in this worktree. Scope is limited to restoring the
+  Git-authoritative login styling and adding a non-destructive public-effect
+  preview to the admin article editor. Implementation and fresh gates are
+  complete and the three acceptance services are responding; awaiting user
+  re-acceptance. See
+  `docs/devlog/entries/2026-07-18-admin-p1-p2-batch.md` and
+  `docs/superpowers/plans/2026-07-19-admin-acceptance-followup.md`.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
@@ -136,6 +145,11 @@ Active branch: `fix/admin-p1-p2-batch`
   without explicit operation-level authorization.
 
 ## Current Risks
+
+- Acceptance follow-up browser checks observed intermittent failed Nuxt
+  prefetches for unvisited crawler-monitor modules. The login and article
+  targets had zero console errors, zero target request failures, and zero
+  non-auth/non-resolver writes; the prefetch noise is unrelated to this scope.
 
 - D6 is committed at `513ab4db` with test repair `fda1484c`; final admin gates
   pass 400/400. Runtime screenshots pass at six 1280px routes with stable-state

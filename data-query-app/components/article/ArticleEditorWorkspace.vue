@@ -25,6 +25,10 @@
         </div>
 
         <div class="editor-workbar__actions">
+          <div class="editor-view-switch" role="group" aria-label="正文视图">
+            <button type="button" class="ghost-btn" :class="{ 'ghost-btn--active': viewMode === 'edit' }" :aria-pressed="viewMode === 'edit'" @click="viewMode = 'edit'">编辑</button>
+            <button type="button" class="ghost-btn" :class="{ 'ghost-btn--active': viewMode === 'preview' }" :aria-pressed="viewMode === 'preview'" @click="viewMode = 'preview'">前台效果</button>
+          </div>
           <button
             type="button"
             class="ghost-btn"
@@ -76,7 +80,7 @@
         <main class="editor-shell__main">
           <section class="editor-card editor-card--writing document-editor-surface">
             <div class="document-paper-rail">
-              <div class="document-title-panel">
+              <div v-show="viewMode === 'edit'" class="document-title-panel">
                 <label class="field document-title-field">
                   <span>标题</span>
                   <input v-model.trim="editor.form.title" class="document-title-field__control" type="text" placeholder="输入文章标题" />
@@ -84,6 +88,7 @@
               </div>
 
               <div
+                v-show="viewMode === 'edit'"
                 class="editor-toolbar document-toolbar-band"
                 :class="{
                   'editor-toolbar--readonly': editor.isReadOnly,
@@ -369,7 +374,7 @@
               />
             </div>
 
-              <div class="editor-stage document-writing-stage">
+              <div v-show="viewMode === 'edit'" class="editor-stage document-writing-stage">
                 <div
                   ref="editorRef"
                   class="rich-editor"
@@ -387,7 +392,16 @@
                 />
               </div>
 
-              <div class="editor-stage__tips">
+              <div v-if="viewMode === 'preview'" class="editor-stage document-preview-stage">
+                <AdminArticleRuntimePreview
+                  :html="editor.previewHtml"
+                  :title="editor.form.title"
+                  :cover-image="editor.coverPreviewSrc"
+                  mode="editor"
+                />
+              </div>
+
+              <div v-show="viewMode === 'edit'" class="editor-stage__tips">
                 <span>支持直接粘贴或拖拽图片到正文中。</span>
                 <span>建议使用“标题 2 / 标题 3”组织长文结构。</span>
               </div>
@@ -677,6 +691,7 @@ const props = withDefaults(defineProps<{ articleId?: number | null }>(), {
 
 const editor = reactive(useArticleEditor(props.articleId))
 const { editorRef, previewRef, inlineImageInput, coverFileInput } = toRefs(editor)
+const viewMode = ref<'edit' | 'preview'>('edit')
 
 const sideTabs = [
   { id: 'preview', label: '预览' },
@@ -825,6 +840,32 @@ const setupReadyText = computed(() => {
 .editor-workbar__actions {
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.editor-view-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--editor-border);
+  border-radius: 12px;
+  background: var(--editor-paper-soft);
+}
+
+.editor-view-switch .ghost-btn {
+  padding: 7px 11px;
+  border-color: transparent;
+}
+
+.editor-view-switch .ghost-btn--active {
+  border-color: var(--editor-border);
+  background: var(--editor-paper);
+  color: var(--editor-accent);
+  box-shadow: var(--shadow-xs);
+}
+
+.document-preview-stage {
+  padding: 24px;
+  background: var(--editor-paper);
 }
 
 .status-pill,
