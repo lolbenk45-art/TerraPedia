@@ -1704,6 +1704,7 @@ import { showToast } from '~/composables/useToast'
 import { useCategoriesStore } from '~/stores/categories'
 import type { Item } from '~/stores/items'
 import { useItemsStore } from '~/stores/items'
+import { formatDateTime } from '~/utils/adminFormat'
 import { buildNpcAdvancedDetails } from '~/utils/npcDetail'
 
 definePageMeta({
@@ -3074,12 +3075,6 @@ function openImageLightbox(image: string, title: string) {
   lightboxImage.value = image
   lightboxTitle.value = title
   lightboxVisible.value = true
-}
-
-function formatDateTime(value?: string) {
-  if (!value) return '--'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN')
 }
 
 function formatBooleanLabel(value: unknown, trueLabel = '是', falseLabel = '否') {

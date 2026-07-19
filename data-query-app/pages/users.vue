@@ -104,6 +104,7 @@
 import { storeToRefs } from 'pinia'
 import { showToast } from '~/composables/useToast'
 import type { AdminUser } from '~/stores/users'
+import { formatDateTime } from '~/utils/adminFormat'
 
 const usersStore = useUsersStore()
 const { users, loading, pagination, keyword, status } = storeToRefs(usersStore)
@@ -190,13 +191,6 @@ const handleCreateUser = async () => {
   } finally {
     creatingUser.value = false
   }
-}
-
-const formatDateTime = (value?: string) => {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('zh-CN')
 }
 
 onMounted(async () => {

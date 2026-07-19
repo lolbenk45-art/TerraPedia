@@ -158,6 +158,7 @@ import { Search } from 'lucide-vue-next'
 
 import { del, get, post, put } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
+import { formatDateTime } from '~/utils/adminFormat'
 
 definePageMeta({
   title: '品质管理',
@@ -278,12 +279,6 @@ async function handleDelete(row: ItemRarity) {
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '删除品质失败', 'error')
   }
-}
-
-function formatDateTime(value?: string) {
-  if (!value) return '--'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN')
 }
 
 onMounted(loadRows)

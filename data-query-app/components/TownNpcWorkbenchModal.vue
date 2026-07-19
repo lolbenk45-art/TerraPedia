@@ -1432,57 +1432,6 @@ function asNullableNumber(value: unknown) {
   padding: 8px;
 }
 
-.coin-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 4px 10px 4px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  background: linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 255, 255, 0.98));
-}
-
-.coin-chip--soft {
-  border-color: rgba(20, 184, 166, 0.22);
-  background: linear-gradient(135deg, rgba(240, 253, 250, 0.98), rgba(255, 255, 255, 0.98));
-}
-
-.coin-chip__icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
-
-.coin-chip__value {
-  color: #7c2d12;
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.coin-chip--soft .coin-chip__value {
-  color: #0f766e;
-}
-
-.price-pill {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #b45309, #f59e0b);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.price-pill--soft {
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
-}
-
 .form-strip,
 .entry-card__form {
   display: grid;

@@ -452,6 +452,7 @@ import { storeToRefs } from 'pinia'
 import { showToast } from '~/composables/useToast'
 import type { AdminArticle } from '~/stores/articles'
 import type { GlobalArticleComment, GlobalArticleCommentStatus } from '~/stores/articleComments'
+import { formatDateTime } from '~/utils/adminFormat'
 
 definePageMeta({
   title: '评论管理',
@@ -528,13 +529,6 @@ const statusLabel = (value: GlobalArticleCommentStatus) => ({
   DELETED: '已删除',
   UNKNOWN: '未知状态',
 }[value] || value)
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('zh-CN')
-}
 
 const formatShortDateTime = (value?: string | null) => {
   if (!value) return '--'

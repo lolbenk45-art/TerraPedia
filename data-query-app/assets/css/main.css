@@ -985,6 +985,94 @@ a {
   }
 }
 
+.town-npc-index .coin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 4px 9px 4px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.town-npc-index .coin-chip__icon {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.town-npc-index .coin-chip__value {
+  color: #7c2d12;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.town-npc-index .price-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workbench-shell .coin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 10px 4px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.workbench-shell .coin-chip--soft {
+  border-color: rgba(20, 184, 166, 0.22);
+  background: linear-gradient(135deg, rgba(240, 253, 250, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.workbench-shell .coin-chip__icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.workbench-shell .coin-chip__value {
+  color: #7c2d12;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.workbench-shell .coin-chip--soft .coin-chip__value {
+  color: #0f766e;
+}
+
+.workbench-shell .price-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.workbench-shell .price-pill--soft {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+
 @media (max-width: 768px) {
   html {
     font-size: 16px;

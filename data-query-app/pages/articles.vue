@@ -247,6 +247,7 @@
 import { storeToRefs } from 'pinia'
 import { showToast } from '~/composables/useToast'
 import { sanitizeArticleHtml } from '~/utils/articleEditor'
+import { formatDateTime } from '~/utils/adminFormat'
 import type { AdminArticle, ArticleReviewLog, PaginationState } from '~/stores/articles'
 
 const router = useRouter()
@@ -276,13 +277,6 @@ const contentPreviewHtml = computed(() => {
   if (!article) return ''
   return sanitizeArticleHtml(article.contentHtml || article.contentMarkdown || '')
 })
-
-const formatDateTime = (value?: string) => {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('zh-CN')
-}
 
 const articleStatusLabel = (value: string) => ({
   DRAFT: '草稿',

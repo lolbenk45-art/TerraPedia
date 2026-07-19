@@ -224,6 +224,7 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-vue-next'
+import { statusTone } from '~/utils/adminFormat'
 
 definePageMeta({ title: '数据源验收', navSection: '/operations/data-source-acceptance', headerVariant: 'compact' })
 
@@ -297,14 +298,6 @@ async function loadOverview() {
   } finally {
     loading.value = false
   }
-}
-
-function statusTone(status?: string | null) {
-  const normalized = String(status || '').toLowerCase()
-  if (['pass', 'success', 'ok', 'readable'].includes(normalized)) return 'success'
-  if (['blocked', 'error', 'fail', 'failed', 'read error'].includes(normalized)) return 'danger'
-  if (['warning', 'warn'].includes(normalized)) return 'warning'
-  return 'muted'
 }
 
 function statusIcon(status?: string | null): Component {

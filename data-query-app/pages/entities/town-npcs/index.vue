@@ -630,43 +630,6 @@ async function handleWorkbenchSaved(npcId: number) {
   color: #b45309;
 }
 
-.coin-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 26px;
-  padding: 4px 9px 4px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  background: linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 255, 255, 0.98));
-}
-
-.coin-chip__icon {
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-}
-
-.coin-chip__value {
-  color: #7c2d12;
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.price-pill {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #b45309, #f59e0b);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-}
-
 @media (max-width: 1180px) {
   .summary-ribbon,
   .filter-toolbar {

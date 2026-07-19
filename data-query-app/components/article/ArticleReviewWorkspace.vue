@@ -152,6 +152,7 @@
 <script setup lang="ts">
 import { showToast } from '~/composables/useToast'
 import type { AdminArticle, ArticleReviewLog } from '~/stores/articles'
+import { formatDateTime } from '~/utils/adminFormat'
 import { buildArticlePresentation, sanitizeArticleHtml } from '~/utils/articleEditor'
 
 const props = withDefaults(defineProps<{ articleId?: number | null; initialArticle?: AdminArticle | null }>(), {
@@ -232,13 +233,6 @@ const reviewChecks = computed(() => [
 ])
 
 const getErrorMessage = (error: any, fallback: string) => error?.data?.message || error?.message || fallback
-
-const formatDateTime = (value?: string) => {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('zh-CN')
-}
 
 const reviewStatusLabel = (value: string) => ({
   DRAFT: '草稿',
