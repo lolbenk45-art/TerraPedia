@@ -63,6 +63,21 @@
 - User reviews the written design, then the coordinator writes and audits the
   WP-11.2 implementation plan before any production edit.
 
+## State Changes
+
+### 2026-07-19 22:10 CST
+
+- Change: user-approved review repairs remove the proposed V55 SQL seed,
+  replace forced four-breakpoint convergence with bounded drift merge plus a
+  frozen surviving whitelist, and lock the final matrix to 25 required routes,
+  numeric-category HTTP 301 redirects, and three WP-14 commits.
+- Reason: repository contracts already make the admin article API the home
+  article source of truth; wide breakpoint moves would redesign responsive
+  behavior; and the public-page contract is authoritative for route count.
+- Evidence: revised
+  `docs/superpowers/specs/2026-07-19-front-p2-remaining-design.md` and the two
+  existing SQL-seed guard scripts.
+
 ## Commits
 
 - Pending.
