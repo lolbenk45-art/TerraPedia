@@ -10,7 +10,7 @@
 
 **Scope:** Six stylesheets under `front-nuxt/assets/css/` (817 occurrences), five contract scripts, two runtime check matrices, the CSS ratchet budgets, the new scan script, and WP-11.3 devlog records. `stores/theme.ts` and `composables/useUserApi.ts` are explicitly NOT modified — their `light → morning-paper` normalization is the compatibility layer the spec preserves, and a new source guard locks it.
 
-**No-write boundary:** No push, merge to `main`, crawler action, database write, migration, worktree cleanup, or use of port `13012`. Port `5181` (WP-11.1 preview) must not be touched; backend `18088` is used read-only. The WP-11.3 candidate runs on isolated port `15185`.
+**No-write boundary:** No push, merge to `main`, crawler action, database write, migration, worktree cleanup, or use of port `13012`. Port `5181` (WP-11.1 preview) must not be touched; the local stack backend is used read-only — its port is stack-assigned (recorded in the devlog entry; currently `18091`, not the spec's integration-stage `18088`). The WP-11.3 candidate runs on isolated port `15185`.
 
 **Measured occurrence map (baseline `2ede052e`):**
 
@@ -77,10 +77,10 @@ Use port `15185` unless occupied; if occupied, choose another unused loopback po
 
 ```bash
 cd front-nuxt
-PORT=15185 NUXT_PUBLIC_API_BASE=http://127.0.0.1:18088/api pnpm exec nuxt dev --host 127.0.0.1 --port 15185
+PORT=15185 NUXT_PUBLIC_API_BASE=http://127.0.0.1:18091/api pnpm exec nuxt dev --host 127.0.0.1 --port 15185
 ```
 
-Wait for the server to answer `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:15185/` with `200`, then capture:
+(`18091` is the stack-assigned backend port this boot — check the devlog entry if the stack was restarted since.) Wait for the server to answer `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:15185/` with `200`, then capture:
 
 ```bash
 cd front-nuxt
@@ -678,7 +678,7 @@ node scripts/check-home-j1-index.mjs; echo "home-j1 exit $?"
 node scripts/check-nav-layout-contract.mjs; echo "nav-layout exit $?"
 ```
 
-Expected: `check-public-pages` FAILS — the violation list includes the six `retired runtime theme alias` entries (one per stylesheet), the `lightThemeSelector`-based includes-checks around lines 1163–1171 (the CSS still holds the triple form), and the 1205 surface-shadow regex; the store guard itself passes. `check-visual-system` FAILS on the three exact-block keys plus the two regex patterns; `check-home-j1-index` FAILS on its post-cleanup selector requirements; `check-nav-layout` PASSES (its light reference is a negative assertion). If `check-public-pages` instead fails on the store guard, stop — `stores/theme.ts` changed unexpectedly.
+Expected: `check-public-pages` FAILS — the violation list includes the six `retired runtime theme alias` entries (one per stylesheet), and the `lightThemeSelector`-based includes-checks around lines 1163–1171 (the CSS still holds the triple form); the store guard itself passes. (The updated 1205 surface-shadow regex is unanchored and already matches the pre-removal CSS — it is NOT expected to fail RED.) `check-visual-system` FAILS on the three exact-block keys plus the two regex patterns; `check-home-j1-index` FAILS on its post-cleanup selector requirements; `check-nav-layout` PASSES (its light reference is a negative assertion). If `check-public-pages` instead fails on the store guard, stop — `stores/theme.ts` changed unexpectedly.
 
 - [ ] **Step 8: Commit RED**
 
@@ -782,10 +782,10 @@ Stop any Task 0 candidate process, then:
 
 ```bash
 cd front-nuxt
-PORT=15185 NUXT_PUBLIC_API_BASE=http://127.0.0.1:18088/api pnpm exec nuxt dev --host 127.0.0.1 --port 15185
+PORT=15185 NUXT_PUBLIC_API_BASE=http://127.0.0.1:18091/api pnpm exec nuxt dev --host 127.0.0.1 --port 15185
 ```
 
-Wait for `200` from `http://127.0.0.1:15185/`.
+The backend base MUST be the same one the Task 0 baseline was captured against (stack-assigned `18091` this boot; see the devlog entry) — parity comparison is only valid in the same backend environment. Wait for `200` from `http://127.0.0.1:15185/`.
 
 - [ ] **Step 2: Compare theme-token parity against the Task 0 baseline**
 
@@ -821,7 +821,7 @@ Expected: `morning-paper`, `warm-slate`, `dark`, `dark` — identical to the Tas
 
 - [ ] **Step 5: Stop the candidate server**
 
-Stop only the `15185` process. Do not touch `5181`, backend `18088`, or other worktree services.
+Stop only the `15185` process. Do not touch `5181`, the stack backend (`18091`), the stack's own front (`15177`) / data-query-app (`13004`), or other worktree services.
 
 ---
 
