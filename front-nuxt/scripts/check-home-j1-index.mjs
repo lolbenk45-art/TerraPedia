@@ -518,8 +518,8 @@ const requiredCssSelectors = [
   '.hero-j1-search-btn',
   '.hero-j1-paths',
   '.hero-j1-path-link',
-  ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell',
-  ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link',
+  ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell',
+  ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link',
 ]
 
 if (!existsSync(file(cssPath))) {
@@ -555,8 +555,8 @@ if (!existsSync(file(cssPath))) {
 
   const darkCellBlocks = extractRuleBlocks(css, '\n.hero-j1-cell {')
   const darkCellHoverBlocks = extractRuleBlocks(css, '\n.hero-j1-cell:hover')
-  const lightCellBlocks = extractRuleBlocks(css, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
-  const lightCellHoverBlocks = extractRuleBlocks(css, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
+  const lightCellBlocks = extractRuleBlocks(css, ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
+  const lightCellHoverBlocks = extractRuleBlocks(css, ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
 
   assertMaxAccentAlpha(darkCellBlocks, 0.10, 'dark home primary entries', cssPath)
   assertMaxAccentAlpha(darkCellHoverBlocks, 0.14, 'dark home primary entry hover', cssPath)
@@ -610,18 +610,18 @@ if (!existsSync(file(lightContrastCssPath))) {
   const lightCss = readFileSync(file(lightContrastCssPath), 'utf8')
 
   const requiredLightBackgroundSelectors = [
-    ':where([data-theme="light"], [data-theme="morning-paper"]) .home-screen',
+    ':where([data-theme="morning-paper"]) .home-screen',
     ':where([data-theme="warm-slate"]) .home-screen',
-    ':where([data-theme="light"], [data-theme="morning-paper"]) .hero',
+    ':where([data-theme="morning-paper"]) .hero',
     ':where([data-theme="warm-slate"]) .hero',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-status-pill',
-    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-atlas-secondary .atlas-index',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-status-pill',
+    ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .home-atlas-secondary .atlas-index',
   ]
 
   for (const selector of requiredLightBackgroundSelectors) {
@@ -630,7 +630,7 @@ if (!existsSync(file(lightContrastCssPath))) {
     }
   }
 
-  const lightHomeGridRule = /:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\]\)\s+\.home-screen\s*\{[^}]*var\(--index-grid-x\)[^}]*var\(--index-grid-y\)[^}]*background-size\s*:\s*64px 64px,\s*64px 64px/m
+  const lightHomeGridRule = /:where\(\[data-theme="morning-paper"\]\)\s+\.home-screen\s*\{[^}]*var\(--index-grid-x\)[^}]*var\(--index-grid-y\)[^}]*background-size\s*:\s*64px 64px,\s*64px 64px/m
   if (!lightHomeGridRule.test(lightCss)) {
     failures.push(`${lightContrastCssPath}: Morning Paper home screen must use the high-fidelity 64px paper grid background`)
   }
@@ -640,14 +640,14 @@ if (!existsSync(file(lightContrastCssPath))) {
     failures.push(`${lightContrastCssPath}: Warm Slate home screen must use the high-fidelity 52px grid background`)
   }
 
-  const lightCellBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
-  const lightCellHoverBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
-  const softHomeBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen')
+  const lightCellBlocks = extractRuleBlocks(lightCss, ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
+  const lightCellHoverBlocks = extractRuleBlocks(lightCss, ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
+  const softHomeBlocks = extractRuleBlocks(lightCss, ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen')
   const heroFrameBlocks = [
-    ...extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"]) .hero {'),
+    ...extractRuleBlocks(lightCss, ':where([data-theme="morning-paper"]) .hero {'),
     ...extractRuleBlocks(lightCss, ':where([data-theme="warm-slate"]) .hero {'),
   ]
-  const heroInnerFrameBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before')
+  const heroInnerFrameBlocks = extractRuleBlocks(lightCss, ':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before')
 
   assertMaxAccentAlpha(lightCellBlocks, 0.08, 'light home primary entries', lightContrastCssPath)
   assertMaxAccentAlpha(lightCellHoverBlocks, 0.10, 'light home primary entry hover', lightContrastCssPath)
@@ -682,7 +682,7 @@ if (!existsSync(file(lightContrastCssPath))) {
   ]
 
   for (const [label, selector, markers] of requiredSoftHomeSelectors) {
-    const blocks = extractRuleBlocks(lightCss, `:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) ${selector}`)
+    const blocks = extractRuleBlocks(lightCss, `:where([data-theme="morning-paper"], [data-theme="warm-slate"]) ${selector}`)
     if (blocks.length === 0) {
       failures.push(`${lightContrastCssPath}: missing soft homepage selector for ${label}`)
       continue
@@ -696,7 +696,7 @@ if (!existsSync(file(lightContrastCssPath))) {
     }
   }
 
-  if (!lightCss.includes(':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list a')) {
+  if (!lightCss.includes(':where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list a')) {
     failures.push(`${lightContrastCssPath}: light AC codex route anchors must keep explicit link surface styling`)
   }
 }

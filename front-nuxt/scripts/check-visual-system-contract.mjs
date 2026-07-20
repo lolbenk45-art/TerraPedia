@@ -265,7 +265,7 @@ const cssOrder = [
       '--tp-color-accent': 'var(--gold)',
       '--tp-shadow-control': 'inset 0 1px 0 rgba(244, 234, 208, 0.035)',
     },
-    '[data-theme="light"],\n[data-theme="morning-paper"]': {
+    '[data-theme="morning-paper"]': {
       '--tp-color-border': 'rgba(122, 90, 33, 0.2)',
       '--tp-color-border-strong': 'rgba(122, 90, 33, 0.34)',
       '--tp-color-surface-soft': 'rgba(255, 250, 241, 0.72)',
@@ -480,8 +480,8 @@ const cssOrder = [
 
   for (const [selector, declarations] of Object.entries({
     ':root': legacyAliases,
-    '[data-theme="light"],\n[data-theme="morning-paper"],\n[data-theme="warm-slate"]': withoutAccent,
-    '[data-theme="light"],\n[data-theme="morning-paper"]': withoutAccent,
+    '[data-theme="morning-paper"],\n[data-theme="warm-slate"]': withoutAccent,
+    '[data-theme="morning-paper"]': withoutAccent,
     '[data-theme="warm-slate"]': withoutAccent,
   })) {
     requireDeclarations(path, requireRuleBlock(path, contentWithoutComments, selector), selector, declarations)
@@ -547,7 +547,7 @@ const cssOrder = [
     violations.push(`${path}: light theme active control overrides must not fall back to the base control shadow`)
   }
 
-  const lightThemeSelectorPattern = String.raw`:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)`
+  const lightThemeSelectorPattern = String.raw`:where\(\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)`
 
   requireRegex(
     path,
@@ -667,7 +667,7 @@ const cssOrder = [
     violations.push(`${path}: light theme catalog active chips and pagination must not use near-solid text color as a dark fill`)
   }
 
-  const activeCatalogControlsRule = /:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.catalog-category-chip\.active,[\s\S]*?\.catalog-dock-page-button\.active\s*\{[\s\S]*?border-color:\s*var\(--button-control-active-border\);[\s\S]*?background:\s*var\(--button-control-active-bg\);[\s\S]*?color:\s*var\(--button-control-active-fg\);[\s\S]*?box-shadow:\s*var\(--button-control-active-shadow\);/m
+  const activeCatalogControlsRule = /:where\(\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.catalog-category-chip\.active,[\s\S]*?\.catalog-dock-page-button\.active\s*\{[\s\S]*?border-color:\s*var\(--button-control-active-border\);[\s\S]*?background:\s*var\(--button-control-active-bg\);[\s\S]*?color:\s*var\(--button-control-active-fg\);[\s\S]*?box-shadow:\s*var\(--button-control-active-shadow\);/m
   if (!activeCatalogControlsRule.test(content)) {
     violations.push(`${path}: light theme catalog active chips and pagination must consume shared active control tokens`)
   }

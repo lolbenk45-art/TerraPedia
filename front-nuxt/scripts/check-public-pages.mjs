@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { inflateSync } from 'node:zlib'
 
@@ -1095,7 +1095,27 @@ const scanFiles = [
 const violations = []
 const hifiCss = readFileSync(file('assets/css/hifi-preview.css'), 'utf8')
 const lightContrastCss = readFileSync(file('assets/css/light-theme-contrast-fixes.css'), 'utf8')
-const lightThemeSelector = ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"])'
+const lightThemeSelector = ':where([data-theme="morning-paper"], [data-theme="warm-slate"])'
+// WP-11.3:运行时主题别名 [data-theme="light"] 已退役,样式层不得再出现该选择器;
+// 兼容归一化保留在 stores/theme.ts(旧 cookie 'light' → 'morning-paper')。
+const listThemeCssFiles = (dir) => readdirSync(file(dir), { withFileTypes: true }).flatMap((entry) => {
+  const path = `${dir}/${entry.name}`
+  if (entry.isDirectory()) {
+    return listThemeCssFiles(path)
+  }
+  return entry.name.endsWith('.css') ? [path] : []
+})
+
+for (const cssPath of listThemeCssFiles('assets/css')) {
+  if (readFileSync(file(cssPath), 'utf8').includes('[data-theme="light"]')) {
+    violations.push(`${cssPath}: retired runtime theme alias [data-theme="light"] must not appear in stylesheets`)
+  }
+}
+
+const themeStoreSource = readFileSync(file('stores/theme.ts'), 'utf8')
+if (!themeStoreSource.includes("if (value === 'light')") || !themeStoreSource.includes("return 'morning-paper'")) {
+  violations.push("stores/theme.ts: legacy persisted 'light' must keep normalizing to 'morning-paper'")
+}
 const homeTemplateFiles = [
   'pages/index.vue',
   'components/home/HomeHero.vue',
@@ -1202,7 +1222,7 @@ if (!lightContrastCss.includes('rgba(var(--entry-accent), 0.18') && !lightContra
   violations.push('assets/css/light-theme-contrast-fixes.css: home J1 icons must retain a visible entry-accent glow in light themes')
 }
 
-if (!/\[data-theme="light"\]\s*,\s*\n\[data-theme="morning-paper"\]\s*,\s*\n\[data-theme="warm-slate"\]\s*\{[\s\S]*--theme-surface-shadow:/m.test(lightContrastCss)) {
+if (!/\[data-theme="morning-paper"\]\s*,\s*\n\[data-theme="warm-slate"\]\s*\{[\s\S]*--theme-surface-shadow:/m.test(lightContrastCss)) {
   violations.push('assets/css/light-theme-contrast-fixes.css: light shadow token overrides must use real [data-theme] specificity so they beat hifi theme variables')
 }
 
@@ -3647,13 +3667,13 @@ for (const path of scanFiles) {
       violations.push(`${path}: home J1 sprite icon must stay large enough for one-glance recognition`)
     }
 
-    const sharedLightSelector = ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"])'
-    const lightHeroJ1CellRule = /:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.hero-j1-cell\s*\{[^}]*background\s*:/m
+    const sharedLightSelector = ':where([data-theme="morning-paper"], [data-theme="warm-slate"])'
+    const lightHeroJ1CellRule = /:where\(\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.hero-j1-cell\s*\{[^}]*background\s*:/m
     if (!lightHeroJ1CellRule.test(content)) {
       violations.push(`${path}: light theme variants must adapt the home J1 cells instead of inheriting raw dark surfaces`)
     }
 
-    const lightHeroJ1PathRule = /:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.hero-j1-path-link\s*\{[^}]*background\s*:/m
+    const lightHeroJ1PathRule = /:where\(\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.hero-j1-path-link\s*\{[^}]*background\s*:/m
     if (!lightHeroJ1PathRule.test(content)) {
       violations.push(`${path}: light theme variants must adapt the home J1 secondary shortcut surfaces`)
     }
@@ -3759,7 +3779,7 @@ for (const path of scanFiles) {
       }
     }
 
-    for (const selector of ['[data-theme="morning-paper"]', '[data-theme="warm-slate"]', '[data-theme="light"]']) {
+    for (const selector of ['[data-theme="morning-paper"]', '[data-theme="warm-slate"]']) {
       if (!content.includes(selector)) {
         violations.push(`${path}: public visual system must define theme selector ${selector}`)
       }
@@ -3817,13 +3837,10 @@ for (const path of scanFiles) {
     }
 
     for (const selector of [
-      '[data-theme="light"] .item-art',
       '[data-theme="morning-paper"] .item-art',
       '[data-theme="warm-slate"] .item-art',
-      '[data-theme="light"] .boss-medallion .item-art',
       '[data-theme="morning-paper"] .boss-medallion .item-art',
       '[data-theme="warm-slate"] .boss-medallion .item-art',
-      '[data-theme="light"] .loot-grid .item-art',
       '[data-theme="morning-paper"] .loot-grid .item-art',
       '[data-theme="warm-slate"] .loot-grid .item-art',
     ]) {

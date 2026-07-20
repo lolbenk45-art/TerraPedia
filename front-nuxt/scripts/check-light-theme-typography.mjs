@@ -2,16 +2,9 @@ import { spawn } from 'node:child_process'
 
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
-const targetThemes = ['light', 'morning-paper', 'warm-slate']
+const targetThemes = ['morning-paper', 'warm-slate']
 
 const expectedThemeTokens = {
-  light: {
-    '--paper': '#1a1f18',
-    '--text-strong': '#1a1f18',
-    '--text-main': 'rgba(26, 31, 24, 0.86)',
-    '--text-muted': 'rgba(26, 31, 24, 0.68)',
-    '--theme-text-rgb': '26, 31, 24',
-  },
   'morning-paper': {
     '--paper': '#1a1f18',
     '--text-strong': '#1a1f18',

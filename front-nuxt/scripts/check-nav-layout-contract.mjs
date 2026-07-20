@@ -171,7 +171,7 @@ assertIncludes(
   '.site-link.active {\n  background: transparent;',
   'primary nav active state must avoid a solid background block',
 )
-if (hifiCss.includes(']) .site-link.active,\n:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link:hover {\n  background: var(--theme-active-bg);')) {
+if (hifiCss.includes(']) .site-link.active,\n:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link:hover {\n  background: var(--theme-active-bg);')) {
   violations.push('assets/css/hifi-preview.css: light-theme primary nav active state must not reuse the filled theme active background')
 }
 

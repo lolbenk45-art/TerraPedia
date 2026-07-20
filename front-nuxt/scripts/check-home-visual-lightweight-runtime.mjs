@@ -13,8 +13,7 @@ const metricsPath = new URL('metrics.json', outputDir)
 const failures = []
 const metrics = []
 
-const themes = ['dark', 'light', 'morning-paper', 'warm-slate']
-const normalizeRuntimeTheme = (theme) => theme === 'light' ? 'morning-paper' : theme
+const themes = ['dark', 'morning-paper', 'warm-slate']
 const viewports = [
   { name: 'mobile', width: 390, height: 844, mobile: true },
   { name: 'tablet', width: 768, height: 1024, mobile: false },
@@ -235,7 +234,7 @@ const auditExpression = (theme) => `(() => new Promise((resolve) => {
   };
   const startedAt = Date.now();
   const targetTheme = ${JSON.stringify(theme)};
-  const runtimeTheme = ${JSON.stringify(normalizeRuntimeTheme(theme))};
+  const runtimeTheme = ${JSON.stringify(theme)};
   document.cookie = 'terrapedia-theme=' + runtimeTheme + '; Path=/; SameSite=Lax';
   document.documentElement.setAttribute('data-theme', runtimeTheme);
   window.localStorage.setItem('terrapedia-theme', runtimeTheme);
@@ -342,7 +341,7 @@ const run = async () => {
         const maxPrimaryAccentAlpha = value.inspected.primary.maxAccentAlpha
         const alphaLimit = theme === 'dark' ? 0.10 : 0.08
 
-        assertMetric(value.actualTheme === normalizeRuntimeTheme(theme), `${label}: expected theme to apply`, value)
+        assertMetric(value.actualTheme === theme, `${label}: expected theme to apply`, value)
         assertMetric(value.primaryCount === 4, `${label}: primary entry count must stay 4`, value)
         assertMetric(value.secondaryCount === 6, `${label}: secondary link count must stay 6`, value)
         assertMetric(value.searchVisible, `${label}: search must be visible`, value)
