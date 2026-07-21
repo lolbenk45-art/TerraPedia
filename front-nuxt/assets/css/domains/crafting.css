@@ -1920,7 +1920,7 @@
   text-align: center;
 }
 
-@media (max-width: 1020px) {
+@media (max-width: 1024px) {
   .crafting-stage-layout {
     grid-template-columns: minmax(0, 1fr);
   }
