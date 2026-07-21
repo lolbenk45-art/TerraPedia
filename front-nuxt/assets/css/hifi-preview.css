@@ -97,7 +97,6 @@
   --font-weight-heavy: 900;
 }
 
-[data-theme="light"],
 [data-theme="morning-paper"],
 [data-theme="warm-slate"] {
   color-scheme: light;
@@ -165,7 +164,6 @@
   --button-control-accent-fg: #36582a;
 }
 
-[data-theme="light"],
 [data-theme="morning-paper"] {
   --bg: #f3ead8;
   --bg-2: #eadcc3;
@@ -415,20 +413,20 @@ html.theme-switching::after {
   animation: theme-sweep 760ms cubic-bezier(.2,.8,.2,1) both;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]).theme-switching::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]).theme-switching::before {
   background:
     radial-gradient(circle at 78% 14%, rgba(6, 12, 8, 0.26), transparent 24rem),
     linear-gradient(180deg, rgba(5, 8, 6, 0.44), rgba(17, 31, 20, 0.3)),
     rgba(5, 8, 6, 0.28);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]).theme-switching::after {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]).theme-switching::after {
   background:
     linear-gradient(100deg, transparent 0 18%, rgba(16, 31, 20, 0.62) 38%, rgba(217, 185, 91, 0.22) 52%, transparent 76%),
     radial-gradient(circle at 72% 12%, rgba(17, 31, 20, 0.24), transparent 20rem);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) body {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) body {
   background: var(--theme-body-bg);
 }
 
@@ -6944,29 +6942,29 @@ img[data-preview-fallback] {
   text-decoration: none;
   overflow-wrap: anywhere;
 }
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-filter-chip,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-chip,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-filter-chip,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-chip,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a {
   border-color: rgba(var(--theme-border-rgb), 0.14);
   background: rgba(var(--theme-panel-rgb), 0.54);
   color: var(--text-main);
 }
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats em {
   color: var(--paper-3);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow::before {
   background: var(--paper-3);
 }
 .biome-tile.forest { background-color: rgba(62, 96, 50, 0.16); }
@@ -8663,83 +8661,83 @@ img[data-preview-fallback] {
   padding: 14px;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .screen,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen {
   background: var(--theme-screen-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-nav {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-nav {
   border-bottom-color: var(--theme-nav-border);
   background: var(--theme-nav-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .logo-gem,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .brand-mark {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .logo-gem,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .brand-mark {
   background: var(--theme-logo-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-logo small,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-menu-text-trigger,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-avatar-link {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-logo small,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-menu-text-trigger,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-avatar-link {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link:hover {
   background: rgba(var(--theme-gold-rgb), 0.065);
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link.active {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link.active {
   background: transparent;
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link.active::after {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link.active::after {
   background: linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.78), rgba(var(--theme-positive-rgb), 0.42));
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) h1,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) h2,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) h3,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) h4,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) strong {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) h1,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) h2,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) h3,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) h4,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) strong {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .filter-option.active :where(b, span, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .small-button.active :where(b, span, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-tab.active :where(b, span, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter.active :where(b, span, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-filter-chip.active :where(b, span, em) {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .filter-option.active :where(b, span, em),
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .small-button.active :where(b, span, em),
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-tab.active :where(b, span, em),
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter.active :where(b, span, em),
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-filter-chip.active :where(b, span, em) {
   color: var(--button-control-active-fg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter.active span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter.active span {
   background: var(--button-control-dot-active-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-menu-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-bar,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-lower,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .exploration-map,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-strip,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-band,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-screen,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-screen,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-screen,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-screen,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-head {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-menu-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-bar,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .home-lower,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .exploration-map,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-strip,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-band,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-screen,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-screen,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-screen,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-screen,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-head {
   background:
     var(--index-grid-x),
     var(--index-grid-y),
@@ -8748,11 +8746,11 @@ img[data-preview-fallback] {
   color: var(--paper);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero {
   background: var(--theme-hero-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before {
   background:
     linear-gradient(90deg, rgba(125, 92, 41, 0.18) 1px, transparent 1px),
     linear-gradient(rgba(125, 92, 41, 0.16) 1px, transparent 1px),
@@ -8763,116 +8761,116 @@ img[data-preview-fallback] {
   mix-blend-mode: multiply;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-center h2 {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-center h2 {
   background: var(--theme-title-gradient);
   color: transparent;
   -webkit-background-clip: text;
   background-clip: text;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-title {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-title {
   background: var(--theme-title-gradient);
   color: transparent;
   -webkit-background-clip: text;
   background-clip: text;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-lede,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-lede,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-head p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-strip p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-feature p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-mini-panel p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-main p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-auth-copy p {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-lede,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-lede,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .map-head p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-strip p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-feature p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-mini-panel p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-main p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-auth-copy p {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .sprite-frame,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node i,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-route .route-art,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-grid > span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card i,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .portrait-stage,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-portrait,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node i,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .moon-stage,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card i,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card i,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-stage {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .sprite-frame,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node i,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-route .route-art,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-grid > span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card i,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .portrait-stage,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-portrait,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node i,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .moon-stage,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card i,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card i,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-stage {
   background: var(--theme-sprite-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .showcase-sprite-stage,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-grid > span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .showcase-sprite-stage,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-grid > span {
   background: var(--theme-dark-sprite-bg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-route,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-grid > span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-scroll,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof div,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .filter-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .list-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-module,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-side,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-rail,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-main-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-command,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-feature-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-prep-matrix,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-hero-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-command,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-data-band,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-spotlight,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-route-band,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-hero,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid article,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-contact,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-result-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-node,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-command,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-hero,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-form-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-main,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-side {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-route,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-grid > span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-scroll,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof div,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .filter-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .list-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-module,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-side,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-rail,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-main-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-command,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-feature-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-prep-matrix,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-hero-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-command,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-data-band,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-spotlight,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-route-band,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-hero,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid article,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-contact,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-result-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-node,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-command,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-hero,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-form-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-main,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-side {
   background:
     var(--index-grid-x),
     var(--index-grid-y),
@@ -8881,7 +8879,7 @@ img[data-preview-fallback] {
   box-shadow: var(--theme-surface-shadow);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
   border-color: rgba(var(--theme-border-rgb), 0.16);
   border-left-color: rgba(var(--entry-accent), 0.38);
   background:
@@ -8896,7 +8894,7 @@ img[data-preview-fallback] {
     0 10px 24px rgba(var(--theme-border-rgb), 0.055);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover {
   border-color: rgba(var(--entry-accent), 0.26);
   background:
     linear-gradient(90deg, rgba(var(--entry-accent), 0.095), transparent 58%),
@@ -8909,26 +8907,26 @@ img[data-preview-fallback] {
     0 12px 26px rgba(var(--theme-border-rgb), 0.08);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-icon {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-icon {
   filter: saturate(0.96) contrast(1.02);
   box-shadow: 0 8px 18px rgba(var(--theme-border-rgb), 0.08);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell-copy b {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell-copy b {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell-copy em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search input,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search input::placeholder {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell-copy em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search input,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search input::placeholder {
   color: var(--text-subtle);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-count {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-count {
   color: rgba(var(--entry-accent), 0.78);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search {
   border-color: rgba(var(--theme-gold-rgb), 0.18);
   background:
     linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.045), transparent 60%),
@@ -8941,8 +8939,8 @@ img[data-preview-fallback] {
     0 12px 26px rgba(var(--theme-border-rgb), 0.065);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search:focus-within,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-bar:focus-within {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search:focus-within,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-bar:focus-within {
   border-color: rgba(var(--theme-gold-rgb), 0.46);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
@@ -8950,47 +8948,47 @@ img[data-preview-fallback] {
     0 14px 30px rgba(var(--theme-border-rgb), 0.1);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip {
   border-color: rgba(var(--theme-border-rgb), 0.16);
   background: rgba(var(--theme-panel-rgb), 0.42);
   box-shadow: none;
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.moss {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.moss {
   --stage-accent: var(--theme-positive-rgb);
   color: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.gold {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.gold {
   --stage-accent: var(--theme-gold-rgb);
   color: var(--text-accent);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.paper {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.paper {
   --stage-accent: var(--theme-text-rgb);
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip:hover {
   border-color: rgba(var(--theme-border-rgb), 0.24);
   background: rgba(var(--theme-panel-rgb), 0.58);
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-status-pill {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-status-pill {
   border-color: rgba(var(--theme-gold-rgb), 0.14);
   background: rgba(var(--theme-panel-rgb), 0.34);
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search-btn {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search-btn {
   border-color: var(--button-primary-border);
   background: var(--button-primary-bg);
   color: var(--button-primary-fg);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route-cta {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route-cta {
   border-color: rgba(var(--theme-gold-rgb), 0.3);
   background:
     linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.1), rgba(var(--theme-panel-rgb), 0.48)),
@@ -8998,7 +8996,7 @@ img[data-preview-fallback] {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route-cta:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route-cta:hover {
   border-color: rgba(var(--theme-gold-rgb), 0.44);
   background:
     linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.15), rgba(var(--theme-panel-rgb), 0.62)),
@@ -9006,7 +9004,7 @@ img[data-preview-fallback] {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link {
   border-color: rgba(var(--theme-border-rgb), 0.1);
   background:
     var(--index-grid-x),
@@ -9016,7 +9014,7 @@ img[data-preview-fallback] {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link:hover {
   border-color: rgba(var(--theme-border-rgb), 0.18);
   background:
     var(--index-grid-x),
@@ -9026,144 +9024,144 @@ img[data-preview-fallback] {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link em {
   color: var(--text-faint);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions a {
   border-color: rgba(var(--theme-border-rgb), 0.12);
   background: rgba(var(--theme-panel-rgb), 0.52);
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions a:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions a:hover {
   border-color: rgba(var(--theme-border-rgb), 0.22);
   background: rgba(var(--theme-panel-rgb), 0.7);
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-notification-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-user-article-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-head,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-theme-switcher,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-search,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .list-toolbar,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .density-rail,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-path a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-link-matrix a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-notification-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-user-article-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-head,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-theme-switcher,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-search,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .list-toolbar,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .density-rail,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-path a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-link-matrix a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row {
   background: rgba(var(--theme-panel-rgb), 0.62);
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-head em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel a span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-stat-strip span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-head em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel a span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-stat-strip span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row span {
   color: var(--text-subtle);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-brand h3,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-column h4,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact h4 {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-brand h3,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-column h4,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact h4 {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-kicker,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-kicker,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact em {
   color: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route span:first-child {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route span:first-child {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-links a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact-list span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-links a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact-list span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-links a:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-links a:hover {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route span {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route b {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route b {
   color: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head {
   background:
     radial-gradient(circle at 80% 20%, rgba(var(--theme-gold-rgb), 0.12), transparent 24rem),
     linear-gradient(180deg, var(--paper-3), var(--bg-2));
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head-inner,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-head .page-head-inner {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head-inner,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-head .page-head-inner {
   background: rgba(var(--theme-panel-rgb), 0.58);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell.active {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell.active {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-glyph {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-glyph {
   border-color: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-glyph::after {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-glyph::after {
   background: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .support-panel,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-scroll,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-notes,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-band,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-link-grid a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .support-panel,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-scroll,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-notes,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-band,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-link-grid a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions a {
   background:
     var(--index-grid-x),
     var(--index-grid-y),
@@ -9171,7 +9169,7 @@ img[data-preview-fallback] {
   background-size: 40px 40px, 40px 40px, auto;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index {
   border-color: rgba(var(--theme-border-rgb), 0.26);
   background:
     linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.2), transparent 34%),
@@ -9181,271 +9179,271 @@ img[data-preview-fallback] {
     inset 0 1px 0 rgba(255, 255, 255, 0.64);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index::before {
   background:
     var(--index-grid-x),
     var(--index-grid-y);
   opacity: 0.68;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index::after {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index::after {
   background: linear-gradient(90deg, transparent, rgba(var(--theme-link-rgb), 0.42), transparent);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head {
   border-bottom-color: rgba(var(--theme-border-rgb), 0.18);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus span {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus em {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus small {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus small {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row:first-child b {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row:first-child b {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus {
   border-color: rgba(var(--theme-link-rgb), 0.32);
   background:
     radial-gradient(circle at 42px 50%, rgba(var(--theme-gold-rgb), 0.14), transparent 78px),
     rgba(var(--theme-panel-rgb), 0.56);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus-action {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus-action {
   border-color: rgba(var(--theme-border-rgb), 0.2);
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics {
   border-top-color: rgba(var(--theme-border-rgb), 0.16);
   border-bottom-color: rgba(var(--theme-border-rgb), 0.16);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics a + a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics a + a {
   border-left-color: rgba(var(--theme-border-rgb), 0.16);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row em {
   color: var(--text-subtle);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row {
   border-bottom-color: rgba(var(--theme-border-rgb), 0.12);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen :where(p, span, em, dt, label, small, li) {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .screen :where(p, span, em, dt, label, small, li) {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen :where(dd) {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .screen :where(dd) {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-logo small,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-menu-text-trigger,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-avatar-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-link,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-back,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-search,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .density-rail,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-path a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-link-matrix a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .form-footnote a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-logo small,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-menu-text-trigger,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-avatar-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-link,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-back,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-search,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .density-rail,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-path a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-link-matrix a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .form-footnote a {
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-current {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-current {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-lede,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-head em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel a span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-main p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-side dt,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .evidence-step span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-lead p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .toc-item span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-mini-panel p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-stat-strip span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .mini-facts span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-copy p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-facts dt,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .signal-list em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-table .source-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-hero-panel p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-spotlight p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-contact p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command-stats span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-prep-matrix span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-data-band span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-route-band span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .contact-grid span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .node-meta em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-feature-panel p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card dt,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-proof span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-axis p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-detail-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-detail-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-body-panel p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-detail-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-detail-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .result-title-line p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-phase p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-signal p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .taxonomy-band p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-band span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-node span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-callout span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-link-grid span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-readiness span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .prep-panel span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-command p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-hero p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-auth-copy p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-status-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-link-matrix span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-auth-proof span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-field.summary,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-body-placeholder span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-lede,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-head em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .account-menu-panel a span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .page-head p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-main p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-side dt,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .source-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .evidence-step span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-lead p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .toc-item span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-mini-panel p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-stat-strip span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .mini-facts span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-copy p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-facts dt,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .signal-list em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-table .source-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-hero-panel p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-spotlight p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-contact p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command-stats span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-prep-matrix span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-data-band span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-route-band span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .contact-grid span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .node-meta em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-feature-panel p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card dt,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-proof span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-axis p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-detail-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-detail-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-body-panel p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-detail-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-detail-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .result-title-line p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-phase p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-signal p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .taxonomy-band p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-band span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-node span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-callout span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-link-grid span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-readiness span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .prep-panel span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-command p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-hero p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-auth-copy p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-status-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-link-matrix span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-auth-proof span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-field.summary,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-body-placeholder span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-list span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row span {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .eyebrow,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-meta span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .toc-num,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell.active,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row:first-child b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route span:first-child,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-callout b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-result-card > a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .prep-panel a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-status-card a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .form-footnote a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-facts span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-row em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row.missing span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-table .source-row strong {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .eyebrow,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-meta span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .toc-num,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell.active,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row:first-child b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-plinth b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route span:first-child,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-callout b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-result-card > a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .prep-panel a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-status-card a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .form-footnote a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-facts span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .loot-row em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row.missing span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-table .source-row strong {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .eyebrow::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .eyebrow::before {
   background: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .section-label,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-kicker,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.moss,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .signal-list b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-phase span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-signal span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-node em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-input-shell em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-search em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node-card em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-form-panel label span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-panel label span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row.done span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .section-label,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-kicker,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-proof span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.moss,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .signal-list b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-phase span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-signal span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-node em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-input-shell em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .crafting-search em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node-card em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .user-form-panel label span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-panel label span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row.done span {
   color: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.paper,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.paper,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a {
   color: var(--text-subtle);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell span {
   color: var(--text-subtle);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy {
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry {
   border-color: rgba(var(--theme-border-rgb), 0.14);
   background:
     linear-gradient(135deg, rgba(var(--theme-gold-rgb), 0.08), transparent 42%),
@@ -9455,15 +9453,15 @@ img[data-preview-fallback] {
     0 8px 20px rgba(var(--theme-border-rgb), 0.05);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-head span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-head span {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-head em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-head em {
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card {
   border-color: rgba(var(--theme-gold-rgb), 0.28);
   background:
     linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.12), rgba(var(--theme-panel-rgb), 0.42) 58%),
@@ -9471,19 +9469,19 @@ img[data-preview-fallback] {
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-card:hover {
   border-color: rgba(var(--theme-gold-rgb), 0.42);
   background:
     linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.18), rgba(var(--entry-accent), 0.05) 58%),
     rgba(var(--theme-panel-rgb), 0.5);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-copy b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip {
   color: var(--text-main);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-code {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-code {
   border-color: rgba(var(--entry-accent), 0.2);
   background:
     linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.88), rgba(var(--theme-bg-2-rgb), 0.72));
@@ -9492,33 +9490,33 @@ img[data-preview-fallback] {
     0 8px 18px rgba(var(--theme-border-rgb), 0.06);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-code .sprite-icon {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-code .sprite-icon {
   border-radius: 8px;
   filter: saturate(0.96) contrast(1.02);
   opacity: 1;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip {
   border-color: rgba(var(--theme-border-rgb), 0.12);
   background: rgba(var(--theme-panel-rgb), 0.38);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip:hover {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip:hover {
   border-color: rgba(var(--entry-accent), 0.3);
   background: rgba(var(--entry-accent), 0.08);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip-icon {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .quick-entry-chip-icon {
   background: rgba(var(--theme-text-rgb), 0.07);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.moss,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.paper {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.moss,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tag.paper {
   background-color: rgba(var(--theme-panel-rgb), 0.66);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card {
   border-color: rgba(var(--theme-border-rgb), 0.14);
   background:
     var(--index-grid-x),
@@ -9532,44 +9530,44 @@ img[data-preview-fallback] {
     0 16px 40px rgba(var(--theme-border-rgb), 0.08);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h1,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h2,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h3,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h4,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card b,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card strong,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card dd {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h1,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h2,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h3,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card h4,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card b,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card strong,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card dd {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card p,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card dt,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card small,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card li {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card p,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card dt,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card small,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card li {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .eyebrow,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .section-label,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .recipe-arrow,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .dark-table .source-row strong {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .eyebrow,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .section-label,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .recipe-arrow,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .dark-table .source-row strong {
   color: var(--text-link);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.moss,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list b {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.moss,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list b {
   color: var(--text-positive);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.gold,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.moss,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.paper,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .recipe-node,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .source-row,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list div {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.gold,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.moss,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .tag.paper,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .recipe-node,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .source-row,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list div {
   border-color: rgba(var(--theme-border-rgb), 0.12);
   background:
     var(--index-grid-x),
@@ -9579,14 +9577,14 @@ img[data-preview-fallback] {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .recipe-node span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .source-row span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list em {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .recipe-node span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .source-row span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card .signal-list em {
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero {
   border-color: rgba(var(--theme-border-rgb), 0.18);
   background:
     linear-gradient(90deg, rgba(var(--theme-panel-rgb), 0.28), rgba(var(--theme-bg-2-rgb), 0.14) 58%, rgba(var(--theme-panel-rgb), 0.06)),
@@ -9600,17 +9598,17 @@ img[data-preview-fallback] {
     0 18px 46px rgba(var(--theme-text-rgb), 0.1);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero::before {
   background:
     linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.03), rgba(var(--theme-panel-rgb), 0.18)),
     linear-gradient(90deg, rgba(var(--theme-panel-rgb), 0.22), rgba(var(--theme-bg-2-rgb), 0.1) 54%, rgba(var(--theme-panel-rgb), 0.04));
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero::after {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero::after {
   opacity: 0.05;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy {
   max-width: 580px;
   border-color: rgba(var(--theme-border-rgb), 0.18);
   background:
@@ -9623,23 +9621,23 @@ img[data-preview-fallback] {
   backdrop-filter: blur(1px);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h1,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h2 {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h1,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h2 {
   color: var(--text-strong);
   text-shadow: none;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy p {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy p {
   color: var(--text-main);
   text-shadow: none;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow::before {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow::before {
   background: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero .tag {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero .tag {
   border-color: rgba(var(--theme-border-rgb), 0.18);
   background:
     var(--index-grid-x),
@@ -9649,7 +9647,7 @@ img[data-preview-fallback] {
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-scan {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-scan {
   border-color: rgba(var(--theme-border-rgb), 0.18);
   background: rgba(var(--theme-panel-rgb), 0.22);
   box-shadow:
@@ -9657,7 +9655,7 @@ img[data-preview-fallback] {
     0 14px 30px rgba(var(--theme-text-rgb), 0.08);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-sigil {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-sigil {
   background:
     linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.96), rgba(var(--theme-bg-2-rgb), 0.92)),
     rgba(var(--theme-panel-rgb), 0.94);

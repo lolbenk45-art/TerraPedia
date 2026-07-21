@@ -384,51 +384,51 @@
   font-size: 12px;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-type-tabs a {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-type-tabs a {
   border-color: rgba(24, 36, 22, 0.14);
   background: rgba(255, 250, 236, 0.64);
   color: rgba(24, 36, 22, 0.84);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-type-tabs a.active {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-type-tabs a.active {
   border-color: rgba(127, 90, 21, 0.38);
   background: rgba(127, 90, 21, 0.12);
   color: #172416;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-rows a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-group-head,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-guide-metrics span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-stage-label,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-side-summary,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-axis-branches a,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch-cluster {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-rows a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-group-head,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-guide-metrics span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-stage-label,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-side-summary,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-axis-branches a,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch-cluster {
   border-color: rgba(24, 36, 22, 0.14);
   background: rgba(255, 250, 236, 0.58);
   color: rgba(24, 36, 22, 0.88);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-rows span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-guide-metrics em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-stage-timeline em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-side-summary span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-axis-branches span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-rows span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .featured-guide-metrics em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-stage-timeline em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-side-summary span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-axis-branches span {
   color: rgba(24, 36, 22, 0.72);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-rows em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-stage-label span,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-cluster-label {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .search-suggestion-rows em,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .article-stage-label span,
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .category-cluster-label {
   color: #36582a;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-stage-timeline span {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-stage-timeline span {
   border-color: rgba(127, 90, 21, 0.34);
   background: rgba(255, 250, 236, 0.82);
   color: #6c4a10;
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-stage-timeline a.active {
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .route-stage-timeline a.active {
   border-color: rgba(127, 90, 21, 0.38);
   background:
     linear-gradient(135deg, rgba(127, 90, 21, 0.12), transparent 52%),

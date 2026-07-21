@@ -10,9 +10,9 @@ import { dirname, join } from 'node:path'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const BUDGETS = {
-  'assets/css/hifi-preview.css': 10282,
+  'assets/css/hifi-preview.css': 10280,
   'assets/css/catalog-image-fixes.css': 1878,
-  'assets/css/light-theme-contrast-fixes.css': 910,
+  'assets/css/light-theme-contrast-fixes.css': 907,
   'assets/css/mobile-typography-fixes.css': 616,
   'assets/css/discovery-page-fixes.css': 482,
 }

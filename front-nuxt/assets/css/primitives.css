@@ -401,8 +401,6 @@
   padding: 14px;
 }
 
-[data-theme="light"] .armor-card p,
-[data-theme="light"] .armor-benefit-lines span,
 [data-theme="morning-paper"] .armor-card p,
 [data-theme="morning-paper"] .armor-benefit-lines span,
 [data-theme="warm-slate"] .armor-card p,
@@ -410,8 +408,6 @@
   color: var(--text-muted);
 }
 
-[data-theme="light"] .armor-effect-strip span,
-[data-theme="light"] .armor-effect-row span,
 [data-theme="morning-paper"] .armor-effect-strip span,
 [data-theme="morning-paper"] .armor-effect-row span,
 [data-theme="warm-slate"] .armor-effect-strip span,
@@ -421,8 +417,6 @@
   color: var(--text-main);
 }
 
-[data-theme="light"] .armor-effect-strip span.is-offense,
-[data-theme="light"] .armor-effect-row span.is-offense,
 [data-theme="morning-paper"] .armor-effect-strip span.is-offense,
 [data-theme="morning-paper"] .armor-effect-row span.is-offense,
 [data-theme="warm-slate"] .armor-effect-strip span.is-offense,
@@ -430,10 +424,6 @@
   color: var(--text-link);
 }
 
-[data-theme="light"] .armor-effect-strip span.is-mobility,
-[data-theme="light"] .armor-effect-row span.is-mobility,
-[data-theme="light"] .armor-effect-strip span.is-defense,
-[data-theme="light"] .armor-effect-row span.is-defense,
 [data-theme="morning-paper"] .armor-effect-strip span.is-mobility,
 [data-theme="morning-paper"] .armor-effect-row span.is-mobility,
 [data-theme="morning-paper"] .armor-effect-strip span.is-defense,

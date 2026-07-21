@@ -110,7 +110,6 @@
   --tp-data-meta-line-height: 1.45;
 }
 
-[data-theme="light"],
 [data-theme="morning-paper"] {
   --tp-color-surface-soft: rgba(255, 250, 241, 0.72);
   --tp-color-surface-raised: rgba(255, 250, 241, 0.92);
