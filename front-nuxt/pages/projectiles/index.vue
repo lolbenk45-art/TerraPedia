@@ -322,7 +322,7 @@ watch(projectileTotalPages, (pages) => {
         </div>
       </section>
 
-      <section class="projectile-data-band">
+      <section class="projectile-data-band is-compact-band">
         <div><b>总数</b><span>{{ projectileTotalItems.toLocaleString('zh-CN') }}</span></div>
         <div><b>分页</b><span>第 {{ projectileCurrentPage }} / {{ projectileTotalPages }} 页</span></div>
         <div><b>排序</b><span>{{ projectileSortBy }} · {{ projectileSortDirection === 'asc' ? '升序' : '降序' }}</span></div>
@@ -330,6 +330,9 @@ watch(projectileTotalPages, (pages) => {
       </section>
 
       <CommonPaginationDock
+        compact
+        :show-jump="false"
+        :show-boundary-controls="false"
         :current-page="projectileVisualLoading ? 1 : projectileCurrentPage"
         :total-pages="projectileVisualLoading ? 1 : projectileTotalPages"
         :disabled="projectileVisualLoading"
@@ -337,8 +340,7 @@ watch(projectileTotalPages, (pages) => {
         :page-size-options="projectilePageSizeOptions"
         aria-label="射弹分页"
         jump-id="projectile-page-jump"
-        show-boundary-controls
-        @page-change="goToProjectilePage"
+                @page-change="goToProjectilePage"
         @page-size-change="setProjectilePageSize"
       />
     </main>

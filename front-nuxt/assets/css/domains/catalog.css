@@ -1876,3 +1876,74 @@
     transition: none;
   }
 }
+
+
+/* Compact sticky pager for high page-count entity lists (NPC / projectiles). */
+.catalog-page-dock.is-compact {
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
+  gap: 6px 8px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.16);
+}
+
+.catalog-page-dock.is-compact .catalog-page-dock-summary {
+  font-size: 11px;
+}
+
+.catalog-page-dock.is-compact .catalog-page-dock-core {
+  gap: 3px;
+}
+
+.catalog-page-dock.is-compact .catalog-dock-button,
+.catalog-page-dock.is-compact .catalog-dock-icon-button,
+.catalog-page-dock.is-compact .catalog-dock-page-button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 4px 7px;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.catalog-page-dock.is-compact .catalog-dock-jump-form {
+  display: none;
+}
+
+.catalog-page-dock.is-compact > .catalog-density-picker {
+  grid-column: auto;
+  justify-content: flex-end;
+  border-top: 0;
+  padding-top: 0;
+  margin: 0;
+  gap: 4px;
+}
+
+.catalog-page-dock.is-compact > .catalog-density-picker.is-compact-density {
+  min-height: 32px;
+}
+
+.catalog-page-dock.is-compact .catalog-density-chip {
+  min-height: 28px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+/* Leave less dead padding above compact docks */
+.npc-board:has(+ .catalog-page-dock.is-compact),
+.projectile-data-band:has(+ .catalog-page-dock.is-compact),
+.effect-grid:has(+ .catalog-page-dock.is-compact) {
+  scroll-margin-bottom: 48px;
+  padding-bottom: 48px;
+}
+
+@media (max-width: 720px) {
+  .catalog-page-dock.is-compact {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .catalog-page-dock.is-compact .catalog-page-dock-core,
+  .catalog-page-dock.is-compact > .catalog-density-picker {
+    justify-content: flex-start;
+  }
+}

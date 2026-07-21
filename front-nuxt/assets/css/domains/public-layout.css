@@ -268,3 +268,24 @@
   image-rendering: pixelated;
 }
 
+
+
+.projectile-data-band.is-compact-band {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.projectile-data-band.is-compact-band > div {
+  padding: 6px 8px;
+}
+
+/* Prefer sticky compact dock; reduce entity stat strip footprint on NPC/projectile pages */
+.entity-main-panel > .entity-stat-strip {
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.entity-main-panel > .entity-stat-strip > div {
+  padding: 6px 8px;
+}

@@ -428,13 +428,15 @@ watch(selectedPageSize, (pageSize) => {
         </Transition>
 
         <CommonPaginationDock
+        compact
+        :show-jump="false"
+        :show-boundary-controls="false"
           :current-page="npcDockCurrentPage"
           :total-pages="npcDockTotalPages"
           :disabled="npcVisualLoading"
           :summary-suffix="activeFilterPath"
           jump-id="npc-page-jump"
-          show-boundary-controls
-          @page-change="goToPage"
+                    @page-change="goToPage"
         />
       </section>
 

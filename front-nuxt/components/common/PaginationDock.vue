@@ -13,6 +13,7 @@ const props = withDefaults(defineProps<{
   pageSize?: number
   pageSizeOptions?: readonly number[]
   pageSizeLabel?: string
+  compact?: boolean
 }>(), {
   disabled: false,
   ariaLabel: '分页',
@@ -21,6 +22,7 @@ const props = withDefaults(defineProps<{
   showBoundaryControls: false,
   showJump: true,
   pageSizeLabel: '每页',
+  compact: false,
 })
 
 const emit = defineEmits<{
@@ -29,6 +31,7 @@ const emit = defineEmits<{
 }>()
 
 const jumpPageInput = ref('')
+const densityExpanded = ref(false)
 
 const normalizedTotalPages = computed(() => {
   const pages = Number(props.totalPages)
@@ -97,7 +100,7 @@ const goToJumpPage = () => {
 </script>
 
 <template>
-  <nav class="catalog-page-dock" :aria-label="ariaLabel">
+  <nav class="catalog-page-dock" :class="{ 'is-compact': compact }" :aria-label="ariaLabel">
     <span class="catalog-page-dock-summary">{{ summaryLabel }}</span>
 
     <div class="catalog-page-dock-core">
@@ -172,19 +175,44 @@ const goToJumpPage = () => {
       <button class="catalog-dock-button" type="submit" :disabled="disabled">前往</button>
     </form>
 
-    <div v-if="hasPageSizeOptions" class="catalog-density-picker" aria-label="每页数量">
+    <div
+      v-if="hasPageSizeOptions"
+      class="catalog-density-picker"
+      :class="{ 'is-compact-density': compact }"
+      aria-label="每页数量"
+    >
       <span>{{ pageSizeLabel }}</span>
+      <template v-if="!compact || densityExpanded">
+        <button
+          v-for="option in pageSizeOptions"
+          :key="option"
+          class="catalog-density-chip"
+          :class="{ active: option === pageSize }"
+          type="button"
+          :aria-pressed="option === pageSize"
+          :disabled="disabled"
+          @click="emit('page-size-change', option)"
+        >
+          {{ option }}
+        </button>
+      </template>
       <button
-        v-for="option in pageSizeOptions"
-        :key="option"
-        class="catalog-density-chip"
-        :class="{ active: option === pageSize }"
+        v-else
+        class="catalog-density-chip active"
         type="button"
-        :aria-pressed="option === pageSize"
         :disabled="disabled"
-        @click="emit('page-size-change', option)"
+        :aria-expanded="densityExpanded ? 'true' : 'false'"
+        @click="densityExpanded = true"
       >
-        {{ option }}
+        {{ pageSize }}
+      </button>
+      <button
+        v-if="compact && densityExpanded"
+        class="catalog-density-chip"
+        type="button"
+        @click="densityExpanded = false"
+      >
+        收起
       </button>
     </div>
   </nav>
