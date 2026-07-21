@@ -213,7 +213,7 @@ for (const [selector, markers] of [
     'position: sticky;',
     'position: static;',
     '.crafting-route-stage .recipe-graph {\n  min-height: 0;',
-    '@media (max-width: 1020px)',
+    '@media (max-width: 1024px)',
     'var(--index-grid-x)',
     'var(--index-grid-y)',
     '.crafting-screen {',
