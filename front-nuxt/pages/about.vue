@@ -56,7 +56,7 @@ useSeoMeta({
           <a href="/items"><b>物品图鉴</b><span>装备、材料、价格和分类</span></a>
           <a href="/crafting"><b>合成树</b><span>目标物品、材料和制作站</span></a>
           <a href="/bosses"><b>Boss 路线</b><span>推进顺序、成员和掉落</span></a>
-          <a href="/search"><b>全站检索</b><span>先查询真实公开物品数据</span></a>
+          <a href="/search-tool"><b>全站检索</b><span>先查询真实公开物品数据</span></a>
         </div>
       </section>
     </main>

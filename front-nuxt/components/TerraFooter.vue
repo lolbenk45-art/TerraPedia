@@ -64,7 +64,7 @@ onMounted(() => {
             <a href="/npcs">NPC 图鉴</a>
             <a href="/projectiles">射弹图鉴</a>
             <a href="/biomes">生态索引</a>
-            <a href="/search">全站检索</a>
+            <a href="/search-tool">全站检索</a>
             <a href="/about">数据来源</a>
             <a href="/about">使用说明</a>
           </div>

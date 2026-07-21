@@ -159,7 +159,7 @@ onBeforeUnmount(closeMenu)
         <span class="nav-mobile-trigger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
 
-      <NuxtLink class="icon-button search-action" to="/search" aria-label="搜索">
+      <NuxtLink class="icon-button search-action" to="/search-tool" aria-label="搜索">
         <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
       </NuxtLink>
 
@@ -211,7 +211,7 @@ onBeforeUnmount(closeMenu)
           :class="{ 'is-open': activeMenu === 'resources' }"
           :aria-hidden="activeMenu !== 'resources'"
         >
-          <NuxtLink class="nav-search-link" to="/search" :tabindex="activeMenu === 'resources' ? 0 : -1" @click="closeMenu">
+          <NuxtLink class="nav-search-link" to="/search-tool" :tabindex="activeMenu === 'resources' ? 0 : -1" @click="closeMenu">
             <span class="sprite-icon icon-search nav-card-icon" aria-hidden="true"></span>
             <span class="nav-card-copy">
               <b>全站检索</b>
@@ -366,8 +366,8 @@ onBeforeUnmount(closeMenu)
             ><b>{{ link.label }}</b></NuxtLink>
             <NuxtLink
               class="mobile-nav-link"
-              :class="{ active: isActive('/search') }"
-              to="/search"
+              :class="{ active: isActive('/search-tool') }"
+              to="/search-tool"
               :tabindex="mobileNavOpen ? 0 : -1"
               @click="closeMobileNav"
             ><b>全站检索</b></NuxtLink>

@@ -1,4 +1,14 @@
 <script setup lang="ts">
+// WP-14 search cutover: /search is retired in favor of /search-tool.
+const __searchCutoverRoute = useRoute()
+const __searchCutoverKeyword = String(__searchCutoverRoute.query.keyword ?? __searchCutoverRoute.query.q ?? '').trim()
+await navigateTo(
+  __searchCutoverKeyword
+    ? { path: '/search-tool', query: { keyword: __searchCutoverKeyword } }
+    : '/search-tool',
+  { redirectCode: 301, replace: true },
+)
+
 definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import { fetchPublicItems } from '~/composables/usePublicItems'

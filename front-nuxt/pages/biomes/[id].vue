@@ -300,7 +300,7 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
           <article class="support-panel category-branch">
             <b>来源记录</b>
             <span>{{ biomeItemSources.length }} 条来源记录。</span>
-            <a href="/search">搜索资料</a>
+            <a href="/search-tool">搜索资料</a>
           </article>
         </section>
 

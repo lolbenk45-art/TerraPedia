@@ -69,7 +69,7 @@ const submitHomeSearch = () => {
   const keyword = homeSearchQuery.value.trim()
 
   if (!keyword) {
-    return navigateTo('/search')
+    return navigateTo('/search-tool')
   }
 
   return navigateTo(`/search?keyword=${encodeURIComponent(keyword)}`)

@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<{
 const routeLabels: Record<string, string> = {
   '/': '首页',
   '/search': '全站检索',
+  '/search-tool': '搜索备选',
   '/items': '物品图鉴',
   '/items/terra-blade': '泰拉刃',
   '/crafting': '制作路线',

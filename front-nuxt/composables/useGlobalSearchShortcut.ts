@@ -44,7 +44,7 @@ export const useGlobalSearchShortcut = () => {
       return
     }
 
-    await navigateTo('/search')
+    await navigateTo('/search-tool')
     await nextTick()
     await focusGlobalSearchInput()
   }
@@ -58,7 +58,7 @@ export const useGlobalSearchShortcut = () => {
   watch(
     () => route.path,
     async (path) => {
-      if (path === '/search') {
+      if (path === '/search-tool' || path === '/search') {
         await focusGlobalSearchInput()
       }
     },

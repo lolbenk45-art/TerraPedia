@@ -1515,7 +1515,7 @@ for (const path of scanFiles) {
       }
     }
 
-    if (!homeTemplateContent.includes('hero-j1-search') || !homeTemplateContent.includes('/search')) {
+    if (!homeTemplateContent.includes('hero-j1-search') || !(homeTemplateContent.includes('/search-tool') || homeTemplateContent.includes('/search'))) {
       violations.push(`${path}: home J1 hero must include the full-width search entry`)
     }
 
