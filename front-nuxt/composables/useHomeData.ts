@@ -91,7 +91,7 @@ const fetchHomeFocusItem = async (): Promise<HomeFocusItem> => {
 }
 
 export const useHomeData = async () => {
-  const { itemTotalLabel: publicLayoutItemTotalLabel } = usePublicLayoutState()
+  const { itemTotalLabel: publicLayoutItemTotalLabel, publishHomeStats } = usePublicLayoutState()
   const homeStatsResult = useAsyncData(
     'home-public-stats',
     fetchHomeStats,
@@ -114,6 +114,13 @@ export const useHomeData = async () => {
   ] = await Promise.all([homeStatsResult, homeFocusItemResult])
 
   const itemTotalLabel = computed(() => formatCount(homeStats.value?.totalItems, '图鉴'))
+  watch(
+    homeStats,
+    (value) => {
+      publishHomeStats(value)
+    },
+    { immediate: true },
+  )
   watch(
     itemTotalLabel,
     (value) => {

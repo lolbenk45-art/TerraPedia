@@ -2,9 +2,28 @@
 definePageMeta({ publicScreenClass: 'home-screen search-tool-screen' })
 
 import type { ItemSuggestion } from '~/composables/usePublicItems'
+import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 
 const route = useRoute()
 const router = useRouter()
+const { stats, publishHomeStats } = usePublicLayoutState()
+
+const { data: overviewStats } = await useAsyncData(
+  'search-tool-public-stats',
+  async () => {
+    try {
+      const response = await usePublicApiFetch<Record<string, number | null>>('/statistics/overview')
+      return unwrapApiResponse(response)
+    } catch {
+      return null
+    }
+  },
+  { default: () => null },
+)
+
+watch(overviewStats, (value) => {
+  if (value) publishHomeStats(value)
+}, { immediate: true })
 
 const searchQuery = ref(String(route.query.keyword ?? '').trim())
 const searchInput = ref<HTMLInputElement | null>(null)
@@ -14,14 +33,14 @@ const suggestionsClientReady = ref(false)
 const suggestionsVisualLoading = computed(() => suggestionsPending.value || !suggestionsClientReady.value)
 let suggestionTimer: ReturnType<typeof setTimeout> | undefined
 
-const quickEntries = [
-  { label: '物品', href: '/items', icon: 'icon-items', count: '6,131' },
-  { label: 'Boss', href: '/bosses', icon: 'icon-boss', count: '14' },
-  { label: 'NPC', href: '/npcs', icon: 'icon-npc', count: '762' },
-  { label: 'Buff', href: '/buffs', icon: 'icon-buff', count: '388' },
-  { label: '配方', href: '/crafting', icon: 'icon-crafting', count: '14,746' },
-  { label: '文章', href: '/articles', icon: 'icon-article', count: '精选' },
-]
+const quickEntries = computed(() => [
+  { label: '物品', href: '/items', icon: 'icon-items', count: stats.value.itemTotalLabel },
+  { label: 'Boss', href: '/bosses', icon: 'icon-boss', count: stats.value.bossTotalLabel },
+  { label: 'NPC', href: '/npcs', icon: 'icon-npc', count: stats.value.npcTotalLabel },
+  { label: 'Buff', href: '/buffs', icon: 'icon-buff', count: stats.value.buffTotalLabel },
+  { label: '配方', href: '/crafting', icon: 'icon-crafting', count: stats.value.linkNodeLabel },
+  { label: '文章', href: '/articles', icon: 'icon-article', count: stats.value.articleTotalLabel },
+])
 
 const recentUpdates = [
   { title: '泰拉刃', meta: '配方与材料入口', href: '/items/757' },
@@ -93,6 +112,7 @@ useSeoMeta({
         <div class="home-tool-copy">
           <span class="eyebrow">TerraPedia</span>
           <h1 id="search-title">搜索</h1>
+          <p class="search-tool-prototype-label">对照原型 · 非主站检索入口</p>
           <p>Terraria 中文资料库</p>
         </div>
 

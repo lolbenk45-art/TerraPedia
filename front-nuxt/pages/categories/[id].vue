@@ -6,6 +6,34 @@ import { isUnknownCategorySlug } from '~/utils/publicCategoryNavigation'
 const route = useRoute()
 const slug = computed(() => String(route.params.id ?? '').trim().toLowerCase())
 const { data: categoryNavigation, pending, error, refresh } = await usePublicCategoryNavigation()
+
+const numericCategoryId = computed(() => {
+  const raw = String(route.params.id ?? '').trim()
+  if (!/^\d+$/.test(raw)) return null
+  const id = Number(raw)
+  return Number.isInteger(id) && id > 0 ? id : null
+})
+
+const redirectTargetSlug = computed(() => {
+  if (!numericCategoryId.value || !categoryNavigation.value) return null
+  const match = categoryNavigation.value.find((entry) => {
+    if (Number((entry as { id?: number }).id) === numericCategoryId.value) return true
+    const ids = Array.isArray((entry as { categoryIds?: number[] }).categoryIds)
+      ? (entry as { categoryIds?: number[] }).categoryIds!
+      : []
+    return ids.some((value) => Number(value) === numericCategoryId.value)
+  })
+  return match?.slug ?? null
+})
+
+if (redirectTargetSlug.value) {
+  if (import.meta.server) {
+    const event = useRequestEvent()
+    if (event) setResponseStatus(event, 301)
+  }
+  await navigateTo(`/categories/${redirectTargetSlug.value}`, { redirectCode: 301 })
+}
+
 const category = computed(() => categoryNavigation.value?.find((entry) => entry.slug === slug.value))
 const unknownCategory = computed(() => isUnknownCategorySlug(
   categoryNavigation.value ?? [],
@@ -21,6 +49,12 @@ if (unknownCategory.value) {
 watch(unknownCategory, (isUnknown) => {
   if (isUnknown) {
     showError(createError({ statusCode: 404, statusMessage: 'Category not found' }))
+  }
+})
+
+watch(redirectTargetSlug, (nextSlug) => {
+  if (nextSlug) {
+    void navigateTo(`/categories/${nextSlug}`, { redirectCode: 301 })
   }
 })
 
