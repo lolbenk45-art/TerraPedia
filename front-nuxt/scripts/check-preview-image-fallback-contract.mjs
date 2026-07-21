@@ -141,7 +141,7 @@ for (const path of [
 for (const path of [
   'assets/css/loading-skeleton.css',
   'assets/css/hifi-preview.css',
-  'assets/css/catalog-image-fixes.css',
+  'assets/css/domains/catalog.css',
 ]) {
   const content = read(path)
   assertContains(path, content, [

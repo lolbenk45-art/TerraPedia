@@ -21,7 +21,10 @@ for (const path of requiredFiles) {
 }
 
 const assertMarkers = (path, markers) => {
-  if (!existsSync(file(path))) return
+  if (!existsSync(file(path))) {
+    failures.push(`${path}: file is required`)
+    return
+  }
 
   const content = readFileSync(file(path), 'utf8')
 
@@ -33,7 +36,10 @@ const assertMarkers = (path, markers) => {
 }
 
 const assertNoMarkers = (path, markers) => {
-  if (!existsSync(file(path))) return
+  if (!existsSync(file(path))) {
+    failures.push(`${path}: file is required`)
+    return
+  }
 
   const content = readFileSync(file(path), 'utf8')
 
@@ -85,7 +91,7 @@ assertMarkers('components/catalog/CatalogWallSkeleton.vue', [
   'CommonTpSkeleton type="line"',
 ])
 
-assertMarkers('assets/css/catalog-image-fixes.css', [
+assertMarkers('assets/css/domains/catalog.css', [
   '.catalog-wall-cell-loading',
   '.catalog-wall-state-enter-active',
   '.catalog-wall-state-enter-from',
@@ -99,7 +105,7 @@ assertMarkers('assets/css/catalog-image-fixes.css', [
   'width: var(--catalog-wall-frame-size)',
 ])
 
-assertNoMarkers('assets/css/catalog-image-fixes.css', [
+assertNoMarkers('assets/css/domains/catalog.css', [
   'width: min(128px, 100%);',
 ])
 

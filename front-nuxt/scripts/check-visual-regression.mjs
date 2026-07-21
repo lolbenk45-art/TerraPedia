@@ -960,7 +960,7 @@ const css = readFileSync(file('assets/css/app.css'), 'utf8')
 const publicCss = [
   'assets/css/hifi-preview.css',
   'assets/css/mobile-typography-fixes.css',
-  'assets/css/catalog-image-fixes.css',
+  'assets/css/domains/catalog.css',
   'assets/css/discovery-page-fixes.css',
 ].map((path) => readFileSync(file(path), 'utf8')).join('\n')
 const itemsPage = readFileSync(file('pages/items/index.vue'), 'utf8')
@@ -1226,10 +1226,17 @@ const resolveDynamicDetailRoutes = async () => {
   return routes
 }
 
-for (const marker of ['mobile-typography-fixes.css', 'catalog-image-fixes.css', 'discovery-page-fixes.css']) {
+for (const marker of ['mobile-typography-fixes.css', 'discovery-page-fixes.css']) {
   if (!css.includes(marker)) {
     failures.push(`assets/css/app.css must import ${marker}`)
   }
+}
+if (css.includes('catalog-image-fixes.css')) {
+  failures.push('assets/css/app.css must not import the retired catalog-image-fixes.css patch')
+}
+const domainsIndex = readFileSync(file('assets/css/domains/index.css'), 'utf8')
+if (!domainsIndex.includes('@import "./catalog.css";')) {
+  failures.push('assets/css/domains/index.css must import ./catalog.css after the catalog patch promotion')
 }
 
 for (const fontName of ['Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'PingFang SC']) {

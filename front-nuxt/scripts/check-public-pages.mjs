@@ -1087,12 +1087,19 @@ const scanFiles = [
   'assets/css/hifi-preview.css',
   'assets/css/loading-skeleton.css',
   'assets/css/primitives.css',
-  'assets/css/catalog-image-fixes.css',
+  'assets/css/domains/catalog.css',
   'assets/css/light-theme-contrast-fixes.css',
   'assets/css/domains/crafting.css',
 ]
 
 const violations = []
+// WP-11.4: catalog-image-fixes.css is retired; ownership lives in domains/catalog.css.
+if (existsSync(file('assets/css/catalog-image-fixes.css'))) {
+  violations.push('assets/css/catalog-image-fixes.css: retired patch must be deleted after promotion into domains/catalog.css')
+}
+if (!existsSync(file('assets/css/domains/catalog.css'))) {
+  violations.push('assets/css/domains/catalog.css: catalog domain stylesheet is required after WP-11.4 promotion')
+}
 const hifiCss = readFileSync(file('assets/css/hifi-preview.css'), 'utf8')
 const lightContrastCss = readFileSync(file('assets/css/light-theme-contrast-fixes.css'), 'utf8')
 const lightThemeSelector = ':where([data-theme="morning-paper"], [data-theme="warm-slate"])'
@@ -1235,6 +1242,11 @@ if (existsSync(file('app/app.vue'))) {
 }
 
 for (const path of scanFiles) {
+  if (!existsSync(file(path))) {
+    violations.push(`${path}: required scan file is missing`)
+    continue
+  }
+
   const content = readFileSync(file(path), 'utf8')
 
   if (requiredSeoRoutes.includes(path) && !content.includes('useSeoMeta')) {
@@ -3281,7 +3293,7 @@ for (const path of scanFiles) {
     }
   }
 
-  if (path === 'assets/css/catalog-image-fixes.css') {
+  if (path === 'assets/css/domains/catalog.css') {
     for (const marker of [
       'grid-template-columns: repeat(6, minmax(0, 1fr))',
       'grid-template-rows: 12px minmax(86px, 1fr) auto',

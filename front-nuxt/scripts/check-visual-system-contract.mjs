@@ -424,6 +424,7 @@ const cssOrder = [
 
   requireIncludes(path, content, 'Do not add business selectors to hifi-preview.css', 'must document the hifi-preview migration boundary')
   requireIncludes(path, content, '@import "./biome.css";', 'must load biome domain CSS for theme-managed biome hero rules')
+  requireIncludes(path, content, '@import "./catalog.css";', 'must load catalog domain CSS after the catalog patch promotion')
 }
 
 {
@@ -660,7 +661,7 @@ const cssOrder = [
 }
 
 {
-  const path = 'assets/css/catalog-image-fixes.css'
+  const path = 'assets/css/domains/catalog.css'
   const content = requireFile(path)
 
   if (/\.catalog-category-chip\.active,[\s\S]*?\.catalog-dock-page-button\.active\s*\{[\s\S]*?rgba\(var\(--theme-text-rgb\),\s*0\.9[0-9]\)/m.test(content)) {
