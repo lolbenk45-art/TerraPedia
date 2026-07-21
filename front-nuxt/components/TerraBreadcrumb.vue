@@ -188,14 +188,14 @@ const shouldRenderTrail = computed(() => {
     :aria-label="ariaLabel"
     data-page-trail-role="shell"
   >
-    <a
+    <NuxtLink
       v-if="mode === 'back' && backHref"
       class="page-trail-back"
-      :href="backHref"
+      :to="backHref"
       data-page-trail-role="link"
     >
       {{ backLabel || '返回上级' }}
-    </a>
+    </NuxtLink>
 
     <ol v-else class="page-trail-list" data-page-trail-role="list">
       <li
@@ -203,14 +203,14 @@ const shouldRenderTrail = computed(() => {
         :key="`${crumb.label}-${index}`"
         class="page-trail-item"
       >
-        <a
+        <NuxtLink
           v-if="crumb.href"
           class="page-trail-link"
-          :href="crumb.href"
+          :to="crumb.href"
           data-page-trail-role="link"
         >
           {{ crumb.label }}
-        </a>
+        </NuxtLink>
         <span v-else class="page-trail-current" data-page-trail-role="current">{{ crumb.label }}</span>
       </li>
     </ol>

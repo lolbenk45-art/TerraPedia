@@ -331,7 +331,7 @@ watch(recipeAlternativeOptions, (options) => {
   max-width: 164px;
   margin-bottom: 6px;
   color: color-mix(in srgb, var(--tp-color-positive) 42%, var(--tp-color-text-muted));
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.35;
   overflow-wrap: anywhere;

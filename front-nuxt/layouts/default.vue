@@ -23,8 +23,11 @@ const isHomeScreen = computed(() => routeScreenClass.value.split(/\s+/).includes
 
 <template>
   <section :class="screenClasses">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
     <TerraNav />
-    <slot />
+    <div id="main-content" tabindex="-1">
+      <slot />
+    </div>
     <div
       class="public-layout-footer-shell"
       :class="{ 'home-layout-footer-shell': isHomeScreen }"

@@ -121,7 +121,7 @@ defineProps<{
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
-  font-size: 11px;
+  font-size: 12px;
   word-break: keep-all;
   overflow-wrap: normal;
 }
@@ -129,7 +129,7 @@ defineProps<{
 .armor-crafting-chip-compact small,
 .armor-crafting-any-label small {
   color: var(--tp-color-text-muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
   overflow: visible;
@@ -161,7 +161,7 @@ defineProps<{
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.15;
 }
 
@@ -172,7 +172,7 @@ defineProps<{
   min-width: 0;
   padding: 2px 0;
   color: var(--tp-color-text-muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   line-height: 1.15;
 }
