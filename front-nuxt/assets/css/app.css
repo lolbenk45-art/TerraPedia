@@ -14,5 +14,6 @@
 @import "./loading-skeleton.css";
 @import "./hifi-preview.css";
 @import "./mobile-typography-fixes.css";
+@import "./domains/catalog.css";
 @import "./discovery-page-fixes.css";
 @import "./light-theme-contrast-fixes.css";

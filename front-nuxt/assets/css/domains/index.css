@@ -7,9 +7,12 @@
   @import "./entity.css";
   @import "./nav.css";
 
+  Catalog domain CSS lives at ./catalog.css but is loaded from app.css at the
+  legacy patch position so cascade order stays equivalent to catalog-image-fixes.
+  Do not also @import it here (would double-load after tokens/primitives).
+
   Do not add business selectors to hifi-preview.css during new domain work.
 */
 @import "./crafting.css";
 @import "./biome.css";
 @import "./public-layout.css";
-@import "./catalog.css";

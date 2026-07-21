@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
 const root = new URL('..', import.meta.url)
@@ -1226,7 +1226,7 @@ const resolveDynamicDetailRoutes = async () => {
   return routes
 }
 
-for (const marker of ['mobile-typography-fixes.css', 'discovery-page-fixes.css']) {
+for (const marker of ['mobile-typography-fixes.css', 'discovery-page-fixes.css', 'domains/catalog.css']) {
   if (!css.includes(marker)) {
     failures.push(`assets/css/app.css must import ${marker}`)
   }
@@ -1235,8 +1235,13 @@ if (css.includes('catalog-image-fixes.css')) {
   failures.push('assets/css/app.css must not import the retired catalog-image-fixes.css patch')
 }
 const domainsIndex = readFileSync(file('assets/css/domains/index.css'), 'utf8')
-if (!domainsIndex.includes('@import "./catalog.css";')) {
-  failures.push('assets/css/domains/index.css must import ./catalog.css after the catalog patch promotion')
+// real import lines only (ignore the comment example)
+const domainsIndexWithoutComments = domainsIndex.replace(/\/\*[\s\S]*?\*\//g, '')
+if (domainsIndexWithoutComments.includes('@import "./catalog.css";')) {
+  failures.push('assets/css/domains/index.css must not also import catalog.css (app.css owns the cascade position)')
+}
+if (!existsSync(file('assets/css/domains/catalog.css'))) {
+  failures.push('assets/css/domains/catalog.css: catalog domain stylesheet is required after WP-11.4 promotion')
 }
 
 for (const fontName of ['Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', 'PingFang SC']) {

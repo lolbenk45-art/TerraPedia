@@ -424,7 +424,19 @@ const cssOrder = [
 
   requireIncludes(path, content, 'Do not add business selectors to hifi-preview.css', 'must document the hifi-preview migration boundary')
   requireIncludes(path, content, '@import "./biome.css";', 'must load biome domain CSS for theme-managed biome hero rules')
-  requireIncludes(path, content, '@import "./catalog.css";', 'must load catalog domain CSS after the catalog patch promotion')
+  const domainsIndexWithoutComments = stripCssComments(content)
+  if (domainsIndexWithoutComments.includes('@import "./catalog.css";')) {
+    violations.push(`${path}: must not import catalog.css here; app.css loads domains/catalog.css at the legacy cascade position`)
+  }
+}
+
+{
+  const path = 'assets/css/app.css'
+  const content = requireFile(path)
+  requireIncludes(path, content, '@import "./domains/catalog.css";', 'must load domains/catalog.css at the legacy catalog patch cascade position')
+  if (content.includes('catalog-image-fixes.css')) {
+    violations.push(`${path}: must not import the retired catalog-image-fixes.css patch`)
+  }
 }
 
 {
