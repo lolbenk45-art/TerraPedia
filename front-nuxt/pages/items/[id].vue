@@ -121,6 +121,13 @@ const itemName = computed(() => firstText(
   `物品 ${itemId.value}`,
 ))
 
+const itemImage = computed(() => firstImageUrl(
+  detailItem.value?.previewImage,
+  detailItem.value?.imageUrl,
+  detailItem.value?.iconUrl,
+  detailItem.value?.image,
+))
+
 const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
 
 useSeoMeta({
@@ -189,12 +196,6 @@ const itemTooltipText = computed(() => safeItemDisplayText(
   detailItem.value?.tooltipEn,
 ))
 
-const itemImage = computed(() => firstImageUrl(
-  detailItem.value?.previewImage,
-  detailItem.value?.imageUrl,
-  detailItem.value?.iconUrl,
-  detailItem.value?.image,
-))
 
 const itemFallbackGlyph = computed(() => Array.from(itemName.value)[0] ?? '?')
 const itemFavoriteId = computed(() => firstText(detailItem.value?.id, detailItem.value?.itemId, itemId.value))
