@@ -93,7 +93,9 @@ const submitPassword = async () => {
     await authStore.changePassword(passwordForm.currentPassword, passwordForm.newPassword)
     passwordForm.currentPassword = ''
     passwordForm.newPassword = ''
-    passwordSuccess.value = '密码已更新。'
+    passwordSuccess.value = '密码已更新，请重新登录。'
+    await authStore.logout()
+    await navigateTo('/user/login')
   } catch (exception: unknown) {
     passwordError.value = exception instanceof Error ? exception.message : '密码修改失败。'
   }
@@ -161,7 +163,7 @@ const submitPreferences = async () => {
                 </button>
               </div>
               <input ref="avatarInput" class="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" @change="uploadAvatar" />
-              <p v-if="avatarSuccess" class="user-form-status user-form-success">{{ avatarSuccess }}</p>
+              <p v-if="avatarSuccess" class="user-form-status user-form-success" aria-live="polite">{{ avatarSuccess }}</p>
               <p v-if="avatarError" class="user-form-status user-form-error">{{ avatarError }}</p>
             </div>
           </div>
@@ -178,7 +180,7 @@ const submitPreferences = async () => {
             <input :value="authStore.user?.email" type="email" disabled />
           </label>
           <p class="user-field-hint">昵称需为 2-120 个字符，邮箱暂不支持自助修改。</p>
-          <p v-if="profileSuccess" class="user-form-status user-form-success">{{ profileSuccess }}</p>
+          <p v-if="profileSuccess" class="user-form-status user-form-success" aria-live="polite">{{ profileSuccess }}</p>
           <p v-if="profileError" class="user-form-status user-form-error">{{ profileError }}</p>
           <button class="primary-button" type="submit" :disabled="authStore.submitting">保存资料</button>
         </form>
@@ -202,8 +204,8 @@ const submitPreferences = async () => {
             required
           />
           <p class="user-field-hint">新密码需为 10-64 位，并同时包含字母和数字。</p>
-          <p v-if="passwordSuccess" class="user-form-status user-form-success">{{ passwordSuccess }}</p>
-          <p v-if="passwordError" class="user-form-status user-form-error">{{ passwordError }}</p>
+          <p v-if="passwordSuccess" class="user-form-status user-form-success" aria-live="polite">{{ passwordSuccess }}</p>
+          <p v-if="passwordError" class="user-form-status user-form-error" role="alert">{{ passwordError }}</p>
           <button class="secondary-button" type="submit" :disabled="authStore.submitting">修改密码</button>
         </form>
 

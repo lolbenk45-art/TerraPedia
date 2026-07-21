@@ -105,6 +105,15 @@ const selectThemePreference = async (nextTheme: SiteTheme) => {
 }
 
 onMounted(() => {
+  // Visitor sessions should not fan out duplicate failed auth probes on every nav mount.
+  if (authStore.initialized) {
+    if (authStore.isAuthenticated) {
+      void preferencesStore.load()
+      void notificationsStore.loadUnreadCount()
+    }
+    return
+  }
+
   void authStore.init().then(() => {
     if (authStore.isAuthenticated) {
       void preferencesStore.load()
@@ -439,7 +448,7 @@ onBeforeUnmount(closeMenu)
   border-radius: 999px;
   background: var(--accent-gold);
   color: #201607;
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 900;
   line-height: 1;
