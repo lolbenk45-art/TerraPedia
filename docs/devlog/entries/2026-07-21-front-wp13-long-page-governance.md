@@ -47,4 +47,6 @@
 
 ## Commits
 
-- plan + implementation + docs-close SHAs at close
+- `c665706f` feat(front): govern long pages with biome pagination and mobile collapse
+- `1d7629b7` docs(front): plan wp13 long-page governance
+- docs-close: this commit
