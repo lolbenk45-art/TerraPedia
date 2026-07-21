@@ -2,6 +2,12 @@
 definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import { usePublicBiomes } from '~/composables/usePublicBiomes'
+import {
+  BIOME_PAGE_ITEM_BUDGET,
+  clampBiomePage,
+  groupBiomesByParent,
+  packBiomePages,
+} from '~/utils/biomeGroupPagination'
 
 useSeoMeta({
   title: 'TerraPedia · 生态索引',
@@ -10,6 +16,7 @@ useSeoMeta({
 
 const biomeSearchQuery = ref('')
 const selectedBiomeGroup = ref('全部')
+const biomePage = ref(1)
 const biomeAllGroupLabel = '全部'
 
 const {
@@ -42,18 +49,23 @@ const biomeGroupOptions = computed(() => {
   ]
 })
 
-// 搜索/分组入 URL:刷新与分享保留状态(P0-8)。本页无分页,不接 search 防抖选项。
-// 取数是 server:false,hydrate 时分组清单未就绪,先接受原值,数据到位后再校验回落。
+// 搜索/分组/分页入 URL:刷新与分享保留状态。取数 server:false,hydrate 先接受原值。
 useCatalogRouteSync({
   serialize: () => ({
     q: biomeSearchQuery.value.trim() || undefined,
     group: selectedBiomeGroup.value !== biomeAllGroupLabel ? selectedBiomeGroup.value : undefined,
+    page: biomePage.value > 1 ? String(biomePage.value) : undefined,
   }),
   hydrate: (query) => {
     biomeSearchQuery.value = String(firstQueryValue(query.q) ?? '')
     selectedBiomeGroup.value = String(firstQueryValue(query.group) ?? '') || biomeAllGroupLabel
+    biomePage.value = parsePositiveInteger(query.page, 1)
   },
-  watchSources: [biomeSearchQuery, selectedBiomeGroup],
+  watchSources: [biomeSearchQuery, selectedBiomeGroup, biomePage],
+})
+
+watch([biomeSearchQuery, selectedBiomeGroup], () => {
+  biomePage.value = 1
 })
 
 watch(biomeItems, (items) => {
@@ -93,15 +105,39 @@ const biomeIsDefaultBrowse = computed(() => (
   && selectedBiomeGroup.value === biomeAllGroupLabel
 ))
 const biomeHeroBiome = computed(() => biomeFeaturedItems.value[0] ?? biomeDisplayItems.value[0] ?? biomeItems.value[0] ?? null)
-const biomeShowFeatured = computed(() => biomeIsDefaultBrowse.value && biomeFeaturedItems.value.length > 0)
+const biomeShowFeaturedBase = computed(() => biomeIsDefaultBrowse.value && biomeFeaturedItems.value.length > 0)
 const biomeFeaturedIds = computed(() => new Set(
-  biomeShowFeatured.value ? biomeFeaturedItems.value.map((biome) => biome.id) : [],
+  biomeShowFeaturedBase.value ? biomeFeaturedItems.value.map((biome) => biome.id) : [],
 ))
 const biomeHeroPrimary = computed(() => biomeHeroBiome.value ?? biomeDisplayItems.value[0] ?? biomeItems.value[0] ?? null)
 const biomeListItems = computed(() => {
   if (!biomeIsDefaultBrowse.value) return biomeDisplayItems.value
   return biomeDisplayItems.value.filter((biome) => !biomeFeaturedIds.value.has(biome.id))
 })
+const biomePackedPages = computed(() => {
+  const groups = groupBiomesByParent(biomeListItems.value)
+  return packBiomePages(groups, BIOME_PAGE_ITEM_BUDGET)
+})
+const biomePageCount = computed(() => Math.max(1, biomePackedPages.value.length))
+const biomeCurrentPage = computed(() => clampBiomePage(biomePage.value, biomePageCount.value))
+const biomePageSegments = computed(() => {
+  const page = biomePackedPages.value.find((entry) => entry.page === biomeCurrentPage.value)
+  return page?.segments ?? biomePackedPages.value[0]?.segments ?? []
+})
+const biomeShowPager = computed(() => biomePageCount.value > 1 && !biomeVisualLoading.value && !biomeApiUnavailable.value && biomeListItems.value.length > 0)
+
+const biomeShowFeatured = computed(() => biomeShowFeaturedBase.value && biomeCurrentPage.value === 1)
+
+watch(biomePageCount, (count) => {
+  const next = clampBiomePage(biomePage.value, count)
+  if (next !== biomePage.value) {
+    biomePage.value = next
+  }
+})
+
+const goBiomePage = (page: number) => {
+  biomePage.value = clampBiomePage(page, biomePageCount.value)
+}
 const biomeStatusLabel = computed(() => {
   if (biomeVisualLoading.value) return '加载中'
   if (biomeApiUnavailable.value || biomesError.value) return '未载入'
@@ -317,9 +353,18 @@ watch(biomeGroupOptions, (options) => {
           </NuxtLink>
         </section>
 
-        <section class="biome-board biome-list-grid" aria-label="群系列表">
+        <section
+          v-for="segment in biomePageSegments"
+          :key="segment.key"
+          class="biome-board biome-list-grid biome-group-segment"
+          :aria-label="segment.continuationLabel || segment.title"
+        >
+          <header class="biome-group-segment-head">
+            <h2>{{ segment.title }}</h2>
+            <p v-if="segment.continuationLabel" class="biome-group-continuation">{{ segment.continuationLabel }}</p>
+          </header>
           <NuxtLink
-            v-for="biome in biomeListItems"
+            v-for="biome in segment.items"
             :key="biome.id"
             class="biome-tile"
             :to="biome.detailPath"
@@ -351,6 +396,12 @@ watch(biomeGroupOptions, (options) => {
             <em class="biome-tile-meta">查看详情</em>
           </NuxtLink>
         </section>
+
+        <nav v-if="biomeShowPager" class="biome-page-pager" aria-label="生态分页">
+          <button class="small-button" type="button" :disabled="biomeCurrentPage <= 1" @click="goBiomePage(biomeCurrentPage - 1)">上一页</button>
+          <span class="biome-page-status">第 {{ biomeCurrentPage }} / {{ biomePageCount }} 页</span>
+          <button class="small-button" type="button" :disabled="biomeCurrentPage >= biomePageCount" @click="goBiomePage(biomeCurrentPage + 1)">下一页</button>
+        </nav>
       </template>
 
       <section v-else class="search-suggestion-band support-panel">
@@ -367,3 +418,32 @@ watch(biomeGroupOptions, (options) => {
       </section>
     </main>
 </template>
+
+<style scoped>
+.biome-group-segment-head {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 4px;
+}
+.biome-group-segment-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.biome-group-continuation {
+  margin: 0;
+  opacity: 0.72;
+  font-size: 0.85rem;
+}
+.biome-page-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 18px 0 8px;
+}
+.biome-page-status {
+  font-variant-numeric: tabular-nums;
+}
+</style>

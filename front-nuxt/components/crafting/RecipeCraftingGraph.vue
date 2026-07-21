@@ -362,6 +362,11 @@ const graphSummary = computed(() => {
   const choiceCount = routeEntries.value.reduce((total, entry) => total + entry.choiceGroups.length, 0)
   return `${routeEntries.value.length} 条关系 · ${materialCount} 个材料 · ${choiceCount} 个任选组`
 })
+const deepExpanded = ref(false)
+const hasDeepEntries = computed(() => routeEntries.value.some((entry) => entry.level > 1))
+const toggleDeepEntries = () => {
+  deepExpanded.value = !deepExpanded.value
+}
 const isHoveredEntry = (entry: RouteEntry) => Boolean(entry.targetKey && props.hoveredTargetKey === entry.targetKey)
 const isActiveEntry = (entry: RouteEntry) => Boolean(entry.targetKey && props.activeTargetKey === entry.targetKey)
 const handleEntryHover = (entry: RouteEntry) => {
@@ -375,7 +380,7 @@ const handleEntryLeave = (entry: RouteEntry) => {
 </script>
 
 <template>
-  <section class="recipe-graph tp-panel" data-crafting-role="recipe-graph" aria-label="合成路线树">
+  <section class="recipe-graph tp-panel" data-crafting-role="recipe-graph" aria-label="合成路线树" :data-deep-expanded="deepExpanded ? 'true' : 'false'">
     <header class="recipe-graph-head">
       <div>
         <span class="eyebrow">关系树</span>
@@ -385,6 +390,16 @@ const handleEntryLeave = (entry: RouteEntry) => {
     </header>
 
     <div v-if="routeEntries.length" class="recipe-route-tree" data-crafting-role="recipe-route-tree">
+      <div v-if="hasDeepEntries" class="recipe-deep-toggle-row">
+        <button
+          class="small-button recipe-deep-toggle"
+          type="button"
+          :aria-expanded="deepExpanded ? 'true' : 'false'"
+          @click="toggleDeepEntries"
+        >
+          {{ deepExpanded ? '收起更深层配方' : '展开更深层配方' }}
+        </button>
+      </div>
       <article
         v-for="entry in routeEntries"
         :key="entry.key"
@@ -562,3 +577,23 @@ const handleEntryLeave = (entry: RouteEntry) => {
     </div>
   </section>
 </template>
+
+<style scoped>
+@media (max-width: 720px) {
+  .recipe-graph[data-deep-expanded="false"] .recipe-route-entry[data-route-level="2"],
+  .recipe-graph[data-deep-expanded="false"] .recipe-route-entry[data-route-level="3"],
+  .recipe-graph[data-deep-expanded="false"] .recipe-route-entry[data-route-level="4"],
+  .recipe-graph[data-deep-expanded="false"] .recipe-route-entry[data-route-level="5"] {
+    display: none;
+  }
+}
+.recipe-deep-toggle-row {
+  display: none;
+  margin: 0 0 12px;
+}
+@media (max-width: 720px) {
+  .recipe-deep-toggle-row {
+    display: flex;
+  }
+}
+</style>

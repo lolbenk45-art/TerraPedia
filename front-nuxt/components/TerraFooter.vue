@@ -4,10 +4,22 @@ withDefaults(defineProps<{
 }>(), {
   itemTotalLabel: '待同步',
 })
+
+const footerExpanded = ref(false)
+
+const toggleFooterPanels = () => {
+  footerExpanded.value = !footerExpanded.value
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined' && window.matchMedia('(min-width: 721px)').matches) {
+    footerExpanded.value = true
+  }
+})
 </script>
 
 <template>
-  <footer class="camp-footer">
+  <footer class="camp-footer" :data-footer-expanded="footerExpanded ? 'true' : 'false'">
     <div class="footer-main">
       <section class="footer-brand">
         <span class="footer-kicker">TERRAPEDIA</span>
@@ -18,52 +30,63 @@ withDefaults(defineProps<{
           <div><b>14,746</b><span>链路节点</span></div>
           <div><b>持续</b><span>数据校验</span></div>
         </div>
+        <button
+          class="small-button footer-expand-toggle"
+          type="button"
+          aria-controls="footer-main-panels"
+          :aria-expanded="footerExpanded ? 'true' : 'false'"
+          @click="toggleFooterPanels"
+        >
+          {{ footerExpanded ? '收起页脚链接' : '展开页脚链接' }}
+        </button>
       </section>
 
-      <nav class="footer-column" aria-label="产品">
-        <h4>产品</h4>
-        <div class="footer-links">
-          <a href="/items">物品图鉴</a>
-          <a href="/crafting">制作路线</a>
-          <a href="/categories">分类索引</a>
-          <a href="/bosses">Boss 进度</a>
-          <a href="/articles">专题攻略</a>
-          <a href="/buffs">Buff 图鉴</a>
-          <a href="/armor-sets">套装路线</a>
-        </div>
-      </nav>
+      <div id="footer-main-panels" class="footer-main-panels">
+        <nav class="footer-column" aria-label="产品">
+          <h4>产品</h4>
+          <div class="footer-links">
+            <a href="/items">物品图鉴</a>
+            <a href="/crafting">制作路线</a>
+            <a href="/categories">分类索引</a>
+            <a href="/bosses">Boss 进度</a>
+            <a href="/articles">专题攻略</a>
+            <a href="/buffs">Buff 图鉴</a>
+            <a href="/armor-sets">套装路线</a>
+          </div>
+        </nav>
 
-      <nav class="footer-column" aria-label="资源">
-        <h4>资源</h4>
-        <div class="footer-links">
-          <a href="/npcs">NPC 图鉴</a>
-          <a href="/projectiles">射弹图鉴</a>
-          <a href="/biomes">生态索引</a>
-          <a href="/search">全站检索</a>
-          <a href="/about">数据来源</a>
-          <a href="/about">使用说明</a>
-        </div>
-      </nav>
+        <nav class="footer-column" aria-label="资源">
+          <h4>资源</h4>
+          <div class="footer-links">
+            <a href="/npcs">NPC 图鉴</a>
+            <a href="/projectiles">射弹图鉴</a>
+            <a href="/biomes">生态索引</a>
+            <a href="/search">全站检索</a>
+            <a href="/about">数据来源</a>
+            <a href="/about">使用说明</a>
+          </div>
+        </nav>
 
-      <nav class="footer-column" aria-label="说明">
-        <h4>说明</h4>
-        <div class="footer-links">
-          <a href="/about">项目边界</a>
-          <a href="/about">版本说明</a>
-          <a href="/about">资料声明</a>
-          <a href="/about">权利声明</a>
-        </div>
-      </nav>
+        <nav class="footer-column" aria-label="说明">
+          <h4>说明</h4>
+          <div class="footer-links">
+            <a href="/about">项目边界</a>
+            <a href="/about">版本说明</a>
+            <a href="/about">资料声明</a>
+            <a href="/about">权利声明</a>
+          </div>
+        </nav>
 
-      <aside class="footer-contact">
-        <h4>维护状态</h4>
-        <p>资料来源、校验边界和权利说明集中放在项目说明页，页面内容会随数据维护状态持续校正。</p>
-        <div class="footer-contact-list">
-          <span><em>Source</em>Terraria Wiki / 本地校验链</span>
-          <span><em>Scope</em>中文资料索引</span>
-          <span><em>Status</em>Public release · 2026</span>
-        </div>
-      </aside>
+        <aside class="footer-contact">
+          <h4>维护状态</h4>
+          <p>资料来源、校验边界和权利说明集中放在项目说明页，页面内容会随数据维护状态持续校正。</p>
+          <div class="footer-contact-list">
+            <span><em>Source</em>Terraria Wiki / 本地校验链</span>
+            <span><em>Scope</em>中文资料索引</span>
+            <span><em>Status</em>Public release · 2026</span>
+          </div>
+        </aside>
+      </div>
     </div>
 
     <div class="footer-bottom">
@@ -76,3 +99,30 @@ withDefaults(defineProps<{
     </div>
   </footer>
 </template>
+
+<style scoped>
+.footer-expand-toggle {
+  display: none;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .footer-expand-toggle {
+    display: inline-flex;
+  }
+
+  .camp-footer[data-footer-expanded="false"] .footer-main-panels {
+    display: none;
+  }
+}
+
+@media (min-width: 721px) {
+  .footer-expand-toggle {
+    display: none;
+  }
+
+  .footer-main-panels {
+    display: contents;
+  }
+}
+</style>

@@ -361,11 +361,16 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
             </a>
           </div>
           <div v-if="biomeSourceGroups.length" class="biome-source-groups">
-            <article v-for="group in biomeSourceGroups" :key="group.key" class="biome-source-group">
-              <div class="biome-source-group-head">
+            <details
+              v-for="(group, groupIndex) in biomeSourceGroups"
+              :key="group.key"
+              class="biome-source-group"
+              :open="groupIndex === 0"
+            >
+              <summary class="biome-source-group-head">
                 <b>{{ group.title }}</b>
                 <span>{{ group.description }} {{ group.records.length }} 条。</span>
-              </div>
+              </summary>
               <div class="biome-detail-link-grid">
                 <a v-for="source in group.records" :key="displayText(source.id, source.itemId, source.sourceRefName, group.key, 'item-source')" class="detail-relation-link" :href="itemPath(source.itemId)">
                   <CommonPreviewImage
@@ -380,7 +385,7 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
                   <span>{{ sourceTypeLabel(source.sourceType) }} · {{ sourceDetailText(source) }}</span>
                 </a>
               </div>
-            </article>
+            </details>
           </div>
           <div v-if="!biomeItemBiomes.length && !biomeDropResources.length && !biomeSourceGroups.length" class="biome-detail-empty-state">
             <b>暂无掉落来源数据。</b>
@@ -436,6 +441,14 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
 </template>
 
 <style scoped>
+.biome-source-group > summary.biome-source-group-head {
+  cursor: pointer;
+  list-style: disclosure-closed;
+}
+.biome-source-group[open] > summary.biome-source-group-head {
+  list-style: disclosure-open;
+}
+
 .detail-relation-link {
   display: grid;
   grid-template-columns: 50px minmax(0, 1fr);

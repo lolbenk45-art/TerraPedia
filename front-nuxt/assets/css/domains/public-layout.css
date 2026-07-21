@@ -26,3 +26,22 @@
     padding: 28px 18px 54px;
   }
 }
+
+
+/* WP-13: footer collapsible panels participate in the existing footer-main grid on desktop. */
+@media (min-width: 721px) {
+  .camp-footer .footer-main-panels {
+    display: contents;
+  }
+}
+
+@media (max-width: 720px) {
+  .camp-footer .footer-main-panels {
+    display: grid;
+    gap: 22px;
+  }
+
+  .camp-footer[data-footer-expanded="false"] .footer-main-panels {
+    display: none;
+  }
+}
