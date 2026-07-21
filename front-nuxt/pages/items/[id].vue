@@ -908,6 +908,7 @@ onMounted(() => {
             :fallback="itemFallbackGlyph"
             fallback-icon="icon-items"
             loading="eager"
+            :auto-center-visible="false"
           />
         </div>
         <div class="detail-main">

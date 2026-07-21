@@ -3969,7 +3969,11 @@ img[data-preview-fallback] {
 .detail-icon-stage {
   display: grid;
   place-items: center;
-  min-height: 210px;
+  align-self: start;
+  width: 220px;
+  height: 220px;
+  min-height: 220px;
+  max-height: 220px;
   border-radius: 24px;
   background:
     radial-gradient(circle, rgba(214, 177, 90, 0.36), transparent 58%),
@@ -3981,18 +3985,8 @@ img[data-preview-fallback] {
   height: 76px;
   --tp-preview-image-size: 88%;
 }
-.detail-screen .detail-icon-stage .item-detail-primary-preview {
-  width: min(176px, 84%);
-  height: min(176px, 84%);
-  --tp-preview-image-size: 100%;
-}
-.detail-screen .detail-icon-stage .item-detail-primary-preview img {
-  width: var(--tp-preview-image-size, 100%);
-  height: var(--tp-preview-image-size, 100%);
-  max-width: var(--tp-preview-image-size, 100%);
-  max-height: var(--tp-preview-image-size, 100%);
-  object-fit: contain;
-}
+
+
 .detail-screen .sprite-frame .item-art,
 .detail-screen .recipe-node .item-art,
 .detail-screen .source-row .item-art {
@@ -4009,6 +4003,38 @@ img[data-preview-fallback] {
   object-fit: contain;
   image-rendering: pixelated;
 }
+
+/* Item detail primary stage: fixed square frame, never stretch sprite aspect. */
+.detail-screen .detail-icon-stage .item-detail-primary-preview {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 176px;
+  height: 176px;
+  max-width: 176px;
+  max-height: 176px;
+  overflow: hidden;
+  --tp-preview-image-size: 100%;
+  --tp-preview-visible-shift-x: 0px;
+  --tp-preview-visible-shift-y: 0px;
+}
+.detail-screen .detail-icon-stage .item-detail-primary-preview.item-art.tp-preview-image img,
+.detail-screen .detail-icon-stage .item-art.item-detail-primary-preview img {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  transform: none !important;
+  image-rendering: pixelated;
+}
+
 .detail-screen .item-art[data-fallback] {
   position: relative;
   display: grid;
