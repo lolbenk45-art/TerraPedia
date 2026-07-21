@@ -53,7 +53,25 @@ const { clientReady: buffClientReady, visualLoading: buffVisualLoading } = useVi
 
 const buffPagination = computed(() => publicBuffsResult.value?.pagination)
 const buffFallbackUnavailable = computed(() => buffClientReady.value && !buffsPending.value && publicBuffsResult.value?.source !== 'api')
-const buffDisplayItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? [] : publicBuffsResult.value?.items ?? [])
+const selectedBuffType = ref('全部')
+const buffTypeOptions = computed(() => {
+  const items = publicBuffsResult.value?.items ?? []
+  const counts = new Map()
+  for (const buff of items) {
+    const label = buff.typeLabel || '其他'
+    counts.set(label, (counts.get(label) ?? 0) + 1)
+  }
+  return [
+    { label: '全部', count: items.length },
+    ...Array.from(counts.entries()).map(([label, count]) => ({ label, count })),
+  ]
+})
+const buffDisplayItems = computed(() => {
+  if (buffVisualLoading.value || buffFallbackUnavailable.value) return []
+  const items = publicBuffsResult.value?.items ?? []
+  if (selectedBuffType.value === '全部') return items
+  return items.filter((buff) => (buff.typeLabel || '其他') === selectedBuffType.value)
+})
 const buffTotalItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? 0 : buffPagination.value?.total ?? buffDisplayItems.value.length)
 const buffTotalPages = computed(() => Math.max(1, buffPagination.value?.totalPages ?? Math.ceil(buffTotalItems.value / Math.max(1, buffPageSize.value))))
 const buffStatusLabel = computed(() => buffVisualLoading.value ? '加载中' : buffFallbackUnavailable.value || buffsError.value ? '未载入' : '已更新')
@@ -133,6 +151,19 @@ watch(buffTotalPages, (pages) => {
           <span>第 {{ buffCurrentPage }} / {{ buffTotalPages }} 页</span>
           <b>{{ buffStatusLabel }}</b>
         </div>
+      </section>
+
+      <section class="buff-type-filter" aria-label="效果分类">
+        <button
+          v-for="option in buffTypeOptions"
+          :key="option.label"
+          class="biome-filter-chip"
+          :class="{ active: selectedBuffType === option.label }"
+          type="button"
+          @click="selectedBuffType = option.label"
+        >
+          {{ option.label }} <em>{{ option.count }}</em>
+        </button>
       </section>
 
       <section v-if="buffVisualLoading" class="effect-grid" aria-label="Buff 加载中">

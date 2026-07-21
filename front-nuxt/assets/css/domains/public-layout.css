@@ -97,3 +97,174 @@
     font-size: max(12px, 1em);
   }
 }
+
+
+/* WP-14+: search-tool must follow theme text tokens (was hard-coded dark paper rgba). */
+.search-tool-screen .home-tool-copy h1,
+.search-tool-screen .home-suggestion-row b,
+.search-tool-screen .home-quick-entry b,
+.search-tool-screen .home-tool-columns h2,
+.search-tool-screen .home-tool-columns b {
+  color: var(--text-strong, var(--paper));
+}
+
+.search-tool-screen .home-tool-copy p,
+.search-tool-prototype-label,
+.search-tool-screen .home-suggestion-row em,
+.search-tool-screen .home-quick-entry em,
+.search-tool-screen .home-tool-columns span,
+.search-tool-screen .home-tool-search input::placeholder,
+.search-tool-screen .home-tool-search kbd {
+  color: var(--text-muted, rgba(var(--theme-text-rgb, 244, 234, 208), 0.68));
+}
+
+.search-tool-screen .home-tool-search input,
+.search-tool-screen .home-search-submit {
+  color: var(--text-strong, var(--paper));
+}
+
+.search-tool-screen .home-tool-search {
+  border-color: rgba(var(--theme-border-rgb, 244, 234, 208), 0.18);
+  background: rgba(var(--theme-panel-rgb, 244, 234, 208), 0.06);
+  box-shadow: var(--theme-surface-shadow, 0 4px 12px rgba(0, 0, 0, 0.06));
+}
+
+.search-tool-screen .home-suggestion-row,
+.search-tool-screen .home-tool-columns article {
+  border-color: rgba(var(--theme-border-rgb, 244, 234, 208), 0.12);
+}
+
+.search-tool-screen .home-suggestion-row {
+  background: rgba(var(--theme-panel-rgb, 244, 234, 208), 0.04);
+}
+
+.search-tool-screen .home-search-submit {
+  border-color: rgba(var(--theme-gold-rgb, 214, 177, 90), 0.35);
+  background: rgba(var(--theme-gold-rgb, 214, 177, 90), 0.12);
+  color: var(--text-link, #ffd765);
+}
+
+/* Nav layout stability: reserve sticky header box to reduce first-paint jump. */
+.site-nav {
+  min-height: 74px;
+  box-sizing: border-box;
+}
+
+/* Compact pagination chrome for entity/catalog docks */
+.catalog-density-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.entity-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.entity-stat-strip > div,
+.projectile-data-band > div {
+  padding: 8px 10px;
+}
+
+.projectile-data-band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+@media (max-width: 720px) {
+  .entity-stat-strip,
+  .projectile-data-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalog-density-picker {
+    gap: 4px;
+  }
+}
+
+/* Biome detail long lists: scroll windows inside sections */
+.biome-detail-scroll-panel {
+  max-height: min(420px, 55vh);
+  overflow: auto;
+  padding-right: 6px;
+  border: 1px solid rgba(var(--theme-border-rgb, 214, 177, 90), 0.16);
+  border-radius: 14px;
+  background: rgba(var(--theme-panel-rgb, 16, 27, 19), 0.35);
+}
+
+.biome-detail-section details.biome-detail-fold {
+  border: 1px solid rgba(var(--theme-border-rgb, 214, 177, 90), 0.14);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(var(--theme-panel-rgb, 16, 27, 19), 0.28);
+}
+
+.biome-detail-section details.biome-detail-fold > summary {
+  cursor: pointer;
+  list-style: disclosure-closed;
+  font-weight: 800;
+  color: var(--text-strong, var(--paper));
+}
+
+.biome-detail-section details.biome-detail-fold[open] > summary {
+  list-style: disclosure-open;
+  margin-bottom: 10px;
+}
+
+
+@media (min-width: 1181px) {
+  .density-picker-rail {
+    display: none;
+  }
+}
+
+.entity-stat-strip > div b,
+.projectile-data-band > div b {
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.entity-stat-strip > div span,
+.projectile-data-band > div span {
+  font-size: 12px;
+}
+
+
+/* Item detail primary stage: fixed square frame, never stretch sprite aspect. */
+.detail-screen .detail-icon-stage .item-detail-primary-preview {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 176px;
+  height: 176px;
+  max-width: 176px;
+  max-height: 176px;
+  overflow: hidden;
+  --tp-preview-image-size: 100%;
+  --tp-preview-visible-shift-x: 0px;
+  --tp-preview-visible-shift-y: 0px;
+}
+.detail-screen .detail-icon-stage .item-detail-primary-preview.item-art.tp-preview-image img,
+.detail-screen .detail-icon-stage .item-art.item-detail-primary-preview img {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  transform: none !important;
+  image-rendering: pixelated;
+}
+

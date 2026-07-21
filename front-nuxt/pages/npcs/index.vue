@@ -347,7 +347,7 @@ watch(selectedPageSize, (pageSize) => {
           </button>
         </div>
 
-        <div class="catalog-density-picker" aria-label="每页数量">
+        <div class="catalog-density-picker density-picker-rail" aria-label="每页数量">
           <span>每页</span>
           <button
             v-for="pageSize in pageSizeOptions"

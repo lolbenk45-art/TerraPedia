@@ -9,7 +9,7 @@ useSeoMeta({
   description: '浏览 Terraria 公开射弹资料，按名称、编号、伤害和 AI 样式查询弹道行为。',
 })
 
-const defaultProjectilePageSize = 24
+const defaultProjectilePageSize = 12
 const projectilePageSizeOptions = [12, 24, 48, 96]
 const projectileSortOptions = [
   { value: 'id', label: '编号' },

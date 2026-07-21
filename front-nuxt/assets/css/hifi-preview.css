@@ -4004,36 +4004,6 @@ img[data-preview-fallback] {
   image-rendering: pixelated;
 }
 
-/* Item detail primary stage: fixed square frame, never stretch sprite aspect. */
-.detail-screen .detail-icon-stage .item-detail-primary-preview {
-  position: relative;
-  display: block;
-  box-sizing: border-box;
-  width: 176px;
-  height: 176px;
-  max-width: 176px;
-  max-height: 176px;
-  overflow: hidden;
-  --tp-preview-image-size: 100%;
-  --tp-preview-visible-shift-x: 0px;
-  --tp-preview-visible-shift-y: 0px;
-}
-.detail-screen .detail-icon-stage .item-detail-primary-preview.item-art.tp-preview-image img,
-.detail-screen .detail-icon-stage .item-art.item-detail-primary-preview img {
-  position: absolute !important;
-  inset: 0 !important;
-  display: block !important;
-  box-sizing: border-box !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
-  object-fit: contain !important;
-  object-position: center !important;
-  transform: none !important;
-  image-rendering: pixelated;
-}
 
 .detail-screen .item-art[data-fallback] {
   position: relative;

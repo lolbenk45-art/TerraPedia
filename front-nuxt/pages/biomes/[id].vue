@@ -305,117 +305,129 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
         </section>
 
         <section class="biome-detail-section support-panel">
-          <div class="biome-detail-section-head">
-            <span class="eyebrow">资源</span>
-            <h2>生态资源</h2>
-          </div>
-          <div class="biome-detail-link-grid">
-            <a v-for="resource in biomeGeneralResources" :key="displayText(resource.id, resource.itemId, resource.resourceNameRaw, 'resource')" class="detail-relation-link" :href="itemPath(resource.itemId)">
-              <CommonPreviewImage
-                :src="resourceImage(resource)"
-                :alt="resourceTitle(resource)"
-                :fallback="firstGlyph(resourceTitle(resource))"
-                :fallback-icon="biomeResourceFallbackIcon"
-                width="40"
-                height="40"
-              />
-              <b>{{ resourceTitle(resource) }}</b>
-              <span>{{ sourceTypeLabel(resource.resourceType) }} · {{ displayText(resource.notes, '暂无说明') }}</span>
-            </a>
-          </div>
-          <div v-if="!biomeGeneralResources.length" class="biome-detail-empty-state">
-            <b>暂无资源</b>
-            <span>当前没有可展示的资源记录。</span>
-          </div>
-        </section>
-
-        <section class="biome-detail-section support-panel">
-          <div class="biome-detail-section-head">
-            <span class="eyebrow">掉落</span>
-            <h2>掉落与来源</h2>
-          </div>
-          <div v-if="biomeItemBiomes.length || biomeDropResources.length" class="biome-detail-link-grid">
-            <a v-for="drop in biomeItemBiomes" :key="displayText(drop.id, drop.itemId, drop.itemNameZh, drop.itemName, 'item-drop')" class="detail-relation-link" :href="itemPath(drop.itemId)">
-              <CommonPreviewImage
-                :src="itemRelationImage(drop)"
-                :alt="itemRelationTitle(drop)"
-                :fallback="firstGlyph(itemRelationTitle(drop))"
-                :fallback-icon="biomeResourceFallbackIcon"
-                width="40"
-                height="40"
-              />
-              <b>{{ itemRelationTitle(drop) }}</b>
-              <span>{{ relationTypeLabel(drop.relationType) }} · {{ displayText(drop.notes, '暂无说明') }}</span>
-            </a>
-            <a v-for="resource in biomeDropResources" :key="displayText(resource.id, resource.itemId, resource.resourceNameRaw, 'resource-drop')" class="detail-relation-link" :href="itemPath(resource.itemId)">
-              <CommonPreviewImage
-                :src="resourceImage(resource)"
-                :alt="resourceTitle(resource)"
-                :fallback="firstGlyph(resourceTitle(resource))"
-                :fallback-icon="biomeResourceFallbackIcon"
-                width="40"
-                height="40"
-              />
-              <b>{{ resourceTitle(resource) }}</b>
-              <span>{{ sourceTypeLabel(resource.resourceType) }} · {{ displayText(resource.notes, '暂无说明') }}</span>
-            </a>
-          </div>
-          <div v-if="biomeSourceGroups.length" class="biome-source-groups">
-            <details
-              v-for="(group, groupIndex) in biomeSourceGroups"
-              :key="group.key"
-              class="biome-source-group"
-              :open="groupIndex === 0"
-            >
-              <summary class="biome-source-group-head">
-                <b>{{ group.title }}</b>
-                <span>{{ group.description }} {{ group.records.length }} 条。</span>
-              </summary>
+          <details class="biome-detail-fold" open>
+            <summary class="biome-detail-section-head">
+              <span class="eyebrow">资源</span>
+              <h2>生态资源（{{ biomeGeneralResources.length }}）</h2>
+            </summary>
+            <div class="biome-detail-scroll-panel">
               <div class="biome-detail-link-grid">
-                <a v-for="source in group.records" :key="displayText(source.id, source.itemId, source.sourceRefName, group.key, 'item-source')" class="detail-relation-link" :href="itemPath(source.itemId)">
+                <a v-for="resource in biomeGeneralResources" :key="displayText(resource.id, resource.itemId, resource.resourceNameRaw, 'resource')" class="detail-relation-link" :href="itemPath(resource.itemId)">
                   <CommonPreviewImage
-                    :src="itemRelationImage(source)"
-                    :alt="itemRelationTitle(source)"
-                    :fallback="firstGlyph(itemRelationTitle(source))"
+                    :src="resourceImage(resource)"
+                    :alt="resourceTitle(resource)"
+                    :fallback="firstGlyph(resourceTitle(resource))"
                     :fallback-icon="biomeResourceFallbackIcon"
                     width="40"
                     height="40"
                   />
-                  <b>{{ itemRelationTitle(source) }}</b>
-                  <span>{{ sourceTypeLabel(source.sourceType) }} · {{ sourceDetailText(source) }}</span>
+                  <b>{{ resourceTitle(resource) }}</b>
+                  <span>{{ sourceTypeLabel(resource.resourceType) }} · {{ displayText(resource.notes, '暂无说明') }}</span>
                 </a>
               </div>
-            </details>
-          </div>
-          <div v-if="!biomeItemBiomes.length && !biomeDropResources.length && !biomeSourceGroups.length" class="biome-detail-empty-state">
-            <b>暂无掉落来源数据。</b>
-            <span>当前没有可展示的掉落或来源记录。</span>
-          </div>
+              <div v-if="!biomeGeneralResources.length" class="biome-detail-empty-state">
+                <b>暂无资源</b>
+                <span>当前没有可展示的资源记录。</span>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="biome-detail-section support-panel">
-          <div class="biome-detail-section-head">
-            <span class="eyebrow">NPC 出现</span>
-            <h2>出现记录</h2>
-          </div>
-          <div class="biome-detail-link-grid">
-            <a v-for="npc in biomeNpcBiomes" :key="displayText(npc.id, npc.npcId, npc.npcNameZh, npc.npcName, 'npc-biome')" class="detail-relation-link" :href="npcPath(npc.npcId)">
-              <CommonPreviewImage
-                :src="npcRelationImage(npc)"
-                :alt="npcRelationTitle(npc)"
-                :fallback="firstGlyph(npcRelationTitle(npc))"
-                fallback-icon="icon-npc"
-                width="40"
-                height="40"
-              />
-              <b>{{ npcRelationTitle(npc) }}</b>
-              <span>{{ relationTypeLabel(npc.relationType) }} · {{ spawnContextLabel(npc.spawnContext) }}</span>
-            </a>
-          </div>
-          <div v-if="!biomeNpcBiomes.length" class="biome-detail-empty-state">
-            <b>暂无 NPC 出现数据。</b>
-            <span>当前没有可展示的 NPC 出现记录。</span>
-          </div>
+          <details class="biome-detail-fold" open>
+            <summary class="biome-detail-section-head">
+              <span class="eyebrow">掉落</span>
+              <h2>掉落与来源</h2>
+            </summary>
+            <div class="biome-detail-scroll-panel">
+              <div v-if="biomeItemBiomes.length || biomeDropResources.length" class="biome-detail-link-grid">
+                <a v-for="drop in biomeItemBiomes" :key="displayText(drop.id, drop.itemId, drop.itemNameZh, drop.itemName, 'item-drop')" class="detail-relation-link" :href="itemPath(drop.itemId)">
+                  <CommonPreviewImage
+                    :src="itemRelationImage(drop)"
+                    :alt="itemRelationTitle(drop)"
+                    :fallback="firstGlyph(itemRelationTitle(drop))"
+                    :fallback-icon="biomeResourceFallbackIcon"
+                    width="40"
+                    height="40"
+                  />
+                  <b>{{ itemRelationTitle(drop) }}</b>
+                  <span>{{ relationTypeLabel(drop.relationType) }} · {{ displayText(drop.notes, '暂无说明') }}</span>
+                </a>
+                <a v-for="resource in biomeDropResources" :key="displayText(resource.id, resource.itemId, resource.resourceNameRaw, 'resource-drop')" class="detail-relation-link" :href="itemPath(resource.itemId)">
+                  <CommonPreviewImage
+                    :src="resourceImage(resource)"
+                    :alt="resourceTitle(resource)"
+                    :fallback="firstGlyph(resourceTitle(resource))"
+                    :fallback-icon="biomeResourceFallbackIcon"
+                    width="40"
+                    height="40"
+                  />
+                  <b>{{ resourceTitle(resource) }}</b>
+                  <span>{{ sourceTypeLabel(resource.resourceType) }} · {{ displayText(resource.notes, '暂无说明') }}</span>
+                </a>
+              </div>
+              <div v-if="biomeSourceGroups.length" class="biome-source-groups">
+                <details
+                  v-for="(group, groupIndex) in biomeSourceGroups"
+                  :key="group.key"
+                  class="biome-source-group"
+                  :open="groupIndex === 0"
+                >
+                  <summary class="biome-source-group-head">
+                    <b>{{ group.title }}</b>
+                    <span>{{ group.description }} {{ group.records.length }} 条。</span>
+                  </summary>
+                  <div class="biome-detail-link-grid">
+                    <a v-for="source in group.records" :key="displayText(source.id, source.itemId, source.sourceRefName, group.key, 'item-source')" class="detail-relation-link" :href="itemPath(source.itemId)">
+                      <CommonPreviewImage
+                        :src="itemRelationImage(source)"
+                        :alt="itemRelationTitle(source)"
+                        :fallback="firstGlyph(itemRelationTitle(source))"
+                        :fallback-icon="biomeResourceFallbackIcon"
+                        width="40"
+                        height="40"
+                      />
+                      <b>{{ itemRelationTitle(source) }}</b>
+                      <span>{{ sourceTypeLabel(source.sourceType) }} · {{ sourceDetailText(source) }}</span>
+                    </a>
+                  </div>
+                </details>
+              </div>
+              <div v-if="!biomeItemBiomes.length && !biomeDropResources.length && !biomeSourceGroups.length" class="biome-detail-empty-state">
+                <b>暂无掉落来源数据。</b>
+                <span>当前没有可展示的掉落或来源记录。</span>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section class="biome-detail-section support-panel">
+          <details class="biome-detail-fold">
+            <summary class="biome-detail-section-head">
+              <span class="eyebrow">NPC 出现</span>
+              <h2>出现记录（{{ biomeNpcBiomes.length }}）</h2>
+            </summary>
+            <div class="biome-detail-scroll-panel">
+              <div class="biome-detail-link-grid">
+                <a v-for="npc in biomeNpcBiomes" :key="displayText(npc.id, npc.npcId, npc.npcNameZh, npc.npcName, 'npc-biome')" class="detail-relation-link" :href="npcPath(npc.npcId)">
+                  <CommonPreviewImage
+                    :src="npcRelationImage(npc)"
+                    :alt="npcRelationTitle(npc)"
+                    :fallback="firstGlyph(npcRelationTitle(npc))"
+                    fallback-icon="icon-npc"
+                    width="40"
+                    height="40"
+                  />
+                  <b>{{ npcRelationTitle(npc) }}</b>
+                  <span>{{ relationTypeLabel(npc.relationType) }} · {{ spawnContextLabel(npc.spawnContext) }}</span>
+                </a>
+              </div>
+              <div v-if="!biomeNpcBiomes.length" class="biome-detail-empty-state">
+                <b>暂无 NPC 出现数据。</b>
+                <span>当前没有可展示的 NPC 出现记录。</span>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="biome-detail-section biome-taxonomy-section">

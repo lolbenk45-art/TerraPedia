@@ -82,37 +82,38 @@ const factImage = (fact: PublicBuffFactSummary) => firstImageUrl(
   fact.image_url,
 )
 
-const relationItems = (items: PublicBuffFactSummary[], detailBase: '/items' | '/npcs') => items.slice(0, 8).map((fact, index) => ({
+const relationItems = (items: PublicBuffFactSummary[], detailBase: '/items' | '/npcs', kindLabel: string) => items.slice(0, 16).map((fact, index) => ({
   id: firstText(fact.id, fact.sourceId, fact.internalName, index),
   href: /^\d+$/.test(String(fact.id ?? '')) ? `${detailBase}/${fact.id}` : detailBase,
   name: factName(fact, index),
-  meta: factMeta(fact),
+  meta: `${kindLabel} · ${factMeta(fact)}`,
   image: factImage(fact),
   fallback: firstGlyph(factName(fact, index)),
-  icon: buffFallbackIcon,
+  icon: detailBase === '/npcs' ? 'icon-npc' : 'icon-items',
+  kindLabel,
 }))
 
 const buffRelationSections = computed(() => [
   {
     key: 'sources',
-    title: '来源',
+    title: '物品来源',
     count: sources.value.length,
     empty: '暂无来源记录',
-    items: relationItems(sources.value, '/items'),
+    items: relationItems(sources.value, '/items', '物品来源'),
   },
   {
     key: 'inflicters',
-    title: '施加者',
+    title: '施加该效果的 NPC',
     count: inflicters.value.length,
     empty: '暂无施加者记录',
-    items: relationItems(inflicters.value, '/npcs'),
+    items: relationItems(inflicters.value, '/npcs', '施加该效果的 NPC'),
   },
   {
     key: 'immuneTargets',
-    title: '免疫目标',
+    title: '免疫该效果的 NPC',
     count: immuneTargets.value.length,
     empty: '暂无免疫目标记录',
-    items: relationItems(immuneTargets.value, '/npcs'),
+    items: relationItems(immuneTargets.value, '/npcs', '免疫该效果的 NPC'),
   },
 ])
 
@@ -201,8 +202,12 @@ onMounted(() => {
       <section
         v-for="section in buffRelationSections"
         :key="section.key"
-        class="search-suggestion-band support-panel"
+        class="search-suggestion-band support-panel buff-relation-section"
       >
+        <header class="buff-relation-head">
+          <h2 class="buff-relation-title">{{ section.title }}</h2>
+          <span class="buff-relation-count">{{ section.count }} 条</span>
+        </header>
         <template v-if="buffDetailVisualLoading">
           <div v-for="slot in 3" :key="`${section.key}-loading-${slot}`">
             <b><CommonTpSkeleton type="line" /></b>
@@ -220,7 +225,8 @@ onMounted(() => {
               height="42"
             />
             <b>{{ item.name }}</b>
-            <span>{{ section.title }} · {{ item.meta }}</span>
+            <span class="buff-entity-kind">{{ item.kindLabel || section.title }}</span>
+            <span>{{ item.meta }}</span>
           </NuxtLink>
         </template>
         <div v-else>
@@ -296,5 +302,38 @@ onMounted(() => {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+}
+.buff-entity-kind {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid rgba(var(--theme-border-rgb, 214, 177, 90), 0.24);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text-muted, inherit);
+  font-size: 12px;
+  font-weight: 700;
+}
+.buff-type-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.buff-relation-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.buff-relation-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-strong, inherit);
+}
+.buff-relation-count {
+  color: var(--text-muted, inherit);
+  font-size: 12px;
+  font-weight: 700;
 }
 </style>
