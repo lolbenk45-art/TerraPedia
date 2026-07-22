@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
-    "check": "pnpm run check:runtime-config && pnpm run check:user-module && pnpm run check:public-pages && pnpm run check:display-date-time && pnpm run check:article-comments-runtime && pnpm run check:user-article-editor && pnpm run check:user-article-editor-runtime && pnpm run check:article-content-references && pnpm run check:nav-layout && pnpm run check:front-layout-layering && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:css-ratchet && pnpm run check:breakpoints && pnpm run check:biome-pagination && pnpm run check:armor-stat-visuals && pnpm run check:armor-builds && pnpm run check:armor-aggregate && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && pnpm run check:category-navigation && nuxt typecheck",
+    "check": "pnpm run check:runtime-config && pnpm run check:user-module && pnpm run check:public-pages && pnpm run check:display-date-time && pnpm run check:article-comments-runtime && pnpm run check:user-article-editor && pnpm run check:user-article-editor-runtime && pnpm run check:article-content-references && pnpm run check:nav-layout && pnpm run check:front-layout-layering && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:light-button-tokens && pnpm run check:css-ratchet && pnpm run check:breakpoints && pnpm run check:biome-pagination && pnpm run check:armor-stat-visuals && pnpm run check:armor-builds && pnpm run check:armor-aggregate && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && pnpm run check:category-navigation && nuxt typecheck",
     "test": "pnpm run check && pnpm run build && pnpm run test:unit",
     "test:unit": "node --test tests/unit/*.test.mjs",
     "test:e2e:auth:smoke": "playwright test e2e/user-auth.smoke.spec.ts",
@@ -35,6 +35,7 @@
     "check:light-theme": "node scripts/check-light-theme-typography.mjs",
     "check:typography-spacing": "node scripts/check-typography-spacing.mjs",
     "check:visual-system": "node scripts/check-visual-system-contract.mjs",
+    "check:light-button-tokens": "node scripts/check-light-button-tokens.mjs",
     "check:css-ratchet": "node scripts/check-css-ratchet.mjs",
     "check:breakpoints": "node scripts/check-breakpoint-whitelist-contract.mjs",
     "check:biome-pagination": "node scripts/check-biome-pagination-contract.mjs",

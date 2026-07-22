@@ -45,8 +45,17 @@
 - Results: documentation checks passed; the spec has no placeholders and
   names both approved themes, all three CSS ownership layers, the 44px target,
   and the dark-theme preservation boundary.
-- Not run: frontend contracts, full frontend check, runtime contrast, browser
-  geometry, and screenshots.
+- RED contract: `cd front-nuxt && pnpm run check:light-button-tokens` exited 1
+  intentionally. The script read `assets/css/hifi-preview.css`, parsed both
+  exact standalone theme blocks, and reported all 24 expected-declaration
+  mismatches for each theme. Its explicit invariant failures were the three
+  gradient surfaces and the primary, secondary, and active-control external
+  shadows in each theme, plus missing `--button-primary-marker`,
+  `--button-focus-ring`, `inset 3px 0 0 var(--button-primary-marker)`, and
+  `outline: 3px solid var(--button-focus-ring);` shared markers. This was a
+  behavioral RED, not a syntax or missing-file failure.
+- Not run: remaining frontend contracts, full frontend check, runtime contrast,
+  browser geometry, and screenshots.
 
 ## Result
 
@@ -70,7 +79,46 @@
 ## Commits
 
 - `0af6df56` — approved design specification and task traceability.
-- Implementation-plan commit pending.
+- `4586a4f2` — task-by-task TDD implementation plan.
+
+## Optional: Multi-Agent Coordination
+
+- Coordinator: root Codex agent.
+- Parallel work allowed: no; Tasks 1 through 5 are dependency-ordered and
+  share package, CSS, prototype, or devlog state.
+- Agent ownership:
+  - Task implementer:
+    - Status: dispatched one task at a time.
+    - Task scope: exactly one numbered task from the approved implementation
+      plan.
+    - Allowed files: only the files listed by that numbered task.
+    - Forbidden files: `docs/devlog/current.md`, unrelated source, data,
+      backend, crawler, reports, and other worktrees.
+    - Dependencies: prior task commit plus both approved design documents.
+    - Validation: run the exact RED/GREEN commands named by the task.
+    - Blockers: return to the coordinator instead of expanding scope.
+    - Handoff notes: report status, commit SHA, commands, files, and concerns.
+    - Return format: subagent-driven-development implementer report.
+  - Spec and quality reviewers:
+    - Status: dispatched after each implementation task.
+    - Task scope: read-only review of the just-completed task commit.
+    - Allowed files: read the task diff and directly related requirements.
+    - Forbidden files: all writes and commits.
+    - Dependencies: implementer report and exact base/head SHAs.
+    - Validation: inspect real diff and focused command evidence.
+    - Blockers: report precise file/line findings to the coordinator.
+    - Handoff notes: spec verdict first; quality verdict only after spec passes.
+    - Return format: required reviewer template.
+- Shared files or state: package scripts, `hifi-preview.css`, both prototype
+  copies, and this entry; ownership is serialized by task.
+- Parent entry: this entry.
+- Contract handoff: none; this is a frontend visual token task with no API,
+  schema, or data contract.
+- Serialization rule: only one implementer or fixer may write at a time;
+  reviewers run only after the implementer commit and remain read-only.
+- Result merge owner: root Codex agent.
+- Cross-boundary validation: focused contracts, full frontend gate, runtime
+  contrast, browser geometry, and final whole-range review.
 
 ## Optional: State Changes
 
@@ -88,3 +136,13 @@
 - Reason: user authorized production adaptation of both accepted palettes.
 - Evidence:
   `docs/superpowers/plans/2026-07-22-light-theme-button-system.md`.
+
+### 2026-07-22 19:59
+
+- Change: added the focused light-button token contract to the frontend check
+  chain and verified the required RED state without editing production CSS.
+- Reason: lock both approved palettes and shared flat-surface, shallow-shadow,
+  primary-marker, and focus-ring behavior before Task 2 implementation.
+- Evidence: `pnpm run check:light-button-tokens` exited 1 with the exact token
+  and invariant failures recorded in `## Validation`; see git for code-level
+  diff details.
