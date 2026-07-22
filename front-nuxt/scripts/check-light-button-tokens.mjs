@@ -7,18 +7,51 @@ const path = 'assets/css/hifi-preview.css'
 const css = readFileSync(join(root, path), 'utf8')
 const violations = []
 
-const blockFor = (selector) => {
-  const marker = `${selector} {`
+const normalizeValue = (value) => value.trim().replace(/\s+/g, ' ')
+
+const stripCssComments = (content) => {
+  let result = ''
+  let quote = ''
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index]
+
+    if (quote) {
+      result += character
+      if (character === '\\') {
+        result += content[index + 1] ?? ''
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+    } else if (character === '"' || character === "'") {
+      quote = character
+      result += character
+    } else if (character === '/' && content[index + 1] === '*') {
+      result += ' '
+      index += 2
+      while (index < content.length && (content[index] !== '*' || content[index + 1] !== '/')) {
+        index += 1
+      }
+      index += 1
+    } else {
+      result += character
+    }
+  }
+
+  return result
+}
+
+const findMatchingBrace = (content, openingIndex) => {
   let depth = 0
-  let ruleStart = 0
   let quote = ''
   let inComment = false
 
-  for (let index = 0; index < css.length; index += 1) {
-    const character = css[index]
+  for (let index = openingIndex; index < content.length; index += 1) {
+    const character = content[index]
 
     if (inComment) {
-      if (character === '*' && css[index + 1] === '/') {
+      if (character === '*' && content[index + 1] === '/') {
         inComment = false
         index += 1
       }
@@ -34,7 +67,49 @@ const blockFor = (selector) => {
       continue
     }
 
-    if (character === '/' && css[index + 1] === '*') {
+    if (character === '/' && content[index + 1] === '*') {
+      inComment = true
+      index += 1
+    } else if (character === '"' || character === "'") {
+      quote = character
+    } else if (character === '{') {
+      depth += 1
+    } else if (character === '}') {
+      depth -= 1
+      if (depth === 0) return index
+    }
+  }
+
+  return -1
+}
+
+const topLevelRules = (content) => {
+  const rules = []
+  let ruleStart = 0
+  let quote = ''
+  let inComment = false
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index]
+
+    if (inComment) {
+      if (character === '*' && content[index + 1] === '/') {
+        inComment = false
+        index += 1
+      }
+      continue
+    }
+
+    if (quote) {
+      if (character === '\\') {
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+      continue
+    }
+
+    if (character === '/' && content[index + 1] === '*') {
       inComment = true
       index += 1
       continue
@@ -45,70 +120,210 @@ const blockFor = (selector) => {
       continue
     }
 
-    if (depth === 0 && css.slice(ruleStart, index).trim() === '' && css.startsWith(marker, index)) {
-      const openingIndex = index + marker.length - 1
-      let blockDepth = 1
-      let blockQuote = ''
-      let blockComment = false
-
-      for (let blockIndex = openingIndex + 1; blockIndex < css.length; blockIndex += 1) {
-        const blockCharacter = css[blockIndex]
-
-        if (blockComment) {
-          if (blockCharacter === '*' && css[blockIndex + 1] === '/') {
-            blockComment = false
-            blockIndex += 1
-          }
-          continue
-        }
-
-        if (blockQuote) {
-          if (blockCharacter === '\\') {
-            blockIndex += 1
-          } else if (blockCharacter === blockQuote) {
-            blockQuote = ''
-          }
-          continue
-        }
-
-        if (blockCharacter === '/' && css[blockIndex + 1] === '*') {
-          blockComment = true
-          blockIndex += 1
-        } else if (blockCharacter === '"' || blockCharacter === "'") {
-          blockQuote = blockCharacter
-        } else if (blockCharacter === '{') {
-          blockDepth += 1
-        } else if (blockCharacter === '}') {
-          blockDepth -= 1
-          if (blockDepth === 0) {
-            return css.slice(openingIndex + 1, blockIndex)
-          }
-        }
-      }
-
-      violations.push(`${path}: unterminated exact top-level selector block ${selector}`)
-      return ''
+    if (character === ';') {
+      ruleStart = index + 1
+      continue
     }
 
-    if (character === '{') depth += 1
-    if (character === '}') {
-      depth -= 1
-      if (depth === 0) ruleStart = index + 1
-    }
-    if (character === ';' && depth === 0) ruleStart = index + 1
+    if (character !== '{') continue
+
+    const prelude = stripCssComments(content.slice(ruleStart, index))
+    const selector = prelude.trim()
+    const closingIndex = findMatchingBrace(content, index)
+    rules.push({
+      selector,
+      prelude,
+      block: closingIndex < 0 ? null : content.slice(index + 1, closingIndex),
+    })
+
+    if (closingIndex < 0) break
+    index = closingIndex
+    ruleStart = closingIndex + 1
   }
 
-  violations.push(`${path}: missing exact top-level selector block ${selector}`)
-  return ''
+  return rules
 }
 
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const normalizeValue = (value) => value.trim().replace(/\s+/g, ' ')
+const blockFor = (content, selector, issueSink = violations) => {
+  const exactPrelude = `${selector} `
+  const matches = topLevelRules(content).filter((rule) => (
+    rule.selector === selector && rule.prelude.trimStart() === exactPrelude
+  ))
 
-const valueFor = (block, property) => {
-  const pattern = new RegExp(`(?:^|;)\\s*${escapeRegex(property)}\\s*:\\s*([^;]+);`)
-  const match = block.match(pattern)
-  return match ? normalizeValue(match[1]) : ''
+  if (matches.length === 0) {
+    issueSink.push(`${path}: missing exact top-level selector block ${selector}`)
+    return ''
+  }
+
+  if (matches.length > 1) {
+    issueSink.push(`${path}: expected exactly one top-level selector block ${selector}; found ${matches.length}`)
+    return matches.at(-1)?.block ?? ''
+  }
+
+  if (matches[0].block === null) {
+    issueSink.push(`${path}: unterminated exact top-level selector block ${selector}`)
+    return ''
+  }
+
+  return matches[0].block
+}
+
+const findTopLevelColon = (segment) => {
+  let quote = ''
+  let parenthesisDepth = 0
+  let braceDepth = 0
+
+  for (let index = 0; index < segment.length; index += 1) {
+    const character = segment[index]
+
+    if (quote) {
+      if (character === '\\') {
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+      continue
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character
+    } else if (character === '(') {
+      parenthesisDepth += 1
+    } else if (character === ')') {
+      parenthesisDepth -= 1
+    } else if (character === '{') {
+      braceDepth += 1
+    } else if (character === '}') {
+      braceDepth -= 1
+    } else if (character === ':' && parenthesisDepth === 0 && braceDepth === 0) {
+      return index
+    }
+  }
+
+  return -1
+}
+
+const declarationsFor = (block) => {
+  const declarations = new Map()
+  let segment = ''
+  let quote = ''
+  let inComment = false
+  let parenthesisDepth = 0
+  let braceDepth = 0
+
+  const collect = () => {
+    const colonIndex = findTopLevelColon(segment)
+    if (colonIndex >= 0) {
+      const property = segment.slice(0, colonIndex).trim()
+      const value = normalizeValue(segment.slice(colonIndex + 1))
+      if (property) {
+        const values = declarations.get(property) ?? []
+        values.push(value)
+        declarations.set(property, values)
+      }
+    }
+    segment = ''
+  }
+
+  for (let index = 0; index < block.length; index += 1) {
+    const character = block[index]
+
+    if (inComment) {
+      if (character === '*' && block[index + 1] === '/') {
+        inComment = false
+        segment += ' '
+        index += 1
+      }
+      continue
+    }
+
+    if (quote) {
+      segment += character
+      if (character === '\\') {
+        segment += block[index + 1] ?? ''
+        index += 1
+      } else if (character === quote) {
+        quote = ''
+      }
+      continue
+    }
+
+    if (character === '/' && block[index + 1] === '*') {
+      inComment = true
+      index += 1
+    } else if (character === '"' || character === "'") {
+      quote = character
+      segment += character
+    } else if (character === '(') {
+      parenthesisDepth += 1
+      segment += character
+    } else if (character === ')') {
+      parenthesisDepth -= 1
+      segment += character
+    } else if (character === '{') {
+      braceDepth += 1
+      segment += character
+    } else if (character === '}') {
+      braceDepth -= 1
+      segment += character
+    } else if (character === ';' && parenthesisDepth === 0 && braceDepth === 0) {
+      collect()
+    } else {
+      segment += character
+    }
+  }
+
+  if (segment.trim()) collect()
+  return declarations
+}
+
+const declarationValuesFor = (declarations, property) => declarations.get(property) ?? []
+const effectiveValueFor = (declarations, property) => declarationValuesFor(declarations, property).at(-1) ?? ''
+
+const requireDeclarations = (owner, declarations, expectedDeclarations, issueSink = violations) => {
+  for (const [property, expectedValue] of Object.entries(expectedDeclarations)) {
+    const values = declarationValuesFor(declarations, property)
+    if (values.length !== 1) {
+      issueSink.push(`${path}: ${owner} must declare exactly one ${property}; found ${values.length}`)
+    }
+
+    const actualValue = values.at(-1) ?? ''
+    if (actualValue !== expectedValue) {
+      issueSink.push(`${path}: ${owner} ${property} expected ${expectedValue}; found ${actualValue || '<missing>'}`)
+    }
+  }
+}
+
+const runParserSelfTests = () => {
+  const failures = []
+  const assert = (condition, message) => {
+    if (!condition) failures.push(`contract parser self-test failed: ${message}`)
+  }
+
+  const commentIssues = []
+  const commentedBlock = blockFor('/* leading trivia */\n[data-theme="fixture"] { --token: ok; }', '[data-theme="fixture"]', commentIssues)
+  assert(commentIssues.length === 0 && effectiveValueFor(declarationsFor(commentedBlock), '--token') === 'ok', 'top-level comments before selectors must be trivia')
+
+  const duplicateBlock = '--token: first; --token: second;'
+  const duplicateDeclarations = declarationsFor(duplicateBlock)
+  const duplicateIssues = []
+  assert(declarationValuesFor(duplicateDeclarations, '--token').length === 2, 'duplicate declarations must remain observable')
+  requireDeclarations('self-test fixture', duplicateDeclarations, { '--token': 'second' }, duplicateIssues)
+  assert(duplicateIssues.some((issue) => issue.includes('must declare exactly one --token; found 2')), 'duplicate owned declarations must be rejected explicitly')
+
+  const quotedBlock = '--quoted: "semi; brace }"; --after: ok;'
+  const quotedDeclarations = declarationsFor(quotedBlock)
+  assert(effectiveValueFor(quotedDeclarations, '--quoted') === '"semi; brace }"', 'quoted semicolons and braces must stay inside declaration values')
+  assert(effectiveValueFor(quotedDeclarations, '--after') === 'ok', 'declarations after quoted delimiters must remain parseable')
+
+  const multilineBlock = '--shadow:\n  inset 3px 0 0 red,\n  inset 0 1px 0 white;'
+  assert(effectiveValueFor(declarationsFor(multilineBlock), '--shadow') === 'inset 3px 0 0 red, inset 0 1px 0 white', 'multiline declaration values must normalize predictably')
+
+  const focusFixture = `:where(\n  ${requiredFocusConsumers.join(',\n  ')}\n):focus-visible { outline: 3px solid var(--button-focus-ring); outline-offset: 2px; }`
+  const focusRule = topLevelRules(focusFixture)[0]
+  assert(hasExactConsumerSet(focusConsumersFor(focusRule?.selector ?? '') ?? []), 'formatted multiline focus selectors must preserve the exact consumer set')
+
+  return failures
 }
 
 const splitShadowLayers = (value) => {
@@ -197,39 +412,72 @@ const expected = {
   },
 }
 
-for (const [selector, declarations] of Object.entries(expected)) {
-  const block = blockFor(selector)
+const requiredFocusConsumers = [
+  '.primary-button',
+  '.secondary-button',
+  '.icon-button',
+  '.small-button',
+  '.detail-tab',
+  '.filter-option',
+  '.entity-filter',
+  '.theme-toggle',
+  '.nav-menu-text-trigger',
+  '.nav-notification-link',
+  '.nav-user-article-link',
+  '.account-avatar-link',
+]
 
-  for (const [property, expectedValue] of Object.entries(declarations)) {
-    const actualValue = valueFor(block, property)
-    if (actualValue !== expectedValue) {
-      violations.push(`${path}: ${selector} ${property} expected ${expectedValue}; found ${actualValue || '<missing>'}`)
-    }
-  }
+const focusConsumersFor = (selector) => {
+  const match = selector.match(/^:where\(([\s\S]*)\)\s*:focus-visible$/)
+  return match ? match[1].split(',').map((consumer) => consumer.trim()).filter(Boolean) : null
+}
+
+const hasExactConsumerSet = (consumers) => consumers.length === requiredFocusConsumers.length
+  && new Set(consumers).size === requiredFocusConsumers.length
+  && requiredFocusConsumers.every((consumer) => consumers.includes(consumer))
+
+violations.push(...runParserSelfTests())
+
+const rules = topLevelRules(css)
+const rootBlock = blockFor(css, ':root')
+requireDeclarations(':root', declarationsFor(rootBlock), {
+  '--button-primary-marker': '#d6b15a',
+  '--button-focus-ring': 'rgba(240, 207, 116, 0.58)',
+})
+
+const ownedFocusRules = rules.filter((rule) => {
+  const consumers = focusConsumersFor(rule.selector)
+  return consumers !== null && hasExactConsumerSet(consumers)
+})
+
+if (ownedFocusRules.length !== 1) {
+  violations.push(`${path}: expected exactly one shared :where(...):focus-visible rule owning the required button consumer set; found ${ownedFocusRules.length}`)
+} else if (ownedFocusRules[0].block === null) {
+  violations.push(`${path}: unterminated shared :where(...):focus-visible rule`)
+} else {
+  requireDeclarations('shared :where(...):focus-visible rule', declarationsFor(ownedFocusRules[0].block), {
+    outline: '3px solid var(--button-focus-ring)',
+    'outline-offset': '2px',
+  })
+}
+
+for (const [selector, expectedDeclarations] of Object.entries(expected)) {
+  const block = blockFor(css, selector)
+  const declarations = declarationsFor(block)
+
+  requireDeclarations(selector, declarations, expectedDeclarations)
 
   for (const property of ['--button-primary-bg', '--button-primary-bg-hover', '--button-control-active-bg']) {
-    if (valueFor(block, property).includes('gradient(')) {
+    if (effectiveValueFor(declarations, property).includes('gradient(')) {
       violations.push(`${path}: ${selector} ${property} must be a flat surface; found gradient`)
     }
   }
 
   for (const property of ['--button-primary-shadow', '--button-secondary-shadow', '--button-control-shadow', '--button-control-active-shadow']) {
-    const actualValue = valueFor(block, property)
+    const actualValue = effectiveValueFor(declarations, property)
     if (hasLargeExternalShadow(actualValue)) {
       violations.push(`${path}: ${selector} ${property} must not add a large external shadow; found ${actualValue}`)
     }
-  }
-}
-
-for (const marker of [
-  '--button-primary-marker:',
-  '--button-focus-ring:',
-  'inset 3px 0 0 var(--button-primary-marker)',
-  'outline: 3px solid var(--button-focus-ring);',
-  'outline-offset: 2px;',
-]) {
-  if (!css.includes(marker)) {
-    violations.push(`${path}: missing shared light-button marker ${marker}`)
   }
 }
 

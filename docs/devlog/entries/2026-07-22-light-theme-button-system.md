@@ -54,6 +54,13 @@
   `--button-focus-ring`, `inset 3px 0 0 var(--button-primary-marker)`, and
   `outline: 3px solid var(--button-focus-ring);` shared markers. This was a
   behavioral RED, not a syntax or missing-file failure.
+- Hardened RED: parser fixtures first reproduced failures for duplicate
+  declarations, selector-leading comments, and quoted delimiters; the
+  multiline-value fixture already passed. After repair, all fixtures pass
+  silently and the same command still exits 1 only for actual CSS ownership
+  and palette violations: both dark defaults are absent from the exact
+  `:root`, the exact 12-consumer shared focus rule count is zero, and the old
+  theme values, gradients, and external shadows remain.
 - Not run: remaining frontend contracts, full frontend check, runtime contrast,
   browser geometry, and screenshots.
 
@@ -62,6 +69,22 @@
 - Completed: context exploration, visual approval, written-spec approval, and
   the task-by-task TDD implementation plan.
 - Not completed: production adaptation, validation, and commit closeout.
+
+## Review Findings
+
+- Reviewer: Task 1 code-quality reviewer.
+- Scope: commit `a586c587`, focused light-button token contract.
+- Findings: Important — whole-file marker substrings allowed false ownership,
+  declaration regexes hid duplicates and mishandled quoted delimiters, and a
+  leading top-level comment blocked exact selector discovery. Minor — parser
+  edge cases lacked executable fixtures.
+- Resolver: Task 1 implementer (`/root/task1_token_contract`).
+- Disposition: fixed in the focused follow-up commit pending in final response.
+  Exact `:root` defaults and the formatted shared focus consumer rule now own
+  their declarations; theme and shared owned properties reject duplicates;
+  marker consumption is enforced by each theme's exact primary-shadow value;
+  parser fixtures cover all requested edge cases.
+- Re-review required: yes, before Task 2 edits production CSS.
 
 ## Residual Risks
 
@@ -80,6 +103,7 @@
 
 - `0af6df56` — approved design specification and task traceability.
 - `4586a4f2` — task-by-task TDD implementation plan.
+- `a586c587` — initial light-button token RED contract.
 
 ## Optional: Multi-Agent Coordination
 
@@ -146,3 +170,12 @@
 - Evidence: `pnpm run check:light-button-tokens` exited 1 with the exact token
   and invariant failures recorded in `## Validation`; see git for code-level
   diff details.
+
+### 2026-07-22 20:12
+
+- Change: resolved the Task 1 quality-review ownership and parser findings;
+  re-review remains required before Task 2.
+- Reason: prevent unrelated CSS substrings, duplicate declarations, comments,
+  or quoted delimiters from creating false contract results.
+- Evidence: requested parser fixtures pass silently; the focused contract
+  remains intentional RED for actual pre-Task-2 CSS mismatches.
