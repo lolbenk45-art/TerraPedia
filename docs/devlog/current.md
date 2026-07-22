@@ -163,23 +163,23 @@ Active branch: `main`
 - `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
   - branch: `main` from `feat/front-p2-integration`
   - status: `closed`
-  - commit: pending in final response; two approved light button systems and
-    byte-identical interactive previews complete
+  - commit: `466146c1`; two approved light button systems and byte-identical
+    interactive previews complete
 
 - `docs/devlog/entries/2026-07-22-front-p2-local-integration.md`
   - branch: `main` from `feat/front-p2-integration`
   - status: `closed`
-  - commit: pending in final response; curated local integration complete
+  - commit: `8dedd321`; curated local integration complete
 
 - `docs/devlog/entries/2026-07-18-admin-p1-p2-batch.md`
   - branch: `fix/admin-p1-p2-batch`
   - status: `closed`
-  - commit: pending in final response; authorized for local fast-forward merge to `main`
+  - commit: `b778e57f`; integrated into local `main`
 
 - `docs/devlog/entries/2026-07-18-front-p1-tail-refactor.md`
   - branch: `refactor/front-p1-tail`
   - status: `closed`
-  - commit: pending in final response
+  - integration commit: `8dedd321`
 
 - `docs/devlog/entries/2026-07-17-admin-p0-security-batch.md`
   - branch: `dev/post-merge-acceptance`
@@ -189,7 +189,7 @@ Active branch: `main`
 - `docs/devlog/entries/2026-07-17-v2-main-merge-integration.md`
   - branch: `main`
   - status: `closed`
-  - commit: pending in final response
+  - commit: `518d9a04`
 
 - `docs/devlog/entries/2026-07-16-crawler-monitor-operation-semantics.md`
   - branch: `fix/crawler-queue-v2-runtime`

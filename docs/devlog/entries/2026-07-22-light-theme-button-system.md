@@ -270,7 +270,7 @@
   prototype replacement with focused and browser acceptance evidence.
 - Completed: integrated validation, final whole-range review, and task-level
   closeout. Final review found no Critical, Important, or Minor implementation
-  findings. Closeout commit SHA pending in final response.
+  findings. Local `main` integration closeout commit: `466146c1`.
 
 ## Residual Risks
 

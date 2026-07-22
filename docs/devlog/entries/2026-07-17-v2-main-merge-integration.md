@@ -66,4 +66,4 @@
 
 ## Commits
 
-- Merge commit SHA pending in final response.
+- Local `main` integration commit: `518d9a04`.
