@@ -65,14 +65,37 @@
   and palette violations: both dark defaults are absent from the exact
   `:root`, the exact 12-consumer shared focus rule count is zero, and the old
   theme values, gradients, and external shadows remain.
-- Not run: remaining frontend contracts, full frontend check, runtime contrast,
-  browser geometry, and screenshots.
+- Task 2 GREEN: `cd front-nuxt && pnpm run check:light-button-tokens` exited 0
+  and printed `Light button token contract passed.`; the contract now verifies
+  both exact palettes, the 12-consumer focus owner, the dark semantic defaults,
+  the legacy control-shadow aliases, both light semantic `none` values, and
+  the unchanged dark semantic shadow.
+- Task 2 static regressions: `pnpm run check:visual-system` exited 0 and printed
+  `Visual system contract checks passed.`; `pnpm run check:public-pages` exited
+  0 for 25 routes; `pnpm run check:nav-layout` exited 0.
+- Task 2 runtime limitation: the default `pnpm run check:light-theme` exited 1
+  after timing out at `http://localhost:5176/`, where no process was listening.
+  The same-worktree Nuxt process was already serving HTTP 200 on port 5181, so
+  `TERRAPEDIA_FRONT_NUXT_URL=http://127.0.0.1:5181 pnpm run check:light-theme`
+  was run to completion and exited 1 on environment/baseline contrast issues.
+  Backend-dependent detail routes rendered the dark-colored unavailable-route
+  fallback under light themes, with representative label ratios of 1.21,
+  heading ratios of 1.42-1.50, and action-label ratios of 1.00-1.08. Existing
+  non-assigned failures also included Morning Paper `.hero-status-pill` at
+  4.00, password visibility controls at 4.43, and category child counts/actions
+  at 1.99/3.12 (Warm Slate 2.08/3.36). The audit reported no missing focus or
+  control sample, and attributed no failure to the newly assigned primary or
+  control foregrounds or markers. Task 5 owns the full-stack rerun; this is not
+  recorded as a runtime pass.
+- Not run: full frontend check, production browser geometry, and screenshots.
 
 ## Result
 
-- Completed: context exploration, visual approval, written-spec approval, and
-  the task-by-task TDD implementation plan.
-- Not completed: production adaptation, validation, and commit closeout.
+- Completed: context exploration, visual approval, written-spec approval, the
+  task-by-task TDD implementation plan, and Task 2's two production palettes,
+  shared focus semantics, corrected shadow ownership, and static validation.
+- Not completed: prototype replacement, full-stack runtime acceptance, final
+  integrated validation, and task-level commit closeout.
 
 ## Residual Risks
 
@@ -83,6 +106,10 @@
   gives them one source or an identity contract.
 - The initial Task 2 plan placed raw `none` values at the legacy alias layer;
   the existing visual-system contract correctly blocked that architecture.
+- Task 2 runtime contrast remains unaccepted because the available standalone
+  frontend process had no backend-dependent detail data and the audit also
+  exposed unrelated pre-existing light-theme contrast failures. Task 5 must
+  rerun the audit with the intended full stack and consolidate those results.
 
 ## Follow-up
 
@@ -94,6 +121,8 @@
 - `4586a4f2` — task-by-task TDD implementation plan.
 - `a586c587` — initial light-button token RED contract.
 - `54f00e3d` — hardened ownership/declaration parser after quality review.
+- `d41a8b90` — corrected control-shadow semantic ownership in the plan/devlog.
+- `55cd4fc0` — authorized the matching visual-system contract correction.
 
 ## Optional: Multi-Agent Coordination
 

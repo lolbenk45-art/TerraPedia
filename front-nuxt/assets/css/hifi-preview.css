@@ -57,6 +57,7 @@
   --button-primary-bg-hover: linear-gradient(135deg, #ffe08a, #c99641);
   --button-primary-fg: #10180d;
   --button-primary-border: rgba(240, 207, 116, 0.42);
+  --button-primary-marker: #d6b15a;
   --button-primary-shadow: 0 12px 30px rgba(214, 177, 90, 0.22);
   --button-secondary-bg: rgba(244, 234, 208, 0.055);
   --button-secondary-bg-hover: rgba(217, 185, 91, 0.1);
@@ -75,6 +76,7 @@
   --button-control-dot-bg: rgba(244, 234, 208, 0.04);
   --button-control-dot-active-bg: var(--gold);
   --button-control-accent-fg: var(--text-positive);
+  --button-focus-ring: rgba(240, 207, 116, 0.58);
   --font-sans: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -198,35 +200,31 @@
   --index-surface-strong: var(--tp-color-surface-raised);
   --shadow: 0 4px 16px rgba(30, 28, 24, 0.08);
   --shadow-heavy: 0 18px 42px rgba(30, 28, 24, 0.13);
-  --button-primary-bg:
-    linear-gradient(180deg, rgba(255, 250, 241, 0.92), rgba(234, 220, 195, 0.74)),
-    linear-gradient(90deg, rgba(46, 92, 36, 0.18), rgba(122, 90, 33, 0.1));
-  --button-primary-bg-hover:
-    linear-gradient(180deg, rgba(255, 250, 241, 0.98), rgba(234, 220, 195, 0.86)),
-    linear-gradient(90deg, rgba(46, 92, 36, 0.24), rgba(122, 90, 33, 0.14));
-  --button-primary-fg: #183318;
-  --button-primary-border: rgba(46, 92, 36, 0.34);
-  --button-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 22px rgba(46, 92, 36, 0.12);
-  --button-secondary-bg: rgba(255, 250, 241, 0.72);
-  --button-secondary-bg-hover: rgba(255, 250, 241, 0.92);
-  --button-secondary-fg: #1a1f18;
-  --button-secondary-border: rgba(122, 90, 33, 0.18);
-  --button-secondary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 20px rgba(30, 28, 24, 0.06);
-  --button-control-bg: rgba(255, 250, 241, 0.72);
-  --button-control-bg-hover: rgba(255, 250, 241, 0.92);
-  --button-control-fg: rgba(26, 31, 24, 0.76);
-  --button-control-hover-fg: rgba(26, 31, 24, 0.92);
-  --button-control-border: rgba(122, 90, 33, 0.16);
+  --button-primary-bg: #e9dfd1;
+  --button-primary-bg-hover: #e2d5c5;
+  --button-primary-fg: #55483a;
+  --button-primary-border: rgba(121, 93, 64, 0.17);
+  --button-primary-marker: #967b5f;
+  --button-primary-shadow: inset 3px 0 0 var(--button-primary-marker), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  --button-secondary-bg: #eee8de;
+  --button-secondary-bg-hover: #e8dfd2;
+  --button-secondary-fg: #4e4941;
+  --button-secondary-border: rgba(79, 70, 58, 0.09);
+  --button-secondary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  --button-control-bg: #eee8de;
+  --button-control-bg-hover: #e8dfd2;
+  --button-control-fg: #4e4941;
+  --button-control-hover-fg: #3d3933;
+  --button-control-border: rgba(79, 70, 58, 0.09);
   --button-control-shadow: var(--tp-shadow-control);
-  --button-control-active-bg:
-    linear-gradient(180deg, rgba(255, 250, 241, 0.94), rgba(234, 220, 195, 0.78)),
-    linear-gradient(90deg, rgba(122, 90, 33, 0.16), rgba(46, 92, 36, 0.1));
-  --button-control-active-fg: #1a1f18;
-  --button-control-active-border: rgba(122, 90, 33, 0.3);
-  --button-control-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 22px rgba(122, 90, 33, 0.08);
+  --button-control-active-bg: #ebe1d3;
+  --button-control-active-fg: #55483a;
+  --button-control-active-border: rgba(121, 93, 64, 0.16);
+  --button-control-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
   --button-control-dot-bg: rgba(122, 90, 33, 0.12);
-  --button-control-dot-active-bg: #fffaf1;
-  --button-control-accent-fg: #2e5c24;
+  --button-control-dot-active-bg: #967b5f;
+  --button-control-accent-fg: #6f5842;
+  --button-focus-ring: rgba(139, 108, 76, 0.28);
   --theme-bg-rgb: 243, 234, 216;
   --theme-bg-2-rgb: 234, 220, 195;
   --theme-panel-rgb: 255, 250, 241;
@@ -299,35 +297,31 @@
   --index-surface-strong: var(--tp-color-surface-raised);
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   --shadow-heavy: 0 16px 36px rgba(0, 0, 0, 0.11);
-  --button-primary-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(226, 231, 237, 0.78)),
-    linear-gradient(90deg, rgba(41, 50, 65, 0.16), rgba(192, 122, 32, 0.1));
-  --button-primary-bg-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(226, 231, 237, 0.9)),
-    linear-gradient(90deg, rgba(41, 50, 65, 0.22), rgba(192, 122, 32, 0.14));
-  --button-primary-fg: #1d2430;
-  --button-primary-border: rgba(41, 50, 65, 0.3);
-  --button-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74), 0 10px 22px rgba(41, 50, 65, 0.1);
-  --button-secondary-bg: rgba(255, 255, 255, 0.74);
-  --button-secondary-bg-hover: rgba(255, 255, 255, 0.94);
-  --button-secondary-fg: #1d2430;
-  --button-secondary-border: rgba(41, 50, 65, 0.16);
-  --button-secondary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 8px 20px rgba(0, 0, 0, 0.05);
-  --button-control-bg: rgba(255, 255, 255, 0.74);
-  --button-control-bg-hover: rgba(255, 255, 255, 0.94);
-  --button-control-fg: rgba(29, 36, 48, 0.74);
-  --button-control-hover-fg: rgba(29, 36, 48, 0.92);
-  --button-control-border: rgba(41, 50, 65, 0.15);
+  --button-primary-bg: #e3eaec;
+  --button-primary-bg-hover: #dae4e7;
+  --button-primary-fg: #304e5a;
+  --button-primary-border: rgba(73, 111, 128, 0.18);
+  --button-primary-marker: #668493;
+  --button-primary-shadow: inset 3px 0 0 var(--button-primary-marker), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --button-secondary-bg: #eaedef;
+  --button-secondary-bg-hover: #e3e8ea;
+  --button-secondary-fg: #35424b;
+  --button-secondary-border: rgba(55, 68, 78, 0.09);
+  --button-secondary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --button-control-bg: #eaedef;
+  --button-control-bg-hover: #e3e8ea;
+  --button-control-fg: #35424b;
+  --button-control-hover-fg: #29333b;
+  --button-control-border: rgba(55, 68, 78, 0.09);
   --button-control-shadow: var(--tp-shadow-control);
-  --button-control-active-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(226, 231, 237, 0.82)),
-    linear-gradient(90deg, rgba(41, 50, 65, 0.14), rgba(192, 122, 32, 0.08));
-  --button-control-active-fg: #1d2430;
-  --button-control-active-border: rgba(41, 50, 65, 0.28);
-  --button-control-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74), 0 10px 22px rgba(41, 50, 65, 0.075);
+  --button-control-active-bg: #e3eaec;
+  --button-control-active-fg: #304e5a;
+  --button-control-active-border: rgba(73, 111, 128, 0.18);
+  --button-control-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --button-control-dot-bg: rgba(41, 50, 65, 0.1);
-  --button-control-dot-active-bg: #ffffff;
-  --button-control-accent-fg: #c07a20;
+  --button-control-dot-active-bg: #668493;
+  --button-control-accent-fg: #486a79;
+  --button-focus-ring: rgba(80, 121, 140, 0.28);
   --theme-bg-rgb: 238, 241, 244;
   --theme-bg-2-rgb: 226, 231, 237;
   --theme-panel-rgb: 255, 255, 255;
@@ -1489,6 +1483,24 @@ h4,
   border-color: var(--button-control-active-border);
   background: var(--button-control-active-bg);
   color: var(--button-control-active-fg);
+}
+
+:where(
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  .small-button,
+  .detail-tab,
+  .filter-option,
+  .entity-filter,
+  .theme-toggle,
+  .nav-menu-text-trigger,
+  .nav-notification-link,
+  .nav-user-article-link,
+  .account-avatar-link
+):focus-visible {
+  outline: 3px solid var(--button-focus-ring);
+  outline-offset: 2px;
 }
 
 .theme-toggle.is-switching .theme-choice.active span {

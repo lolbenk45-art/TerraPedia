@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const path = 'assets/css/hifi-preview.css'
+const tokenPath = 'assets/css/tokens.css'
 const css = readFileSync(join(root, path), 'utf8')
+const tokenCss = readFileSync(join(root, tokenPath), 'utf8')
 const violations = []
 
 const normalizeValue = (value) => value.trim().replace(/\s+/g, ' ')
@@ -144,24 +146,24 @@ const topLevelRules = (content) => {
   return rules
 }
 
-const blockFor = (content, selector, issueSink = violations) => {
+const blockFor = (content, selector, issueSink = violations, ownerPath = path) => {
   const exactPrelude = `${selector} `
   const matches = topLevelRules(content).filter((rule) => (
     rule.selector === selector && rule.prelude.trimStart() === exactPrelude
   ))
 
   if (matches.length === 0) {
-    issueSink.push(`${path}: missing exact top-level selector block ${selector}`)
+    issueSink.push(`${ownerPath}: missing exact top-level selector block ${selector}`)
     return ''
   }
 
   if (matches.length > 1) {
-    issueSink.push(`${path}: expected exactly one top-level selector block ${selector}; found ${matches.length}`)
+    issueSink.push(`${ownerPath}: expected exactly one top-level selector block ${selector}; found ${matches.length}`)
     return matches.at(-1)?.block ?? ''
   }
 
   if (matches[0].block === null) {
-    issueSink.push(`${path}: unterminated exact top-level selector block ${selector}`)
+    issueSink.push(`${ownerPath}: unterminated exact top-level selector block ${selector}`)
     return ''
   }
 
@@ -280,16 +282,16 @@ const declarationsFor = (block) => {
 const declarationValuesFor = (declarations, property) => declarations.get(property) ?? []
 const effectiveValueFor = (declarations, property) => declarationValuesFor(declarations, property).at(-1) ?? ''
 
-const requireDeclarations = (owner, declarations, expectedDeclarations, issueSink = violations) => {
+const requireDeclarations = (owner, declarations, expectedDeclarations, issueSink = violations, ownerPath = path) => {
   for (const [property, expectedValue] of Object.entries(expectedDeclarations)) {
     const values = declarationValuesFor(declarations, property)
     if (values.length !== 1) {
-      issueSink.push(`${path}: ${owner} must declare exactly one ${property}; found ${values.length}`)
+      issueSink.push(`${ownerPath}: ${owner} must declare exactly one ${property}; found ${values.length}`)
     }
 
     const actualValue = values.at(-1) ?? ''
     if (actualValue !== expectedValue) {
-      issueSink.push(`${path}: ${owner} ${property} expected ${expectedValue}; found ${actualValue || '<missing>'}`)
+      issueSink.push(`${ownerPath}: ${owner} ${property} expected ${expectedValue}; found ${actualValue || '<missing>'}`)
     }
   }
 }
@@ -378,7 +380,7 @@ const expected = {
     '--button-control-active-bg': '#ebe1d3',
     '--button-control-active-fg': '#55483a',
     '--button-control-active-border': 'rgba(121, 93, 64, 0.16)',
-    '--button-control-shadow': 'none',
+    '--button-control-shadow': 'var(--tp-shadow-control)',
     '--button-control-active-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.66)',
     '--button-control-dot-active-bg': '#967b5f',
     '--button-control-accent-fg': '#6f5842',
@@ -404,7 +406,7 @@ const expected = {
     '--button-control-active-bg': '#e3eaec',
     '--button-control-active-fg': '#304e5a',
     '--button-control-active-border': 'rgba(73, 111, 128, 0.18)',
-    '--button-control-shadow': 'none',
+    '--button-control-shadow': 'var(--tp-shadow-control)',
     '--button-control-active-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
     '--button-control-dot-active-bg': '#668493',
     '--button-control-accent-fg': '#486a79',
@@ -479,6 +481,18 @@ for (const [selector, expectedDeclarations] of Object.entries(expected)) {
       violations.push(`${path}: ${selector} ${property} must not add a large external shadow; found ${actualValue}`)
     }
   }
+}
+
+const tokenRootBlock = blockFor(tokenCss, ':root', violations, tokenPath)
+requireDeclarations(':root', declarationsFor(tokenRootBlock), {
+  '--tp-shadow-control': 'inset 0 1px 0 rgba(244, 234, 208, 0.035)',
+}, violations, tokenPath)
+
+for (const selector of ['[data-theme="morning-paper"]', '[data-theme="warm-slate"]']) {
+  const block = blockFor(tokenCss, selector, violations, tokenPath)
+  requireDeclarations(selector, declarationsFor(block), {
+    '--tp-shadow-control': 'none',
+  }, violations, tokenPath)
 }
 
 if (violations.length) {

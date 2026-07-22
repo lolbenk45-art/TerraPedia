@@ -270,14 +270,14 @@ const cssOrder = [
       '--tp-color-border-strong': 'rgba(122, 90, 33, 0.34)',
       '--tp-color-surface-soft': 'rgba(255, 250, 241, 0.72)',
       '--tp-color-surface-raised': 'rgba(255, 250, 241, 0.92)',
-      '--tp-shadow-control': 'inset 0 1px 0 rgba(255, 255, 255, 0.66), 0 8px 18px rgba(30, 28, 24, 0.05)',
+      '--tp-shadow-control': 'none',
     },
     '[data-theme="warm-slate"]': {
       '--tp-color-border': 'rgba(41, 50, 65, 0.18)',
       '--tp-color-border-strong': 'rgba(41, 50, 65, 0.3)',
       '--tp-color-surface-soft': 'rgba(255, 255, 255, 0.72)',
       '--tp-color-surface-raised': 'rgba(255, 255, 255, 0.94)',
-      '--tp-shadow-control': 'inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 8px 18px rgba(0, 0, 0, 0.045)',
+      '--tp-shadow-control': 'none',
     },
   }
 
