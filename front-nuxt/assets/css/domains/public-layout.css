@@ -144,37 +144,92 @@
   color: var(--text-link, #ffd765);
 }
 
-/* Nav layout stability: reserve sticky header box to reduce first-paint jump. */
-.site-nav {
-  min-height: 74px;
-  box-sizing: border-box;
-}
-
 /*
-  Auth chrome width stability:
-  first paint used to render guest labels (消息 / 访客), then client auth filled
-  unread counts and avatar state (新回复 + badges). Reserve fixed boxes so the
-  action cluster does not shift after auth hydration.
+  Nav first-paint geometry lock.
+
+  Measured jump on desktop first load:
+  - navTop stays 0, navHeight stays 74
+  - actionsTop / linksTop / notifTop move 2px -> 15px once fonts/chrome settle
+  That is vertical re-centering inside the sticky bar, not horizontal badge squeeze.
+
+  Fix: pin the desktop sticky bar to a fixed 74px track and place logo / links /
+  actions on the same absolute vertical center line. Also reserve fixed widths
+  for auth chrome so label/badge swaps cannot reflow the action cluster.
 */
-.site-actions .nav-notification-link {
-  min-width: 92px;
-  justify-content: center;
-}
+@media (min-width: 861px) {
+  .site-nav {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 74px;
+    align-items: stretch;
+    height: 74px;
+    min-height: 74px;
+    max-height: 74px;
+    padding-top: 0;
+    padding-bottom: 0;
+    box-sizing: border-box;
+  }
 
-.site-actions .nav-notification-link b {
-  min-width: 3em;
-  text-align: center;
-}
+  .site-nav > .site-logo,
+  .site-nav > .site-links,
+  .site-nav > .site-actions {
+    align-self: center;
+    min-height: 44px;
+  }
 
-.site-actions .nav-user-article-link {
-  min-width: 92px;
-  justify-content: center;
-}
+  .site-nav > .site-logo {
+    height: 48px;
+  }
 
-.site-actions .account-avatar-link {
-  width: var(--control-icon-size, 44px);
-  height: var(--control-icon-size, 44px);
-  flex: 0 0 var(--control-icon-size, 44px);
+  .site-nav > .site-links,
+  .site-nav > .site-actions {
+    height: 44px;
+  }
+
+  .site-actions {
+    align-items: center;
+  }
+
+  .site-actions .nav-notification-link,
+  .site-actions .nav-user-article-link,
+  .site-actions .nav-menu-text-trigger,
+  .site-actions .icon-button,
+  .site-actions .account-avatar-link {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .site-actions .nav-notification-link {
+    min-width: 96px;
+    max-width: 96px;
+    justify-content: center;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .site-actions .nav-notification-link b {
+    display: inline-block;
+    width: 3.5em;
+    min-width: 3.5em;
+    max-width: 3.5em;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-actions .nav-user-article-link {
+    min-width: 104px;
+    max-width: 104px;
+    justify-content: center;
+  }
+
+  .site-actions .account-avatar-link {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    flex: 0 0 44px;
+  }
 }
 
 /* Compact pagination chrome for entity/catalog docks */
