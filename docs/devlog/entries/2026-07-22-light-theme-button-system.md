@@ -113,7 +113,7 @@
 
 ## Follow-up
 
-- Implement Task 2 against the reviewed intentional-RED token contract.
+- Implement Task 3's prototype identity RED contract.
 
 ## Commits
 
@@ -123,6 +123,7 @@
 - `54f00e3d` — hardened ownership/declaration parser after quality review.
 - `d41a8b90` — corrected control-shadow semantic ownership in the plan/devlog.
 - `55cd4fc0` — authorized the matching visual-system contract correction.
+- `35e90ac2` — implemented the two production button palettes and contracts.
 
 ## Optional: Multi-Agent Coordination
 
@@ -207,6 +208,13 @@
   `hifi-preview.css` to retain `var(--tp-shadow-control)` aliases.
 - Evidence: the focused token contract passed the planned raw values, while
   `pnpm run check:visual-system` failed four exact alias-ownership assertions.
+
+### 2026-07-22 20:38
+
+- Change: Task 2 specification review found one stale handoff: `## Follow-up`
+  still pointed to Task 2 and the commit trace omitted its implementation SHA.
+- Disposition: fixed the next action to Task 3 and recorded `35e90ac2`; no
+  source change was required. Re-review required before Task 3 dispatch.
 
 ### 2026-07-22 20:41
 
