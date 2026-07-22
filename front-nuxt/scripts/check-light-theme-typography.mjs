@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
 const targetThemes = ['morning-paper', 'warm-slate']
+const frontRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const expectedThemeTokens = {
   'morning-paper': {
@@ -55,20 +59,51 @@ const routes = [
   '/about',
 ]
 
-const focusFamilySelectors = {
-  primary: ['.primary-button:not([disabled])'],
-  theme: ['.account-menu .theme-choice:not([disabled])', '.mobile-nav-theme .theme-choice:not([disabled])'],
-  nav: ['.nav-menu-text-trigger:not([disabled])', '.nav-notification-link', '.nav-user-article-link', '.account-avatar-link'],
-  filter: ['.filter-option:not([disabled])', '.entity-filter:not([disabled])'],
-  'catalog-chip': ['.catalog-category-chip:not([disabled])', '.catalog-density-chip:not([disabled])'],
-  'catalog-pagination': [
-    '.catalog-dock-page-button:not([disabled])',
-    '.catalog-dock-button:not([disabled])',
-    '.catalog-dock-icon-button:not([disabled])',
-  ],
+const focusConsumerContracts = {
+  'primary-button': { selector: '.primary-button:not([disabled])', route: '/categories/weapons' },
+  'secondary-button': { selector: '.secondary-button:not([disabled])', route: '/user/register', prepare: 'email' },
+  'icon-button': { selector: '.icon-button:not([disabled])', route: '/' },
+  'small-button': { selector: '.small-button:not([disabled])', route: '/npcs' },
+  'detail-tab': { selector: '.detail-tab:not([disabled])', allowAbsent: 'No maintained route renders detail-tab markup; absence is asserted across the full route matrix.' },
+  'filter-option': { selector: '.filter-option:not([disabled])', allowAbsent: 'No maintained route renders filter-option markup; absence is asserted across the full route matrix.' },
+  'entity-filter': { selector: '.entity-filter:not([disabled])', route: '/npcs' },
+  'theme-choice': { selector: '.account-menu .theme-choice:not([disabled])', route: '/' },
+  'nav-menu-text-trigger': { selector: '.nav-menu-text-trigger:not([disabled])', route: '/' },
+  'nav-notification-link': { selector: '.nav-notification-link', route: '/' },
+  'nav-user-article-link': { selector: '.nav-user-article-link', route: '/' },
+  'account-avatar-link': { selector: '.account-avatar-link', route: '/' },
+  'catalog-category-chip': { selector: '.catalog-category-chip:not([disabled])', route: '/items' },
+  'catalog-density-chip': { selector: '.catalog-density-chip:not([disabled])', route: '/items' },
+  'catalog-dock-button': { selector: '.catalog-dock-button:not([disabled])', route: '/items' },
+  'catalog-dock-icon-button': { selector: '.catalog-dock-icon-button:not([disabled])', route: '/items' },
+  'catalog-dock-page-button': { selector: '.catalog-dock-page-button:not([disabled])', route: '/items' },
 }
 
-const requiredFocusFamilies = Object.keys(focusFamilySelectors)
+const requiredFocusConsumers = Object.keys(focusConsumerContracts)
+const evidencedFocusConsumers = requiredFocusConsumers.filter((consumerId) => !focusConsumerContracts[consumerId].allowAbsent)
+const allowAbsentFocusConsumers = requiredFocusConsumers.filter((consumerId) => focusConsumerContracts[consumerId].allowAbsent)
+const dynamicReverseRestoreConsumers = new Set(['account-avatar-link'])
+
+const missingConcreteConsumers = (covered, required = evidencedFocusConsumers) => required.filter((consumerId) => !covered.has(consumerId))
+const concreteCoverageFixture = new Set(['primary-button'])
+if (!missingConcreteConsumers(concreteCoverageFixture, ['primary-button', 'secondary-button']).includes('secondary-button')) {
+  throw new Error('concrete focus coverage self-test failed: primary-button must not cover secondary-button')
+}
+
+const vueSourcesBelow = (directory) => readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  const path = join(directory, entry.name)
+  if (entry.isDirectory()) return vueSourcesBelow(path)
+  return entry.name.endsWith('.vue') ? [readFileSync(path, 'utf8')] : []
+})
+const maintainedVueSource = [join(frontRoot, 'components'), join(frontRoot, 'pages')]
+  .flatMap(vueSourcesBelow)
+  .join('\n')
+for (const consumerId of allowAbsentFocusConsumers) {
+  const className = focusConsumerContracts[consumerId].selector.match(/\.([a-z0-9-]+)/i)?.[1]
+  if (!className || maintainedVueSource.includes(className)) {
+    throw new Error(`${consumerId} allow-absent structural assertion failed: maintained Vue markup contains ${className || '<unparseable selector>'}`)
+  }
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -333,9 +368,9 @@ const auditExpression = `(() => {
   };
 })()`
 
-const focusAuditExpression = (family) => `(() => {
-  const familySelectors = ${JSON.stringify(focusFamilySelectors)};
-  const family = ${JSON.stringify(family)};
+const focusAuditExpression = (consumerId) => `(() => {
+  const consumerSelectors = ${JSON.stringify(Object.fromEntries(Object.entries(focusConsumerContracts).map(([id, contract]) => [id, contract.selector])))};
+  const consumerId = ${JSON.stringify(consumerId)};
   const parseColor = (value) => {
     const text = String(value || '').trim();
     if (text === 'transparent') return [0, 0, 0, 0];
@@ -407,9 +442,8 @@ const focusAuditExpression = (family) => `(() => {
   const samples = [];
   const issues = [];
   const element = document.activeElement;
-  const belongsToFamily = element instanceof Element
-    && (familySelectors[family] || []).some((selector) => element.matches(selector));
-  if (belongsToFamily) {
+  const belongsToConsumer = element instanceof Element && element.matches(consumerSelectors[consumerId]);
+  if (belongsToConsumer) {
     const style = getComputedStyle(element);
     const outlineWidth = Number.parseFloat(style.outlineWidth) || 0;
     const outlineOffset = Number.parseFloat(style.outlineOffset) || 0;
@@ -424,7 +458,7 @@ const focusAuditExpression = (family) => `(() => {
     const focusVisible = element.matches(':focus-visible');
     const visible = isVisible(element);
     const sample = {
-      family,
+      consumerId,
       element: nodeName(element),
       active,
       focusVisible,
@@ -450,10 +484,10 @@ const focusAuditExpression = (family) => `(() => {
     ) {
       issues.push({
         element: sample.element,
-        text: family + ' focus active=' + active + ' focusVisible=' + focusVisible + ' visible=' + visible + ' outlineStyle=' + style.outlineStyle + ' expected=solid width=' + outlineWidth + 'px offset=' + outlineOffset + 'px clippedBy=' + (clippedBy || 'none'),
+        text: consumerId + ' focus active=' + active + ' focusVisible=' + focusVisible + ' visible=' + visible + ' outlineStyle=' + style.outlineStyle + ' expected=solid width=' + outlineWidth + 'px offset=' + outlineOffset + 'px clippedBy=' + (clippedBy || 'none'),
         color: style.outlineColor,
         fontSize: outlineWidth + 'px/' + outlineOffset + 'px',
-        fontWeight: family,
+        fontWeight: consumerId,
         ratio: sample.ratio,
       });
     }
@@ -467,9 +501,9 @@ const focusAuditExpression = (family) => `(() => {
   };
 })()`
 
-const activeFocusFamilyExpression = (requestedFamilies) => `(() => {
-  const familySelectors = ${JSON.stringify(focusFamilySelectors)};
-  const requestedFamilies = ${JSON.stringify(requestedFamilies)};
+const activeFocusConsumerExpression = (requestedConsumers) => `(() => {
+  const consumerSelectors = ${JSON.stringify(Object.fromEntries(Object.entries(focusConsumerContracts).map(([id, contract]) => [id, contract.selector])))};
+  const requestedConsumers = ${JSON.stringify(requestedConsumers)};
   const active = document.activeElement;
   if (!(active instanceof Element)) return '';
   const rect = active.getBoundingClientRect();
@@ -479,31 +513,26 @@ const activeFocusFamilyExpression = (requestedFamilies) => `(() => {
     && style.display !== 'none'
     && Number(style.opacity) > 0.05;
   if (!visible) return '';
-  return requestedFamilies.find((family) => (
-    (familySelectors[family] || []).some((selector) => active.matches(selector))
-  )) || '';
+  return requestedConsumers.find((consumerId) => active.matches(consumerSelectors[consumerId])) || '';
 })()`
 
-const markPreviousFocusExpression = `(() => {
-  document.querySelectorAll('[data-focus-audit-previous]').forEach((element) => element.removeAttribute('data-focus-audit-previous'));
+const absentConsumerPresenceExpression = `(() => {
+  const selectors = ${JSON.stringify(Object.fromEntries(allowAbsentFocusConsumers.map((consumerId) => [consumerId, focusConsumerContracts[consumerId].selector])))};
+  return Object.entries(selectors)
+    .filter(([, selector]) => document.querySelector(selector))
+    .map(([consumerId]) => consumerId);
+})()`
+
+const markForwardFocusExpression = `(() => {
+  document.querySelectorAll('[data-focus-audit-forward]').forEach((element) => element.removeAttribute('data-focus-audit-forward'));
   const active = document.activeElement;
-  if (!(active instanceof HTMLElement) || active === document.body) return { marked: false, element: '' };
-  const rect = active.getBoundingClientRect();
-  const style = getComputedStyle(active);
-  const visible = rect.width > 1 && rect.height > 1
-    && style.visibility !== 'hidden'
-    && style.display !== 'none'
-    && Number(style.opacity) > 0.05;
-  if (!visible || active.tabIndex < 0) return { marked: false, element: active.tagName.toLowerCase() };
-  active.setAttribute('data-focus-audit-previous', 'true');
-  return {
-    marked: true,
-    element: active.tagName.toLowerCase() + (String(active.className || '').trim() ? '.' + String(active.className).trim().split(/\\s+/).slice(0, 4).join('.') : ''),
-  };
+  if (!(active instanceof HTMLElement) || active === document.body) return false;
+  active.setAttribute('data-focus-audit-forward', 'true');
+  return true;
 })()`
 
-const reverseFocusAuditExpression = (family, previousElement) => `(() => {
-  const expected = document.querySelector('[data-focus-audit-previous="true"]');
+const reverseFocusAuditExpression = (consumerId) => `(() => {
+  const forward = document.querySelector('[data-focus-audit-forward="true"]');
   const active = document.activeElement;
   const activeElement = active instanceof Element
     ? active.tagName.toLowerCase() + (String(active.className || '').trim() ? '.' + String(active.className).trim().split(/\\s+/).slice(0, 4).join('.') : '')
@@ -516,18 +545,40 @@ const reverseFocusAuditExpression = (family, previousElement) => `(() => {
       && style.display !== 'none'
       && Number(style.opacity) > 0.05;
   })();
-  const activeMatches = Boolean(expected) && active === expected;
+  const movedAway = Boolean(forward) && active !== forward;
   const focusVisible = active instanceof Element && active.matches(':focus-visible');
-  expected?.removeAttribute('data-focus-audit-previous');
   return {
-    passed: activeMatches && activeVisible && focusVisible,
+    passed: movedAway && activeVisible && active instanceof HTMLElement && active.tabIndex >= 0 && focusVisible,
     issue: {
       element: activeElement || '<none>',
-      text: ${JSON.stringify(family)} + ' reverse Shift+Tab expected=' + ${JSON.stringify(previousElement)} + ' actual=' + (activeElement || '<none>') + ' activeMatchesPrevious=' + activeMatches + ' visible=' + activeVisible + ' focusVisible=' + focusVisible,
+      text: ${JSON.stringify(consumerId)} + ' reverse Shift+Tab actual=' + (activeElement || '<none>') + ' movedAwayFromForward=' + movedAway + ' visible=' + activeVisible + ' tabIndex=' + (active instanceof HTMLElement ? active.tabIndex : '<none>') + ' focusVisible=' + focusVisible,
       color: '',
       fontSize: '',
-      fontWeight: ${JSON.stringify(family)},
+      fontWeight: ${JSON.stringify(consumerId)},
       ratio: 0,
+    },
+  };
+})()`
+
+const forwardRestoreAuditExpression = (consumerId, dynamicException) => `(() => {
+  const selector = ${JSON.stringify(focusConsumerContracts)}[${JSON.stringify(consumerId)}].selector;
+  const forward = document.querySelector('[data-focus-audit-forward="true"]');
+  const active = document.activeElement;
+  const activeVisible = active instanceof HTMLElement && (() => {
+    const rect = active.getBoundingClientRect();
+    const style = getComputedStyle(active);
+    return rect.width > 1 && rect.height > 1 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0.05;
+  })();
+  const focusVisible = active instanceof Element && active.matches(':focus-visible');
+  const exactRestore = Boolean(forward) && active === forward && active.matches(selector);
+  forward?.removeAttribute('data-focus-audit-forward');
+  return {
+    passed: activeVisible && focusVisible && (${JSON.stringify(dynamicException)} || exactRestore),
+    exactRestore,
+    issue: {
+      element: ${JSON.stringify(consumerId)},
+      text: ${JSON.stringify(consumerId)} + ' forward restore dynamicException=' + ${JSON.stringify(dynamicException)} + ' exactRestore=' + exactRestore + ' visible=' + activeVisible + ' focusVisible=' + focusVisible,
+      color: '', fontSize: '', fontWeight: ${JSON.stringify(consumerId)}, ratio: 0,
     },
   };
 })()`
@@ -744,62 +795,84 @@ const pressShiftTab = async (browser) => {
   })
 }
 
-const collectKeyboardFocusSamples = async (browser, requestedFamilies, maxTabs = 180) => {
-  const remaining = new Set(requestedFamilies)
+const collectKeyboardFocusSamples = async (browser, requestedConsumers, maxTabs = 180) => {
+  const remaining = new Set(requestedConsumers)
   const samples = []
   const issues = []
   let reverseEvidence = 0
+  let exactRestoreEvidence = 0
+  let dynamicRestoreEvidence = 0
 
   for (let index = 0; index < maxTabs && remaining.size > 0; index += 1) {
-    const previousResult = await browser.send('Runtime.evaluate', {
-      expression: markPreviousFocusExpression,
-      returnByValue: true,
-    })
-    const previous = previousResult.result.value
     await pressTab(browser)
     await sleep(30)
+    if (remaining.has('secondary-button')) {
+      const emailFocusedResult = await browser.send('Runtime.evaluate', {
+        expression: `document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'email'`,
+        returnByValue: true,
+      })
+      if (emailFocusedResult.result.value) {
+        await browser.send('Input.insertText', { text: 'focus-audit@example.test' })
+        await sleep(30)
+      }
+    }
     const requested = [...remaining]
     const familyResult = await browser.send('Runtime.evaluate', {
-      expression: activeFocusFamilyExpression(requested),
+      expression: activeFocusConsumerExpression(requested),
       returnByValue: true,
     })
-    const family = familyResult.result.value
-    if (!family) continue
+    const consumerId = familyResult.result.value
+    if (!consumerId) continue
 
     const auditResult = await browser.send('Runtime.evaluate', {
-      expression: focusAuditExpression(family),
+      expression: focusAuditExpression(consumerId),
       returnByValue: true,
     })
     const value = auditResult.result.value
     samples.push(...value.samples)
     issues.push(...value.issues)
 
-    if (!previous.marked) {
+    const markForwardResult = await browser.send('Runtime.evaluate', {
+      expression: markForwardFocusExpression,
+      returnByValue: true,
+    })
+    if (!markForwardResult.result.value) {
       issues.push({
-        element: family,
-        text: `${family} reverse Shift+Tab has no previous visible keyboard-focusable element after forward traversal`,
+        element: consumerId,
+        text: `${consumerId} reverse Shift+Tab could not mark the established forward focus target`,
         color: '',
         fontSize: '',
-        fontWeight: family,
+        fontWeight: consumerId,
         ratio: 0,
       })
     } else {
       await pressShiftTab(browser)
       await sleep(30)
       const reverseResult = await browser.send('Runtime.evaluate', {
-        expression: reverseFocusAuditExpression(family, previous.element),
+        expression: reverseFocusAuditExpression(consumerId),
         returnByValue: true,
       })
       const reverseValue = reverseResult.result.value
-      if (reverseValue.passed) reverseEvidence += 1
-      else issues.push(reverseValue.issue)
       await pressTab(browser)
       await sleep(30)
+      const dynamicException = dynamicReverseRestoreConsumers.has(consumerId)
+      const restoreResult = await browser.send('Runtime.evaluate', {
+        expression: forwardRestoreAuditExpression(consumerId, dynamicException),
+        returnByValue: true,
+      })
+      const restoreValue = restoreResult.result.value
+      if (reverseValue.passed && restoreValue.passed) {
+        reverseEvidence += 1
+        if (restoreValue.exactRestore) exactRestoreEvidence += 1
+        else dynamicRestoreEvidence += 1
+      } else {
+        issues.push(reverseValue.passed ? restoreValue.issue : reverseValue.issue)
+      }
     }
-    remaining.delete(family)
+    remaining.delete(consumerId)
   }
 
-  return { samples, issues, missing: [...remaining], reverseEvidence }
+  return { samples, issues, missing: [...remaining], reverseEvidence, exactRestoreEvidence, dynamicRestoreEvidence }
 }
 
 await waitFor(`${baseUrl}/`)
@@ -811,6 +884,10 @@ const fontFamilies = new Set()
 const focusCoverage = new Map(targetThemes.map((theme) => [theme, new Set()]))
 const focusSampleCounts = new Map(targetThemes.map((theme) => [theme, 0]))
 const reverseFocusEvidenceCounts = new Map(targetThemes.map((theme) => [theme, 0]))
+const exactRestoreEvidenceCounts = new Map(targetThemes.map((theme) => [theme, 0]))
+const dynamicRestoreEvidenceCounts = new Map(targetThemes.map((theme) => [theme, 0]))
+const absentConsumerSightings = new Map(targetThemes.map((theme) => [theme, new Map(allowAbsentFocusConsumers.map((consumerId) => [consumerId, new Set()]))]))
+const absentConsumerRouteChecks = new Map(targetThemes.map((theme) => [theme, 0]))
 const focusFailures = []
 
 try {
@@ -921,20 +998,42 @@ try {
         failures.push(value)
       }
 
-      const missingFocusFamilies = requiredFocusFamilies.filter((family) => !focusCoverage.get(targetTheme).has(family))
-      if (missingFocusFamilies.length > 0) {
-        const focusValue = await collectKeyboardFocusSamples(browser, missingFocusFamilies)
+      const absentPresenceResult = await browser.send('Runtime.evaluate', {
+        expression: absentConsumerPresenceExpression,
+        returnByValue: true,
+      })
+      absentConsumerRouteChecks.set(targetTheme, absentConsumerRouteChecks.get(targetTheme) + 1)
+      for (const consumerId of absentPresenceResult.result.value) {
+        absentConsumerSightings.get(targetTheme).get(consumerId).add(route)
+      }
+
+      const routeFocusConsumers = evidencedFocusConsumers.filter((consumerId) => (
+        focusConsumerContracts[consumerId].route === route
+        && !focusCoverage.get(targetTheme).has(consumerId)
+      ))
+      if (routeFocusConsumers.length > 0) {
+        const focusValue = await collectKeyboardFocusSamples(browser, routeFocusConsumers)
         focusSampleCounts.set(targetTheme, focusSampleCounts.get(targetTheme) + focusValue.samples.length)
         reverseFocusEvidenceCounts.set(targetTheme, reverseFocusEvidenceCounts.get(targetTheme) + focusValue.reverseEvidence)
+        exactRestoreEvidenceCounts.set(targetTheme, exactRestoreEvidenceCounts.get(targetTheme) + focusValue.exactRestoreEvidence)
+        dynamicRestoreEvidenceCounts.set(targetTheme, dynamicRestoreEvidenceCounts.get(targetTheme) + focusValue.dynamicRestoreEvidence)
         for (const sample of focusValue.samples) {
-          focusCoverage.get(targetTheme).add(sample.family)
+          focusCoverage.get(targetTheme).add(sample.consumerId)
         }
-        if (focusValue.issues.length > 0) {
+        const routeIssues = [...focusValue.issues, ...focusValue.missing.map((consumerId) => ({
+          element: consumerId,
+          text: `${consumerId} was not reached by bounded keyboard traversal on representative route ${route}`,
+          color: '',
+          fontSize: '',
+          fontWeight: consumerId,
+          ratio: 0,
+        }))]
+        if (routeIssues.length > 0) {
           focusFailures.push({
-            path: focusValue.path,
-            theme: focusValue.theme,
+            path: route,
+            theme: targetTheme,
             expectedTheme: targetTheme,
-            issues: focusValue.issues,
+            issues: routeIssues,
           })
         }
       }
@@ -958,26 +1057,48 @@ try {
 }
 
 for (const targetTheme of targetThemes) {
-  const coveredFamilies = [...focusCoverage.get(targetTheme)]
-  const missingFamilies = requiredFocusFamilies.filter((family) => !focusCoverage.get(targetTheme).has(family))
-  if (missingFamilies.length > 0) {
+  const coveredConsumers = [...focusCoverage.get(targetTheme)]
+  const missingConsumers = missingConcreteConsumers(focusCoverage.get(targetTheme))
+  if (missingConsumers.length > 0) {
     focusFailures.push({
-      path: 'focus-family-coverage',
+      path: 'focus-consumer-coverage',
       theme: targetTheme,
       expectedTheme: targetTheme,
-      issues: missingFamilies.map((family) => ({
-        element: family,
-        text: `required focus family was never exercised; covered=${coveredFamilies.join(',') || 'none'}`,
+      issues: missingConsumers.map((consumerId) => ({
+        element: consumerId,
+        text: `required concrete focus consumer was never exercised; covered=${coveredConsumers.join(',') || 'none'}`,
         color: '',
         fontSize: '',
-        fontWeight: family,
+        fontWeight: consumerId,
         ratio: 0,
       })),
     })
   }
 
+  const allowlistIssues = []
+  if (absentConsumerRouteChecks.get(targetTheme) !== routes.length) {
+    allowlistIssues.push({
+      element: 'allow-absent-route-matrix',
+      text: `allow-absent structural assertion checked ${absentConsumerRouteChecks.get(targetTheme)}/${routes.length} routes`,
+      color: '', fontSize: '', fontWeight: '', ratio: 0,
+    })
+  }
+  for (const consumerId of allowAbsentFocusConsumers) {
+    const sightingRoutes = [...absentConsumerSightings.get(targetTheme).get(consumerId)]
+    if (sightingRoutes.length > 0) {
+      allowlistIssues.push({
+        element: consumerId,
+        text: `${consumerId} is allowlisted only while absent, but rendered on ${sightingRoutes.join(',')}`,
+        color: '', fontSize: '', fontWeight: consumerId, ratio: 0,
+      })
+    }
+  }
+  if (allowlistIssues.length > 0) {
+    focusFailures.push({ path: 'focus-consumer-allowlist', theme: targetTheme, expectedTheme: targetTheme, issues: allowlistIssues })
+  }
+
   const themeFocusFailures = focusFailures.filter((failure) => failure.expectedTheme === targetTheme)
-  const summary = `theme=${targetTheme} families=${coveredFamilies.join(',') || 'none'} samples=${focusSampleCounts.get(targetTheme)} reverse=${reverseFocusEvidenceCounts.get(targetTheme)} issues=${themeFocusFailures.reduce((count, failure) => count + failure.issues.length, 0)}`
+  const summary = `theme=${targetTheme} consumers=${coveredConsumers.join(',') || 'none'} allowedAbsent=${allowAbsentFocusConsumers.join(',')} forward=${focusSampleCounts.get(targetTheme)} reverse=${reverseFocusEvidenceCounts.get(targetTheme)} exactRestore=${exactRestoreEvidenceCounts.get(targetTheme)} dynamicRestore=${dynamicRestoreEvidenceCounts.get(targetTheme)} issues=${themeFocusFailures.reduce((count, failure) => count + failure.issues.length, 0)}`
   if (themeFocusFailures.length > 0) {
     console.error(`Light theme focus audit failed: ${summary}`)
   } else {

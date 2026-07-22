@@ -112,6 +112,20 @@
   previously recorded unrelated text baseline. Fresh syntax, focused/static,
   and full frontend gates passed; the project stop script again closed
   `15186`, `18200`, and `13013` while preserving shared Redis `16380`.
+- Task 2 concrete-consumer follow-up: quality re-review found that six broad
+  families allowed one member to cover another. The runtime lane now tracks
+  17 independent consumer IDs per theme. Fifteen rendered consumers each
+  require real forward Tab, exact active-element and solid-ring checks, reverse
+  Shift+Tab, and forward restoration evidence. `detail-tab` and
+  `filter-option` are narrowly allowlisted because maintained markup does not
+  render them; every route in both theme matrices asserts that they remain
+  absent. Both themes covered all 15 rendered consumers with 15 forward and
+  15 reverse samples and zero issues. Morning Paper restored all 15 exactly;
+  Warm Slate restored 14 exactly and used the documented account-menu dynamic
+  exception once because focus-in changes the menu tab order. Fresh syntax,
+  focused/static, and full frontend gates passed; overall light-theme status
+  remained red only for the existing unrelated text baseline. The project
+  stop script closed task ports and preserved shared Redis `16380`.
 - Task 2 runtime limitation: the default `pnpm run check:light-theme` exited 1
   after timing out at `http://localhost:5176/`, where no process was listening.
   The same-worktree Nuxt process was already serving HTTP 200 on port 5181, so
@@ -181,6 +195,8 @@
 - `35e90ac2` — implemented the two production button palettes and contracts.
 - `d594eebb` — repaired Task 2 focus contrast, consumers, clipping, and real
   forward-keyboard runtime evidence.
+- `627b008c` — hardened focus ownership candidates, exact solid outlines, and
+  reverse-keyboard evidence.
 
 ## Optional: Multi-Agent Coordination
 
@@ -249,9 +265,10 @@
   focus evidence.
 - Disposition: repaired with solid focus tokens, exact real consumers, catalog
   cascade ownership, bounded CDP keyboard traversal, and light-theme
-  theme-choice clipping removal; pending reviewer confirmation.
+  theme-choice clipping removal in `d594eebb` and `627b008c`; re-review remains
+  required before Task 3.
 - Re-review required: yes.
-- Resolved by: Task 2 implementer in the pending focus-repair commit.
+- Resolved by: Task 2 implementer in `d594eebb` and `627b008c`.
 - Arbitration decision: reopen Task 2; do not start the prototype contract.
 - Decision owner: root Codex coordinator.
 - Rationale: keyboard focus is an acceptance requirement and the structural
@@ -266,14 +283,28 @@
 - Findings: four findings covering missing reverse Shift+Tab evidence,
   non-exact outline-style acceptance, exact-only structural owner discovery,
   and a stale repair-oriented follow-up.
-- Disposition: fixed in the pending follow-up commit through real bounded
+- Disposition: fixed in `627b008c` through real bounded
   reverse traversal, exact solid outline enforcement, any-consumer candidate
   discovery with subset/superset/duplicate fixtures, and corrected handoff.
 - Re-review required: yes, specification and quality review before Task 3.
-- Resolved by: Task 2 implementer in the pending focus-evidence hardening
-  commit.
+- Resolved by: Task 2 implementer in `627b008c`.
 - Remaining risks: unrelated overall light-theme text contrast failures remain
   outside Task 2 focus evidence.
+
+### Task 2 concrete-consumer quality follow-up
+
+- Reviewer: Task 2 quality re-review agent.
+- Scope: focus evidence through `627b008c`.
+- Findings: one Important false green because broad focus families credited
+  only the first matching member, plus one Minor stale commit record.
+- Disposition: fixed by independent 17-ID coverage, targeted representative
+  routes, two narrowly asserted absent consumers, concrete coverage self-test,
+  exact/dynamic reverse-restore accounting, and durable commit records.
+- Re-review required: yes, complete Task 2 specification and quality re-review
+  before Task 3.
+- Resolved by: Task 2 implementer; commit SHA reported in the final response.
+- Remaining risks: unrelated overall light-theme text contrast failures remain
+  outside this focus coverage repair.
 
 ## Optional: State Changes
 
@@ -352,6 +383,17 @@
   produced six forward and six reverse keyboard samples with zero focus
   issues; syntax, focused/static, and full frontend gates passed; task-owned
   service ports closed after validation.
+
+### 2026-07-22 22:38
+
+- Change: replaced broad family credit with independent evidence for every
+  concrete shared and catalog focus consumer.
+- Reason: quality re-review proved that one member could make untested sibling
+  consumers appear covered.
+- Evidence: both themes covered 15 rendered consumer IDs with 15 forward and
+  15 reverse samples and zero focus issues; two absent IDs were asserted on
+  all 31 routes per theme; focused/static/full frontend gates passed and
+  task-owned ports closed after validation.
 
 ### 2026-07-22 19:59
 
