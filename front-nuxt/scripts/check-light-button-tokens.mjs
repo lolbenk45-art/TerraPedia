@@ -328,9 +328,33 @@ const runParserSelfTests = () => {
   const focusRule = topLevelRules(focusFixture)[0]
   assert(hasExactConsumerSet(focusConsumersFor(focusRule?.selector ?? '') ?? []), 'formatted multiline focus selectors must preserve the exact consumer set')
 
+  const focusSubsetFixture = `${focusFixture}\n:where(${requiredFocusConsumers.slice(0, -1).join(', ')}):focus-visible { outline: none; }`
+  const subsetOwners = sharedFocusCandidatesFor(topLevelRules(focusSubsetFixture))
+  assert(subsetOwners.length === 2 && !hasSingleExactSharedFocusOwner(subsetOwners), 'subset shared focus owners must be rejected')
+
+  const focusSupersetFixture = `${focusFixture}\n:where(${requiredFocusConsumers.join(', ')}, .unexpected-focus-owner):focus-visible { outline: none; }`
+  const supersetOwners = sharedFocusCandidatesFor(topLevelRules(focusSupersetFixture))
+  assert(supersetOwners.length === 2 && !hasSingleExactSharedFocusOwner(supersetOwners), 'superset shared focus owners must be rejected')
+
+  const duplicateFocusOwners = sharedFocusCandidatesFor(topLevelRules(`${focusFixture}\n${focusFixture}`))
+  assert(duplicateFocusOwners.length === 2 && !hasSingleExactSharedFocusOwner(duplicateFocusOwners), 'duplicate shared focus owners must be rejected')
+  assert(hasSingleExactSharedFocusOwner([focusRule]), 'one exact formatted shared focus owner must pass')
+
   const catalogFocusFixture = `:is([data-theme="morning-paper"], [data-theme="warm-slate"]) :is(\n  ${requiredCatalogFocusConsumers.join(',\n  ')}\n):focus-visible { outline: 3px solid var(--button-focus-ring); outline-offset: 2px; }`
   const catalogFocusRule = topLevelRules(catalogFocusFixture)[0]
   assert(hasExactCatalogConsumerSet(catalogFocusConsumersFor(catalogFocusRule?.selector ?? '') ?? []), 'formatted catalog focus selectors must preserve the exact consumer set')
+
+  const catalogSubsetFixture = `${catalogFocusFixture}\n:is([data-theme="morning-paper"], [data-theme="warm-slate"]) :is(${requiredCatalogFocusConsumers.slice(0, -1).join(', ')}):focus-visible { outline: none; }`
+  const catalogSubsetOwners = catalogFocusCandidatesFor(topLevelRules(catalogSubsetFixture))
+  assert(catalogSubsetOwners.length === 2 && !hasSingleExactCatalogFocusOwner(catalogSubsetOwners), 'subset catalog focus owners must be rejected')
+
+  const catalogSupersetFixture = `${catalogFocusFixture}\n:is([data-theme="morning-paper"], [data-theme="warm-slate"]) :is(${requiredCatalogFocusConsumers.join(', ')}, .unexpected-catalog-owner):focus-visible { outline: none; }`
+  const catalogSupersetOwners = catalogFocusCandidatesFor(topLevelRules(catalogSupersetFixture))
+  assert(catalogSupersetOwners.length === 2 && !hasSingleExactCatalogFocusOwner(catalogSupersetOwners), 'superset catalog focus owners must be rejected')
+
+  const duplicateCatalogOwners = catalogFocusCandidatesFor(topLevelRules(`${catalogFocusFixture}\n${catalogFocusFixture}`))
+  assert(duplicateCatalogOwners.length === 2 && !hasSingleExactCatalogFocusOwner(duplicateCatalogOwners), 'duplicate catalog focus owners must be rejected')
+  assert(hasSingleExactCatalogFocusOwner([catalogFocusRule]), 'one exact formatted catalog focus owner must pass')
 
   return failures
 }
@@ -445,6 +469,14 @@ const hasExactConsumerSet = (consumers) => consumers.length === requiredFocusCon
   && new Set(consumers).size === requiredFocusConsumers.length
   && requiredFocusConsumers.every((consumer) => consumers.includes(consumer))
 
+const sharedFocusCandidatesFor = (candidateRules) => candidateRules.filter((rule) => {
+  const consumers = focusConsumersFor(rule.selector)
+  return consumers !== null && consumers.some((consumer) => requiredFocusConsumers.includes(consumer))
+})
+
+const hasSingleExactSharedFocusOwner = (candidates) => candidates.length === 1
+  && hasExactConsumerSet(focusConsumersFor(candidates[0].selector) ?? [])
+
 const requiredCatalogFocusConsumers = [
   '.catalog-category-chip',
   '.catalog-density-chip',
@@ -461,6 +493,14 @@ const catalogFocusConsumersFor = (selector) => {
 const hasExactCatalogConsumerSet = (consumers) => consumers.length === requiredCatalogFocusConsumers.length
   && new Set(consumers).size === requiredCatalogFocusConsumers.length
   && requiredCatalogFocusConsumers.every((consumer) => consumers.includes(consumer))
+
+const catalogFocusCandidatesFor = (candidateRules) => candidateRules.filter((rule) => {
+  const consumers = catalogFocusConsumersFor(rule.selector)
+  return consumers !== null && consumers.some((consumer) => requiredCatalogFocusConsumers.includes(consumer))
+})
+
+const hasSingleExactCatalogFocusOwner = (candidates) => candidates.length === 1
+  && hasExactCatalogConsumerSet(catalogFocusConsumersFor(candidates[0].selector) ?? [])
 
 const rgbForHex = (value) => {
   const match = value.match(/^#([0-9a-f]{6})$/i)
@@ -521,13 +561,10 @@ requireDeclarations(':root', declarationsFor(rootBlock), {
   '--button-focus-ring': 'rgba(240, 207, 116, 0.58)',
 })
 
-const ownedFocusRules = rules.filter((rule) => {
-  const consumers = focusConsumersFor(rule.selector)
-  return consumers !== null && hasExactConsumerSet(consumers)
-})
+const ownedFocusRules = sharedFocusCandidatesFor(rules)
 
-if (ownedFocusRules.length !== 1) {
-  violations.push(`${path}: expected exactly one shared :where(...):focus-visible rule owning the required button consumer set; found ${ownedFocusRules.length}`)
+if (!hasSingleExactSharedFocusOwner(ownedFocusRules)) {
+  violations.push(`${path}: expected exactly one shared :where(...):focus-visible candidate with the exact required button consumer set; found ${ownedFocusRules.length}`)
 } else if (ownedFocusRules[0].block === null) {
   violations.push(`${path}: unterminated shared :where(...):focus-visible rule`)
 } else {
@@ -566,13 +603,10 @@ for (const [selector, expectedDeclarations] of Object.entries(expected)) {
 }
 
 const catalogRules = topLevelRules(catalogCss)
-const ownedCatalogFocusRules = catalogRules.filter((rule) => {
-  const consumers = catalogFocusConsumersFor(rule.selector)
-  return consumers !== null && hasExactCatalogConsumerSet(consumers)
-})
+const ownedCatalogFocusRules = catalogFocusCandidatesFor(catalogRules)
 
-if (ownedCatalogFocusRules.length !== 1) {
-  violations.push(`${catalogPath}: expected exactly one light-theme focus rule owning the required catalog consumer set; found ${ownedCatalogFocusRules.length}`)
+if (!hasSingleExactCatalogFocusOwner(ownedCatalogFocusRules)) {
+  violations.push(`${catalogPath}: expected exactly one light-theme focus candidate with the exact required catalog consumer set; found ${ownedCatalogFocusRules.length}`)
 } else if (ownedCatalogFocusRules[0].block === null) {
   violations.push(`${catalogPath}: unterminated light-theme catalog focus rule`)
 } else {

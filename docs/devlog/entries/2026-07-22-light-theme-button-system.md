@@ -99,6 +99,19 @@
   0. `CHROMIUM_BIN=<playwright-chromium> pnpm run check` exited 0; it retained
   the existing Node deprecation, duplicate `formatEffectValue` import, and
   headless Chromium DBus warnings without test failures.
+- Task 2 specification follow-up: the focused ownership contract first went
+  intentionally RED because the prior exact-only discovery ignored shared
+  subset/superset and catalog subset focus owners. Candidate discovery now
+  includes every matching `:focus-visible` rule that contains any required
+  consumer, and parser self-tests reject shared and catalog subset, superset,
+  and duplicate candidates while accepting one formatted exact owner. The
+  runtime lane now requires computed `outline-style: solid` exactly and uses
+  real CDP Shift+Tab after every forward family sample. Both themes reported
+  all six families, six forward samples, six successful reverse samples, and
+  zero focus issues. The overall light-theme audit remained red only for the
+  previously recorded unrelated text baseline. Fresh syntax, focused/static,
+  and full frontend gates passed; the project stop script again closed
+  `15186`, `18200`, and `13013` while preserving shared Redis `16380`.
 - Task 2 runtime limitation: the default `pnpm run check:light-theme` exited 1
   after timing out at `http://localhost:5176/`, where no process was listening.
   The same-worktree Nuxt process was already serving HTTP 200 on port 5181, so
@@ -155,8 +168,7 @@
 
 ## Follow-up
 
-- Repair Task 2 keyboard-focus coverage and contrast, then complete spec and
-  quality re-review before Task 3.
+- Complete Task 2 specification and quality re-review before Task 3.
 
 ## Commits
 
@@ -167,6 +179,8 @@
 - `d41a8b90` — corrected control-shadow semantic ownership in the plan/devlog.
 - `55cd4fc0` — authorized the matching visual-system contract correction.
 - `35e90ac2` — implemented the two production button palettes and contracts.
+- `d594eebb` — repaired Task 2 focus contrast, consumers, clipping, and real
+  forward-keyboard runtime evidence.
 
 ## Optional: Multi-Agent Coordination
 
@@ -245,6 +259,22 @@
 - Remaining risks: Task 2 re-review is still required; unrelated text contrast
   baseline failures remain outside this focus repair.
 
+### Task 2 focus specification follow-up
+
+- Reviewer: Task 2 specification review agent.
+- Scope: focus repair commit `d594eebb`.
+- Findings: four findings covering missing reverse Shift+Tab evidence,
+  non-exact outline-style acceptance, exact-only structural owner discovery,
+  and a stale repair-oriented follow-up.
+- Disposition: fixed in the pending follow-up commit through real bounded
+  reverse traversal, exact solid outline enforcement, any-consumer candidate
+  discovery with subset/superset/duplicate fixtures, and corrected handoff.
+- Re-review required: yes, specification and quality review before Task 3.
+- Resolved by: Task 2 implementer in the pending focus-evidence hardening
+  commit.
+- Remaining risks: unrelated overall light-theme text contrast failures remain
+  outside Task 2 focus evidence.
+
 ## Optional: State Changes
 
 ### 2026-07-22 19:38
@@ -310,6 +340,18 @@
   the overall light-theme audit remained red only for recorded unrelated text
   contrast findings, and task-owned service ports closed after project-script
   shutdown.
+
+### 2026-07-22 22:05
+
+- Change: fixed all four Task 2 focus specification-review findings without
+  changing production CSS.
+- Reason: structural ownership needed to reject partial/extra candidate rules,
+  and runtime evidence needed exact solid outlines plus real reverse keyboard
+  traversal rather than forward-only coverage.
+- Evidence: intentional ownership-fixture RED became GREEN; both light themes
+  produced six forward and six reverse keyboard samples with zero focus
+  issues; syntax, focused/static, and full frontend gates passed; task-owned
+  service ports closed after validation.
 
 ### 2026-07-22 19:59
 

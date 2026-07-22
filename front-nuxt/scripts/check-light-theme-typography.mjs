@@ -442,7 +442,7 @@ const focusAuditExpression = (family) => `(() => {
       !active
       || !focusVisible
       || !visible
-      || style.outlineStyle === 'none'
+      || style.outlineStyle !== 'solid'
       || outlineWidth < 3
       || outlineOffset < 2
       || ratio < 3
@@ -450,7 +450,7 @@ const focusAuditExpression = (family) => `(() => {
     ) {
       issues.push({
         element: sample.element,
-        text: family + ' focus active=' + active + ' focusVisible=' + focusVisible + ' visible=' + visible + ' outline=' + style.outlineStyle + '/' + outlineWidth + 'px offset=' + outlineOffset + 'px clippedBy=' + (clippedBy || 'none'),
+        text: family + ' focus active=' + active + ' focusVisible=' + focusVisible + ' visible=' + visible + ' outlineStyle=' + style.outlineStyle + ' expected=solid width=' + outlineWidth + 'px offset=' + outlineOffset + 'px clippedBy=' + (clippedBy || 'none'),
         color: style.outlineColor,
         fontSize: outlineWidth + 'px/' + outlineOffset + 'px',
         fontWeight: family,
@@ -482,6 +482,54 @@ const activeFocusFamilyExpression = (requestedFamilies) => `(() => {
   return requestedFamilies.find((family) => (
     (familySelectors[family] || []).some((selector) => active.matches(selector))
   )) || '';
+})()`
+
+const markPreviousFocusExpression = `(() => {
+  document.querySelectorAll('[data-focus-audit-previous]').forEach((element) => element.removeAttribute('data-focus-audit-previous'));
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || active === document.body) return { marked: false, element: '' };
+  const rect = active.getBoundingClientRect();
+  const style = getComputedStyle(active);
+  const visible = rect.width > 1 && rect.height > 1
+    && style.visibility !== 'hidden'
+    && style.display !== 'none'
+    && Number(style.opacity) > 0.05;
+  if (!visible || active.tabIndex < 0) return { marked: false, element: active.tagName.toLowerCase() };
+  active.setAttribute('data-focus-audit-previous', 'true');
+  return {
+    marked: true,
+    element: active.tagName.toLowerCase() + (String(active.className || '').trim() ? '.' + String(active.className).trim().split(/\\s+/).slice(0, 4).join('.') : ''),
+  };
+})()`
+
+const reverseFocusAuditExpression = (family, previousElement) => `(() => {
+  const expected = document.querySelector('[data-focus-audit-previous="true"]');
+  const active = document.activeElement;
+  const activeElement = active instanceof Element
+    ? active.tagName.toLowerCase() + (String(active.className || '').trim() ? '.' + String(active.className).trim().split(/\\s+/).slice(0, 4).join('.') : '')
+    : '';
+  const activeVisible = active instanceof Element && (() => {
+    const rect = active.getBoundingClientRect();
+    const style = getComputedStyle(active);
+    return rect.width > 1 && rect.height > 1
+      && style.visibility !== 'hidden'
+      && style.display !== 'none'
+      && Number(style.opacity) > 0.05;
+  })();
+  const activeMatches = Boolean(expected) && active === expected;
+  const focusVisible = active instanceof Element && active.matches(':focus-visible');
+  expected?.removeAttribute('data-focus-audit-previous');
+  return {
+    passed: activeMatches && activeVisible && focusVisible,
+    issue: {
+      element: activeElement || '<none>',
+      text: ${JSON.stringify(family)} + ' reverse Shift+Tab expected=' + ${JSON.stringify(previousElement)} + ' actual=' + (activeElement || '<none>') + ' activeMatchesPrevious=' + activeMatches + ' visible=' + activeVisible + ' focusVisible=' + focusVisible,
+      color: '',
+      fontSize: '',
+      fontWeight: ${JSON.stringify(family)},
+      ratio: 0,
+    },
+  };
 })()`
 
 const rootTokenExpression = `(() => {
@@ -662,12 +710,52 @@ const pressTab = async (browser) => {
   })
 }
 
+const pressShiftTab = async (browser) => {
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyDown',
+    key: 'Shift',
+    code: 'ShiftLeft',
+    windowsVirtualKeyCode: 16,
+    nativeVirtualKeyCode: 16,
+    modifiers: 8,
+  })
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyDown',
+    key: 'Tab',
+    code: 'Tab',
+    windowsVirtualKeyCode: 9,
+    nativeVirtualKeyCode: 9,
+    modifiers: 8,
+  })
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyUp',
+    key: 'Tab',
+    code: 'Tab',
+    windowsVirtualKeyCode: 9,
+    nativeVirtualKeyCode: 9,
+    modifiers: 8,
+  })
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyUp',
+    key: 'Shift',
+    code: 'ShiftLeft',
+    windowsVirtualKeyCode: 16,
+    nativeVirtualKeyCode: 16,
+  })
+}
+
 const collectKeyboardFocusSamples = async (browser, requestedFamilies, maxTabs = 180) => {
   const remaining = new Set(requestedFamilies)
   const samples = []
   const issues = []
+  let reverseEvidence = 0
 
   for (let index = 0; index < maxTabs && remaining.size > 0; index += 1) {
+    const previousResult = await browser.send('Runtime.evaluate', {
+      expression: markPreviousFocusExpression,
+      returnByValue: true,
+    })
+    const previous = previousResult.result.value
     await pressTab(browser)
     await sleep(30)
     const requested = [...remaining]
@@ -685,10 +773,33 @@ const collectKeyboardFocusSamples = async (browser, requestedFamilies, maxTabs =
     const value = auditResult.result.value
     samples.push(...value.samples)
     issues.push(...value.issues)
+
+    if (!previous.marked) {
+      issues.push({
+        element: family,
+        text: `${family} reverse Shift+Tab has no previous visible keyboard-focusable element after forward traversal`,
+        color: '',
+        fontSize: '',
+        fontWeight: family,
+        ratio: 0,
+      })
+    } else {
+      await pressShiftTab(browser)
+      await sleep(30)
+      const reverseResult = await browser.send('Runtime.evaluate', {
+        expression: reverseFocusAuditExpression(family, previous.element),
+        returnByValue: true,
+      })
+      const reverseValue = reverseResult.result.value
+      if (reverseValue.passed) reverseEvidence += 1
+      else issues.push(reverseValue.issue)
+      await pressTab(browser)
+      await sleep(30)
+    }
     remaining.delete(family)
   }
 
-  return { samples, issues, missing: [...remaining] }
+  return { samples, issues, missing: [...remaining], reverseEvidence }
 }
 
 await waitFor(`${baseUrl}/`)
@@ -699,6 +810,7 @@ const failures = []
 const fontFamilies = new Set()
 const focusCoverage = new Map(targetThemes.map((theme) => [theme, new Set()]))
 const focusSampleCounts = new Map(targetThemes.map((theme) => [theme, 0]))
+const reverseFocusEvidenceCounts = new Map(targetThemes.map((theme) => [theme, 0]))
 const focusFailures = []
 
 try {
@@ -813,6 +925,7 @@ try {
       if (missingFocusFamilies.length > 0) {
         const focusValue = await collectKeyboardFocusSamples(browser, missingFocusFamilies)
         focusSampleCounts.set(targetTheme, focusSampleCounts.get(targetTheme) + focusValue.samples.length)
+        reverseFocusEvidenceCounts.set(targetTheme, reverseFocusEvidenceCounts.get(targetTheme) + focusValue.reverseEvidence)
         for (const sample of focusValue.samples) {
           focusCoverage.get(targetTheme).add(sample.family)
         }
@@ -864,7 +977,7 @@ for (const targetTheme of targetThemes) {
   }
 
   const themeFocusFailures = focusFailures.filter((failure) => failure.expectedTheme === targetTheme)
-  const summary = `theme=${targetTheme} families=${coveredFamilies.join(',') || 'none'} samples=${focusSampleCounts.get(targetTheme)} issues=${themeFocusFailures.reduce((count, failure) => count + failure.issues.length, 0)}`
+  const summary = `theme=${targetTheme} families=${coveredFamilies.join(',') || 'none'} samples=${focusSampleCounts.get(targetTheme)} reverse=${reverseFocusEvidenceCounts.get(targetTheme)} issues=${themeFocusFailures.reduce((count, failure) => count + failure.issues.length, 0)}`
   if (themeFocusFailures.length > 0) {
     console.error(`Light theme focus audit failed: ${summary}`)
   } else {
