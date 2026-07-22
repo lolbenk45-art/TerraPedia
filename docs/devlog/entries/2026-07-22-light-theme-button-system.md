@@ -149,10 +149,14 @@
 - Task 3 RED: `node --check scripts/check-button-style-options.mjs` exited 0;
   `pnpm run check:button-style-options` then exited 1 intentionally. Both
   prototype copies were readable and byte-identical, while the aggregate
-  diagnostics reported zero approved `.theme-card` elements, all missing
-  approved theme/state/accessibility markers, all six legacy Paper/Slate
-  labels, and the rejected gradient treatment. This is a behavioral RED, not
-  a syntax, path, dependency, or missing-file failure.
+  diagnostics reported zero actual `section.theme-card` elements, no unique
+  Warm Slate or Morning Paper card, the missing global primary-marker,
+  44px-height, and reduced-motion CSS markers, all six legacy Paper/Slate
+  labels, and the rejected gradient treatment. Inline structural fixtures pass
+  for formatted approved cards and prove duplicate themes, a state missing
+  from one card, and comment/script/style/text-only fake cards cannot make the
+  contract green. This is a behavioral RED, not a syntax, path, dependency, or
+  missing-file failure.
 - Lifecycle: startup owned backend `18200`, public frontend `15186`, admin
   `13013`, and the worktree Redis `16380`; MinIO `19100` was already shared.
   `bash ./scripts/dev/stop-local-stack.sh` stopped the task-owned backend,
@@ -189,8 +193,8 @@
 
 ## Follow-up
 
-- Task 4 replaces both HTML copies together with the approved two-theme
-  prototype, then turns `check:button-style-options` GREEN.
+- Task 3 specification and quality re-review must pass before Task 4 replaces
+  both HTML copies together and turns `check:button-style-options` GREEN.
 
 ## Commits
 
@@ -313,6 +317,23 @@
 - Resolved by: Task 2 implementer in `a03c4802`.
 - Remaining risks: unrelated overall light-theme text contrast failures remain
   outside this focus coverage repair.
+
+### Task 3 quality review
+
+- Reviewer: Task 3 quality review agent.
+- Scope: prototype identity contract in `e3b8a053`.
+- Findings: one Important false green because global substrings and class
+  counting did not bind theme identity and every state to each actual card;
+  one Minor devlog overstatement of the asserted semantics.
+- Disposition: fixed with a dependency-free structural scanner for balanced
+  actual `section.theme-card` regions, per-theme/per-card state validation,
+  comment/script/style exclusion, aggregate diagnostics, and inline negative
+  and positive fixtures; RED evidence wording now names only asserted checks.
+- Re-review required: yes; Task 4 remains blocked until specification and
+  quality re-review pass.
+- Resolved by: Task 3 implementer; fix commit SHA pending in final response.
+- Remaining risks: the real prototype inputs intentionally remain RED until
+  Task 4 replaces both byte-identical copies.
 
 ## Optional: State Changes
 
