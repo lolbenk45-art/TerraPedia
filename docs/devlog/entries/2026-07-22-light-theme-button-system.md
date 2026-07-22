@@ -154,9 +154,10 @@
   44px-height, and reduced-motion CSS markers, all six legacy Paper/Slate
   labels, and the rejected gradient treatment. Inline structural fixtures pass
   for formatted approved cards and prove duplicate themes, a state missing
-  from one card, and comment/script/style/text-only fake cards cannot make the
-  contract green. This is a behavioral RED, not a syntax, path, dependency, or
-  missing-file failure.
+  from one card, duplicate button states, non-button state markers, nested
+  theme cards, and comment/script/style/text-only fake cards cannot make the
+  contract green. This is a behavioral RED, not a syntax, path, dependency,
+  or missing-file failure.
 - Lifecycle: startup owned backend `18200`, public frontend `15186`, admin
   `13013`, and the worktree Redis `16380`; MinIO `19100` was already shared.
   `bash ./scripts/dev/stop-local-stack.sh` stopped the task-owned backend,
@@ -321,17 +322,21 @@
 ### Task 3 quality review
 
 - Reviewer: Task 3 quality review agent.
-- Scope: prototype identity contract in `e3b8a053`.
+- Scope: prototype identity contract through `fc5445a4`.
 - Findings: one Important false green because global substrings and class
   counting did not bind theme identity and every state to each actual card;
-  one Minor devlog overstatement of the asserted semantics.
-- Disposition: fixed with a dependency-free structural scanner for balanced
-  actual `section.theme-card` regions, per-theme/per-card state validation,
-  comment/script/style exclusion, aggregate diagnostics, and inline negative
-  and positive fixtures; RED evidence wording now names only asserted checks.
+  one Minor devlog overstatement of the asserted semantics. The first fix
+  partially resolved this, but re-review found two new Important false greens:
+  non-button or duplicate state markers could satisfy a card, and nested cards
+  could borrow names and states from each other.
+- Disposition: fixed with actual-button-only exactly-one state counts,
+  found-count diagnostics, explicit overlapping/nested-card rejection, and
+  negative fixtures for duplicate state, non-button state, and nested cards.
+  RED evidence wording names only asserted checks.
 - Re-review required: yes; Task 4 remains blocked until specification and
   quality re-review pass.
-- Resolved by: Task 3 implementer; fix commit SHA pending in final response.
+- Resolved by: Task 3 implementer in `fc5445a4` plus the current fix commit;
+  current fix SHA pending in final response.
 - Remaining risks: the real prototype inputs intentionally remain RED until
   Task 4 replaces both byte-identical copies.
 

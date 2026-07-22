@@ -56,6 +56,8 @@ const themeCardRegions = (source) => {
 
       cards.push({
         openingTag: token[0],
+        start: token.index,
+        end: tokens[closingIndex].index + tokens[closingIndex][0].length,
         source: clean.slice(token.index, tokens[closingIndex].index + tokens[closingIndex][0].length),
       })
       break
@@ -70,6 +72,15 @@ const validateCards = (source, owner = 'prototype') => {
   const issues = []
   const cards = themeCardRegions(source)
   if (cards.length !== 2) issues.push(`${owner} must render exactly two approved section.theme-card elements; found ${cards.length}`)
+  for (let index = 0; index < cards.length; index += 1) {
+    for (let otherIndex = index + 1; otherIndex < cards.length; otherIndex += 1) {
+      const first = cards[index]
+      const second = cards[otherIndex]
+      if (first.start < second.end && second.start < first.end) {
+        issues.push(`${owner} theme cards must be non-overlapping siblings`)
+      }
+    }
+  }
 
   const expectedThemes = [
     ['warm-slate', 'Mist Workbench'],
@@ -86,10 +97,12 @@ const validateCards = (source, owner = 'prototype') => {
     const card = matches[0]
     if (!visibleText(card.source).includes(name)) issues.push(`${owner} ${theme} card must be named ${name}`)
 
-    const stateValues = [...card.source.matchAll(/<[^>]+\bdata-state\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi)]
-      .map((match) => match[1] ?? match[2] ?? match[3])
+    const stateValues = [...card.source.matchAll(/<button\b[^>]*>/gi)]
+      .map((match) => attributesFor(match[0]).get('data-state'))
+      .filter((state) => state !== undefined)
     for (const state of requiredStates) {
-      if (!stateValues.includes(state)) issues.push(`${owner} ${theme} card missing data-state="${state}"`)
+      const count = stateValues.filter((value) => value === state).length
+      if (count !== 1) issues.push(`${owner} ${theme} card must contain exactly one button data-state="${state}"; found ${count}`)
     }
   }
 
@@ -120,7 +133,22 @@ const runSelfTests = () => {
     {
       name: 'missing per-card state',
       source: `${completeCard('warm-slate', 'Mist Workbench', 'disabled')}${completeCard('morning-paper', 'Linen Paper')}`,
-      expectedIssue: 'warm-slate card missing data-state="disabled"',
+      expectedIssue: 'warm-slate card must contain exactly one button data-state="disabled"; found 0',
+    },
+    {
+      name: 'duplicate button state',
+      source: `${completeCard('warm-slate', 'Mist Workbench').replace('</section>', '<button data-state="focus">duplicate</button></section>')}${completeCard('morning-paper', 'Linen Paper')}`,
+      expectedIssue: 'warm-slate card must contain exactly one button data-state="focus"; found 2',
+    },
+    {
+      name: 'non-button state marker',
+      source: `${completeCard('warm-slate', 'Mist Workbench').replace('<button data-state="disabled">disabled</button>', '<div data-state="disabled">disabled</div>')}${completeCard('morning-paper', 'Linen Paper')}`,
+      expectedIssue: 'warm-slate card must contain exactly one button data-state="disabled"; found 0',
+    },
+    {
+      name: 'nested theme cards',
+      source: completeCard('warm-slate', 'Mist Workbench').replace('</section>', `${completeCard('morning-paper', 'Linen Paper')}</section>`),
+      expectedIssue: 'theme cards must be non-overlapping siblings',
     },
     {
       name: 'comment script style and text fake card markers',
