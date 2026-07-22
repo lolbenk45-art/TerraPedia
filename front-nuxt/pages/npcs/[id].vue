@@ -1198,7 +1198,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'è
   border: 1px solid var(--index-line);
   border-radius: 8px;
   padding: 14px;
-  background: rgba(13, 22, 16, 0.62);
+  background: var(--index-surface);
 }
 
 .npc-media-band {
@@ -1217,7 +1217,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'è
   border: 1px solid var(--index-line);
   border-radius: 8px;
   padding: 10px;
-  background: rgba(13, 22, 16, 0.78);
+  background: var(--index-surface-strong);
 }
 
 .npc-media-frame {
@@ -1225,9 +1225,9 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'è
   place-items: center;
   width: 72px;
   height: 72px;
-  border: 1px solid rgba(222, 187, 95, 0.24);
+  border: 1px solid var(--index-line-strong);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--index-surface);
   overflow: hidden;
 }
 

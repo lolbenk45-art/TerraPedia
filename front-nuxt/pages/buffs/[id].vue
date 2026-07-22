@@ -119,8 +119,9 @@ const buffRelationSections = computed(() => [
 
 const buffSignalCards = computed(() => [
   { label: '类型', value: buffTypeLabel.value, detail: firstText(buffDetail.value?.buffType, '公开分类') },
-  { label: '来源', value: String(sources.value.length), detail: '公开来源记录' },
-  { label: '免疫', value: String(immuneTargets.value.length), detail: '公开目标记录' },
+  { label: '物品来源', value: String(sources.value.length), detail: '可施加该效果的物品' },
+  { label: '施加 NPC', value: String(inflicters.value.length), detail: '会施加该效果的 NPC' },
+  { label: '免疫 NPC', value: String(immuneTargets.value.length), detail: '免疫该效果的 NPC' },
 ])
 
 onMounted(() => {
@@ -215,7 +216,16 @@ onMounted(() => {
           </div>
         </template>
         <template v-else-if="section.items.length">
-          <NuxtLink v-for="item in section.items" :key="String(item.id)" class="detail-relation-link" :to="item.href">
+          <NuxtLink
+            v-for="item in section.items"
+            :key="String(item.id)"
+            class="detail-relation-link"
+            :class="{
+              'is-item-entity': item.kindLabel === '物品来源',
+              'is-npc-entity': item.kindLabel !== '物品来源',
+            }"
+            :to="item.href"
+          >
             <CommonPreviewImage
               :src="item.image"
               :alt="item.name"
@@ -224,9 +234,11 @@ onMounted(() => {
               width="42"
               height="42"
             />
-            <b>{{ item.name }}</b>
-            <span class="buff-entity-kind">{{ item.kindLabel || section.title }}</span>
-            <span>{{ item.meta }}</span>
+            <div class="buff-relation-main">
+              <b>{{ item.name }}</b>
+              <span class="buff-entity-kind">{{ item.kindLabel || section.title }}</span>
+            </div>
+            <span class="buff-relation-meta">{{ item.meta }}</span>
           </NuxtLink>
         </template>
         <div v-else>
@@ -243,9 +255,15 @@ onMounted(() => {
   grid-template-columns: 50px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
-  gap: 5px 12px;
-  min-height: 58px;
+  gap: 4px 12px;
+  min-height: 62px;
   padding: 8px 0;
+  border-bottom: 1px solid rgba(var(--theme-border-rgb, 214, 177, 90), 0.12);
+  text-decoration: none;
+}
+
+.detail-relation-link:last-child {
+  border-bottom: 0;
 }
 
 .detail-relation-link .item-art {
@@ -255,6 +273,14 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.buff-relation-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  min-width: 0;
+}
+
 .detail-relation-link b,
 .detail-relation-link span {
   min-width: 0;
@@ -262,15 +288,27 @@ onMounted(() => {
 }
 
 .detail-relation-link b {
-  color: var(--text);
+  color: var(--text-strong, var(--text));
   font-size: 13px;
   line-height: 1.3;
 }
 
-.detail-relation-link span {
-  color: var(--muted);
+.buff-relation-meta {
+  color: var(--text-muted, var(--muted));
   font-size: 12px;
   line-height: 1.45;
+}
+
+.detail-relation-link.is-item-entity .buff-entity-kind {
+  border-color: rgba(var(--theme-gold-rgb, 214, 177, 90), 0.34);
+  background: rgba(var(--theme-gold-rgb, 214, 177, 90), 0.12);
+  color: var(--text-link, inherit);
+}
+
+.detail-relation-link.is-npc-entity .buff-entity-kind {
+  border-color: rgba(var(--theme-positive-rgb, 125, 165, 91), 0.34);
+  background: rgba(var(--theme-positive-rgb, 125, 165, 91), 0.12);
+  color: var(--text-positive, inherit);
 }
 
 .buff-signal {

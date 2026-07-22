@@ -191,8 +191,9 @@
 
 /* Biome detail long lists: scroll windows inside sections */
 .biome-detail-scroll-panel {
-  max-height: min(420px, 55vh);
+  max-height: min(280px, 42vh);
   overflow: auto;
+  overscroll-behavior: contain;
   padding-right: 6px;
   border: 1px solid rgba(var(--theme-border-rgb, 214, 177, 90), 0.16);
   border-radius: 14px;

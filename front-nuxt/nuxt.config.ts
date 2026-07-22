@@ -40,6 +40,9 @@ export default defineNuxtConfig({
     '~/assets/css/primitives.css',
     '~/assets/css/domains/index.css',
     '~/assets/css/pages/exceptions.css',
+    // Must load last: real-specificity light-theme overrides for hard-coded colors
+    // that beat :where() rules in hifi-preview / light-theme-contrast-fixes.
+    '~/assets/css/pages/light-theme-specificity-overrides.css',
   ],
 
   vite: {

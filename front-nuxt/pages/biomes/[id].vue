@@ -305,7 +305,7 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
         </section>
 
         <section class="biome-detail-section support-panel">
-          <details class="biome-detail-fold" open>
+          <details class="biome-detail-fold">
             <summary class="biome-detail-section-head">
               <span class="eyebrow">资源</span>
               <h2>生态资源（{{ biomeGeneralResources.length }}）</h2>
@@ -334,7 +334,7 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
         </section>
 
         <section class="biome-detail-section support-panel">
-          <details class="biome-detail-fold" open>
+          <details class="biome-detail-fold">
             <summary class="biome-detail-section-head">
               <span class="eyebrow">掉落</span>
               <h2>掉落与来源</h2>
