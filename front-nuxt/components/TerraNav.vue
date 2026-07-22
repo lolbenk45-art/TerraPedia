@@ -104,23 +104,22 @@ const selectThemePreference = async (nextTheme: SiteTheme) => {
   }
 }
 
-onMounted(() => {
-  // Visitor sessions should not fan out duplicate failed auth probes on every nav mount.
-  if (authStore.initialized) {
-    if (authStore.isAuthenticated) {
-      void preferencesStore.load()
-      void notificationsStore.loadUnreadCount()
-    }
+const hydrateAuthenticatedChrome = async () => {
+  // Resolve auth during setup (SSR + client) so the first paint already knows
+  // guest/authenticated chrome width. Mount-only init left a guest shell that
+  // later swapped in unread badges / avatar and shifted the action cluster.
+  await authStore.init()
+  if (!authStore.isAuthenticated) {
     return
   }
 
-  void authStore.init().then(() => {
-    if (authStore.isAuthenticated) {
-      void preferencesStore.load()
-      void notificationsStore.loadUnreadCount()
-    }
-  })
-})
+  await Promise.all([
+    preferencesStore.load(),
+    notificationsStore.loadUnreadCount(),
+  ])
+}
+
+await hydrateAuthenticatedChrome()
 
 onBeforeUnmount(closeMenu)
 </script>

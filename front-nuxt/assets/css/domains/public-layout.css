@@ -150,6 +150,33 @@
   box-sizing: border-box;
 }
 
+/*
+  Auth chrome width stability:
+  first paint used to render guest labels (消息 / 访客), then client auth filled
+  unread counts and avatar state (新回复 + badges). Reserve fixed boxes so the
+  action cluster does not shift after auth hydration.
+*/
+.site-actions .nav-notification-link {
+  min-width: 92px;
+  justify-content: center;
+}
+
+.site-actions .nav-notification-link b {
+  min-width: 3em;
+  text-align: center;
+}
+
+.site-actions .nav-user-article-link {
+  min-width: 92px;
+  justify-content: center;
+}
+
+.site-actions .account-avatar-link {
+  width: var(--control-icon-size, 44px);
+  height: var(--control-icon-size, 44px);
+  flex: 0 0 var(--control-icon-size, 44px);
+}
+
 /* Compact pagination chrome for entity/catalog docks */
 .catalog-density-picker {
   display: flex;
