@@ -39,9 +39,9 @@
   compatibility, long pages, SPA detail navigation, search cutover, public
   data loading, and visitor auth redirects.
 - Post-acceptance fixes through `d68c2f5b` are included.
-- Local integration into `main` is explicitly authorized by the user and will
-  use a curated commit sequence so the blocked data-audit history is not
-  imported.
+- Local integration into `main` is complete through the replayed P2 closeout
+  `27d66690`. Seventy closed dependency/P2 commits were applied in order; the
+  four blocked data-audit commits were not imported.
 
 ## Validation
 
@@ -49,20 +49,20 @@
   ratchet, breakpoint/biome checks, armor aggregate checks, and Nuxt typecheck.
 - `cd back && mvn -Dtest=PublicArmorSetControllerTest,PublicItemRecipeControllerTest,PublicRecipeTreeFacadeTest,PublicArmorSetAggregateServiceTest test`
   — passed 16/16 with zero failures/errors/skips and `BUILD SUCCESS`.
+- The same two commands were rerun after curated integration on local `main`;
+  both passed again with the same zero-failure results.
 - Known non-blocking output: Node `module.register()` deprecation, duplicate
   auto-import warning for `formatEffectValue`, expected degraded-piece warning
   fixtures, and ordinary compiler unchecked-operation warnings.
 
 ## Residual Risks
 
-- `main` and the source branch diverged after `218dfc00`; curated integration
-  may require conflict resolution against the newer admin/backend commits.
-- Runtime/browser acceptance evidence predates the final merge; the full
-  frontend gate and focused backend tests must be rerun on merged `main`.
+- Runtime/browser acceptance evidence predates the final integration; merged
+  validation reran source/type/backend gates but did not repeat the browser
+  matrix or restart the local stack.
 - The data-audit compatibility entry remains blocked and must stay excluded.
 
 ## Follow-up
 
-- Complete the authorized local integration, rerun merged-result validation,
-  and report the resulting local `main` commit SHA.
-- Commit SHA pending in final response.
+- No further Front P2 merge action. Preserve the source worktree for optional
+  acceptance follow-up; report this devlog closeout SHA in the final response.

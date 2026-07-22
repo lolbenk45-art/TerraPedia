@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 23:12 CST by Codex
+Last updated: 2026-07-22 19:08 CST by Codex
 
 Active branch: `main`
 
@@ -18,6 +18,11 @@ Active branch: `main`
 
 ## Active Focus
 
+- Front P2 WP-11.2..WP-14, its closed P1-tail/WP10 dependencies, and all
+  post-acceptance repairs are locally integrated into `main`. The blocked
+  data-audit compatibility commits were explicitly excluded; no push or local
+  worktree cleanup was performed.
+
 - Admin/backend P1+P2 batch is closed and locally integrated into `main` at
   `b778e57f`. The task branch and worktree are intentionally preserved; no push
   or cleanup has been performed.
@@ -29,6 +34,10 @@ Active branch: `main`
   boundary audit recorded in the entry above.
 
 ## Current State
+
+- Front P2 merged-result validation passes the full public frontend gate and
+  the focused public armor/recipe backend suite (16/16). The source integration
+  worktree remains available with two unstaged HTML acceptance auxiliaries.
 
 - C2 commits `b825ecc`, `02ee0a7`, `635f5ba`, and `fd3689e` keep table overflow
   local, action buttons on one row, and article filters readable across widths.
@@ -108,6 +117,10 @@ Active branch: `main`
 
 ## Next Agent Should Start Here
 
+- Front P2 requires no further merge action. Read
+  `entries/2026-07-22-front-p2-local-integration.md` for the curated-history
+  boundary, merged validation, known warnings, and excluded data-audit work.
+
 - Admin P1+P2 requires no further action. Read
   `entries/2026-07-18-admin-p1-p2-batch.md` only for historical context. The
   local task branch/worktree remain available for acceptance follow-up.
@@ -142,6 +155,11 @@ Active branch: `main`
   data; their route and fail-closed contracts remain the acceptance boundary.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-22-front-p2-local-integration.md`
+  - branch: `main` from `feat/front-p2-integration`
+  - status: `closed`
+  - commit: pending in final response; curated local integration complete
 
 - `docs/devlog/entries/2026-07-18-admin-p1-p2-batch.md`
   - branch: `fix/admin-p1-p2-batch`
