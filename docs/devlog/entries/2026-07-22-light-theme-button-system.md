@@ -106,6 +106,10 @@
   gives them one source or an identity contract.
 - The initial Task 2 plan placed raw `none` values at the legacy alias layer;
   the existing visual-system contract correctly blocked that architecture.
+- Task 2 quality review found the approved translucent focus tokens below 3:1,
+  the shared rule targeting a non-focusable theme container instead of
+  `.theme-choice`, catalog controls clearing their outline, and runtime evidence
+  that did not actually exercise keyboard focus.
 - Task 2 runtime contrast remains unaccepted because the available standalone
   frontend process had no backend-dependent detail data and the audit also
   exposed unrelated pre-existing light-theme contrast failures. Task 5 must
@@ -113,7 +117,8 @@
 
 ## Follow-up
 
-- Implement Task 3's prototype identity RED contract.
+- Repair Task 2 keyboard-focus coverage and contrast, then complete spec and
+  quality re-review before Task 3.
 
 ## Commits
 
@@ -183,6 +188,22 @@
 - Remaining risks: none within Task 1; production contrast and browser behavior
   remain Task 2 and Task 5 validation duties.
 
+### Task 2 quality review
+
+- Reviewer: Task 2 code-quality review agent.
+- Scope: production palette implementation through `9117f6b6`.
+- Findings: three Important findings covering sub-3:1 focus tokens, incorrect
+  theme/catalog focus consumers and cascade winners, and unsupported runtime
+  focus evidence.
+- Disposition: pending repair.
+- Re-review required: yes.
+- Resolved by: Task 2 implementer, pending.
+- Arbitration decision: reopen Task 2; do not start the prototype contract.
+- Decision owner: root Codex coordinator.
+- Rationale: keyboard focus is an acceptance requirement and the structural
+  contract had false-green paths for real focusable elements.
+- Remaining risks: focus contrast and runtime focus samples are unverified.
+
 ## Optional: State Changes
 
 ### 2026-07-22 19:38
@@ -226,6 +247,16 @@
   legacy alias contracts.
 - Evidence: corrected focused contract passed, then visual-system failed only
   the two former light semantic shadow expected values.
+
+### 2026-07-22 21:02
+
+- Change: reopened Task 2 for keyboard-focus contrast, real consumer coverage,
+  catalog cascade repair, and executable runtime focus evidence.
+- Reason: quality review demonstrated that the 0.28-alpha rings were only
+  about 1.36–1.44:1, `.theme-toggle` was not focusable, catalog focus rules
+  cleared outlines, and the prior runtime audit did not focus controls.
+- Evidence: reviewer computed contrast and inspected the actual nav/catalog
+  templates and cascade winners; re-review is required after repair.
 
 ### 2026-07-22 19:59
 

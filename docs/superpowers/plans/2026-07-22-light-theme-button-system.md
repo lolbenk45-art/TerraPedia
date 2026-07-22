@@ -23,6 +23,8 @@
   and the shared focus/primary-marker behavior.
 - Modify `front-nuxt/assets/css/tokens.css`: preserve the WP-11 legacy alias
   boundary while making light-theme control elevation resolve to `none`.
+- Modify `front-nuxt/assets/css/domains/catalog.css`: restore token-driven
+  keyboard focus on the real catalog filter and pagination controls.
 - Modify
   `docs/audits/2026-07-21-light-theme-button-style-options.html`: canonical
   interactive comparison containing only the two approved systems.
@@ -98,7 +100,7 @@ const expected = {
     '--button-control-active-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.66)',
     '--button-control-dot-active-bg': '#967b5f',
     '--button-control-accent-fg': '#6f5842',
-    '--button-focus-ring': 'rgba(139, 108, 76, 0.28)',
+    '--button-focus-ring': '#8b6c4c',
   },
   '[data-theme="warm-slate"]': {
     '--button-primary-bg': '#e3eaec',
@@ -124,7 +126,7 @@ const expected = {
     '--button-control-active-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
     '--button-control-dot-active-bg': '#668493',
     '--button-control-accent-fg': '#486a79',
-    '--button-focus-ring': 'rgba(80, 121, 140, 0.28)',
+    '--button-focus-ring': '#50798c',
   },
 }
 
@@ -209,8 +211,10 @@ Expected: one focused intentional-RED commit with no production CSS or HTML.
 **Files:**
 - Modify: `front-nuxt/assets/css/hifi-preview.css`
 - Modify: `front-nuxt/assets/css/tokens.css`
+- Modify: `front-nuxt/assets/css/domains/catalog.css`
 - Modify: `front-nuxt/scripts/check-light-button-tokens.mjs`
 - Modify: `front-nuxt/scripts/check-visual-system-contract.mjs`
+- Modify: `front-nuxt/scripts/check-light-theme-typography.mjs`
 - Modify: `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
 
 - [ ] **Step 1: Repair the control-shadow ownership assertion**
@@ -250,7 +254,7 @@ Add this shared focus rule after the shared button hover/active rules:
   .detail-tab,
   .filter-option,
   .entity-filter,
-  .theme-toggle,
+  .theme-choice,
   .nav-menu-text-trigger,
   .nav-notification-link,
   .nav-user-article-link,
@@ -289,7 +293,7 @@ Use these exact values in `[data-theme="morning-paper"]`:
 --button-control-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
 --button-control-dot-active-bg: #967b5f;
 --button-control-accent-fg: #6f5842;
---button-focus-ring: rgba(139, 108, 76, 0.28);
+--button-focus-ring: #8b6c4c;
 ```
 
 - [ ] **Step 4: Replace the Warm Slate button declarations**
@@ -320,7 +324,7 @@ Use these exact values in `[data-theme="warm-slate"]`:
 --button-control-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 --button-control-dot-active-bg: #668493;
 --button-control-accent-fg: #486a79;
---button-focus-ring: rgba(80, 121, 140, 0.28);
+--button-focus-ring: #50798c;
 ```
 
 - [ ] **Step 5: Remove light control elevation at the semantic owner**
@@ -346,6 +350,31 @@ Update only the two light-theme `--tp-shadow-control` expected values in
 shadows to `none`. Keep the root dark expected value, semantic-to-legacy source
 map, exact theme blocks, and alias-only checks unchanged. This is an intentional
 behavior-contract update, not a weakening of token ownership.
+
+Add a light-theme catalog focus rule after the existing light catalog control
+surface rules. Its specificity must beat the earlier two-class
+`:focus-visible { outline: none; }` rule and target exactly the real focusable
+controls:
+
+```css
+:is([data-theme="morning-paper"], [data-theme="warm-slate"]) :is(
+  .catalog-category-chip,
+  .catalog-density-chip,
+  .catalog-dock-button,
+  .catalog-dock-icon-button,
+  .catalog-dock-page-button
+):focus-visible {
+  outline: 3px solid var(--button-focus-ring);
+  outline-offset: 2px;
+}
+```
+
+Extend the focused contract to require this exact consumer set and declarations
+in `domains/catalog.css`. Replace `.theme-toggle` with the actual focusable
+`.theme-choice` in the shared focus consumer set. Add a WCAG contrast helper
+that compares each light focus token against its page, control, and primary
+reference surfaces and fails below 3:1; the approved solid rings yield at least
+3.67:1 across those samples.
 
 - [ ] **Step 6: Run focused GREEN and existing structural contracts**
 
@@ -375,10 +404,18 @@ Expected: exit 0 with no label below 4.5:1 and no missing/hidden focus or
 control sample. If a foreground fails, darken only the affected foreground or
 marker; do not increase surface saturation without renewed visual approval.
 
+The runtime audit must programmatically focus representative actual controls
+for primary actions, theme choices, navigation, filters, catalog chips, and
+catalog pagination. It must inspect the cascade winner for outline style,
+width, offset, color, clipping, and contrast against the adjacent surface;
+require a 3px ring, 2px offset, and at least 3:1 contrast. Track samples across
+the route matrix and fail if a required focus family was never exercised. Do
+not report “no missing focus sample” from the text-only audit path.
+
 - [ ] **Step 8: Record GREEN evidence and commit the token implementation**
 
 ```bash
-git add front-nuxt/assets/css/hifi-preview.css front-nuxt/assets/css/tokens.css front-nuxt/scripts/check-light-button-tokens.mjs front-nuxt/scripts/check-visual-system-contract.mjs docs/devlog/entries/2026-07-22-light-theme-button-system.md
+git add front-nuxt/assets/css/hifi-preview.css front-nuxt/assets/css/tokens.css front-nuxt/assets/css/domains/catalog.css front-nuxt/scripts/check-light-button-tokens.mjs front-nuxt/scripts/check-visual-system-contract.mjs front-nuxt/scripts/check-light-theme-typography.mjs docs/devlog/entries/2026-07-22-light-theme-button-system.md
 git diff --cached --check
 git diff --cached --stat
 git commit -m "feat(front): lighten public button themes"

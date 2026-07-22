@@ -58,7 +58,7 @@ updates the two light-theme mappings rather than introducing per-page colors.
 | Control border | `rgba(55, 68, 78, 0.09)` |
 | Active surface | `#e3eaec` |
 | Active text | `#304e5a` |
-| Focus ring | `rgba(80, 121, 140, 0.28)` |
+| Focus ring | `#50798c` |
 
 ### Morning Paper: Linen Paper
 
@@ -75,7 +75,7 @@ updates the two light-theme mappings rather than introducing per-page colors.
 | Control border | `rgba(79, 70, 58, 0.09)` |
 | Active surface | `#ebe1d3` |
 | Active text | `#55483a` |
-| Focus ring | `rgba(139, 108, 76, 0.28)` |
+| Focus ring | `#8b6c4c` |
 
 The palette values are reference values for the implementation plan. If a
 contrast check requires a small adjustment, the implementation may darken
@@ -142,6 +142,10 @@ shared source or validated as byte-identical so they cannot drift.
   `aria-pressed`, weight, dot, or inset-marker cues remain intact.
 - Keyboard focus must be visible on both themes and must not be replaced by a
   hover-only treatment.
+- Keyboard focus rings must reach at least 3:1 against the adjacent approved
+  page, control, and primary surfaces. Theme-choice and catalog controls must
+  consume the ring on the actual focusable element; container-only focus rules
+  and `outline: none` cascade winners are not acceptable.
 - Hover and pressed states must not change layout bounds or cause navigation,
   toolbar, or document overflow.
 - `prefers-reduced-motion: reduce` must remain supported.
