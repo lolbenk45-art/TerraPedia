@@ -146,6 +146,13 @@
   child text/actions, and dark unavailable-route fallback rendering). Its
   independently printed focus lane is executable GREEN for both themes and
   all six required families; no focus issue remains in that run.
+- Task 3 RED: `node --check scripts/check-button-style-options.mjs` exited 0;
+  `pnpm run check:button-style-options` then exited 1 intentionally. Both
+  prototype copies were readable and byte-identical, while the aggregate
+  diagnostics reported zero approved `.theme-card` elements, all missing
+  approved theme/state/accessibility markers, all six legacy Paper/Slate
+  labels, and the rejected gradient treatment. This is a behavioral RED, not
+  a syntax, path, dependency, or missing-file failure.
 - Lifecycle: startup owned backend `18200`, public frontend `15186`, admin
   `13013`, and the worktree Redis `16380`; MinIO `19100` was already shared.
   `bash ./scripts/dev/stop-local-stack.sh` stopped the task-owned backend,
@@ -160,7 +167,8 @@
 - Completed: context exploration, visual approval, written-spec approval, the
   task-by-task TDD implementation plan, and Task 2's two production palettes,
   shared focus semantics, corrected shadow ownership, real keyboard focus
-  coverage, clipping repair, and focused/full frontend validation.
+  coverage, clipping repair, focused/full frontend validation, and Task 3's
+  prototype identity RED contract.
 - Not completed: prototype replacement, full-stack runtime acceptance, final
   integrated validation, and task-level commit closeout.
 
@@ -169,12 +177,11 @@
 - Shared light-theme specificity layers may override token values in isolated
   component states and require focused consumer cleanup.
 - Exact reference colors may need foreground-only contrast adjustment.
-- The two existing untracked prototype copies can drift unless implementation
-  gives them one source or an identity contract.
+- The two existing untracked prototype copies remain rejected six-variant
+  inputs; the new identity contract detects drift but stays RED until Task 4
+  replaces both copies with the approved two-theme prototype.
 - The initial Task 2 plan placed raw `none` values at the legacy alias layer;
   the existing visual-system contract correctly blocked that architecture.
-- Task 2 quality-review focus findings are repaired but require the assigned
-  reviewer to re-review before Task 3 starts.
 - Task 2 runtime contrast remains unaccepted because the available standalone
   frontend process had no backend-dependent detail data and the audit also
   exposed unrelated pre-existing light-theme contrast failures. Task 5 must
@@ -182,7 +189,8 @@
 
 ## Follow-up
 
-- Complete Task 2 specification and quality re-review before Task 3.
+- Task 4 replaces both HTML copies together with the approved two-theme
+  prototype, then turns `check:button-style-options` GREEN.
 
 ## Commits
 
@@ -197,6 +205,8 @@
   forward-keyboard runtime evidence.
 - `627b008c` — hardened focus ownership candidates, exact solid outlines, and
   reverse-keyboard evidence.
+- `a03c4802` — covered every concrete light focus consumer and completed Task
+  2 review evidence.
 
 ## Optional: Multi-Agent Coordination
 
@@ -263,18 +273,17 @@
 - Findings: three Important findings covering sub-3:1 focus tokens, incorrect
   theme/catalog focus consumers and cascade winners, and unsupported runtime
   focus evidence.
-- Disposition: repaired with solid focus tokens, exact real consumers, catalog
-  cascade ownership, bounded CDP keyboard traversal, and light-theme
-  theme-choice clipping removal in `d594eebb` and `627b008c`; re-review remains
-  required before Task 3.
-- Re-review required: yes.
-- Resolved by: Task 2 implementer in `d594eebb` and `627b008c`.
+- Disposition: fixed with solid focus tokens, exact real consumers, catalog
+  cascade ownership, bounded CDP keyboard traversal, light-theme theme-choice
+  clipping removal, and independent concrete-consumer coverage.
+- Re-review required: no; fresh specification and quality re-review passed.
+- Resolved by: Task 2 implementer in `d594eebb`, `627b008c`, and `a03c4802`.
 - Arbitration decision: reopen Task 2; do not start the prototype contract.
 - Decision owner: root Codex coordinator.
 - Rationale: keyboard focus is an acceptance requirement and the structural
   contract had false-green paths for real focusable elements.
-- Remaining risks: Task 2 re-review is still required; unrelated text contrast
-  baseline failures remain outside this focus repair.
+- Remaining risks: no focus risk remains; unrelated text contrast baseline
+  failures remain outside this focus repair.
 
 ### Task 2 focus specification follow-up
 
@@ -286,7 +295,7 @@
 - Disposition: fixed in `627b008c` through real bounded
   reverse traversal, exact solid outline enforcement, any-consumer candidate
   discovery with subset/superset/duplicate fixtures, and corrected handoff.
-- Re-review required: yes, specification and quality review before Task 3.
+- Re-review required: no; fresh specification and quality re-review passed.
 - Resolved by: Task 2 implementer in `627b008c`.
 - Remaining risks: unrelated overall light-theme text contrast failures remain
   outside Task 2 focus evidence.
@@ -300,9 +309,8 @@
 - Disposition: fixed by independent 17-ID coverage, targeted representative
   routes, two narrowly asserted absent consumers, concrete coverage self-test,
   exact/dynamic reverse-restore accounting, and durable commit records.
-- Re-review required: yes, complete Task 2 specification and quality re-review
-  before Task 3.
-- Resolved by: Task 2 implementer; commit SHA reported in the final response.
+- Re-review required: no; fresh specification and quality re-review passed.
+- Resolved by: Task 2 implementer in `a03c4802`.
 - Remaining risks: unrelated overall light-theme text contrast failures remain
   outside this focus coverage repair.
 
