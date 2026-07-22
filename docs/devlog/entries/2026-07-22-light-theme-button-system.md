@@ -50,9 +50,9 @@
 
 ## Result
 
-- Completed: context exploration and visual approval of both light themes.
-- Not completed: written-spec review, implementation plan, production
-  adaptation, validation, and commit closeout.
+- Completed: context exploration, visual approval, written-spec approval, and
+  the task-by-task TDD implementation plan.
+- Not completed: production adaptation, validation, and commit closeout.
 
 ## Residual Risks
 
@@ -69,7 +69,8 @@
 
 ## Commits
 
-- Pending design-spec commit.
+- `0af6df56` — approved design specification and task traceability.
+- Implementation-plan commit pending.
 
 ## Optional: State Changes
 
@@ -79,3 +80,11 @@
 - Reason: user accepted the cool-gray revision and requested the corresponding
   beige system, then authorized adaptation of both.
 - Evidence: browser visual companion revisions 2 and 3 plus user confirmation.
+
+### 2026-07-22 19:47
+
+- Change: written specification approved and detailed implementation plan
+  created.
+- Reason: user authorized production adaptation of both accepted palettes.
+- Evidence:
+  `docs/superpowers/plans/2026-07-22-light-theme-button-system.md`.
