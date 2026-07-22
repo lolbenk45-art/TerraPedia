@@ -179,6 +179,17 @@
 - Evidence: the focused token contract passed the planned raw values, while
   `pnpm run check:visual-system` failed four exact alias-ownership assertions.
 
+### 2026-07-22 20:41
+
+- Change: authorized the existing visual-system value contract to replace only
+  the two light-theme semantic control-shadow expectations with `none`.
+- Reason: after ownership was corrected, the gate still intentionally retained
+  the old light-theme external-shadow snapshots; this task changes that visual
+  behavior while preserving exact selector, semantic owner, dark root, and
+  legacy alias contracts.
+- Evidence: corrected focused contract passed, then visual-system failed only
+  the two former light semantic shadow expected values.
+
 ### 2026-07-22 19:59
 
 - Change: added the focused light-button token contract to the frontend check

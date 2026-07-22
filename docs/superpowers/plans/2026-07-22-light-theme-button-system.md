@@ -210,6 +210,7 @@ Expected: one focused intentional-RED commit with no production CSS or HTML.
 - Modify: `front-nuxt/assets/css/hifi-preview.css`
 - Modify: `front-nuxt/assets/css/tokens.css`
 - Modify: `front-nuxt/scripts/check-light-button-tokens.mjs`
+- Modify: `front-nuxt/scripts/check-visual-system-contract.mjs`
 - Modify: `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
 
 - [ ] **Step 1: Repair the control-shadow ownership assertion**
@@ -340,6 +341,12 @@ values:
 Keep the root dark `--tp-shadow-control` unchanged. Do not move other border,
 surface, radius, or elevation tokens.
 
+Update only the two light-theme `--tp-shadow-control` expected values in
+`scripts/check-visual-system-contract.mjs` from their former inset-plus-external
+shadows to `none`. Keep the root dark expected value, semantic-to-legacy source
+map, exact theme blocks, and alias-only checks unchanged. This is an intentional
+behavior-contract update, not a weakening of token ownership.
+
 - [ ] **Step 6: Run focused GREEN and existing structural contracts**
 
 Run:
@@ -371,7 +378,7 @@ marker; do not increase surface saturation without renewed visual approval.
 - [ ] **Step 8: Record GREEN evidence and commit the token implementation**
 
 ```bash
-git add front-nuxt/assets/css/hifi-preview.css front-nuxt/assets/css/tokens.css front-nuxt/scripts/check-light-button-tokens.mjs docs/devlog/entries/2026-07-22-light-theme-button-system.md
+git add front-nuxt/assets/css/hifi-preview.css front-nuxt/assets/css/tokens.css front-nuxt/scripts/check-light-button-tokens.mjs front-nuxt/scripts/check-visual-system-contract.mjs docs/devlog/entries/2026-07-22-light-theme-button-system.md
 git diff --cached --check
 git diff --cached --stat
 git commit -m "feat(front): lighten public button themes"
