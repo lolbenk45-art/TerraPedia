@@ -158,6 +158,25 @@
   theme cards, and comment/script/style/text-only fake cards cannot make the
   contract green. This is a behavioral RED, not a syntax, path, dependency,
   or missing-file failure.
+- Task 3 final review: fresh quality re-review passed with no Critical,
+  Important, or Minor findings after the actual-button state counts and
+  nested-card rejection repair in `2151c4b9`; Task 4 was unblocked.
+- Task 4 GREEN: the canonical durable audit was rebuilt with exactly the two
+  approved Mist Workbench / 雾面工作台 and Linen Paper / 亚麻纸面 cards, then
+  copied to the public path. `cmp -s` passed, `node --check
+  scripts/check-button-style-options.mjs` exited 0, and `pnpm run
+  check:button-style-options` exited 0 with `Button style options contract
+  passed.`
+- Task 4 browser acceptance: Playwright Chromium loaded the served standalone
+  page at 1280x800 and 375x812. Both runs found exactly two cards and 40
+  buttons, every button was at least 44px high, and document `scrollWidth`
+  exactly equaled `innerWidth` (1280/1280 and 375/375). Warm Slate computed
+  primary/hover/foreground values were `rgb(227, 234, 236)`,
+  `rgb(218, 228, 231)`, and `rgb(48, 78, 90)` with marker `#668493` and focus
+  `#50798c`; Morning Paper computed `rgb(233, 223, 209)`,
+  `rgb(226, 213, 197)`, and `rgb(85, 72, 58)` with marker `#967b5f` and focus
+  `#8b6c4c`. Selected, 3px/2px focus, and native-disabled states were
+  independently distinct in both cards, with zero console or page errors.
 - Lifecycle: startup owned backend `18200`, public frontend `15186`, admin
   `13013`, and the worktree Redis `16380`; MinIO `19100` was already shared.
   `bash ./scripts/dev/stop-local-stack.sh` stopped the task-owned backend,
@@ -172,19 +191,19 @@
 - Completed: context exploration, visual approval, written-spec approval, the
   task-by-task TDD implementation plan, and Task 2's two production palettes,
   shared focus semantics, corrected shadow ownership, real keyboard focus
-  coverage, clipping repair, focused/full frontend validation, and Task 3's
-  prototype identity RED contract.
-- Not completed: prototype replacement, full-stack runtime acceptance, final
-  integrated validation, and task-level commit closeout.
+  coverage, clipping repair, focused/full frontend validation, Task 3's
+  hardened prototype identity contract, and Task 4's approved two-card
+  prototype replacement with focused and browser acceptance evidence.
+- Not completed: Task 4 specification/quality review, full-stack runtime
+  acceptance, final integrated validation, and task-level closeout.
 
 ## Residual Risks
 
 - Shared light-theme specificity layers may override token values in isolated
   component states and require focused consumer cleanup.
 - Exact reference colors may need foreground-only contrast adjustment.
-- The two existing untracked prototype copies remain rejected six-variant
-  inputs; the new identity contract detects drift but stays RED until Task 4
-  replaces both copies with the approved two-theme prototype.
+- Task 4 implementation awaits fresh specification and quality review before
+  Task 5 integrated validation begins.
 - The initial Task 2 plan placed raw `none` values at the legacy alias layer;
   the existing visual-system contract correctly blocked that architecture.
 - Task 2 runtime contrast remains unaccepted because the available standalone
@@ -194,8 +213,8 @@
 
 ## Follow-up
 
-- Task 3 specification and quality re-review must pass before Task 4 replaces
-  both HTML copies together and turns `check:button-style-options` GREEN.
+- Task 4 review is pending. After it passes, Task 5 owns focused/full static
+  gates, full-stack runtime acceptance, whole-range review, and closeout.
 
 ## Commits
 
@@ -333,10 +352,9 @@
   found-count diagnostics, explicit overlapping/nested-card rejection, and
   negative fixtures for duplicate state, non-button state, and nested cards.
   RED evidence wording names only asserted checks.
-- Re-review required: yes; Task 4 remains blocked until specification and
-  quality re-review pass.
-- Resolved by: Task 3 implementer in `fc5445a4` plus the current fix commit;
-  current fix SHA pending in final response.
+- Re-review required: no; fresh quality re-review passed with no Critical,
+  Important, or Minor findings.
+- Resolved by: Task 3 implementer in `fc5445a4` and `2151c4b9`.
 - Remaining risks: the real prototype inputs intentionally remain RED until
   Task 4 replaces both byte-identical copies.
 
@@ -447,3 +465,16 @@
   or quoted delimiters from creating false contract results.
 - Evidence: requested parser fixtures pass silently; the focused contract
   remains intentional RED for actual pre-Task-2 CSS mismatches.
+
+### 2026-07-22 23:06
+
+- Change: replaced the rejected six-variant prototype with the two approved
+  light-theme cards and synchronized the served copy from the durable audit.
+- Reason: Task 3's hardened identity contract passed final review and the
+  approved design requires muted flat surfaces, dark primary text, shallow
+  states, exact production tokens, and accessible 44px controls.
+- Evidence: byte identity, syntax, and the focused prototype contract passed;
+  Playwright Chromium acceptance at 1280x800 and 375x812 found no overflow,
+  undersized button, missing/distorted state, token mismatch, or page/console
+  error. Task 4 remains active pending specification and quality review before
+  Task 5.
