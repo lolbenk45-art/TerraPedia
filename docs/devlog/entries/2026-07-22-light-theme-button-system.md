@@ -177,6 +177,17 @@
   `rgb(226, 213, 197)`, and `rgb(85, 72, 58)` with marker `#967b5f` and focus
   `#8b6c4c`. Selected, 3px/2px focus, and native-disabled states were
   independently distinct in both cards, with zero console or page errors.
+- Task 4 interaction repair: after quality review, both cards now identify
+  themselves as interactive style specimens and expose a visible polite live
+  status. A dependency-free delegated handler gives all 36 enabled buttons
+  bounded feedback without navigation or destructive side effects. True
+  toggles and segmented filters update `aria-pressed`; pagination uses exactly
+  one `aria-current="page"` and no `aria-pressed`. Fresh Playwright runs at
+  1280x800 and 375x812 activated every enabled button with no dead feedback,
+  then keyboard-activated representative ordinary, primary, segmented,
+  pagination, and icon-only controls. Every sample retained focus, updated
+  visible/live state and the expected ARIA state, preserved 44px minimum
+  height and exact-width geometry, and produced zero console/page errors.
 - Lifecycle: startup owned backend `18200`, public frontend `15186`, admin
   `13013`, and the worktree Redis `16380`; MinIO `19100` was already shared.
   `bash ./scripts/dev/stop-local-stack.sh` stopped the task-owned backend,
@@ -358,6 +369,25 @@
 - Remaining risks: the real prototype inputs intentionally remain RED until
   Task 4 replaces both byte-identical copies.
 
+### Task 4 quality review
+
+- Reviewer: Task 4 quality review agent.
+- Scope: approved two-card prototype through `4797e5b3`.
+- Findings: one Important finding that 40 rendered buttons included 36 enabled
+  inert/dead tab stops which falsely announced operability, and one Minor
+  finding that pagination used toggle semantics through `aria-pressed` rather
+  than `aria-current="page"`.
+- Disposition: accepted and fixed with a visible interactive-specimen note,
+  two polite live-status regions, bounded delegated activation feedback for
+  every enabled button, exclusive segmented/toggle state, and exclusive page
+  current state. No navigation, deletion, or external dependency was added.
+- Resolver: Task 4 implementer in the focused interaction repair following
+  `4797e5b3`.
+- Re-review required: yes; Task 4 remains active until fresh specification and
+  quality re-review accept this repair.
+- Remaining risks: none known within the repaired interaction surface; Task 5
+  remains responsible for integrated gates and full-stack acceptance.
+
 ## Optional: State Changes
 
 ### 2026-07-22 19:38
@@ -478,3 +508,16 @@
   undersized button, missing/distorted state, token mismatch, or page/console
   error. Task 4 remains active pending specification and quality review before
   Task 5.
+
+### 2026-07-22 23:15
+
+- Change: reopened Task 4 and repaired inert enabled controls plus pagination
+  semantics after quality review.
+- Reason: a keyboard-reachable button must provide meaningful bounded behavior
+  in an interactive specimen, while pagination represents location rather
+  than a pressed toggle.
+- Evidence: all 36 enabled buttons updated visible/live feedback at both
+  desktop and mobile widths; native Enter/Space activation for representative
+  actions, filters, pagination, and icon-only controls preserved focus and
+  updated the expected ARIA state. Identity, forbidden-treatment, geometry,
+  minimum-height, and zero-error checks remained GREEN. Re-review is required.
