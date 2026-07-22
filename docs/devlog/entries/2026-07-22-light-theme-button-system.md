@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -194,8 +194,71 @@
   frontend, admin, image-compat, and task-started MinIO processes, preserved
   shared Redis per script policy, and a final socket check found `15186`,
   `18200`, and `13013` closed with only Redis `16380` still listening.
-- Not run: production browser geometry and screenshots, which remain Task 5
-  integrated-acceptance scope.
+- Task 5 fresh static gates: `pnpm run check:light-button-tokens` and
+  `pnpm run check:button-style-options` each exited 0 with their expected pass
+  messages. The project startup preflight invoked the exact `pnpm run check`
+  command from `front-nuxt` and exited 0; all chained contracts and Nuxt
+  typecheck passed. Baseline-only warnings remained the Node `DEP0205`
+  deprecation, duplicate `formatEffectValue` auto-import, Chromium DBus, and
+  transient headless GPU messages.
+- Task 5 light-theme gate: the first Chromium 1228 attempt exited 13 before a
+  result because the CDP browser terminated while the script awaited focus
+  sampling (`unsettled top-level await` at line 1015). A single bounded rerun
+  with installed Playwright Chromium 1223 completed and exited 1 on the same
+  unrelated text/fallback contrast baseline recorded by Task 2: Morning Paper
+  hero pills 4.00, password controls 4.43, category child count/action
+  1.99/3.12, and unavailable-route text 1.00-1.50; Warm Slate category child
+  count/action 2.08/3.36 and unavailable-route text 1.00-1.42. The assigned
+  focus lane independently passed in both themes with all 15 rendered concrete
+  consumers, 15 forward samples, 15 reverse samples, 14 exact restores, one
+  documented dynamic restore, two structurally absent consumers, and zero
+  focus issues. This is an honest overall RED, not an accepted gate.
+- Task 5 production matrix: the project stack printed slot 12 and public URL
+  `http://127.0.0.1:15186` (backend `18200`, admin `13013`, Redis DB 12 on
+  shared `16380`). Playwright Chromium 1223 loaded `/`, `/items`,
+  `/search-tool`, and `/categories` for both themes at 1280x800 and 375x812:
+  16/16 responses were HTTP 200, every document had
+  `scrollWidth === innerWidth`, every sampled interactive target was at least
+  44px, and failed target requests were zero. Representative ordinary/nav/icon
+  controls resolved to the approved flat control surfaces (`rgb(238,232,222)`
+  Morning Paper; `rgb(234,237,239)` Warm Slate), while `/items` current-page
+  controls resolved to approved active surfaces (`rgb(235,225,211)` and
+  `rgb(227,234,236)`) with 44px height. The rendered `/categories` mobile
+  primary resolved to approved `rgb(233,223,209)` / `rgb(85,72,58)` at 6.71:1
+  and `rgb(227,234,236)` / `rgb(48,78,90)` at 7.30:1, with exact borders and
+  inset-marker shadows. The audit's broad fallback selector also classified
+  transparent `home-primary-stat` cards as “primary”; their synthetic 1.25/
+  1.35 ratios are not button evidence and were excluded by exact class review.
+  The runtime acceptance remains RED because Nuxt emitted
+  `Hydration completed but contains mismatches.` on both `/` and
+  `/search-tool` in both themes/viewports (8 target console errors total), even
+  though all target requests completed.
+- Task 5 state evidence: the integrated focus audit proved visible 3px solid,
+  2px-offset keyboard rings with zero issues. Selected/current controls had
+  pale active surfaces plus existing text/current cues; `/items` disabled
+  controls were natively/ARIA disabled and distinct by state even though the
+  computed base palette remains token-aligned. No screenshot baseline exists,
+  so no screenshot comparison is claimed. Same-run dark-default evidence on
+  `/items` recorded no theme attribute, exact historical root tokens
+  (`linear-gradient(135deg, #f0cf74, #bd8b39)`, `#10180d`,
+  `rgba(240,207,116,0.42)`, `0 12px 30px rgba(214,177,90,0.22)`), exact
+  control tokens, 44px dock page/icon geometry, no overflow, and document
+  1280/1280. Range inspection shows dark `:root` gained only explicit marker
+  and focus-ring declarations; the focused/full contracts lock the unchanged
+  pre-existing dark surface, foreground, border, shadow, and geometry values.
+- Task 5 lifecycle: the project stop script stopped task-owned backend, public
+  frontend, admin, image compatibility, and task-started MinIO processes.
+  Fresh socket checks found `15186`, `18200`, and `13013` closed; shared Redis
+  `16380` remained listening exactly as required by policy.
+- Task 5 whole-range review: `git diff --check` exited 0;
+  `git log --oneline 0af6df56..HEAD` contained the 16 expected plan, contract,
+  palette/focus, prototype, and interaction commits through `a826e1d8`.
+  `git diff --stat 0af6df56..HEAD` reported 14 files, 3,253 insertions, and 76
+  deletions. The range is scoped to the approved spec/plan and devlog,
+  light-theme CSS/token consumers, focused contracts, package gate, and two
+  byte-identical prototypes; no backend, data, crawler, unrelated layout,
+  browser profile, or generated report is tracked. Task 4's final quality
+  re-review is passed with no Critical, Important, or Minor findings.
 
 ## Result
 
@@ -205,27 +268,30 @@
   coverage, clipping repair, focused/full frontend validation, Task 3's
   hardened prototype identity contract, and Task 4's approved two-card
   prototype replacement with focused and browser acceptance evidence.
-- Not completed: Task 4 specification/quality review, full-stack runtime
-  acceptance, final integrated validation, and task-level closeout.
+- Completed: integrated validation, final whole-range review, and task-level
+  closeout. Final review found no Critical, Important, or Minor implementation
+  findings. Closeout commit SHA pending in final response.
 
 ## Residual Risks
 
-- Shared light-theme specificity layers may override token values in isolated
-  component states and require focused consumer cleanup.
-- Exact reference colors may need foreground-only contrast adjustment.
-- Task 4 implementation awaits fresh specification and quality review before
-  Task 5 integrated validation begins.
-- The initial Task 2 plan placed raw `none` values at the legacy alias layer;
-  the existing visual-system contract correctly blocked that architecture.
-- Task 2 runtime contrast remains unaccepted because the available standalone
-  frontend process had no backend-dependent detail data and the audit also
-  exposed unrelated pre-existing light-theme contrast failures. Task 5 must
-  rerun the audit with the intended full stack and consolidate those results.
+- The full-stack rerun reproduced existing non-button light text/fallback
+  contrast failures. The public-frontend maintenance follow-up owns hero pill,
+  password visibility, category child count/action, and unavailable-route text
+  contrast; this task does not claim an all-green `check:light-theme` result.
+- Nuxt hydration-mismatch warnings persist on `/` and `/search-tool`. A
+  separate public-frontend SSR/hydration follow-up owns diagnosis; the base
+  acceptance audit already recorded the search-tool mismatch, and this range
+  changes no Vue page, component, SSR data flow, or Nuxt configuration.
+- No historical dark screenshot baseline exists. Dark preservation is proven
+  by exact same-run computed tokens/styles plus range/contracts, not by visual
+  pixel comparison.
 
 ## Follow-up
 
-- Task 4 review is pending. After it passes, Task 5 owns focused/full static
-  gates, full-stack runtime acceptance, whole-range review, and closeout.
+- Public-frontend maintenance should handle the existing non-button light-text
+  contrast baseline separately; public-frontend SSR/hydration should diagnose
+  the pre-existing `/` and `/search-tool` mismatch separately. Neither follow-up
+  expands this closed button-only task.
 
 ## Commits
 
@@ -242,6 +308,11 @@
   reverse-keyboard evidence.
 - `a03c4802` — covered every concrete light focus consumer and completed Task
   2 review evidence.
+- `e3b8a053` — added the approved-preview identity RED contract.
+- `fc5445a4` — bound preview identity and state checks to actual cards.
+- `2151c4b9` — enforced exact button-state and non-nested card structure.
+- `4797e5b3` — replaced both heavy previews with the approved two-card audit.
+- `a826e1d8` — made every enabled preview control meaningfully interactive.
 
 ## Optional: Multi-Agent Coordination
 
@@ -381,12 +452,29 @@
   two polite live-status regions, bounded delegated activation feedback for
   every enabled button, exclusive segmented/toggle state, and exclusive page
   current state. No navigation, deletion, or external dependency was added.
-- Resolver: Task 4 implementer in the focused interaction repair following
-  `4797e5b3`.
-- Re-review required: yes; Task 4 remains active until fresh specification and
-  quality re-review accept this repair.
-- Remaining risks: none known within the repaired interaction surface; Task 5
-  remains responsible for integrated gates and full-stack acceptance.
+- Resolver: Task 4 implementer in `a826e1d8`.
+- Re-review required: no; fresh quality re-review passed with no Critical,
+  Important, or Minor findings.
+- Remaining risks: none within the repaired interaction surface; Task 5
+  integrated gates and full-stack evidence are recorded above.
+
+### Final whole-range review and arbitration
+
+- Reviewer: final whole-range review agent.
+- Scope: approved design and implementation range `0af6df56..a826e1d8` plus
+  fresh Task 5 evidence.
+- Findings: no Critical, Important, or Minor implementation findings. The
+  literal all-green light-theme and zero-console expectations remain unmet by
+  existing non-button contrast failures and hydration warnings.
+- Disposition: accepted as unrelated residual risks with named follow-ups.
+- Re-review required: no.
+- Arbitration decision: close the button adaptation without claiming those
+  unrelated gates are green.
+- Decision owner: root Codex coordinator.
+- Rationale: focused contracts, the full frontend gate, concrete focus lanes,
+  16-case runtime geometry/style evidence, range causality, and final review
+  all pass for the assigned button scope; the range cannot cause Vue structural
+  hydration mismatch and changes none of the failing text consumers.
 
 ## Optional: State Changes
 
