@@ -21,6 +21,8 @@
   in `pnpm run check`.
 - Modify `front-nuxt/assets/css/hifi-preview.css`: own the two approved palettes
   and the shared focus/primary-marker behavior.
+- Modify `front-nuxt/assets/css/tokens.css`: preserve the WP-11 legacy alias
+  boundary while making light-theme control elevation resolve to `none`.
 - Modify
   `docs/audits/2026-07-21-light-theme-button-style-options.html`: canonical
   interactive comparison containing only the two approved systems.
@@ -92,7 +94,7 @@ const expected = {
     '--button-control-active-bg': '#ebe1d3',
     '--button-control-active-fg': '#55483a',
     '--button-control-active-border': 'rgba(121, 93, 64, 0.16)',
-    '--button-control-shadow': 'none',
+    '--button-control-shadow': 'var(--tp-shadow-control)',
     '--button-control-active-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.66)',
     '--button-control-dot-active-bg': '#967b5f',
     '--button-control-accent-fg': '#6f5842',
@@ -118,7 +120,7 @@ const expected = {
     '--button-control-active-bg': '#e3eaec',
     '--button-control-active-fg': '#304e5a',
     '--button-control-active-border': 'rgba(73, 111, 128, 0.18)',
-    '--button-control-shadow': 'none',
+    '--button-control-shadow': 'var(--tp-shadow-control)',
     '--button-control-active-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
     '--button-control-dot-active-bg': '#668493',
     '--button-control-accent-fg': '#486a79',
@@ -206,9 +208,27 @@ Expected: one focused intentional-RED commit with no production CSS or HTML.
 
 **Files:**
 - Modify: `front-nuxt/assets/css/hifi-preview.css`
+- Modify: `front-nuxt/assets/css/tokens.css`
+- Modify: `front-nuxt/scripts/check-light-button-tokens.mjs`
 - Modify: `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
 
-- [ ] **Step 1: Add shared marker and focus tokens**
+- [ ] **Step 1: Repair the control-shadow ownership assertion**
+
+The reviewed WP-11 visual-system contract requires every legacy
+`--button-control-shadow` declaration in `hifi-preview.css` to remain exactly
+`var(--tp-shadow-control)`. Update the focused light-button contract so both
+theme blocks expect that alias, then make it additionally read
+`assets/css/tokens.css` and require exactly one
+`--tp-shadow-control: none` declaration in each standalone
+`[data-theme="morning-paper"]` and `[data-theme="warm-slate"]` block.
+
+Run `pnpm run check:light-button-tokens` before changing `tokens.css`.
+Expected: intentional RED for both missing semantic `none` values plus the
+other unimplemented palette/focus assertions. Run
+`pnpm run check:visual-system` against the in-progress raw `none` aliases to
+confirm the old contract rejects them before restoring the aliases.
+
+- [ ] **Step 2: Add shared marker and focus tokens**
 
 Add explicit dark defaults beside the root button tokens so every runtime
 theme declares the semantic interface:
@@ -240,7 +260,7 @@ Add this shared focus rule after the shared button hover/active rules:
 }
 ```
 
-- [ ] **Step 2: Replace the Morning Paper button declarations**
+- [ ] **Step 3: Replace the Morning Paper button declarations**
 
 Use these exact values in `[data-theme="morning-paper"]`:
 
@@ -261,7 +281,7 @@ Use these exact values in `[data-theme="morning-paper"]`:
 --button-control-fg: #4e4941;
 --button-control-hover-fg: #3d3933;
 --button-control-border: rgba(79, 70, 58, 0.09);
---button-control-shadow: none;
+--button-control-shadow: var(--tp-shadow-control);
 --button-control-active-bg: #ebe1d3;
 --button-control-active-fg: #55483a;
 --button-control-active-border: rgba(121, 93, 64, 0.16);
@@ -271,7 +291,7 @@ Use these exact values in `[data-theme="morning-paper"]`:
 --button-focus-ring: rgba(139, 108, 76, 0.28);
 ```
 
-- [ ] **Step 3: Replace the Warm Slate button declarations**
+- [ ] **Step 4: Replace the Warm Slate button declarations**
 
 Use these exact values in `[data-theme="warm-slate"]`:
 
@@ -292,7 +312,7 @@ Use these exact values in `[data-theme="warm-slate"]`:
 --button-control-fg: #35424b;
 --button-control-hover-fg: #29333b;
 --button-control-border: rgba(55, 68, 78, 0.09);
---button-control-shadow: none;
+--button-control-shadow: var(--tp-shadow-control);
 --button-control-active-bg: #e3eaec;
 --button-control-active-fg: #304e5a;
 --button-control-active-border: rgba(73, 111, 128, 0.18);
@@ -302,7 +322,25 @@ Use these exact values in `[data-theme="warm-slate"]`:
 --button-focus-ring: rgba(80, 121, 140, 0.28);
 ```
 
-- [ ] **Step 4: Run focused GREEN and existing structural contracts**
+- [ ] **Step 5: Remove light control elevation at the semantic owner**
+
+In the standalone theme blocks of `assets/css/tokens.css`, replace only these
+values:
+
+```css
+[data-theme="morning-paper"] {
+  --tp-shadow-control: none;
+}
+
+[data-theme="warm-slate"] {
+  --tp-shadow-control: none;
+}
+```
+
+Keep the root dark `--tp-shadow-control` unchanged. Do not move other border,
+surface, radius, or elevation tokens.
+
+- [ ] **Step 6: Run focused GREEN and existing structural contracts**
 
 Run:
 
@@ -317,7 +355,7 @@ pnpm run check:nav-layout
 Expected: all four commands exit 0. The new command prints
 `Light button token contract passed.`
 
-- [ ] **Step 5: Run the runtime light-theme contrast check**
+- [ ] **Step 7: Run the runtime light-theme contrast check**
 
 Run:
 
@@ -330,10 +368,10 @@ Expected: exit 0 with no label below 4.5:1 and no missing/hidden focus or
 control sample. If a foreground fails, darken only the affected foreground or
 marker; do not increase surface saturation without renewed visual approval.
 
-- [ ] **Step 6: Record GREEN evidence and commit the token implementation**
+- [ ] **Step 8: Record GREEN evidence and commit the token implementation**
 
 ```bash
-git add front-nuxt/assets/css/hifi-preview.css docs/devlog/entries/2026-07-22-light-theme-button-system.md
+git add front-nuxt/assets/css/hifi-preview.css front-nuxt/assets/css/tokens.css front-nuxt/scripts/check-light-button-tokens.mjs docs/devlog/entries/2026-07-22-light-theme-button-system.md
 git diff --cached --check
 git diff --cached --stat
 git commit -m "feat(front): lighten public button themes"

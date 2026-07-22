@@ -26,6 +26,10 @@
   accepted.
 - Rejected options: editorial ink-line, translucent glass, layered tool panels,
   all six original Paper/Slate variants, and a solid blue-gray primary fill.
+- Corrected ownership: light controls resolve to no elevation through
+  `tokens.css` (`--tp-shadow-control: none`), while every legacy
+  `--button-control-shadow` declaration remains the WP-11 compatibility alias
+  `var(--tp-shadow-control)` in `hifi-preview.css`.
 
 ## Scope
 
@@ -70,22 +74,6 @@
   the task-by-task TDD implementation plan.
 - Not completed: production adaptation, validation, and commit closeout.
 
-## Review Findings
-
-- Reviewer: Task 1 code-quality reviewer.
-- Scope: commit `a586c587`, focused light-button token contract.
-- Findings: Important — whole-file marker substrings allowed false ownership,
-  declaration regexes hid duplicates and mishandled quoted delimiters, and a
-  leading top-level comment blocked exact selector discovery. Minor — parser
-  edge cases lacked executable fixtures.
-- Resolver: Task 1 implementer (`/root/task1_token_contract`).
-- Disposition: fixed in the focused follow-up commit pending in final response.
-  Exact `:root` defaults and the formatted shared focus consumer rule now own
-  their declarations; theme and shared owned properties reject duplicates;
-  marker consumption is enforced by each theme's exact primary-shadow value;
-  parser fixtures cover all requested edge cases.
-- Re-review required: yes, before Task 2 edits production CSS.
-
 ## Residual Risks
 
 - Shared light-theme specificity layers may override token values in isolated
@@ -93,17 +81,19 @@
 - Exact reference colors may need foreground-only contrast adjustment.
 - The two existing untracked prototype copies can drift unless implementation
   gives them one source or an identity contract.
+- The initial Task 2 plan placed raw `none` values at the legacy alias layer;
+  the existing visual-system contract correctly blocked that architecture.
 
 ## Follow-up
 
-- User reviews the written design spec; then create and execute the focused
-  production adaptation plan.
+- Implement Task 2 against the reviewed intentional-RED token contract.
 
 ## Commits
 
 - `0af6df56` — approved design specification and task traceability.
 - `4586a4f2` — task-by-task TDD implementation plan.
 - `a586c587` — initial light-button token RED contract.
+- `54f00e3d` — hardened ownership/declaration parser after quality review.
 
 ## Optional: Multi-Agent Coordination
 
@@ -144,6 +134,25 @@
 - Cross-boundary validation: focused contracts, full frontend gate, runtime
   contrast, browser geometry, and final whole-range review.
 
+## Optional: Cross-Review
+
+- Reviewer: Task 1 specification and code-quality review agents.
+- Scope: commits `a586c587` and `54f00e3d`, covering the intentional-RED light
+  button token contract.
+- Findings: initial specification review passed; initial quality review found
+  two Important false-green paths in global ownership and duplicate declaration
+  handling, plus one Minor selector-comment parsing defect.
+- Disposition: fixed.
+- Re-review required: no; fresh quality re-review passed with no remaining
+  Critical, Important, or Minor findings.
+- Resolved by: Task 1 implementer in `54f00e3d`.
+- Arbitration decision: accept the strengthened contract and proceed to Task 2.
+- Decision owner: root Codex coordinator.
+- Rationale: exact root/focus ownership, duplicate rejection, parser fixtures,
+  and fresh intentional RED now constrain the production CSS change.
+- Remaining risks: none within Task 1; production contrast and browser behavior
+  remain Task 2 and Task 5 validation duties.
+
 ## Optional: State Changes
 
 ### 2026-07-22 19:38
@@ -161,6 +170,15 @@
 - Evidence:
   `docs/superpowers/plans/2026-07-22-light-theme-button-system.md`.
 
+### 2026-07-22 20:34
+
+- Change: corrected Task 2 control-shadow ownership after the existing
+  visual-system gate blocked raw `none` declarations in the legacy CSS layer.
+- Reason: WP-11 makes `tokens.css` the semantic source of truth and requires
+  `hifi-preview.css` to retain `var(--tp-shadow-control)` aliases.
+- Evidence: the focused token contract passed the planned raw values, while
+  `pnpm run check:visual-system` failed four exact alias-ownership assertions.
+
 ### 2026-07-22 19:59
 
 - Change: added the focused light-button token contract to the frontend check
@@ -174,7 +192,7 @@
 ### 2026-07-22 20:12
 
 - Change: resolved the Task 1 quality-review ownership and parser findings;
-  re-review remains required before Task 2.
+  fresh re-review passed before Task 2.
 - Reason: prevent unrelated CSS substrings, duplicate declarations, comments,
   or quoted delimiters from creating false contract results.
 - Evidence: requested parser fixtures pass silently; the focused contract
