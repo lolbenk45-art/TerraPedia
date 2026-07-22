@@ -55,6 +55,21 @@ const routes = [
   '/about',
 ]
 
+const focusFamilySelectors = {
+  primary: ['.primary-button:not([disabled])'],
+  theme: ['.account-menu .theme-choice:not([disabled])', '.mobile-nav-theme .theme-choice:not([disabled])'],
+  nav: ['.nav-menu-text-trigger:not([disabled])', '.nav-notification-link', '.nav-user-article-link', '.account-avatar-link'],
+  filter: ['.filter-option:not([disabled])', '.entity-filter:not([disabled])'],
+  'catalog-chip': ['.catalog-category-chip:not([disabled])', '.catalog-density-chip:not([disabled])'],
+  'catalog-pagination': [
+    '.catalog-dock-page-button:not([disabled])',
+    '.catalog-dock-button:not([disabled])',
+    '.catalog-dock-icon-button:not([disabled])',
+  ],
+}
+
+const requiredFocusFamilies = Object.keys(focusFamilySelectors)
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const withTimeout = (promise, ms, label) => Promise.race([
@@ -318,6 +333,157 @@ const auditExpression = `(() => {
   };
 })()`
 
+const focusAuditExpression = (family) => `(() => {
+  const familySelectors = ${JSON.stringify(focusFamilySelectors)};
+  const family = ${JSON.stringify(family)};
+  const parseColor = (value) => {
+    const text = String(value || '').trim();
+    if (text === 'transparent') return [0, 0, 0, 0];
+    const rgbMatch = text.match(/rgba?\\(([^)]+)\\)/);
+    if (!rgbMatch) return [0, 0, 0, 1];
+    const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+    return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
+  };
+  const composite = (foreground, background) => {
+    const alpha = foreground[3];
+    return [
+      foreground[0] * alpha + background[0] * (1 - alpha),
+      foreground[1] * alpha + background[1] * (1 - alpha),
+      foreground[2] * alpha + background[2] * (1 - alpha),
+      1,
+    ];
+  };
+  const luminance = (color) => {
+    const channels = color.slice(0, 3).map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const contrast = (first, second) => {
+    const firstLuminance = luminance(first);
+    const secondLuminance = luminance(second);
+    return (Math.max(firstLuminance, secondLuminance) + 0.05) / (Math.min(firstLuminance, secondLuminance) + 0.05);
+  };
+  const isVisible = (element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 1 && rect.height > 1 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0.05;
+  };
+  const nodeName = (element) => {
+    const classes = String(element.className || '').trim().split(/\\s+/).filter(Boolean).slice(0, 4).join('.');
+    return element.tagName.toLowerCase() + (classes ? '.' + classes : '');
+  };
+  const root = document.documentElement;
+  const rootProbe = document.createElement('span');
+  rootProbe.style.position = 'fixed';
+  rootProbe.style.pointerEvents = 'none';
+  rootProbe.style.background = getComputedStyle(root).getPropertyValue('--bg').trim();
+  document.body.appendChild(rootProbe);
+  const pageBackground = parseColor(getComputedStyle(rootProbe).backgroundColor);
+  rootProbe.remove();
+  const nearestBackground = (element) => {
+    for (let node = element; node && node.nodeType === 1; node = node.parentElement) {
+      const color = parseColor(getComputedStyle(node).backgroundColor);
+      if (color[3] > 0.05) return composite(color, pageBackground);
+    }
+    return pageBackground;
+  };
+  const clippedByAncestor = (element, expansion) => {
+    const rect = element.getBoundingClientRect();
+    for (let ancestor = element.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor);
+      const clipsX = style.overflowX === 'hidden' || style.overflowX === 'clip';
+      const clipsY = style.overflowY === 'hidden' || style.overflowY === 'clip';
+      if (!clipsX && !clipsY) continue;
+      const ancestorRect = ancestor.getBoundingClientRect();
+      if (
+        (clipsX && (rect.left - expansion < ancestorRect.left || rect.right + expansion > ancestorRect.right))
+        || (clipsY && (rect.top - expansion < ancestorRect.top || rect.bottom + expansion > ancestorRect.bottom))
+      ) return nodeName(ancestor);
+    }
+    return '';
+  };
+  const samples = [];
+  const issues = [];
+  const element = document.activeElement;
+  const belongsToFamily = element instanceof Element
+    && (familySelectors[family] || []).some((selector) => element.matches(selector));
+  if (belongsToFamily) {
+    const style = getComputedStyle(element);
+    const outlineWidth = Number.parseFloat(style.outlineWidth) || 0;
+    const outlineOffset = Number.parseFloat(style.outlineOffset) || 0;
+    const outlineColor = parseColor(style.outlineColor);
+    const adjacentBackground = nearestBackground(element.parentElement || element);
+    const elementBackground = composite(parseColor(style.backgroundColor), adjacentBackground);
+    const adjacentRatio = contrast(composite(outlineColor, adjacentBackground), adjacentBackground);
+    const elementRatio = contrast(composite(outlineColor, elementBackground), elementBackground);
+    const ratio = Math.min(adjacentRatio, elementRatio);
+    const clippedBy = clippedByAncestor(element, outlineWidth + Math.max(0, outlineOffset));
+    const active = document.activeElement === element;
+    const focusVisible = element.matches(':focus-visible');
+    const visible = isVisible(element);
+    const sample = {
+      family,
+      element: nodeName(element),
+      active,
+      focusVisible,
+      visible,
+      outlineStyle: style.outlineStyle,
+      outlineWidth,
+      outlineOffset,
+      outlineColor: style.outlineColor,
+      ratio: Number(ratio.toFixed(2)),
+      clippedBy,
+    };
+    samples.push(sample);
+
+    if (
+      !active
+      || !focusVisible
+      || !visible
+      || style.outlineStyle === 'none'
+      || outlineWidth < 3
+      || outlineOffset < 2
+      || ratio < 3
+      || clippedBy
+    ) {
+      issues.push({
+        element: sample.element,
+        text: family + ' focus active=' + active + ' focusVisible=' + focusVisible + ' visible=' + visible + ' outline=' + style.outlineStyle + '/' + outlineWidth + 'px offset=' + outlineOffset + 'px clippedBy=' + (clippedBy || 'none'),
+        color: style.outlineColor,
+        fontSize: outlineWidth + 'px/' + outlineOffset + 'px',
+        fontWeight: family,
+        ratio: sample.ratio,
+      });
+    }
+  }
+
+  return {
+    path: location.pathname,
+    theme: root.getAttribute('data-theme'),
+    samples,
+    issues,
+  };
+})()`
+
+const activeFocusFamilyExpression = (requestedFamilies) => `(() => {
+  const familySelectors = ${JSON.stringify(focusFamilySelectors)};
+  const requestedFamilies = ${JSON.stringify(requestedFamilies)};
+  const active = document.activeElement;
+  if (!(active instanceof Element)) return '';
+  const rect = active.getBoundingClientRect();
+  const style = getComputedStyle(active);
+  const visible = rect.width > 1 && rect.height > 1
+    && style.visibility !== 'hidden'
+    && style.display !== 'none'
+    && Number(style.opacity) > 0.05;
+  if (!visible) return '';
+  return requestedFamilies.find((family) => (
+    (familySelectors[family] || []).some((selector) => active.matches(selector))
+  )) || '';
+})()`
+
 const rootTokenExpression = `(() => {
   const root = document.documentElement;
   const style = getComputedStyle(root);
@@ -479,12 +645,61 @@ const pollRuntimeBoolean = async (browser, expression, attempts = 50) => {
   throw new Error('Runtime condition did not become true')
 }
 
+const pressTab = async (browser) => {
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyDown',
+    key: 'Tab',
+    code: 'Tab',
+    windowsVirtualKeyCode: 9,
+    nativeVirtualKeyCode: 9,
+  })
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyUp',
+    key: 'Tab',
+    code: 'Tab',
+    windowsVirtualKeyCode: 9,
+    nativeVirtualKeyCode: 9,
+  })
+}
+
+const collectKeyboardFocusSamples = async (browser, requestedFamilies, maxTabs = 180) => {
+  const remaining = new Set(requestedFamilies)
+  const samples = []
+  const issues = []
+
+  for (let index = 0; index < maxTabs && remaining.size > 0; index += 1) {
+    await pressTab(browser)
+    await sleep(30)
+    const requested = [...remaining]
+    const familyResult = await browser.send('Runtime.evaluate', {
+      expression: activeFocusFamilyExpression(requested),
+      returnByValue: true,
+    })
+    const family = familyResult.result.value
+    if (!family) continue
+
+    const auditResult = await browser.send('Runtime.evaluate', {
+      expression: focusAuditExpression(family),
+      returnByValue: true,
+    })
+    const value = auditResult.result.value
+    samples.push(...value.samples)
+    issues.push(...value.issues)
+    remaining.delete(family)
+  }
+
+  return { samples, issues, missing: [...remaining] }
+}
+
 await waitFor(`${baseUrl}/`)
 
 const port = Number(process.env.CHROMIUM_REMOTE_DEBUGGING_PORT || 9241)
 const browser = await connectToChrome(port)
 const failures = []
 const fontFamilies = new Set()
+const focusCoverage = new Map(targetThemes.map((theme) => [theme, new Set()]))
+const focusSampleCounts = new Map(targetThemes.map((theme) => [theme, 0]))
+const focusFailures = []
 
 try {
   await browser.send('Page.enable')
@@ -594,6 +809,23 @@ try {
         failures.push(value)
       }
 
+      const missingFocusFamilies = requiredFocusFamilies.filter((family) => !focusCoverage.get(targetTheme).has(family))
+      if (missingFocusFamilies.length > 0) {
+        const focusValue = await collectKeyboardFocusSamples(browser, missingFocusFamilies)
+        focusSampleCounts.set(targetTheme, focusSampleCounts.get(targetTheme) + focusValue.samples.length)
+        for (const sample of focusValue.samples) {
+          focusCoverage.get(targetTheme).add(sample.family)
+        }
+        if (focusValue.issues.length > 0) {
+          focusFailures.push({
+            path: focusValue.path,
+            theme: focusValue.theme,
+            expectedTheme: targetTheme,
+            issues: focusValue.issues,
+          })
+        }
+      }
+
       if (route === '/biomes/4' || route === '/biomes/7' || route === '/biomes/92' || route === '/biomes/100') {
         const biomeDetailThemeResult = await browser.send('Runtime.evaluate', {
           expression: biomeDetailThemeExpression,
@@ -611,6 +843,36 @@ try {
   browser.ws.close()
   browser.chrome.kill('SIGTERM')
 }
+
+for (const targetTheme of targetThemes) {
+  const coveredFamilies = [...focusCoverage.get(targetTheme)]
+  const missingFamilies = requiredFocusFamilies.filter((family) => !focusCoverage.get(targetTheme).has(family))
+  if (missingFamilies.length > 0) {
+    focusFailures.push({
+      path: 'focus-family-coverage',
+      theme: targetTheme,
+      expectedTheme: targetTheme,
+      issues: missingFamilies.map((family) => ({
+        element: family,
+        text: `required focus family was never exercised; covered=${coveredFamilies.join(',') || 'none'}`,
+        color: '',
+        fontSize: '',
+        fontWeight: family,
+        ratio: 0,
+      })),
+    })
+  }
+
+  const themeFocusFailures = focusFailures.filter((failure) => failure.expectedTheme === targetTheme)
+  const summary = `theme=${targetTheme} families=${coveredFamilies.join(',') || 'none'} samples=${focusSampleCounts.get(targetTheme)} issues=${themeFocusFailures.reduce((count, failure) => count + failure.issues.length, 0)}`
+  if (themeFocusFailures.length > 0) {
+    console.error(`Light theme focus audit failed: ${summary}`)
+  } else {
+    console.log(`Light theme focus audit passed: ${summary}`)
+  }
+}
+
+failures.push(...focusFailures)
 
 if (fontFamilies.size !== 1) {
   failures.push({

@@ -1273,6 +1273,17 @@
   color: rgba(var(--theme-text-rgb), 0.84);
 }
 
+:is([data-theme="morning-paper"], [data-theme="warm-slate"]) :is(
+  .catalog-category-chip,
+  .catalog-density-chip,
+  .catalog-dock-button,
+  .catalog-dock-icon-button,
+  .catalog-dock-page-button
+):focus-visible {
+  outline: 3px solid var(--button-focus-ring);
+  outline-offset: 2px;
+}
+
 :where([data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-control-summary span,
 :where([data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-category-head span,
 :where([data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-density-picker span {

@@ -224,7 +224,7 @@
   --button-control-dot-bg: rgba(122, 90, 33, 0.12);
   --button-control-dot-active-bg: #967b5f;
   --button-control-accent-fg: #6f5842;
-  --button-focus-ring: rgba(139, 108, 76, 0.28);
+  --button-focus-ring: #8b6c4c;
   --theme-bg-rgb: 243, 234, 216;
   --theme-bg-2-rgb: 234, 220, 195;
   --theme-panel-rgb: 255, 250, 241;
@@ -321,7 +321,7 @@
   --button-control-dot-bg: rgba(41, 50, 65, 0.1);
   --button-control-dot-active-bg: #668493;
   --button-control-accent-fg: #486a79;
-  --button-focus-ring: rgba(80, 121, 140, 0.28);
+  --button-focus-ring: #50798c;
   --theme-bg-rgb: 238, 241, 244;
   --theme-bg-2-rgb: 226, 231, 237;
   --theme-panel-rgb: 255, 255, 255;
@@ -1486,22 +1486,13 @@ h4,
 }
 
 :where(
-  .primary-button,
-  .secondary-button,
-  .icon-button,
-  .small-button,
-  .detail-tab,
-  .filter-option,
-  .entity-filter,
-  .theme-toggle,
-  .nav-menu-text-trigger,
-  .nav-notification-link,
-  .nav-user-article-link,
-  .account-avatar-link
-):focus-visible {
-  outline: 3px solid var(--button-focus-ring);
-  outline-offset: 2px;
-}
+  .primary-button, .secondary-button, .icon-button,
+  .small-button, .detail-tab, .filter-option,
+  .entity-filter, .theme-choice, .nav-menu-text-trigger,
+  .nav-notification-link, .nav-user-article-link, .account-avatar-link
+):focus-visible { outline: 3px solid var(--button-focus-ring); outline-offset: 2px; }
+
+:is([data-theme="morning-paper"], [data-theme="warm-slate"]) .theme-toggle { overflow: visible; }
 
 .theme-toggle.is-switching .theme-choice.active span {
   animation: theme-orb-pop-dark 420ms ease-out both;

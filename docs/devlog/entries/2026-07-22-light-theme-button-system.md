@@ -73,6 +73,32 @@
 - Task 2 static regressions: `pnpm run check:visual-system` exited 0 and printed
   `Visual system contract checks passed.`; `pnpm run check:public-pages` exited
   0 for 25 routes; `pnpm run check:nav-layout` exited 0.
+- Task 2 focus repair: both changed Node scripts passed `node --check`;
+  `pnpm run check:light-button-tokens` and `pnpm run check:css-ratchet`
+  exited 0. The strengthened contract requires the exact shared
+  `.theme-choice` owner, the five real catalog consumers after their outline
+  reset, and solid focus tokens with at least 3:1 contrast against the page,
+  control, and primary reference surfaces. The CSS ratchet finished at
+  10279/10280 lines.
+- Task 2 runtime focus evidence: the full local stack started successfully via
+  `bash ./scripts/dev/start-local-stack.sh` after selecting the installed
+  Playwright Chromium through `CHROMIUM_BIN`; the first default-browser
+  preflight attempt had stopped before service launch on the environment's
+  Snap Chromium mount-namespace error. Against the printed public URL
+  `http://127.0.0.1:15186`, the first runtime RED proved programmatic
+  `.focus()` did not establish `:focus-visible`; a bounded CDP Tab traversal
+  then covered the real active element for `primary`, `theme`, `nav`,
+  `filter`, `catalog-chip`, and `catalog-pagination` in each light theme. That
+  keyboard RED exposed the actual `.theme-toggle` overflow clipping the valid
+  3px/2px theme-choice ring (contrast 3.96:1 Morning Paper and 4.01:1 Warm
+  Slate). After the light-theme-only overflow repair, the audit printed an
+  explicit pass summary for all six families, six samples, and zero focus
+  issues in each theme. See git for code-level diff details.
+- Task 2 final regressions: fresh `check:visual-system`,
+  `check:public-pages`, `check:nav-layout`, and `check:css-ratchet` all exited
+  0. `CHROMIUM_BIN=<playwright-chromium> pnpm run check` exited 0; it retained
+  the existing Node deprecation, duplicate `formatEffectValue` import, and
+  headless Chromium DBus warnings without test failures.
 - Task 2 runtime limitation: the default `pnpm run check:light-theme` exited 1
   after timing out at `http://localhost:5176/`, where no process was listening.
   The same-worktree Nuxt process was already serving HTTP 200 on port 5181, so
@@ -87,13 +113,27 @@
   control sample, and attributed no failure to the newly assigned primary or
   control foregrounds or markers. Task 5 owns the full-stack rerun; this is not
   recorded as a runtime pass.
-- Not run: full frontend check, production browser geometry, and screenshots.
+- Task 2 overall runtime status remains red honestly: the final
+  `check:light-theme` exited 1 on the unrelated text baseline already listed
+  above (including the 4.00 hero pills, 4.43 password controls, category
+  child text/actions, and dark unavailable-route fallback rendering). Its
+  independently printed focus lane is executable GREEN for both themes and
+  all six required families; no focus issue remains in that run.
+- Lifecycle: startup owned backend `18200`, public frontend `15186`, admin
+  `13013`, and the worktree Redis `16380`; MinIO `19100` was already shared.
+  `bash ./scripts/dev/stop-local-stack.sh` stopped the task-owned backend,
+  frontend, admin, image-compat, and task-started MinIO processes, preserved
+  shared Redis per script policy, and a final socket check found `15186`,
+  `18200`, and `13013` closed with only Redis `16380` still listening.
+- Not run: production browser geometry and screenshots, which remain Task 5
+  integrated-acceptance scope.
 
 ## Result
 
 - Completed: context exploration, visual approval, written-spec approval, the
   task-by-task TDD implementation plan, and Task 2's two production palettes,
-  shared focus semantics, corrected shadow ownership, and static validation.
+  shared focus semantics, corrected shadow ownership, real keyboard focus
+  coverage, clipping repair, and focused/full frontend validation.
 - Not completed: prototype replacement, full-stack runtime acceptance, final
   integrated validation, and task-level commit closeout.
 
@@ -106,10 +146,8 @@
   gives them one source or an identity contract.
 - The initial Task 2 plan placed raw `none` values at the legacy alias layer;
   the existing visual-system contract correctly blocked that architecture.
-- Task 2 quality review found the approved translucent focus tokens below 3:1,
-  the shared rule targeting a non-focusable theme container instead of
-  `.theme-choice`, catalog controls clearing their outline, and runtime evidence
-  that did not actually exercise keyboard focus.
+- Task 2 quality-review focus findings are repaired but require the assigned
+  reviewer to re-review before Task 3 starts.
 - Task 2 runtime contrast remains unaccepted because the available standalone
   frontend process had no backend-dependent detail data and the audit also
   exposed unrelated pre-existing light-theme contrast failures. Task 5 must
@@ -195,14 +233,17 @@
 - Findings: three Important findings covering sub-3:1 focus tokens, incorrect
   theme/catalog focus consumers and cascade winners, and unsupported runtime
   focus evidence.
-- Disposition: pending repair.
+- Disposition: repaired with solid focus tokens, exact real consumers, catalog
+  cascade ownership, bounded CDP keyboard traversal, and light-theme
+  theme-choice clipping removal; pending reviewer confirmation.
 - Re-review required: yes.
-- Resolved by: Task 2 implementer, pending.
+- Resolved by: Task 2 implementer in the pending focus-repair commit.
 - Arbitration decision: reopen Task 2; do not start the prototype contract.
 - Decision owner: root Codex coordinator.
 - Rationale: keyboard focus is an acceptance requirement and the structural
   contract had false-green paths for real focusable elements.
-- Remaining risks: focus contrast and runtime focus samples are unverified.
+- Remaining risks: Task 2 re-review is still required; unrelated text contrast
+  baseline failures remain outside this focus repair.
 
 ## Optional: State Changes
 
@@ -257,6 +298,18 @@
   cleared outlines, and the prior runtime audit did not focus controls.
 - Evidence: reviewer computed contrast and inspected the actual nav/catalog
   templates and cascade winners; re-review is required after repair.
+
+### 2026-07-22 21:52
+
+- Change: repaired all reopened Task 2 focus findings and recorded full-stack
+  executable keyboard evidence without changing the unrelated text baseline.
+- Reason: real CDP Tab traversal proved the shared and catalog focus owners,
+  then exposed and verified the light-theme theme-choice clipping fix.
+- Evidence: both themes covered all six required focus families with six
+  samples and zero focus issues; focused/static/full frontend gates passed,
+  the overall light-theme audit remained red only for recorded unrelated text
+  contrast findings, and task-owned service ports closed after project-script
+  shutdown.
 
 ### 2026-07-22 19:59
 
