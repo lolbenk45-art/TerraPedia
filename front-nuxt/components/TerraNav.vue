@@ -108,14 +108,21 @@ const hydrateAuthenticatedChrome = async () => {
   // Resolve auth during setup (SSR + client) so the first paint already knows
   // guest/authenticated chrome width. Mount-only init left a guest shell that
   // later swapped in unread badges / avatar and shifted the action cluster.
-  await authStore.init()
+  // Preferences/notifications must never throw out of setup: a failed side
+  // fetch previously aborted SSR with a blank 500 page.
+  try {
+    await authStore.init()
+  } catch {
+    return
+  }
+
   if (!authStore.isAuthenticated) {
     return
   }
 
   await Promise.all([
-    preferencesStore.load(),
-    notificationsStore.loadUnreadCount(),
+    preferencesStore.load().catch(() => null),
+    notificationsStore.loadUnreadCount().catch(() => 0),
   ])
 }
 
