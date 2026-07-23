@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-23 19:26 CST by Codex
+Last updated: 2026-07-23 21:00 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,7 +11,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`.
   Owner: Codex; status: active; parent/child: standalone; blocked by: user
   review before execution planning; contract handoff: frozen-input,
-  policy-set, approval, write-fence, and capability contracts are in the design. See
+  policy-set, approval, write-fence, database-purpose isolation, and capability
+  contracts are in the design. See
   `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`

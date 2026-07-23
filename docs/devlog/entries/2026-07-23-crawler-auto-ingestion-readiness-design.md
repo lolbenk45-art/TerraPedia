@@ -29,6 +29,7 @@
 - Architecture direction accepted for continuation: reuse the V2 attempt engine and operation catalog; keep runtime attempt authority in Redis V2, versioned policy/approval metadata in the database, immutable artifacts as evidence, and backend-owned policy/orchestration/evidence/rollback boundaries.
 - Remaining execution-plan decisions are consolidated in `docs/superpowers/specs/2026-07-23-crawler-auto-ingestion-readiness-questionnaire.md` for one-pass user review.
 - Questionnaire resolution: Q1-Q32 use recommended A except Q2's clarified wording. The new automation system is V2-only and fails closed on V1; V1 code remains out of integration scope and deletion is a separate task.
+- Database-test boundary correction: user confirmed that tests must not run writes against the real local database. T0 automated tests use disposable `terria_v1_automation_test_<runId>` databases; T1 integration acceptance uses isolated `terria_v1_automation_acceptance_<runId>` copies; T2 `terria_v1_local` remains read-only by default and only separately authorized formal runs may write it.
 - Final design draft: `docs/superpowers/specs/2026-07-23-crawler-auto-ingestion-readiness-design.md`.
 - Reasoning: comprehensive automation crosses crawler scheduling, evidence, validation, database mutation, rollback, permissions, and operator UX; these boundaries must be explicit before implementation.
 - Rejected options: globally stopping at manual apply; enabling fully autonomous writes for every domain at once; treating the old `feat/auto-warehouse-ingestion` branch as current authority; enabling crawler or database writes during requirements analysis; implementing before design approval.
@@ -48,6 +49,7 @@
 - Blocked evidence: the Plan A idempotency suite passes 156/157. The Town NPC rich-profile test expects legacy `localhost:9000` managed image URLs, while the primary worktree local config resolves the active MinIO origin at port 19100; the production policy therefore rejects the fixture URL and the test is environment-dependent. No fix was attempted in this design task.
 - Blocked evidence: the read-only maintenance-chain audit CLI exits because its default relation report `reports/relation/relation-health-2026-04-30.json` is absent from a clean worktree. Newer untracked reports exist only in the primary worktree, so current evidence is not clean-clone reproducible.
 - Design validation: `git diff --check` passed; placeholder scan passed; questionnaire-to-design coverage passed 32/32; targeted stale-contract scan found no obsolete single-policy or L1-ceiling rule.
+- Database-boundary correction validation: `git diff --check` passed; placeholder scan passed; questionnaire IDs remain 32/32; targeted scans confirm T0/T1 reject `terria_v1_local`, forbid fallback, and keep T2 activation separate.
 - Not run: crawler, import, backfill, database mutation, or implementation gates.
 
 ## Result
@@ -61,6 +63,7 @@
 - The previously ambiguous domain, approval, scheduling, rollback, and data-loss boundaries are now resolved in the design; implementation must preserve them as explicit contracts rather than infer them from operation registration.
 - The V2 registry and page expose 19 stable operations with attempt/progress/result evidence, but several backend refresh actions still invoke apply mode directly while other dangerous actions remain manual-only. A single automation policy cannot safely cover all operations without an explicit risk taxonomy.
 - Automated apply must remain disabled until the idempotency gate is green and the maintenance evidence chain is reproducible from current authoritative reports.
+- Database-name checks alone are insufficient; implementation must also prove host/port/server UUID, purpose token, credential role, environmentId, and isolated Redis identity before any test or acceptance write.
 
 ## Cross-Review
 
@@ -75,6 +78,7 @@
 - Re-review required: completed by a fresh targeted review of the three repaired contracts plus dependent data-model, apply, rollback, UI-evidence, and test sections.
 - Resolved by: Codex design repair and targeted re-review.
 - Remaining risks: implementation must prove DB grants in an isolated database; otherwise post-commit automatic rollback remains disabled.
+- Follow-up review correction: the original wording conflated the formal local target with test databases. The revised design now hard-rejects T2 from test/acceptance profiles and treats future T2 L2 apply as formal operation rather than testing.
 
 ## Follow-up
 
@@ -83,4 +87,5 @@
 
 ## Commits
 
-- Pending.
+- `8ca00f9d` — initial automated-ingestion readiness design checkpoint.
+- Database-purpose isolation correction commit pending in this handoff.

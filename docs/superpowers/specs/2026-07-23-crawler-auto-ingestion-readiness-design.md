@@ -116,7 +116,28 @@ preview 必须额外生成冻结、内容寻址的 `apply-input.bundle.json`。a
 
 目录权限必须为 `0700`，证据/快照文件为 `0600`。不得把数据库快照放入 Git、普通 `reports/` 跟踪范围或图片 MinIO bucket。
 
-每个 run 必须绑定不可变 `environmentId`，其指纹至少包含 repo/worktree identity、数据库 host/port/name、Redis host/port/logical DB 和 V2 epoch。初始实现只允许显式配置的 `terria_v1_local`；数据库名称不匹配、配置缺失、环境指纹变化或队列不是 V2 时一律 fail-closed。local + isolated acceptance 属于本计划，生产启用另立任务。
+每个 run 必须绑定不可变 `environmentId`，其指纹至少包含 repo/worktree identity、数据库 host/port/name、Redis host/port/logical DB、V2 epoch 和运行用途分类。数据库名称、用途分类、配置、环境指纹或 V2 模式不匹配时一律 fail-closed。local + isolated acceptance 属于本计划，生产启用另立任务。
+
+### 4.1 数据库用途隔离
+
+数据库按用途分为三层，禁止用同一连接配置跨层复用：
+
+| 层级 | 允许数据库 | 用途 | 写入边界 |
+| --- | --- | --- | --- |
+| T0 自动测试 | 一次性 `terria_v1_automation_test_<runId>` | 单元、DAO、迁移、trigger、apply/rollback 自动测试 | 仅测试进程；测试结束销毁 |
+| T1 集成验收 | 隔离 `terria_v1_automation_acceptance_<runId>` | 从 `terria_v1_local` 的受控快照构建隔离副本，验证完整 preview/apply/verify/rollback | 仅隔离环境；不得与日常服务共享 writer 凭据 |
+| T2 正式本地运行 | 显式配置的 `terria_v1_local` | L0 shadow、逐次授权的 L1 验收，以及未来完成晋级后的正式 L2 运行 | 默认只读；写入必须通过正式 run、激活、策略、快照和 fence 门禁 |
+
+所有测试和验收入口必须先执行数据库防误写 preflight：
+
+- runId 用于库名前必须规范化为仅含小写字母、数字和下划线的不可逆短标识，并保留原始 runId 到规范化标识的审计映射；禁止把未校验输入直接拼进 SQL identifier。
+- `test` profile 只接受完整匹配 `^terria_v1_automation_test_[a-z0-9_]+$` 的库名；连接 `terria_v1_local` 或 acceptance 库立即退出。
+- `acceptance` profile 只接受完整匹配 `^terria_v1_automation_acceptance_[a-z0-9_]+$` 的库名；连接 `terria_v1_local` 或 test 库立即退出。
+- 除库名外，同时校验 DB host/port/server UUID、用途 token、凭据角色和 `environmentId`；任一不匹配都在首条 DDL/DML 前退出。
+- T0/T1 使用独立最小权限凭据和独立 Redis logical DB/epoch，不得复用 T2 writer 凭据或队列状态。
+- T1 副本只能由显式快照任务使用 T2 只读凭据创建，源连接不得拥有 DDL/DML 权限；若含敏感数据必须在导入 T1 前或导入事务内脱敏。验收完成后删除副本，保留哈希、计数和非敏感证据，不保留散落 dump。
+
+`terria_v1_local` 上的 L0 只允许只读 preview/shadow。逐 operation 的 L1 runtime acceptance 必须由用户另行授权；未来 L2 晋级后的自动 apply 是正式运行，不得伪装成测试命令或借用测试授权。
 
 ---
 
@@ -336,6 +357,8 @@ Owner 对 L1 的批准是对不可变 exact run 的一次性有界例外，不�
 数据库迁移后全局 scheduler 默认 `disabled`，所有 domain/operation 均为 L0 + `DISABLED`，启动应用不得创建 crawler 或 apply intent。Owner 必须先完成 environment/V2 epoch、Owner email、capability、gate 和 evidence-store preflight，再逐 domain/operation 记录 activation authorization。全局 scheduler enable 和每域 activation 缺一不可。
 
 实现与离线验收不得代替真实 operation-level activation。V2 epoch、environmentId 或 policy/capability hash 变化时 activation 自动失效并 fail-closed。
+
+任何 test/acceptance profile 不得创建 T2 activation，也不得把测试成功自动转换为 `terria_v1_local` 的 scheduler/domain activation。T2 激活记录必须由正式本地 profile 在独立审批流程中创建。
 
 ### 9.1 创建 intent
 
@@ -578,6 +601,8 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 
 ### 16.1 自动化测试
 
+所有会执行 migration、trigger、INSERT/UPDATE/DELETE、apply、restore、TRUNCATE 拒绝验证或 DDL 权限验证的自动化测试都必须在 T0 一次性库运行。测试夹具不得把 `terria_v1_local` 作为默认值或 fallback；临时库创建失败时测试必须失败，不能降级连接真实库。
+
 - operation capability manifest 完整性和 preview/apply 配对
 - 19-operation matrix 与 registry 逐项一致、写动作默认 L0-disabled
 - frozen apply bundle hash、bundle-only apply、事务内 diff recheck 和 changed-source rejection
@@ -593,6 +618,7 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 - full V2 identity、automation dedupe ownership、manual-attempt collision、multi-domain policy-set identity 和 joint fencing
 - alert dedupe、ack、email delivery failure
 - admin page risk ordering、tabs、evidence completeness、disabled reason 和 accessibility contracts
+- test/acceptance profile 的 protected-database rejection、用途 token、server UUID、凭据角色和 environmentId 防误写门禁
 
 ### 16.2 必需门禁
 
@@ -602,11 +628,14 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 - focused V2 backend tests and crawler/workflow tests
 - admin unit/typecheck/build
 - backend compile/test-compile and focused services/controllers
+- 自动化测试日志证明使用唯一 T0 库，集成验收日志证明使用唯一 T1 库；任何日志出现 T2 writer 连接即失败
 - `git diff --check`
 
 ### 16.3 Runtime acceptance
 
-本计划默认只运行 isolated/no-network fixtures 和 L0 shadow。任何真实 crawler 或 local apply 必须停在显式用户授权 checkpoint，逐 operation 授权，不得由“继续执行计划”泛化授权。
+默认验证只运行 isolated/no-network fixtures：写库测试在 T0，完整集成验收在 T1。T2 `terria_v1_local` 默认只执行只读 L0 shadow；任何真实 crawler 或 T2 local apply 必须停在显式用户授权 checkpoint，逐 operation 授权，不得由“继续执行计划”或测试授权泛化授权。
+
+T1 验收通过只证明候选版本具备进入 T2 L0/L1 流程的资格，不授权 T2 写入。T2 的 L1 验收必须先生成并展示目标库指纹、exact diff、snapshot 和回滚点，再由用户单次批准。L2 仅在后续满足连续 L1、周对账和 Owner 晋级条件后作为正式运行启用。
 
 生产启用另立任务。
 
@@ -619,7 +648,8 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 - foundation blockers 关闭
 - 离线门禁全绿
 - clean-clone evidence 可复现
-- isolated runtime 和全域 L0 shadow 通过
+- T0 自动测试和 T1 isolated runtime 通过，且防误写测试证明两者拒绝 `terria_v1_local`
+- T2 全域只读 L0 shadow 通过
 - 版本化策略、审批、快照、回滚和页面证据可追踪
 - 用户另行授权的 L1 runtime acceptance 完成或明确留作后续 owner/checkpoint
 - 没有域因“操作已注册”而被错误标记为 L2-ready
