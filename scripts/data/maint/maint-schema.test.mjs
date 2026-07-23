@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  MAINT_TABLE_CATALOG,
   MAINT_TABLE_NAMES,
   buildMaintSchemaSql,
 } from './maint-schema.mjs';
+
+test('MAINT_TABLE_CATALOG exposes stable automation ownership metadata', () => {
+  assert.deepEqual(MAINT_TABLE_CATALOG.map((entry) => entry.table), MAINT_TABLE_NAMES);
+  assert.equal(MAINT_TABLE_CATALOG.every((entry) => entry.databaseRole === 'maint'), true);
+  assert.equal(MAINT_TABLE_CATALOG.every((entry) => entry.engine === 'InnoDB'), true);
+});
 
 test('buildMaintSchemaSql creates all maint tables', () => {
   const sql = buildMaintSchemaSql();

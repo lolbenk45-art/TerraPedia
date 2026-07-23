@@ -43,6 +43,13 @@ export const RELATION_TABLE_NAMES = [
   'npc_series_item_relations'
 ];
 
+export const RELATION_TABLE_CATALOG = Object.freeze(RELATION_TABLE_NAMES.map((table) => Object.freeze({
+  databaseRole: 'relation',
+  table,
+  tableKind: table.startsWith('relation_') ? 'relation' : 'relation-support',
+  engine: 'InnoDB'
+})));
+
 export const DEPRECATED_RELATION_TABLE_NAMES = [
   'item_npc_shop_candidates',
   'item_npc_loot_candidates'

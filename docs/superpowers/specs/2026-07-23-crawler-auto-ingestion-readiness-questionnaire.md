@@ -8,7 +8,7 @@
 
 > 本文不授权真实爬取、正式入库、Redis 重置、数据库回滚或生产部署。用户回填后，先生成并提交设计规格供复核；设计获批后再生成具体执行 MD 计划。
 
-最终回填规则：用户确认“其余空白按推荐”；Q2 最终含义为新自动化系统只支持 V2，V1 环境 fail-closed，V1 旧代码保留但不接入新功能，删除 V1 另立任务。Q28 经用户复核后进一步明确：`terria_v1_local` 仅是正式本地运行目标，不是测试库；自动测试必须使用一次性临时库，集成验收必须使用隔离副本。Q32 仍采用 A。
+最终回填规则：用户确认“其余空白按推荐”；Q2 最终含义为新自动化系统只支持 V2，V1 环境 fail-closed，V1 旧代码保留但不接入新功能，删除 V1 另立任务。Q28 经用户复核后进一步明确：`terria_v1_local`、`terria_v1_maint`、`terria_v1_relation` 是正式本地数据链，不是测试库；自动测试必须使用一次性三库集合，集成验收必须使用隔离三库副本。Q32 仍采用 A。
 
 ---
 
@@ -131,7 +131,7 @@
 | Q25 | 后端接口边界 | `A` 保留现有 monitor/control API，新自动化策略/审批/证据 API 放独立 admin namespace；`B` 直接扩展现有 DTO 和控制端点；`C` 自定义 | `A` |  |
 | Q26 | 公共站点影响 | `A` 不改公共 API 契约，仅 post-apply 做只读验收；`B` 同步调整公共 API；`C` 自定义 | `A` |  |
 | Q27 | 真实 crawler/apply | `A` 执行计划只写人工授权 checkpoint，不默认执行任何真实 crawler/apply；`B` 完成离线门禁后可自动执行 local apply；`C` 自定义 | `A` |  |
-| Q28 | 数据库目标 | `A` 正式本地运行仅允许显式配置的 `terria_v1_local`；自动测试只允许一次性 `terria_v1_automation_test_<runId>`，集成验收只允许隔离 `terria_v1_automation_acceptance_<runId>`，测试/验收进程连接 `terria_v1_local` 必须 fail-closed；`B` 允许任意 local host 库；`C` 自定义 | `A` | A；补充测试不得写真实库 |
+| Q28 | 数据库目标 | `A` 正式本地链仅允许显式配置的 `terria_v1_local`、`terria_v1_maint`、`terria_v1_relation`；自动测试只允许一次性 `terria_v1_automation_test_<runKey>_{local,maint,relation}`，集成验收只允许隔离 `terria_v1_automation_acceptance_<runKey>_{local,maint,relation}`，测试/验收进程连接任一正式库必须 fail-closed；`B` 允许任意 local host 库；`C` 自定义 | `A` | A；补充测试不得写真实库，且覆盖完整三库链 |
 
 ### H. 计划组织与验收
 

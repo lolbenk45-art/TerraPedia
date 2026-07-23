@@ -11,6 +11,13 @@ export const PROJECTION_TABLE_NAMES = [
   'projection_equipment_effect_attributes'
 ];
 
+export const PROJECTION_TABLE_CATALOG = Object.freeze(PROJECTION_TABLE_NAMES.map((table) => Object.freeze({
+  databaseRole: 'relation',
+  table,
+  tableKind: 'projection',
+  engine: 'InnoDB'
+})));
+
 function buildProjectionStatements() {
   return [
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_items\` (

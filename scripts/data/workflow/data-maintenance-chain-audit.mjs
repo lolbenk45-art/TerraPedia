@@ -19,6 +19,7 @@ const ENTITY_MODULES = ['items', 'buffs', 'npcs', 'projectiles', 'biomes'];
 
 export function buildDataMaintenanceChainAudit({
   generatedAt = new Date().toISOString(),
+  evidenceMode = 'runtime',
   relationHealth = {},
   itemGroupAudit = {},
   imageReadinessReport = null,
@@ -101,6 +102,7 @@ export function buildDataMaintenanceChainAudit({
 
   return {
     generatedAt,
+    evidenceMode,
     status: blockingReasons.length > 0 ? 'blocked' : warningReasons.length > 0 ? 'warning' : 'pass',
     chains,
     blockingReasons,
@@ -248,15 +250,17 @@ function formatCountReason(prefix, count, singular) {
 async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const imageReadinessInput = resolveImageReadinessInput(args, await findLatestImageReadinessReport());
+  const dataInputs = resolveDataMaintenanceInputs(args);
   const inputs = {
-    relationHealth: args.relationHealth ?? DEFAULT_INPUTS.relationHealth,
-    itemGroupAudit: args.itemGroupAudit ?? DEFAULT_INPUTS.itemGroupAudit,
+    relationHealth: dataInputs.relationHealth,
+    itemGroupAudit: dataInputs.itemGroupAudit,
     imageReadinessReport: imageReadinessInput.imageReadinessReport,
     imageReadinessText: imageReadinessInput.imageReadinessText,
-    entityCompleteness: args.entityCompleteness ?? DEFAULT_INPUTS.entityCompleteness,
+    entityCompleteness: dataInputs.entityCompleteness,
   };
   const audit = buildDataMaintenanceChainAudit({
     generatedAt: args.generatedAt ?? new Date().toISOString(),
+    evidenceMode: dataInputs.evidenceMode,
     relationHealth: await readJson(inputs.relationHealth),
     itemGroupAudit: await readJson(inputs.itemGroupAudit),
     imageReadinessReport: await readJsonIfExists(inputs.imageReadinessReport),
@@ -274,6 +278,21 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   console.log(output);
+}
+
+export function resolveDataMaintenanceInputs(args = {}) {
+  const cleanClone = args.cleanClone === true || String(args.cleanClone ?? '').toLowerCase() === 'true';
+  if (cleanClone && (!args.relationHealth || !args.itemGroupAudit || !args.entityCompleteness)) {
+    throw new Error(
+      'clean-clone requires explicit --relation-health, --item-group-audit, and --entity-completeness paths',
+    );
+  }
+  return {
+    evidenceMode: cleanClone ? 'fixture' : 'runtime',
+    relationHealth: args.relationHealth ?? DEFAULT_INPUTS.relationHealth,
+    itemGroupAudit: args.itemGroupAudit ?? DEFAULT_INPUTS.itemGroupAudit,
+    entityCompleteness: args.entityCompleteness ?? DEFAULT_INPUTS.entityCompleteness,
+  };
 }
 
 function parseArgs(argv) {

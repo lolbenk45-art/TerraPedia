@@ -3,10 +3,17 @@ import assert from 'node:assert/strict';
 
 import {
   RELATION_DATABASE_NAME,
+  RELATION_TABLE_CATALOG,
   RELATION_TABLE_NAMES,
   buildRelationSchemaSql,
   buildRelationSchemaStatements
 } from './relation-schema.mjs';
+
+test('RELATION_TABLE_CATALOG exposes stable automation ownership metadata', () => {
+  assert.deepEqual(RELATION_TABLE_CATALOG.map((entry) => entry.table), RELATION_TABLE_NAMES);
+  assert.equal(RELATION_TABLE_CATALOG.every((entry) => entry.databaseRole === 'relation'), true);
+  assert.equal(RELATION_TABLE_CATALOG.every((entry) => entry.engine === 'InnoDB'), true);
+});
 
 const EXPECTED_TABLE_NAMES = [
   'relation_runs',

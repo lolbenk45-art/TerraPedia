@@ -43,8 +43,8 @@
 
 ### Foundation blockers
 
-1. Plan A 幂等门禁当前为 156/157；Town NPC 测试受主 worktree MinIO 端口配置影响，不是环境无关测试。
-2. 数据维护链审计在 clean worktree 因默认 relation report 缺失而退出。
+1. Plan A 幂等门禁已修复为 157/157；Town NPC 测试显式注入 managed-image origin，不再依赖主 worktree MinIO 端口配置。
+2. 数据维护链审计已支持 clean-clone fixture evidence：relation health、item group audit 和 entity completeness 均要求显式路径并标记 `evidenceMode=fixture`。fixture 只证明流程可复现，T1/T2 仍必须提供新鲜 live evidence。
 3. 现有 backend refresh 动作有的默认 `apply=true`，有的拆成 preview/apply，风险语义不统一。
 4. 当前只有配置型单一 `ADMIN` 身份，没有 System Owner 持久化映射或高风险重新认证凭证。
 5. 当前邮件发送组件面向验证码，需要独立的自动化告警投递边界。
@@ -116,7 +116,7 @@ preview 必须额外生成冻结、内容寻址的 `apply-input.bundle.json`。a
 
 目录权限必须为 `0700`，证据/快照文件为 `0600`。不得把数据库快照放入 Git、普通 `reports/` 跟踪范围或图片 MinIO bucket。
 
-每个 run 必须绑定不可变 `environmentId`，其指纹至少包含 repo/worktree identity、数据库 host/port/name、Redis host/port/logical DB、V2 epoch 和运行用途分类。数据库名称、用途分类、配置、环境指纹或 V2 模式不匹配时一律 fail-closed。local + isolated acceptance 属于本计划，生产启用另立任务。
+每个 run 必须绑定不可变 `environmentId`，其指纹至少包含 repo/worktree identity、按 `databaseRole`（maint/relation/local）分别记录的数据库 host/port/name/server UUID、Redis host/port/logical DB、V2 epoch 和运行用途分类。任一数据库角色名称、用途分类、配置、环境指纹或 V2 模式不匹配时一律 fail-closed。local + isolated acceptance 属于本计划，生产启用另立任务。
 
 ### 4.1 数据库用途隔离
 
@@ -124,20 +124,21 @@ preview 必须额外生成冻结、内容寻址的 `apply-input.bundle.json`。a
 
 | 层级 | 允许数据库 | 用途 | 写入边界 |
 | --- | --- | --- | --- |
-| T0 自动测试 | 一次性 `terria_v1_automation_test_<runId>` | 单元、DAO、迁移、trigger、apply/rollback 自动测试 | 仅测试进程；测试结束销毁 |
-| T1 集成验收 | 隔离 `terria_v1_automation_acceptance_<runId>` | 从 `terria_v1_local` 的受控快照构建隔离副本，验证完整 preview/apply/verify/rollback | 仅隔离环境；不得与日常服务共享 writer 凭据 |
-| T2 正式本地运行 | 显式配置的 `terria_v1_local` | L0 shadow、逐次授权的 L1 验收，以及未来完成晋级后的正式 L2 运行 | 默认只读；写入必须通过正式 run、激活、策略、快照和 fence 门禁 |
+| T0 自动测试 | 一次性 `terria_v1_automation_test_<runKey>_{local,maint,relation}` 三库集合 | 单元、DAO、迁移、trigger、三库 apply/rollback 自动测试 | 仅测试进程；测试结束销毁完整集合 |
+| T1 集成验收 | 隔离 `terria_v1_automation_acceptance_<runKey>_{local,maint,relation}` 三库集合 | 从正式本地三库链的受控快照构建隔离副本，验证 landing/maint/relation/projection/local preview/apply/verify/rollback | 仅隔离环境；不得与日常服务共享 writer 凭据 |
+| T2 正式本地运行 | 显式配置的 `terria_v1_local`、`terria_v1_maint`、`terria_v1_relation` | L0 shadow、逐次授权的 L1 验收，以及未来完成晋级后的正式 L2 运行 | 默认只读；任一库写入都必须通过正式 run、激活、策略、快照和 fence 门禁 |
 
 所有测试和验收入口必须先执行数据库防误写 preflight：
 
-- runId 用于库名前必须规范化为仅含小写字母、数字和下划线的不可逆短标识，并保留原始 runId 到规范化标识的审计映射；禁止把未校验输入直接拼进 SQL identifier。
-- `test` profile 只接受完整匹配 `^terria_v1_automation_test_[a-z0-9_]+$` 的库名；连接 `terria_v1_local` 或 acceptance 库立即退出。
-- `acceptance` profile 只接受完整匹配 `^terria_v1_automation_acceptance_[a-z0-9_]+$` 的库名；连接 `terria_v1_local` 或 test 库立即退出。
+- runId 用于库名前必须规范化为仅含小写字母、数字和下划线的不可逆 `runKey`，并保留原始 runId 到 runKey 的审计映射；禁止把未校验输入直接拼进 SQL identifier。
+- `runKey` 必须由最多 3 位的受限 slug 前缀、下划线和固定 16 位小写 SHA-256 后缀组成，总长最多 20 个字符；原始 runId、runKey 和三库名称写入唯一审计映射。hash 碰撞或一对多映射时直接拒绝，禁止复用已有 T0/T1 库；所有生成的 identifier 必须在 MySQL 长度上限内。
+- `test` profile 只接受同一 runKey 下完整匹配 `^terria_v1_automation_test_[a-z0-9_]+_(local|maint|relation)$` 的三库集合；连接任一 T2 或 acceptance 库立即退出。
+- `acceptance` profile 只接受同一 runKey 下完整匹配 `^terria_v1_automation_acceptance_[a-z0-9_]+_(local|maint|relation)$` 的三库集合；连接任一 T2 或 test 库立即退出。
 - 除库名外，同时校验 DB host/port/server UUID、用途 token、凭据角色和 `environmentId`；任一不匹配都在首条 DDL/DML 前退出。
 - T0/T1 使用独立最小权限凭据和独立 Redis logical DB/epoch，不得复用 T2 writer 凭据或队列状态。
-- T1 副本只能由显式快照任务使用 T2 只读凭据创建，源连接不得拥有 DDL/DML 权限；若含敏感数据必须在导入 T1 前或导入事务内脱敏。验收完成后删除副本，保留哈希、计数和非敏感证据，不保留散落 dump。
+- T1 三库副本只能由显式 provisioner 使用 T2 只读源凭据和受限 acceptance-provisioner 目标凭据创建；source 连接不得拥有 DDL/DML，provisioner 只允许创建、迁移、清理当前 runKey 前缀下的三库，并在 grants preflight 中证明不能操作任何 T2 库。若含敏感数据必须在导入 T1 前或导入事务内脱敏。验收完成后删除完整三库集合，保留哈希、计数和非敏感证据，不保留散落 dump。
 
-`terria_v1_local` 上的 L0 只允许只读 preview/shadow。逐 operation 的 L1 runtime acceptance 必须由用户另行授权；未来 L2 晋级后的自动 apply 是正式运行，不得伪装成测试命令或借用测试授权。
+T2 三库上的 L0 只允许只读 preview/shadow。逐 operation、逐目标库的 L1 runtime acceptance 必须由用户另行授权；未来 L2 晋级后的自动 apply 是正式运行，不得伪装成测试命令或借用测试授权。跨库 run 必须把全部目标库指纹、表作用域、snapshot 和 fence 纳入同一 `coveredDomains`/policy set；任一库不满足门禁即阻止整个 apply。
 
 ---
 
@@ -192,6 +193,55 @@ V1 环境必须 fail-closed。V1 代码保留作为独立历史兼容范围，�
 当前 19 操作之外的 `town-npc-sync`、independent entity、Shimmer import、audio import、support sync 等下游写入只能作为后续 capability onboarding 项进入本系统。每项必须先新增独立 preview/apply pair 和完整矩阵行，不得借用同名抓取操作直接写库。
 
 若未来一个 action 覆盖多个 domain，run 必须列出排序、去重后的全部 `coveredDomains`，联合评估所有策略、获取全部 fence，并按稳定顺序锁定；任一域不允许即阻止整个 apply。系统把每个 covered domain 的 `domainId`、policy version 和 policy hash 按 `domainId` 排序后规范化序列化并计算 `policySetHash`；run、decision、approval、snapshot、frozen bundle 和 apply 都必须持久化或引用同一 policy set，不能用单个主域策略代替。
+
+### 5.2 下游目标表数据契约
+
+全面入库的现有权威链是：
+
+```text
+source artifacts / source_dataset_landings
+  -> terria_v1_maint
+  -> terria_v1_relation
+  -> relation projection / compatibility apply
+  -> terria_v1_local
+```
+
+下表是执行计划必须实现和测试的目标表基线。`候选`表示仓库已有写入脚本或同步链，但尚未成为当前 19 操作中的安全 preview/apply capability；不得因此自动开启写库。
+
+| 域 | `terria_v1_maint` 目标表 | `terria_v1_relation` 目标表 | `terria_v1_local` 目标表 | 逻辑键 / owned scope | 当前能力状态 |
+| --- | --- | --- | --- | --- | --- |
+| items | `maint_items`, `maint_item_pages`, `maint_item_page_recipes`, `maint_item_images`, `maint_item_numeric_overrides`, `maint_item_rarity_overrides`, `maint_item_text_overrides`, `maint_item_sources`, `maint_item_biomes`, `maint_source_snapshots` | `relation_items`, `relation_item_images`, `relation_item_rarities`, `item_source_facts`, `item_source_details`, `item_projectile_relations`, `item_projectile_audits`, `projection_items` | `items`, `item_images`, `item_acquisition_sources`, `item_biomes`, `entity_source_snapshots` | sourceId/internalName；maint/relation `record_key`；local item id/internalName + provider scope | 当前 check/force 只到源产物；三层 apply 均为候选，默认 L0-disabled |
+| npcs | `maint_npcs`, `maint_npc_images`, `maint_item_sources` | `relation_npcs`, `relation_npc_images`, `item_npc_shop_relations`, `item_npc_loot_relations`, `npc_buff_relations`, `npc_projectile_relations`, `npc_projectile_audits`, `npc_series_nodes`, `npc_series_memberships`, `npc_series_item_relations`, `projection_npcs` | `npcs`, `npc_shop_entries`, `npc_shop_conditions`, `npc_loot_entries`, `npc_buff_relations`, `npc_biomes` | sourceId/gameId/internalName；NPC parent scope；关系 `record_key` | 当前 check/force 只到源产物；Town NPC/loot 有独立下游脚本，尚未归并为单一 capability |
+| projectiles | `maint_projectiles` | `relation_projectiles`, `relation_projectile_images`, `item_projectile_relations`, `npc_projectile_relations`, `item_projectile_audits`, `npc_projectile_audits`, `projection_projectiles` | `projectiles` | sourceId/internalName；relation `record_key` | 当前 check/force 只到源产物；projection/local apply 为候选 |
+| buffs | `maint_buffs` | `relation_buffs`, `relation_buff_images`, `item_buff_relations`, `npc_buff_relations`, `projection_buffs` | `buffs`, `buff_source_items`, `npc_buff_relations` | buff sourceId/internalName；子表 `(buff_id, sort_order)`；relation `record_key` | 当前 fresh 只到源产物；已有 import/sync 脚本但未注册安全 apply pair |
+| armor_sets | `maint_armor_sets`, `maint_armor_set_images`, `maint_armor_attribute_rows` | `relation_armor_sets`, `relation_armor_set_items`, `relation_armor_set_images`, `relation_armor_attribute_rows`, `relation_equipment_effect_attributes`, `projection_armor_sets`, `projection_item_armor_attributes`, `projection_equipment_effect_attributes` | `armor_sets`, `armor_set_items` | sourceKey；`(armor_set_id, set_variant_index, part_index)`；relation `record_key` | 当前 fresh 只到源产物；maint/relation/local 全为候选 |
+| recipes | `maint_recipe_pages`, `maint_recipe_page_recipes`, `maint_item_recipes`, `maint_item_page_recipes` | `item_recipe_heads`, `item_recipe_ingredients`, `item_recipe_stations`, `item_recipe_group_expansions` | `recipes`, `recipe_ingredients`, `recipe_stations`, `crafting_stations`, `recipe_context_requirements` | result item + source provider + recipe sort/key；children owned by recipeId | 当前 `recipe-reference-*` 只直接覆盖 local 三张 recipe 表；maint/relation 和 station/context onboarding 仍为候选 |
+| biomes | `maint_biomes`, `maint_item_biomes` | `item_biome_relations` | `biomes`, `biome_relations`, `biome_resources`, `item_biomes`, `npc_biomes`, `item_acquisition_sources` | biome code；relation composite keys；resource rows by biome parent scope | 当前 biome preview/apply 直接覆盖 local；maint/relation 未纳入同一 frozen bundle |
+| bosses | `maint_bosses` | `relation_bosses`, `boss_item_reward_relations`, `boss_effect_relations`, `projection_bosses` | `boss_groups`, `npcs` 的 boss membership 字段，及 boss-owned `npc_loot_entries` | boss code；member NPC set；boss owner scope | 当前 fresh 只到源产物，boss loot 有独立 preview/apply；boss entity/projection apply 为候选 |
+| town_npc_maintenance | `maint_npcs`, `maint_item_sources` | `item_npc_shop_relations`, `item_source_facts`, `item_source_details` | `npcs`, `npc_shop_entries`, `npc_shop_conditions`, `condition_terms`, `world_contexts` | NPC gameId/internalName；每 NPC shop parent scope；condition code | 当前 fresh 只到源产物；`town-npc-sync` 在 19 操作外，必须拆 preview/apply 后 onboarding |
+| shimmer | `maint_shimmer_pages`, `maint_shimmer_item_transforms`, `maint_shimmer_decraft_rules`, `maint_shimmer_entity_transforms`, `maint_shimmer_npc_transforms` | 当前无 canonical shimmer relation/projection 表 | `world_contexts`, `entity_source_snapshots`, `shimmer_item_transforms`, `shimmer_decraft_rules`, `shimmer_entity_transforms`, `shimmer_npc_transforms` | provider=`wiki_zh` + context/page + table-specific normalized row key | 当前 fresh 只到源产物；既有 local import 为 broad provider-scope replace，必须先新增稳定 logical key 和 preview/apply pair |
+| audio | 当前无 maint 表 | 当前无 relation/projection 表 | `audio_assets`, `audio_asset_links` | assetId；link `(audio_asset_id, entity_type, source_key, relation_type)` | 当前操作仅 fetch；audio import 在 19 操作外，必须新增 preview/apply、snapshot 和 rollback capability |
+| category/support | `maint_categories`, `maint_item_categories`, `maint_category_nodes`, `maint_item_category_assignments` | `category_nodes`, `item_category_assignments` | `category`, `item_category_rel`, `items.category_id` | category code/node key；item + category + deleted；maint/relation `record_key` | support sync 在 19 操作外；现有 daemon 写入路径必须先拆分并默认关闭 |
+
+跨域公共落地/审计表另行声明：
+
+- `terria_v1_local.source_dataset_landings` 是 landing staging 表，只按 source dataset identity/content hash 写入，不属于最终业务投影。
+- `terria_v1_relation.relation_runs`、`relation_run_reports` 和 `item_npc_relation_audits` 是同步/审计事实；它们随 relation apply 写入，但不计入游戏实体变更阈值。
+- 临时表和 `*_backup_<timestamp>` 仅属于受控事务/回滚实现，不得加入长期 capability ownedTables，也不得由前端展示为业务目标表。
+- 当前 schema 没有为 `items`、recipes、loot、shop、Shimmer 明细等全部表提供足够的数据库唯一约束；implementation plan 必须先定义并测试 canonical logical key，不能用自增 id 或 affected-row count 代替。
+
+每个 capability manifest 必须逐表声明 `databaseRole`（maint/relation/local）、`ownedTables`、`readOnlyDependencies`、`logicalKeySchemaVersion`、`ownedScope`、允许变更类型和 rollback mode。表未出现在本矩阵或 manifest 时，apply 必须 fail-closed。
+
+共享目标的 ownership 进一步按物理列和逻辑谓词锁定：
+
+- `terria_v1_local.npcs` 的基础实体列（身份、数值、名称、`status/deleted`）只能由 `npcs` capability 写入；boss capability 只能写 `is_boss/boss_group_id/boss_role`，Town NPC capability 只能写已登记的 Town NPC 字段。未列出的列没有 owner，任何 capability 触碰即 fail-closed。
+- `npc_loot_entries` 按 `npc_id` owner scope 分区；`npc_loot` 只允许 `drop_source_kind=npc_drop` 的非 boss parent，`boss_loot` 只允许声明的 boss group parent，交集或无法解析 parent 时拒绝 apply。
+- `npc_buff_relations`、`npc_biomes`、`item_acquisition_sources` 和 `items.category_id` 属于共享表：必须按 `(parent id, relation/source type, provider)` 或明确字段 owner 分区并获取表级联合 fence；无法证明互斥时只能作为 `readOnlyDependency`，保持 L0-disabled。
+- `category/support` 独占 `items.category_id` 和 `item_category_rel` 的写入；`items` capability 只能读取 category 字段。任意 shared table 的 field owner、predicate 或 fence 缺失，都不得进入 L1/L2。
+
+执行计划必须生成机器可读的 `tableOwnershipMatrix`，对每个 capability pair 做交集检查；rollback 的 latest-writer 判断按物理表、列组和逻辑 scope 计算，不能只按 domainId 判断。
+
+`source_dataset_landings` 是按 `(dataset_type, provider, source_key, source_page, is_current)` 管理当前行和内容哈希的版本化 staging；`relation_runs`/`relation_run_reports` 是按 `run_key` 追加的运行事实，`item_npc_relation_audits` 则按 relation run 做清理后重建或幂等 upsert。它们都不计入业务 diff 阈值，但必须声明幂等键、单 run 容量上限、保留/GC 策略和写失败语义。landing/audit 写失败时，相关业务 apply 不得标记 completed；要么同事务回滚，要么进入 `CIRCUIT_BROKEN` 等待重试，不得静默丢失审计。
 
 ---
 
@@ -358,7 +408,7 @@ Owner 对 L1 的批准是对不可变 exact run 的一次性有界例外，不�
 
 实现与离线验收不得代替真实 operation-level activation。V2 epoch、environmentId 或 policy/capability hash 变化时 activation 自动失效并 fail-closed。
 
-任何 test/acceptance profile 不得创建 T2 activation，也不得把测试成功自动转换为 `terria_v1_local` 的 scheduler/domain activation。T2 激活记录必须由正式本地 profile 在独立审批流程中创建。
+任何 test/acceptance profile 不得创建 T2 activation，也不得把测试成功自动转换为正式三库链的 scheduler/domain activation。T2 激活记录必须由正式本地 profile 在独立审批流程中创建。
 
 ### 9.1 创建 intent
 
@@ -389,10 +439,12 @@ PolicyService 验证 operation capability、evidence freshness/schema/hash、gat
 
 - 获取 domain/scope write fence；同一时刻全局最多一个 DB apply。
 - 再次确认 policySetHash、逐域 policy versions/hashes、evidenceHash、frozen bundle hash、mutation generation 和 preview 未过期。
-- 创建 owned table/parent scope 快照并校验 hash。
+- 创建每个 databaseRole 的 owned table/parent scope 快照并校验 hash；run 必须持久化三库的 host、port、server UUID、schema hash 和 commit protocol。
 - 启动独立 apply child attempt；apply 不自动重试，且禁止网络访问、重新 normalize 或读取可变 source/latest 文件。
 - apply 连接设置当前 automationRunId，在事务内读取 frozen bundle、重新计算 normalized logical diff；actual diff hash、key sets、counts 和 baselineFingerprint 必须与 decision 完全一致。`AUTO_APPLY_L2` 再检查所有 covered domains 的当前 ceiling；`APPROVED_OWNER_L1` 检查一次性 approval 未消费且批准身份完全相等，不要求已知的 L1 diff 回落到 L2 ceiling。任一检查失败立即 rollback。
 - 脚本必须事务化或提供被批准的 scope reconcile 原子边界。
+
+三库提交协议必须先由 environment preflight 锁定：同一 MySQL server 且所有目标表为 InnoDB 时，maint/relation/local 使用同一事务跨 schema 提交；只要存在不同 server、非事务表或无法证明单事务覆盖，必须切换为 staged protocol（maint committed -> relation committed -> local committed），每一步有 durable stage marker、下游 gate 和补偿 snapshot。任一阶段失败时禁止启动后续阶段，run 进入 `CIRCUIT_BROKEN`/`ROLLBACK_REQUIRED`，不得把部分成功报告为 completed。自动 rollback 也必须按同一 protocol 逐库验证 generation 和 latest-writer。
 
 ### 9.4.1 V2 child 身份与所有权
 
@@ -580,7 +632,7 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 
 具体执行任务由后续计划拆解，但采用以下固定六阶段，顺序依赖不得跳过：
 
-1. **Foundation**：修复 156/157、clean-clone evidence、落地 19-operation matrix、冻结 bundle-only apply、mutation generation 和 fail-closed gates。
+1. **Foundation**：维持 Plan A 157/157 和可复现的 clean-clone fixture evidence，落地 19-operation matrix、冻结 bundle-only apply、mutation generation 和 fail-closed gates；T1/T2 仍必须验证 live evidence freshness。
 2. **Policy + Evidence**：数据表、策略服务、Owner、reauth、私有证据存储。
 3. **Orchestration**：parent run、child V2 attempts、intent merge、scheduler、decision flow。
 4. **Rollback**：snapshot、write fence、post-verify、受保护自动恢复和 retention GC。
@@ -601,10 +653,11 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 
 ### 16.1 自动化测试
 
-所有会执行 migration、trigger、INSERT/UPDATE/DELETE、apply、restore、TRUNCATE 拒绝验证或 DDL 权限验证的自动化测试都必须在 T0 一次性库运行。测试夹具不得把 `terria_v1_local` 作为默认值或 fallback；临时库创建失败时测试必须失败，不能降级连接真实库。
+所有会执行 migration、trigger、INSERT/UPDATE/DELETE、apply、restore、TRUNCATE 拒绝验证或 DDL 权限验证的自动化测试都必须在 T0 一次性三库集合运行。测试夹具不得把任一 T2 库作为默认值或 fallback；临时三库创建失败时测试必须失败，不能降级连接真实库。
 
 - operation capability manifest 完整性和 preview/apply 配对
 - 19-operation matrix 与 registry 逐项一致、写动作默认 L0-disabled
+- 下游目标表矩阵与 maint schema、relation table catalog、projection config、local Flyway/SQL 写入口逐项一致
 - frozen apply bundle hash、bundle-only apply、事务内 diff recheck 和 changed-source rejection
 - policy hash/version、规范化 multi-domain policySetHash、双阈值、zero-baseline 和 reason codes
 - L2 ceiling enforcement 与 approved-L1 exact-equality 分支；L1 approval 只消费一次，任何 diff/policy/evidence 变化均拒绝
@@ -618,7 +671,7 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 - full V2 identity、automation dedupe ownership、manual-attempt collision、multi-domain policy-set identity 和 joint fencing
 - alert dedupe、ack、email delivery failure
 - admin page risk ordering、tabs、evidence completeness、disabled reason 和 accessibility contracts
-- test/acceptance profile 的 protected-database rejection、用途 token、server UUID、凭据角色和 environmentId 防误写门禁
+- test/acceptance profile 对三套正式库的 protected-database rejection、三库同 runKey、用途 token、server UUID、凭据角色和 environmentId 防误写门禁
 
 ### 16.2 必需门禁
 
@@ -628,12 +681,12 @@ GC 只删除超过时间且超过最低保留数、未被 active incident/legal 
 - focused V2 backend tests and crawler/workflow tests
 - admin unit/typecheck/build
 - backend compile/test-compile and focused services/controllers
-- 自动化测试日志证明使用唯一 T0 库，集成验收日志证明使用唯一 T1 库；任何日志出现 T2 writer 连接即失败
+- 自动化测试日志证明使用唯一 T0 三库集合，集成验收日志证明使用唯一 T1 三库集合；任何日志出现 T2 writer 连接即失败
 - `git diff --check`
 
 ### 16.3 Runtime acceptance
 
-默认验证只运行 isolated/no-network fixtures：写库测试在 T0，完整集成验收在 T1。T2 `terria_v1_local` 默认只执行只读 L0 shadow；任何真实 crawler 或 T2 local apply 必须停在显式用户授权 checkpoint，逐 operation 授权，不得由“继续执行计划”或测试授权泛化授权。
+默认验证只运行 isolated/no-network fixtures：写库测试在 T0 三库集合，完整集成验收在 T1 三库集合。T2 正式三库链页面验收只允许显式 read-only API/SQL allowlist、只读数据库凭据和无 mutation control 的 smoke path；任何按钮、审批、策略变更、真实 crawler 或 T2 apply 必须停在显式用户授权 checkpoint，并在 T0/T1 验证。不得由“继续执行计划”或测试授权泛化授权。
 
 T1 验收通过只证明候选版本具备进入 T2 L0/L1 流程的资格，不授权 T2 写入。T2 的 L1 验收必须先生成并展示目标库指纹、exact diff、snapshot 和回滚点，再由用户单次批准。L2 仅在后续满足连续 L1、周对账和 Owner 晋级条件后作为正式运行启用。
 
@@ -648,8 +701,8 @@ T1 验收通过只证明候选版本具备进入 T2 L0/L1 流程的资格，不�
 - foundation blockers 关闭
 - 离线门禁全绿
 - clean-clone evidence 可复现
-- T0 自动测试和 T1 isolated runtime 通过，且防误写测试证明两者拒绝 `terria_v1_local`
-- T2 全域只读 L0 shadow 通过
+- T0 自动测试和 T1 isolated runtime 通过，且防误写测试证明两者拒绝全部 T2 正式库
+- T2 三库链全域只读 L0 shadow 通过
 - 版本化策略、审批、快照、回滚和页面证据可追踪
 - 用户另行授权的 L1 runtime acceptance 完成或明确留作后续 owner/checkpoint
 - 没有域因“操作已注册”而被错误标记为 L2-ready

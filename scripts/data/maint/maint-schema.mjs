@@ -33,6 +33,13 @@ export const MAINT_TABLE_NAMES = [
   'maint_shimmer_npc_transforms',
 ];
 
+export const MAINT_TABLE_CATALOG = Object.freeze(MAINT_TABLE_NAMES.map((table) => Object.freeze({
+  databaseRole: 'maint',
+  table,
+  tableKind: 'maint',
+  engine: 'InnoDB'
+})));
+
 export function buildMaintSchemaSql() {
   return `
 CREATE TABLE IF NOT EXISTS \`maint_items\` (

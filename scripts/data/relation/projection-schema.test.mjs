@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  PROJECTION_TABLE_CATALOG,
   PROJECTION_TABLE_NAMES,
   buildProjectionSchemaStatements
 } from './projection-schema.mjs';
+
+test('PROJECTION_TABLE_CATALOG exposes stable automation ownership metadata', () => {
+  assert.deepEqual(PROJECTION_TABLE_CATALOG.map((entry) => entry.table), PROJECTION_TABLE_NAMES);
+  assert.equal(PROJECTION_TABLE_CATALOG.every((entry) => entry.databaseRole === 'relation'), true);
+  assert.equal(PROJECTION_TABLE_CATALOG.every((entry) => entry.tableKind === 'projection'), true);
+});
 
 test('PROJECTION_TABLE_NAMES stays ordered and complete', () => {
   assert.deepEqual(PROJECTION_TABLE_NAMES, [
