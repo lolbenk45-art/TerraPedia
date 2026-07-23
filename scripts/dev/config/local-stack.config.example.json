@@ -13,6 +13,23 @@
     "password": "root",
     "dataDir": "~/.local/share/terrapedia/redis/redis-6380"
   },
+  "automationTestIsolation": {
+    "enabled": false,
+    "manifestDir": "reports/crawler-automation/manifests",
+    "runKeyRegistry": "reports/crawler-automation/run-key-mappings.json",
+    "t0DatabasePrefix": "terria_v1_automation_test_",
+    "t1DatabasePrefix": "terria_v1_automation_acceptance_",
+    "provisionerCredentialRole": "automation-provisioner",
+    "expectedServerIdentity": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "set-from-isolated-test-server",
+      "redisHost": "127.0.0.1",
+      "redisPort": 6380,
+      "environmentId": "local-automation-test"
+    },
+    "formalDatabasesReadOnly": ["terria_v1_local", "terria_v1_maint", "terria_v1_relation"]
+  },
   "backend": {
     "port": 18088
   },

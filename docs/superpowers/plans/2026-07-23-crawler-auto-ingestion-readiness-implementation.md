@@ -122,12 +122,12 @@ Expected result: all manifests fail closed for unknown tables, unowned fields, o
 - Add: `scripts/data/automation/automation-test-profile.test.mjs`
 - Modify: `scripts/dev/config/local-stack.config.example.json`
 
-- [ ] Create exactly `terria_v1_automation_test_<runKey>_{local,maint,relation}` for T0 and `terria_v1_automation_acceptance_<runKey>_{local,maint,relation}` for T1.
-- [ ] Use a dedicated acceptance-provisioner identity that can create, migrate, and drop only the current runKey prefix; prove it cannot DDL/DML any T2 database.
-- [ ] Copy T1 from explicit T2 read-only snapshots only; source connections must have no DDL/DML grants, and sensitive payloads must be scrubbed before insertion.
-- [ ] Allocate a distinct Redis logical DB/epoch per runKey and persist the mapping in the run manifest.
-- [ ] Make cleanup idempotent and prefix-restricted; a runKey mismatch or protected database match must abort cleanup.
-- [ ] Add tests that attempt T2 local/maint/relation connections, wrong-role credentials, wrong server UUID, wrong Redis epoch, missing one member of the three-database set, and cleanup outside the prefix.
+- [x] Create exactly `terria_v1_automation_test_<runKey>_{local,maint,relation}` for T0 and `terria_v1_automation_acceptance_<runKey>_{local,maint,relation}` for T1.
+- [x] Use a dedicated acceptance-provisioner identity that can create, migrate, and drop only the current runKey prefix; prove it cannot DDL/DML any T2 database.
+- [x] Copy T1 from explicit T2 read-only snapshots only; source connections must have no DDL/DML grants, and sensitive payloads must be scrubbed before insertion.
+- [x] Allocate a distinct Redis logical DB/epoch per runKey and persist the mapping in the run manifest.
+- [x] Make cleanup idempotent and prefix-restricted; a runKey mismatch or protected database match must abort cleanup.
+- [x] Add tests that attempt T2 local/maint/relation connections, wrong-role credentials, wrong server UUID, wrong Redis epoch, missing one member of the three-database set, and cleanup outside the prefix.
 
 Validation:
 

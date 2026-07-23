@@ -10,12 +10,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   on branch `design/crawler-auto-ingestion-readiness` in worktree
   `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`.
   Owner: Codex; status: active; parent/child: standalone; blocked by: none;
-  Tasks 0-2 execution is complete after user selected inline execution;
+  Tasks 0-3 execution is complete after user selected inline execution;
   contract handoff: frozen-input,
   policy-set, approval, write-fence, three-database purpose isolation,
   downstream target-table matrix, shared-table ownership, three-database commit
   protocol, capability contracts, and executable task gates are documented. Tasks
-  0-2 are implemented and reviewed; Task 3 must add fake-adapter provisioning contracts before
+  0-3 are implemented and reviewed; Task 4 must add frozen evidence/policy contracts before
   any disposable database is created. See
   `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
   `../superpowers/plans/2026-07-23-crawler-auto-ingestion-readiness-implementation.md`.

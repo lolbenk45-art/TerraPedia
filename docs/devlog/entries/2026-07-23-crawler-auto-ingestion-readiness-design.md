@@ -63,7 +63,7 @@
 ## Result
 
 - Completed: isolated design branch, task boundary, read-only chain audit, resolved questionnaire, reviewed design specification, three-database test isolation, downstream target-table matrix, documentation validation, Town NPC test isolation repair, and clean-clone fixture evidence repair.
-- In progress: Tasks 3-9 of the implementation plan; Tasks 0-2 code and focused validation are complete, while disposable T0/T1 provisioning contracts remain to be implemented.
+- In progress: Tasks 4-9 of the implementation plan; Tasks 0-3 code and focused validation are complete, while frozen evidence/policy contracts remain to be implemented.
 
 ## Residual Risks
 
@@ -96,6 +96,7 @@
 - Boundary review findings: shared local tables had no field-level ownership/conflict contract; three-database commit semantics did not distinguish same-server transaction from cross-server compensation; T1 provisioner privileges, runKey collision/length rules, staging/audit failure semantics, and T2 page read-only allowlist were underspecified.
 - Boundary review disposition: repaired with physical-column/parent-predicate ownership rules, machine-readable tableOwnershipMatrix requirement, per-role three-database fingerprints and commit protocol, restricted acceptance provisioner, fixed hash-suffixed runKey, append-only audit failure handling, and T2 read-only API/SQL smoke boundary. Re-review is required before execution planning.
 - Task 2 implementation review disposition: initial review found identity, ownership, predicate, and catalog gaps; three repair rounds added a durable file-backed runKey registry with atomic locking, observed-role validation, explicit item/NPC/Town NPC/loot relation owners, fail-closed Flyway target DDL parsing with version ordering, and resolver boundary tests. Focused database/ownership tests pass 17/17; schema catalogs pass 21/21; Plan A passes 157/157; maintenance chain passes 9/9; `git diff --check` passes. Fresh targeted re-review reports no Critical/Important findings.
+- Task 3 implementation review disposition: fake-adapter-only T0/T1 provisioning contracts enforce trusted-vs-observed server identity, exact runKey grants with T2 deny proof, scrubbed read-only three-database snapshots, exclusive Redis reservation identity, manifest locking/state transitions, attempted-create compensation, cleanup-required records, and server-verified idempotent cleanup. Combined Task 2+3 contracts pass 30/30; schema catalogs pass 21/21; Plan A passes 157/157; maintenance chain passes 9/9; `git diff --check` passes. Fresh targeted re-review reports no Critical/Important findings. No database or Redis command was run.
 
 ## Follow-up
 
@@ -106,4 +107,4 @@
 
 - `8ca00f9d` — initial automated-ingestion readiness design checkpoint.
 - `d110fbb7` — database-purpose isolation correction checkpoint.
-- `pending` — Task 2 machine-readable database and ownership contract checkpoint; no formal database or Redis writer command was run.
+- `pending` — Task 3 fake-adapter provisioning contract checkpoint; no formal database or Redis writer command was run.
