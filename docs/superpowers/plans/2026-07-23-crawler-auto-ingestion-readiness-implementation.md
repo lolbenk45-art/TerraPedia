@@ -223,13 +223,13 @@ Expected result: an apply can only be authorized by an unchanged exact bundle an
 - Modify: the existing relation/local sync entrypoints only through injected bundle and protocol adapters
 - Add: isolated grant migration/test fixture for runtime/manual writer identities
 
-- [ ] Preflight every databaseRole and classify the commit protocol as same-server single transaction or cross-server staged protocol.
-- [ ] For same-server InnoDB, begin one transaction across qualified maint/relation/local schemas and commit only after all stage checks pass.
-- [ ] For staged mode, persist `maint_committed`, `relation_committed`, and `local_committed` markers; block downstream stages after any failure and require compensation snapshot before retry.
-- [ ] Install/verify INSERT/UPDATE/DELETE generation triggers on owned tables; record writer run identity and reject automatic rollback when trigger/schema/grant health is incomplete.
-- [ ] Acquire fences by databaseRole, physical table, field group, and logical predicate; reject any ownership intersection before apply.
+- [x] Preflight every databaseRole and classify the commit protocol as same-server single transaction or cross-server staged protocol.
+- [x] For same-server InnoDB, begin one transaction across qualified maint/relation/local schemas and commit only after all stage checks pass.
+- [x] For staged mode, persist `maint_committed`, `relation_committed`, and `local_committed` markers; block downstream stages after any failure and require compensation snapshot before retry.
+- [x] Install/verify INSERT/UPDATE/DELETE generation triggers on owned tables; record writer run identity and reject automatic rollback when trigger/schema/grant health is incomplete.
+- [x] Acquire fences by databaseRole, physical table, field group, and logical predicate; reject any ownership intersection before apply.
 - [ ] Verify relation integrity, representative samples, public/admin read-only APIs, and cache visibility before completed state.
-- [ ] Add T0 tests for partial commit, cross-server compensation, later writer collision, trigger missing, DDL/TRUNCATE denial, stale fence, and rollback refusal.
+- [x] Add T0 tests for partial commit, cross-server compensation, later writer collision, trigger missing, DDL/TRUNCATE denial, stale fence, and rollback refusal.
 
 Validation:
 
