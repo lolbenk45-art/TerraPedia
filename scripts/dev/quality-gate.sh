@@ -68,6 +68,20 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/workflow/domain-acceptance-a-grade-gate.test.mjs \
   scripts/data/workflow/domain-acceptance-generate-reports.test.mjs
 
+run_step "Crawler automation contract tests" . node --test \
+  scripts/data/automation/automation-database-contract.test.mjs \
+  scripts/data/automation/automation-test-profile.test.mjs \
+  scripts/data/automation/table-ownership-matrix.test.mjs \
+  scripts/data/automation/frozen-apply-bundle.test.mjs \
+  scripts/data/automation/policy-set-hash.test.mjs \
+  scripts/data/automation/crawler-automation-migration-contract.test.mjs \
+  scripts/data/automation/mutation-generation.test.mjs \
+  scripts/data/automation/table-ownership-fence.test.mjs \
+  scripts/data/automation/three-database-commit-protocol.test.mjs \
+  scripts/data/automation/capability-manifest.test.mjs \
+  scripts/data/automation/run-automation-acceptance.test.mjs \
+  data-query-app/pages/operations/crawler-automation.contract.test.mjs
+
 run_step "Crawler source layout check (warning-only)" . node \
   scripts/data/crawler/source-layout-check.mjs
 

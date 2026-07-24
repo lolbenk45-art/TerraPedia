@@ -311,11 +311,11 @@ Expected result: T2 page checks can inspect real data without exposing a write p
 - Modify: `scripts/dev/quality-gate.sh`
 - Modify: relevant devlog entry and `docs/devlog/current.md`
 
-- [ ] Run unit/contract tests first; then provision a disposable T0 three-database set and execute migrations, trigger tests, bundle/apply/rollback tests, and grants tests.
+- [x] Run unit/contract tests first; then provision a disposable T0 three-database set and execute migrations, trigger tests, bundle/apply/rollback tests, and grants tests.
 - [ ] Provision T1 from explicit read-only snapshots, run full preview/apply/verify/rollback acceptance, then record only hashes, counts, and non-sensitive evidence before cleanup.
-- [ ] Run T2 read-only L0 shadow for all domains with no mutation controls and verify API/table counts and representative samples.
-- [ ] Stop at the documented checkpoint if any T0/T1 test connects to a T2 writer, if evidence is stale/missing, if ownership intersects, or if a three-database stage is partial.
-- [ ] Do not activate scheduler or any domain write capability in this task. L1 requires a separate user authorization checkpoint after this plan is complete.
+- [x] Run T2 read-only L0 shadow for all domains with no mutation controls and verify API/table counts and representative samples.
+- [x] Stop at the documented checkpoint if any T0/T1 test connects to a T2 writer, if evidence is stale/missing, if ownership intersects, or if a three-database stage is partial.
+- [x] Do not activate scheduler or any domain write capability in this task. L1 requires a separate user authorization checkpoint after this plan is complete.
 
 Validation:
 
