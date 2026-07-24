@@ -8,10 +8,48 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import com.terraria.skills.dto.CrawlerAutomationOverviewDTO;
 import java.util.List;
 
 @Mapper
 public interface CrawlerAutomationRunMapper extends BaseMapper<CrawlerAutomationRun> {
+
+    @Select("""
+        SELECT p.domain_id AS domainId,
+               p.current_level AS automationLevel,
+               p.operational_state AS operationalState,
+               r.run_id AS lastRunId,
+               r.status AS lastRunStatus,
+               r.completed_at AS lastRunCompletedAt,
+               '[]' AS activeAlerts
+        FROM crawler_automation_policy p
+        LEFT JOIN crawler_automation_run r
+          ON r.run_id = (
+            SELECT run_id FROM crawler_automation_run
+            WHERE run_id LIKE CONCAT(p.domain_id, '%')
+            ORDER BY created_at DESC LIMIT 1
+          )
+        ORDER BY p.domain_id
+        """)
+    List<CrawlerAutomationOverviewDTO.DomainSummary> findActiveDomainSummaries();
+
+    @Select("""
+        SELECT r.run_id AS runId, r.status AS runStatus, r.version AS runVersion,
+               d.decision AS decision, d.decision_hash AS decisionHash,
+               d.reason_codes_json AS reasonCodesJson, d.policy_set_hash AS policySetHash,
+               d.evidence_hash AS evidenceHash, d.bundle_hash AS bundleHash,
+               d.logical_diff_hash AS logicalDiffHash,
+               d.logical_diff_identity_json AS logicalDiffIdentityJson,
+               d.baseline_fingerprint AS baselineFingerprint,
+               d.planned_apply_action_id AS plannedApplyActionId,
+               d.snapshot_required AS snapshotRequired
+        FROM crawler_automation_run r
+        JOIN crawler_automation_decision d ON d.run_id = r.run_id
+        ORDER BY r.created_at DESC
+        LIMIT #{limit}
+        """)
+    List<DecisionContext> findRecentDecisionContexts(@Param("limit") int limit);
+
 
     @Select("""
         SELECT r.run_id AS runId, r.status AS runStatus, r.version AS runVersion,

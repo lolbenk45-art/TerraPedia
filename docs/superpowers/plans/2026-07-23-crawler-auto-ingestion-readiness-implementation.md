@@ -287,12 +287,12 @@ Expected result: all registered actions are observable and preview-safe; no acti
 - Add: `data-query-app/components/crawler-monitor/CrawlerAutomationEvidenceDrawer.vue`
 - Add: `data-query-app/pages/operations/crawler-automation.contract.test.mjs`
 
-- [ ] Keep monitor/control API compatibility and add a separate automation namespace for overview, policy, run evidence, approval/reject, rollback, reauth, and alert acknowledge.
-- [ ] Make every mutation require runId, policySetHash, decision/evidence identity, bundle hash where applicable, idempotency key, and current optimistic version.
-- [ ] Bind Owner to the current configured ADMIN; reauth is short-lived, one-time, challenge-bound, and never logged in plaintext.
+- [x] Keep monitor/control API compatibility and add a separate automation namespace for overview, policy, run evidence, approval/reject, rollback, reauth, and alert acknowledge.
+- [x] Make every mutation require runId, policySetHash, decision/evidence identity, bundle hash where applicable, idempotency key, and current optimistic version.
+- [x] Bind Owner to the current configured ADMIN; reauth is short-lived, one-time, challenge-bound, and never logged in plaintext.
 - [ ] Render risk console first, pipeline and domain matrix as tabs, and expose disabled reasons from backend state rather than deriving them in Vue.
-- [ ] Add a T2 read-only smoke mode that removes or disables mutation controls and uses a read-only API/SQL allowlist; all mutation UI tests point to T0/T1.
-- [ ] Test unauthorized approval, stale version, wrong bundle, duplicate request, non-Owner, expired reauth, and read-only T2 mutation absence.
+- [x] Add a T2 read-only smoke mode that removes or disables mutation controls and uses a read-only API/SQL allowlist; all mutation UI tests point to T0/T1.
+- [x] Test unauthorized approval, stale version, wrong bundle, duplicate request, non-Owner, expired reauth, and read-only T2 mutation absence.
 
 Validation:
 
