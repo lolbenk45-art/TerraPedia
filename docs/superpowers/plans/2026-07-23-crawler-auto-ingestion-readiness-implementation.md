@@ -144,23 +144,63 @@ Expected result: the tests use fake MySQL/Redis adapters or disposable T0 databa
 - Add: `back/src/main/java/com/terraria/skills/entity/CrawlerAutomationRun.java`
 - Add: `back/src/main/java/com/terraria/skills/entity/CrawlerAutomationPolicy.java`
 - Add: `back/src/main/java/com/terraria/skills/entity/CrawlerAutomationApproval.java`
+- Add: `back/src/main/java/com/terraria/skills/entity/CrawlerAutomationDecision.java`
 - Add: `back/src/main/java/com/terraria/skills/mapper/CrawlerAutomationRunMapper.java`
 - Add: `back/src/main/java/com/terraria/skills/mapper/CrawlerAutomationPolicyMapper.java`
 - Add: `back/src/main/java/com/terraria/skills/mapper/CrawlerAutomationApprovalMapper.java`
+- Add: `back/src/main/java/com/terraria/skills/mapper/CrawlerAutomationDecisionMapper.java`
 - Add: `back/src/main/java/com/terraria/skills/service/CrawlerAutomationPolicyService.java`
 - Add: `back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImpl.java`
+- Add: `back/src/main/java/com/terraria/skills/service/impl/FailClosedCrawlerAutomationApplyContextProvider.java`
 - Add: `back/src/test/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImplTest.java`
 - Add: `scripts/data/automation/frozen-apply-bundle.mjs`
 - Add: `scripts/data/automation/frozen-apply-bundle.test.mjs`
 - Add: `scripts/data/automation/policy-set-hash.mjs`
 - Add: `scripts/data/automation/policy-set-hash.test.mjs`
+- Add: `scripts/data/automation/crawler-automation-migration-contract.test.mjs`
 
-- [ ] Create immutable records for owner, policy version, run, run policy set, child attempt identity, evidence, decision, approval, snapshot, alert, write fence, and mutation generation.
-- [ ] Generate content-addressed `apply-input.bundle.json` containing all apply inputs; reject latest-path references, network calls, re-normalization, and missing schema version.
-- [ ] Compute canonical `policySetHash` from sorted `(domainId, policyVersion, policyHash)` rows and persist the same hash on run, decision, approval, snapshot, bundle, and apply.
-- [ ] Implement exact diff identity as logical key sets plus counts plus baseline fingerprint; approval consumption must be one-time and idempotent by request key.
-- [ ] Enforce L0/L1/L2 decisions, zero-baseline behavior, absolute/ratio ceilings, anomaly circuit breaks, and the approved-L1 exact-equality exception.
-- [ ] Add tests for changed bundle, changed policy, changed source, duplicate approval, stale version, zero baseline, threshold equality, threshold overflow, and anomaly rejection.
+- [x] Create immutable records for owner, policy version, run, run policy set, child attempt identity, evidence, decision, approval, snapshot, alert, write fence, and mutation generation.
+- [x] Generate content-addressed `apply-input.bundle.json` containing all apply inputs; reject latest-path references, network calls, re-normalization, and missing schema version.
+- [x] Compute canonical `policySetHash` from sorted `(domainId, policyVersion, policyHash)` rows and persist the same hash on run, decision, approval, snapshot, bundle, and apply.
+- [x] Implement exact diff identity as logical key sets plus counts plus baseline fingerprint; approval consumption must be one-time and idempotent by request key.
+- [x] Enforce L0/L1/L2 decisions, zero-baseline behavior, absolute/ratio ceilings, anomaly circuit breaks, and the approved-L1 exact-equality exception.
+- [x] Add tests for changed bundle, changed policy, changed source, duplicate approval, stale version, zero baseline, threshold equality, threshold overflow, and anomaly rejection.
+
+Task 4 review repair gate (2026-07-23):
+
+Repair round 4 scope: the fail-closed default apply-context provider is now the
+only default `ApplyContextProvider` bean; authorization carries a server-
+derived context fingerprint and reauthorizes inside transactional L1/L2
+execution methods. Task 5 remains blocked until focused regression tests and a
+fresh independent review report zero Critical/Important findings.
+
+Repair round 5 scope after independent review:
+
+- [x] Replace the impossible pre-enqueue attempt row contract with immutable
+  reservation plus immutable attached-identity facts; both must be persistable
+  without nullable or later-mutated V2 identity fields.
+- [x] Reload the persisted domain policy before evaluation; DISABLED, SHADOW,
+  CIRCUIT_OPEN, L0, stale version, stale hash, or caller-level mismatch must
+  fail closed before an L1/L2 decision can be persisted.
+- [x] Load and validate `policy_set_hash` on every run-policy row, not only its
+  domain/version/hash tuple.
+- [x] Replace arbitrary `Runnable` apply callbacks with a transaction-bound
+  apply-work contract, reject execution without an active Spring transaction,
+  and prove an apply exception marks the transaction for rollback.
+- [x] Add a no-database migration parser/contract gate for statement shape,
+  FK-to-unique-key targets, immutable fact triggers, attempt reservation/attach,
+  and approval CAS SQL. Real isolated MySQL execution remains a Task 8 T0 gate;
+  no formal database may be used here.
+
+- [x] Freeze canonical source content inside the bundle, derive artifact hashes from bytes, use bytewise ordering, reject unsafe/non-normalized provenance paths, and prove later source mutation cannot change or bypass the bundle.
+- [x] Persist and reload the complete run/decision/policy-set/evidence/bundle chain before approval; derive decision and diff hashes server-side rather than trusting request hashes.
+- [x] Require exact Owner plus one-time reauth, `REQUIRES_OWNER_L1`, an allowed non-anomaly reason set, current run/policy versions, and complete logical key/count/baseline identity before creating an approval.
+- [x] Split `AUTO_APPLY_L2` and `APPROVED_OWNER_L1` authorization; validate exact current bundle, policy set, evidence, diff, baseline, schema, capability, gates, and per-scope mutation generations.
+- [x] Return an unconsumed approval token from authorization and consume it only inside the Task 5 apply transaction; a failed apply must not burn approval and a concurrent second consumption must fail.
+- [x] Evaluate ratios per owned entity scope and per exact relationship parent scope, plus aggregate absolute caps; empty-baseline non-insert mutations and malformed/duplicate scope keys are circuit breaks.
+- [x] Enforce singleton Owner, scoped policy hash uniqueness, and append-only immutable-fact storage; add persistence contract tests before Task 4 closes.
+
+Stop condition: Task 5 remains blocked until a fresh independent review reports zero Critical/Important findings for all repair items above.
 
 Validation:
 
