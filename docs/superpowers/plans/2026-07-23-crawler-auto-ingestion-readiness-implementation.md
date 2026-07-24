@@ -254,11 +254,11 @@ Expected result: no test can report completed after a partial three-database wri
 - Add: `scripts/data/automation/capability-manifest.test.mjs`
 - Modify: existing refresh scripts so preview/apply are separate entrypoints and apply accepts only the frozen bundle
 
-- [ ] Register all 19 current operations with exact actionId, preview/apply pairing, progress path, owned tables/scopes, read-only dependencies, snapshot/verify/rollback mode, and default `L0 + DISABLED` state.
-- [ ] Remove or gate any default `apply=true`; an apply entrypoint without an exact bundle must exit non-zero before network or DML.
-- [ ] Keep `town-npc-sync`, independent-entity import, Shimmer import, audio import, and support sync outside the 19-operation registry until they have their own capability rows and tests.
+- [x] Register all 19 current operations with exact actionId, preview/apply pairing, progress path, owned tables/scopes, read-only dependencies, snapshot/verify/rollback mode, and default `L0 + DISABLED` state.
+- [x] Remove or gate any default `apply=true`; an apply entrypoint without an exact bundle must exit non-zero before network or DML.
+- [x] Keep `town-npc-sync`, independent-entity import, Shimmer import, audio import, and support sync outside the 19-operation registry until they have their own capability rows and tests.
 - [ ] Add crawler progress contract tests for every new preview action: stable actionId, progress before network/loop, heartbeat, terminal status, canonical path, and isolated test path.
-- [ ] Add manifest tests that compare registry IDs to the 19-operation matrix and reject capability rows with missing target tables or ownership predicates.
+- [x] Add manifest tests that compare registry IDs to the 19-operation matrix and reject capability rows with missing target tables or ownership predicates.
 
 Validation:
 
