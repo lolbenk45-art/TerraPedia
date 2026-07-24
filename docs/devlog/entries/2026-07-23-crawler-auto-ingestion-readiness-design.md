@@ -63,7 +63,8 @@
 ## Result
 
 - Completed: isolated design branch, task boundary, read-only chain audit, resolved questionnaire, reviewed design specification, three-database test isolation, downstream target-table matrix, documentation validation, Town NPC test isolation repair, and clean-clone fixture evidence repair.
-- In progress: Tasks 4-9 of the implementation plan; Tasks 0-3 code and focused validation are complete, while frozen evidence/policy contracts remain to be implemented.
+- Completed Tasks 4-9: frozen evidence/policy contracts (V55 migration + 14 immutable-fact tables + CrawlerAutomationPolicyServiceImpl), three-database apply protocol (mutation-generation, table-ownership-fence, three-database-commit-protocol), 19-operation capability manifest (all L0+DISABLED), admin workflow with T2 read-only boundary (AdminCrawlerAutomationController + service + DTOs + contract tests), T0/T1 acceptance runner with hard stops, quality-gate automation contract step.
+- Closeout gate: Node automation contract suite 106/106; Java focused tests 38/38; `git diff --check` clean; `git status --short` shows only docs/devlog/current.md uncommitted; no push, no formal database writes, no scheduler or domain activation.
 
 ## Residual Risks
 

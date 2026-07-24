@@ -1,23 +1,22 @@
 # Current Devlog
 
-Last updated: 2026-07-23 22:10 CST by Codex
+Last updated: 2026-07-24 CST by Kiro
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Open Work
 
-- Crawler automated-ingestion readiness requirements, chain audit, and execution plan are active
-  on branch `design/crawler-auto-ingestion-readiness` in worktree
+- Crawler automated-ingestion readiness plan is complete (Tasks 0-9).
+  Branch: `design/crawler-auto-ingestion-readiness`; worktree:
   `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`.
-  Owner: Codex; status: active; parent/child: standalone; blocked by: none;
-  Tasks 0-3 execution is complete after user selected inline execution;
-  contract handoff: frozen-input,
-  policy-set, approval, write-fence, three-database purpose isolation,
-  downstream target-table matrix, shared-table ownership, three-database commit
-  protocol, capability contracts, and executable task gates are documented. Tasks
-  0-3 are implemented and reviewed; Task 4 must add frozen evidence/policy contracts before
-  any disposable database is created. See
-  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
+  Tasks 4-9 delivered: frozen evidence/policy/run persistence (V55 + 14 immutable tables),
+  three-database apply protocol (mutation-generation, ownership-fence, staged/single-txn),
+  19-operation capability manifest (all L0+DISABLED), admin workflow with T2 read-only
+  boundary, T0/T1 acceptance runner, quality-gate automation contract step.
+  Closeout gate: Node 106/106 + Java 38/38; git diff --check clean.
+  No production deployment, V1 deletion, new external sources, scheduler activation,
+  or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
+  See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
   `../superpowers/plans/2026-07-23-crawler-auto-ingestion-readiness-implementation.md`.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`

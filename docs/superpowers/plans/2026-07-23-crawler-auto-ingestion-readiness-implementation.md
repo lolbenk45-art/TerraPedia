@@ -328,10 +328,10 @@ Expected result: T0/T1 writes are isolated and auditable, T2 completes read-only
 
 ## 9. Closeout Gate
 
-- [ ] Run `git diff --check`, focused backend/data/admin tests, and the full quality gate; record exact pass/fail counts.
-- [ ] Run `git status --short`, `git diff --cached --stat`, and `git diff --cached --name-status`; stage only implementation files belonging to this plan.
-- [ ] Update `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` with result, validation, residual risks, and next checkpoint; update `docs/devlog/current.md` to point to the next active task.
-- [ ] Do not claim L1/L2 readiness until foundation blockers, T0/T1 isolation, ownership matrix, commit protocol, grants, evidence, and T2 L0 shadow are all green.
-- [ ] Keep production deployment, V1 deletion, new external sources, and formal T2 apply outside this plan.
+- [x] Run `git diff --check`, focused backend/data/admin tests, and the full quality gate; record exact pass/fail counts.
+- [x] Run `git status --short`, `git diff --cached --stat`, and `git diff --cached --name-status`; stage only implementation files belonging to this plan.
+- [x] Update `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` with result, validation, residual risks, and next checkpoint; update `docs/devlog/current.md` to point to the next active task.
+- [x] Do not claim L1/L2 readiness until foundation blockers, T0/T1 isolation, ownership matrix, commit protocol, grants, evidence, and T2 L0 shadow are all green.
+- [x] Keep production deployment, V1 deletion, new external sources, and formal T2 apply outside this plan.
 
 Plan closure definition: a fresh clone can run the focused gates and T0/T1 acceptance without a T2 writer connection; all 19 operations have truthful progress and capability metadata; the admin page can inspect T2 read-only data; and no domain is marked L1/L2-ready without explicit activation and approval.
