@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+
+const pageUrl = new URL('./crawler-monitor.vue', import.meta.url);
+const componentRoot = new URL('../../components/crawler-monitor/', import.meta.url);
 
 // Contract tests for the crawler-automation admin page.
 // These validate the API contract expectations used by the Vue components,
@@ -182,5 +186,28 @@ test('only AUTO_APPLY_L2 decisions set writeIntent=true', () => {
     const expected = d.decisionType === 'AUTO_APPLY_L2';
     assert.strictEqual(d.writeIntent, expected,
       `${d.decisionType}: expected writeIntent=${expected}`);
+  }
+});
+
+test('crawler monitor renders the automation risk console before secondary tabs', async () => {
+  const page = await readFile(pageUrl, 'utf8');
+  const risk = page.indexOf('<CrawlerAutomationRiskConsole');
+  const pipeline = page.indexOf('<CrawlerAutomationPipeline');
+  const matrix = page.indexOf('<CrawlerAutomationDomainMatrix');
+  assert.ok(risk >= 0, 'risk console is missing');
+  assert.ok(pipeline > risk, 'pipeline must follow the risk console');
+  assert.ok(matrix > risk, 'domain matrix must follow the risk console');
+  assert.match(page, /automationProfile\?\.readOnly/);
+});
+
+test('automation workbench components expose accessible states and evidence drawer', async () => {
+  for (const file of [
+    'CrawlerAutomationRiskConsole.vue',
+    'CrawlerAutomationPipeline.vue',
+    'CrawlerAutomationDomainMatrix.vue',
+    'CrawlerAutomationEvidenceDrawer.vue',
+  ]) {
+    const source = await readFile(new URL(file, componentRoot), 'utf8');
+    assert.match(source, /aria-|role=/, `${file} must expose an accessible state`);
   }
 });

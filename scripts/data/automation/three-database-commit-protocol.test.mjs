@@ -36,7 +36,9 @@ const BASE_APPLY_ARGS = {
   decisionHash: 'sha256:' + 'c'.repeat(64),
   approvalId: null,
   mode: 'AUTO_APPLY_L2',
-  beforeGenerations: { maint: 0, relation: 0, local: 0 }
+  beforeGenerations: { maint: 0, relation: 0, local: 0 },
+  preCommitVerifyWork: async () => ({ relationIntegrity: true }),
+  postCommitVerifyWork: async () => ({ relationIntegrity: true, apiSamples: true, cacheVisible: true })
 };
 
 // ── determineCommitProtocol ───────────────────────────────────────────────────
@@ -67,7 +69,7 @@ test('determineCommitProtocol rejects missing manifest fields', () => {
 // ── executeSameServerTransaction ──────────────────────────────────────────────
 
 function makeSameServerConnections(queryHook) {
-  const makeConn = () => ({
+  const shared = {
     query: async (sql, params) => {
       if (queryHook) return queryHook(sql, params);
       if (sql === 'START TRANSACTION' || sql === 'COMMIT' || sql === 'ROLLBACK') return [{}];
@@ -75,9 +77,18 @@ function makeSameServerConnections(queryHook) {
       if (sql.includes('UPDATE')) return [{ affectedRows: 1 }];
       return [[]];
     }
-  });
-  return { maint: makeConn(), relation: makeConn(), local: makeConn() };
+  };
+  return { maint: shared, relation: shared, local: shared };
 }
+
+test('executeSameServerTransaction rejects separate physical connections', async () => {
+  const one = makeSameServerConnections().local;
+  await assert.rejects(() => executeSameServerTransaction({
+    ...BASE_APPLY_ARGS,
+    connections: { maint: one, relation: { ...one }, local: one },
+    applyWork: async () => ({ maint: 1, relation: 1, local: 1 }),
+  }), /same-server protocol requires one shared transaction connection/);
+});
 
 test('executeSameServerTransaction commits and returns applied generations', async () => {
   const connections = makeSameServerConnections();
@@ -115,6 +126,24 @@ test('executeSameServerTransaction rolls back on applyWork failure', async () =>
   );
 
   assert.strictEqual(rolledBack, true);
+});
+
+test('executeSameServerTransaction records post-commit verification failure', async () => {
+  const statuses = [];
+  let rolledBack = false;
+  const connections = makeSameServerConnections((sql) => {
+    if (sql.includes('UPDATE crawler_automation_apply')) statuses.push(sql);
+    if (sql === 'ROLLBACK') rolledBack = true;
+    return [{ affectedRows: 1 }];
+  });
+  await assert.rejects(() => executeSameServerTransaction({
+    ...BASE_APPLY_ARGS,
+    connections,
+    applyWork: async () => ({ maint: 1, relation: 1, local: 1 }),
+    postCommitVerifyWork: async () => ({ apiSamples: false, cacheVisible: true }),
+  }), /post-commit verification failed/);
+  assert.ok(statuses.some((sql) => sql.includes("POST_VERIFY_FAILED")));
+  assert.equal(rolledBack, false);
 });
 
 test('executeSameServerTransaction rejects missing connections', async () => {
@@ -199,11 +228,11 @@ test('executeStagedProtocol commits all three stages in order', async () => {
   assert.deepStrictEqual(stagesExecuted, ['maint', 'relation', 'local']);
 });
 
-test('executeStagedProtocol marks apply as FAILED on partial commit', async () => {
+test('executeStagedProtocol marks partial commit as compensation required', async () => {
   let failStatus = null;
   const connections = makeCrossServerConnections((sql, params) => {
-    if (sql.includes('UPDATE') && sql.includes("status = 'FAILED'")) {
-      failStatus = 'FAILED';
+    if (sql.includes('UPDATE') && sql.includes("status = 'COMPENSATION_REQUIRED'")) {
+      failStatus = 'COMPENSATION_REQUIRED';
       return [{ affectedRows: 1 }];
     }
     return undefined;
@@ -221,7 +250,7 @@ test('executeStagedProtocol marks apply as FAILED on partial commit', async () =
     /relation server unreachable/
   );
 
-  assert.strictEqual(failStatus, 'FAILED');
+  assert.strictEqual(failStatus, 'COMPENSATION_REQUIRED');
 });
 
 test('executeStagedProtocol rejects missing connections', async () => {
@@ -244,6 +273,10 @@ test('requireCompensationSnapshot is false for same-server protocol', () => {
   );
 });
 
+test('requireCompensationSnapshot is true after same-server post-commit verification failure', () => {
+  assert.strictEqual(requireCompensationSnapshot({ status: 'POST_VERIFY_FAILED', commit_protocol: 'same_server_single_transaction' }), true);
+});
+
 test('requireCompensationSnapshot is true for partially committed staged protocol', () => {
   assert.strictEqual(
     requireCompensationSnapshot({ status: 'MAINT_COMMITTED', commit_protocol: 'cross_server_staged' }),
@@ -253,6 +286,10 @@ test('requireCompensationSnapshot is true for partially committed staged protoco
     requireCompensationSnapshot({ status: 'RELATION_COMMITTED', commit_protocol: 'cross_server_staged' }),
     true
   );
+});
+
+test('requireCompensationSnapshot is true for compensation-required staged protocol', () => {
+  assert.strictEqual(requireCompensationSnapshot({ status: 'COMPENSATION_REQUIRED', commit_protocol: 'cross_server_staged' }), true);
 });
 
 test('requireCompensationSnapshot is false for non-partial staged failure', () => {

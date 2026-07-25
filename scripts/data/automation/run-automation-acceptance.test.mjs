@@ -18,6 +18,13 @@ test('acceptance rejects unknown profile', async () => {
   );
 });
 
+test('t1 acceptance fails closed without an explicit snapshot-backed executor', async () => {
+  await assert.rejects(
+    () => runAcceptance({ profile: 't1' }),
+    /HARD STOP.*T1.*explicit.*snapshot.*executor/i,
+  );
+});
+
 // ── T0 profile ────────────────────────────────────────────────────────────────
 
 test('t0 acceptance passes unit-contract and t0 stages', async () => {

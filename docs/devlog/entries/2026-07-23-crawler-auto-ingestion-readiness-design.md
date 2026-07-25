@@ -64,18 +64,17 @@
 
 - Completed: isolated design branch, task boundary, read-only chain audit, resolved questionnaire, reviewed design specification, three-database test isolation, downstream target-table matrix, documentation validation, Town NPC test isolation repair, and clean-clone fixture evidence repair.
 - Completed Tasks 4-9: frozen evidence/policy contracts (V55 migration + 14 immutable-fact tables + CrawlerAutomationPolicyServiceImpl), three-database apply protocol (mutation-generation, table-ownership-fence, three-database-commit-protocol), 19-operation capability manifest (all L0+DISABLED), admin workflow with T2 read-only boundary (AdminCrawlerAutomationController + service + DTOs + contract tests), T0/T1 acceptance runner with hard stops, quality-gate automation contract step.
-- Closeout gate: Node automation contract suite 106/106; Java focused tests 38/38; `git diff --check` clean; `git status --short` shows only docs/devlog/current.md uncommitted; no push, no formal database writes, no scheduler or domain activation.
+- Checkpoint verification on 2026-07-25: Node automation/admin contracts 119/119; Java policy/controller tests 38/38; `git diff --check` clean. A plan re-audit found seven unchecked gates, including missing risk-console UI/progress contracts and the intentionally unexecuted T1 acceptance run, so the branch remains active and is not yet merge-ready. No formal database writes, scheduler activation, or domain promotion was performed.
+- Continuation repair: added the planned risk-first automation workbench and four accessible admin components; capability tests now cross-check the backend registry and progress owner; same-server apply now rejects multiple physical connections, verifies relation integrity before commit, then verifies API/cache visibility after commit with snapshot compensation required on failure; `--profile=t1` now hard-stops instead of falsely running T0 stages. T1 snapshot-backed execution remains separately authorized and unrun. See git for code-level diff details.
+- Continuation validation: automation/admin Node contracts pass 125/125; admin Nuxt typecheck passes after an offline frozen-lockfile dependency install; focused crawler action registry tests pass 11/11; `git diff --check` passes. Three plan gates remain active and no database/crawler writer command was run.
+- Continuation fresh re-review: zero Critical/Important findings after strict API envelope fail-closed handling, shared-connection enforcement, pre/post-commit verification separation, and compensation-required status repair. Reviewer approved an active checkpoint only; progress payload proof, backend-owned disabled reasons, T1 execution, and Task 9 closeout remain open.
 
 ## Residual Risks
 
-- Existing plans describe incremental-ingest prerequisites, but their implementation and current evidence freshness have not yet been proven.
-- The previously ambiguous domain, approval, scheduling, rollback, and data-loss boundaries are now resolved in the design; implementation must preserve them as explicit contracts rather than infer them from operation registration.
-- The V2 registry and page expose 19 stable operations with attempt/progress/result evidence, but several backend refresh actions still invoke apply mode directly while other dangerous actions remain manual-only. A single automation policy cannot safely cover all operations without an explicit risk taxonomy.
-- Automated apply remains disabled: the idempotency and clean-clone process gates are green, but T1/T2 live evidence freshness, machine-readable ownership, grant proof, commit protocol, and rollback gates are not yet implemented.
-- Database-name checks alone are insufficient; implementation must also prove host/port/server UUID, purpose token, credential role, environmentId, and isolated Redis identity before any test or acceptance write.
-- Several local and Shimmer tables lack sufficient physical unique constraints for safe automation. The implementation plan must define versioned logical keys and prove scope reconciliation before onboarding those writes.
-- Shared-table writes remain disabled until Task 3+ proves provisioning, grants, commit fencing, and T0/T1 acceptance against the now-materialized `tableOwnershipMatrix`.
-- Task 2 low-risk residuals: the Flyway target-DDL pre-scan may conservatively reject extreme whitespace/comment variants, and maint/relation engine metadata remains catalog-declared rather than independently reconstructed from every column DDL. Neither path permits a writer or ownership overlap.
+- T1 snapshot-backed preview/apply/verify/rollback has not run and requires separate authorization; the runner now hard-stops instead of reporting a synthetic pass.
+- Per-preview heartbeat and terminal progress payload coverage is not yet proven for every registered operation; this remains the next code-only gate.
+- L1/L2 and scheduler activation remain disabled and require System Owner bootstrap, reauthentication, domain-scoped approval, and fresh evidence.
+- The Flyway target-DDL pre-scan may conservatively reject extreme whitespace/comment variants; this fails closed and does not permit a writer.
 
 ## Cross-Review
 
@@ -105,11 +104,17 @@
 
 ## Follow-up
 
-- Codex: continue Tasks 2-9 inline with TDD and stop on any profile, T2 connection, ownership, partial-commit, freshness, or progress-contract violation.
+- Codex: close the remaining code-contract gaps inline with TDD; stop before T1 provisioning or any formal database write until separately authorized.
 - User: selected inline execution (`B`); continue the implementation plan in this worktree.
 
 ## Commits
 
 - `8ca00f9d` — initial automated-ingestion readiness design checkpoint.
 - `d110fbb7` — database-purpose isolation correction checkpoint.
-- `pending` — Task 3 fake-adapter provisioning contract checkpoint; no formal database or Redis writer command was run.
+- `497d43ab` — Task 3 fake-adapter provisioning contract checkpoint.
+- `ec4acc2d` — Task 4 frozen evidence, policy, and run persistence.
+- `d231e96b` — Task 5 three-database protocol, fence, and mutation generation.
+- `8d157ffa` — Task 6 19-operation capability manifest.
+- `43069974` — Task 7 admin API and T2 read-only boundary.
+- `1f036845` — Task 8 acceptance runner contract.
+- `11a4e515` — Task 9 documentation checkpoint; later audit reopened the plan for remaining gates.

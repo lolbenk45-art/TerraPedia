@@ -42,8 +42,8 @@ The plan is complete only when the final T0/T1 evidence, T2 read-only L0 evidenc
 - Read: `docs/devlog/current.md`
 
 - [x] Confirm the worktree is not `main`/`master`, record `git status --short --branch`, `git branch -vv`, and `git worktree list` in the task devlog.
-- [ ] Confirm all implementation commands accept an explicit profile: `unit`, `t0`, `t1`, or `t2-readonly`; reject missing profile.
-- [ ] Add a hard stop to every new entrypoint so `unit` and `t0/t1` cannot resolve `terria_v1_local`, `terria_v1_maint`, or `terria_v1_relation`; no fallback database is allowed.
+- [x] Confirm all implementation commands accept an explicit profile: `unit`, `t0`, `t1`, or `t2-readonly`; reject missing profile.
+- [x] Add a hard stop to every new entrypoint so `unit` and `t0/t1` cannot resolve `terria_v1_local`, `terria_v1_maint`, or `terria_v1_relation`; no fallback database is allowed.
 - [ ] Before any write-capable test, create the run-derived T0/T1 three-database set and run the database preflight. A failed create, grant check, server UUID check, runKey check, or Redis identity check stops the task.
 - [x] Do not run crawler, import, backfill, apply, rollback, Redis reset, or T2 writer commands during this guard task.
 
@@ -228,7 +228,7 @@ Expected result: an apply can only be authorized by an unchanged exact bundle an
 - [x] For staged mode, persist `maint_committed`, `relation_committed`, and `local_committed` markers; block downstream stages after any failure and require compensation snapshot before retry.
 - [x] Install/verify INSERT/UPDATE/DELETE generation triggers on owned tables; record writer run identity and reject automatic rollback when trigger/schema/grant health is incomplete.
 - [x] Acquire fences by databaseRole, physical table, field group, and logical predicate; reject any ownership intersection before apply.
-- [ ] Verify relation integrity, representative samples, public/admin read-only APIs, and cache visibility before completed state.
+- [x] Verify relation integrity, representative samples, public/admin read-only APIs, and cache visibility before completed state.
 - [x] Add T0 tests for partial commit, cross-server compensation, later writer collision, trigger missing, DDL/TRUNCATE denial, stale fence, and rollback refusal.
 
 Validation:
@@ -328,9 +328,9 @@ Expected result: T0/T1 writes are isolated and auditable, T2 completes read-only
 
 ## 9. Closeout Gate
 
-- [x] Run `git diff --check`, focused backend/data/admin tests, and the full quality gate; record exact pass/fail counts.
-- [x] Run `git status --short`, `git diff --cached --stat`, and `git diff --cached --name-status`; stage only implementation files belonging to this plan.
-- [x] Update `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` with result, validation, residual risks, and next checkpoint; update `docs/devlog/current.md` to point to the next active task.
+- [ ] Run `git diff --check`, focused backend/data/admin tests, and the full quality gate; record exact pass/fail counts.
+- [ ] Run `git status --short`, `git diff --cached --stat`, and `git diff --cached --name-status`; stage only implementation files belonging to this plan.
+- [ ] Update `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` with result, validation, residual risks, and next checkpoint; update `docs/devlog/current.md` to point to the next active task.
 - [x] Do not claim L1/L2 readiness until foundation blockers, T0/T1 isolation, ownership matrix, commit protocol, grants, evidence, and T2 L0 shadow are all green.
 - [x] Keep production deployment, V1 deletion, new external sources, and formal T2 apply outside this plan.
 

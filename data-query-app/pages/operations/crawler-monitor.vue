@@ -22,6 +22,21 @@
         <small v-if="lastOverviewRefreshAt">最后一次快照：{{ lastOverviewRefreshAt }}</small>
       </div>
     </section>
+    <section class="crawler-automation-workbench" aria-label="爬虫自动入库工作台">
+      <CrawlerAutomationRiskConsole
+        :overview="automationOverview"
+        :read-only="Boolean(automationProfile?.readOnly)"
+        :loading="automationLoading"
+        @refresh="loadAutomationWorkbench"
+      />
+      <nav class="automation-tabs" aria-label="自动入库视图">
+        <button type="button" :aria-current="automationTab === 'pipeline' ? 'page' : undefined" @click="automationTab = 'pipeline'">运行管线</button>
+        <button type="button" :aria-current="automationTab === 'domains' ? 'page' : undefined" @click="automationTab = 'domains'">域矩阵</button>
+      </nav>
+      <CrawlerAutomationPipeline v-if="automationTab === 'pipeline'" :runs="automationRuns" @open-evidence="openAutomationEvidence" />
+      <CrawlerAutomationDomainMatrix v-else :domains="automationOverview?.domains" />
+      <CrawlerAutomationEvidenceDrawer :open="Boolean(selectedAutomationRun)" :run="selectedAutomationRun" @close="selectedAutomationRun = null" />
+    </section>
     <CrawlerTriageBoard
       :view-model="triageWorkbench"
       :loading="loading"
@@ -309,7 +324,12 @@ import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, ex
 import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
 import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
+import { unwrapAutomationEnvelope } from './crawler-automation.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
+import CrawlerAutomationDomainMatrix from '~/components/crawler-monitor/CrawlerAutomationDomainMatrix.vue'
+import CrawlerAutomationEvidenceDrawer from '~/components/crawler-monitor/CrawlerAutomationEvidenceDrawer.vue'
+import CrawlerAutomationPipeline from '~/components/crawler-monitor/CrawlerAutomationPipeline.vue'
+import CrawlerAutomationRiskConsole from '~/components/crawler-monitor/CrawlerAutomationRiskConsole.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
 import CrawlerQueueHealthBanner from '~/components/crawler-monitor/CrawlerQueueHealthBanner.vue'
 import DomainDetailDrawer from '~/components/crawler-monitor/DomainDetailDrawer.vue'
@@ -340,6 +360,12 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
 const route = useRoute()
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
+const automationOverview = ref<any>(null)
+const automationProfile = ref<any>({ readOnly: true })
+const automationRuns = ref<any[]>([])
+const automationLoading = ref(false)
+const automationTab = ref<'pipeline' | 'domains'>('pipeline')
+const selectedAutomationRun = ref<any>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
 const selectedReportPath = ref<string | null>(null)
@@ -999,6 +1025,7 @@ watch(() => ({
 }, { immediate: true })
 
 onMounted(async () => {
+  await loadAutomationWorkbench()
   if (!overview.value) {
     await refreshOverview()
     overview.value = initialOverview.value
@@ -1014,6 +1041,30 @@ onMounted(async () => {
     document.addEventListener('visibilitychange', handleVisibilityChange)
   }
 })
+
+async function loadAutomationWorkbench() {
+  if (automationLoading.value) return
+  automationLoading.value = true
+  try {
+    const [overviewResponse, runsResponse, profileResponse]: any[] = await Promise.all([
+      get('/admin/crawler-automation/overview'),
+      get('/admin/crawler-automation/runs?limit=20'),
+      get('/admin/crawler-automation/profile'),
+    ])
+    automationOverview.value = unwrapAutomationEnvelope(overviewResponse)
+    automationRuns.value = unwrapAutomationEnvelope(runsResponse)
+    automationProfile.value = unwrapAutomationEnvelope(profileResponse)
+  } catch (error: any) {
+    automationProfile.value = { readOnly: true }
+    showToast(error?.data?.message || error?.message || '加载自动入库工作台失败', 'error')
+  } finally {
+    automationLoading.value = false
+  }
+}
+
+function openAutomationEvidence(run: any) {
+  selectedAutomationRun.value = run
+}
 
 onUnmounted(() => {
   clearRefreshTimer()

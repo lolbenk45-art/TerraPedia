@@ -9,6 +9,13 @@ function requireField(value, label) {
   return normalized;
 }
 
+async function requireVerification(work, context, required, label) {
+  if (typeof work !== 'function') throw new Error(`${label} callback is required`);
+  const result = await work(context);
+  if (required.some((field) => result?.[field] !== true)) throw new Error(`${label} failed`);
+  return result;
+}
+
 function assertManifest(manifest) {
   REQUIRED_MANIFEST_FIELDS.forEach((field) => {
     if (!manifest[field]) throw new Error(`manifest.${field} is required`);
@@ -69,7 +76,9 @@ export async function executeSameServerTransaction({
   approvalId,
   mode,
   beforeGenerations,
-  applyWork
+  applyWork,
+  preCommitVerifyWork,
+  postCommitVerifyWork
 } = {}) {
   requireField(runId, 'runId');
   requireField(bundleHash, 'bundleHash');
@@ -77,6 +86,9 @@ export async function executeSameServerTransaction({
 
   if (!connections || !connections.maint || !connections.relation || !connections.local) {
     throw new Error('all three database connections are required');
+  }
+  if (connections.maint !== connections.relation || connections.relation !== connections.local) {
+    throw new Error('same-server protocol requires one shared transaction connection');
   }
 
   if (!beforeGenerations || typeof beforeGenerations !== 'object') {
@@ -89,6 +101,7 @@ export async function executeSameServerTransaction({
 
   // Use the local connection as the transaction coordinator
   const txnConnection = connections.local;
+  let databaseCommitted = false;
 
   try {
     await txnConnection.query('START TRANSACTION');
@@ -121,16 +134,34 @@ export async function executeSameServerTransaction({
     if (!appliedGenerations || typeof appliedGenerations !== 'object') {
       throw new Error('applyWork must return appliedGenerations object');
     }
+    await requireVerification(preCommitVerifyWork, { connections, runId, appliedGenerations },
+      ['relationIntegrity'], 'pre-commit verification');
 
     // Update the apply record with committed generations
     await txnConnection.query(
       `UPDATE ${APPLY_TABLE}
-       SET committed_generation_json = ?, status = 'COMMITTED', completed_at = NOW()
+       SET committed_generation_json = ?, status = 'DB_COMMITTED'
        WHERE run_id = ? AND bundle_hash = ?`,
       [JSON.stringify(appliedGenerations), runId, bundleHash]
     );
 
     await txnConnection.query('COMMIT');
+    databaseCommitted = true;
+
+    try {
+      await requireVerification(postCommitVerifyWork, { connections, runId, appliedGenerations },
+        ['apiSamples', 'cacheVisible'], 'post-commit verification');
+    } catch (error) {
+      await txnConnection.query(
+        `UPDATE ${APPLY_TABLE} SET status = 'POST_VERIFY_FAILED', completed_at = NOW()
+         WHERE run_id = ? AND bundle_hash = ?`, [runId, bundleHash]
+      );
+      throw error;
+    }
+    await txnConnection.query(
+      `UPDATE ${APPLY_TABLE} SET status = 'COMMITTED', completed_at = NOW()
+       WHERE run_id = ? AND bundle_hash = ?`, [runId, bundleHash]
+    );
 
     return Object.freeze({
       protocol: 'same_server_single_transaction',
@@ -139,11 +170,12 @@ export async function executeSameServerTransaction({
     });
 
   } catch (error) {
-    try {
-      await txnConnection.query('ROLLBACK');
-    } catch (rollbackError) {
-      // Log but don't throw - original error is more important
-      console.error('Transaction rollback failed:', rollbackError);
+    if (!databaseCommitted) {
+      try {
+        await txnConnection.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Transaction rollback failed:', rollbackError);
+      }
     }
 
     throw error;
@@ -159,7 +191,9 @@ export async function executeStagedProtocol({
   approvalId,
   mode,
   beforeGenerations,
-  applyWork
+  applyWork,
+  preCommitVerifyWork,
+  postCommitVerifyWork
 } = {}) {
   requireField(runId, 'runId');
   requireField(bundleHash, 'bundleHash');
@@ -240,6 +274,9 @@ export async function executeStagedProtocol({
       committedStages[stage] = stageGenerations[stage];
     }
 
+    await requireVerification(postCommitVerifyWork, { connections, runId, appliedGenerations: committedStages },
+      ['relationIntegrity', 'apiSamples', 'cacheVisible'], 'post-commit verification');
+
     // All stages committed successfully
     await connections.local.query(
       `UPDATE ${APPLY_TABLE}
@@ -256,9 +293,10 @@ export async function executeStagedProtocol({
 
   } catch (error) {
     // Record the failure
+    const failureStatus = Object.keys(committedStages).length > 0 ? 'COMPENSATION_REQUIRED' : 'FAILED';
     await connections.local.query(
       `UPDATE ${APPLY_TABLE}
-       SET status = 'FAILED', completed_at = NOW()
+       SET status = '${failureStatus}', completed_at = NOW()
        WHERE run_id = ? AND bundle_hash = ?`,
       [runId, bundleHash]
     );
@@ -310,13 +348,12 @@ export function requireCompensationSnapshot(applyRecord) {
   const protocol = applyRecord.commit_protocol;
 
   if (protocol === 'same_server_single_transaction') {
-    // Single transaction rolled back automatically - no compensation needed
-    return false;
+    return status === 'POST_VERIFY_FAILED';
   }
 
   if (protocol === 'cross_server_staged') {
     // Any partially committed stage requires compensation
-    const partiallyCommittedStates = ['MAINT_COMMITTED', 'RELATION_COMMITTED'];
+    const partiallyCommittedStates = ['MAINT_COMMITTED', 'RELATION_COMMITTED', 'COMPENSATION_REQUIRED', 'POST_VERIFY_FAILED'];
     return partiallyCommittedStates.includes(status);
   }
 

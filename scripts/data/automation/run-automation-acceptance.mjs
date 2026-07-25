@@ -161,13 +161,16 @@ async function runT2ReadOnlyShadowStage() {
 
 export async function runAcceptance(args) {
   const profile = requireProfile(args);
+  if (profile === 't1') {
+    throw new Error('[HARD STOP] T1 requires an explicit read-only snapshot and acceptance executor');
+  }
 
   const stages = [];
   const results = {};
 
   stages.push(['unit-contract', runUnitContractStage]);
 
-  if (profile === 't0' || profile === 't1') {
+  if (profile === 't0') {
     const runKey = `acc_${Date.now().toString(36).slice(-8)}`;
     const manifest = {
       databases: {

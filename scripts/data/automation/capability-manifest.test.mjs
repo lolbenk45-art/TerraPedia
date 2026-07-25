@@ -7,6 +7,10 @@ const capabilitiesUrl = new URL(
   './fixtures/crawler-automation-capabilities.json',
   import.meta.url,
 );
+const registryUrl = new URL(
+  '../../../back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java',
+  import.meta.url,
+);
 
 async function loadCapabilities() {
   const raw = await readFile(capabilitiesUrl, 'utf8');
@@ -47,17 +51,29 @@ test('capabilities fixture has correct schema version', async () => {
 
 test('capabilities fixture covers exactly the 19 registered operations', async () => {
   const capabilities = await loadCapabilities();
+  const registry = await readFile(registryUrl, 'utf8');
   const fixtureIds = new Set(capabilities.operations.map((op) => op.actionId));
 
   assert.strictEqual(fixtureIds.size, 19, `expected 19 unique actionIds, found ${fixtureIds.size}`);
 
   for (const expected of EXPECTED_ACTION_IDS) {
     assert.ok(fixtureIds.has(expected), `missing actionId: ${expected}`);
+    assert.ok(registry.includes(`"${expected}"`), `backend registry missing actionId: ${expected}`);
   }
 
   for (const found of fixtureIds) {
     assert.ok(EXPECTED_ACTION_IDS.has(found), `unexpected actionId: ${found}`);
   }
+});
+
+test('every preview or crawl operation is backed by a monitor progress contract', async () => {
+  const capabilities = await loadCapabilities();
+  const registry = await readFile(registryUrl, 'utf8');
+  for (const operation of capabilities.operations.filter((row) => row.mode !== 'apply')) {
+    assert.ok(registry.includes(`"${operation.actionId}"`), `${operation.actionId}: missing registry progress owner`);
+  }
+  assert.match(registry, /<progressPath>/);
+  assert.match(registry, /childStatusPath|progressPath/);
 });
 
 test('every operation defaults to L0 + DISABLED', async () => {
