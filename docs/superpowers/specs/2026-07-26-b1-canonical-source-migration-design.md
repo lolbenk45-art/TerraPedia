@@ -1,21 +1,26 @@
 # B1 Canonical Source Migration Design
 
-Status: measurement-and-scope repair round complete; four open decisions block implementation planning.
+Status: all open decisions resolved; ready for implementation planning.
 
-## Open Decisions
+## Resolved Decisions
 
-Implementation planning cannot start until these are answered. Dependent sections are marked inline.
+All decisions were taken on 2026-07-26.
 
-| ID | Question | Sections affected |
+| ID | Decision | Effect |
 | --- | --- | --- |
-| D1 | Introduce a `b1_migrating` contract mode so the repository gate can pass while migration is in progress? | Migration states, B1 Closure Criteria |
-| D2 | How is the NPC bridge exemption row disposed of, given the artifact is deliberately untracked and its replacement inputs do not currently exist? | Context, NPC Bridge Repair, Migration Sequence |
-| D4 | Ship the locator/boundary repair separately, ahead of the canonical chain? | Migration Sequence |
+| Admin approval | Manual admin group edits do **not** require System Owner approval; they commit synchronously through a registered backend writer identity | Consumer Cutover |
+| D1 | **Introduce `b1_migrating`** as a third contract mode, gated on approved design + milestone evidence + a bounded re-registered deadline | Migration states, B1 Closure Criteria |
+| D2 | **De-register the bridge path** and point `npcs_raw` at the tracked standardized file; the canonical NPC crawler-fact chain is deferred, not attempted here | Context, NPC Bridge Repair, Migration Sequence, B1 Closure Criteria |
+| D3 | **Withdrawn** — the premise was false. The 29 override rows are not provenance-less curation but the deduplicated, id-resolved projection of the reference layer, so they do not become a source layer at all | Current Semantics To Preserve |
+| D4 | **Ship Step 0 separately**, ahead of the canonical chain | Migration Sequence |
 
-Resolved on 2026-07-26:
+### What D2 does and does not achieve
 
-- Manual admin group edits do **not** require System Owner approval. They commit synchronously through a registered backend writer identity. See Consumer Cutover.
-- D3, originally "do the 29 zero-provenance curated recipe override groups pass through the landing layer?", is withdrawn. Measurement showed the premise was wrong: those rows are not curated corrections but the deduplicated, id-resolved projection of the reference layer. They do not become a source layer at all. See Current Semantics To Preserve.
+D2 does not delete the NPC B1 debt. It makes the registration truthful.
+
+The bridge row is retired because it registers a file that does not exist and is therefore serving as nothing. But its replacement, `data/standardized/npcs.standardized.json`, is itself a B1-tier input under the boundary document's own definition: a tracked `data/standardized/` file acting as a source ahead of canonical migration. Retiring one row and registering the real one keeps the `support.town_npc_maintenance` panel at one reference.
+
+The panel can then pass through `b1_migrating` rather than through an absent file, which is the difference between a satisfied check and a fictional one. Closing that reference for real still requires the canonical NPC chain, which is deferred under D2 and blocked on a separately authorized crawler run.
 
 ## Context
 
@@ -42,7 +47,7 @@ Ignoring it was correct. It is produced by `scripts/data/crawler/src/bridge/writ
 
 The defect is therefore the two registrations, not the missing file. Both must be corrected regardless of how the canonical NPC chain is designed. What remains true from the earlier draft is that the base standardized NPC file carries no crawler enrichment such as `wikiCrawler.buffInflictions`, so it is not a drop-in replacement for every downstream consumer; that enrichment is produced by the crawler itself (`scripts/data/crawler/src/domains/npc-parser.mjs`), with the bridge acting only as a relay.
 
-Extending the expired deadline with no evidence would hide the problem and is not an acceptable repair. Whether a bounded, evidence-bound migrating state is an acceptable repair is open decision D1.
+Extending the expired deadline with no evidence would hide the problem and is not an acceptable repair. Per D1, a bounded state that requires approved design, milestone evidence, and a re-registered deadline is a different thing from an unevidenced extension, and is the accepted repair for the migration window.
 
 ## Measured Source Volumes
 
@@ -138,9 +143,9 @@ Migration state is explicit and monotonic, and is tracked per chain rather than 
 | `CODE_READY` | Schema, parsers, consumers, reports, and guards pass without formal writes | Active |
 | `T1_VERIFIED` | The chain passes in `terria_v1_automation_acceptance_<runKey>_*` | Active |
 | `T2_CUTOVER_VERIFIED` | Separately authorized formal schema/import/cutover and real read-only runtime smoke pass | That chain's contracts eligible for flip |
-| `B1_CLOSED` | All four contracts are `canonical` and the full gate passes | Closed |
+| `B1_CLOSED` | Every contract is `canonical` or `retired` and the full gate passes | Closed |
 
-`CODE_READY` or `T1_VERIFIED` cannot remove, downgrade, or suppress an expired B1 blocker. Formal migration is not authorized by reaching either state. Whether an evidence-bound intermediate state may unblock the repository gate is open decision D1; see B1 Closure Criteria.
+`CODE_READY` or `T1_VERIFIED` cannot remove, downgrade, or suppress an expired B1 blocker, and reaching either state does not authorize formal migration. What they can do, per D1, is satisfy the milestone-evidence requirement of a `b1_migrating` registration, which is a separate registration act with its own bounded deadline rather than an automatic consequence of writing code. See B1 Closure Criteria.
 
 ### Rejected alternatives
 
@@ -413,7 +418,7 @@ This does not create an ungoverned writer. Admin edits are owned by a registered
 
 Automated, source-derived group ingestion is separate and keeps its governance. Add the symmetric `item-group-canonical-preview` / `item-group-canonical-apply` pair to the V2 capability manifest and backend registry for recipe reference regeneration and shimmer-derived groups. Both start at `L0 + DISABLED` and the apply operation cannot execute until its independent Owner activation. That pair never carries an admin-authored change.
 
-Consequence for the locked catalog: the group pair remains justified by source-derived ingestion even though the admin proposal flow is gone, so the count still grows. It grows in two stages rather than one: 19 -> 21 when the group pair registers, then 21 -> 23 when the NPC pair registers. See Migration Sequence.
+Consequence for the locked catalog: the group pair remains justified by source-derived ingestion even though the admin proposal flow is gone, so the count grows 19 -> 21. It would reach 23 only if the deferred NPC pair is later registered. See Migration Sequence.
 
 Backend caches are keyed by the published snapshot hash plus the consumer's effective-source predicate, not a time-only TTL. Each read checks the singleton `item_group_projection_state` before reusing cached content. A changed, missing, non-published, or count-mismatched state invalidates every consumer's cache and fails closed rather than serving a mixed snapshot. Post-commit verification checks `/admin/item-groups`, `/admin/recipe-groups`, and representative `/public/items/{id}/recipe-tree` responses against the same published hash.
 
@@ -461,7 +466,7 @@ Required properties for that merge:
 
 ## NPC Bridge Repair
 
-This section has an unmet prerequisite. Its disposition is open decision D2.
+D2 splits this into a repair that ships now and a canonical chain that is deferred. Only the repair is in scope for B1; the deferred chain is retained here as the agreed target so it is not redesigned from scratch later.
 
 ### The immediate defect, and its independent repair
 
@@ -470,20 +475,29 @@ Two registrations point at a deliberately untracked artifact (see Context). Both
 - `source-dataset-locator.mjs:170` silently skips `npcs_raw` when the ignored path is absent, because the locator only pushes a descriptor for files that exist. On any clean clone this means the dataset is not merely stale, it is not landed at all, and nothing says so.
 - `docs/audits/canonical-migration-boundary.md` registers the same path as a B1 exemption input with a migration target and deadline, treating a build artifact as durable source data.
 
-The repair is small and does not depend on the rest of this section: require an explicit accepted landing/maint source descriptor, fail loudly with a concise missing-source error rather than silently omitting the dataset, and correct the boundary registration to name a real input. Whether this ships ahead of the canonical chain is open decision D4.
+The repair is small and does not depend on the rest of this section, and per D4 it ships as its own change:
 
-### The prerequisite that does not currently hold
+1. `source-dataset-locator.mjs` requires an explicit accepted landing source descriptor for `npcs_raw` and fails loudly with a concise missing-source error rather than silently omitting the dataset.
+2. `npcs_raw` points at `data/standardized/npcs.standardized.json`, which is tracked and present.
+3. The boundary document retires the bridge row and registers the standardized file in its place at `b1_migrating`.
+4. `backfill-npc-buff-relations-from-wiki-crawler.mjs:127` loses its `??` bridge default and requires an explicit path.
 
-The canonical NPC design below consumes crawler normalized records and their matching audit records. Those artifacts do not exist in this repository: `data/wiki-crawler/` contains only `README.md`, and `audit/`, `canonical/`, `normalized-light/`, and `report/` are all ignored by the same 2026-04-20 commit. Producing them requires a real crawler run, which this design's Non-Goals forbid.
+**Required pre-check before step 2 lands.** Pointing `npcs_raw` at the base standardized file drops `wikiCrawler.buffInflictions` from the landed payload. That is safe only if the NPC-Buff relations derived from it are already materialized in `terria_v1_relation.npc_buff_relations` and `terria_v1_local.npc_buff_relations`. This has not been verified: the local stack was unreachable when this design was written. Step 0 must confirm non-empty, current NPC-Buff relation rows with a read-only query before the locator change is accepted. If those rows are empty or stale, the enrichment is live-critical and D2 must be revisited rather than worked around.
 
-Two consequences must be stated rather than discovered during implementation:
+### Deferred: the canonical NPC chain
 
-- `npc_crawler_facts_raw` has no bootstrap definition, and cannot have one, because there is no frozen artifact to content-address. The bootstrap bundle contract defined under Landing covers the three group files only.
-- The NPC half can reach fixture-level `CODE_READY` but cannot reach `T1_VERIFIED` against real data, and cannot reach `T2_CUTOVER_VERIFIED` at all, until a crawler run is separately authorized. Migration Sequence steps 5, 12, and 13 inherit this constraint.
+The design below is agreed but **not in scope for B1 closure**, because its inputs do not exist. The canonical NPC design consumes crawler normalized records and their matching audit records, and those artifacts are absent: `data/wiki-crawler/` contains only `README.md`, while `audit/`, `canonical/`, `normalized-light/`, and `report/` are ignored by the same 2026-04-20 commit. Producing them requires a real crawler run, which this design's Non-Goals forbid.
 
-The `wikiCrawler.buffInflictions` enrichment is produced by `scripts/data/crawler/src/domains/npc-parser.mjs`; the bridge only relayed it. Consuming crawler normalized output directly is the right long-term target. The blocker is availability, not design.
+Consequences, stated rather than discovered later:
 
-### Target chain
+- `npc_crawler_facts_raw` has no bootstrap definition and cannot have one, because there is no frozen artifact to content-address. The bootstrap bundle contract under Landing covers the three group files only.
+- The chain can reach fixture-level `CODE_READY` but not `T1_VERIFIED` against real data, and not `T2_CUTOVER_VERIFIED` at all, until a crawler run is separately authorized.
+- The `npc-crawler-facts-preview` / `-apply` pair is therefore **not registered** as part of this work. The locked capability catalog moves 19 -> 21, not 19 -> 23.
+- The NPC readiness report is not a B1 closure requirement under this design; the NPC identity stays at `b1_migrating` until the deferred chain runs.
+
+The `wikiCrawler.buffInflictions` enrichment is produced by `scripts/data/crawler/src/domains/npc-parser.mjs`; the bridge only relayed it. Consuming crawler normalized output directly remains the right long-term target. The blocker is availability, not design.
+
+### Deferred target chain
 
 Replace the bridge input with two independently traceable landing datasets:
 
@@ -522,11 +536,11 @@ Existing downstream targets remain:
 - `terria_v1_local.npc_shop_conditions`
 - `terria_v1_local.npc_loot_entries`
 
-Scripts that currently default to the missing bridge path must require an explicit accepted landing/maint source descriptor. `backfill-npc-buff-relations-from-wiki-crawler.mjs:127` uses the bridge path as a `??` fallback default and is the concrete instance. They fail with a concise missing-source error rather than silently switching to the base standardized file or silently omitting the dataset. NPC coverage compares base landing, crawler-fact landing, maint facts, relation, projection, and local identities and hashes, including positive buff/shop/loot samples.
+Scripts that currently default to the bridge path must require an explicit accepted landing/maint source descriptor; `backfill-npc-buff-relations-from-wiki-crawler.mjs:127` is the concrete instance. They fail with a concise missing-source error rather than silently switching to the base standardized file or silently omitting the dataset. Once the deferred chain runs, NPC coverage compares base landing, crawler-fact landing, maint facts, relation, projection, and local identities and hashes, including positive buff/shop/loot samples.
 
 No compatibility exporter is built for the bridge path. An earlier draft proposed regenerating it from accepted `maint_npcs` and `maint_npc_crawler_facts`. That is removed as dead weight: the path is gitignored, so unlike the three group files it is not a tracked compatibility artifact, and the same draft already required that no canonical or automated consumer may depend on it. Building a governed exporter whose output nothing may consume and version control does not retain has no consumer. If a local operator wants the bridge shape, the existing bridge generator still produces it.
 
-Together, the two new preview/apply pairs deliberately expand the locked V2 capability catalog from 19 to 23 operations: `item-group-canonical-preview` / `-apply` for source-derived group ingestion, and `npc-crawler-facts-preview` / `-apply`. They register in two stages, 19 -> 21 then 21 -> 23, matching the two independently authorized chains. The admin group writer is not among them; it is a backend-owned writer with a `tableOwnershipMatrix` row, not a crawler-monitor operation. At each stage the manifest count, exact-ID contract, progress ownership, preview/apply symmetry, disabled defaults, backend registry, admin overview, and ownership tests change atomically. All four new operations start at `L0 + DISABLED`; neither apply shares an approval with the other. If D2 defers the NPC chain indefinitely, the catalog stops at 21.
+Under D2 only the group pair registers now, expanding the locked V2 capability catalog from 19 to 21 operations: `item-group-canonical-preview` / `-apply` for source-derived group ingestion. The `npc-crawler-facts-preview` / `-apply` pair is specified here but not registered, and would take the catalog to 23 when the deferred chain is authorized. The admin group writer is not a capability at all; it is a backend-owned writer with a `tableOwnershipMatrix` row, not a crawler-monitor operation. At each registration the manifest count, exact-ID contract, progress ownership, preview/apply symmetry, disabled defaults, backend registry, admin overview, and ownership tests change atomically. New operations start at `L0 + DISABLED` and no apply shares an approval with another.
 
 ## Write Ownership And Safety
 
@@ -563,9 +577,9 @@ All automated apply paths retain these boundaries:
 
 ## Migration Sequence
 
-### Step 0, independent of everything below
+### Step 0, shipped as its own change (D4)
 
-0. Correct the two bridge registrations: require an explicit landing source descriptor with a loud missing-source failure, and replace the untracked path in the boundary registration with a real input. Whether this ships as its own change is open decision D4; it must not be blocked behind the canonical chain either way.
+0. Correct the bridge registrations. In order: run the read-only NPC-Buff pre-check described under NPC Bridge Repair and stop if the relations are empty or stale; require an explicit landing source descriptor for `npcs_raw` with a loud missing-source failure; point it at `data/standardized/npcs.standardized.json`; remove the `??` bridge default from the buff backfill; retire the bridge row in the boundary document and register the standardized file at `b1_migrating`. Add the `retired` and `b1_migrating` modes to the contract registry as part of this step, since Step 0 is the first consumer of both.
 
 ### Group chain
 
@@ -583,19 +597,21 @@ All automated apply paths retain these boundaries:
 12. On formal databases, apply the frozen bootstrap once, run per-consumer shadow comparison, cut over DB reads, disable JSON fallback, restart the local stack through the standard lifecycle scripts, and run real read-only API/runtime smoke.
 13. Reach `T2_CUTOVER_VERIFIED` for the group chain and flip the three group source contracts from `b1` to `canonical`. Regenerate the group readiness report.
 
-### NPC chain
+### Deferred: NPC chain, not part of this delivery
 
-14. Blocked on D2. Add `npcs_base_raw`, `npc_crawler_facts_raw`, `maint_npc_crawler_facts`, and their guarded processors; register the `npc-crawler-facts-preview` / `-apply` pair at `L0 + DISABLED`. Locked catalog count moves 21 -> 23.
-15. Fixture-level `CODE_READY` is reachable here. `T1_VERIFIED` against real data and any T2 cutover require a separately authorized crawler run, because no crawler-fact artifact exists to freeze. Provisional NPC caps must be re-derived from that run.
-16. On its own authorization and its own frozen bundle, apply, verify, and flip the NPC source contract.
+Per D2 these steps are specified but not scheduled. They require a separately authorized crawler run, because no crawler-fact artifact exists to freeze.
+
+- D. Add `npcs_base_raw`, `npc_crawler_facts_raw`, `maint_npc_crawler_facts`, and their guarded processors; register the `npc-crawler-facts-preview` / `-apply` pair at `L0 + DISABLED`, taking the locked catalog 21 -> 23.
+- D. Re-derive the provisional NPC caps from a real run. Fixture-level `CODE_READY` is reachable without one; `T1_VERIFIED` against real data and any T2 cutover are not.
+- D. On its own authorization and its own frozen bundle, apply, verify, and flip the NPC source contract from `b1_migrating` to `canonical`.
 
 ### Closure
 
-17. Rerun the complete quality gate from the beginning; only a passing gate permits `B1_CLOSED`.
+14. Rerun the complete quality gate from the beginning. `B1_CLOSED` requires every registered identity to be `canonical` or `retired`, so it is not reachable until the deferred NPC chain runs. The gate itself can pass before then, because the NPC identity sits at `b1_migrating` with real evidence.
 
-Contract flips are per input, not atomic across all four. An earlier draft required changing all four contracts in one step, which coupled two independently authorized workstreams: the group chain would have delivered zero gate improvement until the NPC chain also landed, even though step 11 and step 16 are deliberately separate approvals. Each of the four legacy identities flips when its own readiness evidence passes. `B1_CLOSED` still requires all four.
+Contract flips are per input, not atomic. An earlier draft required changing all four contracts in one step, which coupled independently authorized workstreams: the group chain would have delivered zero gate improvement until the NPC chain also landed, even though their approvals are deliberately separate. Each identity flips when its own evidence passes.
 
-Steps 1-10 and 14-15 do not authorize any formal database mutation. Every authorization is a hard checkpoint and none are interchangeable. If DDL succeeds but a data apply fails, the unused new tables may remain after schema verification, but pre-cutover readers remain unchanged, no fallback is disabled, and B1 remains active. Any data/cutover failure rolls back or circuit-breaks under the existing latest-writer rules.
+Steps 1-10 do not authorize any formal database mutation. Every authorization is a hard checkpoint and none are interchangeable. If DDL succeeds but a data apply fails, the unused new tables may remain after schema verification, but pre-cutover readers remain unchanged, no fallback is disabled, and B1 remains active. Any data/cutover failure rolls back or circuit-breaks under the existing latest-writer rules.
 
 **Shared-table note for step 1.** `source_dataset_landings` is shared by roughly fifteen existing dataset types, so replacing its unique key is not an additive change confined to this migration. The step-1 DDL bundle must include, and its authorization must cover: the `current_slot` generated column and new unique key; a backfill setting explicit `artifact_role`, `producer_id`, `producer_version`, `producer_run_key`, and `bootstrap_manifest_hash` compatibility defaults for every existing dataset type; and updates to the existing consumers of the old shape, namely the importer's archived-row deletion path in `import-source-dataset-landings.mjs`, `audit-source-dataset-landings.mjs`, `cross-db-referential-integrity.mjs`, and `record-lineage-trace.mjs`. Omitting the backfill from the authorized bundle would leave ten steps of code assuming a shape the formal table does not have.
 
@@ -630,7 +646,7 @@ Implementation follows test-driven development. Required evidence includes:
 7a. Resolution-count assertions requiring exactly zero `UNRESOLVED` and zero `AMBIGUOUS` members at cutover, not a tolerance, because all 153 distinct reference member names resolve uniquely today.
 8. Export round-trip equivalence: rendering canonical state to each compatibility file and re-parsing it reproduces exactly the canonical group state, including blocked groups. Determinism tests alone are insufficient because they prove stability, not fidelity.
 9. Export merge tests for `recipe-material-reference.json` proving the non-group sections are carried from the same landing revision, that a revision mismatch blocks, and that unavailable non-group evidence fails the job instead of publishing a file with truncated `supplementalRecipes`.
-10. NPC coverage across base landing, crawler-fact landing, maint facts, relation, projection, and local rows, including positive NPC-Buff/shop/loot samples. Fixture-backed until a crawler run is authorized; fixture evidence must be labeled and cannot satisfy `mode = 'canonical'`.
+10. NPC retirement evidence for this delivery: the `npcs_raw` descriptor resolves to the tracked standardized file; a missing descriptor fails loudly instead of omitting the dataset; the positive absence scan finds zero bridge-path references outside documentation and the retirement test itself; and NPC-Buff relation rows are non-empty and current. Full NPC coverage across crawler-fact landing, maint facts, and shop/loot relations belongs to the deferred chain and is not produced here.
 11. Targeted direct-consumer scans proving the four compatibility paths remain only in bootstrap migration code, exporters, explicit compatibility tests, and documentation.
 12. Contract tests proving each Owner approval is exact-bundle/one-time/non-shareable, that the capability registry contains exactly the approved operation set for the current step (21 after the group chain, 23 after the NPC chain), and that every new preview/apply pair starts disabled.
 13. Feedback-loop tests proving exported artifacts cannot become landing current rows.
@@ -647,31 +663,53 @@ node scripts/data/crawler/src/cli.mjs coverage-audit --domain=npc
 
 ## B1 Closure Criteria
 
-Replace the current path-only matcher in `scripts/data/audit/b1-exemption-compliance.mjs` with `scripts/data/audit/canonical-source-contract-registry.mjs`. Each of the four legacy input identities remains permanently represented with exactly one mode:
+Replace the current path-only matcher in `scripts/data/audit/b1-exemption-compliance.mjs` with `scripts/data/audit/canonical-source-contract-registry.mjs`. Every registered input identity remains permanently represented with exactly one mode. Identities are never deleted from the registry, because a deleted row and a satisfied row are indistinguishable to a later reader.
 
-- `mode = 'b1'`: validate the boundary registration and deadline;
-- `mode = 'canonical'`: validate a named positive canonical readiness report and its T2 cutover identity.
+| Mode | Validates | Passes when |
+| --- | --- | --- |
+| `b1` | boundary registration and deadline | deadline not expired |
+| `b1_migrating` | approved design reference, a named milestone evidence artifact matching the declared state, and a re-registered deadline inside a bounded window | all three present, evidence fresh, deadline inside the window |
+| `canonical` | a named positive canonical readiness report and its T2 cutover identity | report fresh, passing, and bound to the exact cutover |
+| `retired` | that the path is referenced by no landing descriptor, no runtime or admin consumer, and no boundary exemption row | the positive absence scan finds zero references outside documentation and explicit retirement tests |
 
-The seven domain references point to those four contracts instead of duplicating physical migration work. A domain with an expected contract count of zero, a missing contract, an unknown mode, or a missing readiness report is blocked.
+A domain with an expected contract count of zero, a missing contract, an unknown mode, or missing evidence for its declared mode is blocked.
 
-**Open decision D1: the gap between `b1` and `canonical`.** As written, the two modes leave no legitimate state for work in progress. `mode = 'canonical'` requires a fresh readiness report generated after an authorized T2 cutover; the Migration states table forbids `CODE_READY` or `T1_VERIFIED` from downgrading an expired blocker; and extending a deadline with no evidence is rejected above. The consequence is that the repository gate stays blocked for the entire duration of the migration with no passing path, which in practice pressures the next contributor to suppress the check rather than satisfy it.
+### `b1_migrating`
 
-The distinction this design has not drawn is between extending a deadline with nothing behind it, which is concealment, and re-registering a bounded deadline bound to approved, evidenced, in-progress work, which is ordinary governance. If D1 is answered yes, add a third mode:
+D1 introduces this mode to distinguish two things the earlier two-mode design conflated: extending a deadline with nothing behind it, which is concealment, and re-registering a bounded deadline against approved, evidenced, in-progress work, which is ordinary governance. Without it the repository gate stays blocked for the entire migration with no passing path, which pressures the next contributor to suppress the check rather than satisfy it.
 
-- `mode = 'b1_migrating'`: validate an approved design reference, a named milestone evidence artifact matching the current declared state, and a re-registered deadline within a bounded window. A missing or stale milestone artifact, an unrecognized declared state, or a deadline beyond the window is blocked exactly as an expired `b1` row is today.
+Guardrails, so the mode cannot become a permanent parking space:
 
-That mode would not weaken closure: `B1_CLOSED` would still require `mode = 'canonical'` on all four contracts with fresh T2 evidence. It only distinguishes "not yet migrated, and nothing is happening" from "not yet migrated, and here is the evidence of progress". If D1 is answered no, the branch cannot pass the repository gate until the group chain reaches step 13 and the NPC chain reaches step 16, and that should be stated as an accepted cost rather than left implicit.
+- registration is an explicit act with a named approved design and a declared state drawn from the Migration states table; it is never inferred from code existing;
+- the milestone evidence artifact must match the declared state, so a row claiming `T1_VERIFIED` fails if the T1 evidence is absent or stale;
+- the re-registered deadline is bounded, and expiry blocks exactly as an expired `b1` row does today;
+- `b1_migrating` never satisfies `B1_CLOSED`.
 
-Two read-only positive reports are required:
+### `retired`
 
-| Report path | Required evidence |
-| --- | --- |
-| `reports/canonical-migration/canonical-item-group-readiness.json` | formal schema/version; landing/maint/relation/local counts and hashes; per-consumer shadow parity; zero runtime/admin direct reads; JSON fallback disabled; API snapshot hash; export freshness |
-| `reports/canonical-migration/canonical-npc-crawler-facts-readiness.json` | formal base and crawler-fact landing freshness; maint match counts; NPC-Buff/shop/loot relation and local hashes; zero bridge-path reads outside explicit bootstrap/export compatibility code; positive API/runtime samples |
+D2 retires the bridge identity. Retirement is not deletion: the row stays in the registry forever with a positive assertion that nothing references the path. That is what makes it verifiable rather than merely absent, and it is the check that prevents a future change from quietly re-registering an untracked artifact as a source input.
 
-The reports declare `requiresDatabase: true`, `writesDatabase: false`, exact formal database roles, generation time, source snapshot hashes, code commit, and cutover run/decision identity. They must be generated after the exact cutover and be no older than 24 hours when the closure gate runs. Fixture or T1 reports can prove `CODE_READY`/`T1_VERIFIED`, but cannot satisfy `mode = 'canonical'`.
+Retiring the bridge does not reduce the reference count for `support.town_npc_maintenance`. The replacement input, `data/standardized/npcs.standardized.json`, is itself a B1-tier input under the boundary document's definition, and is registered as such at `b1_migrating`. The panel passes on a real file with real evidence instead of on a file that does not exist.
 
-Add both reports to the domain acceptance report manifest, freshness audit, manual-only refresh plan, backend acceptance DTO/API, admin acceptance view, and `quality-gate.sh`. The refresh plan displays the read-only generation commands but never executes them. Missing, malformed, stale, unknown-risk, database-writing, or non-T2 evidence is blocking. UI/API consumers render the backend-owned report state and do not derive freshness independently.
+### Closure
+
+`B1_CLOSED` requires every registered identity to be `canonical` or `retired`, with fresh evidence, and the complete gate green. The three group identities reach `canonical` through this design. The NPC identity reaches `canonical` only through the deferred canonical NPC chain, which is blocked on a separately authorized crawler run.
+
+Read-only positive reports required by this delivery:
+
+| Report path | Mode served | Required evidence |
+| --- | --- | --- |
+| `reports/canonical-migration/canonical-item-group-readiness.json` | `canonical` for the three group identities | formal schema/version; landing/maint/relation/local counts and hashes; per-consumer shadow parity; zero runtime/admin direct reads; JSON fallback disabled; API snapshot hash; export freshness |
+| `reports/canonical-migration/npc-bridge-retirement.json` | `retired` for the bridge identity | positive absence scan showing zero references to the bridge path in landing descriptors, runtime and admin consumers, and boundary exemption rows; the `npcs_raw` descriptor resolving to the tracked standardized file; non-empty current NPC-Buff relation rows proving the enrichment already materialized |
+| `reports/canonical-migration/npc-standardized-migrating.json` | `b1_migrating` for the standardized NPC identity | approved design reference, declared state, matching milestone evidence, and the re-registered deadline |
+
+`reports/canonical-migration/canonical-npc-crawler-facts-readiness.json` is specified for the deferred chain and is not produced by this delivery. Its required evidence is formal base and crawler-fact landing freshness, maint match counts, NPC-Buff/shop/loot relation and local hashes, and positive API/runtime samples.
+
+The `canonical` and `retired` reports declare `requiresDatabase: true`, `writesDatabase: false`, exact formal database roles, generation time, source snapshot hashes, code commit, and cutover run/decision identity. They must be generated after the exact cutover and be no older than 24 hours when the closure gate runs. Fixture or T1 reports can prove `CODE_READY`/`T1_VERIFIED`, but cannot satisfy `mode = 'canonical'` or `mode = 'retired'`.
+
+The retirement report is the reason `retired` is a verifiable state rather than a deletion: it asserts absence positively, with a scan that fails if anything re-introduces a reference to the path.
+
+Add every produced report to the domain acceptance report manifest, freshness audit, manual-only refresh plan, backend acceptance DTO/API, admin acceptance view, and `quality-gate.sh`. The refresh plan displays the read-only generation commands but never executes them. Missing, malformed, stale, unknown-risk, database-writing, or non-T2 evidence is blocking. UI/API consumers render the backend-owned report state and do not derive freshness independently.
 
 A B1 row may be replaced by a canonical migration record in `docs/audits/canonical-migration-boundary.md` only when all conditions are true for that input's chain:
 
