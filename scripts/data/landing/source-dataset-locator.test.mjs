@@ -36,7 +36,7 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
     fetchedAt: '2026-04-23T01:01:00.000Z',
     sourceRevisionTimestamp: '2026-04-22T10:01:00Z',
   });
-  await writeJson(path.join(repoRoot, 'data', 'generated', 'wiki-crawler-npc-bridge', 'standardized', 'npcs.standardized.json'), {
+  await writeJson(path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json'), {
     entity: 'npcs',
     generatedAt: '2026-04-23T01:01:30.000Z',
     records: [
@@ -156,9 +156,10 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(itemPageEntry.contentHash.length, 64);
 
   const npcEntry = actual.find((entry) => entry.datasetType === 'npcs_raw');
-  assert.equal(npcEntry.provider, 'terrapedia.generated');
-  assert.equal(npcEntry.sourceKind, 'generated_standardized_bridge');
-  assert.equal(npcEntry.sourceLocator, 'repo://data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json');
+  assert.equal(npcEntry.provider, 'terrapedia.standardized');
+  assert.equal(npcEntry.sourceKind, 'standardized_dataset');
+  assert.equal(npcEntry.sourceKey, 'standardized.npcs');
+  assert.equal(npcEntry.sourceLocator, 'repo://data/standardized/npcs.standardized.json');
 
   const armorAttributesEntry = actual.find((entry) => entry.datasetType === 'armor_attributes_raw');
   assert.equal(armorAttributesEntry.provider, 'terraria.wiki.gg');
@@ -267,4 +268,28 @@ test('listSourceDatasetLandingInputs respects requested dataset filters', async 
 
   assert.equal(actual.length, 1);
   assert.equal(actual[0].datasetType, 'recipes_raw');
+});
+
+test('listSourceDatasetLandingInputs fails loudly when a required dataset input is absent', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-landing-missing-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  await fs.mkdir(repoRoot, { recursive: true });
+  await fs.mkdir(sharedDataRoot, { recursive: true });
+
+  await assert.rejects(
+    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npcs_raw'] }),
+    /npcs_raw requires an accepted landing source/,
+  );
+});
+
+test('listSourceDatasetLandingInputs still skips optional datasets that are absent', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-landing-optional-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  await fs.mkdir(repoRoot, { recursive: true });
+  await fs.mkdir(sharedDataRoot, { recursive: true });
+
+  const actual = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['projectiles_raw'] });
+  assert.deepEqual(actual, []);
 });

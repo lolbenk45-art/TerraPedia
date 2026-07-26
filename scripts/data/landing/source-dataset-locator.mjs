@@ -138,8 +138,19 @@ export async function listSourceDatasetLandingInputs(options = {}) {
   const shouldInclude = (datasetType) => datasetFilter.size === 0 || datasetFilter.has(datasetType);
 
   const entries = [];
-  const pushFileDescriptor = async (datasetType, filePath, builder) => {
-    if (!shouldInclude(datasetType) || !(await exists(filePath))) {
+  const pushFileDescriptor = async (datasetType, filePath, builder, { required = false } = {}) => {
+    if (!shouldInclude(datasetType)) {
+      return;
+    }
+    if (!(await exists(filePath))) {
+      // A required dataset that silently vanishes is worse than a hard failure: the landing
+      // import then reports success while omitting the dataset entirely.
+      if (required) {
+        throw new Error(
+          `${datasetType} requires an accepted landing source, but ${filePath} does not exist. `
+          + 'Provide an explicit descriptor for this dataset instead of relying on a default path.',
+        );
+      }
       return;
     }
     const payload = await readJson(filePath);
@@ -168,14 +179,14 @@ export async function listSourceDatasetLandingInputs(options = {}) {
 
   await pushFileDescriptor(
     'npcs_raw',
-    path.join(repoRoot, 'data', 'generated', 'wiki-crawler-npc-bridge', 'standardized', 'npcs.standardized.json'),
+    path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json'),
     (filePath, payload) => buildFileDescriptor({
       datasetType: 'npcs_raw',
       filePath,
       payload,
-      provider: 'terrapedia.generated',
-      sourceKind: 'generated_standardized_bridge',
-      sourceKey: 'generated.wiki_crawler_npc_bridge',
+      provider: 'terrapedia.standardized',
+      sourceKind: 'standardized_dataset',
+      sourceKey: 'standardized.npcs',
       sourcePage: 'npcs.standardized',
       sourceRevisionTimestamp: null,
       fetchedAt: payload.generatedAt,
@@ -184,6 +195,7 @@ export async function listSourceDatasetLandingInputs(options = {}) {
       repoRoot,
       sharedDataRoot,
     }),
+    { required: true },
   );
 
   await pushFileDescriptor(
