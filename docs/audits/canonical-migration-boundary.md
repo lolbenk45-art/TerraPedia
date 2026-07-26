@@ -57,6 +57,8 @@
 
 ## 过渡豁免登记
 
+> 已由 `## 来源合同登记` 取代。本表保留为历史记录，不再被任何检查读取。bridge 路径一行的处置见来源合同登记中的 `retired` 行。
+
 | 输入 | 当前消费者 | 迁移目标 | 验收命令 |
 | --- | --- | --- | --- |
 | `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | NPC 基础数据、NPC-Buff 回填；deadline: 2026-06-30 | `source_dataset_landings` -> canonical npc | `node scripts/data/crawler/src/cli.mjs coverage-audit --domain=npc` |
@@ -64,6 +66,29 @@
 | `data/generated/recipe-group-overrides.json` | recipe group 补洞；deadline: 2026-06-30 | canonical recipe group override | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
 | `data/generated/item-group-overrides.json` | npc_shop/shimmer group 解释；deadline: 2026-06-30 | canonical item group override | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
 | legacy `items.image` | item image fallback | `item_images.original_url` / `cached_url` | `cd back; mvn "-Dtest=WikiImageSyncServiceImplTest,ItemImageServiceImplTest,ItemMapperPreferredImageSqlTest" test` |
+
+## 来源合同登记
+
+每个输入身份永久保留一行，mode 决定校验规则。行只改 mode，不删除：删掉的行和满足的行对后来的读者无法区分。
+
+- `b1`：校验登记与 deadline。
+- `b1_migrating`：校验已批准设计引用、声明状态、限期内的重新登记 deadline。永不满足 `B1_CLOSED`。
+- `canonical`：校验具名 readiness 报告与其 T2 割接身份。
+- `retired`：校验正向缺席报告，证明该路径已无任何引用。
+
+校验实现：`scripts/data/audit/canonical-source-contract-registry.mjs`。
+
+| 输入 | mode | 证据 | deadline |
+| --- | --- | --- | --- |
+| `data/generated/recipe-material-reference.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
+| `data/generated/recipe-group-overrides.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
+| `data/generated/item-group-overrides.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
+| `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | `retired` | report: `reports/canonical-migration/npc-bridge-retirement.json` | — |
+| `data/standardized/npcs.standardized.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
+
+bridge 一行被退役的原因：该路径自 `a743791d`（2026-04-20）起就被 gitignore，`git log` 对它零提交，任何一次干净 clone 都没有它。它从来不是可迁移的数据源，而是一个派生产物；退役不是删除，而是由缺席报告持续断言"无人引用"。
+
+它的替代输入 `data/standardized/npcs.standardized.json` 本身仍是 B1 档（`data/standardized/` 下当数据源的过渡文件），因此登记为 `b1_migrating` 而非直接消失。canonical NPC crawler-fact 链需要一次单独授权的 crawler 运行，暂缓。
 
 ## Apply 前准入
 

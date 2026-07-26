@@ -1,0 +1,160 @@
+{
+  "generatedAt": "2026-07-26T15:43:50.194Z",
+  "reportId": "npcBridgeRetirement",
+  "retiredPath": "data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "scannedFileCount": 2969,
+  "allowedReferenceCount": 29,
+  "allowedReferences": [
+    {
+      "file": "back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java",
+      "line": 5592,
+      "reason": "producer-output"
+    },
+    {
+      "file": "docs/audits/2026-05-11_npc-angry-bones-inheritance-review.md",
+      "line": 21,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/audits/2026-05-11_npc-segment-family-inheritance-review.md",
+      "line": 24,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/audits/canonical-migration-boundary.md",
+      "line": 64,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/audits/canonical-migration-boundary.md",
+      "line": 86,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/audits/generated-data-consumer-map.md",
+      "line": 93,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 518,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 531,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 541,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 554,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 563,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 570,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 680,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 980,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 1049,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-07-26-b1-step0-source-contract-registry.md",
+      "line": 1397,
+      "reason": "documentation"
+    },
+    {
+      "file": "docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md",
+      "line": 32,
+      "reason": "documentation"
+    },
+    {
+      "file": "reports/canonical-migration/npc-bridge-retirement.json",
+      "line": 4,
+      "reason": "historical-report"
+    },
+    {
+      "file": "reports/domain/support.town_npc_maintenance/b1-exemption-compliance-2026-05-23.json",
+      "line": 20,
+      "reason": "historical-report"
+    },
+    {
+      "file": "reports/domain/support.town_npc_maintenance/b1-exemption-compliance-2026-05-24.json",
+      "line": 20,
+      "reason": "historical-report"
+    },
+    {
+      "file": "scripts/data/audit/build-npc-bridge-retirement-report.mjs",
+      "line": 6,
+      "reason": "retirement-scanner"
+    },
+    {
+      "file": "scripts/data/audit/build-npc-bridge-retirement-report.test.mjs",
+      "line": 19,
+      "reason": "retirement-scanner"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.mjs",
+      "line": 31,
+      "reason": "contract-registration"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.test.mjs",
+      "line": 153,
+      "reason": "contract-registration"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.test.mjs",
+      "line": 166,
+      "reason": "contract-registration"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.test.mjs",
+      "line": 176,
+      "reason": "contract-registration"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.test.mjs",
+      "line": 189,
+      "reason": "contract-registration"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.test.mjs",
+      "line": 198,
+      "reason": "contract-registration"
+    },
+    {
+      "file": "scripts/data/audit/canonical-source-contract-registry.test.mjs",
+      "line": 205,
+      "reason": "contract-registration"
+    }
+  ],
+  "referenceCount": 0,
+  "references": [],
+  "blockingReasons": []
+}
