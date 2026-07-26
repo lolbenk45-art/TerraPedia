@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {
   buildNpcBuffRelationPlan,
   extractNpcBuffRelationCandidates,
-  normalizeLookupKey
+  normalizeLookupKey,
+  resolveOptions
 } from './backfill-npc-buff-relations-from-wiki-crawler.mjs';
 
 test('extractNpcBuffRelationCandidates reads wikiCrawler buff inflictions from standardized NPC records', () => {
@@ -205,4 +206,16 @@ test('buildNpcBuffRelationPlan resolves Cursed Inferno inflicts for Clinger Spaz
 test('normalizeLookupKey strips common wiki markup around buff names', () => {
   assert.equal(normalizeLookupKey('[[Ichor (debuff)|Ichor]]'), 'ichor');
   assert.equal(normalizeLookupKey('{{item link|Stoned}}'), 'stoned');
+});
+
+test('resolveOptions requires an explicit data path instead of defaulting to the retired bridge', () => {
+  assert.throws(
+    () => resolveOptions({}),
+    /requires --data-path/,
+  );
+});
+
+test('resolveOptions accepts an explicit data path', () => {
+  const resolved = resolveOptions({ 'data-path': '/tmp/npcs.standardized.json' });
+  assert.equal(resolved.dataPath, '/tmp/npcs.standardized.json');
 });
