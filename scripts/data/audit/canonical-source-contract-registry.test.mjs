@@ -238,7 +238,7 @@ test('a registered input missing from the table blocks', () => {
   assert.match(report.blockingReasons[0], /missing from/i);
 });
 
-test('an expected contract count of zero blocks instead of passing vacuously', () => {
+test('a domain unknown to the matcher blocks instead of passing vacuously', () => {
   const repoRoot = createTempRepo();
   writeBoundaryDoc(repoRoot, [
     '| `data/generated/recipe-material-reference.json` | `b1` | recipe material group | 2026-08-31 |',
@@ -246,12 +246,29 @@ test('an expected contract count of zero blocks instead of passing vacuously', (
 
   const report = buildSourceContractComplianceReport({
     repoRoot,
-    domainId: 'support.recipe',
+    domainId: 'support.not_registered_anywhere',
     generatedAt: '2026-07-26T00:00:00Z',
-    inputs: [],
   });
   assert.equal(report.status, 'blocked');
-  assert.match(report.blockingReasons[0], /zero expected contracts/i);
+  assert.match(report.blockingReasons[0], /not registered/i);
+});
+
+test('a domain declared with no B1 inputs passes with a note rather than blocking', () => {
+  const repoRoot = createTempRepo();
+  writeBoundaryDoc(repoRoot, [
+    '| `data/generated/recipe-material-reference.json` | `b1` | recipe material group | 2026-08-31 |',
+  ]);
+
+  // support.category carries the panel but has never had a B1 input. Declaring it empty is
+  // different from it being silently absent, and only the latter may block.
+  const report = buildSourceContractComplianceReport({
+    repoRoot,
+    domainId: 'support.category',
+    generatedAt: '2026-07-26T00:00:00Z',
+  });
+  assert.equal(report.status, 'pass');
+  assert.equal(report.summary.trackedContractCount, 0);
+  assert.match(report.notes[0], /no source contracts registered/i);
 });
 
 test('the default matcher resolves a domain to its registered contracts without an explicit inputs list', () => {

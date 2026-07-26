@@ -64,6 +64,9 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/maint/gc-snapshots.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
+  scripts/data/audit/canonical-source-contract-registry.test.mjs \
+  scripts/data/audit/build-npc-bridge-retirement-report.test.mjs \
+  scripts/data/audit/npc-buff-relation-precheck.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \
   scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs \

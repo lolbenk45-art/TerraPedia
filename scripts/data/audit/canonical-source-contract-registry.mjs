@@ -31,6 +31,10 @@ export const DOMAIN_INPUT_MATCHERS = {
     'data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json',
     'data/standardized/npcs.standardized.json',
   ],
+  // Carries the panel but has never had a B1 input. Declared empty on purpose: a domain that is
+  // simply absent from this map is a registration gap and blocks, whereas a domain declared
+  // empty is a reviewed statement that it has no B1 debt.
+  'support.category': [],
 };
 
 export function readSourceContracts(fullBoundaryPath) {
@@ -76,14 +80,20 @@ export function buildSourceContractComplianceReport({
   const root = path.resolve(repoRoot);
   const now = parseDate(generatedAt) ?? new Date();
   const contracts = readSourceContracts(path.resolve(root, boundaryPath));
+  const isRegisteredDomain = Object.hasOwn(DOMAIN_INPUT_MATCHERS, domainId);
   const trackedInputs = inputs ?? DOMAIN_INPUT_MATCHERS[domainId] ?? [];
   const checks = trackedInputs.map((input) => buildCheck(root, input, contracts.get(input), now));
 
   const blockingReasons = checks.filter((c) => c.status === 'blocked').map((c) => c.reason);
   const warningReasons = checks.filter((c) => c.status === 'warning').map((c) => c.reason);
+  const notes = [];
 
-  if (trackedInputs.length === 0) {
-    blockingReasons.push(`${domainId} has zero expected contracts; a vacuous pass is not accepted.`);
+  // A domain missing from the matcher is a registration gap and must never pass silently.
+  // A domain declared with an empty list is a reviewed statement that it carries no B1 debt.
+  if (!isRegisteredDomain && inputs === null) {
+    blockingReasons.push(`${domainId} is not registered in the source contract matcher; a vacuous pass is not accepted.`);
+  } else if (trackedInputs.length === 0) {
+    notes.push(`No source contracts registered for ${domainId}.`);
   }
 
   return {
@@ -108,7 +118,7 @@ export function buildSourceContractComplianceReport({
     },
     blockingReasons,
     warningReasons,
-    notes: [],
+    notes,
     checks,
   };
 }
