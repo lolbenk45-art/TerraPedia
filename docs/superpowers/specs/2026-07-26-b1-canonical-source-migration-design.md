@@ -103,7 +103,7 @@ Success requires all of the following:
 
 1. Runtime and admin group consumers no longer treat the three group JSON files as source-of-truth inputs.
 2. NPC maintenance, relation, and NPC-Buff paths no longer require the untracked bridge path as an implicit default.
-3. The canonical chain is queryable, traceable to landing evidence, deterministic, and guarded by the existing three-database write protocol.
+3. The canonical chain is queryable, deterministic, and guarded by the existing three-database write protocol. Every row is traceable: source-derived rows to landing evidence, admin-authored rows to the append-only admin audit row. No row is traceable to nothing.
 4. Compatibility JSON generation is one-way from accepted evidence or canonical state; writing a compatibility file cannot mutate canonical state.
 5. The B1 compliance panels pass because migration evidence is complete, not because a deadline was extended or a blocker was suppressed.
 6. All write-capable acceptance remains confined to runKey-scoped T0/T1 isolation databases until a separate formal-write authorization is granted.
@@ -329,14 +329,18 @@ Unresolved non-referenced groups may remain warning evidence, but an unresolved 
 
 Each consumer keeps its current effective-source rule as a read-time predicate over `source_layer`, and applies precedence **within its own allowed subset**:
 
-| Consumer | Allowed source layers | Required parity |
-| --- | --- | --- |
-| `AdminItemGroupController` | all | current merged output |
-| `AdminRecipeGroupController` | `recipe_reference` | current output |
-| `RecipeTreeServiceImpl` | `recipe_reference`, plus non-colliding recipe-domain rows from other layers | current alias lookup |
-| recipe group expansion | `recipe_reference` only | current `buildRecipeGroupExpansions` output |
-| NPC shop | source-backed rows explicitly referenced by NPC shop evidence | current NPC shop group interpretation |
-| shimmer | source-backed rows explicitly referenced by shimmer evidence | current shimmer group interpretation |
+| Consumer | Allowed source layers | Writes to | Required parity |
+| --- | --- | --- | --- |
+| `AdminItemGroupController` | all | `central_override` | current merged output |
+| `AdminRecipeGroupController` | `recipe_reference`, `central_override` | `central_override` | current output |
+| `RecipeTreeServiceImpl` | `recipe_reference`, plus non-colliding recipe-domain rows from other layers | read-only | current alias lookup |
+| `buildRecipeGroupExpansions` (`scripts/data/relation/recipe-expansion-processor.mjs`) | `recipe_reference` only | read-only | current expansion output, subject to the deduplication difference below |
+| NPC shop | source-backed rows explicitly referenced by NPC shop evidence | read-only | current NPC shop group interpretation |
+| shimmer | source-backed rows explicitly referenced by shimmer evidence | read-only | current shimmer group interpretation |
+
+`AdminRecipeGroupController` must include `central_override` in its allowed set even though it does not today, because that is the layer its own writes land in. It currently creates, updates, and deletes by writing `recipe-group-overrides.json` (`AdminRecipeGroupController.java:328`). With `recipe_override` removed as a source layer, those edits have to land somewhere canonical, and `central_override` is the layer that already means "admin-authored". Omitting it from the read set would make an admin's own newly created recipe group invisible in the page that created it.
+
+`buildRecipeGroupExpansions` is a Node relation processor, not a Java service. It reads `recipe-material-reference.json` directly at `sync-maint-to-relation.mjs:1414` and matches members by `internalName`, which is consistent with the reference layer carrying no `itemId`.
 
 The read is one indexed query per consumer: filter by allowed layers, order by precedence descending, take the highest-precedence row per canonical key.
 
@@ -353,11 +357,17 @@ Keeping one relation row per contributing layer costs one row per source contrib
 
 Changing a consumer's allowed-layer set remains a separate semantic migration outside this B1 source move. Shadow acceptance compares each consumer independently, against its own predicate.
 
-### Shadow parity: four groups will legitimately differ
+### Shadow parity: two systematic expected differences
 
-Deduplication changes observable output for reference groups that have no override twin today. Four keys are in that state: `Any Fragment`, `Any Jellyfish`, `Any Torch`, `Any Wood`. Any consumer reading the reference layer for those four currently receives duplicated members, and after migration receives the deduplicated set.
+Both come from deduplication, and both are the migration working rather than regressions. A naive zero-diff comparison fails on both, so each needs an explicit normalization rather than an allowlist.
 
-This is the migration working, not a regression, but a naive zero-diff shadow comparison will fail on it. The comparison must therefore declare these four keys as expected differences with an explicit predicate: the canonical member set must equal the current member set **after** applying the same `internalName` deduplication to the current output. A difference that survives that normalization is blocking. Listing the four keys as an unconditional allowlist is not acceptable, because it would also mask a genuine member loss in the same groups.
+**Difference 1: member sets, for reference groups with no override twin.** Four keys are in that state: `Any Fragment`, `Any Jellyfish`, `Any Torch`, `Any Wood`. Consumers reading the reference layer for those four currently receive duplicated members and afterwards receive the deduplicated set. The comparison normalizes the current output by the same `internalName` deduplication before diffing. A difference that survives that normalization is blocking. An unconditional allowlist of the four keys is not acceptable, because it would also mask a genuine member loss in the same groups.
+
+**Difference 2: Chinese member names in recipe expansion.** `recipe-expansion-processor.mjs:33-38` already deduplicates by `internalName`, but with first-occurrence-wins. Measurement shows the duplicate pairs are ordered `nameZh: null` first in 112 of 112 cases, and never the other way, so the current expansion output carries `memberNameZh: null` for **112 of 153 members**. This design's rule retains the non-null row, so those 112 members gain their Chinese name.
+
+That is the correct outcome and the reason the rule is specified as "retain non-null" rather than "keep the first". It is also a diff on nearly every expanded group, not a rare edge case, so it must be declared before cutover rather than discovered during step 12. The comparison treats a `memberNameZh` change from `null` to a non-empty value as expected, and treats any other `memberNameZh` change, including value-to-different-value or value-to-null, as blocking.
+
+Both normalizations are themselves tested: a fixture where a member is genuinely lost, and a fixture where `memberNameZh` changes from one value to another, must both fail the comparison.
 
 ### Local runtime tables
 
@@ -403,11 +413,21 @@ Controllers no longer read or overwrite files. Read endpoints remain available t
 
 Create, update, and delete keep their current synchronous semantics. The user decided on 2026-07-26 that manual group curation must not require System Owner approval. The maintenance surface is one active group today and the whole canonical domain is 34 groups; a two-person, bundle-frozen protocol in front of it would make the admin page unusable without buying meaningful safety.
 
-1. An authenticated `ADMIN` submits a create, update, or delete.
-2. The backend validates it against the precedence and collision rules, then commits maint, relation, and local rows plus the projection-state transition in one transaction.
+1. An authenticated `ADMIN` submits a create, update, or delete to `/admin/item-groups` or `/admin/recipe-groups`.
+2. The backend validates it against the precedence and collision rules, then commits the `central_override` maint row, its relation rows, its local rows, and the projection-state transition in one transaction.
 3. The response reports the committed group, exactly as today.
 
 The change is the write target, not the workflow: the file write becomes a database transaction.
+
+**Same-server co-location is a precondition, checked at startup.** Step 2 spans `terria_v1_maint`, `terria_v1_relation`, and `terria_v1_local`, and the write protocol only permits a single transaction across them when they are same-server. The cross-server path is the staged protocol with markers and compensation, which must not run inside a synchronous HTTP request: an admin clicking save cannot be the thing that owns a partially committed three-database mutation.
+
+The group tables are small enough that co-location is a reasonable requirement rather than a burden. So:
+
+- at startup the backend resolves the three database roles and records whether they are same-server;
+- if they are, the synchronous admin write path is enabled;
+- if they are not, the admin write path is **disabled and reported as such in the API response and the admin UI**, while read endpoints continue working. Group changes then go through the `item-group-canonical-apply` capability, which already owns the staged protocol.
+
+Failing closed here is deliberate. The alternative, letting the request start a staged cross-server mutation it cannot supervise, converts a deployment-topology surprise into a partially applied canonical write.
 
 This does not create an ungoverned writer. Admin edits are owned by a registered `admin_item_group_writer` identity with its own row in `tableOwnershipMatrix`, restricted to `source_layer = 'central_override'` rows of the group tables and to the group projection state. It:
 
@@ -635,7 +655,7 @@ Implementation follows test-driven development. Required evidence includes:
 1. Node unit tests for parsing, canonical keys, precedence, alias collision, member resolution, blocked references, export stability, bootstrap `sourceKind` classification including the unknown-kind rejection, and missing NPC source behavior.
 2. Schema and ownership contract tests covering every new table, column owner, logical predicate, and database role, plus `source_layer` predicate intersection between the capability writer and the admin writer.
 3. Java repository/service/controller tests proving no direct file access, preserved read behavior, synchronous commit semantics for admin create/update/delete, DB-backed recipe-tree resolution, and fail-closed errors.
-4. Admin contract tests proving edit/delete capabilities come from backend data rather than file paths, that an admin edit commits maint/relation/local/projection-state in one transaction, and that a cap breach on the admin path fails the request rather than queueing anything.
+4. Admin contract tests proving edit/delete capabilities come from backend data rather than file paths, that an admin edit commits maint/relation/local/projection-state in one transaction, that a cap breach on the admin path fails the request rather than queueing anything, that an admin-created recipe group is immediately visible in `AdminRecipeGroupController` because `central_override` is in its allowed layer set, and that a cross-server topology disables the synchronous write path while leaving reads working.
 5. Concurrency tests proving an admin override commit and a source refresh cannot interleave on the same normalized canonical keys, and that the admin writer cannot modify a `recipe_reference` or `source_group` row.
 5a. Deduplication tests asserting the exact rule: collapse by `internalName`, retain the non-null `nameZh` row; 265 raw reference members reduce to 153; a member set differing only in `nameZh` nullity must not survive as two rows.
 5b. Bootstrap reconciliation tests for the override file covering all four dispositions, including the two blocking cases (an override that adds a member, an override with no matching reference group) which have zero current instances and must therefore be exercised with synthetic fixtures.
@@ -644,6 +664,7 @@ Implementation follows test-driven development. Required evidence includes:
 6. T0 and T1 isolated three-database acceptance using their distinct required prefixes for rollback, commit, verification, export, and restoration.
 7. Per-consumer zero-diff shadow reports covering identity, names, domains, aliases, members, source metadata, blocked state, and recipe expansion rows, each evaluated against that consumer's allowed-layer predicate. The comparison normalizes the current output by the same `internalName` deduplication before diffing, so the four override-less reference groups (`Any Fragment`, `Any Jellyfish`, `Any Torch`, `Any Wood`) match rather than being allowlisted. A test must prove that removing a genuine member from one of those four still fails the comparison.
 7a. Resolution-count assertions requiring exactly zero `UNRESOLVED` and zero `AMBIGUOUS` members at cutover, not a tolerance, because all 153 distinct reference member names resolve uniquely today.
+7b. Shadow-normalization tests proving both declared expected differences are bounded: a fixture that genuinely loses a member must fail the comparison, and a fixture whose `memberNameZh` changes from one non-null value to another must fail. Only `null` to non-empty is accepted.
 8. Export round-trip equivalence: rendering canonical state to each compatibility file and re-parsing it reproduces exactly the canonical group state, including blocked groups. Determinism tests alone are insufficient because they prove stability, not fidelity.
 9. Export merge tests for `recipe-material-reference.json` proving the non-group sections are carried from the same landing revision, that a revision mismatch blocks, and that unavailable non-group evidence fails the job instead of publishing a file with truncated `supplementalRecipes`.
 10. NPC retirement evidence for this delivery: the `npcs_raw` descriptor resolves to the tracked standardized file; a missing descriptor fails loudly instead of omitting the dataset; the positive absence scan finds zero bridge-path references outside documentation and the retirement test itself; and NPC-Buff relation rows are non-empty and current. Full NPC coverage across crawler-fact landing, maint facts, and shop/loot relations belongs to the deferred chain and is not produced here.
