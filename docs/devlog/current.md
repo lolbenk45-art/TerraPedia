@@ -26,9 +26,16 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   approved the full landing -> maint -> relation -> local repair design and retained the
   four JSON paths as read-only compatibility outputs. A boundary review found and repaired
   NPC source, zero-check gate, feedback-loop, Owner authorization, formal-cutover,
-  consumer-scope, T1-prefix, and export-lifecycle defects. Fresh re-review now reports no
-  Critical or Important design finding; the repaired written spec awaits user approval before
-  an implementation plan is authored.
+  consumer-scope, T1-prefix, and export-lifecycle defects.
+  A subsequent measurement-based review found the spec was sized against assumed rather than
+  measured volume and repaired it: the whole Any Item Group surface is 63 groups / 387 members
+  / 2 explicit aliases, the bridge path is a gitignored artifact that was never committed and
+  was wrongly registered twice, and 62 of 63 groups have no group-level provenance. The spec
+  now drops the Owner-approval gate on admin group edits per user decision, resolves groups
+  once instead of materializing six consumer scopes, caps at measured x4, bounds the landing
+  payload to the group section, deletes the bridge compatibility exporter, and flips source
+  contracts per input instead of atomically. Four open decisions (D1 migrating mode, D2 NPC
+  disposition, D3 curated-layer landing, D4 delivery split) now block implementation planning.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
