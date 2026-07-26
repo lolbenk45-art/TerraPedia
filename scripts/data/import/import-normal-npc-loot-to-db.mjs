@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
 import {
@@ -35,7 +36,7 @@ if (isDirectExecution()) {
 }
 
 async function main() {
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const localStackConfig = loadLocalStackConfig(repoRoot);
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? localStackConfig.database?.host ?? '127.0.0.1',

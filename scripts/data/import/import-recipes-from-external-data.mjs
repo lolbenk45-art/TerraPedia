@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolveSharedDataRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
 import { resolveRecipeImportApply } from './recipe-import-mode.mjs';
 
@@ -48,7 +49,7 @@ async function main() {
     ? raw.records.recipes
     : (Array.isArray(raw.recipes) ? raw.recipes : (Array.isArray(raw.supplementalRecipes) ? raw.supplementalRecipes : []));
 
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const conn = await mysql.createConnection(db);
   try {
     await conn.query('SET NAMES utf8mb4');
