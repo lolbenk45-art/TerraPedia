@@ -68,15 +68,20 @@
 - Continuation repair: added the planned risk-first automation workbench and four accessible admin components; capability tests now cross-check the backend registry and progress owner; same-server apply now rejects multiple physical connections, verifies relation integrity before commit, then verifies API/cache visibility after commit with snapshot compensation required on failure; `--profile=t1` now hard-stops instead of falsely running T0 stages. T1 snapshot-backed execution remains separately authorized and unrun. See git for code-level diff details.
 - Continuation validation: automation/admin Node contracts pass 125/125; admin Nuxt typecheck passes after an offline frozen-lockfile dependency install; focused crawler action registry tests pass 11/11; `git diff --check` passes. Three plan gates remain active and no database/crawler writer command was run.
 - Continuation fresh re-review: zero Critical/Important findings after strict API envelope fail-closed handling, shared-connection enforcement, pre/post-commit verification separation, and compensation-required status repair. Reviewer approved an active checkpoint only; progress payload proof, backend-owned disabled reasons, T1 execution, and Task 9 closeout remain open.
+- Code-gate closure on 2026-07-26: all 15 non-apply operations now declare their progress owner, canonical path, isolated test path, pre-work running payload, heartbeat, and completed/failed terminal contract. The backend overview now owns structured disabled reasons, the domain matrix renders those messages without policy inference, and the Spring automation profile defaults to read-only unless `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=false` is explicitly supplied. See git for code-level diff details.
+- Code-gate validation on 2026-07-26: automation/admin Node contracts pass 121/121; executable progress-owner tests pass 25/25; focused Java automation/action tests pass 52/52; admin Nuxt typecheck passes; `git diff --check` passes. No database, Redis, crawler, import, apply, backfill, rollback, or service-lifecycle command was run.
+- Full `quality-gate.sh` was intentionally not run at this checkpoint because it includes the isolated user-auth E2E database provisioner and cross-database runtime audit. It remains part of Task 9 after the write-capable T0/T1 authorization and acceptance run; focused no-database sub-gates were run instead.
 
 ## Residual Risks
 
 - T1 snapshot-backed preview/apply/verify/rollback has not run and requires separate authorization; the runner now hard-stops instead of reporting a synthetic pass.
-- Per-preview heartbeat and terminal progress payload coverage is not yet proven for every registered operation; this remains the next code-only gate.
+- Write-capable T0/T1 preflight has not created the run-derived isolated three-database set or verified real grants/server UUID/runKey/Redis identity; this requires explicit operation-level authorization.
 - L1/L2 and scheduler activation remain disabled and require System Owner bootstrap, reauthentication, domain-scoped approval, and fresh evidence.
 - The Flyway target-DDL pre-scan may conservatively reject extreme whitespace/comment variants; this fails closed and does not permit a writer.
 
 ## Cross-Review
+
+- 2026-07-26 code-gate self-review found one Important runtime boundary: the real Spring service always constructed `readOnlyProfile=false`, so test-only read-only evidence did not protect the running API. The repair injects `terraria.crawler.automation.read-only` with a fail-closed default of `true`, exposes the environment override explicitly, and adds a reflection/configuration contract test. Focused re-validation is green; no Critical/Important code finding remains in the no-database checkpoint. Independent reviewer dispatch was unavailable in this session, so merge readiness still depends on the separately authorized runtime gates and final review.
 
 - Task 2 implementation review: checkpoint is blocked by two Critical and four Important findings. The first matrix version used free-text predicates without physical columns, represented real shared maint/relation/local tables as synthetic single owners, allowed optional runKey mapping plus a forced-key hash bypass, accepted trusted and observed database identity in one mutable object, omitted Redis host/port identity, did not require capability/key/structured predicate fields, and had no authoritative local target catalog.
 - Task 2 implementation review disposition: active repair. Do not start Task 3 or commit until physical-column/predicate intersections, all shared owners, trusted-manifest versus observed identity, mandatory durable runKey mapping, Redis endpoint identity, required ownership fields, and local catalog drift tests pass and receive fresh re-review.
@@ -104,8 +109,8 @@
 
 ## Follow-up
 
-- Codex: close the remaining code-contract gaps inline with TDD; stop before T1 provisioning or any formal database write until separately authorized.
-- User: selected inline execution (`B`); continue the implementation plan in this worktree.
+- Codex: stop before write-capable T0/T1 provisioning; after explicit authorization, run the isolated three-database preflight and T1 snapshot/preview/apply/verify/rollback acceptance, then execute the full closeout gate.
+- User: authorize the named T0/T1 isolated-database operation when ready. Formal T2 writes, real crawler execution, L1/L2 promotion, scheduler activation, push, and merge remain unauthorized.
 
 ## Commits
 

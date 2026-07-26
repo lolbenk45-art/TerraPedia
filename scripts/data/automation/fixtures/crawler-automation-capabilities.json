@@ -7,6 +7,14 @@
       "actionId": "wiki-items-refresh",
       "domain": "items",
       "mode": "check",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-items-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -21,6 +29,14 @@
       "actionId": "wiki-items-force-refresh",
       "domain": "items",
       "mode": "force",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-items-force-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -35,6 +51,14 @@
       "actionId": "wiki-npcs-refresh",
       "domain": "npcs",
       "mode": "check",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-npcs-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -49,6 +73,14 @@
       "actionId": "wiki-npcs-force-refresh",
       "domain": "npcs",
       "mode": "force",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-npcs-force-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -63,6 +95,14 @@
       "actionId": "wiki-projectiles-refresh",
       "domain": "projectiles",
       "mode": "check",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-projectiles-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -77,6 +117,14 @@
       "actionId": "wiki-projectiles-force-refresh",
       "domain": "projectiles",
       "mode": "force",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-projectiles-force-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -91,6 +139,14 @@
       "actionId": "buff-page-immunity-refresh",
       "domain": "buffs",
       "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-buffs.mjs",
+        "canonicalPath": "data/generated/fetch-wiki-buffs-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-buffs.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -105,6 +161,14 @@
       "actionId": "domain-source-armor-sets",
       "domain": "armor_sets",
       "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs",
+        "canonicalPath": "data/generated/domain-source-armor-sets-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-armorsetbonuses.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -119,6 +183,14 @@
       "actionId": "recipe-reference-sync",
       "domain": "recipes",
       "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/recipe-reference-sync.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -149,6 +221,14 @@
       "actionId": "biome-preview",
       "domain": "biomes",
       "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/biome-preview.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -179,6 +259,14 @@
       "actionId": "domain-source-bosses",
       "domain": "bosses",
       "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-bosses.mjs",
+        "canonicalPath": "data/generated/domain-source-bosses-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-bosses-progress.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -193,6 +281,14 @@
       "actionId": "domain-source-town-npc-maintenance",
       "domain": "town_npc_maintenance",
       "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs",
+        "canonicalPath": "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-town-npc-maintenance-progress.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -207,6 +303,14 @@
       "actionId": "domain-source-shimmer",
       "domain": "shimmer",
       "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-shimmer-page.mjs",
+        "canonicalPath": "data/generated/domain-source-shimmer-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-shimmer-page-progress.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -221,6 +325,14 @@
       "actionId": "npc-loot-backfill",
       "domain": "npc_loot",
       "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/npc-loot-backfill.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
@@ -251,6 +363,14 @@
       "actionId": "boss-loot-backfill",
       "domain": "boss_loot",
       "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/boss-loot-backfill.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": ["completed", "failed"]
+      },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,

@@ -21,7 +21,8 @@ public interface CrawlerAutomationRunMapper extends BaseMapper<CrawlerAutomation
                r.run_id AS lastRunId,
                r.status AS lastRunStatus,
                r.completed_at AS lastRunCompletedAt,
-               '[]' AS activeAlerts
+               NULL AS activeAlerts,
+               NULL AS disabledReasons
         FROM crawler_automation_policy p
         LEFT JOIN crawler_automation_run r
           ON r.run_id = (

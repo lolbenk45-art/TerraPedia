@@ -9,8 +9,10 @@ import com.terraria.skills.mapper.CrawlerAutomationPolicyMapper;
 import com.terraria.skills.mapper.CrawlerAutomationRunMapper;
 import com.terraria.skills.service.CrawlerAutomationPolicyService;
 import com.terraria.skills.service.CrawlerAutomationService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -28,17 +30,8 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
         CrawlerAutomationRunMapper runMapper,
         CrawlerAutomationPolicyMapper policyMapper,
         CrawlerAutomationApprovalMapper approvalMapper,
-        CrawlerAutomationPolicyService policyService
-    ) {
-        this(runMapper, policyMapper, approvalMapper, policyService, false);
-    }
-
-    public CrawlerAutomationServiceImpl(
-        CrawlerAutomationRunMapper runMapper,
-        CrawlerAutomationPolicyMapper policyMapper,
-        CrawlerAutomationApprovalMapper approvalMapper,
         CrawlerAutomationPolicyService policyService,
-        boolean readOnlyProfile
+        @Value("${terraria.crawler.automation.read-only:true}") boolean readOnlyProfile
     ) {
         this.runMapper = Objects.requireNonNull(runMapper);
         this.policyMapper = Objects.requireNonNull(policyMapper);
@@ -50,9 +43,12 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
     @Override
     public CrawlerAutomationOverviewDTO getOverview() {
         // Read-only: collect domain summaries and active alert counts from DB
-        List<CrawlerAutomationOverviewDTO.DomainSummary> domains =
+        List<CrawlerAutomationOverviewDTO.DomainSummary> rawDomains =
             runMapper.findActiveDomainSummaries();
-        if (domains == null) domains = Collections.emptyList();
+        if (rawDomains == null) rawDomains = Collections.emptyList();
+        List<CrawlerAutomationOverviewDTO.DomainSummary> domains = rawDomains.stream()
+            .map(this::withDisabledReasons)
+            .toList();
 
         long openCircuits = domains.stream()
             .filter(d -> "CIRCUIT_OPEN".equals(d.operationalState()))
@@ -117,6 +113,44 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
     @Override
     public boolean isReadOnlyProfile() {
         return readOnlyProfile;
+    }
+
+    private CrawlerAutomationOverviewDTO.DomainSummary withDisabledReasons(
+        CrawlerAutomationOverviewDTO.DomainSummary domain
+    ) {
+        List<CrawlerAutomationOverviewDTO.DisabledReason> reasons = new ArrayList<>();
+        if (readOnlyProfile) {
+            reasons.add(reason("T2_READ_ONLY_PROFILE", "T2 只读环境禁止自动入库变更。"));
+        }
+        switch (String.valueOf(domain.operationalState())) {
+            case "DISABLED" -> reasons.add(reason("POLICY_DISABLED", "自动化策略当前为禁用状态。"));
+            case "SHADOW" -> reasons.add(reason("SHADOW_READ_ONLY", "当前域仅运行只读 shadow，不允许入库。"));
+            case "CIRCUIT_OPEN" -> reasons.add(reason("CIRCUIT_OPEN", "断路器已打开，需先处理异常并重新审批。"));
+            case "null", "" -> reasons.add(reason("POLICY_STATE_UNAVAILABLE", "后端未返回有效策略状态，已按禁用处理。"));
+            default -> { }
+        }
+        if ("L0".equals(domain.automationLevel())) {
+            reasons.add(reason("AUTOMATION_LEVEL_L0", "当前自动化等级为 L0，不允许自动入库。"));
+        } else if (domain.automationLevel() == null || domain.automationLevel().isBlank()) {
+            reasons.add(reason("POLICY_LEVEL_UNAVAILABLE", "后端未返回有效自动化等级，已按 L0 处理。"));
+        }
+        if ("AWAITING_APPROVAL".equals(domain.lastRunStatus())) {
+            reasons.add(reason("OWNER_APPROVAL_REQUIRED", "最近运行正在等待 Owner 审批。"));
+        }
+        return new CrawlerAutomationOverviewDTO.DomainSummary(
+            domain.domainId(),
+            domain.automationLevel(),
+            domain.operationalState(),
+            domain.lastRunId(),
+            domain.lastRunStatus(),
+            domain.lastRunCompletedAt(),
+            domain.activeAlerts(),
+            reasons
+        );
+    }
+
+    private static CrawlerAutomationOverviewDTO.DisabledReason reason(String code, String messageZh) {
+        return new CrawlerAutomationOverviewDTO.DisabledReason(code, messageZh);
     }
 
     private CrawlerAutomationRunDTO toDTO(CrawlerAutomationPolicyService.DecisionContext ctx) {

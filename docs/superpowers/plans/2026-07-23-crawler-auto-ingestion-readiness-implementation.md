@@ -257,7 +257,7 @@ Expected result: no test can report completed after a partial three-database wri
 - [x] Register all 19 current operations with exact actionId, preview/apply pairing, progress path, owned tables/scopes, read-only dependencies, snapshot/verify/rollback mode, and default `L0 + DISABLED` state.
 - [x] Remove or gate any default `apply=true`; an apply entrypoint without an exact bundle must exit non-zero before network or DML.
 - [x] Keep `town-npc-sync`, independent-entity import, Shimmer import, audio import, and support sync outside the 19-operation registry until they have their own capability rows and tests.
-- [ ] Add crawler progress contract tests for every new preview action: stable actionId, progress before network/loop, heartbeat, terminal status, canonical path, and isolated test path.
+- [x] Add crawler progress contract tests for every new preview action: stable actionId, progress before network/loop, heartbeat, terminal status, canonical path, and isolated test path.
 - [x] Add manifest tests that compare registry IDs to the 19-operation matrix and reject capability rows with missing target tables or ownership predicates.
 
 Validation:
@@ -290,7 +290,7 @@ Expected result: all registered actions are observable and preview-safe; no acti
 - [x] Keep monitor/control API compatibility and add a separate automation namespace for overview, policy, run evidence, approval/reject, rollback, reauth, and alert acknowledge.
 - [x] Make every mutation require runId, policySetHash, decision/evidence identity, bundle hash where applicable, idempotency key, and current optimistic version.
 - [x] Bind Owner to the current configured ADMIN; reauth is short-lived, one-time, challenge-bound, and never logged in plaintext.
-- [ ] Render risk console first, pipeline and domain matrix as tabs, and expose disabled reasons from backend state rather than deriving them in Vue.
+- [x] Render risk console first, pipeline and domain matrix as tabs, and expose disabled reasons from backend state rather than deriving them in Vue.
 - [x] Add a T2 read-only smoke mode that removes or disables mutation controls and uses a read-only API/SQL allowlist; all mutation UI tests point to T0/T1.
 - [x] Test unauthorized approval, stale version, wrong bundle, duplicate request, non-Owner, expired reauth, and read-only T2 mutation absence.
 

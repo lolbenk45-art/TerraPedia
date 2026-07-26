@@ -120,6 +120,8 @@ terraria:
     image-fetch-via-gate: ${TERRAPEDIA_IMAGE_FETCH_VIA_GATE:true}
     image-fetch-gate-url: ${TERRAPEDIA_IMAGE_FETCH_GATE_URL:http://127.0.0.1:18099/fetch-image}
     user-agent: ${TERRAPEDIA_WIKI_USER_AGENT:TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)}
+    automation:
+      read-only: ${TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY:true}
     queue-v2:
       cutover-allowed: ${TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED:false}
       fixture-enabled: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ENABLED:false}

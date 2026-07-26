@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-25 20:53 CST by Codex
+Last updated: 2026-07-26 17:34 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -13,12 +13,14 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   three-database apply protocol (mutation-generation, ownership-fence, staged/single-txn),
   19-operation capability manifest (all L0+DISABLED), admin workflow with T2 read-only
   boundary, T0/T1 acceptance runner, quality-gate automation contract step.
-  Fresh contract evidence: Node 119/119 + Java 38/38; git diff --check clean.
-  Continuation closed four code gaps; three gates remain: write-capable T0/T1 preflight,
-  per-preview heartbeat/terminal progress payload proof, and the separately authorized
-  T1 snapshot/apply/verify/rollback run. The branch is not
-  merge-ready until code gaps are implemented and the T1 execution gate is explicitly
-  authorized or transferred to a named follow-up.
+  Fresh no-database evidence: automation/admin Node 121/121, progress owners 25/25,
+  Java automation/action 52/52, admin Nuxt typecheck, and git diff --check all pass.
+  The progress and backend-owned disabled-reason code gates are closed; the real Spring
+  profile now defaults fail-closed to read-only. Two separately authorized execution
+  gates remain: write-capable T0/T1 isolated-three-database preflight and the T1
+  snapshot/preview/apply/verify/rollback run, followed by the final full closeout gate.
+  The branch is not merge-ready until those execution gates are explicitly authorized
+  and completed, or transferred to a named follow-up owner.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and

@@ -55,13 +55,27 @@ class AdminCrawlerAutomationControllerTest {
             1,
             2,
             0,
-            List.of()
+            List.of(new CrawlerAutomationOverviewDTO.DomainSummary(
+                "recipes",
+                "L0",
+                "DISABLED",
+                null,
+                "BLOCKED_L0",
+                null,
+                List.of(),
+                List.of(new CrawlerAutomationOverviewDTO.DisabledReason(
+                    "POLICY_DISABLED",
+                    "自动化策略当前为禁用状态。"
+                ))
+            ))
         ));
 
         mockMvc.perform(get("/admin/crawler-automation/overview"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.openCircuitBreakers").value(1))
-            .andExpect(jsonPath("$.data.pendingOwnerApprovals").value(2));
+            .andExpect(jsonPath("$.data.pendingOwnerApprovals").value(2))
+            .andExpect(jsonPath("$.data.domains[0].disabledReasons[0].code").value("POLICY_DISABLED"))
+            .andExpect(jsonPath("$.data.domains[0].disabledReasons[0].messageZh").value("自动化策略当前为禁用状态。"));
     }
 
     // ── Runs ─────────────────────────────────────────────────────────────────

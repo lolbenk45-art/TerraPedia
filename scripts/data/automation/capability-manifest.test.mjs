@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
 import { URL } from 'node:url';
 
@@ -11,6 +12,16 @@ const registryUrl = new URL(
   '../../../back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java',
   import.meta.url,
 );
+const repositoryRootUrl = new URL('../../../', import.meta.url);
+
+const PROGRESS_OWNER_WORK_BOUNDARIES = new Map([
+  ['scripts/data/workflow/run-backend-data-refresh.mjs', 'const result = await runAction'],
+  ['scripts/data/fetch/fetch-wiki-buffs.mjs', 'const result = await fetchWikiModuleContent'],
+  ['scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs', 'const payload = await fetchWikiApiJson'],
+  ['scripts/data/fetch/fetch-wiki-bosses.mjs', 'const overview = await fetchBossSections'],
+  ['scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', 'const { records, scraped, skipped } = await crawlRecords'],
+  ['scripts/data/fetch/fetch-wiki-shimmer-page.mjs', 'const revision = await fetchRevision'],
+]);
 
 async function loadCapabilities() {
   const raw = await readFile(capabilitiesUrl, 'utf8');
@@ -75,6 +86,80 @@ test('every preview or crawl operation is backed by a monitor progress contract'
   assert.match(registry, /<progressPath>/);
   assert.match(registry, /childStatusPath|progressPath/);
 });
+
+test('every preview or crawl operation declares executable progress evidence', async () => {
+  const capabilities = await loadCapabilities();
+  for (const operation of capabilities.operations.filter((row) => row.mode !== 'apply')) {
+    const contract = operation.progressContract;
+    assert.ok(contract && typeof contract === 'object', `${operation.actionId}: missing progressContract`);
+    assert.ok(contract.ownerScript, `${operation.actionId}: missing progress ownerScript`);
+    assert.ok(contract.canonicalPath, `${operation.actionId}: missing canonical progress path`);
+    assert.ok(contract.isolatedTestPath, `${operation.actionId}: missing isolated progress test path`);
+    assert.strictEqual(contract.initialBeforeWork, true, `${operation.actionId}: initial progress is not guaranteed`);
+    assert.strictEqual(contract.heartbeat, true, `${operation.actionId}: heartbeat is not guaranteed`);
+    assert.deepEqual(
+      contract.terminalStatuses,
+      ['completed', 'failed'],
+      `${operation.actionId}: terminal progress contract is incomplete`
+    );
+  }
+});
+
+test('declared progress owners write running before work and own heartbeat plus terminal states', async () => {
+  const capabilities = await loadCapabilities();
+  const registry = await readFile(registryUrl, 'utf8');
+  const sourceCache = new Map();
+  const testCache = new Map();
+
+  for (const operation of capabilities.operations.filter((row) => row.mode !== 'apply')) {
+    const contract = operation.progressContract;
+    const ownerSource = await readRepositoryFile(contract.ownerScript, sourceCache);
+    const isolatedTest = await readRepositoryFile(contract.isolatedTestPath, testCache);
+    const workBoundary = PROGRESS_OWNER_WORK_BOUNDARIES.get(contract.ownerScript);
+
+    assert.ok(workBoundary, `${operation.actionId}: unknown progress owner ${contract.ownerScript}`);
+    assert.ok(registry.includes(`"${operation.actionId}"`), `${operation.actionId}: registry action missing`);
+    assert.ok(ownerSource.includes("status: 'running'"), `${operation.actionId}: owner lacks running payload`);
+    assert.ok(
+      ownerSource.indexOf("status: 'running'") < ownerSource.indexOf(workBoundary),
+      `${operation.actionId}: owner starts work before publishing running progress`
+    );
+    assert.match(
+      ownerSource,
+      contract.ownerScript.includes('/workflow/')
+        ? /setInterval\(\(\) => \{\s*writeActionHeartbeat/s
+        : /createCrawlerProgressHeartbeat/,
+      `${operation.actionId}: owner lacks heartbeat`
+    );
+    assert.match(ownerSource, /'completed'/, `${operation.actionId}: owner lacks completed terminal state`);
+    assert.match(ownerSource, /'failed'/, `${operation.actionId}: owner lacks failed terminal state`);
+
+    if (contract.ownerScript.includes('/workflow/')) {
+      assert.match(
+        registry,
+        /reports\/backend-refresh\/history\/<run>\.runtime\/" \+ actionId \+ "\.child-status\.json/,
+        `${operation.actionId}: backend canonical progress template is missing`
+      );
+    } else {
+      assert.ok(
+        ownerSource.includes(path.basename(contract.canonicalPath)),
+        `${operation.actionId}: owner does not name canonical progress file`
+      );
+      assert.ok(ownerSource.includes(operation.actionId), `${operation.actionId}: owner lacks stable actionId`);
+    }
+
+    assert.match(isolatedTest, /mkdtempSync\(/, `${operation.actionId}: test does not isolate filesystem state`);
+    assert.match(isolatedTest, /WORKTREE_ROOT/, `${operation.actionId}: test does not isolate worktree paths`);
+    assert.match(isolatedTest, /progress/i, `${operation.actionId}: test does not exercise progress output`);
+  }
+});
+
+async function readRepositoryFile(relativePath, cache) {
+  if (!cache.has(relativePath)) {
+    cache.set(relativePath, await readFile(new URL(relativePath, repositoryRootUrl), 'utf8'));
+  }
+  return cache.get(relativePath);
+}
 
 test('every operation defaults to L0 + DISABLED', async () => {
   const capabilities = await loadCapabilities();

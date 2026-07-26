@@ -25,6 +25,13 @@ const OVERVIEW_REQUIRED_FIELDS = [
   'domains'
 ];
 
+const DOMAIN_REQUIRED_FIELDS = [
+  'domainId',
+  'automationLevel',
+  'operationalState',
+  'disabledReasons'
+];
+
 const RUN_REQUIRED_FIELDS = [
   'runId',
   'status',
@@ -75,6 +82,23 @@ test('overview DTO declares all required fields', () => {
   for (const field of OVERVIEW_REQUIRED_FIELDS) {
     assert.ok(field in overview, `overview missing field: ${field}`);
   }
+});
+
+test('domain rows expose backend-owned disabled reasons', () => {
+  const domain = {
+    domainId: 'recipes',
+    automationLevel: 'L0',
+    operationalState: 'DISABLED',
+    disabledReasons: [{
+      code: 'POLICY_DISABLED',
+      messageZh: '自动化策略当前为禁用状态。'
+    }]
+  };
+  for (const field of DOMAIN_REQUIRED_FIELDS) {
+    assert.ok(field in domain, `domain summary missing field: ${field}`);
+  }
+  assert.equal(domain.disabledReasons[0].code, 'POLICY_DISABLED');
+  assert.equal(typeof domain.disabledReasons[0].messageZh, 'string');
 });
 
 test('run DTO declares all required fields including nested decision', () => {
@@ -210,4 +234,11 @@ test('automation workbench components expose accessible states and evidence draw
     const source = await readFile(new URL(file, componentRoot), 'utf8');
     assert.match(source, /aria-|role=/, `${file} must expose an accessible state`);
   }
+});
+
+test('domain matrix renders backend disabled reasons without inferring policy in Vue', async () => {
+  const source = await readFile(new URL('CrawlerAutomationDomainMatrix.vue', componentRoot), 'utf8');
+  assert.match(source, /domain\.disabledReasons/);
+  assert.match(source, /reason\.messageZh/);
+  assert.doesNotMatch(source, /automationLevel\s*===|operationalState\s*===/);
 });

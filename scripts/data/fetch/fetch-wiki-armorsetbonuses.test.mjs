@@ -75,6 +75,72 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(record.contentHash, createContentHash('ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'));
 });
 
+test('armorsetbonuses fetch uses the isolated WORKTREE_ROOT canonical progress path by default', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-default-progress-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const sharedDataRoot = path.join(tempDir, 'shared');
+  const mockApiPath = writeArmorSetBonusesMock(tempDir);
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_SHARED_DATA_ROOT: sharedDataRoot,
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const progressPath = path.join(worktreeRoot, 'data', 'generated', 'domain-source-armor-sets-progress.latest.json');
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assertProgressPayload(progress, 'completed', progressPath);
+});
+
+test('armorsetbonuses fetch writes failed terminal progress to an explicit isolated path', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-failed-progress-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+
+  const result = spawnSync(process.execPath, [scriptPath, `--progress-path=${progressPath}`], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_SHARED_DATA_ROOT: path.join(tempDir, 'shared'),
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: path.join(tempDir, 'missing-mock.json')
+    }
+  });
+
+  assert.notEqual(result.status, 0);
+  assertProgressPayload(JSON.parse(fs.readFileSync(progressPath, 'utf8')), 'failed', progressPath);
+});
+
+function assertProgressPayload(progress, status, progressPath) {
+  for (const field of [
+    'actionId',
+    'status',
+    'generatedAt',
+    'lastHeartbeatAt',
+    'childStatusPath',
+    'phase',
+    'message',
+    'current',
+    'total'
+  ]) {
+    assert.ok(Object.hasOwn(progress, field), `missing ${field}`);
+  }
+  assert.equal(progress.actionId, 'domain-source-armor-sets');
+  assert.equal(progress.status, status);
+  assert.equal(path.resolve(progress.childStatusPath), path.resolve(progressPath));
+}
+
 function writeArmorSetBonusesMock(tempDir) {
   const mockPath = path.join(tempDir, 'mock-api.json');
   fs.writeFileSync(mockPath, JSON.stringify({
