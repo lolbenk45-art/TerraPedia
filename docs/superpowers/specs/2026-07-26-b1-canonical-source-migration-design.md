@@ -10,10 +10,12 @@ Implementation planning cannot start until these are answered. Dependent section
 | --- | --- | --- |
 | D1 | Introduce a `b1_migrating` contract mode so the repository gate can pass while migration is in progress? | Migration states, B1 Closure Criteria |
 | D2 | How is the NPC bridge exemption row disposed of, given the artifact is deliberately untracked and its replacement inputs do not currently exist? | Context, NPC Bridge Repair, Migration Sequence |
-| D3 | Do the 29 zero-provenance curated recipe override groups pass through the landing layer? | Landing, Maint tables |
 | D4 | Ship the locator/boundary repair separately, ahead of the canonical chain? | Migration Sequence |
 
-Resolved on 2026-07-26: manual admin group edits do **not** require System Owner approval. They commit synchronously through a registered backend writer identity. See Consumer Cutover.
+Resolved on 2026-07-26:
+
+- Manual admin group edits do **not** require System Owner approval. They commit synchronously through a registered backend writer identity. See Consumer Cutover.
+- D3, originally "do the 29 zero-provenance curated recipe override groups pass through the landing layer?", is withdrawn. Measurement showed the premise was wrong: those rows are not curated corrections but the deduplicated, id-resolved projection of the reference layer. They do not become a source layer at all. See Current Semantics To Preserve.
 
 ## Context
 
@@ -46,16 +48,18 @@ Extending the expired deadline with no evidence would hide the problem and is no
 
 Measured on the current worktree. Every structural and numeric choice below is sized against these figures rather than against a hypothetical future scale.
 
-| Input | Groups | Max members in one group | Total members | Explicit aliases | Bytes |
+| Input | Group rows | Max members in one group (raw / deduplicated) | Member rows (raw / deduplicated) | Explicit aliases | Bytes |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `recipe-material-reference.json` | 33 | 38 | 265 | 0 | 4,950,220 |
-| `recipe-group-overrides.json` | 29 | 19 | 112 | 0 | 33,721 |
-| `item-group-overrides.json` | 1 active + 1 blocked | 10 | 10 | 2 | 3,750 |
-| **total** | **63 active + 1 blocked** | **38** | **387** | **2** | |
+| `recipe-material-reference.json` | 33 | 38 / 23 | 265 / 153 | 0 | 4,950,220 |
+| `recipe-group-overrides.json` | 29 | 19 / 19 | 112 / 112 | 0 | 33,721 |
+| `item-group-overrides.json` | 1 active + 1 blocked | 10 / 10 | 10 / 10 | 2 | 3,750 |
+| **total** | **63 active + 1 blocked** | **38 / 23** | **387 / 275** | **2** | |
 
-Three facts change the design:
+Raw counts include a duplication artifact described below. They are recorded because caps and diff policy must be evaluated against what a parser actually receives, not against the idealized shape.
 
-**1. The entire Any Item Group surface is 63 groups, 387 members, and 2 explicit aliases.** Alias row volume is dominated not by the `aliases` arrays but by the canonical/EN/ZH display names that also become alias rows, giving roughly `63 x 3 + 2 = 191` alias rows.
+Five facts change the design:
+
+**1. The surface is smaller than the row counts suggest.** The 63 group rows resolve to **34 distinct canonical keys**: 29 keys carry both a `recipe_reference` and a `recipe_group_overrides` row, 4 reference keys have no override, and 1 key comes from the central file. After the source-layer reduction described under Current Semantics To Preserve, the canonical model holds **34 groups and roughly 163 members**. Alias row volume is dominated not by the `aliases` arrays but by the canonical/EN/ZH display names that also become alias rows, giving roughly `34 x 3 + 2 = 104` alias rows. No alias is owned by more than one distinct canonical key, so the global alias-uniqueness rule holds against current data with zero exceptions.
 
 **2. Group data is a rounding error inside the largest file.** `recipe-material-reference.json` decomposes as:
 
@@ -68,7 +72,7 @@ Three facts change the design:
 
 The remainder is JSON formatting overhead. A landing row that retains the complete file payload would store 4.95 MB to govern 23.7 KB of group data, and 3.4 MB of that is recipe data belonging to another domain. See DDL and volume invariants for the corrected payload boundary.
 
-**3. Provenance is not uniform, and 62 of 63 groups cannot supply group-level source fields.**
+**3. Provenance is not uniform, and 62 of 63 group rows cannot supply group-level source fields.**
 
 | Input | Group-level provenance | File-level provenance |
 | --- | --- | --- |
@@ -76,7 +80,13 @@ The remainder is JSON formatting overhead. A landing row that retains the comple
 | `recipe-group-overrides.json` (29) | none | **none** — the file has only `schemaVersion`, `updatedAt`, `groups` |
 | `item-group-overrides.json` (1) | full: `sourceKind`, `sourceProvider`, `sourcePage`, `sourceRevisionTimestamp`, `sourceLabel`, `sourceUrls` | `sourceProvider`, `sourceFiles` |
 
-The 33 recipe reference groups inherit provenance from their landing row, which is coherent. The 29 curated recipe override groups have no upstream fact at any level: they are hand-authored corrections. A landing contract that requires provider, locator, and source revision cannot be satisfied for them without inventing values, which would dilute the meaning of every genuine landing row. This is open decision D3.
+The 33 recipe reference groups inherit provenance from their landing row, which is coherent because their provenance genuinely is file-level. The 29 override rows have no upstream fact at any level, which was originally read as "hand-authored corrections lacking provenance". Fact 5 shows the real reason: they are derived from the reference layer, so their provenance is the reference landing row, and they do not need a source layer of their own. This resolves what was open decision D3.
+
+**4. The duplication artifact has exactly one shape, so deduplication is fully specifiable.** Every one of the 33 reference groups contains duplicated members, and all 112 duplicate pairs have the identical form: the same `internalName` appearing twice, once with `nameZh: null` and once with `nameZh` populated. There are zero other duplicate shapes. The deduplication rule is therefore exact rather than heuristic: **collapse by `internalName`, retain the row whose `nameZh` is non-null**. A parser that deduplicates on the whole member object would keep both copies and silently double every reference group.
+
+**5. Member identity resolution has no current backlog, and the override file is where it was already done.** Reference members carry no `itemId` at all (0 of 265); they are `internalName` + `name` + `nameZh`. Override members do carry `itemId`. Resolving all 153 distinct reference `internalName` values against `data/standardized/items.standardized.json` yields **153 unique matches, 0 unresolved, 0 ambiguous**, and 27 of the 29 override groups have exactly the reference group's deduplicated member set. The override file is therefore the deduplicated, id-resolved projection of the reference layer, computed by hand in the absence of a relation layer. See Current Semantics To Preserve for the resulting source-layer reduction.
+
+Because current data resolves completely, any non-zero `UNRESOLVED` or `AMBIGUOUS` count at cutover is a regression rather than a known backlog, and the acceptance gate asserts exactly zero of each rather than a tolerance.
 
 Member `image` values in all three files are local MinIO origins (`http://localhost:9000/...`). They are trace evidence only and must never become item image authority.
 
@@ -145,18 +155,43 @@ The current backend merge order is:
 2. recipe group override
 3. central item group override
 
-Later layers replace earlier rows by normalized group identity, subject to the existing rule that a central recipe-domain group or alias cannot shadow a recipe reference group. The migration must preserve this behavior explicitly rather than relying on file read order.
+Later layers replace earlier rows by normalized group identity, subject to the existing rule that a central recipe-domain group or alias cannot shadow a recipe reference group. The migration must preserve the resulting behavior explicitly rather than relying on file read order.
 
-Source layers and precedence are fixed as:
+### Why `recipe_override` is not carried forward as a source layer
+
+An earlier draft modeled the recipe override file as a curated correction layer at precedence 200. Measurement shows it is not a curation layer. It is the deduplicated, id-resolved projection of the reference layer, computed by hand because no relation layer existed to compute it:
+
+- 29 of its 29 groups shadow an existing `recipe_reference` group; none introduces a new canonical key;
+- 27 of those 29 have exactly the same member set as the reference group after deduplication by `internalName`;
+- reference members carry no `itemId` at all (0 of 265) while override members do, so the override file is where identity resolution was already performed;
+- the entire genuinely curated content is two member exclusions.
+
+| Group | Member excluded by the override |
+| --- | --- |
+| Any Guide to Critter Companionship | `DontHurtCrittersBookInactive` |
+| Any Guide to Environmental Preservation | `DontHurtNatureBookInactive` |
+
+Preserving it as a source layer would permanently canonicalize a pre-canonical workaround: the chain would carry 29 maint rows whose only content is work the relation layer is defined to do. Deduplication and identity resolution move to the relation layer where they belong, and the two exclusions become explicit member rules.
+
+This is a deliberate semantic reduction rather than a pure source move. It is in scope because the alternative is to freeze the workaround into the canonical model. Observable consumer output is unchanged except for the deduplication effect described under Shadow parity below, which is the point of the migration rather than a regression.
+
+### Source layers
 
 | Source layer | Input | Precedence | Purpose |
 | --- | --- | ---: | --- |
 | `recipe_reference` | `recipe-material-reference.json` | 100 | Source-backed recipe material groups |
-| `recipe_override` | `recipe-group-overrides.json` | 200 | Curated recipe corrections |
 | `source_group` | Source-backed rows bootstrapped from `item-group-overrides.json` or future wiki/shimmer evidence | 300 | Generated cross-domain or shimmer groups |
 | `central_override` | ADMIN-authored group change committed through the registered admin group writer | 400 | Manual canonical override |
 
-`source_group` and `central_override` may not win a normalized recipe identity or alias collision against a recipe reference or recipe override row. Such a collision is blocking. Within an allowed non-recipe identity, a `central_override` wins over `source_group`; deleting that manual override reveals the source-backed group again. Blocked groups remain auditable canonical rows with `status = 'BLOCKED'`; they are never projected into runtime tables.
+Precedence 200 is left unallocated so that existing evidence referring to the old four-layer numbering remains unambiguous.
+
+`source_group` and `central_override` may not win a normalized recipe identity or alias collision against a recipe reference row. Such a collision is blocking. Within an allowed non-recipe identity, a `central_override` wins over `source_group`; deleting that manual override reveals the source-backed group again. Blocked groups remain auditable canonical rows with `status = 'BLOCKED'`; they are never projected into runtime tables.
+
+### Member exclusion rules
+
+Add `terria_v1_maint.maint_item_group_member_exclusions`, logical key `(canonical_key, member_key)`, requiring `record_key`, canonical key, member key, reason, actor, evidence reference, timestamps, and soft-delete state. It is owned by `admin_item_group_writer`, applied during relation resolution after deduplication and identity resolution, and reported in the group audit so an exclusion can never be silent.
+
+An exclusion naming a member that the resolved group does not contain is blocking, not a no-op. Otherwise a rule that has quietly stopped matching would look healthy forever.
 
 ## Any Item Group Data Model
 
@@ -171,14 +206,31 @@ Bootstrap classification is deterministic and driven by the row's declared `sour
 | Bootstrap input | Declared kind | Assigned source layer |
 | --- | --- | --- |
 | `recipe-material-reference.json` groups | (none) | `recipe_reference` |
-| `recipe-group-overrides.json` groups | (none) | `recipe_override` |
 | `item-group-overrides.json` groups | `curated_wiki_item_group` or any other source-backed kind | `source_group` |
 | `item-group-overrides.json` groups | `manual_wiki_source` | `central_override` |
 | `item-group-overrides.json` `blockedGroups` | `blocked_consumer_reference` | imported as canonical rows with `status = 'BLOCKED'`, never projected |
+| `recipe-group-overrides.json` groups | (none) | **no source layer** — reconciled against the reference layer, see below |
 
-The current file contains exactly one active group (`Any Pylon`, `curated_wiki_item_group`, source-backed) and one blocked group (`Recorded Music Boxes`), so bootstrap produces zero `central_override` rows today. An unrecognized `sourceKind` is blocking rather than silently classified.
+The current central file contains exactly one active group (`Any Pylon`, `curated_wiki_item_group`, source-backed) and one blocked group (`Recorded Music Boxes`), so bootstrap produces zero `central_override` rows today. An unrecognized `sourceKind` is blocking rather than silently classified.
 
 An earlier draft blocked any row claiming a manual source unless it carried an immutable Owner approval. That rule is removed: it would have converted every future admin-authored group into a blocked, never-projected row, which loses the group at runtime and makes shadow parity fail by construction. Admin authorship is now a first-class layer owned by the registered admin group writer (see Consumer Cutover).
+
+### Bootstrap reconciliation of the recipe override file
+
+The override file becomes member exclusion rules and evidence, not source rows. Bootstrap must **prove** each row's disposition rather than assume the measured pattern still holds:
+
+For each override group, compute the reference group's member set after `internalName` deduplication, then compare:
+
+| Comparison result | Disposition | Current count |
+| --- | --- | ---: |
+| identical member sets | drop the override row; record it in bootstrap evidence as redundant with both hashes | 27 |
+| override omits members present in the reference | emit one `maint_item_group_member_exclusions` row per omitted member, with the override file as evidence reference | 2 |
+| override **adds** a member absent from the reference | **blocking** | 0 |
+| override group has no matching reference group | **blocking** | 0 |
+
+The last two rows are blocking rather than handled because an added member or an orphan group would mean the file carries source content this model does not represent, and silently importing it as a `source_group` would invent provenance it does not have. Both are zero today, so the strict rule costs nothing now and fails closed if the file drifts before cutover.
+
+Bootstrap evidence records all four counts. The redundant-row count is expected to be 27 and the exclusion count 2; a different distribution does not by itself block, but it must appear in the preview diff for review rather than being applied silently.
 
 Steady-state producers do not write databases and do not re-import compatibility paths. They emit content-addressed immutable payloads under the canonical input artifact store with `artifact_role = 'source_evidence'`. The preview operation validates those artifacts and freezes the landing plus downstream diff:
 
@@ -201,7 +253,7 @@ The stable `source_key` values identify the producer, not the compatibility file
 | --- | --- | --- |
 | `wiki.recipe_material_groups` | yes | yes — recipe reference generation |
 | `wiki.shimmer_item_groups` | yes, via the source-backed rows of the central file | yes — shimmer evidence |
-| `admin.recipe_group_overrides` | yes, one frozen row (subject to D3) | none — no producer emits it again |
+| `admin.recipe_group_overrides` | yes, one frozen row, as reconciliation evidence only | none — no producer emits it again |
 | `admin.item_group_overrides` | yes, one frozen row | none — admin edits commit transactionally, not through landing |
 
 The two `admin.*` keys exist so that bootstrap lineage stays traceable to the exact file bytes that seeded the canonical rows. After cutover they have no live producer, and their landing rows are permanent history.
@@ -221,6 +273,7 @@ Add these tables to `terria_v1_maint`:
 | `maint_item_groups` | One source-layer group fact per `(canonical_key, source_layer, source_key)` |
 | `maint_item_group_members` | Ordered source members per `(group_record_key, member_key)` |
 | `maint_item_group_aliases` | Source aliases per `(group_record_key, normalized_alias)` |
+| `maint_item_group_member_exclusions` | Curated member exclusions per `(canonical_key, member_key)`; see Current Semantics To Preserve |
 
 `maint_item_groups` requires: `record_key`, `canonical_key`, canonical/display names, normalized domains JSON, source layer and priority, source provider/key/page/locator, source revision, landing id/hash, status, block reason, source metadata JSON, canonical version, timestamps, and soft-delete state.
 
@@ -230,10 +283,9 @@ Provenance columns are required per source layer, not universally, because 62 of
 | --- | --- | --- | --- |
 | `recipe_reference` | required | inherited from the landing row when absent on the group | file-level |
 | `source_group` | required | required | required |
-| `recipe_override` | **open decision D3** | not available | not available |
 | `central_override` | not applicable | actor and audit row instead | not applicable |
 
-Requiring group-level provider, page, and revision on every row would force the 29 curated recipe override groups to carry invented values. Inheritance from the landing row is legitimate for the 33 recipe reference groups because their provenance genuinely is file-level. For `recipe_override` the answer depends on D3: if those groups bypass landing, they carry no landing id and are marked `provenance = 'curated_no_upstream'` explicitly, so an audit can distinguish "no upstream exists" from "upstream lost". `central_override` rows are authored, not sourced, and their traceability is the append-only admin audit row.
+Requiring group-level provider, page, and revision on every row would force the 33 recipe reference groups to carry invented values, because their provenance genuinely is file-level rather than per-group. Inheritance from the landing row is legitimate there and must be recorded as inheritance, so an audit can distinguish "provenance is file-level" from "provenance is missing". `source_group` rows do carry full group-level provenance today and are held to it. `central_override` rows are authored rather than sourced, and their traceability is the append-only admin audit row rather than a landing reference.
 
 `maint_item_group_members` requires: `record_key`, `group_record_key`, source item id, internal/name/name-zh values, member key, sort order, source metadata, and resolution hint. Image values from compatibility JSON are evidence only and must not become item image authority.
 
@@ -249,11 +301,13 @@ Add these tables to `terria_v1_relation`:
 
 | Table | Ownership and logical key |
 | --- | --- |
-| `relation_item_groups` | One resolved group per `canonical_key` |
+| `relation_item_groups` | One resolved row per `(canonical_key, source_layer)` |
 | `relation_item_group_members` | Resolved members per `(group_record_key, member_key)` |
 | `relation_item_group_aliases` | Collision-checked aliases per `(group_record_key, normalized_alias)` |
 
-The relation processor resolves each canonical key exactly once. It applies the fixed precedence and collision rules, resolves members against canonical item identity, and records the winning maint record, the winning `source_layer`, and the complete set of contributing maint record keys and their layers. Member resolution states are `RESOLVED`, `UNRESOLVED`, `AMBIGUOUS`, or `REJECTED`.
+The relation processor performs the layer-independent work once per contributing maint row: deduplicate members by `internalName` keeping the non-null `nameZh` row, resolve member identity against canonical items, apply member exclusion rules, and run collision checks. Each row records its `source_layer`, its precedence, its originating maint record key, and its resolution counters. Member resolution states are `RESOLVED`, `UNRESOLVED`, `AMBIGUOUS`, or `REJECTED`.
+
+Precedence is **not** applied here. Winner selection is deferred to read time because it is consumer-dependent; see below.
 
 Any of these conditions blocks projection:
 
@@ -266,27 +320,39 @@ Any of these conditions blocks projection:
 
 Unresolved non-referenced groups may remain warning evidence, but an unresolved group referenced by recipe, NPC shop, or shimmer is blocking.
 
-### Consumers filter at read time; they are not separate projections
+### Consumers select the winner at read time; they are not separate projections
 
-Each consumer keeps its current effective-source rule, applied as a read-time predicate against the retained `source_layer` and contributing-layer set:
+Each consumer keeps its current effective-source rule as a read-time predicate over `source_layer`, and applies precedence **within its own allowed subset**:
 
-| Consumer | Effective-source predicate | Required parity |
+| Consumer | Allowed source layers | Required parity |
 | --- | --- | --- |
-| `AdminItemGroupController` | all layers | current merged output |
-| `AdminRecipeGroupController` | `recipe_reference`, `recipe_override` | current output |
-| `RecipeTreeServiceImpl` | `recipe_reference`, `recipe_override`, plus non-colliding recipe-domain rows won by other layers | current alias lookup |
+| `AdminItemGroupController` | all | current merged output |
+| `AdminRecipeGroupController` | `recipe_reference` | current output |
+| `RecipeTreeServiceImpl` | `recipe_reference`, plus non-colliding recipe-domain rows from other layers | current alias lookup |
 | recipe group expansion | `recipe_reference` only | current `buildRecipeGroupExpansions` output |
 | NPC shop | source-backed rows explicitly referenced by NPC shop evidence | current NPC shop group interpretation |
 | shimmer | source-backed rows explicitly referenced by shimmer evidence | current shimmer group interpretation |
 
-An earlier draft materialized one resolved row set per consumer, keyed by `(consumer_scope, canonical_key)`. That is rejected. It would copy 63 groups up to six times and multiply the projection-state rows, cache-invalidation paths, and zero-diff parity reports by six, for no behavioral difference: the scopes differ only in which source layers are effective, which is a predicate, not a distinct resolution. Resolving once and filtering at read preserves the same outputs with one snapshot to verify.
+The read is one indexed query per consumer: filter by allowed layers, order by precedence descending, take the highest-precedence row per canonical key.
 
-Two properties make single resolution safe:
+Two rejected alternatives, and why:
 
-- precedence is total and consumer-independent, so the winner of a canonical key is the same row for every consumer; a consumer only decides whether it is allowed to see that winner;
-- alias uniqueness is already required to be global across active groups (a duplicate normalized alias owned by two active groups is blocking above), so no consumer needs a private alias namespace.
+**Materializing one row set per consumer** was the original draft, keyed `(consumer_scope, canonical_key)`. It multiplies the projection-state rows, cache-invalidation paths, and zero-diff parity reports by six for no behavioral gain, because the consumers differ only in which layers are effective.
 
-Changing a consumer's predicate remains a separate semantic migration outside this B1 source move. Shadow acceptance still compares each consumer independently, against its own predicate.
+**Resolving to a single global winner per canonical key and then filtering on that winner's layer** was the previous repair, and it is wrong. Filtering after global winner selection is not equivalent to resolving within the allowed subset. Under the four-layer model this broke 29 of 34 keys: a key contributed by both `recipe_reference` and `recipe_override` has a global winner of `recipe_override`, so the recipe-expansion consumer, whose predicate admits `recipe_reference` only, would filter out the winner and see nothing at all rather than seeing the reference row. Global winner selection discards exactly the information a narrower consumer needs.
+
+Keeping one relation row per contributing layer costs one row per source contribution, which is what the maint layer already holds, and it makes the correct read trivially expressible. Both properties below are verified against current data:
+
+- no normalized alias is owned by more than one distinct canonical key, so global alias uniqueness holds and no consumer needs a private alias namespace;
+- after the source-layer reduction, no canonical key currently has more than one contributing layer, so the read-time precedence step has zero current instances. It remains required for correctness the moment a `central_override` lands on an existing key, and it is tested with synthetic multi-layer fixtures rather than left unexercised.
+
+Changing a consumer's allowed-layer set remains a separate semantic migration outside this B1 source move. Shadow acceptance compares each consumer independently, against its own predicate.
+
+### Shadow parity: four groups will legitimately differ
+
+Deduplication changes observable output for reference groups that have no override twin today. Four keys are in that state: `Any Fragment`, `Any Jellyfish`, `Any Torch`, `Any Wood`. Any consumer reading the reference layer for those four currently receives duplicated members, and after migration receives the deduplicated set.
+
+This is the migration working, not a regression, but a naive zero-diff shadow comparison will fail on it. The comparison must therefore declare these four keys as expected differences with an explicit predicate: the canonical member set must equal the current member set **after** applying the same `internalName` deduplication to the current output. A difference that survives that normalization is blocking. Listing the four keys as an unconditional allowlist is not acceptable, because it would also mask a genuine member loss in the same groups.
 
 ### Local runtime tables
 
@@ -309,7 +375,7 @@ The local projection carries relation record key, source content hash, canonical
 - Maint and relation schemas use record keys for cross-database lineage and do not create cross-database foreign keys. Same-database child foreign keys are restrictive; soft-delete/current rotation happens parent-scope first and never cascades an unbounded physical delete.
 - Canonical, alias, member, and source keys use one shared normalization library and byte-length validation before SQL. Truncation is forbidden.
 - The group landing payload is the group section plus file-level provenance, not the complete file. `recipe-material-reference.json` is 4.95 MB of which 23.7 KB is group data and 3.4 MB is `supplementalRecipes` belonging to the recipe domain; storing the whole file would make the landing row 200x larger than the facts it governs and would place another domain's data under group ownership. The landing row records the full-file content hash and byte size so lineage back to the exact file is preserved, and the exporter reads non-group sections from their own accepted evidence (see Compatibility Export Contract).
-- Group ingestion caps are set at roughly four times measured volume, so a runaway parse is caught near the real ceiling instead of at an arbitrary large number. Ingestion rejects a group payload over 1 MiB (measured maximum 23.7 KB), more than 256 groups (measured 63), more than 160 members or 32 aliases in one group (measured maxima 38 and 2), or more than 1,600 members total (measured 387). Raising any cap is a reviewed change that must restate the measurement it is derived from.
+- Group ingestion caps are set at roughly four times measured volume, so a runaway parse is caught near the real ceiling instead of at an arbitrary large number. Caps are evaluated against raw parsed input, before deduplication, because that is what a runaway parse would produce. Ingestion rejects a group payload over 1 MiB (measured maximum 23.7 KB), more than 256 group rows (measured 63), more than 160 members or 32 aliases in one group (measured raw maxima 38 and 2), or more than 1,600 member rows total (measured raw 387). Raising any cap is a reviewed change that must restate the measurement it is derived from.
 - NPC base ingestion rejects a payload over 16 MiB (`data/standardized/npcs.standardized.json` is currently 1.3 MB). NPC crawler-fact caps cannot be derived from measurement because no crawler-fact artifact exists in the repository; they remain provisional at 2 MiB per fact, 2,048 facts per run, and 64 MiB total per run, and must be re-derived from a real run before the NPC apply is authorized. See D2.
 - Diff policy applies both absolute and percentage caps to inserted, updated, soft-disabled, unresolved, ambiguous, and rejected rows. For automated source-derived ingestion a cap breach remains an exact-bundle Owner L1 decision. For the admin group writer there is no approval queue, so a cap breach fails the request outright.
 - Percentage caps are evaluated against a 63-group baseline, where a single group is 1.6% of the domain. Percentage-only thresholds are therefore meaningless at this scale and every group cap must carry an absolute floor; a rule expressed only as a percentage is a configuration error and fails closed.
@@ -330,7 +396,7 @@ Controllers no longer read or overwrite files. Read endpoints remain available t
 
 ### Admin edits commit synchronously
 
-Create, update, and delete keep their current synchronous semantics. The user decided on 2026-07-26 that manual group curation must not require System Owner approval. The maintenance surface is one active group today and the whole domain is 63 groups; a two-person, bundle-frozen protocol in front of it would make the admin page unusable without buying meaningful safety.
+Create, update, and delete keep their current synchronous semantics. The user decided on 2026-07-26 that manual group curation must not require System Owner approval. The maintenance surface is one active group today and the whole canonical domain is 34 groups; a two-person, bundle-frozen protocol in front of it would make the admin page unusable without buying meaningful safety.
 
 1. An authenticated `ADMIN` submits a create, update, or delete.
 2. The backend validates it against the precedence and collision rules, then commits maint, relation, and local rows plus the projection-state transition in one transaction.
@@ -341,7 +407,7 @@ The change is the write target, not the workflow: the file write becomes a datab
 This does not create an ungoverned writer. Admin edits are owned by a registered `admin_item_group_writer` identity with its own row in `tableOwnershipMatrix`, restricted to `source_layer = 'central_override'` rows of the group tables and to the group projection state. It:
 
 - acquires the same fences as the automated group capability, so an admin edit and a source refresh cannot interleave on the same normalized canonical keys;
-- cannot touch `recipe_reference`, `recipe_override`, or `source_group` rows, item identity, NPC identity, or image ownership tables;
+- cannot touch `recipe_reference` or `source_group` rows, item identity, NPC identity, or image ownership tables;
 - writes an append-only audit row per change carrying actor, before/after logical keys, and the resulting snapshot hash;
 - is bound by the same diff caps as any other writer. A cap breach fails the request rather than escalating to an approval queue, because there is no approval queue for this path.
 
@@ -355,7 +421,20 @@ During migration, shadow comparison may read both DB and JSON. The JSON result i
 
 ## Compatibility Export Contract
 
-The three group files remain tracked compatibility artifacts.
+The three group files remain tracked compatibility artifacts, but they no longer render the same way, because they no longer occupy the same position in the model.
+
+| File | Rendered from | Note |
+| --- | --- | --- |
+| `recipe-material-reference.json` | canonical `recipe_reference` groups, merged with non-group recipe evidence | see the merge contract below |
+| `item-group-overrides.json` | canonical `source_group` and `central_override` groups plus blocked groups | pure projection |
+| `recipe-group-overrides.json` | canonical resolved state for the affected keys | **the exported content is not what the file contained before cutover** |
+
+The third row needs stating plainly. Before cutover that file was a hand-maintained source input. After cutover it is a rendering of resolved state, which is exactly what its 27 redundant groups already were. Two consequences:
+
+- the export includes the member exclusions in effect, so the two curated exclusions remain visible in the artifact rather than disappearing into the database;
+- the first export after cutover will produce a byte-different file even where semantics are unchanged, because ordering, `itemId` population, and formatting now come from the exporter. That diff must be reviewed once and recorded as expected, rather than being read as data loss.
+
+Common properties:
 
 - Group, member, alias, domain, source, and blocked-group sections are rendered deterministically from accepted canonical state.
 - Stable ordering and canonical JSON serialization make identical state produce identical hashes.
@@ -457,8 +536,8 @@ Three writers touch the group tables and all three need ownership rows:
 
 | Writer | Owned rows | Governance |
 | --- | --- | --- |
-| `item-group-canonical-apply` | `recipe_reference`, `recipe_override`, `source_group` rows plus projection state | L1 capability, `L0 + DISABLED` by default |
-| `admin_item_group_writer` | `central_override` rows only, plus projection state | backend-owned, synchronous, ADMIN-authenticated, no approval queue |
+| `item-group-canonical-apply` | `recipe_reference` and `source_group` rows plus projection state | L1 capability, `L0 + DISABLED` by default |
+| `admin_item_group_writer` | `central_override` rows and member exclusion rules, plus projection state | backend-owned, synchronous, ADMIN-authenticated, no approval queue |
 | `item_group_compat_export` | no database rows | filesystem only, never acquires a writer lock |
 
 Ownership is enforced by `source_layer` predicate intersection, so the admin writer cannot modify a source-derived row and the capability cannot modify an admin-authored one. An attempt to write outside the owned layer fails closed rather than succeeding with a warning.
@@ -491,9 +570,9 @@ All automated apply paths retain these boundaries:
 ### Group chain
 
 1. Add schema/catalog/ownership contracts, landing artifact-role fields, and isolated schema tests. This includes the `current_slot` replacement of the `is_current` unique key on the shared `source_dataset_landings` table; see the shared-table note below.
-2. Add pure group parsers and deterministic canonical key/member/alias normalization tests.
-3. Add immutable group bootstrap and steady-state landing descriptors; reject compatibility-export feedback.
-4. Add group maint ingestion, single-pass relation resolution with retained source layers, and local projection.
+2. Add pure group parsers, the exact `internalName` deduplication rule, and deterministic canonical key/member/alias normalization tests.
+3. Add immutable group bootstrap and steady-state landing descriptors; add the override-file reconciliation that produces member exclusion rules and blocks on added members or orphan groups; reject compatibility-export feedback.
+4. Add group maint ingestion, per-layer relation resolution with member exclusion application, and local projection. Precedence stays at read time.
 5. Add backend repositories and DB shadow readers while JSON remains the live source.
 6. Convert the admin write path from file writes to the transactional `admin_item_group_writer`, and register the `item-group-canonical-preview` / `-apply` pair at `L0 + DISABLED` for source-derived ingestion. Locked catalog count moves 19 -> 21.
 7. Add the independent deterministic compatibility export jobs, including the group/non-group merge and round-trip equivalence.
@@ -541,9 +620,14 @@ Implementation follows test-driven development. Required evidence includes:
 2. Schema and ownership contract tests covering every new table, column owner, logical predicate, and database role, plus `source_layer` predicate intersection between the capability writer and the admin writer.
 3. Java repository/service/controller tests proving no direct file access, preserved read behavior, synchronous commit semantics for admin create/update/delete, DB-backed recipe-tree resolution, and fail-closed errors.
 4. Admin contract tests proving edit/delete capabilities come from backend data rather than file paths, that an admin edit commits maint/relation/local/projection-state in one transaction, and that a cap breach on the admin path fails the request rather than queueing anything.
-5. Concurrency tests proving an admin override commit and a source refresh cannot interleave on the same normalized canonical keys, and that the admin writer cannot modify a `recipe_reference`, `recipe_override`, or `source_group` row.
+5. Concurrency tests proving an admin override commit and a source refresh cannot interleave on the same normalized canonical keys, and that the admin writer cannot modify a `recipe_reference` or `source_group` row.
+5a. Deduplication tests asserting the exact rule: collapse by `internalName`, retain the non-null `nameZh` row; 265 raw reference members reduce to 153; a member set differing only in `nameZh` nullity must not survive as two rows.
+5b. Bootstrap reconciliation tests for the override file covering all four dispositions, including the two blocking cases (an override that adds a member, an override with no matching reference group) which have zero current instances and must therefore be exercised with synthetic fixtures.
+5c. Member exclusion tests proving an exclusion naming an absent member blocks rather than silently passing, and that the two current exclusions remove exactly `DontHurtCrittersBookInactive` and `DontHurtNatureBookInactive`.
+5d. Multi-layer precedence tests using synthetic fixtures, because no canonical key currently has more than one contributing layer. At minimum: a `central_override` landing on a key that already has a `recipe_reference` row must win for `AdminItemGroupController` and must not appear for recipe group expansion, which admits `recipe_reference` only.
 6. T0 and T1 isolated three-database acceptance using their distinct required prefixes for rollback, commit, verification, export, and restoration.
-7. Per-consumer zero-diff shadow reports covering identity, names, domains, aliases, members, source metadata, blocked state, and recipe expansion rows, each evaluated against that consumer's effective-source predicate.
+7. Per-consumer zero-diff shadow reports covering identity, names, domains, aliases, members, source metadata, blocked state, and recipe expansion rows, each evaluated against that consumer's allowed-layer predicate. The comparison normalizes the current output by the same `internalName` deduplication before diffing, so the four override-less reference groups (`Any Fragment`, `Any Jellyfish`, `Any Torch`, `Any Wood`) match rather than being allowlisted. A test must prove that removing a genuine member from one of those four still fails the comparison.
+7a. Resolution-count assertions requiring exactly zero `UNRESOLVED` and zero `AMBIGUOUS` members at cutover, not a tolerance, because all 153 distinct reference member names resolve uniquely today.
 8. Export round-trip equivalence: rendering canonical state to each compatibility file and re-parsing it reproduces exactly the canonical group state, including blocked groups. Determinism tests alone are insufficient because they prove stability, not fidelity.
 9. Export merge tests for `recipe-material-reference.json` proving the non-group sections are carried from the same landing revision, that a revision mismatch blocks, and that unavailable non-group evidence fails the job instead of publishing a file with truncated `supplementalRecipes`.
 10. NPC coverage across base landing, crawler-fact landing, maint facts, relation, projection, and local rows, including positive NPC-Buff/shop/loot samples. Fixture-backed until a crawler run is authorized; fixture evidence must be labeled and cannot satisfy `mode = 'canonical'`.
