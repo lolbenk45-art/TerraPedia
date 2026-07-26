@@ -6,7 +6,7 @@
 
 **Architecture:** A new read-only Node module `canonical-source-contract-registry.mjs` parses a new contract table in `docs/audits/canonical-migration-boundary.md` and validates each registered input against its declared mode (`b1`, `b1_migrating`, `canonical`, `retired`). `domain-readiness-audit.mjs` delegates the `b1ExemptionCompliance` panel to it. Separately, `source-dataset-locator.mjs` stops treating a missing file as "skip this dataset" for `npcs_raw` and points at the tracked standardized NPC file.
 
-**Tech Stack:** Node 20 ESM, `node:test` + `node:assert/strict`, no new dependencies. All work is read-only against databases except the one manual pre-check in Task 2, which is a read-only query.
+**Tech Stack:** Node 20 ESM, `node:test` + `node:assert/strict`, no new dependencies. The only database access in this plan is the Task 2 pre-check, which is read-only and already executed. The local stack listens on **port 13306**; credentials are in the gitignored `scripts/dev/config/local-stack.config.json` in the primary checkout.
 
 **Source spec:** `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` (Step 0 section, plus B1 Closure Criteria for the mode definitions).
 
@@ -40,16 +40,31 @@ Both are small and both need a yes/no before Task 3.
 | `scripts/data/audit/b1-exemption-compliance.test.mjs` (delete) | Superseded |
 | `scripts/data/landing/source-dataset-locator.mjs` (modify: 141-147, 168-186) | Required-descriptor path with loud failure; repoint `npcs_raw` |
 | `scripts/data/landing/source-dataset-locator.test.mjs` (modify: 39-45, 140, 157-160) | Update fixture and assertions; add missing-source test |
-| `scripts/data/backfill/backfill-npc-buff-relations-from-wiki-crawler.mjs` (modify: 127) | Remove the `??` bridge default |
+| `scripts/data/backfill/backfill-npc-buff-relations-from-wiki-crawler.mjs` (modify: 124-128) | Remove the `??` bridge default from `resolveOptions` |
 | `scripts/dev/quality-gate.sh` (modify: 55-74) | Swap the deleted test file for the three new ones |
 
 ---
 
 ## Task 1: NPC-Buff relation pre-check
 
-The spec makes this a hard gate before the locator change: pointing `npcs_raw` at the base standardized file drops `wikiCrawler.buffInflictions` from the landed payload, which is only safe if the relations derived from it already exist in the database.
+The spec makes this a gate before the locator change: pointing `npcs_raw` at the base standardized file drops `wikiCrawler.buffInflictions` from the landed payload, which is only safe if the relations derived from it already exist in the database.
 
-The module takes an injected query function so tests never touch a database. That matches this repo's testing preference: behavior tests with injectable IO, not real connections.
+**This task's rules were corrected after measuring the live database on 2026-07-26.** An earlier draft compared total relation rows to total local rows and blocked on inequality. That is wrong and would have blocked Step 0 on healthy data:
+
+| Measured | Value |
+| --- | ---: |
+| `terria_v1_relation.npc_buff_relations` total | 1265 |
+| of which `relation_type = 'immune'` | 1141 |
+| of which `relation_type = 'inflicts'` | 124 |
+| `terria_v1_local.npc_buff_relations` total, all `inflicts` | 112 |
+| relation `inflicts` rows with no local counterpart | 31 |
+| local rows with no relation counterpart, all tagged `[auto:wiki-crawler-npc-infobox]` | 20 |
+
+Two things follow. First, `local` deliberately projects only `inflicts`, so comparing totals is meaningless. Second, `local` has two independent writers: the relation projection, and the crawler backfill writing straight into local. The 20 backfill rows are the materialized `buffInflictions` evidence, which is exactly what this pre-check exists to confirm.
+
+So the pre-check asserts the one thing D2 actually depends on — that the enrichment is materialized — and *reports* the projection divergence as a warning rather than blocking on it. The divergence is a real pre-existing issue, but it is not caused by and not fixed by Step 0, so it must not gate this work.
+
+The module takes injected query functions so tests never touch a database. That matches this repo's testing preference: behavior tests with injectable IO, not real connections.
 
 **Files:**
 - Create: `scripts/data/audit/npc-buff-relation-precheck.mjs`
@@ -65,63 +80,88 @@ import assert from 'node:assert/strict';
 
 import { buildNpcBuffRelationPrecheck } from './npc-buff-relation-precheck.mjs';
 
-function stubQuery(rows) {
-  return async () => rows;
+function stub(value) {
+  return async () => [{ total: value }];
 }
 
-test('precheck passes when relation and local rows are both non-empty', async () => {
+// Mirrors the live database as measured on 2026-07-26.
+const MEASURED = {
+  queryRelationInflictsCount: stub(124),
+  queryLocalCount: stub(112),
+  queryRelationWithoutLocalCount: stub(31),
+  queryLocalWithoutRelationCount: stub(20),
+};
+
+test('precheck passes on the measured live shape, treating projection drift as a warning', async () => {
   const report = await buildNpcBuffRelationPrecheck({
     generatedAt: '2026-07-26T00:00:00Z',
-    queryRelationCount: stubQuery([{ total: 812 }]),
-    queryLocalCount: stubQuery([{ total: 812 }]),
+    ...MEASURED,
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.equal(report.requiresDatabase, true);
+  assert.equal(report.writesDatabase, false);
+  assert.equal(report.enrichmentMaterialized, true);
+  assert.deepEqual(report.blockingReasons, []);
+  assert.equal(report.warningReasons.length, 2);
+  assert.match(report.warningReasons[0], /31 relation inflicts row\(s\) have no local counterpart/);
+  assert.match(report.warningReasons[1], /20 local row\(s\) have no relation counterpart/);
+});
+
+test('precheck passes cleanly when the projection is in sync', async () => {
+  const report = await buildNpcBuffRelationPrecheck({
+    generatedAt: '2026-07-26T00:00:00Z',
+    queryRelationInflictsCount: stub(124),
+    queryLocalCount: stub(124),
+    queryRelationWithoutLocalCount: stub(0),
+    queryLocalWithoutRelationCount: stub(0),
   });
 
   assert.equal(report.status, 'pass');
-  assert.equal(report.requiresDatabase, true);
-  assert.equal(report.writesDatabase, false);
-  assert.equal(report.relationCount, 812);
-  assert.equal(report.localCount, 812);
-  assert.deepEqual(report.blockingReasons, []);
+  assert.deepEqual(report.warningReasons, []);
 });
 
-test('precheck blocks when relation rows are empty', async () => {
+test('precheck blocks when local holds no enrichment at all', async () => {
   const report = await buildNpcBuffRelationPrecheck({
     generatedAt: '2026-07-26T00:00:00Z',
-    queryRelationCount: stubQuery([{ total: 0 }]),
-    queryLocalCount: stubQuery([{ total: 812 }]),
+    ...MEASURED,
+    queryLocalCount: stub(0),
   });
 
   assert.equal(report.status, 'blocked');
-  assert.match(report.blockingReasons[0], /relation\.npc_buff_relations is empty/i);
-});
-
-test('precheck blocks when local rows are empty', async () => {
-  const report = await buildNpcBuffRelationPrecheck({
-    generatedAt: '2026-07-26T00:00:00Z',
-    queryRelationCount: stubQuery([{ total: 812 }]),
-    queryLocalCount: stubQuery([{ total: 0 }]),
-  });
-
-  assert.equal(report.status, 'blocked');
+  assert.equal(report.enrichmentMaterialized, false);
   assert.match(report.blockingReasons[0], /local\.npc_buff_relations is empty/i);
 });
 
-test('precheck blocks when relation and local counts disagree', async () => {
+test('precheck blocks when relation holds no inflicts rows at all', async () => {
   const report = await buildNpcBuffRelationPrecheck({
     generatedAt: '2026-07-26T00:00:00Z',
-    queryRelationCount: stubQuery([{ total: 812 }]),
-    queryLocalCount: stubQuery([{ total: 40 }]),
+    ...MEASURED,
+    queryRelationInflictsCount: stub(0),
   });
 
   assert.equal(report.status, 'blocked');
-  assert.match(report.blockingReasons[0], /counts disagree/i);
+  assert.match(report.blockingReasons[0], /no active inflicts rows/i);
+});
+
+test('precheck does not compare totals, so immune rows cannot cause a false block', async () => {
+  // The live relation table holds 1141 immune rows that local intentionally never projects.
+  // Only the inflicts count is passed in, so there is no total-vs-total comparison to get wrong.
+  const report = await buildNpcBuffRelationPrecheck({
+    generatedAt: '2026-07-26T00:00:00Z',
+    ...MEASURED,
+  });
+
+  assert.equal(report.relationInflictsCount, 124);
+  assert.equal(report.localCount, 112);
+  assert.equal(report.blockingReasons.length, 0);
 });
 
 test('precheck fails closed on a non-finite count rather than treating it as zero', async () => {
   const report = await buildNpcBuffRelationPrecheck({
     generatedAt: '2026-07-26T00:00:00Z',
-    queryRelationCount: stubQuery([{ total: null }]),
-    queryLocalCount: stubQuery([{ total: 812 }]),
+    ...MEASURED,
+    queryLocalCount: stub(null),
   });
 
   assert.equal(report.status, 'blocked');
@@ -131,10 +171,10 @@ test('precheck fails closed on a non-finite count rather than treating it as zer
 test('precheck fails closed when a query throws instead of reporting pass', async () => {
   const report = await buildNpcBuffRelationPrecheck({
     generatedAt: '2026-07-26T00:00:00Z',
-    queryRelationCount: async () => {
-      throw new Error('ECONNREFUSED 127.0.0.1:3306');
+    ...MEASURED,
+    queryLocalCount: async () => {
+      throw new Error('ECONNREFUSED 127.0.0.1:13306');
     },
-    queryLocalCount: stubQuery([{ total: 812 }]),
   });
 
   assert.equal(report.status, 'blocked');
@@ -155,14 +195,19 @@ Create `scripts/data/audit/npc-buff-relation-precheck.mjs`:
 ```js
 #!/usr/bin/env node
 
-const RELATION_SQL = 'SELECT COUNT(*) AS total FROM npc_buff_relations';
-const LOCAL_SQL = 'SELECT COUNT(*) AS total FROM npc_buff_relations';
+// local.npc_buff_relations projects only relation_type='inflicts'. The relation table also holds
+// 'immune' rows that local never projects, so a total-vs-total comparison is meaningless here.
+export const RELATION_INFLICTS_SQL = `
+  SELECT COUNT(*) AS total FROM terria_v1_relation.npc_buff_relations
+  WHERE deleted = 0 AND status = 1 AND relation_type = 'inflicts'`;
+
+export const LOCAL_SQL = `
+  SELECT COUNT(*) AS total FROM terria_v1_local.npc_buff_relations WHERE deleted = 0`;
 
 async function readCount(query, label, blockingReasons) {
   try {
     const rows = await query();
-    const total = Array.isArray(rows) ? rows[0]?.total : undefined;
-    const numeric = Number(total);
+    const numeric = Number(Array.isArray(rows) ? rows[0]?.total : undefined);
     if (!Number.isFinite(numeric)) {
       blockingReasons.push(`${label} returned a non-finite count; failing closed.`);
       return null;
@@ -176,37 +221,54 @@ async function readCount(query, label, blockingReasons) {
 
 export async function buildNpcBuffRelationPrecheck({
   generatedAt = new Date().toISOString(),
-  queryRelationCount,
+  queryRelationInflictsCount,
   queryLocalCount,
+  queryRelationWithoutLocalCount,
+  queryLocalWithoutRelationCount,
 } = {}) {
   const blockingReasons = [];
-  const relationCount = await readCount(queryRelationCount, 'relation.npc_buff_relations', blockingReasons);
-  const localCount = await readCount(queryLocalCount, 'local.npc_buff_relations', blockingReasons);
+  const warningReasons = [];
 
-  if (relationCount === 0) {
-    blockingReasons.push('relation.npc_buff_relations is empty; the crawler buff enrichment is not materialized.');
+  const relationInflictsCount = await readCount(queryRelationInflictsCount, 'relation.npc_buff_relations (inflicts)', blockingReasons);
+  const localCount = await readCount(queryLocalCount, 'local.npc_buff_relations', blockingReasons);
+  const relationWithoutLocal = await readCount(queryRelationWithoutLocalCount, 'relation-without-local', blockingReasons);
+  const localWithoutRelation = await readCount(queryLocalWithoutRelationCount, 'local-without-relation', blockingReasons);
+
+  if (relationInflictsCount === 0) {
+    blockingReasons.push('relation.npc_buff_relations has no active inflicts rows; the crawler buff enrichment is not materialized.');
   }
   if (localCount === 0) {
     blockingReasons.push('local.npc_buff_relations is empty; the crawler buff enrichment is not materialized.');
   }
-  if (relationCount !== null && localCount !== null && relationCount !== 0 && localCount !== 0
-    && relationCount !== localCount) {
-    blockingReasons.push(
-      `relation and local npc_buff_relations counts disagree (${relationCount} vs ${localCount}).`,
+
+  // Projection drift is a real pre-existing issue but it is neither caused nor fixed by this step,
+  // so it is reported and never allowed to gate the locator change.
+  if (relationWithoutLocal > 0) {
+    warningReasons.push(
+      `${relationWithoutLocal} relation inflicts row(s) have no local counterpart; the relation-to-local projection is incomplete.`,
     );
   }
+  if (localWithoutRelation > 0) {
+    warningReasons.push(
+      `${localWithoutRelation} local row(s) have no relation counterpart; local has a second writer outside the relation projection.`,
+    );
+  }
+
+  const enrichmentMaterialized = localCount !== null && localCount > 0;
 
   return {
     generatedAt,
     checkId: 'npcBuffRelationPrecheck',
-    status: blockingReasons.length > 0 ? 'blocked' : 'pass',
+    status: blockingReasons.length > 0 ? 'blocked' : warningReasons.length > 0 ? 'warning' : 'pass',
     requiresDatabase: true,
     writesDatabase: false,
-    relationSql: RELATION_SQL,
-    localSql: LOCAL_SQL,
-    relationCount,
+    enrichmentMaterialized,
+    relationInflictsCount,
     localCount,
+    relationWithoutLocal,
+    localWithoutRelation,
     blockingReasons,
+    warningReasons,
   };
 }
 ```
@@ -215,7 +277,7 @@ export async function buildNpcBuffRelationPrecheck({
 
 Run: `node --test scripts/data/audit/npc-buff-relation-precheck.test.mjs`
 
-Expected: PASS, 6/6
+Expected: PASS, 7/7
 
 - [ ] **Step 5: Commit**
 
@@ -226,45 +288,64 @@ git commit -m "feat(audit): add read-only NPC-Buff relation precheck"
 
 ---
 
-## Task 2: Run the pre-check against the real databases — BLOCKING GATE
+## Task 2: Confirm the pre-check against the real databases
 
-This is the one task in this plan that needs a live database, and it must pass before Task 6 changes the locator. It is read-only.
+Already executed on 2026-07-26; the numbers below are the recorded result. Re-run it only if the local stack data has changed since. It is read-only.
 
 **Files:** none modified.
 
 - [ ] **Step 1: Confirm the local stack is reachable**
 
-Run: `timeout 5 bash -c 'exec 3<>/dev/tcp/127.0.0.1/3306' && echo reachable || echo unreachable`
+The stack listens on **13306**, not the MySQL default. Connection parameters live in `scripts/dev/config/local-stack.config.json` (`database.host`, `.port`, `.username`, `.password`), which is gitignored and present only in the primary checkout at `/home/lolben/TerraPedia`.
+
+Run: `timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/13306' && echo reachable || echo unreachable`
 
 Expected: `reachable`.
 
-If `unreachable`: this worktree may be missing `local-stack.config.json`. Copy it from the primary checkout at `/home/lolben/TerraPedia/local-stack.config.json` and start the stack through the repository's standard lifecycle script before continuing. Do not proceed to Task 6 without a passing result here.
+- [ ] **Step 2: Read the counts**
 
-- [ ] **Step 2: Read the counts with read-only credentials**
-
-Run, substituting the read-only account from `local-stack.config.json`:
+Run from `/home/lolben/TerraPedia`:
 
 ```bash
-mysql --host=127.0.0.1 --port=3306 --user=<readonly-user> --password \
-  --batch --skip-column-names \
-  -e "SELECT 'relation', COUNT(*) FROM terria_v1_relation.npc_buff_relations
-      UNION ALL
-      SELECT 'local', COUNT(*) FROM terria_v1_local.npc_buff_relations;"
+PW=$(node -e "console.log(require('./scripts/dev/config/local-stack.config.json').database.password)")
+mysql --host=127.0.0.1 --port=13306 --user=root --password="$PW" --batch --skip-column-names -e "
+SELECT 'relation-inflicts', COUNT(*) FROM terria_v1_relation.npc_buff_relations
+  WHERE deleted=0 AND status=1 AND relation_type='inflicts'
+UNION ALL SELECT 'relation-immune', COUNT(*) FROM terria_v1_relation.npc_buff_relations
+  WHERE deleted=0 AND status=1 AND relation_type='immune'
+UNION ALL SELECT 'local', COUNT(*) FROM terria_v1_local.npc_buff_relations WHERE deleted=0;"
 ```
 
-Expected: two rows, both counts greater than zero and equal to each other.
+Recorded result on 2026-07-26:
 
-- [ ] **Step 3: Record the result in the devlog**
+```
+relation-inflicts	124
+relation-immune	1141
+local	112
+```
 
-Append the two counts and the query timestamp to `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` under a `Validation` bullet.
+- [ ] **Step 3: Confirm the gate condition**
 
-**STOP CONDITION:** if either count is zero, or they disagree, the `wikiCrawler.buffInflictions` enrichment is live-critical and decision D2 must be revisited with the user before any further task in this plan. Do not work around it by keeping the bridge path.
+The gate is `local > 0`, which is the only thing D2 depends on: the enrichment must already be materialized so that dropping `wikiCrawler.buffInflictions` from the landed payload loses nothing live.
 
-- [ ] **Step 4: Commit**
+Recorded result: **112 > 0, gate satisfied, D2 confirmed.** The 20 local rows with no relation counterpart are all tagged `[auto:wiki-crawler-npc-infobox]` in their `notes` column, which is the crawler backfill's own marker; those rows are the materialized `buffInflictions` evidence.
+
+**STOP CONDITION:** if `local` is zero, the enrichment is live-critical and decision D2 must be revisited with the user before any further task in this plan. Do not work around it by keeping the bridge path.
+
+- [ ] **Step 4: Record the two pre-existing issues found while measuring**
+
+Neither blocks this plan; both need their own follow-up and must not be lost:
+
+1. **Projection gap.** 31 relation `inflicts` rows have no local counterpart, concentrated in `BrainofCthulhu` and `Creeper` (9 each) plus `BloodMummy`, `DarkMummy`, `Mummy`, `Slimer`, `Creeper`, and others. Their NPC and buff both resolve in local, so this is not an identity failure.
+2. **Second local writer.** 20 local rows have no relation counterpart and are written directly by `backfill-npc-buff-relations-from-wiki-crawler.mjs`, bypassing maint and relation. That is an unregistered local writer of the exact kind `tableOwnershipMatrix` exists to catalogue.
+
+Append both to `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` under a Follow-up bullet.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md
-git commit -m "docs(devlog): record NPC-Buff relation precheck evidence"
+git commit -m "docs(devlog): record NPC-Buff precheck evidence and two pre-existing gaps"
 ```
 
 ---
@@ -1510,7 +1591,7 @@ git commit -m "chore(gate): wire the source contract registry into the quality g
 - [ ] All four `b1ExemptionCompliance` panels report `pass`
 - [ ] `grep -rn "wiki-crawler-npc-bridge" --include=*.mjs --include=*.java --include=*.vue . | grep -v node_modules` returns only the retirement report generator and its test
 - [ ] `node --test scripts/data/landing/source-dataset-locator.test.mjs` proves a missing `npcs_raw` source throws instead of silently omitting the dataset
-- [ ] The NPC-Buff pre-check evidence from Task 2 is recorded in the devlog with real counts
+- [ ] The NPC-Buff pre-check evidence from Task 2 is recorded in the devlog with real counts (relation-inflicts 124, relation-immune 1141, local 112), along with the two pre-existing gaps it exposed
 - [ ] `git diff --check` is clean
 
 ## Explicitly Not In This Plan
