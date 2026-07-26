@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-26 19:56 CST by Codex
+Last updated: 2026-07-26 20:28 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -24,8 +24,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   migration exemptions expired on 2026-06-30; those data-governance blockers require a
   separate project/data owner repair before the full gate and any L1 checkpoint. The user
   approved the full landing -> maint -> relation -> local repair design and retained the
-  four JSON paths as read-only compatibility outputs; the written design awaits user review
-  before an implementation plan is authored.
+  four JSON paths as read-only compatibility outputs. A boundary review found and repaired
+  NPC source, zero-check gate, feedback-loop, Owner authorization, formal-cutover,
+  consumer-scope, T1-prefix, and export-lifecycle defects. Fresh re-review now reports no
+  Critical or Important design finding; the repaired written spec awaits user approval before
+  an implementation plan is authored.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
