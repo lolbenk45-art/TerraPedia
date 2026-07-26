@@ -87,6 +87,7 @@ run_step "Crawler automation contract tests" . node --test \
   scripts/data/automation/table-ownership-fence.test.mjs \
   scripts/data/automation/three-database-commit-protocol.test.mjs \
   scripts/data/automation/capability-manifest.test.mjs \
+  scripts/data/automation/capability-owned-table-contract.test.mjs \
   scripts/data/automation/run-automation-acceptance.test.mjs \
   scripts/data/automation/mysql-automation-acceptance-adapter.test.mjs \
   scripts/data/automation/run-live-automation-acceptance.test.mjs \

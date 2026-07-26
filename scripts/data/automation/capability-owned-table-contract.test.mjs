@@ -1,0 +1,110 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { MAINT_TABLE_NAMES } from '../maint/maint-schema.mjs';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(here, '..', '..', '..');
+
+function loadCapabilities() {
+  const raw = fs.readFileSync(path.join(here, 'fixtures', 'crawler-automation-capabilities.json'), 'utf8');
+  return JSON.parse(raw).operations;
+}
+
+// Local physical tables come from the authoritative Flyway migrations rather than a live
+// database, so this contract runs offline like the rest of the suite.
+function loadLocalTableNames() {
+  const dir = path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration');
+  const names = new Set();
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.sql'))) {
+    const sql = fs.readFileSync(path.join(dir, file), 'utf8');
+    for (const match of sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z0-9_]+)`?/gi)) {
+      names.add(match[1]);
+    }
+  }
+  return names;
+}
+
+// relation-table-catalog.mjs require()s mysql2 at import time, which is unavailable offline,
+// so the catalog is read textually. The declarations are a plain literal list, so this is
+// exact rather than a heuristic.
+function loadRelationTableNames() {
+  const source = fs.readFileSync(path.join(repoRoot, 'scripts', 'data', 'relation', 'relation-table-catalog.mjs'), 'utf8');
+  const names = new Set();
+  for (const match of source.matchAll(/tableName:\s*'([a-z0-9_]+)'/g)) {
+    names.add(match[1]);
+  }
+  return names;
+}
+
+function physicalTablesByRole() {
+  return {
+    local: loadLocalTableNames(),
+    relation: loadRelationTableNames(),
+    maint: new Set(MAINT_TABLE_NAMES),
+  };
+}
+
+test('the offline table catalogs are non-empty, so this contract cannot pass vacuously', () => {
+  const byRole = physicalTablesByRole();
+  assert.ok(byRole.local.size > 50, `expected many local tables, found ${byRole.local.size}`);
+  assert.ok(byRole.relation.size > 10, `expected many relation tables, found ${byRole.relation.size}`);
+  assert.ok(byRole.maint.size > 10, `expected many maint tables, found ${byRole.maint.size}`);
+});
+
+test('every ownedTables entry names a physical table that actually exists', () => {
+  const byRole = physicalTablesByRole();
+  const problems = [];
+
+  for (const operation of loadCapabilities()) {
+    for (const owned of operation.ownedTables ?? []) {
+      const known = byRole[owned.databaseRole];
+      if (!known) {
+        problems.push(`${operation.actionId}: unknown databaseRole "${owned.databaseRole}"`);
+        continue;
+      }
+      if (!known.has(owned.table)) {
+        problems.push(`${operation.actionId}: ${owned.databaseRole}.${owned.table} does not exist`);
+      }
+    }
+  }
+
+  assert.deepEqual(problems, [], `ownedTables drift:\n${problems.join('\n')}`);
+});
+
+test('a capability that writes the database owns at least one table, and one that does not owns none', () => {
+  for (const operation of loadCapabilities()) {
+    const owned = operation.ownedTables ?? [];
+    if (operation.writesDatabase) {
+      assert.ok(owned.length > 0, `${operation.actionId}: writesDatabase but owns no table`);
+    } else {
+      assert.equal(owned.length, 0, `${operation.actionId}: does not write but declares ownedTables`);
+    }
+  }
+});
+
+test('readDependencies are logical descriptors and are declared as such, never mistaken for physical tables', () => {
+  // readDependencies use logical names such as maint.items_module_source, which deliberately do
+  // not correspond to physical tables (the physical maint tables are all maint_* prefixed).
+  // Only ownedTables drives the write fence, so only ownedTables must be physical. This test
+  // pins that distinction so nobody "fixes" readDependencies into physical names by accident,
+  // and so nobody assumes they are checkable.
+  const byRole = physicalTablesByRole();
+  let logicalCount = 0;
+
+  for (const operation of loadCapabilities()) {
+    for (const dependency of operation.readDependencies ?? []) {
+      const [role, table] = String(dependency).split('.', 2);
+      assert.ok(byRole[role], `${operation.actionId}: readDependency "${dependency}" has unknown role`);
+      assert.ok(table, `${operation.actionId}: readDependency "${dependency}" has no name part`);
+      if (!byRole[role].has(table)) {
+        logicalCount += 1;
+      }
+    }
+  }
+
+  assert.ok(logicalCount > 0, 'expected some logical read dependencies; if all became physical, update this contract deliberately');
+});

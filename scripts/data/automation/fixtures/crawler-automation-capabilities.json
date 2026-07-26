@@ -13,13 +13,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.items_module_source"],
+      "readDependencies": [
+        "maint.items_module_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -35,13 +40,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.items_module_source"],
+      "readDependencies": [
+        "maint.items_module_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -57,13 +67,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.npcs_module_source"],
+      "readDependencies": [
+        "maint.npcs_module_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -79,13 +94,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.npcs_module_source"],
+      "readDependencies": [
+        "maint.npcs_module_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -101,13 +121,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.projectiles_module_source"],
+      "readDependencies": [
+        "maint.projectiles_module_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -123,13 +148,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.projectiles_module_source"],
+      "readDependencies": [
+        "maint.projectiles_module_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -145,13 +175,18 @@
         "isolatedTestPath": "scripts/data/fetch/fetch-wiki-buffs.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.buffs_source"],
+      "readDependencies": [
+        "maint.buffs_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -167,13 +202,18 @@
         "isolatedTestPath": "scripts/data/fetch/fetch-wiki-armorsetbonuses.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.armor_sets_source"],
+      "readDependencies": [
+        "maint.armor_sets_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -189,13 +229,19 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["local.items", "relation.item_recipes"],
+      "readDependencies": [
+        "local.items",
+        "local.recipes"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": "recipe-reference-apply",
@@ -209,9 +255,35 @@
       "operationalState": "DISABLED",
       "writesDatabase": true,
       "ownedTables": [
-        { "databaseRole": "relation", "table": "item_recipes", "fieldGroup": "all_columns", "logicalPredicate": { "kind": "all" } }
+        {
+          "databaseRole": "local",
+          "table": "recipes",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "recipe_ingredients",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "recipe_stations",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        }
       ],
-      "readDependencies": ["local.items", "maint.recipes_source"],
+      "readDependencies": [
+        "local.items",
+        "maint.recipes_source"
+      ],
       "snapshotRequired": true,
       "rollbackMode": "scope_snapshot_latest_writer",
       "previewPairOf": null,
@@ -227,13 +299,18 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.biomes_source"],
+      "readDependencies": [
+        "maint.biomes_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": "biome-sync",
@@ -247,9 +324,18 @@
       "operationalState": "DISABLED",
       "writesDatabase": true,
       "ownedTables": [
-        { "databaseRole": "local", "table": "npc_biomes", "fieldGroup": "all_columns", "logicalPredicate": { "kind": "all" } }
+        {
+          "databaseRole": "local",
+          "table": "npc_biomes",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        }
       ],
-      "readDependencies": ["maint.biomes_source"],
+      "readDependencies": [
+        "maint.biomes_source"
+      ],
       "snapshotRequired": true,
       "rollbackMode": "scope_snapshot_latest_writer",
       "previewPairOf": null,
@@ -265,13 +351,18 @@
         "isolatedTestPath": "scripts/data/fetch/fetch-wiki-bosses-progress.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.bosses_source"],
+      "readDependencies": [
+        "maint.bosses_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -287,13 +378,18 @@
         "isolatedTestPath": "scripts/data/fetch/fetch-wiki-town-npc-maintenance-progress.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.town_npc_maintenance_source"],
+      "readDependencies": [
+        "maint.town_npc_maintenance_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -309,13 +405,18 @@
         "isolatedTestPath": "scripts/data/fetch/fetch-wiki-shimmer-page-progress.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["maint.shimmer_source"],
+      "readDependencies": [
+        "maint.shimmer_source"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": null,
@@ -331,13 +432,19 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["local.npcs", "local.npc_loot_entries"],
+      "readDependencies": [
+        "local.npcs",
+        "local.npc_loot_entries"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": "npc-loot-apply",
@@ -351,9 +458,21 @@
       "operationalState": "DISABLED",
       "writesDatabase": true,
       "ownedTables": [
-        { "databaseRole": "local", "table": "npc_loot_entries", "fieldGroup": "non_boss_loot_columns", "logicalPredicate": { "kind": "partition", "group": "npc_loot_parent_kind", "partition": "non_boss" } }
+        {
+          "databaseRole": "local",
+          "table": "npc_loot_entries",
+          "fieldGroup": "non_boss_loot_columns",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "npc_loot_parent_kind",
+            "partition": "non_boss"
+          }
+        }
       ],
-      "readDependencies": ["local.npcs", "maint.npc_loot_source"],
+      "readDependencies": [
+        "local.npcs",
+        "maint.npc_loot_source"
+      ],
       "snapshotRequired": true,
       "rollbackMode": "scope_snapshot_latest_writer",
       "previewPairOf": null,
@@ -369,13 +488,19 @@
         "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
-        "terminalStatuses": ["completed", "failed"]
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
       },
       "automationLevel": "L0",
       "operationalState": "DISABLED",
       "writesDatabase": false,
       "ownedTables": [],
-      "readDependencies": ["local.npcs", "local.npc_loot_entries"],
+      "readDependencies": [
+        "local.npcs",
+        "local.npc_loot_entries"
+      ],
       "snapshotRequired": false,
       "rollbackMode": "none",
       "previewPairOf": "boss-loot-apply",
@@ -389,9 +514,21 @@
       "operationalState": "DISABLED",
       "writesDatabase": true,
       "ownedTables": [
-        { "databaseRole": "local", "table": "npc_loot_entries", "fieldGroup": "boss_loot_columns", "logicalPredicate": { "kind": "partition", "group": "npc_loot_parent_kind", "partition": "boss" } }
+        {
+          "databaseRole": "local",
+          "table": "npc_loot_entries",
+          "fieldGroup": "boss_loot_columns",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "npc_loot_parent_kind",
+            "partition": "boss"
+          }
+        }
       ],
-      "readDependencies": ["local.npcs", "maint.boss_loot_source"],
+      "readDependencies": [
+        "local.npcs",
+        "maint.boss_loot_source"
+      ],
       "snapshotRequired": true,
       "rollbackMode": "scope_snapshot_latest_writer",
       "previewPairOf": null,
