@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-26 17:34 CST by Codex
+Last updated: 2026-07-26 18:30 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -16,11 +16,13 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Fresh no-database evidence: automation/admin Node 121/121, progress owners 25/25,
   Java automation/action 52/52, admin Nuxt typecheck, and git diff --check all pass.
   The progress and backend-owned disabled-reason code gates are closed; the real Spring
-  profile now defaults fail-closed to read-only. Two separately authorized execution
-  gates remain: write-capable T0/T1 isolated-three-database preflight and the T1
-  snapshot/preview/apply/verify/rollback run, followed by the final full closeout gate.
-  The branch is not merge-ready until those execution gates are explicitly authorized
-  and completed, or transferred to a named follow-up owner.
+  profile defaults fail-closed to read-only. Authorized live T0/T1 acceptance now passes:
+  three-schema rollback/commit/restore is `0/1/0`, T1 freezes and verifies 116 bounded
+  ownership tables, and all isolated databases/accounts/Redis reservations clean to zero.
+  Focused Node 181/181, Java 41/41, and Admin 14/14 plus typecheck pass. The branch is not
+  merge-ready because the full gate stops on four B1 panels representing seven canonical
+  migration exemptions expired on 2026-06-30; those data-governance blockers require a
+  separate project/data owner repair before the full gate and any L1 checkpoint.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
@@ -154,6 +156,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   route V1 until they run `scripts/dev/crawler-v2-cutover.sh`.
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
+- For crawler automation readiness, read
+  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`; next action is the
+  expired B1 canonical-migration repair, not another T0/T1 run or an L1 activation.
 
 ## Current Risks
 

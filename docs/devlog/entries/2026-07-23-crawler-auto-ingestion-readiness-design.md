@@ -71,6 +71,10 @@
 - Code-gate closure on 2026-07-26: all 15 non-apply operations now declare their progress owner, canonical path, isolated test path, pre-work running payload, heartbeat, and completed/failed terminal contract. The backend overview now owns structured disabled reasons, the domain matrix renders those messages without policy inference, and the Spring automation profile defaults to read-only unless `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=false` is explicitly supplied. See git for code-level diff details.
 - Code-gate validation on 2026-07-26: automation/admin Node contracts pass 121/121; executable progress-owner tests pass 25/25; focused Java automation/action tests pass 52/52; admin Nuxt typecheck passes; `git diff --check` passes. No database, Redis, crawler, import, apply, backfill, rollback, or service-lifecycle command was run.
 - Full `quality-gate.sh` was intentionally not run at this checkpoint because it includes the isolated user-auth E2E database provisioner and cross-database runtime audit. It remains part of Task 9 after the write-capable T0/T1 authorization and acceptance run; focused no-database sub-gates were run instead.
+- Authorized live acceptance on 2026-07-26 used temporary provisioner/read-only accounts, exact runKey-scoped T0/T1 three-database sets, and Redis logical databases 14/13. T0 passed rollback/commit/restore with counts `0/0/0`, `1/1/1`, and `0/0/0`. T1 froze 116 ownership-allowlisted tables with a two-row cap, snapshot hash `sha256:ed568784ade9ab1f20e2c4fa8318c2116a4978f9e611a461f019576d338a820a`, target verification hash `sha256:07709ad21137d49b88f7d4bcd6f2e144a0c2b685bd1fc4f220de4efc7e1878d8`, and the same rollback/commit/restore result. Every formal-database grant was `SELECT, SHOW VIEW`; no crawler, import, formal apply, L1/L2 promotion, scheduler activation, or formal database write ran.
+- Live-run cleanup verification found zero matching isolation databases, zero temporary automation accounts, and `DBSIZE=0` for Redis 13 and 14. Private 0700 snapshot directories and frozen row files were removed; only counts and hashes were retained in this entry.
+- Final focused validation passes: Node automation plus dev contracts 181/181, Java automation/controller/policy 41/41, Admin automation contracts 14/14 plus Nuxt typecheck, syntax checks, and `git diff --check`.
+- Full `quality-gate.sh` was executed from the beginning. Its data workflow step passed 231/231 and crawler automation step passed 132/132. It then stopped at `Domain acceptance full dry-run`: 31 pass, 10 warning, 4 blocked. The four blocked panels expand to seven canonical-migration B1 exemption references whose 2026-06-30 deadlines have expired (recipe material/group, item-group override, and NPC bridge). No report was written and no mutation command ran.
 
 ## Residual Risks
 
@@ -78,6 +82,8 @@
 - Write-capable T0/T1 preflight has not created the run-derived isolated three-database set or verified real grants/server UUID/runKey/Redis identity; this requires explicit operation-level authorization.
 - L1/L2 and scheduler activation remain disabled and require System Owner bootstrap, reauthentication, domain-scoped approval, and fresh evidence.
 - The Flyway target-DDL pre-scan may conservatively reject extreme whitespace/comment variants; this fails closed and does not permit a writer.
+- The repository-wide quality gate remains red outside this branch's T0/T1 implementation because canonical-migration B1 exemptions expired on 2026-06-30. Do not extend those deadlines merely to green the gate; complete or explicitly govern the referenced migrations first.
+- The live runner proves isolation, frozen bounded snapshot transfer, exact common-column sample presence, three-schema transaction behavior, and cleanup. It does not authorize or execute any of the 19 real crawler/import apply operations.
 
 ## Cross-Review
 
@@ -98,6 +104,7 @@
 - Resolved by: Codex design repair and targeted re-review.
 - Remaining risks: implementation must prove DB grants in an isolated database; otherwise post-commit automatic rollback remains disabled.
 - Follow-up review correction: the original wording conflated the formal local target with test databases and omitted the maint/relation databases. The revised design now hard-rejects the complete T2 three-database chain from test/acceptance profiles, inventories downstream targets by database role, and treats future T2 L2 apply as formal operation rather than testing.
+- 2026-07-26 closeout self-review found and repaired four live-boundary defects before accepting evidence: MySQL binary-log trigger creation could not use the restricted provisioner; V55 is now the only bootstrap-routed migration and remains bound to a pre-scanned isolated local database without global configuration changes. Formal/runtime schema drift required common-column projection rather than complete-column dumps. Runtime-owned tables absent from Flyway now use frozen read-only `SHOW CREATE` evidence only when the isolated table is missing. Seed/unique collisions now use deterministic isolated upsert and every frozen row is re-read with null-safe common-column predicates. Focused re-validation and fresh live T0/T1 reruns pass; no Critical/Important finding remains in the live adapter itself.
 - Boundary review findings: shared local tables had no field-level ownership/conflict contract; three-database commit semantics did not distinguish same-server transaction from cross-server compensation; T1 provisioner privileges, runKey collision/length rules, staging/audit failure semantics, and T2 page read-only allowlist were underspecified.
 - Boundary review disposition: repaired with physical-column/parent-predicate ownership rules, machine-readable tableOwnershipMatrix requirement, per-role three-database fingerprints and commit protocol, restricted acceptance provisioner, fixed hash-suffixed runKey, append-only audit failure handling, and T2 read-only API/SQL smoke boundary. Re-review is required before execution planning.
 - Task 2 implementation review disposition: initial review found identity, ownership, predicate, and catalog gaps; three repair rounds added a durable file-backed runKey registry with atomic locking, observed-role validation, explicit item/NPC/Town NPC/loot relation owners, fail-closed Flyway target DDL parsing with version ordering, and resolver boundary tests. Focused database/ownership tests pass 17/17; schema catalogs pass 21/21; Plan A passes 157/157; maintenance chain passes 9/9; `git diff --check` passes. Fresh targeted re-review reports no Critical/Important findings.
@@ -109,8 +116,8 @@
 
 ## Follow-up
 
-- Codex: stop before write-capable T0/T1 provisioning; after explicit authorization, run the isolated three-database preflight and T1 snapshot/preview/apply/verify/rollback acceptance, then execute the full closeout gate.
-- User: authorize the named T0/T1 isolated-database operation when ready. Formal T2 writes, real crawler execution, L1/L2 promotion, scheduler activation, push, and merge remain unauthorized.
+- Project/data owner: close or explicitly re-govern the seven expired B1 canonical-migration exemptions, then rerun `bash ./scripts/dev/quality-gate.sh` from the beginning.
+- System Owner: only after the repository-wide gate is green, bootstrap the Owner record and separately authorize a domain-scoped first L1 run. Formal T2 writes, real crawler execution, L1/L2 promotion, scheduler activation, push, and merge remain unauthorized.
 
 ## Commits
 

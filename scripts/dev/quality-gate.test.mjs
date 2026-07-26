@@ -196,13 +196,13 @@ test('quality gates reserve the named isolated user-auth browser smoke step', ()
   const ciSource = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
 
   for (const source of [localSource, ciSource]) {
-    assert.match(source, /run_step "Front Nuxt checks and build" front-nuxt pnpm run test/);
-    assert.doesNotMatch(source, /TP_FRONT_PROJECT_DIR/);
+    assert.match(source, /run_step "Front Nuxt checks and build" "\$TP_FRONT_PROJECT_DIR" pnpm run test/);
+    assert.match(source, /load_runtime_config/);
     assert.match(source, /^\s*run_step "User-auth isolated browser smoke" \. bash scripts\/dev\/run-user-auth-e2e\.sh --smoke$/m);
     assert.match(source, /--skip-front also skips User-auth isolated browser smoke/);
     assert.ok(
       source.indexOf('run_step "User-auth isolated browser smoke"')
-        > source.indexOf('run_step "Front Nuxt checks and build" front-nuxt pnpm run test'),
+        > source.indexOf('run_step "Front Nuxt checks and build" "$TP_FRONT_PROJECT_DIR" pnpm run test'),
       'the smoke must follow the frontend package test',
     );
   }

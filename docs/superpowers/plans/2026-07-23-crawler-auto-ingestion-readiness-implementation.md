@@ -44,7 +44,7 @@ The plan is complete only when the final T0/T1 evidence, T2 read-only L0 evidenc
 - [x] Confirm the worktree is not `main`/`master`, record `git status --short --branch`, `git branch -vv`, and `git worktree list` in the task devlog.
 - [x] Confirm all implementation commands accept an explicit profile: `unit`, `t0`, `t1`, or `t2-readonly`; reject missing profile.
 - [x] Add a hard stop to every new entrypoint so `unit` and `t0/t1` cannot resolve `terria_v1_local`, `terria_v1_maint`, or `terria_v1_relation`; no fallback database is allowed.
-- [ ] Before any write-capable test, create the run-derived T0/T1 three-database set and run the database preflight. A failed create, grant check, server UUID check, runKey check, or Redis identity check stops the task.
+- [x] Before any write-capable test, create the run-derived T0/T1 three-database set and run the database preflight. A failed create, grant check, server UUID check, runKey check, or Redis identity check stops the task.
 - [x] Do not run crawler, import, backfill, apply, rollback, Redis reset, or T2 writer commands during this guard task.
 
 Validation:
@@ -312,7 +312,7 @@ Expected result: T2 page checks can inspect real data without exposing a write p
 - Modify: relevant devlog entry and `docs/devlog/current.md`
 
 - [x] Run unit/contract tests first; then provision a disposable T0 three-database set and execute migrations, trigger tests, bundle/apply/rollback tests, and grants tests.
-- [ ] Provision T1 from explicit read-only snapshots, run full preview/apply/verify/rollback acceptance, then record only hashes, counts, and non-sensitive evidence before cleanup.
+- [x] Provision T1 from explicit read-only snapshots, run full preview/apply/verify/rollback acceptance, then record only hashes, counts, and non-sensitive evidence before cleanup.
 - [x] Run T2 read-only L0 shadow for all domains with no mutation controls and verify API/table counts and representative samples.
 - [x] Stop at the documented checkpoint if any T0/T1 test connects to a T2 writer, if evidence is stale/missing, if ownership intersects, or if a three-database stage is partial.
 - [x] Do not activate scheduler or any domain write capability in this task. L1 requires a separate user authorization checkpoint after this plan is complete.
@@ -328,10 +328,18 @@ Expected result: T0/T1 writes are isolated and auditable, T2 completes read-only
 
 ## 9. Closeout Gate
 
-- [ ] Run `git diff --check`, focused backend/data/admin tests, and the full quality gate; record exact pass/fail counts.
-- [ ] Run `git status --short`, `git diff --cached --stat`, and `git diff --cached --name-status`; stage only implementation files belonging to this plan.
-- [ ] Update `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` with result, validation, residual risks, and next checkpoint; update `docs/devlog/current.md` to point to the next active task.
+- [x] Run `git diff --check`, focused backend/data/admin tests, and the full quality gate; record exact pass/fail counts.
+- [x] Run `git status --short`, `git diff --cached --stat`, and `git diff --cached --name-status`; stage only implementation files belonging to this plan.
+- [x] Update `docs/devlog/entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` with result, validation, residual risks, and next checkpoint; update `docs/devlog/current.md` to point to the next active task.
 - [x] Do not claim L1/L2 readiness until foundation blockers, T0/T1 isolation, ownership matrix, commit protocol, grants, evidence, and T2 L0 shadow are all green.
 - [x] Keep production deployment, V1 deletion, new external sources, and formal T2 apply outside this plan.
 
 Plan closure definition: a fresh clone can run the focused gates and T0/T1 acceptance without a T2 writer connection; all 19 operations have truthful progress and capability metadata; the admin page can inspect T2 read-only data; and no domain is marked L1/L2-ready without explicit activation and approval.
+
+Runtime acceptance evidence on 2026-07-26:
+
+- T0 `aut_d0166d5e6c1bb391` passed on three runKey-isolated databases; rollback/commit/restore counts were `0/0/0`, `1/1/1`, and `0/0/0`.
+- T1 `aut_b56bd2255ce3d95a` froze and verified 116 ownership-allowlisted tables with a two-row cap. Snapshot hash: `sha256:ed568784ade9ab1f20e2c4fa8318c2116a4978f9e611a461f019576d338a820a`; target verification hash: `sha256:07709ad21137d49b88f7d4bcd6f2e144a0c2b685bd1fc4f220de4efc7e1878d8`; rollback/commit/restore counts were `0/0/0`, `1/1/1`, and `0/0/0`.
+- Cleanup verification found zero matching isolation databases, zero temporary automation accounts, and empty Redis logical databases 13 and 14.
+- Focused gates pass: Node/dev 181/181, Java 41/41, Admin 14/14 plus Nuxt typecheck, and `git diff --check`.
+- The full quality gate was executed from the beginning. Data workflow tests passed 231/231 and crawler automation contracts passed 132/132, then the manual-only domain acceptance dry-run stopped on four B1 exemption panels (seven expired exemption references dated 2026-06-30, plus ten warnings). This is a project-wide canonical-migration evidence blocker outside T0/T1 isolation; it remains explicit and prevents a full-green/merge-ready claim.

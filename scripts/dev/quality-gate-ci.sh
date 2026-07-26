@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/runtime-config.sh
+source "$SCRIPT_DIR/lib/runtime-config.sh"
 # shellcheck source=lib/run-step.sh
 source "$SCRIPT_DIR/lib/run-step.sh"
 
@@ -32,6 +34,8 @@ EOF
   esac
   shift
 done
+
+load_runtime_config
 
 run_step "Data workflow acceptance tests" . node --test \
   scripts/dev/quality-gate.test.mjs \
@@ -69,7 +73,7 @@ run_step "Backend acceptance contract tests" back mvn \
   test
 
 if ! $skip_front; then
-  run_step "Front Nuxt checks and build" front-nuxt pnpm run test
+  run_step "Front Nuxt checks and build" "$TP_FRONT_PROJECT_DIR" pnpm run test
   run_step "User-auth isolated browser smoke" . bash scripts/dev/run-user-auth-e2e.sh --smoke
 else
   printf '\nquality-gate-ci: --skip-front also skips User-auth isolated browser smoke.\n'

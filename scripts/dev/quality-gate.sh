@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/runtime-config.sh
+source "$SCRIPT_DIR/lib/runtime-config.sh"
 # shellcheck source=lib/run-step.sh
 source "$SCRIPT_DIR/lib/run-step.sh"
 
@@ -41,8 +43,11 @@ EOF
   shift
 done
 
+load_runtime_config
+
 run_step "Data workflow acceptance tests" . node --test \
   scripts/dev/quality-gate.test.mjs \
+  scripts/dev/quality-gate-automation-live-contract.test.mjs \
   scripts/dev/local-stack.test.mjs \
   scripts/dev/slot-allocator.test.mjs \
   scripts/dev/data-source-snapshot.test.mjs \
@@ -80,6 +85,8 @@ run_step "Crawler automation contract tests" . node --test \
   scripts/data/automation/three-database-commit-protocol.test.mjs \
   scripts/data/automation/capability-manifest.test.mjs \
   scripts/data/automation/run-automation-acceptance.test.mjs \
+  scripts/data/automation/mysql-automation-acceptance-adapter.test.mjs \
+  scripts/data/automation/run-live-automation-acceptance.test.mjs \
   data-query-app/pages/operations/crawler-automation.contract.test.mjs
 
 run_step "Crawler source layout check (warning-only)" . node \
@@ -107,7 +114,7 @@ if ! $skip_back; then
 fi
 
 if ! $skip_front; then
-  run_step "Front Nuxt checks and build" front-nuxt pnpm run test
+  run_step "Front Nuxt checks and build" "$TP_FRONT_PROJECT_DIR" pnpm run test
   run_step "User-auth isolated browser smoke" . bash scripts/dev/run-user-auth-e2e.sh --smoke
 else
   printf '\nquality-gate: --skip-front also skips User-auth isolated browser smoke.\n'
