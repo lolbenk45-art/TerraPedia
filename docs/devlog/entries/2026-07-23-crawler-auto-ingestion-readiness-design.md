@@ -75,6 +75,7 @@
 - Live-run cleanup verification found zero matching isolation databases, zero temporary automation accounts, and `DBSIZE=0` for Redis 13 and 14. Private 0700 snapshot directories and frozen row files were removed; only counts and hashes were retained in this entry.
 - Final focused validation passes: Node automation plus dev contracts 181/181, Java automation/controller/policy 41/41, Admin automation contracts 14/14 plus Nuxt typecheck, syntax checks, and `git diff --check`.
 - Full `quality-gate.sh` was executed from the beginning. Its data workflow step passed 231/231 and crawler automation step passed 132/132. It then stopped at `Domain acceptance full dry-run`: 31 pass, 10 warning, 4 blocked. The four blocked panels expand to seven canonical-migration B1 exemption references whose 2026-06-30 deadlines have expired (recipe material/group, item-group override, and NPC bridge). No report was written and no mutation command ran.
+- B1 repair design decision on 2026-07-26: the user selected the complete landing -> maint -> relation -> local canonical chain and chose to retain the four compatibility JSON paths as read-only outputs. Any Item Group receives normalized source, relation, and runtime tables; NPC reuses the existing canonical NPC chain and removes implicit dependence on the absent bridge path. See `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md`. This is a design checkpoint only; no crawler, import, backfill, apply, schema migration, or database write ran.
 
 ## Residual Risks
 

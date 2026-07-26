@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-26 18:30 CST by Codex
+Last updated: 2026-07-26 19:56 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -22,11 +22,14 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Focused Node 181/181, Java 41/41, and Admin 14/14 plus typecheck pass. The branch is not
   merge-ready because the full gate stops on four B1 panels representing seven canonical
   migration exemptions expired on 2026-06-30; those data-governance blockers require a
-  separate project/data owner repair before the full gate and any L1 checkpoint.
+  separate project/data owner repair before the full gate and any L1 checkpoint. The user
+  approved the full landing -> maint -> relation -> local repair design and retained the
+  four JSON paths as read-only compatibility outputs; the written design awaits user review
+  before an implementation plan is authored.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
-  `../superpowers/plans/2026-07-23-crawler-auto-ingestion-readiness-implementation.md`.
+  `../superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md`.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
@@ -158,7 +161,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   without explicit operation-level authorization.
 - For crawler automation readiness, read
   `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`; next action is the
-  expired B1 canonical-migration repair, not another T0/T1 run or an L1 activation.
+  user review of `../superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md`,
+  then an implementation plan for the expired B1 canonical-migration repair. Do not run
+  another T0/T1 acceptance or activate L1 while this review gate is open.
 
 ## Current Risks
 
