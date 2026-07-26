@@ -261,7 +261,7 @@ function skipStep(results, stepId, phase, scriptPath, reason) {
 }
 
 function noDbSteps(nowIso, sharedDataRoot, timestamp, acceptanceDir) {
-  const b1Script = 'scripts/data/audit/b1-exemption-compliance.mjs';
+  const b1Script = 'scripts/data/audit/canonical-source-contract-registry.mjs';
   const b1Keys = ['generatedAt', 'domainId', 'panelId', 'status', 'summary', 'checks'];
   const steps = [
     ...[

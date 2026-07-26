@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DEFAULT_BOUNDARY_PATH = 'docs/audits/canonical-migration-boundary.md';
 const SECTION_START = '## 来源合同登记';
@@ -279,4 +280,32 @@ function readJsonSafe(fullPath) {
   } catch {
     return null;
   }
+}
+
+function parseArgs(argv = process.argv.slice(2)) {
+  const args = {};
+  for (const arg of argv) {
+    const match = String(arg).match(/^--([^=]+)=(.*)$/);
+    if (match) {
+      args[match[1]] = match[2];
+    }
+  }
+  return args;
+}
+
+// CLI shape is unchanged from the b1-exemption-compliance.mjs it replaces, so the acceptance
+// harness and the refresh plan keep working by swapping the script path alone.
+function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
+  const report = buildSourceContractComplianceReport({
+    repoRoot: args['repo-root'] ?? process.cwd(),
+    domainId: args.domain,
+    generatedAt: args['generated-at'] ?? new Date().toISOString(),
+    boundaryPath: args['boundary-path'] ?? DEFAULT_BOUNDARY_PATH,
+  });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
 }

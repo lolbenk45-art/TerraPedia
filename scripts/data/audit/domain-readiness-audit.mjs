@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { buildB1ExemptionComplianceReport } from './b1-exemption-compliance.mjs';
+import { buildSourceContractComplianceReport } from './canonical-source-contract-registry.mjs';
 import { resolveSharedDataRoot } from '../lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -456,7 +456,7 @@ export function buildDomainReadinessReport({
   const normalizedPanel = normalizePanel(panel);
   if (normalizedPanel === 'b1ExemptionCompliance') {
     return {
-      ...buildB1ExemptionComplianceReport({
+      ...buildSourceContractComplianceReport({
         repoRoot,
         domainId,
         generatedAt,

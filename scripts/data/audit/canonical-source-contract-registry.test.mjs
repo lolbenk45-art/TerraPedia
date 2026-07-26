@@ -270,3 +270,23 @@ test('the default matcher resolves a domain to its registered contracts without 
   assert.equal(report.summary.trackedContractCount, 3);
   assert.equal(report.status, 'pass');
 });
+
+test('domain readiness delegates the b1ExemptionCompliance panel to the contract registry', async () => {
+  const { buildDomainReadinessReport } = await import('./domain-readiness-audit.mjs');
+  const repoRoot = createTempRepo();
+  writeBoundaryDoc(repoRoot, [
+    `| \`data/generated/item-group-overrides.json\` | \`b1_migrating\` | \`DESIGN_APPROVED\`; design: \`${DESIGN}\` | 2026-10-31 |`,
+  ]);
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.shimmer',
+    panel: 'b1ExemptionCompliance',
+    generatedAt: '2026-07-26T00:00:00Z',
+  });
+
+  assert.equal(report.panelId, 'b1ExemptionCompliance');
+  assert.equal(report.status, 'pass');
+  assert.equal(report.summary.trackedContractCount, 1);
+  assert.equal(report.reportPath, null);
+});
