@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TerraPedia NPC 详情页高保真 v1 · 商人</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        /* 与 front-nuxt/assets/css/hifi-preview.css 同源，勿另起色值 */
+        --bg: #050806;
+        --bg-2: #0a110b;
+        --panel: rgba(14, 21, 16, 0.9);
+        --panel-2: rgba(20, 29, 22, 0.95);
+        --paper: #f4ead0;
+        --paper-2: #e5d3a5;
+        --paper-3: #fff7e5;
+        --muted: rgba(244, 234, 208, 0.64);
+        --text-strong: var(--paper);
+        --text-main: rgba(244, 234, 208, 0.86);
+        --text-muted: rgba(244, 234, 208, 0.68);
+        --text-subtle: rgba(244, 234, 208, 0.58);
+        --text-faint: rgba(244, 234, 208, 0.5);
+        --text-positive: #9db89a;
+        --text-link: #ffd765;
+        --gold: #d6b15a;
+        --gold-2: #f0cf74;
+        --moss: #7da55b;
+        --moss-2: #96c67a;
+        --mint: #77b8a5;
+        --line: rgba(214, 177, 90, 0.22);
+        --line-strong: rgba(217, 185, 91, 0.32);
+        --surface: rgba(244, 234, 208, 0.025);
+        --surface-2: rgba(244, 234, 208, 0.045);
+        --surface-3: rgba(244, 234, 208, 0.07);
+        --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+        --font-sans: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", Inter, system-ui, sans-serif;
+        --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        /* 好感度语义色：喜欢=苔绿 / 不喜欢=暖金 / 讨厌=砖红（复用既有暖色带，未新增品牌色） */
+        --like: #96c67a;
+        --dislike: #d6b15a;
+        --hate: #d98f6b;
+        --coin-gold: #ffd765;
+        --coin-silver: #d6dbe4;
+        --coin-copper: #d9895a;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 600px at 50% -10%, rgba(125, 165, 91, 0.07), transparent 60%),
+          linear-gradient(180deg, var(--bg-2), var(--bg) 40%);
+        background-attachment: fixed;
+        color: var(--text-main);
+        font-family: var(--font-sans);
+        font-size: 16px; font-weight: 500; line-height: 1.62;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: ""; position: fixed; inset: 0;
+        background-image:
+          linear-gradient(90deg, rgba(244, 234, 208, 0.028) 1px, transparent 1px),
+          linear-gradient(rgba(244, 234, 208, 0.022) 1px, transparent 1px);
+        background-size: 64px 64px; pointer-events: none; z-index: 0;
+      }
+      img { display: block; }
+      .px { image-rendering: pixelated; }
+      h1, h2, h3 { margin: 0; font-weight: 900; color: var(--text-strong); line-height: 1.28; }
+      .shell { position: relative; z-index: 1; width: min(calc(100% - 64px), 1380px); margin-inline: auto; }
+
+      /* ── 顶栏 ───────────────────────────────────────── */
+      .topbar { position: relative; z-index: 2; border-bottom: 1px solid var(--line); background: rgba(8, 13, 9, 0.86); backdrop-filter: blur(8px); }
+      .topbar-inner { display: flex; align-items: center; gap: 28px; height: 60px; }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line-strong); background: linear-gradient(135deg, rgba(240,207,116,.22), rgba(125,165,91,.12)); display: grid; place-items: center; color: var(--gold-2); font-size: 15px; font-weight: 900; }
+      .brand-name { font-size: 16px; font-weight: 900; color: var(--text-strong); }
+      .brand-sub { font-size: 11px; color: var(--text-faint); }
+      .topnav { display: flex; gap: 22px; font-size: 14px; font-weight: 800; color: var(--text-muted); }
+      .topnav .on { color: var(--gold-2); position: relative; }
+      .topnav .on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -20px; height: 2px; background: var(--gold); border-radius: 2px; }
+      .topbar-tail { margin-left: auto; display: flex; gap: 8px; }
+      .tb-btn { height: 34px; padding: 0 12px; display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 12px; font-weight: 800; color: var(--text-muted); }
+
+      .crumbs { display: flex; align-items: center; gap: 8px; padding: 16px 0 12px; font-size: 12px; color: var(--text-faint); font-weight: 700; }
+      .crumbs b { color: var(--text-muted); font-weight: 800; }
+      .crumbs .sep { opacity: .45; }
+      .crumbs .cur { color: var(--gold-2); }
+
+      /* ── HERO ───────────────────────────────────────── */
+      .hero {
+        position: relative; display: grid; grid-template-columns: 268px minmax(0, 1fr) 292px; gap: 26px;
+        padding: 24px 26px 22px; border: 1px solid var(--line); border-radius: 14px;
+        background: radial-gradient(560px 220px at 8% 0%, rgba(125,165,91,.08), transparent 70%), linear-gradient(180deg, var(--panel-2), var(--panel));
+        box-shadow: var(--shadow); overflow: hidden;
+      }
+
+      /* 立绘 + 资产切换 */
+      .portrait { display: grid; gap: 10px; }
+      .portrait-frame {
+        position: relative; aspect-ratio: 4 / 3; border-radius: 12px;
+        border: 1px solid rgba(150, 198, 122, .28);
+        background:
+          radial-gradient(70% 70% at 50% 62%, rgba(125,165,91,.14), transparent 72%),
+          repeating-linear-gradient(0deg, rgba(244,234,208,.015) 0 2px, transparent 2px 8px),
+          rgba(9, 14, 10, .92);
+        display: grid; place-items: center; overflow: hidden;
+      }
+      .portrait-frame::after {
+        content: ""; position: absolute; left: 12%; right: 12%; bottom: 16px; height: 10px; border-radius: 50%;
+        background: radial-gradient(ellipse at center, rgba(0,0,0,.5), transparent 70%);
+      }
+      /* 源图为 30×44 像素图：按高度放大，靠 image-rendering: pixelated 保持硬边 */
+      .portrait-frame img { position: relative; z-index: 1; height: 72%; width: auto; max-width: 78%; object-fit: contain; filter: drop-shadow(0 10px 16px rgba(0,0,0,.6)); }
+      .asset img { max-width: 100%; }
+      .portrait-tag {
+        position: absolute; left: 10px; top: 10px; height: 24px; padding: 0 9px; border-radius: 6px;
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(125,165,91,.14); border: 1px solid rgba(150,198,122,.4);
+        color: var(--moss-2); font-size: 11px; font-weight: 900;
+      }
+      .portrait-tag i { width: 6px; height: 6px; border-radius: 50%; background: var(--moss-2); box-shadow: 0 0 8px var(--moss-2); }
+      .asset-switch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .asset {
+        display: grid; place-items: center; gap: 3px; padding: 7px 4px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--surface);
+        font-size: 10px; font-weight: 800; color: var(--text-faint);
+        transition: border-color 180ms cubic-bezier(.2,.8,.2,1), background 180ms;
+      }
+      .asset img { height: 26px; object-fit: contain; }
+      .asset.on { border-color: rgba(240,207,116,.4); background: rgba(214,177,90,.12); color: var(--gold-2); }
+
+      /* 身份 */
+      .ident { display: grid; align-content: start; gap: 11px; }
+      .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; color: var(--text-faint); }
+      .eyebrow .bar { width: 22px; height: 2px; background: var(--gold); border-radius: 2px; }
+      .eyebrow code { font-family: var(--font-mono); font-size: 11px; color: var(--text-subtle); background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+      .title-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+      .title-row h1 { font-size: 40px; }
+      .title-en { font-size: 14px; font-weight: 800; color: var(--text-faint); padding-bottom: 6px; }
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+      .chip { height: 28px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-muted); }
+      .chip.moss { color: var(--moss-2); border-color: rgba(150,198,122,.32); background: rgba(125,165,91,.1); }
+      .chip.gold { color: var(--gold-2); border-color: rgba(240,207,116,.34); background: rgba(214,177,90,.1); }
+      .chip i.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+
+      /* 入住条件清单：把 behaviorNotes 拆成可核对的条件 */
+      .spawn {
+        display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px;
+        border: 1px dashed var(--line); background: var(--surface);
+      }
+      .spawn-head { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 900; color: var(--text-faint); letter-spacing: .05em; }
+      .spawn-head .tail { margin-left: auto; font-weight: 700; letter-spacing: 0; }
+      .cond { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-subtle); }
+      .cond .box { width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--line-strong); background: rgba(244,234,208,.04); flex: none; display: grid; place-items: center; font-size: 9px; color: var(--moss-2); }
+      .cond b { color: var(--paper-2); font-weight: 800; }
+      .cond .no { color: var(--text-faint); font-size: 11px; margin-left: 2px; }
+
+      /* HERO 右：战斗数值 */
+      .metrics { display: grid; gap: 9px; align-content: start; }
+      .metrics-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-faint); letter-spacing: .06em; }
+      .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .metric { padding: 10px 11px; border-radius: 9px; border: 1px solid var(--line); background: linear-gradient(180deg, var(--surface-2), var(--surface)); }
+      .metric .k { font-size: 11px; font-weight: 800; color: var(--text-faint); }
+      .metric .v { font-family: var(--font-mono); font-size: 24px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; line-height: 1.2; }
+      .metric .v small { font-size: 11px; font-family: var(--font-sans); color: var(--text-faint); margin-left: 3px; }
+      .meter { height: 4px; border-radius: 3px; background: rgba(244,234,208,.08); overflow: hidden; margin-top: 6px; }
+      .meter i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--moss), var(--gold-2)); }
+      .metric .hint { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+      .friendly-note {
+        display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 9px;
+        border: 1px solid rgba(150,198,122,.28); background: rgba(125,165,91,.08);
+        font-size: 11px; color: var(--text-subtle); font-weight: 700;
+      }
+      .friendly-note i { width: 6px; height: 6px; border-radius: 50%; background: var(--moss-2); flex: none; }
+
+      /* ── 双栏 ───────────────────────────────────────── */
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 316px; gap: 24px; align-items: start; margin: 24px 0 40px; }
+      .col { display: grid; gap: 18px; min-width: 0; }
+      .card { border: 1px solid var(--line); border-radius: 13px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow); padding: 20px 22px; }
+      .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+      .card-head h2 { font-size: 20px; }
+      .card-head .sub { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-top: 3px; }
+      .badge { height: 26px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 900; border: 1px solid rgba(240,207,116,.34); background: rgba(214,177,90,.12); color: var(--gold-2); }
+      .badge.moss { border-color: rgba(150,198,122,.3); background: rgba(125,165,91,.12); color: var(--moss-2); }
+
+      .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+      .seg { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--line); border-radius: 9px; background: rgba(6,10,7,.5); }
+      .seg button { height: 30px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: var(--text-subtle); font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer; }
+      .seg button.on { background: rgba(217,185,91,.16); color: #ffe8a1; box-shadow: inset 0 0 0 1px rgba(217,185,91,.28); }
+      .seg button .n { font-family: var(--font-mono); opacity: .62; margin-left: 4px; }
+      .toolbar .spacer { margin-left: auto; }
+      .search {
+        height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 7px;
+        border: 1px solid var(--line); border-radius: 8px; background: rgba(6,10,7,.5);
+        font-size: 12px; color: var(--text-faint); font-weight: 700; min-width: 168px;
+      }
+
+      /* ── 商店：按解锁条件分组 ───────────────────────── */
+      .shop-group { margin-bottom: 16px; }
+      .shop-group:last-child { margin-bottom: 0; }
+      .group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+      .group-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+      .group-head .t { font-size: 13px; font-weight: 900; color: var(--paper-2); }
+      .group-head .c { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); font-weight: 800; }
+      .group-head .d { font-size: 11px; color: var(--text-faint); font-weight: 700; }
+      .group-head .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+
+      .shop-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+      .sku {
+        position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 9px; align-items: center;
+        padding: 8px 10px 8px 8px; border-radius: 9px; border: 1px solid var(--line);
+        background: rgba(9, 14, 10, .58);
+        transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, background 180ms;
+      }
+      .sku:hover { transform: translateY(-1px); border-color: var(--line-strong); background: rgba(20,29,22,.9); }
+      .sku-img { width: 38px; height: 38px; border-radius: 7px; border: 1px solid rgba(244,234,208,.06); background: rgba(244,234,208,.04); display: grid; place-items: center; }
+      .sku-img img { width: 28px; height: 28px; object-fit: contain; }
+      .sku-body { min-width: 0; display: grid; gap: 2px; }
+      .sku-name { font-size: 13px; font-weight: 800; color: var(--paper-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sku-price { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+      .sku-cond { font-size: 10px; color: var(--text-faint); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .coin { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.4); flex: none; }
+      .coin.gold { background: radial-gradient(circle at 32% 28%, #fff3c4, var(--coin-gold)); }
+      .coin.silver { background: radial-gradient(circle at 32% 28%, #fff, var(--coin-silver)); }
+      .coin.copper { background: radial-gradient(circle at 32% 28%, #f7c9a8, var(--coin-copper)); }
+      .sku .flag {
+        position: absolute; right: 7px; top: 7px; width: 15px; height: 15px; border-radius: 4px;
+        display: grid; place-items: center; font-size: 9px; font-weight: 900;
+        background: rgba(217, 143, 107, .18); border: 1px solid rgba(217,143,107,.45); color: var(--hate);
+      }
+      .shop-foot { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-faint); font-weight: 700; }
+      .shop-foot .warn { color: var(--hate); }
+
+      /* ── 幸福度 / 生活偏好 ─────────────────────────── */
+      .happy { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 18px; align-items: start; }
+      .best-setup {
+        padding: 14px; border-radius: 11px; border: 1px solid rgba(150,198,122,.3);
+        background: linear-gradient(180deg, rgba(125,165,91,.1), var(--surface));
+        display: grid; gap: 10px;
+      }
+      .best-setup .t { font-size: 12px; font-weight: 900; color: var(--moss-2); letter-spacing: .04em; }
+      .best-setup .biome { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 900; color: var(--paper-3); }
+      .best-setup .biome i { width: 26px; height: 26px; border-radius: 7px; background: rgba(125,165,91,.18); border: 1px solid rgba(150,198,122,.34); display: grid; place-items: center; color: var(--moss-2); flex: none; }
+      .best-setup .biome i svg, .pref .ph svg { width: 15px; height: 15px; }
+      .roomies { display: flex; gap: 5px; }
+      .roomies img { width: 30px; height: 30px; object-fit: contain; border-radius: 7px; border: 1px solid rgba(150,198,122,.28); background: rgba(9,14,10,.6); padding: 2px; }
+      .best-setup .effect { font-size: 11px; color: var(--text-subtle); font-weight: 700; line-height: 1.6; }
+      .best-setup .effect b { color: var(--moss-2); }
+
+      .pref-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+      .pref-col { display: grid; gap: 7px; align-content: start; }
+      .pref-head { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 900; letter-spacing: .04em; }
+      .pref-head .c { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
+      .pref-head.like { color: var(--like); }
+      .pref-head.dislike { color: var(--dislike); }
+      .pref-head.hate { color: var(--hate); }
+      .pref-head i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+      .pref {
+        display: flex; align-items: center; gap: 8px; padding: 6px 9px 6px 6px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--surface); min-height: 40px;
+      }
+      .pref.like { border-left: 2px solid rgba(150,198,122,.6); }
+      .pref.dislike { border-left: 2px solid rgba(214,177,90,.6); }
+      .pref.hate { border-left: 2px solid rgba(217,143,107,.7); }
+      .pref img { width: 26px; height: 26px; object-fit: contain; flex: none; }
+      .pref .ph { width: 26px; height: 26px; border-radius: 6px; background: rgba(244,234,208,.05); border: 1px solid var(--line); display: grid; place-items: center; color: var(--text-subtle); flex: none; }
+      .pref .n { font-size: 12px; font-weight: 800; color: var(--paper-2); }
+      .pref .t { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
+
+      /* ── 事实条 ─────────────────────────────────────── */
+      .facts { display: grid; gap: 8px; }
+      .fact { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+      .fact .k { font-size: 12px; font-weight: 800; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
+      .fact .k i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
+      .fact.ok .k i { background: var(--moss-2); box-shadow: 0 0 7px rgba(150,198,122,.6); }
+      .fact.warn .k i { background: var(--hate); box-shadow: 0 0 7px rgba(217,143,107,.6); }
+      .fact .v { font-size: 13px; color: var(--text-subtle); }
+      .fact .v b { color: var(--paper-2); font-weight: 800; }
+      .fact .a { font-size: 11px; font-weight: 800; color: var(--text-link); white-space: nowrap; }
+      .fact .a.mute { color: var(--text-faint); }
+
+      /* ── 侧栏 ───────────────────────────────────────── */
+      .rail { position: sticky; top: 16px; display: grid; gap: 14px; }
+      .rail-card { border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow); padding: 15px 16px; }
+      .rail-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; color: var(--text-muted); letter-spacing: .04em; margin-bottom: 12px; }
+      .rail-title .bar { width: 16px; height: 2px; background: var(--gold); border-radius: 2px; }
+      .rail-title .tail { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
+      .stat-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+      .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; background: rgba(9,14,10,.82); }
+      .stat-row .k { font-size: 12px; color: var(--text-faint); font-weight: 700; }
+      .stat-row .v { font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+      .stat-row .v.txt { font-family: var(--font-sans); color: var(--moss-2); }
+      .anchors { display: grid; gap: 2px; }
+      .anchor { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 800; color: var(--text-subtle); }
+      .anchor i { width: 5px; height: 5px; border-radius: 50%; background: rgba(244,234,208,.22); }
+      .anchor .c { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+      .anchor.on { background: rgba(217,185,91,.12); color: #ffe8a1; box-shadow: inset 0 0 0 1px rgba(217,185,91,.22); }
+      .anchor.on i { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+      .anchor.off { color: var(--text-faint); }
+
+      .cover { display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 12px; align-items: center; }
+      .ring { position: relative; width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--moss-2) 0 75%, rgba(244,234,208,.08) 75% 100%); }
+      .ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #0b110c; }
+      .ring b { position: relative; z-index: 1; font-family: var(--font-mono); font-size: 15px; color: var(--paper-3); font-weight: 800; }
+      .cover-list { display: grid; gap: 3px; font-size: 11px; font-weight: 700; }
+      .cover-list span { display: flex; align-items: center; gap: 6px; color: var(--text-faint); }
+      .cover-list span i { width: 5px; height: 5px; border-radius: 50%; background: rgba(244,234,208,.2); }
+      .cover-list span.ok { color: var(--text-subtle); }
+      .cover-list span.ok i { background: var(--moss-2); }
+
+      .rel-list { display: grid; gap: 6px; }
+      .rel { display: flex; align-items: center; gap: 9px; padding: 6px 9px 6px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+      .rel img { width: 26px; height: 26px; object-fit: contain; }
+      .rel .n { font-size: 12px; font-weight: 800; color: var(--paper-2); }
+      .rel .t { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
+
+      .designnote { margin: 0 0 40px; padding: 16px 20px; border-radius: 12px; border: 1px dashed rgba(150,198,122,.34); background: rgba(125,165,91,.05); font-size: 12px; color: var(--text-subtle); line-height: 1.8; }
+      .designnote h3 { font-size: 13px; color: var(--moss-2); margin-bottom: 6px; }
+      .designnote b { color: var(--paper-2); }
+      .designnote ol { margin: 0; padding-left: 18px; }
+      .designnote .flagged { color: var(--hate); font-weight: 800; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <div class="brand">
+          <div class="brand-mark">T</div>
+          <div>
+            <div class="brand-name">TerraPedia</div>
+            <div class="brand-sub">中文资料库</div>
+          </div>
+        </div>
+        <nav class="topnav"><span>首页</span><span>物品</span><span class="on">NPC</span><span>Boss</span><span>文章</span></nav>
+        <div class="topbar-tail">
+          <span class="tb-btn">搜索</span><span class="tb-btn">消息</span><span class="tb-btn">我的文章</span><span class="tb-btn">资料 ▾</span><span class="tb-btn">访客</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <nav class="crumbs">
+        <b>首页</b><span class="sep">/</span><b>NPC 图鉴</b><span class="sep">/</span><b>城镇 NPC</b><span class="sep">/</span><span class="cur">商人</span>
+      </nav>
+
+      <!-- ── HERO ────────────────────────────────────── -->
+      <section class="hero">
+        <div class="portrait">
+          <div class="portrait-frame">
+            <span class="portrait-tag"><i></i>已入住</span>
+            <img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/3513d74db1d04015be4de3499e05baf5.png" alt="商人立绘" />
+          </div>
+          <div class="asset-switch">
+            <span class="asset on"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/3513d74db1d04015be4de3499e05baf5.png" alt="" />立绘</span>
+            <span class="asset"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/a509222d545f4522b784cd681a79359b.png" alt="" />对话像</span>
+            <span class="asset"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/803bdfaa3a4242cfb47f8183a0c2b1dd.png" alt="" />地图标</span>
+            <span class="asset"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/899c04acf9d44145abc53dc4aff90803.png" alt="" />原始图</span>
+          </div>
+        </div>
+
+        <div class="ident">
+          <div class="eyebrow"><span class="bar"></span>NPC #17<code>Merchant</code><span>· 资料更新 2026/07/26</span></div>
+          <div class="title-row"><h1>商人</h1><span class="title-en">Merchant</span></div>
+          <div class="chips">
+            <span class="chip moss"><i class="dot"></i>城镇 NPC</span>
+            <span class="chip">友好</span>
+            <span class="chip gold">34 项出售</span>
+            <span class="chip">7 条生活偏好</span>
+            <span class="chip">前期即可入住</span>
+          </div>
+
+          <div class="spawn">
+            <div class="spawn-head">入住条件<span class="tail">全部满足后自动出现</span></div>
+            <div class="cond"><i class="box">✓</i>有一间<b>空的房屋</b></div>
+            <div class="cond"><i class="box">✓</i>所有玩家的<b>物品栏</b>中合计超过 <b>50 银币</b><span class="no">存放在宝箱、猪猪存钱罐等便携收纳中的钱币不计入</span></div>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metrics-head"><span>基础数值</span><span>非战斗单位</span></div>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="k">生命值</div>
+              <div class="v">250</div>
+              <div class="hint">被击杀后需重新入住</div>
+            </div>
+            <div class="metric">
+              <div class="k">防御</div>
+              <div class="v">15</div>
+              <div class="hint">城镇 NPC 标准值</div>
+            </div>
+            <div class="metric">
+              <div class="k">伤害</div>
+              <div class="v">10</div>
+              <div class="hint">仅自卫时触发</div>
+            </div>
+            <div class="metric">
+              <div class="k">击退抗性</div>
+              <div class="v">50<small>%</small></div>
+              <div class="meter"><i style="width: 50%"></i></div>
+            </div>
+          </div>
+          <div class="friendly-note"><i></i>友好单位 · 不掉落物品 · 不携带状态效果</div>
+        </div>
+      </section>
+
+      <!-- ── 双栏 ─────────────────────────────────────── -->
+      <div class="layout">
+        <main class="col">
+          <!-- 商店 -->
+          <section class="card" id="shop">
+            <div class="card-head">
+              <div>
+                <h2>商店</h2>
+                <div class="sub">34 项出售 · 按解锁条件分组 · 13 项常驻，其余需触发条件</div>
+              </div>
+              <span class="badge">主线模块</span>
+            </div>
+
+            <div class="toolbar">
+              <div class="seg">
+                <button class="on">全部<span class="n">34</span></button>
+                <button>常驻<span class="n">13</span></button>
+                <button>进度<span class="n">8</span></button>
+                <button>环境<span class="n">5</span></button>
+                <button>持有<span class="n">3</span></button>
+                <button>节日<span class="n">5</span></button>
+              </div>
+              <span class="spacer"></span>
+              <span class="search">搜索商品名或条件…</span>
+              <div class="seg"><button class="on">网格</button><button>表格</button></div>
+            </div>
+
+            <!-- 常驻 -->
+            <div class="shop-group">
+              <div class="group-head">
+                <span class="group-dot" style="background: var(--moss-2); box-shadow: 0 0 8px rgba(150,198,122,.6)"></span>
+                <span class="t">常驻供应</span><span class="c">13</span>
+                <span class="d">· 入住后随时可买</span><span class="rule"></span>
+              </div>
+              <div class="shop-grid">
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/2026/06/04/4bdfd86f03ea445ca64a1dc29dcc4bc9.png" alt="" /></span><span class="sku-body"><span class="sku-name">挖矿头盔</span><span class="sku-price"><i class="coin gold"></i>4</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f8/f8d579fa6115ac0df2498cf9b0033239c81cb8e0-piggy-bank-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">猪猪存钱罐</span><span class="sku-price"><i class="coin gold"></i>1</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/db/dbe1d0807b84bf7abaaf203856633ec13a5465da-iron-anvil-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铁砧</span><span class="sku-price"><i class="coin silver"></i>50</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/79/7953728380478762d0f65f1efaf940a6e0a2961c-bug-net-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">虫网</span><span class="sku-price"><i class="coin silver"></i>25</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/85/85091f2ecb468396b9a26d9487643217844211d0-copper-pickaxe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铜镐</span><span class="sku-price"><i class="coin silver"></i>5</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/64/6432bfa34751c4b65eecb9afffe537cc1fd7c3e8-copper-axe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铜斧</span><span class="sku-price"><i class="coin silver"></i>4</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/42/42c30bc57c88f7e965a48f85fefb0b2b8f35662f-torch-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">火把</span><span class="sku-price"><i class="coin copper"></i>50</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/67/67410d51d6540cddb7552fd057a3aa93387cfbf9-lesser-healing-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">弱效治疗药水</span><span class="sku-price"><i class="coin silver"></i>3</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/ef/efdfa312381ea8a2476c31d0d32b93f8e70a0928-lesser-mana-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">弱效魔力药水</span><span class="sku-price"><i class="coin silver"></i>1</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/36/36fd76ba972af937e6d50be2fae760dd9612946c-wooden-arrow-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">木箭</span><span class="sku-price"><i class="coin copper"></i>5</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/7c/7cec7d3109066930250f73e9e0c54e73a46778f6-shuriken-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">手里剑</span><span class="sku-price"><i class="coin copper"></i>15</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/c5/c5987bfab1dd617d2c19a213b0fe16feaa6a105d-rope-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">绳</span><span class="sku-price"><i class="coin copper"></i>10</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1c/1ceeeb709ff66779252369d3d75301a112378559-sickle-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">镰刀</span><span class="sku-price"><i class="coin silver"></i>60</span><span class="sku-cond">前代主机版限万圣节</span></span></span>
+              </div>
+            </div>
+
+            <!-- 进度解锁 -->
+            <div class="shop-group">
+              <div class="group-head">
+                <span class="group-dot" style="background: var(--gold-2); box-shadow: 0 0 8px rgba(240,207,116,.5)"></span>
+                <span class="t">进度解锁</span><span class="c">8</span>
+                <span class="d">· 困难模式与 Boss 击败后</span><span class="rule"></span>
+              </div>
+              <div class="shop-grid">
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0b/0b2da6cd539a914b0dccfd4de740c1568fe434e1-healing-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">治疗药水</span><span class="sku-price"><i class="coin silver"></i>10</span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/b4/b401a8b55db80504a9bb76069ab86a304a7aa42f-mana-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">魔力药水</span><span class="sku-price"><i class="coin silver"></i>2 <i class="coin copper"></i>50</span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/4a/4ae02e8f01a971edc95e931e24948270d76b30fd-sharpening-station-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">利器站</span><span class="sku-price"><i class="coin gold"></i>10</span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/16/162ce5afb7c5b0ccc2603f6a445f87d43786e4a7-disco-ball-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">迪斯科球</span><span class="sku-price"><i class="coin gold"></i>1</span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/11/1177b5f6ef449efed80b08353bf797fa24f79560-safe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">保险箱</span><span class="sku-price"><i class="coin gold"></i>20</span><span class="sku-cond">骷髅王已击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/80/809ebf55c7442e5eb421aa1c3d3027dbb5d95efd-gold-dust-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">金尘</span><span class="sku-price"><i class="coin silver"></i>17</span><span class="sku-cond">血肉墙已击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/a0/a08d56115367ad4c64d71c6cd24d8f053b22369c-drumstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">鼓组</span><span class="sku-price"><i class="coin gold"></i>10</span><span class="sku-cond">任一初期 Boss 击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1a/1a256ec8f194fb8b2f81fe97b886508f483786e3-drumstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">鼓槌</span><span class="sku-price"><i class="coin silver"></i>50</span><span class="sku-cond">任一初期 Boss 击败</span></span></span>
+              </div>
+            </div>
+
+            <!-- 环境触发 -->
+            <div class="shop-group">
+              <div class="group-head">
+                <span class="group-dot" style="background: var(--mint); box-shadow: 0 0 8px rgba(119,184,165,.5)"></span>
+                <span class="t">环境触发</span><span class="c">5</span>
+                <span class="d">· 与所处生物群系、天气、时段相关</span><span class="rule"></span>
+              </div>
+              <div class="shop-grid">
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/28/2854e91cdbdd45fac9c014afb0f4d38bb7cba079-marshmallow-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">棉花糖</span><span class="sku-price"><i class="coin silver"></i>1</span><span class="sku-cond">雪原生物群系</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f9/f97ab7ad463a8738fae9d65675b88ffda05eab8c-furnace-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">熔炉</span><span class="sku-price"><i class="coin silver"></i>3</span><span class="sku-cond">丛林</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/68/683d015c46a25190b04af8f520ca0faf8cefe903-pin-wheel-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">风车</span><span class="sku-price"><i class="coin silver"></i>20</span><span class="sku-cond">大风天</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/69/69c6cecf3232f2ac9d90404d27300ce0a887999e-throwing-knife-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">投刀</span><span class="sku-price"><i class="coin copper"></i>50</span><span class="sku-cond">血月期间</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/36/367a14ca47bcecd439bd2e7b859bfafe27b2307d-glowstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">荧光棒</span><span class="sku-price"><i class="coin copper"></i>10</span><span class="sku-cond">夜晚</span></span></span>
+              </div>
+            </div>
+
+            <!-- 持有触发 -->
+            <div class="shop-group">
+              <div class="group-head">
+                <span class="group-dot" style="background: var(--paper-2)"></span>
+                <span class="t">持有触发</span><span class="c">3</span>
+                <span class="d">· 物品栏中带有指定物品时上架</span><span class="rule"></span>
+              </div>
+              <div class="shop-grid">
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0d/0d56273fc21806b35bd91cf81e3a1a6fce862d25-flare-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">照明弹</span><span class="sku-price"><i class="coin copper"></i>7</span><span class="sku-cond">持有信号枪</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/40/40dafe7182e666c72f6a85a1d856e8de30a1b7e5-blue-flare-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">蓝照明弹</span><span class="sku-price"><i class="coin copper"></i>7</span><span class="sku-cond">持有信号枪</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/65/655d2a76c0d2786f5e89357f499ba73a0e49dea5-nail-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">钉子</span><span class="sku-price"><i class="coin silver"></i>1</span><span class="sku-cond">持有钉枪</span></span></span>
+              </div>
+            </div>
+
+            <!-- 节日限定 -->
+            <div class="shop-group">
+              <div class="group-head">
+                <span class="group-dot" style="background: var(--hate); box-shadow: 0 0 8px rgba(217,143,107,.5)"></span>
+                <span class="t">节日限定</span><span class="c">5</span>
+                <span class="d">· 仅在对应节日期间上架</span><span class="rule"></span>
+              </div>
+              <div class="shop-grid">
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/77/779da328dc71c84a2dc0fd372fe5c53206ddb46a-timeless-traveler-s-hood-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">情人节戒指</span><span class="sku-price"><i class="coin gold"></i>1</span><span class="sku-cond">情人节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/9c/9c9dc7087c96aba253ddac8ac4868dd8861843b4-wandering-yukata-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">心箭</span><span class="sku-price"><i class="coin copper"></i>50</span><span class="sku-cond">情人节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f9/f9d60861d545a209b55fbd8339c23a424bddbd92-spinal-tap-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">Wiesnbräu 啤酒</span><span class="sku-price"><i class="coin silver"></i>9 <i class="coin copper"></i>95</span><span class="sku-cond">十月啤酒节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/fd/fd6a95bb0e62f471e8e1fb3c3327a3d36c2722b1-pinstripe-pants-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">火鸡羽毛</span><span class="sku-price"><i class="coin gold"></i>10</span><span class="sku-cond">感恩节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/40/40efcb3e900bc6fb5f04478e21dcd5995901a80a-antlion-eggs-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">节日大礼帽</span><span class="sku-price"><i class="coin gold"></i>1</span><span class="sku-cond">圣诞节</span></span></span>
+              </div>
+            </div>
+
+            <div class="shop-foot">
+              <span class="warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px"><path d="M12 4 2.6 20h18.8L12 4Z"/><path d="M12 10v4.4"/><path d="M12 17.4h.01"/></svg>5 项节日商品的图标与名称不匹配</span>
+              <span>· 疑似 Wiki 抓取错位，已标记待人工校验，不影响价格与条件字段</span>
+            </div>
+          </section>
+
+          <!-- 幸福度 -->
+          <section class="card" id="happy">
+            <div class="card-head">
+              <div>
+                <h2>幸福度与居住</h2>
+                <div class="sub">7 条生活偏好 · 决定商品折扣与晶塔解锁</div>
+              </div>
+              <span class="badge moss">7 条</span>
+            </div>
+            <div class="happy">
+              <div class="best-setup">
+                <div class="t">推荐居住方案</div>
+                <div class="biome"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 6.5 12h3L5 19h14l-4.5-7h3L12 3Z"/><path d="M12 19v2.5"/></svg></i>森林</div>
+                <div class="roomies">
+                  <img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/4b957e50e02640b69294dc2a02fbacb5.png" alt="公主" />
+                  <img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/3b15364d6dd44910bd5bf3b239c4cee5.png" alt="高尔夫球手" />
+                  <img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/b87d1bf10cd64056a6454eae9fa8f61e.png" alt="护士" />
+                </div>
+                <div class="effect">安置在<b>森林</b>并与<b>公主 / 高尔夫球手 / 护士</b>为邻，可获得最高幸福度：<b>商品折扣</b>与<b>森林晶塔</b>解锁。避免与<b>渔夫</b>同区。</div>
+              </div>
+
+              <div class="pref-cols">
+                <div class="pref-col">
+                  <div class="pref-head like"><i></i>喜欢<span class="c">4</span></div>
+                  <span class="pref like"><span class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 6.5 12h3L5 19h14l-4.5-7h3L12 3Z"/><path d="M12 19v2.5"/></svg></span><span class="n">森林</span><span class="t">生物群系</span></span>
+                  <span class="pref like"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/4b957e50e02640b69294dc2a02fbacb5.png" alt="" /><span class="n">公主</span><span class="t">邻居</span></span>
+                  <span class="pref like"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/3b15364d6dd44910bd5bf3b239c4cee5.png" alt="" /><span class="n">高尔夫球手</span><span class="t">邻居</span></span>
+                  <span class="pref like"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/b87d1bf10cd64056a6454eae9fa8f61e.png" alt="" /><span class="n">护士</span><span class="t">邻居</span></span>
+                </div>
+                <div class="pref-col">
+                  <div class="pref-head dislike"><i></i>不喜欢<span class="c">2</span></div>
+                  <span class="pref dislike"><span class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="17" cy="7" r="2.6"/><path d="M2 18c2.4 0 3.2-3.4 5.6-3.4S10.8 18 13.2 18 16.4 15.2 18.8 15.2 21 18 22 18"/><path d="M2 21h20"/></svg></span><span class="n">沙漠</span><span class="t">生物群系</span></span>
+                  <span class="pref dislike"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/39f6d00c152246ef85a2e94beb66bdb1.png" alt="" /><span class="n">税收官</span><span class="t">邻居</span></span>
+                </div>
+                <div class="pref-col">
+                  <div class="pref-head hate"><i></i>讨厌<span class="c">1</span></div>
+                  <span class="pref hate"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/c7c5156bab344925b41fe306db2ec9a0.png" alt="" /><span class="n">渔夫</span><span class="t">邻居</span></span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 事实条 -->
+          <section class="card" id="facts">
+            <div class="card-head">
+              <div>
+                <h2>其他资料</h2>
+                <div class="sub">无数据的模块不再占整卡，状态与去向一行说清</div>
+              </div>
+              <span class="badge">4 项</span>
+            </div>
+            <div class="facts">
+              <div class="fact">
+                <span class="k"><i></i>掉落物</span>
+                <span class="v">友好 NPC，<b>不掉落任何物品</b></span>
+                <span class="a mute">不适用</span>
+              </div>
+              <div class="fact">
+                <span class="k"><i></i>状态效果</span>
+                <span class="v">不施加也不携带增益或减益</span>
+                <span class="a mute">不适用</span>
+              </div>
+              <div class="fact ok">
+                <span class="k"><i></i>资料图像</span>
+                <span class="v"><b>4 张</b>立绘 · 对话像 · 地图标 · 原始图</span>
+                <span class="a">在顶部切换 ↑</span>
+              </div>
+              <div class="fact warn">
+                <span class="k"><i></i>数据校验</span>
+                <span class="v"><b>5 项</b>节日商品图标与名称不匹配，待人工核对</span>
+                <span class="a">查看明细 →</span>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- ── 侧栏 ────────────────────────────────────── -->
+        <aside class="rail">
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>基础数值<span class="tail">NPC #17</span></div>
+            <div class="stat-list">
+              <div class="stat-row"><span class="k">编号</span><span class="v">17</span></div>
+              <div class="stat-row"><span class="k">生命值</span><span class="v">250</span></div>
+              <div class="stat-row"><span class="k">伤害</span><span class="v">10</span></div>
+              <div class="stat-row"><span class="k">防御</span><span class="v">15</span></div>
+              <div class="stat-row"><span class="k">击退抗性</span><span class="v">50%</span></div>
+              <div class="stat-row"><span class="k">类型</span><span class="v txt">城镇角色</span></div>
+              <div class="stat-row"><span class="k">阵营</span><span class="v txt">友好</span></div>
+              <div class="stat-row"><span class="k">出售项</span><span class="v">34</span></div>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>页面锚点</div>
+            <div class="anchors">
+              <span class="anchor on"><i></i>商店<span class="c">34</span></span>
+              <span class="anchor"><i></i>幸福度与居住<span class="c">7</span></span>
+              <span class="anchor"><i></i>其他资料<span class="c">4</span></span>
+              <span class="anchor off"><i></i>掉落物<span class="c">—</span></span>
+              <span class="anchor off"><i></i>状态效果<span class="c">—</span></span>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>资料完整度<span class="tail">6 / 8 模块</span></div>
+            <div class="cover">
+              <div class="ring"><b>75%</b></div>
+              <div class="cover-list">
+                <span class="ok"><i></i>基础数值 · 分类 · 阵营</span>
+                <span class="ok"><i></i>商店 34 项 · 条件完整</span>
+                <span class="ok"><i></i>生活偏好 · 4 张图像</span>
+                <span><i></i>对话文本 · 出现台词</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>相关 NPC<span class="tail">来自生活偏好</span></div>
+            <div class="rel-list">
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/4b957e50e02640b69294dc2a02fbacb5.png" alt="" /><span class="n">公主</span><span class="t">喜欢</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/3b15364d6dd44910bd5bf3b239c4cee5.png" alt="" /><span class="n">高尔夫球手</span><span class="t">喜欢</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/b87d1bf10cd64056a6454eae9fa8f61e.png" alt="" /><span class="n">护士</span><span class="t">喜欢</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/39f6d00c152246ef85a2e94beb66bdb1.png" alt="" /><span class="n">税收官</span><span class="t">不喜欢</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/npcs/2026/05/26/c7c5156bab344925b41fe306db2ec9a0.png" alt="" /><span class="n">渔夫</span><span class="t">讨厌</span></span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="designnote">
+        <h3>设计注记 · NPC 详情页 v1</h3>
+        <ol>
+          <li><b>消除重复陈列</b>：线上页面底部的「出售相关」6 行与上方「出售物品」是同一批数据的两种画法，本稿删掉后者，商店只有一处。</li>
+          <li><b>商店按解锁条件分组</b>：34 项拆成 常驻 13 / 进度 8 / 环境 5 / 持有 3 / 节日 5，条件从 <code>notes</code> 字段升为分组依据——玩家的真实问题是「现在能买什么」，不是「一共有什么」。分组计数直接做成筛选段控件。</li>
+          <li><b>入住条件从段落变清单</b>：原 <code>behaviorNotes</code> 是一整段掺着分号的文字，拆成两条可核对项，「便携收纳内的钱不计入」这个坑作为附注挂在条件下。</li>
+          <li><b>幸福度给结论而不是罗列</b>：左侧直接给「森林 + 公主/高尔夫球手/护士」的推荐方案和它换来的折扣与晶塔，右侧才是喜欢/不喜欢/讨厌三列明细。原页面三列等宽平铺，右两列大量留白。</li>
+          <li><b>空模块压成事实条</b>：掉落物、状态效果对友好 NPC 本就不适用，写「不适用」比两张「暂无」空卡诚实。</li>
+          <li class="flagged">数据问题（本稿如实呈现，未美化）：5 项节日商品的 <code>imageUrl</code> 指向完全无关的物品——情人节戒指→永恒旅者兜帽、心箭→浪人浴衣、Wiesnbräu啤酒→脊椎龙头、火鸡羽毛→细条纹裤、节日大礼帽→蚁狮卵。这是 Wiki 抓取错位，需要在数据侧修，不是前端能兜的。已在商店页脚和事实条里标出。</li>
+          <li>色值、圆角、间距、字号取自 <b>hifi-preview.css / tokens.css</b>；好感度三色复用既有暖色带（苔绿/暖金/砖红），未引入新品牌色。</li>
+        </ol>
+      </div>
+    </div>
+  </body>
+</html>

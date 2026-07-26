@@ -6,6 +6,9 @@ Active branch: `main`
 
 ## Open Work
 
+- 详情页重做（物品 / NPC）高保真稿已定，等待用户确认后写实现计划；分支
+  `ux/detail-pages-redesign`，见
+  `entries/2026-07-27-detail-pages-redesign-hifi.md`（含 4 条待立项的顺带发现）。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
 - Uncommitted work pending user acceptance: triage-board layout fixes,

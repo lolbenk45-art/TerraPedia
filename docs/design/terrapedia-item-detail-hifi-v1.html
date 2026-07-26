@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TerraPedia 物品详情页高保真 v1 · 泰拉刃</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        /* 与 front-nuxt/assets/css/hifi-preview.css 同源，勿另起色值 */
+        --bg: #050806;
+        --bg-2: #0a110b;
+        --panel: rgba(14, 21, 16, 0.9);
+        --panel-2: rgba(20, 29, 22, 0.95);
+        --paper: #f4ead0;
+        --paper-2: #e5d3a5;
+        --paper-3: #fff7e5;
+        --muted: rgba(244, 234, 208, 0.64);
+        --text-strong: var(--paper);
+        --text-main: rgba(244, 234, 208, 0.86);
+        --text-muted: rgba(244, 234, 208, 0.68);
+        --text-subtle: rgba(244, 234, 208, 0.58);
+        --text-faint: rgba(244, 234, 208, 0.5);
+        --text-positive: #9db89a;
+        --text-link: #ffd765;
+        --gold: #d6b15a;
+        --gold-2: #f0cf74;
+        --moss: #7da55b;
+        --moss-2: #96c67a;
+        --mint: #77b8a5;
+        --line: rgba(214, 177, 90, 0.22);
+        --line-strong: rgba(217, 185, 91, 0.32);
+        --surface: rgba(244, 234, 208, 0.025);
+        --surface-2: rgba(244, 234, 208, 0.045);
+        --surface-3: rgba(244, 234, 208, 0.07);
+        --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+        --shadow-heavy: 0 36px 90px rgba(0, 0, 0, 0.44);
+        --font-sans: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", Inter, system-ui, sans-serif;
+        --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        /* 稀有度色：本条目为「浅红色」 */
+        --rarity: #ff8f8f;
+        --rarity-soft: rgba(255, 143, 143, 0.16);
+        --coin-plat: #e6ecf5;
+        --coin-gold: #ffd765;
+        --coin-silver: #d6dbe4;
+        --coin-copper: #d9895a;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 600px at 50% -10%, rgba(125, 165, 91, 0.07), transparent 60%),
+          linear-gradient(180deg, var(--bg-2), var(--bg) 40%);
+        background-attachment: fixed;
+        color: var(--text-main);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.62;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(90deg, rgba(244, 234, 208, 0.028) 1px, transparent 1px),
+          linear-gradient(rgba(244, 234, 208, 0.022) 1px, transparent 1px);
+        background-size: 64px 64px;
+        pointer-events: none;
+        z-index: 0;
+      }
+      img { display: block; }
+      .px { image-rendering: pixelated; }
+      a { color: inherit; text-decoration: none; }
+      h1, h2, h3 { margin: 0; font-weight: 900; color: var(--text-strong); line-height: 1.28; }
+
+      .shell { position: relative; z-index: 1; width: min(calc(100% - 64px), 1380px); margin-inline: auto; }
+
+      /* ── 顶栏（沿用线上结构，非本次改动重点）───────────── */
+      .topbar {
+        position: relative; z-index: 2;
+        border-bottom: 1px solid var(--line);
+        background: rgba(8, 13, 9, 0.86);
+        backdrop-filter: blur(8px);
+      }
+      .topbar-inner { display: flex; align-items: center; gap: 28px; height: 60px; }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .brand-mark {
+        width: 34px; height: 34px; border-radius: 8px;
+        border: 1px solid var(--line-strong);
+        background: linear-gradient(135deg, rgba(240, 207, 116, 0.22), rgba(125, 165, 91, 0.12));
+        display: grid; place-items: center; color: var(--gold-2); font-size: 15px; font-weight: 900;
+      }
+      .brand-name { font-size: 16px; font-weight: 900; color: var(--text-strong); letter-spacing: .02em; }
+      .brand-sub { font-size: 11px; color: var(--text-faint); }
+      .topnav { display: flex; gap: 22px; font-size: 14px; font-weight: 800; color: var(--text-muted); }
+      .topnav .on { color: var(--gold-2); position: relative; }
+      .topnav .on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -20px; height: 2px; background: var(--gold); border-radius: 2px; }
+      .topbar-tail { margin-left: auto; display: flex; gap: 8px; }
+      .tb-btn {
+        height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+        font-size: 12px; font-weight: 800; color: var(--text-muted);
+      }
+
+      /* ── 面包屑 ─────────────────────────────────────── */
+      .crumbs { display: flex; align-items: center; gap: 8px; padding: 16px 0 12px; font-size: 12px; color: var(--text-faint); font-weight: 700; }
+      .crumbs b { color: var(--text-muted); font-weight: 800; }
+      .crumbs .sep { opacity: .45; }
+      .crumbs .cur { color: var(--gold-2); }
+
+      /* ── HERO ───────────────────────────────────────── */
+      .hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr) 300px;
+        gap: 28px;
+        padding: 26px 28px 22px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background:
+          radial-gradient(560px 220px at 8% 0%, rgba(255, 143, 143, 0.07), transparent 70%),
+          linear-gradient(180deg, var(--panel-2), var(--panel));
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .hero::after {
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(244, 234, 208, 0.05), transparent 24%);
+        pointer-events: none;
+      }
+
+      .plinth { position: relative; display: grid; gap: 12px; }
+      .plinth-frame {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 143, 143, 0.34);
+        background:
+          radial-gradient(70% 70% at 50% 45%, var(--rarity-soft), transparent 70%),
+          repeating-linear-gradient(45deg, rgba(244, 234, 208, 0.018) 0 2px, transparent 2px 8px),
+          rgba(9, 14, 10, 0.9);
+        display: grid; place-items: center;
+        box-shadow: inset 0 0 0 1px rgba(255, 143, 143, 0.08), 0 0 46px rgba(255, 143, 143, 0.1);
+        animation: rarityBreath 5.4s var(--ease, cubic-bezier(.4,0,.2,1)) infinite;
+      }
+      @keyframes rarityBreath {
+        0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,143,143,.08), 0 0 40px rgba(255,143,143,.09); }
+        50% { box-shadow: inset 0 0 0 1px rgba(255,143,143,.16), 0 0 60px rgba(255,143,143,.16); }
+      }
+      .plinth-frame img { width: 132px; height: 132px; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)); }
+      .plinth-rarity {
+        position: absolute; left: 10px; top: 10px;
+        display: inline-flex; align-items: center; gap: 6px;
+        height: 24px; padding: 0 9px; border-radius: 6px;
+        background: rgba(255, 143, 143, 0.14); border: 1px solid rgba(255, 143, 143, 0.4);
+        color: #ffc9c9; font-size: 11px; font-weight: 900; letter-spacing: .04em;
+      }
+      .plinth-rarity i { width: 6px; height: 6px; border-radius: 50%; background: var(--rarity); box-shadow: 0 0 8px var(--rarity); }
+      .plinth-zoom {
+        position: absolute; right: 10px; bottom: 10px;
+        height: 26px; padding: 0 10px; border-radius: 6px;
+        border: 1px solid var(--line); background: rgba(6, 10, 7, 0.72);
+        color: var(--text-subtle); font-size: 11px; font-weight: 800;
+        display: inline-flex; align-items: center; gap: 5px;
+      }
+      .plinth-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+      .btn {
+        height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong);
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        font-size: 12px; font-weight: 800; color: var(--text-main); background: var(--surface-2);
+        transition: background 180ms cubic-bezier(.2,.8,.2,1), color 180ms;
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, #f0cf74, #bd8b39);
+        border-color: rgba(240, 207, 116, 0.42); color: #10180d;
+        box-shadow: 0 12px 30px rgba(214, 177, 90, 0.2);
+      }
+      .btn.icon { width: 36px; padding: 0; }
+
+      .ident { display: grid; align-content: start; gap: 10px; padding-top: 2px; }
+      .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; color: var(--text-faint); }
+      .eyebrow .bar { width: 22px; height: 2px; background: var(--gold); border-radius: 2px; }
+      .eyebrow code { font-family: var(--font-mono); font-size: 11px; color: var(--text-subtle); background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+      .title-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+      .title-row h1 { font-size: 40px; letter-spacing: .01em; }
+      .title-en { font-size: 14px; font-weight: 800; color: var(--text-faint); padding-bottom: 6px; }
+      .derived {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        font-size: 14px; color: var(--text-muted);
+        padding: 9px 12px; border-radius: 9px;
+        border: 1px dashed var(--line); background: var(--surface);
+      }
+      .derived .k { color: var(--text-faint); font-size: 12px; font-weight: 800; }
+      .derived .item { color: var(--paper-2); font-weight: 800; }
+      .derived .plus { color: var(--text-faint); }
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+      .chip {
+        height: 28px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 800; border: 1px solid var(--line); background: var(--surface-2); color: var(--text-muted);
+      }
+      .chip.moss { color: var(--moss-2); border-color: rgba(150, 198, 122, 0.32); background: rgba(125, 165, 91, 0.1); }
+      .chip.gold { color: var(--gold-2); border-color: rgba(240, 207, 116, 0.34); background: rgba(214, 177, 90, 0.1); }
+      .chip.paper { color: var(--paper-2); }
+      .chip i.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .8; }
+
+      /* 阶段轨 */
+      .stage-rail { display: grid; gap: 7px; margin-top: 2px; }
+      .stage-rail-label { font-size: 11px; font-weight: 800; color: var(--text-faint); letter-spacing: .06em; }
+      .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .stage {
+        position: relative; padding: 8px 10px; border-radius: 7px;
+        border: 1px solid var(--line); background: var(--surface);
+        font-size: 12px; font-weight: 800; color: var(--text-faint);
+      }
+      .stage small { display: block; font-size: 10px; font-weight: 700; color: rgba(244,234,208,.34); margin-top: 1px; }
+      .stage.done { color: var(--text-subtle); }
+      .stage.done::before { content: "✓"; margin-right: 6px; color: var(--moss); }
+      .stage.on {
+        color: #10180d;
+        background: linear-gradient(135deg, rgba(240, 207, 116, .92), rgba(189, 139, 57, .92));
+        border-color: rgba(240, 207, 116, .5);
+        box-shadow: 0 10px 24px rgba(214, 177, 90, .18);
+      }
+      .stage.on small { color: rgba(16, 24, 13, .66); }
+
+      /* HERO 右侧关键数值 */
+      .metrics { display: grid; gap: 10px; align-content: start; }
+      .metrics-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-faint); letter-spacing: .06em; }
+      .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .metric {
+        padding: 10px 11px; border-radius: 9px; border: 1px solid var(--line);
+        background: linear-gradient(180deg, var(--surface-2), var(--surface));
+      }
+      .metric .k { font-size: 11px; font-weight: 800; color: var(--text-faint); }
+      .metric .v { font-family: var(--font-mono); font-size: 24px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; line-height: 1.2; }
+      .metric .v small { font-size: 11px; font-family: var(--font-sans); color: var(--text-faint); margin-left: 3px; }
+      .meter { height: 4px; border-radius: 3px; background: rgba(244, 234, 208, 0.08); overflow: hidden; margin-top: 6px; }
+      .meter i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--moss), var(--gold-2)); }
+      .metric .hint { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+      .price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .price {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        padding: 8px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface);
+        font-size: 12px; font-weight: 800; color: var(--text-faint);
+      }
+      .coins { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 13px; color: var(--paper-3); }
+      .coin { width: 13px; height: 13px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.4); }
+      .coin.plat { background: radial-gradient(circle at 32% 28%, #fff, var(--coin-plat)); }
+      .coin.gold { background: radial-gradient(circle at 32% 28%, #fff3c4, var(--coin-gold)); }
+      .coin.silver { background: radial-gradient(circle at 32% 28%, #fff, var(--coin-silver)); }
+      .coin.copper { background: radial-gradient(circle at 32% 28%, #f7c9a8, var(--coin-copper)); }
+
+      /* ── 双栏 ───────────────────────────────────────── */
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 316px; gap: 24px; align-items: start; margin: 24px 0 40px; }
+      .col { display: grid; gap: 18px; min-width: 0; }
+
+      .card {
+        border: 1px solid var(--line); border-radius: 13px;
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        box-shadow: var(--shadow); padding: 20px 22px;
+      }
+      .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+      .card-head h2 { font-size: 20px; }
+      .card-head .sub { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-top: 3px; }
+      .badge {
+        height: 26px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; font-weight: 900; letter-spacing: .03em;
+        border: 1px solid rgba(240, 207, 116, 0.34); background: rgba(214, 177, 90, 0.12); color: var(--gold-2);
+      }
+      .badge.moss { border-color: rgba(150, 198, 122, .3); background: rgba(125, 165, 91, .12); color: var(--moss-2); }
+
+      /* 工具条 */
+      .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+      .seg { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--line); border-radius: 9px; background: rgba(6, 10, 7, .5); }
+      .seg button {
+        height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent;
+        color: var(--text-subtle); font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer;
+      }
+      .seg button.on { background: rgba(217, 185, 91, .16); color: #ffe8a1; box-shadow: inset 0 0 0 1px rgba(217,185,91,.28); }
+      .toolbar .spacer { margin-left: auto; }
+      .toolbar .note { font-size: 11px; color: var(--text-faint); font-weight: 700; }
+
+      /* ── 合成链图谱 ─────────────────────────────────── */
+      .chain { display: grid; gap: 0; }
+      .band { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 14px; align-items: start; }
+      .band-label { padding-top: 12px; }
+      .band-label .n { font-family: var(--font-mono); font-size: 11px; color: var(--gold); font-weight: 800; }
+      .band-label .t { font-size: 12px; font-weight: 800; color: var(--text-muted); }
+      .band-label .c { font-size: 10px; color: var(--text-faint); font-weight: 700; }
+      .band-body {
+        position: relative; padding: 12px 14px; border-radius: 11px;
+        border: 1px solid var(--line); background: var(--surface);
+      }
+      .band-body.result {
+        border-color: rgba(255, 143, 143, .34);
+        background: linear-gradient(180deg, rgba(255, 143, 143, .07), var(--surface));
+      }
+      .band-flow { display: grid; place-items: center; height: 26px; margin-left: 122px; }
+      .band-flow span {
+        font-size: 11px; color: var(--text-faint); font-weight: 800;
+        display: inline-flex; align-items: center; gap: 8px;
+      }
+      .band-flow span::before, .band-flow span::after {
+        content: ""; width: 46px; height: 1px;
+        background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+      }
+
+      .nodes { display: flex; gap: 8px; flex-wrap: wrap; }
+      .node {
+        display: flex; align-items: center; gap: 9px;
+        padding: 7px 11px 7px 7px; border-radius: 9px;
+        border: 1px solid var(--line); background: rgba(9, 14, 10, .62);
+        transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, background 180ms;
+      }
+      .node:hover { transform: translateY(-1px); border-color: var(--line-strong); background: rgba(20, 29, 22, .9); }
+      .node-img { width: 36px; height: 36px; border-radius: 7px; background: rgba(244,234,208,.04); display: grid; place-items: center; border: 1px solid rgba(244,234,208,.06); }
+      .node-img img { width: 28px; height: 28px; object-fit: contain; }
+      .node-text { display: grid; }
+      .node-name { font-size: 13px; font-weight: 800; color: var(--paper-2); }
+      .node-meta { font-size: 10px; color: var(--text-faint); font-weight: 700; }
+      .qty { font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--gold-2); background: rgba(214,177,90,.12); border: 1px solid rgba(240,207,116,.26); border-radius: 5px; padding: 1px 6px; }
+      .node.key { border-color: rgba(240, 207, 116, .34); background: linear-gradient(180deg, rgba(214,177,90,.1), rgba(9,14,10,.62)); }
+      .node.result { border-color: rgba(255,143,143,.4); background: linear-gradient(180deg, rgba(255,143,143,.12), rgba(9,14,10,.7)); padding: 10px 14px 10px 10px; }
+      .node.result .node-img { width: 46px; height: 46px; }
+      .node.result .node-img img { width: 38px; height: 38px; }
+      .node.result .node-name { font-size: 16px; color: var(--paper-3); }
+
+      /* 二选一分支 */
+      .fork {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px; border-radius: 10px;
+        border: 1px dashed rgba(150, 198, 122, .4); background: rgba(125, 165, 91, .06);
+      }
+      .fork-or {
+        font-size: 10px; font-weight: 900; color: var(--moss-2); letter-spacing: .06em;
+        padding: 3px 6px; border-radius: 5px; border: 1px solid rgba(150,198,122,.34); background: rgba(125,165,91,.12);
+      }
+      .fork-tip { font-size: 10px; color: var(--text-faint); font-weight: 700; margin-left: 2px; }
+
+      /* 制作站 */
+      .stations { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+      .stations .k { font-size: 11px; font-weight: 800; color: var(--text-faint); }
+      .station { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 5px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12px; font-weight: 800; color: var(--text-muted); }
+      .station img { width: 20px; height: 20px; object-fit: contain; }
+      .station .alt { font-size: 10px; color: var(--text-faint); }
+
+      /* 采集清单 */
+      .tally { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+      .tally-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+      .tally-head h3 { font-size: 15px; }
+      .tally-head .sub { font-size: 11px; color: var(--text-faint); font-weight: 700; }
+      .tally-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .tally-row {
+        display: flex; align-items: center; gap: 9px; padding: 7px 10px 7px 7px;
+        border-radius: 8px; border: 1px solid var(--line); background: rgba(9, 14, 10, .5);
+      }
+      .tally-row .box { width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--line-strong); background: rgba(244,234,208,.04); flex: none; }
+      .tally-row img { width: 24px; height: 24px; object-fit: contain; flex: none; }
+      .tally-row .n { font-size: 12px; font-weight: 800; color: var(--paper-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tally-row .q { font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--gold-2); font-variant-numeric: tabular-nums; }
+      .tally-note { margin-top: 10px; font-size: 11px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+
+      /* ── 用途闭环 ───────────────────────────────────── */
+      .flowline { display: grid; grid-template-columns: auto auto auto; align-items: center; justify-content: start; gap: 14px; }
+      .flow-arrow { display: grid; gap: 3px; justify-items: center; color: var(--text-faint); font-size: 10px; font-weight: 800; }
+      .flow-arrow .l { width: 66px; height: 1px; background: linear-gradient(90deg, var(--line-strong), rgba(240,207,116,.5)); position: relative; }
+      .flow-arrow .l::after { content: ""; position: absolute; right: -1px; top: -3px; border-left: 6px solid var(--gold); border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; }
+      .usage-end { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 12px; border-radius: 11px; border: 1px solid rgba(240, 207, 116, .3); background: linear-gradient(135deg, rgba(214,177,90,.12), var(--surface)); }
+      .usage-end img { width: 44px; height: 44px; object-fit: contain; }
+      .usage-end .t { font-size: 17px; font-weight: 900; color: var(--paper-3); }
+      .usage-end .m { font-size: 11px; color: var(--text-faint); font-weight: 700; }
+
+      /* ── 事实条（替代空卡）───────────────────────────── */
+      .facts { display: grid; gap: 8px; }
+      .fact {
+        display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+        padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+      }
+      .fact .k { font-size: 12px; font-weight: 800; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
+      .fact .k i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
+      .fact.ok .k i { background: var(--moss-2); box-shadow: 0 0 7px rgba(150,198,122,.6); }
+      .fact .v { font-size: 13px; color: var(--text-subtle); }
+      .fact .v b { color: var(--paper-2); font-weight: 800; }
+      .fact .a { font-size: 11px; font-weight: 800; color: var(--text-link); white-space: nowrap; }
+      .fact .a.mute { color: var(--text-faint); }
+
+      /* ── 侧栏 ───────────────────────────────────────── */
+      .rail { position: sticky; top: 16px; display: grid; gap: 14px; }
+      .rail-card { border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow); padding: 15px 16px; }
+      .rail-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; color: var(--text-muted); letter-spacing: .04em; margin-bottom: 12px; }
+      .rail-title .bar { width: 16px; height: 2px; background: var(--gold); border-radius: 2px; }
+      .rail-title .tail { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
+      .stat-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+      .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; background: rgba(9, 14, 10, .82); }
+      .stat-row .k { font-size: 12px; color: var(--text-faint); font-weight: 700; }
+      .stat-row .v { font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+      .stat-row .v.rarity { color: var(--rarity); font-family: var(--font-sans); }
+      .anchors { display: grid; gap: 2px; }
+      .anchor { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 800; color: var(--text-subtle); }
+      .anchor i { width: 5px; height: 5px; border-radius: 50%; background: rgba(244,234,208,.22); }
+      .anchor .c { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+      .anchor.on { background: rgba(217, 185, 91, .12); color: #ffe8a1; box-shadow: inset 0 0 0 1px rgba(217,185,91,.22); }
+      .anchor.on i { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+      .anchor.off { color: var(--text-faint); }
+
+      .cover { display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 12px; align-items: center; }
+      .ring { position: relative; width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+        background: conic-gradient(var(--moss-2) 0 62.5%, rgba(244,234,208,.08) 62.5% 100%); }
+      .ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #0b110c; }
+      .ring b { position: relative; z-index: 1; font-family: var(--font-mono); font-size: 15px; color: var(--paper-3); font-weight: 800; }
+      .cover-list { display: grid; gap: 3px; font-size: 11px; font-weight: 700; }
+      .cover-list span { display: flex; align-items: center; gap: 6px; color: var(--text-faint); }
+      .cover-list span i { width: 5px; height: 5px; border-radius: 50%; background: rgba(244,234,208,.2); }
+      .cover-list span.ok { color: var(--text-subtle); }
+      .cover-list span.ok i { background: var(--moss-2); }
+
+      .rel-list { display: grid; gap: 6px; }
+      .rel {
+        display: flex; align-items: center; gap: 9px; padding: 6px 9px 6px 6px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--surface); transition: border-color 180ms, background 180ms;
+      }
+      .rel:hover { border-color: var(--line-strong); background: var(--surface-2); }
+      .rel img { width: 26px; height: 26px; object-fit: contain; }
+      .rel .n { font-size: 12px; font-weight: 800; color: var(--paper-2); }
+      .rel .t { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
+
+      /* 设计注记 */
+      .designnote {
+        margin: 0 0 40px; padding: 16px 20px; border-radius: 12px;
+        border: 1px dashed rgba(150, 198, 122, .34); background: rgba(125, 165, 91, .05);
+        font-size: 12px; color: var(--text-subtle); line-height: 1.8;
+      }
+      .designnote h3 { font-size: 13px; color: var(--moss-2); margin-bottom: 6px; }
+      .designnote b { color: var(--paper-2); }
+      .designnote ol { margin: 0; padding-left: 18px; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <div class="brand">
+          <div class="brand-mark">T</div>
+          <div>
+            <div class="brand-name">TerraPedia</div>
+            <div class="brand-sub">中文资料库</div>
+          </div>
+        </div>
+        <nav class="topnav">
+          <span>首页</span><span class="on">物品</span><span>NPC</span><span>Boss</span><span>文章</span>
+        </nav>
+        <div class="topbar-tail">
+          <span class="tb-btn">搜索</span>
+          <span class="tb-btn">消息</span>
+          <span class="tb-btn">我的文章</span>
+          <span class="tb-btn">资料 ▾</span>
+          <span class="tb-btn">访客</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <nav class="crumbs">
+        <b>首页</b><span class="sep">/</span><b>物品图鉴</b><span class="sep">/</span><b>武器</b><span class="sep">/</span><b>近战武器</b><span class="sep">/</span><b>剑</b><span class="sep">/</span><span class="cur">泰拉刃</span>
+      </nav>
+
+      <!-- ── HERO ────────────────────────────────────── -->
+      <section class="hero">
+        <div class="plinth">
+          <div class="plinth-frame">
+            <span class="plinth-rarity"><i></i>浅红色</span>
+            <img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/76/76d124dc8ea4f07f1e50d69dfa17163cc5788b17-terra-blade-png.png" alt="泰拉刃" />
+            <span class="plinth-zoom">30 × 30 px · 点击放大</span>
+          </div>
+          <div class="plinth-actions">
+            <span class="btn primary">收藏物品</span>
+            <span class="btn icon">↗</span>
+          </div>
+        </div>
+
+        <div class="ident">
+          <div class="eyebrow">
+            <span class="bar"></span>物品 #757<code>TerraBlade</code><span>· 资料更新 2026/07/26</span>
+          </div>
+          <div class="title-row">
+            <h1>泰拉刃</h1>
+            <span class="title-en">Terra Blade</span>
+          </div>
+          <div class="derived">
+            <span class="k">合成自</span>
+            <span class="item">真永夜刃</span><span class="plus">+</span>
+            <span class="item">真断钢剑</span><span class="plus">+</span>
+            <span class="item">断裂英雄剑</span>
+            <span class="k">· 说明文案待补，此行由合成链自动生成</span>
+          </div>
+          <div class="chips">
+            <span class="chip paper">武器 / 近战武器 / 剑</span>
+            <span class="chip moss"><i class="dot"></i>困难模式后</span>
+            <span class="chip gold">不可堆叠</span>
+            <span class="chip">被 1 个配方引用</span>
+          </div>
+          <div class="stage-rail">
+            <div class="stage-rail-label">游戏阶段</div>
+            <div class="stages">
+              <div class="stage done">前期<small>木石铜铁</small></div>
+              <div class="stage done">困难模式前<small>地狱 · 血肉墙</small></div>
+              <div class="stage on">困难模式后<small>当前条目所属阶段</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metrics-head"><span>核心数值</span><span>近战</span></div>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="k">伤害</div>
+              <div class="v">85</div>
+              <div class="hint">近战基础伤害</div>
+            </div>
+            <div class="metric">
+              <div class="k">击退</div>
+              <div class="v">7<small>/ 20</small></div>
+              <div class="meter"><i style="width: 35%"></i></div>
+            </div>
+            <div class="metric">
+              <div class="k">使用时间</div>
+              <div class="v">18</div>
+              <div class="hint">≈ 3.3 次 / 秒</div>
+            </div>
+            <div class="metric">
+              <div class="k">防御</div>
+              <div class="v">0</div>
+              <div class="hint">非防具类</div>
+            </div>
+          </div>
+          <div class="price-row">
+            <div class="price">买入<span class="coins"><i class="coin plat"></i>1</span></div>
+            <div class="price">售出<span class="coins"><i class="coin gold"></i>20</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 双栏 ─────────────────────────────────────── -->
+      <div class="layout">
+        <main class="col">
+          <!-- 合成链 -->
+          <section class="card" id="chain">
+            <div class="card-head">
+              <div>
+                <h2>合成链</h2>
+                <div class="sub">3 层深度 · 11 个中间产物 · 1 处二选一分支 · 数据源 Terraria Wiki</div>
+              </div>
+              <span class="badge">主线模块</span>
+            </div>
+
+            <div class="toolbar">
+              <div class="seg">
+                <button class="on">通用配方</button>
+                <button>电脑版 / 主机版 / 移动版</button>
+              </div>
+              <div class="seg">
+                <button class="on">图谱</button>
+                <button>清单</button>
+              </div>
+              <span class="spacer"></span>
+              <span class="note">展开深度 3 / 3</span>
+            </div>
+
+            <div class="chain">
+              <!-- L3 -->
+              <div class="band">
+                <div class="band-label">
+                  <div class="n">L3</div>
+                  <div class="t">基础材料</div>
+                  <div class="c">8 种 · 需采集</div>
+                </div>
+                <div class="band-body">
+                  <div class="nodes">
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/3e/3e377a224227870616b1193ecad33e23594b24f2-crimtane-bar-png.png" alt="" /></span><span class="node-text"><span class="node-name">猩红矿锭</span><span class="node-meta">猩红世界</span></span><span class="qty">×10</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/43/436782a3a0d58eeede0fd0f6fe95e93c9bdacb71-demonite-bar-png.png" alt="" /></span><span class="node-text"><span class="node-name">魔矿锭</span><span class="node-meta">腐化世界</span></span><span class="qty">×10</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/10/1086eb6b8dbf8b36b227d3355d2619d2940d93bb-stinger-png.png" alt="" /></span><span class="node-text"><span class="node-name">毒刺</span><span class="node-meta">丛林</span></span><span class="qty">×12</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/83/8323b5bfa4d2d71cd7ab7f7b3b0445984dfdb2f0-jungle-spores-png.png" alt="" /></span><span class="node-text"><span class="node-name">丛林孢子</span><span class="node-meta">丛林</span></span><span class="qty">×15</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/be/bec5792efb8d2d929e54d59d208cd074e3c20537-vine-png.png" alt="" /></span><span class="node-text"><span class="node-name">藤蔓</span><span class="node-meta">丛林</span></span><span class="qty">×3</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/e6/e6c27888d0c619ead1695ab09efa09c08f51d049-hellstone-bar-png.png" alt="" /></span><span class="node-text"><span class="node-name">狱石锭</span><span class="node-meta">地狱</span></span><span class="qty">×20</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/85/85c7db8fe0c6e252fd9947b9fd83e1b175a6e80b-hallowed-bar-png.png" alt="" /></span><span class="node-text"><span class="node-name">神圣锭</span><span class="node-meta">机械 Boss</span></span><span class="qty">×12</span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/82/827366805eec10ac86592f0d3756ce498d41506c-chlorophyte-ore-png.png" alt="" /></span><span class="node-text"><span class="node-name">叶绿矿</span><span class="node-meta">地下丛林</span></span><span class="qty">×120</span></span>
+                  </div>
+                  <div class="stations">
+                    <span class="k">制作站</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/db/dbe1d0807b84bf7abaaf203856633ec13a5465da-iron-anvil-png.png" alt="" />铁砧</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/c2/c24d81aa5dbc3d71e38e8152033d7c68bfc85e5d-lead-anvil-png.png" alt="" />铅砧<span class="alt">· 可替代</span></span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/a0/a0e0cf8dec18d81680375fbf402f176f25244d3f-adamantite-forge-png.png" alt="" />精金熔炉</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/6f/6f9f3058111b08b958fc8d1f32c1a1796d9b2f82-titanium-forge-png.png" alt="" />钛金熔炉<span class="alt">· 可替代</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="band-flow"><span>合成</span></div>
+
+              <!-- L2 -->
+              <div class="band">
+                <div class="band-label">
+                  <div class="n">L2</div>
+                  <div class="t">中间产物</div>
+                  <div class="c">5 种 · 含分支</div>
+                </div>
+                <div class="band-body">
+                  <div class="nodes">
+                    <span class="fork">
+                      <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/e1/e140d7fa07ee6909ab6dd6a3ed7479691d4dfe94-blood-butcherer-png.png" alt="" /></span><span class="node-text"><span class="node-name">血腥屠刀</span><span class="node-meta">猩红矿锭 ×10</span></span></span>
+                      <span class="fork-or">二选一</span>
+                      <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/c1/c17695f90986aa798b46e74228acc7365f0e49ba-light-s-bane-png.png" alt="" /></span><span class="node-text"><span class="node-name">魔光剑</span><span class="node-meta">魔矿锭 ×10</span></span></span>
+                      <span class="fork-tip">按世界邪恶类型</span>
+                    </span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/99/997e991ca2640bfb102c98708d31bd67bd12b813-blade-of-grass-png.png" alt="" /></span><span class="node-text"><span class="node-name">草剑</span><span class="node-meta">毒刺 / 孢子 / 藤蔓</span></span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/d0/d0725ffce6966df3457c3033d3a324da7c2639e1-volcano-png.png" alt="" /></span><span class="node-text"><span class="node-name">火山</span><span class="node-meta">狱石锭 ×20</span></span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f2/f2f445eb484b1f835ad4195d675b4416a60e4f47-excalibur-png.png" alt="" /></span><span class="node-text"><span class="node-name">断钢剑</span><span class="node-meta">神圣锭 ×12</span></span></span>
+                    <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1f/1f794856632125a9d09fbb4018769152cf9af17d-chlorophyte-bar-png.png" alt="" /></span><span class="node-text"><span class="node-name">叶绿锭</span><span class="node-meta">叶绿矿熔炼</span></span><span class="qty">×24</span></span>
+                  </div>
+                  <div class="stations">
+                    <span class="k">制作站</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/6b/6bfefdcc05d8d10bd3b081034a8da80fed581332-demon-altar-png.png" alt="" />恶魔祭坛</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/de/de1ae3cfc83206fdb50901c2a2ee6b8ee8e0f00c-crimson-altar-png.png" alt="" />猩红祭坛<span class="alt">· 可替代</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="band-flow"><span>合成</span></div>
+
+              <!-- L1 -->
+              <div class="band">
+                <div class="band-label">
+                  <div class="n">L1</div>
+                  <div class="t">核心部件</div>
+                  <div class="c">3 件 · 直接材料</div>
+                </div>
+                <div class="band-body">
+                  <div class="nodes">
+                    <span class="node key"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0f/0f8d41e3ce217c441243d2216a7f22c47ec81d7b-true-night-s-edge-png.png" alt="" /></span><span class="node-text"><span class="node-name">真永夜刃</span><span class="node-meta">永夜刃 + 恐惧 / 力量 / 视域之魂 ×20</span></span><span class="qty">×1</span></span>
+                    <span class="node key"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/45/4552e26db8319c00ae093454c329139994407e8c-true-excalibur-png.png" alt="" /></span><span class="node-text"><span class="node-name">真断钢剑</span><span class="node-meta">断钢剑 + 叶绿锭 ×24</span></span><span class="qty">×1</span></span>
+                    <span class="node key"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/77/77284ad19567e7b4b4101d9d3fe4216d7c88ed34-broken-hero-sword-png.png" alt="" /></span><span class="node-text"><span class="node-name">断裂英雄剑</span><span class="node-meta">日耀 / 月魔 掉落 · 不可合成</span></span><span class="qty">×1</span></span>
+                  </div>
+                  <div class="stations">
+                    <span class="k">魂材</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/b4/b4a25d41f0f50065fe9b11f2564a187938d07d04-soul-of-fright-gif.gif" alt="" />恐惧之魂 ×20</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/11/115deb07a74c7b7414fdf4630cde0a2805d11548-soul-of-might-gif.gif" alt="" />力量之魂 ×20</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/fc/fc5f8cfd26d125c8a920a372d654e7507c70a1dc-soul-of-sight-gif.gif" alt="" />视域之魂 ×20</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="band-flow"><span>秘银砧 / 山铜砧</span></div>
+
+              <!-- 成品 -->
+              <div class="band">
+                <div class="band-label">
+                  <div class="n">OUT</div>
+                  <div class="t">成品</div>
+                  <div class="c">当前条目</div>
+                </div>
+                <div class="band-body result">
+                  <div class="nodes">
+                    <span class="node result"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/76/76d124dc8ea4f07f1e50d69dfa17163cc5788b17-terra-blade-png.png" alt="" /></span><span class="node-text"><span class="node-name">泰拉刃</span><span class="node-meta">伤害 85 · 浅红色 · 困难模式后</span></span><span class="qty">×1</span></span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/b6/b64582e91c3d2120f8099e5e0176ad1a045b5c85-mythril-anvil-png.png" alt="" />秘银砧</span>
+                    <span class="station"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/43/43f41792f435e1f5571903e51087f18dcedc71d0-orichalcum-anvil-png.png" alt="" />山铜砧<span class="alt">· 可替代</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 采集清单 -->
+            <div class="tally">
+              <div class="tally-head">
+                <div>
+                  <h3>采集清单</h3>
+                  <div class="sub">按配方原始数量摊平，未做跨层数量换算</div>
+                </div>
+                <span class="badge moss">11 项 · 可勾选</span>
+              </div>
+              <div class="tally-grid">
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/3e/3e377a224227870616b1193ecad33e23594b24f2-crimtane-bar-png.png" alt="" /><span class="n">猩红矿锭</span><span class="q">×10</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/dd/dd77b4bdef498690b91a7888508fca8bd6e6e44d-muramasa-png.png" alt="" /><span class="n">村正</span><span class="q">×1</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/10/1086eb6b8dbf8b36b227d3355d2619d2940d93bb-stinger-png.png" alt="" /><span class="n">毒刺</span><span class="q">×12</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/83/8323b5bfa4d2d71cd7ab7f7b3b0445984dfdb2f0-jungle-spores-png.png" alt="" /><span class="n">丛林孢子</span><span class="q">×15</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/be/bec5792efb8d2d929e54d59d208cd074e3c20537-vine-png.png" alt="" /><span class="n">藤蔓</span><span class="q">×3</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/e6/e6c27888d0c619ead1695ab09efa09c08f51d049-hellstone-bar-png.png" alt="" /><span class="n">狱石锭</span><span class="q">×20</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/b4/b4a25d41f0f50065fe9b11f2564a187938d07d04-soul-of-fright-gif.gif" alt="" /><span class="n">恐惧之魂</span><span class="q">×20</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/11/115deb07a74c7b7414fdf4630cde0a2805d11548-soul-of-might-gif.gif" alt="" /><span class="n">力量之魂</span><span class="q">×20</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/fc/fc5f8cfd26d125c8a920a372d654e7507c70a1dc-soul-of-sight-gif.gif" alt="" /><span class="n">视域之魂</span><span class="q">×20</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/85/85c7db8fe0c6e252fd9947b9fd83e1b175a6e80b-hallowed-bar-png.png" alt="" /><span class="n">神圣锭</span><span class="q">×12</span></span>
+                <span class="tally-row"><i class="box"></i><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/77/77284ad19567e7b4b4101d9d3fe4216d7c88ed34-broken-hero-sword-png.png" alt="" /><span class="n">断裂英雄剑</span><span class="q">×1</span></span>
+              </div>
+              <div class="tally-note">※ 复制为文本 / 导出到合成计算器 · 勾选状态存本地</div>
+            </div>
+          </section>
+
+          <!-- 用途 -->
+          <section class="card" id="usage">
+            <div class="card-head">
+              <div>
+                <h2>可用于制作</h2>
+                <div class="sub">1 个产物使用此物品 · 泰拉刃是天顶剑的必需前置</div>
+              </div>
+              <span class="badge moss">1 条</span>
+            </div>
+            <div class="flowline">
+              <span class="node"><span class="node-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/76/76d124dc8ea4f07f1e50d69dfa17163cc5788b17-terra-blade-png.png" alt="" /></span><span class="node-text"><span class="node-name">泰拉刃</span><span class="node-meta">当前条目</span></span></span>
+              <span class="flow-arrow"><span class="l"></span><span>秘银砧</span></span>
+              <span class="usage-end">
+                <img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/e7/e75f11de5704005707de0531c069425fc5c95774-zenith-png.png" alt="天顶剑" />
+                <span>
+                  <span class="t">天顶剑</span>
+                  <span class="m">Zenith · 近战终点武器 · 另需 9 把前置剑</span>
+                </span>
+              </span>
+            </div>
+          </section>
+
+          <!-- 事实条：原本的空卡全部压成一行 -->
+          <section class="card" id="facts">
+            <div class="card-head">
+              <div>
+                <h2>其他资料</h2>
+                <div class="sub">无数据的模块不再占整卡，状态与去向一行说清</div>
+              </div>
+              <span class="badge">4 项</span>
+            </div>
+            <div class="facts">
+              <div class="fact ok">
+                <span class="k"><i></i>来源</span>
+                <span class="v">该物品<b>仅可合成获得</b>，没有掉落、购买、宝箱或探索记录</span>
+                <span class="a">查看合成链 →</span>
+              </div>
+              <div class="fact">
+                <span class="k"><i></i>状态效果</span>
+                <span class="v">暂无关联增益或减益</span>
+                <span class="a mute">资料待补</span>
+              </div>
+              <div class="fact">
+                <span class="k"><i></i>装备属性</span>
+                <span class="v">非防具类条目，无套装或装备加成</span>
+                <span class="a mute">不适用</span>
+              </div>
+              <div class="fact ok">
+                <span class="k"><i></i>图片</span>
+                <span class="v"><b>1 张</b>主图标 · 来源 Terraria Wiki</span>
+                <span class="a">展开画廊 →</span>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- ── 侧栏 ────────────────────────────────────── -->
+        <aside class="rail">
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>核心属性<span class="tail">物品 #757</span></div>
+            <div class="stat-list">
+              <div class="stat-row"><span class="k">伤害</span><span class="v">85</span></div>
+              <div class="stat-row"><span class="k">防御</span><span class="v">0</span></div>
+              <div class="stat-row"><span class="k">击退</span><span class="v">7</span></div>
+              <div class="stat-row"><span class="k">使用时间</span><span class="v">18</span></div>
+              <div class="stat-row"><span class="k">尺寸</span><span class="v">30 × 30</span></div>
+              <div class="stat-row"><span class="k">最大堆叠</span><span class="v">1</span></div>
+              <div class="stat-row"><span class="k">买入</span><span class="v"><span class="coins"><i class="coin plat"></i>1</span></span></div>
+              <div class="stat-row"><span class="k">售出</span><span class="v"><span class="coins"><i class="coin gold"></i>20</span></span></div>
+              <div class="stat-row"><span class="k">稀有度</span><span class="v rarity">浅红色</span></div>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>页面锚点</div>
+            <div class="anchors">
+              <span class="anchor on"><i></i>合成链<span class="c">3 层</span></span>
+              <span class="anchor"><i></i>可用于制作<span class="c">1</span></span>
+              <span class="anchor"><i></i>其他资料<span class="c">4</span></span>
+              <span class="anchor off"><i></i>状态效果<span class="c">—</span></span>
+              <span class="anchor off"><i></i>装备属性<span class="c">—</span></span>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>资料完整度<span class="tail">5 / 8 模块</span></div>
+            <div class="cover">
+              <div class="ring"><b>63%</b></div>
+              <div class="cover-list">
+                <span class="ok"><i></i>基础属性 · 价格 · 分类</span>
+                <span class="ok"><i></i>合成链 · 用途 · 图片</span>
+                <span><i></i>说明文案 · 游戏内提示</span>
+                <span><i></i>状态效果 · 来源记录</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rail-card">
+            <div class="rail-title"><span class="bar"></span>相关条目<span class="tail">来自合成链</span></div>
+            <div class="rel-list">
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/e7/e75f11de5704005707de0531c069425fc5c95774-zenith-png.png" alt="" /><span class="n">天顶剑</span><span class="t">下游</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0f/0f8d41e3ce217c441243d2216a7f22c47ec81d7b-true-night-s-edge-png.png" alt="" /><span class="n">真永夜刃</span><span class="t">前置</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/45/4552e26db8319c00ae093454c329139994407e8c-true-excalibur-png.png" alt="" /><span class="n">真断钢剑</span><span class="t">前置</span></span>
+              <span class="rel"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/77/77284ad19567e7b4b4101d9d3fe4216d7c88ed34-broken-hero-sword-png.png" alt="" /><span class="n">断裂英雄剑</span><span class="t">前置</span></span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="designnote">
+        <h3>设计注记 · 物品详情页 v1</h3>
+        <ol>
+          <li><b>合成链升格为主线模块</b>：原「制作此物品」只给一张摘要卡 + 跳转按钮，现在按 L3 基础材料 → L2 中间产物 → L1 核心部件 → 成品 分层平铺，制作站随层显示，猩红／腐化世界的二选一材料用显式分支表达。</li>
+          <li><b>新增采集清单</b>：把树摊平成可勾选的备料表——这是玩家真正要带走的东西。当前按配方原始数量列出，跨层数量换算（如叶绿锭 ×24 需要多少叶绿矿）留作后续。</li>
+          <li><b>空模块不再占整卡</b>：来源／状态效果／装备属性／图片压成 4 行事实条，每行说清「是什么状态 + 去哪里」，不再是 5 张「暂无 X」的全宽空卡。</li>
+          <li><b>侧栏从目录变成工具</b>：属性表全程粘住，加页面锚点、资料完整度环、来自合成链的相关条目，替代原来只写「可查看／暂无」的资料概览。</li>
+          <li><b>动效</b>（静态图看不到）：稀有度光环 5.4s 呼吸、节点 hover 上浮 1px、层间连接线渐显、锚点切换高亮位移，均在 180–280ms 区间。</li>
+          <li>色值、圆角、间距、字号全部取自 <b>hifi-preview.css / tokens.css</b> 既有令牌，稀有度色是唯一新增语义色（浅红 #ff8f8f，仅用于光环与稀有度文本）。</li>
+        </ol>
+      </div>
+    </div>
+  </body>
+</html>
