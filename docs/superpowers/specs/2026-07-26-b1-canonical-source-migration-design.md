@@ -398,14 +398,42 @@ The local projection carries relation record key, source content hash, canonical
 
 ## Consumer Cutover
 
-Introduce one backend item-group repository/service boundary. The following consumers switch to it:
+Introduce one backend item-group repository/service boundary. The complete set of consumers and producers, enumerated by scanning every non-test reference to the three paths, is:
 
-- `AdminItemGroupController`
-- `AdminRecipeGroupController`
-- `RecipeTreeServiceImpl`
-- recipe group expansion and maint-to-relation sync
-- Any Item Group source audit and domain-readiness panels
-- admin item-group pages and their delete/edit capability decisions
+| Path | Role | Cutover action |
+| --- | --- | --- |
+| `AdminItemGroupController.java` | reads all three, writes `item-group-overrides.json` | repository reads; `central_override` writes |
+| `AdminRecipeGroupController.java` | reads reference + override, writes `recipe-group-overrides.json` | repository reads; `central_override` writes |
+| `RecipeTreeServiceImpl.java` | reads all three | repository reads |
+| `scripts/data/relation/sync-maint-to-relation.mjs` | reads reference for expansion | reads canonical relation rows |
+| `scripts/data/relation/recipe-expansion-processor.mjs` | receives the reference payload | receives canonical rows |
+| `scripts/data/fetch/build-item-relations-bundle.mjs` | reads reference | reads canonical rows |
+| `scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs` | reads reference | reads canonical rows |
+| `scripts/data/audit/audit-any-item-group-sources.mjs` | audits all three | audits canonical evidence |
+| `scripts/data/audit/domain-readiness-audit.mjs` | panel input | canonical evidence |
+| `scripts/data/audit/reconcile-live-recipe-coverage.mjs` | reads reference | reads canonical rows |
+| `scripts/data/audit/b1-exemption-compliance.mjs` | path matcher | replaced by the contract registry |
+| `scripts/data/relation/relation-table-catalog.mjs:368` | **declares** `source: 'item_recipe_ingredients + data/generated/recipe-material-reference.json'` | declaration updated to the canonical source |
+| `data-query-app/pages/item-groups.vue` | admin page | backend-owned capability data |
+| `scripts/data/generate/generate-recipe-material-reference.mjs` | **producer** | emits `source_evidence` artifacts instead of writing the file |
+| `scripts/data/generate/generate-item-group-overrides.mjs` | **producer** | emits `source_evidence` artifacts instead of writing the file |
+
+Four of these were absent from an earlier draft's consumer list: the relations bundle builder, the sync pipeline, the live-coverage reconciler, and the relation table catalog. The catalog entry matters out of proportion to its size, because it is a lineage declaration: leaving it pointing at a file after cutover would make the catalog assert a source that is no longer authoritative.
+
+### A pre-existing bug the migration removes
+
+`item-group-overrides.json` currently has **two writers with incompatible shapes**:
+
+| Writer | Emits |
+| --- | --- |
+| `generate-item-group-overrides.mjs` | `generatedAt`, `sourceProvider`, `sourceFiles`, `groups`, `blockedGroups` |
+| `AdminItemGroupController.writeCentralOverrideGroups` | `schemaVersion`, `updatedAt`, `groups` |
+
+The file on disk today is in generator shape. Any admin create, update, or delete rewrites it in controller shape, which **silently discards `blockedGroups` and every file-level provenance field**. The one blocked group present today, `Recorded Music Boxes`, would disappear.
+
+This is worse than data loss, because the blocked-group list is governance evidence. The boundary document requires that a blocked consumer reference stays at tier X and that the Any Item Group audit reports it. If an admin edit deletes the array, the audit reports clean because the evidence is gone, not because the reference was resolved. A single unrelated admin edit can therefore make a governance check pass.
+
+The migration removes this by construction: blocked groups become canonical rows with `status = 'BLOCKED'`, the admin writer owns only `central_override` rows and cannot touch them, and the compatibility export renders both sections from canonical state. Bootstrap must run against the current generator-shaped file, and an acceptance test asserts that an admin edit leaves the blocked group intact.
 
 Controllers no longer read or overwrite files. Read endpoints remain available to authenticated `ADMIN` users.
 
@@ -668,7 +696,8 @@ Implementation follows test-driven development. Required evidence includes:
 8. Export round-trip equivalence: rendering canonical state to each compatibility file and re-parsing it reproduces exactly the canonical group state, including blocked groups. Determinism tests alone are insufficient because they prove stability, not fidelity.
 9. Export merge tests for `recipe-material-reference.json` proving the non-group sections are carried from the same landing revision, that a revision mismatch blocks, and that unavailable non-group evidence fails the job instead of publishing a file with truncated `supplementalRecipes`.
 10. NPC retirement evidence for this delivery: the `npcs_raw` descriptor resolves to the tracked standardized file; a missing descriptor fails loudly instead of omitting the dataset; the positive absence scan finds zero bridge-path references outside documentation and the retirement test itself; and NPC-Buff relation rows are non-empty and current. Full NPC coverage across crawler-fact landing, maint facts, and shop/loot relations belongs to the deferred chain and is not produced here.
-11. Targeted direct-consumer scans proving the four compatibility paths remain only in bootstrap migration code, exporters, explicit compatibility tests, and documentation.
+11. Targeted direct-consumer scans proving the four compatibility paths remain only in bootstrap migration code, exporters, explicit compatibility tests, and documentation. The scan enumerates every non-test reference, including the relation table catalog's lineage declaration at `relation-table-catalog.mjs:368`, and fails on any reference not on the approved list.
+11a. A blocked-group preservation test: an admin create, update, or delete must leave the `Recorded Music Boxes` blocked row intact and still reported by the group audit. This is the regression that the current two-writer file cannot pass.
 12. Contract tests proving each Owner approval is exact-bundle/one-time/non-shareable, that the capability registry contains exactly the approved operation set for the current step (21 after the group chain, 23 after the NPC chain), and that every new preview/apply pair starts disabled.
 13. Feedback-loop tests proving exported artifacts cannot become landing current rows.
 14. Shared-table regression tests proving the four existing consumers of `source_dataset_landings` still pass against the `current_slot` shape, and that every pre-existing dataset type has non-null compatibility defaults for the new required fields.
