@@ -7,19 +7,31 @@ const BRIDGE_PATH = 'data/generated/wiki-crawler-npc-bridge/standardized/npcs.st
 const SCAN_EXTENSIONS = new Set(['.mjs', '.js', '.ts', '.vue', '.java', '.sh', '.md', '.json']);
 const SKIP_DIRECTORIES = new Set(['node_modules', '.git', 'target', 'dist', '.nuxt', '.output']);
 
-// Documentation must be able to name the retired path in order to explain the retirement,
-// and this scanner plus its test necessarily contain the literal they search for.
-function isAllowedReference(relativePath) {
+// Retirement means the path is no longer a SOURCE INPUT. It does not forbid naming the path at
+// all: the bridge is still a legitimate generator output, docs must name it to explain the
+// retirement, and the retired identity has to be registered somewhere to stay auditable.
+// Every excused reference is classified and reported, so nothing is silently invisible.
+function classifyReference(relativePath, text) {
   if (relativePath.startsWith('docs/')) {
-    return true;
+    return 'documentation';
   }
-  if (relativePath.endsWith('build-npc-bridge-retirement-report.mjs')) {
-    return true;
+  if (relativePath.startsWith('reports/')) {
+    return 'historical-report';
   }
-  if (relativePath.endsWith('build-npc-bridge-retirement-report.test.mjs')) {
-    return true;
+  if (relativePath.endsWith('build-npc-bridge-retirement-report.mjs')
+    || relativePath.endsWith('build-npc-bridge-retirement-report.test.mjs')) {
+    return 'retirement-scanner';
   }
-  return false;
+  if (relativePath.endsWith('canonical-source-contract-registry.mjs')
+    || relativePath.endsWith('canonical-source-contract-registry.test.mjs')) {
+    return 'contract-registration';
+  }
+  // The crawler monitor displays the bridge as the output of the NPC coverage crawl, and the
+  // bridge writer produces it. Producing an artifact is not consuming it as a source.
+  if (text.includes('setOutputPath') || relativePath.endsWith('write-npc-bridge-data-dir.mjs')) {
+    return 'producer-output';
+  }
+  return null;
 }
 
 function* walk(root, current = root) {
@@ -47,8 +59,8 @@ export function buildNpcBridgeRetirementReport({
 } = {}) {
   const root = path.resolve(repoRoot);
   const references = [];
+  const allowedReferences = [];
   let scannedFileCount = 0;
-  let allowedReferenceCount = 0;
 
   for (const full of walk(root)) {
     scannedFileCount += 1;
@@ -58,13 +70,15 @@ export function buildNpcBridgeRetirementReport({
       if (!text.includes(BRIDGE_PATH)) {
         return;
       }
-      if (isAllowedReference(relative)) {
-        allowedReferenceCount += 1;
+      const reason = classifyReference(relative, text);
+      if (reason) {
+        allowedReferences.push({ file: relative, line: index + 1, reason });
         return;
       }
       references.push({ file: relative, line: index + 1, text: text.trim() });
     });
   }
+  const allowedReferenceCount = allowedReferences.length;
 
   const blockingReasons = [];
   if (scannedFileCount === 0) {
@@ -83,6 +97,7 @@ export function buildNpcBridgeRetirementReport({
     writesDatabase: false,
     scannedFileCount,
     allowedReferenceCount,
+    allowedReferences,
     referenceCount: references.length,
     references,
     blockingReasons,

@@ -59,6 +59,43 @@ test('documentation and explicit retirement tests are allowed references', () =>
   assert.equal(report.allowedReferenceCount, 2);
 });
 
+test('producing the bridge is allowed; consuming it as a source is not', () => {
+  const repoRoot = createRepo({
+    // Producer: the crawler monitor displays the bridge as a task output.
+    'back/src/main/java/Producer.java': `    task.setOutputPath("${BRIDGE}");\n`,
+    // Producer: the bridge writer itself.
+    'scripts/data/crawler/src/bridge/write-npc-bridge-data-dir.mjs': `const out = '${BRIDGE}';\n`,
+    // Consumer: a landing descriptor reading the path as a source.
+    'scripts/data/landing/source-dataset-locator.mjs': `path.join(repoRoot, '${BRIDGE}')\n`,
+  });
+
+  const report = buildNpcBridgeRetirementReport({ repoRoot, generatedAt: '2026-07-26T00:00:00Z' });
+
+  assert.equal(report.status, 'blocked');
+  assert.equal(report.referenceCount, 1);
+  assert.equal(report.references[0].file, 'scripts/data/landing/source-dataset-locator.mjs');
+
+  const reasons = report.allowedReferences.map((r) => r.reason).sort();
+  assert.deepEqual(reasons, ['producer-output', 'producer-output']);
+});
+
+test('every excused reference is reported with its reason, never silently dropped', () => {
+  const repoRoot = createRepo({
+    'docs/design.md': `${BRIDGE}\n`,
+    'reports/domain/old-report.json': `"input": "${BRIDGE}"\n`,
+    'scripts/data/audit/canonical-source-contract-registry.mjs': `'${BRIDGE}',\n`,
+  });
+
+  const report = buildNpcBridgeRetirementReport({ repoRoot, generatedAt: '2026-07-26T00:00:00Z' });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.allowedReferences.length, 3);
+  assert.deepEqual(
+    report.allowedReferences.map((r) => r.reason).sort(),
+    ['contract-registration', 'documentation', 'historical-report'],
+  );
+});
+
 test('report blocks when the scan finds zero scannable files, rather than passing vacuously', () => {
   const repoRoot = createRepo({});
 
