@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-26 20:28 CST by Codex
+Last updated: 2026-07-27 18:54 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -27,15 +27,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   four JSON paths as read-only compatibility outputs. A boundary review found and repaired
   NPC source, zero-check gate, feedback-loop, Owner authorization, formal-cutover,
   consumer-scope, T1-prefix, and export-lifecycle defects.
-  A subsequent measurement-based review found the spec was sized against assumed rather than
-  measured volume and repaired it: the whole Any Item Group surface is 63 groups / 387 members
-  / 2 explicit aliases, the bridge path is a gitignored artifact that was never committed and
-  was wrongly registered twice, and 62 of 63 groups have no group-level provenance. The spec
-  now drops the Owner-approval gate on admin group edits per user decision, resolves groups
-  once instead of materializing six consumer scopes, caps at measured x4, bounds the landing
-  payload to the group section, deletes the bridge compatibility exporter, and flips source
-  contracts per input instead of atomically. Four open decisions (D1 migrating mode, D2 NPC
-  disposition, D3 curated-layer landing, D4 delivery split) now block implementation planning.
+  The measured B1 review and user decisions are incorporated, and Step 0 is delivered. On
+  2026-07-27 the interrupted formal-local V55 setup was repaired: all 18 empty manually created
+  automation tables were removed, the branch backend let Flyway apply and register V55 with
+  checksum `166205513`, and a second complete startup reported schema version 55 up to date.
+  V55 now owns 18 empty tables and 18 immutable-fact triggers. The Owner/policy bootstrap module
+  exists and is dry-run by default, but no formal governance row was created or promoted; its
+  formal target, domain, policy, reason, actor, and authorization reference remain an explicit
+  System Owner decision. The approved B1 group chain is now decomposed into independently
+  verifiable phases. Phase 1A has an execution-ready plan at
+  `../superpowers/plans/2026-07-27-b1-group-landing-foundation.md`; it changes landing contracts
+  and tests only, and does not authorize V56 execution or any data mutation.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
@@ -170,10 +172,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
 - For crawler automation readiness, read
-  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`; next action is the
-  user review of `../superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md`,
-  then an implementation plan for the expired B1 canonical-migration repair. Do not run
-  another T0/T1 acceptance or activate L1 while this review gate is open.
+  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and execute
+  `../superpowers/plans/2026-07-27-b1-group-landing-foundation.md` serially. The design review
+  gate is closed, but this phase is no-database: do not execute V56, another T0/T1 acceptance,
+  crawler/import/backfill/apply, Owner/policy bootstrap, or L1/L2/T2 activation without the
+  separate authorization named by the plan.
 
 ## Current Risks
 
