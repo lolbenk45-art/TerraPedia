@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 22:54 CST by Codex
+Last updated: 2026-07-27 23:15 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -38,9 +38,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   positions with one existing skip, backend passes 78/78, admin passes 37/37
   plus typecheck, T0 passes 36 schema checks, and T1 freezes/verifies 128 tables
   before proving 35 maint groups, 34 runtime groups, exact compatibility round
-  trip, rollback/commit/restore, and zero resource leaks. Task 10 warning
-  contracts and its filesystem-only armor repair are next.
-  Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
+  trip, rollback/commit/restore, and zero resource leaks. Task 10 now fail-closes
+  empty-shell/dry-run producer evidence and repairs armor definitions to 132
+  mapped plus 19 reviewed placeholders; the read-only baseline is 36 pass / 9
+  warning / 0 blocked. Task 11 NPC fixture-level CODE_READY is next. Real NPC
+  crawler/T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 
 - Crawler automated-ingestion readiness implementation remains active.
@@ -76,7 +78,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `a11cd7b8`: it defines canonical landing identity/history, fail-closed importer rotation,
   and read-only audit/lineage consumers. The canonical group implementation now reaches
   CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57 remain parser-checked,
-  isolated-only migration artifacts and were not executed on formal databases. Task 10 is next.
+  isolated-only migration artifacts and were not executed on formal databases. Task 10
+  CODE_READY and filesystem-only work are complete; Task 11 is next.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
@@ -211,8 +214,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
 - For automated-ingestion closure, read
-  `entries/2026-07-27-crawler-automated-ingestion-closure.md` and resume Task 10.
-  Group CODE_READY/T1 is complete. Do not execute V56/V57, formal bootstrap,
+  `entries/2026-07-27-crawler-automated-ingestion-closure.md` and resume Task 11.
+  Group CODE_READY/T1 and Task 10's authorized scope are complete. Do not execute V56/V57, formal bootstrap,
   crawler/import/backfill/image-sync/apply, Owner/policy bootstrap, L1/L2/T2,
   or scheduler activation without the separate operation-level authorization
   named by the plan.

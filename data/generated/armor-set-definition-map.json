@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-31T09:32:20.575Z",
+  "generatedAt": "2026-07-27T15:17:24.181Z",
   "total": 151,
-  "mapped": 115,
-  "placeholder": 36,
+  "mapped": 132,
+  "placeholder": 19,
   "records": {
     "1": {
       "armorSetId": 1,
@@ -566,7 +566,7 @@
         1135,
         1136
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -581,6 +581,10 @@
           1135,
           1136
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set without Module:ArmorSetBonuses definition"
       }
     },
     "10": {
@@ -1926,7 +1930,7 @@
         374,
         375
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -1942,6 +1946,10 @@
           374,
           375
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set represented by Cobalt class-specific bonus definitions"
       }
     },
     "39": {
@@ -1996,7 +2004,7 @@
         379,
         380
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2012,6 +2020,10 @@
           379,
           380
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set represented by Mythril class-specific bonus definitions"
       }
     },
     "41": {
@@ -2066,7 +2078,7 @@
         403,
         404
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2082,6 +2094,10 @@
           403,
           404
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set represented by Adamantite class-specific bonus definitions"
       }
     },
     "43": {
@@ -2409,7 +2425,7 @@
         552,
         559
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2425,6 +2441,10 @@
           552,
           559
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set is a page-specific Hallowed variant subset"
       }
     },
     "52": {
@@ -2436,7 +2456,7 @@
         4900,
         4901
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2452,6 +2472,10 @@
           4900,
           4901
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set is a page-specific Ancient Hallowed variant subset"
       }
     },
     "53": {
@@ -2569,7 +2593,7 @@
         2200,
         2202
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2585,6 +2609,10 @@
           2200,
           2202
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set represented by Beetle Damage/Defense bonus definitions"
       }
     },
     "57": {
@@ -2596,7 +2624,7 @@
         1549,
         1550
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2612,6 +2640,10 @@
           1549,
           1550
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set without Module:ArmorSetBonuses definition"
       }
     },
     "58": {
@@ -2623,7 +2655,7 @@
         1505,
         2189
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -2639,6 +2671,10 @@
           1505,
           2189
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "wiki display set represented by Spectre Healing/Damage bonus definitions"
       }
     },
     "59": {
@@ -3500,7 +3536,7 @@
       "itemIds": [
         205
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3514,6 +3550,10 @@
         "uniqueItemIds": [
           205
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "79": {
@@ -3523,7 +3563,7 @@
       "itemIds": [
         37
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3537,6 +3577,10 @@
         "uniqueItemIds": [
           37
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "80": {
@@ -3546,7 +3590,7 @@
       "itemIds": [
         867
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3560,6 +3604,10 @@
         "uniqueItemIds": [
           867
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "81": {
@@ -3569,7 +3617,7 @@
       "itemIds": [
         268
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3583,6 +3631,10 @@
         "uniqueItemIds": [
           268
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "82": {
@@ -3592,7 +3644,7 @@
       "itemIds": [
         3109
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3606,6 +3658,10 @@
         "uniqueItemIds": [
           3109
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "83": {
@@ -3615,7 +3671,7 @@
       "itemIds": [
         879
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3629,6 +3685,10 @@
         "uniqueItemIds": [
           879
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "84": {
@@ -3683,7 +3743,7 @@
       "itemIds": [
         5068
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3697,6 +3757,10 @@
         "uniqueItemIds": [
           5068
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "86": {
@@ -3706,7 +3770,7 @@
       "itemIds": [
         2277
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3720,6 +3784,10 @@
         "uniqueItemIds": [
           2277
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "87": {
@@ -3729,7 +3797,7 @@
       "itemIds": [
         3770
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3743,6 +3811,10 @@
         "uniqueItemIds": [
           3770
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "88": {
@@ -3752,7 +3824,7 @@
       "itemIds": [
         5001
       ],
-      "status": "placeholder",
+      "status": "expected_placeholder",
       "candidates": [],
       "definition": {
         "textKey": null,
@@ -3766,6 +3838,10 @@
         "uniqueItemIds": [
           5001
         ]
+      },
+      "review": {
+        "status": "accepted_expected_placeholder",
+        "reason": "nonstandard single-piece equipped display"
       }
     },
     "89": {
@@ -4275,15 +4351,15 @@
         2199,
         2200
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.BeetleDamage",
+        "textKey": "ArmorSetBonus.BeetleDamage",
+        "textZh": null,
         "textEn": "ArmorSetBonus.BeetleDamage",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDamage",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.BeetleDamage",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -4302,15 +4378,15 @@
         2199,
         2201
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.BeetleDefense",
+        "textKey": "ArmorSetBonus.BeetleDefense",
+        "textZh": null,
         "textEn": "ArmorSetBonus.BeetleDefense",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDefense",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.BeetleDefense",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -4336,21 +4412,21 @@
         2279,
         4256
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.Wizard",
+        "textKey": "ArmorSetBonus.Wizard",
+        "textZh": null,
         "textEn": "ArmorSetBonus.Wizard",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wizard",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
-        "setCount": 1,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wizard",
+        "primaryPart": "Head",
+        "setCount": 8,
         "uniqueItemIds": [
-          0,
           238,
           1282,
+          0,
           1283,
           1284,
           1285,
@@ -4377,26 +4453,26 @@
         2279,
         4256
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.MagicHat",
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
         "textEn": "ArmorSetBonus.MagicHat",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
-        "setCount": 1,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
         "uniqueItemIds": [
-          0,
+          2275,
           1282,
+          0,
           1283,
           1284,
           1285,
           1286,
           1287,
-          2275,
           2279,
           4256
         ]
@@ -4498,15 +4574,15 @@
         1503,
         1504
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.SpectreHealing",
+        "textKey": "ArmorSetBonus.SpectreHealing",
+        "textZh": null,
         "textEn": "ArmorSetBonus.SpectreHealing",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.SpectreHealing",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SpectreHealing",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -4525,21 +4601,21 @@
         1504,
         2189
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.SpectreDamage",
+        "textKey": "ArmorSetBonus.SpectreDamage",
+        "textZh": null,
         "textEn": "ArmorSetBonus.SpectreDamage",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.SpectreDamage",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SpectreDamage",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
           0,
-          1504,
-          2189
+          2189,
+          1504
         ]
       }
     },
@@ -4816,15 +4892,15 @@
         1001,
         1004
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.ChlorophyteMelee",
+        "textKey": "ArmorSetBonus.ChlorophyteMelee",
+        "textZh": null,
         "textEn": "ArmorSetBonus.ChlorophyteMelee",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -4843,21 +4919,21 @@
         1004,
         5524
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.ChlorophyteSummon",
+        "textKey": "ArmorSetBonus.ChlorophyteSummon",
+        "textZh": null,
         "textEn": "ArmorSetBonus.ChlorophyteSummon",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteSummon",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ChlorophyteSummon",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
           0,
-          1004,
-          5524
+          5524,
+          1004
         ]
       }
     },
@@ -5038,15 +5114,15 @@
         371,
         374
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.CobaltCaster",
+        "textKey": "ArmorSetBonus.CobaltCaster",
+        "textZh": null,
         "textEn": "ArmorSetBonus.CobaltCaster",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.CobaltCaster",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.CobaltCaster",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5065,15 +5141,15 @@
         372,
         374
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.CobaltMelee",
+        "textKey": "ArmorSetBonus.CobaltMelee",
+        "textZh": null,
         "textEn": "ArmorSetBonus.CobaltMelee",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.CobaltMelee",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.CobaltMelee",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5092,15 +5168,15 @@
         373,
         374
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.CobaltRanged",
+        "textKey": "ArmorSetBonus.CobaltRanged",
+        "textZh": null,
         "textEn": "ArmorSetBonus.CobaltRanged",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.CobaltRanged",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.CobaltRanged",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5119,15 +5195,15 @@
         376,
         379
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.MythrilCaster",
+        "textKey": "ArmorSetBonus.MythrilCaster",
+        "textZh": null,
         "textEn": "ArmorSetBonus.MythrilCaster",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.MythrilCaster",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MythrilCaster",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5146,15 +5222,15 @@
         377,
         379
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.MythrilMelee",
+        "textKey": "ArmorSetBonus.MythrilMelee",
+        "textZh": null,
         "textEn": "ArmorSetBonus.MythrilMelee",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.MythrilMelee",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MythrilMelee",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5173,15 +5249,15 @@
         378,
         379
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.MythrilRanged",
+        "textKey": "ArmorSetBonus.MythrilRanged",
+        "textZh": null,
         "textEn": "ArmorSetBonus.MythrilRanged",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.MythrilRanged",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MythrilRanged",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5200,15 +5276,15 @@
         400,
         403
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.AdamantiteCaster",
+        "textKey": "ArmorSetBonus.AdamantiteCaster",
+        "textZh": null,
         "textEn": "ArmorSetBonus.AdamantiteCaster",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteCaster",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteCaster",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5227,15 +5303,15 @@
         401,
         403
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.AdamantiteMelee",
+        "textKey": "ArmorSetBonus.AdamantiteMelee",
+        "textZh": null,
         "textEn": "ArmorSetBonus.AdamantiteMelee",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteMelee",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteMelee",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [
@@ -5254,15 +5330,15 @@
         402,
         403
       ],
-      "status": "placeholder",
+      "status": "mapped_source_key",
       "candidates": [],
       "definition": {
-        "textKey": null,
-        "textZh": "ArmorSetBonus.AdamantiteRanged",
+        "textKey": "ArmorSetBonus.AdamantiteRanged",
+        "textZh": null,
         "textEn": "ArmorSetBonus.AdamantiteRanged",
-        "benefitExpression": null,
+        "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteRanged",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteRanged",
         "primaryPart": null,
         "setCount": 1,
         "uniqueItemIds": [

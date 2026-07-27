@@ -238,7 +238,21 @@ test('buildDomainReadinessReport applies boss source semantic gates', () => {
     ],
   });
   writeJson(repoRoot, 'reports/wiki-bosses-fetch-2026-04-21.json', { ok: true });
-  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-04-21.json', { ok: true });
+  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-04-21.json', {
+    generatedAt: '2026-04-21T00:00:00Z',
+    dryRun: false,
+    totalBosses: 2,
+    createdBossGroups: 2,
+    updatedBossGroups: 0,
+    mappedBosses: 2,
+    unmappedBosses: 0,
+    unresolvedBosses: [],
+    remainingWikiBossImages: 0,
+    remainingWikiBossMemberImages: 0,
+    bossMemberImageMissingSource: 0,
+    failedBossImages: 0,
+    failedBossMemberImages: 0,
+  });
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -637,6 +651,9 @@ test('buildDomainReadinessReport applies projectile source and image semantic ga
     },
   });
   writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-04-22.json', {
+    generatedAt: '2026-04-22T00:00:00Z',
+    apply: true,
+    sourceMapCount: 2,
     total: 2,
     totalAvailable: 2,
     imageResolved: 2,
@@ -685,6 +702,9 @@ test('buildDomainReadinessReport warns when projectile unresolved zh exceeds bas
     },
   });
   writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-04-22.json', {
+    generatedAt: '2026-04-22T00:00:00Z',
+    apply: true,
+    sourceMapCount: 1,
     total: 1,
     totalAvailable: 1,
     imageResolved: 1,
@@ -734,7 +754,11 @@ test('buildDomainReadinessReport applies armor set source and image semantic gat
         name: 'Unknown armor',
         internalCode: 'Unknown armor',
         itemIds: [999],
-        status: 'placeholder',
+        status: 'expected_placeholder',
+        review: {
+          status: 'accepted_expected_placeholder',
+          reason: 'nonstandard single-piece equipped display',
+        },
         definition: {
           textKey: null,
           textZh: 'Unknown armor',
@@ -829,7 +853,11 @@ test('buildDomainReadinessReport accepts audited armor definition placeholder ex
         name: '空桶',
         internalCode: '空桶',
         itemIds: [205],
-        status: 'placeholder',
+        status: 'expected_placeholder',
+        review: {
+          status: 'accepted_expected_placeholder',
+          reason: 'nonstandard single-piece equipped display',
+        },
         definition: {
           textKey: null,
           textZh: '空桶',
@@ -921,7 +949,11 @@ test('buildDomainReadinessReport rejects audited armor placeholder exception wit
         name: '空桶',
         internalCode: '空桶',
         itemIds: [999],
-        status: 'placeholder',
+        status: 'expected_placeholder',
+        review: {
+          status: 'accepted_expected_placeholder',
+          reason: 'nonstandard single-piece equipped display',
+        },
         definition: {
           textKey: null,
           textZh: '空桶',
@@ -1361,18 +1393,27 @@ test('buildDomainReadinessReport warns when support gate reports do not expose k
 test('buildDomainReadinessReport applies recipe support gate semantics', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-04-19.json', {
-    after: { activeResultItems: 2, resultItems: 2 },
+    generatedAt: '2026-04-19T00:00:00Z',
+    apply: true,
+    dryRun: false,
+    before: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
+    after: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
     changes: { suppressedOverlapRecipeRows: 1, gapOnlyResultItems: 3 },
   });
   writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-04-09.json', {
-    summary: { candidateCount: 2 },
+    generatedAt: '2026-04-09T00:00:00Z',
+    summary: { totalRecipeCount: 10, activeRecipeCount: 8, recipeItemCount: 4, focusProviderItemCount: 3, candidateCount: 2 },
+    topCandidates: [{ itemId: 1 }],
   });
   writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-04-09.json', {
+    generatedAt: '2026-04-09T00:00:00Z',
     sourceRecipes: 10,
     wikiZhDbRecipes: 10,
+    activeDbRecipes: 10,
     comparison: {
       missingFromWikiZhDbCount: 0,
       extraInWikiZhDbCount: 0,
+      missingFromActiveDbCount: 0,
       trulyMissingEverywhereCount: 0,
       suppressedButPresentCount: 5,
     },
@@ -1394,18 +1435,27 @@ test('buildDomainReadinessReport applies recipe support gate semantics', () => {
 test('buildDomainReadinessReport warns when recipe non-blocking metrics exceed baseline', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-04-19.json', {
-    after: { activeResultItems: 2, resultItems: 2 },
+    generatedAt: '2026-04-19T00:00:00Z',
+    apply: true,
+    dryRun: false,
+    before: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
+    after: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
     changes: { suppressedOverlapRecipeRows: 9999, gapOnlyResultItems: 3060, gapOnlyRecipeRows: 6751 },
   });
   writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-04-09.json', {
-    summary: { candidateCount: 245 },
+    generatedAt: '2026-04-09T00:00:00Z',
+    summary: { totalRecipeCount: 10, activeRecipeCount: 8, recipeItemCount: 4, focusProviderItemCount: 3, candidateCount: 245 },
+    topCandidates: [{ itemId: 1 }],
   });
   writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-04-09.json', {
+    generatedAt: '2026-04-09T00:00:00Z',
     sourceRecipes: 10,
     wikiZhDbRecipes: 10,
+    activeDbRecipes: 10,
     comparison: {
       missingFromWikiZhDbCount: 0,
       extraInWikiZhDbCount: 0,
+      missingFromActiveDbCount: 0,
       trulyMissingEverywhereCount: 0,
       suppressedButPresentCount: 2557,
     },
@@ -1450,6 +1500,8 @@ test('buildDomainReadinessReport blocks recipe support gate when source coverage
 test('buildDomainReadinessReport applies shimmer support gate semantics', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-04-22.json', {
+    generatedAt: '2026-04-22T00:00:00Z',
+    apply: true,
     counts: {
       itemTransforms: 279,
       decraftRules: 248,
@@ -1457,6 +1509,7 @@ test('buildDomainReadinessReport applies shimmer support gate semantics', () => 
       npcTransforms: 29,
       unresolvedTitles: 0,
     },
+    after: { shimmerWorldContext: { code: 'SHIMMER' }, shimmerTables: {} },
   });
 
   const report = buildDomainReadinessReport({
@@ -1564,6 +1617,243 @@ test('buildDomainReadinessReport blocks item group support gate unresolved membe
 
   assert.equal(report.status, 'blocked');
   assert.ok(report.blockingReasons.some((reason) => /unresolvedMemberReferences=2/.test(reason)));
+});
+
+test('items image readiness accepts only a completed applied image-sync report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/items.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'CopperShortsword', imageUrl: 'https://cdn.example.test/copper.png' }],
+  });
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java', 'class PublicItemRelationController {}');
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /workflow-image-sync/.test(reason)));
+
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', { apply: false, modules: {} });
+  const incomplete = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  assert.notEqual(incomplete.status, 'pass');
+
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', {
+    apply: true,
+    generatedAt: '2026-07-27T00:00:00Z',
+    scopes: ['items'],
+    modules: {
+      items: { apply: true, total: 1, candidates: 1, alreadyManaged: 0, uploaded: 1, changed: 1, missingSource: 0 },
+    },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+});
+
+test('boss source readiness accepts only a completed formal boss import report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-bosses.latest.json', {
+    overview: { bossCount: 1 },
+    records: [{
+      status: 'ok',
+      titleEn: 'King Slime',
+      pageTitleEn: 'King Slime',
+      sourceUrl: 'https://example.test/King_Slime',
+      titleZh: '史莱姆王',
+      imageUrl: 'https://example.test/king-slime.png',
+    }],
+  });
+  writeJson(repoRoot, 'reports/wiki-bosses-fetch-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /wiki-bosses-import/.test(reason)));
+
+  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-07-27.json', { dryRun: true });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    dryRun: false,
+    totalBosses: 1,
+    createdBossGroups: 1,
+    updatedBossGroups: 0,
+    mappedBosses: 1,
+    unmappedBosses: 0,
+    unresolvedBosses: [],
+    remainingWikiBossImages: 0,
+    remainingWikiBossMemberImages: 0,
+    bossMemberImageMissingSource: 0,
+    failedBossImages: 0,
+    failedBossMemberImages: 0,
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' }).status, 'pass');
+});
+
+test('boss relation readiness accepts only a completed formal boss-loot import report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'relation' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /boss-loot-import/.test(reason)));
+
+  writeJson(repoRoot, 'reports/boss-loot-import-2026-07-27.json', { dryRun: true });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'relation' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/boss-loot-import-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    dryRun: false,
+    totalBossRecords: 1,
+    totalDropRecords: 1,
+    targetedBossGroups: 1,
+    importedBosses: 1,
+    skippedBosses: 0,
+    insertedLootRows: 1,
+    updatedLootRows: 0,
+    removedLootRows: 0,
+    skippedLootRows: 0,
+    unresolvedBosses: [],
+    unresolvedItems: [],
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'relation' }).status, 'pass');
+});
+
+test('projectile readiness shares one completed applied backfill report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/projectiles.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow', imageUrl: 'https://cdn.example.test/arrow.png' }],
+  });
+  writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-07-27.json', {
+    domains: { projectiles: { localTotal: 1, maintTotal: 1, relationTotal: 1 } },
+    fieldAudit: { domains: { projectiles: { fields: { nameZh: { gap: 0 }, image: { gap: 0 } } } } },
+  });
+
+  const relationMissing = buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'relation' });
+  const imageMissing = buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'image' });
+  assert.equal(relationMissing.status, 'warning');
+  assert.equal(imageMissing.status, 'warning');
+
+  writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-07-27.json', { apply: false });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'relation' }).status, 'pass');
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'image' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: true,
+    sourceMapCount: 1,
+    total: 1,
+    totalAvailable: 1,
+    imageResolved: 1,
+    unresolvedImage: 0,
+    unresolvedZh: 0,
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'relation' }).status, 'pass');
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'image' }).status, 'pass');
+});
+
+test('recipe source readiness accepts only a producer-shaped crawler snapshot', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/recipe-material-reference.json', { records: [{ id: 1 }] });
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-import-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /wiki-zh-recipe-pages/.test(reason)));
+
+  writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {});
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {
+    entity: 'wiki_zh_recipe_pages',
+    generatedAt: '2026-07-27T00:00:00Z',
+    sourceApi: 'https://terraria.wiki.gg/zh/api.php',
+    requestedPages: ['配方'],
+    summary: { crawledPages: 1, requestedPages: 1, discoveredPages: 0, recipePages: 1, recipeTableCount: 1, recipeRowCount: 1 },
+    records: [{ pageTitle: '配方', requested: true, sourceUrl: 'https://terraria.wiki.gg/zh/wiki/配方', recipeTableCount: 1, recipeRowCount: 1, recipeTables: [{ rows: [{}] }] }],
+  });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {
+    entity: 'wiki_zh_recipe_pages',
+    generatedAt: '2026-07-27T00:00:00Z',
+    sourceApi: 'https://terraria.wiki.gg/zh/api.php',
+    requestedPages: ['配方'],
+    summary: { crawledPages: 1, requestedPages: 1, discoveredPages: 0, recipePages: 1, recipeTableCount: 1, recipeRowCount: 1 },
+    records: [{
+      pageTitle: '配方',
+      requested: true,
+      sourceUrl: 'https://terraria.wiki.gg/zh/wiki/配方',
+      recipeTableCount: 1,
+      recipeRowCount: 1,
+      recipeTables: [{
+        tableIndex: 0,
+        rowCount: 1,
+        rows: [{ rowIndex: 0, resultName: '木剑', resultQuantity: 1, ingredients: [{ ingredientIndex: 0, text: '木材', quantity: 7 }] }],
+      }],
+    }],
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+});
+
+test('recipe blocking readiness rejects empty shells and accepts all three producer report shapes', () => {
+  const repoRoot = createTempRepo();
+  for (const reportName of [
+    'recipe-provider-consolidation-2026-07-27.json',
+    'recipe-provider-suppression-2026-07-27.json',
+    'wiki-zh-recipe-source-coverage-2026-07-27.json',
+  ]) {
+    writeJson(repoRoot, `reports/${reportName}`, {});
+  }
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'blocking' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: true,
+    dryRun: false,
+    before: { recipeRows: 1, activeRecipeRows: 1, resultItems: 1, activeResultItems: 1 },
+    after: { recipeRows: 1, activeRecipeRows: 1, resultItems: 1, activeResultItems: 1 },
+    changes: { gapOnlyResultItems: 0, gapOnlyRecipeRows: 0 },
+  });
+  writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    summary: { totalRecipeCount: 1, activeRecipeCount: 1, recipeItemCount: 1, focusProviderItemCount: 1, candidateCount: 0 },
+    topCandidates: [],
+  });
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    sourceRecipes: 1,
+    wikiZhDbRecipes: 1,
+    activeDbRecipes: 1,
+    comparison: {
+      missingFromWikiZhDbCount: 0,
+      extraInWikiZhDbCount: 0,
+      missingFromActiveDbCount: 0,
+      suppressedButPresentCount: 0,
+      trulyMissingEverywhereCount: 0,
+    },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'blocking' }).status, 'pass');
+});
+
+test('shimmer blocking readiness rejects dry-run or incomplete reports and accepts applied producer output', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/AdminShimmerController.java', 'class AdminShimmerController {}');
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /wiki-shimmer-db-import/.test(reason)));
+
+  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-07-27.json', {
+    apply: false,
+    counts: { itemTransforms: 1, decraftRules: 1, entityTransforms: 1, npcTransforms: 1, unresolvedTitles: 0 },
+  });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: true,
+    counts: { itemTransforms: 1, decraftRules: 1, entityTransforms: 1, npcTransforms: 1, unresolvedTitles: 0 },
+    after: { shimmerWorldContext: { code: 'SHIMMER' }, shimmerTables: { itemTransforms: { rowCount: 1 } } },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status, 'pass');
 });
 
 test('resolveDomainReportPath matches domain acceptance report patterns', () => {

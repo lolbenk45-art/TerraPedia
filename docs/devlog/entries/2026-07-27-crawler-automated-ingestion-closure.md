@@ -141,6 +141,20 @@
   and private temporary directories to zero. Redis 16380 was temporarily
   started because it was initially stopped, then restored to stopped. See git
   for code-level diff details.
+- Task 10 reproduced the exact read-only baseline at 45 panels / 35 pass / 10
+  warning / 0 blocked / 0 written. Seven new RED contract groups proved that
+  empty-shell and dry-run image-sync, boss import, boss-loot import, projectile,
+  recipe, and shimmer artifacts could be mistaken for pass evidence. GREEN now
+  requires applied producer-shaped evidence, exact counters, non-empty source
+  identities, and recipe table/row semantics; focused validation passes 61/61.
+- Task 10's filesystem-only armor repair maps 17 previously unresolved
+  `ArmorSetBonus.*` rows through their stable source keys and records 19 exact
+  reviewed placeholders by `internalCode + itemIds + reason`, independent of
+  database IDs. The regenerated 151-row map contains 132 mapped and 19 reviewed
+  placeholder records. Armor source readiness passes, and the read-only overall
+  baseline is now 45 panels / 36 pass / 9 warning / 0 blocked / 0 written. No
+  threshold, deadline, producer report, database row, or formal operation was
+  changed. See git for code-level diff details.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -183,23 +197,27 @@
 - Completed: Task 9 proves group `CODE_READY` and `T1_VERIFIED` through exact
   schema, frozen snapshot, canonical transaction, compatibility round trip,
   restore, and zero-leak evidence. See git for code-level diff details.
-- Not completed: Tasks 10-16 and every formal authorization checkpoint.
+- Completed in Task 10: warning/producer CODE_READY contracts and the only
+  authorized filesystem repair; armor source readiness is pass.
+- Not completed: Task 10's nine operation-dependent warning panels, Tasks 11-16,
+  and every formal authorization checkpoint.
 
 ## Residual Risks
 
 - Formal completion depends on exact System Owner actor/reason/reference values that cannot be inferred.
 - Deferred NPC facts require real crawler evidence; absence remains blocking rather than falling back to the retired bridge.
 - Nine warning panels depend on real crawler/import/backfill/image evidence and
-  cannot pass before their independently authorized operations; armor definition
-  placeholders are the only current warning class eligible for filesystem-only repair.
+  cannot pass before their independently authorized operations. Empty-shell and
+  dry-run artifacts now fail closed; armor is no longer a warning.
 - V56/V57 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
 
 ## Follow-up
 
-- Coordinator: execute Task 10 warning/producer contracts and the
-  filesystem-only armor definition repair. Stop at each crawler, import,
-  backfill, image-sync, or formal-write authorization checkpoint.
+- Coordinator: execute Task 11 through fixture-level NPC `CODE_READY`, stopping
+  before the real crawler/T1 checkpoint, then generate Task 12 read-only
+  authorization requests. Task 10 Steps 5-6 remain behind their exact crawler,
+  import, backfill, image-sync, and formal-write authorizations.
 
 ## Commits
 
@@ -212,4 +230,5 @@
 - `f8769ac8` `feat(item-groups): use canonical repositories`
 - `ef4d4af4` `feat(automation): register canonical item group actions`
 - `7c5095bd` `feat(audit): gate canonical item group readiness`
-- Task 9 T1 checkpoint pending.
+- `56009156` `test(data): verify canonical item groups in T1`
+- Task 10 warning-contract and armor checkpoint pending.

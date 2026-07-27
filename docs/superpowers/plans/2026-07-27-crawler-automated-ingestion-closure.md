@@ -804,7 +804,7 @@ The warning-to-producer map is locked before execution:
 | `support.recipe/blockingGate` | missing consolidation, suppression, coverage reports | `scripts/data/pipeline/run-wiki-zh-recipe-sync-pipeline.mjs` and the three named producer/audit scripts | crawler plus formal recipe-write authorization |
 | `support.shimmer/blockingGate` | missing `reports/wiki-shimmer-db-import*.json` | `scripts/data/import/import-wiki-shimmer-to-db.mjs` | formal import authorization |
 
-- [ ] **Step 1: Reproduce exact baseline without writes**
+- [x] **Step 1: Reproduce exact baseline without writes**
 
 ```bash
 node scripts/data/workflow/domain-acceptance-generate-reports.mjs --write=false
@@ -817,7 +817,7 @@ Expected warning panels:
 - relation: `bosses`, `projectiles`;
 - blocking gate: `support.recipe`, `support.shimmer`.
 
-- [ ] **Step 2: Add exact warning/producer contract tests**
+- [x] **Step 2: Add exact warning/producer contract tests**
 
 Add fixtures in `domain-readiness-audit.test.mjs` that prove each missing or
 semantically incomplete artifact produces the warning above and each truthful
@@ -825,14 +825,14 @@ producer-shaped artifact passes. This is CODE_READY evidence only. Do not create
 an import/backfill report without its real operation, change `warning` to `pass`,
 lower thresholds, extend deadlines, or mark missing data as accepted.
 
-- [ ] **Step 3: Repair only reproduced producer defects**
+- [x] **Step 3: Repair only reproduced producer defects**
 
 For a producer whose focused test fails for code reasons, follow RED -> GREEN in
 the exact owning module and rerun its test plus `domain-readiness-audit.test.mjs`.
 Absence of a real operation artifact is an authorization checkpoint, not a code
 defect.
 
-- [ ] **Step 4: Execute the filesystem-only armor definition repair**
+- [x] **Step 4: Execute the filesystem-only armor definition repair**
 
 Resolve all 36 entries through explicit source-backed definitions or explicit
 reviewed expected-placeholder records. Run:
@@ -859,7 +859,7 @@ node scripts/data/workflow/domain-acceptance-generate-reports.mjs \
   --write=false --fail-on-blocked=true --fail-on-warning=true
 ```
 
-- [ ] **Step 7: Commit focused batches by domain**
+- [x] **Step 7: Commit focused batches by domain**
 
 Use one commit per independent domain, e.g.
 `fix(data): close projectile readiness warnings`.
