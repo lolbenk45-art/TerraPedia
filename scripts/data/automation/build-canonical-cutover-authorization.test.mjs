@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -231,13 +232,23 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes the exact seven stable IDs without fabricating unavailable evidence', () => {
+test('operation request builder exposes all 17 independent stable IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
+    'automation-biomes-l0-bootstrap',
+    'canonical-image-sync',
+    'canonical-boss-import',
+    'canonical-boss-loot-import',
+    'canonical-projectile-backfill',
+    'canonical-recipe-crawler',
+    'canonical-recipe-apply',
+    'canonical-shimmer-import',
     'canonical-schema-v56-v58',
     'canonical-item-group-bootstrap',
     'canonical-npc-crawler',
     'canonical-npc-apply',
+    'automation-biomes-l1-policy-promotion',
     'automation-biomes-first-l1',
+    'automation-biomes-second-l1',
     'automation-biomes-l2-promotion',
     'automation-biomes-scheduler-activation',
   ]);
@@ -251,6 +262,16 @@ test('operation request builder exposes the exact seven stable IDs without fabri
   for (const name of ['recipe-material-reference.json', 'recipe-group-overrides.json', 'item-group-overrides.json']) {
     fs.writeFileSync(path.join(repoRoot, 'data', 'generated', name), `{\"name\":\"${name}\"}`);
   }
+
+  const bootstrap = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'automation-biomes-l0-bootstrap',
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.ok(!bootstrap.requiredTechnicalFields.includes('policySetHash'));
+  assert.ok(!bootstrap.missingTechnicalFields.includes('policySetHash'));
+  assert.ok(bootstrap.missingTechnicalFields.includes('executionManifestHash'));
 
   const schema = buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
@@ -287,7 +308,106 @@ test('operation request builder exposes the exact seven stable IDs without fabri
     generatedAt: GENERATED_AT,
     expiresAt: EXPIRES_AT,
   });
-  assert.equal(npc.dataBundleSha256, null);
-  assert.equal(npc.dataBundleEntries, null);
-  assert.ok(npc.missingTechnicalFields.includes('dataBundleSha256'));
+  assert.match(npc.dataBundleSha256, /^sha256:/);
+  assert.deepEqual(npc.dataBundleEntries, []);
+  assert.equal(npc.executionManifestHash, null);
+  assert.ok(npc.missingTechnicalFields.includes('executionManifestHash'));
+
+  const secondL1 = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'automation-biomes-second-l1',
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.equal(secondL1.operationId, 'automation-biomes-second-l1');
+  assert.ok(secondL1.requiredTechnicalFields.includes('dataBundleSha256'));
+});
+
+test('operation-specific execution manifests are hash-bound and drift is rejected', () => {
+  const currentTechnicalInput = technicalInput({
+    executionManifest: {
+      schemaVersion: 1,
+      command: ['node', 'scripts/data/fetch/example.mjs', '--limit=10'],
+      outputPaths: ['data/generated/example.latest.json'],
+      progressPath: 'data/generated/wiki-sync-progress.latest.json',
+    },
+    requiredTechnicalFields: [
+      'serverFingerprint',
+      'schemaBundleSha256',
+      'dataBundleSha256',
+      'policySetHash',
+      'executionManifestHash',
+    ],
+  });
+  const request = buildCanonicalAuthorizationRequest(currentTechnicalInput);
+  assert.match(request.executionManifestHash, /^sha256:[a-f0-9]{64}$/);
+  assert.deepEqual(request.executionManifest.command, currentTechnicalInput.executionManifest.command);
+
+  assert.throws(() => authorizeCanonicalCutoverRequest({
+    request,
+    requestHash: request.requestHash,
+    actor: 'owner',
+    reason: 'approve exact execution manifest',
+    authorizationReference: 'decision://manifest/1',
+    decisionIdentity: 'manifest-decision-1',
+    authorizedAt: '2026-07-27T16:00:00.000Z',
+    currentTechnicalInput: {
+      ...currentTechnicalInput,
+      executionManifest: {
+        ...currentTechnicalInput.executionManifest,
+        command: ['node', 'scripts/data/fetch/example.mjs', '--limit=11'],
+      },
+    },
+  }), /execution manifest.*drift/i);
+});
+
+test('operation request builder verifies manifest code hashes against current repo bytes', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorization-code-'));
+  const codePath = 'scripts/data/fetch/example.mjs';
+  fs.mkdirSync(path.join(repoRoot, path.dirname(codePath)), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, codePath), 'export const value = 1;\n');
+  const baseManifest = {
+    schemaVersion: 1,
+    command: ['node', codePath, '--limit=1'],
+    codeBundleEntries: [{
+      path: codePath,
+      contentHash: `sha256:${'0'.repeat(64)}`,
+    }],
+    outputPaths: ['data/generated/example.latest.json'],
+    progressPaths: ['data/generated/wiki-sync-progress.latest.json'],
+  };
+
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-recipe-crawler',
+    executionManifest: baseManifest,
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /code bundle.*hash mismatch/i);
+
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-recipe-crawler',
+    executionManifest: {
+      ...baseManifest,
+      command: ['node', 'scripts/data/fetch/unbound-entrypoint.mjs', '--limit=1'],
+    },
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /command entrypoint.*code bundle/i);
+
+  const contentHash = `sha256:${createHash('sha256')
+    .update(fs.readFileSync(path.join(repoRoot, codePath)))
+    .digest('hex')}`;
+  const request = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-recipe-crawler',
+    executionManifest: {
+      ...baseManifest,
+      codeBundleEntries: [{ path: codePath, contentHash }],
+    },
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.match(request.executionManifestHash, /^sha256:/);
 });

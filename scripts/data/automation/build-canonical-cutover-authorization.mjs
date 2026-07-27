@@ -8,11 +8,21 @@ import { fileURLToPath } from 'node:url';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 
 export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
+  'automation-biomes-l0-bootstrap',
+  'canonical-image-sync',
+  'canonical-boss-import',
+  'canonical-boss-loot-import',
+  'canonical-projectile-backfill',
+  'canonical-recipe-crawler',
+  'canonical-recipe-apply',
+  'canonical-shimmer-import',
   'canonical-schema-v56-v58',
   'canonical-item-group-bootstrap',
   'canonical-npc-crawler',
   'canonical-npc-apply',
+  'automation-biomes-l1-policy-promotion',
   'automation-biomes-first-l1',
+  'automation-biomes-second-l1',
   'automation-biomes-l2-promotion',
   'automation-biomes-scheduler-activation',
 ]);
@@ -21,6 +31,22 @@ const OPERATION_ID_SET = new Set(CANONICAL_CUTOVER_OPERATION_IDS);
 const FORMAL_DATABASES = Object.freeze(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const MAX_REQUEST_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_REQUIRED_TECHNICAL_FIELDS = Object.freeze([
+  'serverFingerprint',
+  'schemaBundleSha256',
+  'dataBundleSha256',
+  'policySetHash',
+]);
+const EXECUTABLE_REQUIRED_TECHNICAL_FIELDS = Object.freeze([
+  ...DEFAULT_REQUIRED_TECHNICAL_FIELDS,
+  'executionManifestHash',
+]);
+const BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS = Object.freeze([
+  'serverFingerprint',
+  'schemaBundleSha256',
+  'dataBundleSha256',
+  'executionManifestHash',
+]);
 
 export function hashOrderedBundleBytes(entries, label = 'bundle') {
   if (!Array.isArray(entries)) throw new TypeError(`${label} entries must be an array`);
@@ -99,18 +125,7 @@ export function authorizeCanonicalCutoverRequest({
   }
 
   const current = deriveTechnicalIdentity(currentTechnicalInput ?? {});
-  for (const [field, label] of [
-    ['operationId', 'operation'],
-    ['targetDatabases', 'target databases'],
-    ['serverFingerprint', 'server fingerprint'],
-    ['schemaBundleSha256', 'schema bundle'],
-    ['dataBundleSha256', 'data bundle'],
-    ['policySetHash', 'policy set'],
-  ]) {
-    if (JSON.stringify(current[field]) !== JSON.stringify(request[field])) {
-      throw new Error(`${label} drifted after the authorization request was created`);
-    }
-  }
+  assertTechnicalIdentityMatches(request, current);
 
   const payload = {
     ...request,
@@ -121,6 +136,38 @@ export function authorizeCanonicalCutoverRequest({
     requestHash,
   };
   return Object.freeze({ ...payload, packetHash: hashJson(payload) });
+}
+
+export function verifyCanonicalAuthorizationPacketAgainstCurrent({
+  packet,
+  currentTechnicalInput,
+  now = new Date().toISOString(),
+} = {}) {
+  verifyCanonicalAuthorizationPacket(packet);
+  const verificationTime = requireTimestamp(now, 'verification time');
+  if (Date.parse(verificationTime) >= Date.parse(packet.expiresAt)) {
+    throw new Error('authorized packet is expired');
+  }
+  const current = deriveTechnicalIdentity(currentTechnicalInput ?? {});
+  assertTechnicalIdentityMatches(packet, current);
+  return true;
+}
+
+function assertTechnicalIdentityMatches(expected, current) {
+  for (const [field, label] of [
+    ['operationId', 'operation'],
+    ['targetDatabases', 'target databases'],
+    ['serverFingerprint', 'server fingerprint'],
+    ['schemaBundleSha256', 'schema bundle'],
+    ['dataBundleSha256', 'data bundle'],
+    ['policySetHash', 'policy set'],
+    ['executionManifestHash', 'execution manifest'],
+    ['requiredTechnicalFields', 'required technical fields'],
+  ]) {
+    if (JSON.stringify(current[field]) !== JSON.stringify(expected[field])) {
+      throw new Error(`${label} drifted after the authorization request was created`);
+    }
+  }
 }
 
 export function verifyCanonicalAuthorizationPacket(packet) {
@@ -150,11 +197,12 @@ export function buildCanonicalAuthorizationRequestForOperation({
   operationId,
   serverFingerprint = null,
   policyRows = [],
+  executionManifest = null,
   generatedAt = new Date().toISOString(),
   expiresAt = new Date(Date.parse(generatedAt) + 24 * 60 * 60 * 1000).toISOString(),
 } = {}) {
   return buildCanonicalAuthorizationRequest({
-    ...resolveOperationTechnicalInput({ repoRoot, operationId }),
+    ...resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest }),
     serverFingerprint,
     policyRows,
     generatedAt,
@@ -162,9 +210,12 @@ export function buildCanonicalAuthorizationRequestForOperation({
   });
 }
 
-function resolveOperationTechnicalInput({ repoRoot, operationId }) {
+export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest = null }) {
   requireOperationId(operationId);
   const root = path.resolve(repoRoot);
+  const verifiedExecutionManifest = executionManifest == null
+    ? null
+    : verifyExecutionManifestCodeBundle(root, executionManifest);
   const schemaEntries = operationId === 'canonical-schema-v56-v58'
     ? readMigrationEntries(root)
     : [];
@@ -177,8 +228,8 @@ function resolveOperationTechnicalInput({ repoRoot, operationId }) {
       'data/generated/recipe-group-overrides.json',
       'data/generated/item-group-overrides.json',
     ]);
-  } else if (operationId === 'canonical-npc-crawler') {
-    dataEntries = readNpcCrawlerEntries(root);
+  } else if (operationId === 'canonical-npc-crawler' || operationId === 'canonical-recipe-crawler') {
+    dataEntries = [];
   } else if (operationId === 'canonical-npc-apply') {
     const crawlerEntries = readNpcCrawlerEntries(root);
     dataEntries = crawlerEntries === null
@@ -192,12 +243,61 @@ function resolveOperationTechnicalInput({ repoRoot, operationId }) {
     targetDatabases: [...FORMAL_DATABASES],
     schemaEntries,
     dataEntries,
+    executionManifest: verifiedExecutionManifest,
+    requiredTechnicalFields: operationId === 'automation-biomes-l0-bootstrap'
+      ? [...BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS]
+      : [...EXECUTABLE_REQUIRED_TECHNICAL_FIELDS],
   };
+}
+
+function verifyExecutionManifestCodeBundle(repoRoot, manifest) {
+  const normalized = requireExecutionManifest(manifest);
+  if (!Number.isSafeInteger(normalized.schemaVersion) || normalized.schemaVersion < 1) {
+    throw new Error('execution manifest schemaVersion must be a positive integer');
+  }
+  if (!Array.isArray(normalized.command) || normalized.command.length < 2
+      || normalized.command.some((part) => typeof part !== 'string' || !part.trim())) {
+    throw new Error('execution manifest command must contain at least two non-empty strings');
+  }
+  if (!Array.isArray(normalized.codeBundleEntries) || normalized.codeBundleEntries.length === 0) {
+    throw new Error('execution manifest code bundle entries are required');
+  }
+  const commandEntrypoint = requireNormalizedPath(
+    normalized.command[1],
+    'execution manifest command entrypoint',
+  );
+  const declaredCodePaths = normalized.codeBundleEntries.map((entry) => (
+    requireNormalizedPath(entry?.path, 'execution manifest code bundle path')
+  ));
+  if (!declaredCodePaths.includes(commandEntrypoint)) {
+    throw new Error('execution manifest command entrypoint must be present in the code bundle');
+  }
+  const seen = new Set();
+  for (const entry of normalized.codeBundleEntries) {
+    const entryPath = requireNormalizedPath(entry?.path, 'execution manifest code bundle path');
+    if (seen.has(entryPath)) throw new Error(`execution manifest code bundle contains duplicate path: ${entryPath}`);
+    seen.add(entryPath);
+    if (!HASH_PATTERN.test(entry?.contentHash ?? '')) {
+      throw new Error(`execution manifest code bundle hash is invalid: ${entryPath}`);
+    }
+    const fullPath = path.join(repoRoot, entryPath);
+    if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+      throw new Error(`execution manifest code bundle file is missing: ${entryPath}`);
+    }
+    const actual = `sha256:${createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex')}`;
+    if (actual !== entry.contentHash) {
+      throw new Error(`execution manifest code bundle hash mismatch: ${entryPath}`);
+    }
+  }
+  return normalized;
 }
 
 function deriveTechnicalIdentity(input) {
   const operationId = requireOperationId(input.operationId);
   const targetDatabases = requireFormalDatabases(input.targetDatabases);
+  const requiredTechnicalFields = requireTechnicalFields(
+    input.requiredTechnicalFields ?? DEFAULT_REQUIRED_TECHNICAL_FIELDS,
+  );
   return {
     operationId,
     targetDatabases,
@@ -219,6 +319,13 @@ function deriveTechnicalIdentity(input) {
     policySetHash: Array.isArray(input.policyRows) && input.policyRows.length > 0
       ? computePolicySetHash(input.policyRows)
       : null,
+    executionManifestHash: input.executionManifest == null
+      ? null
+      : hashJson(requireExecutionManifest(input.executionManifest)),
+    executionManifest: input.executionManifest == null
+      ? null
+      : requireExecutionManifest(input.executionManifest),
+    requiredTechnicalFields,
   };
 }
 
@@ -255,8 +362,27 @@ function canonicalServerFingerprint(value) {
 }
 
 function missingTechnicalFields(technical) {
-  return ['serverFingerprint', 'schemaBundleSha256', 'dataBundleSha256', 'policySetHash']
+  return technical.requiredTechnicalFields
     .filter((field) => !HASH_PATTERN.test(technical[field] ?? ''));
+}
+
+function requireTechnicalFields(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error('required technical fields must be a non-empty array');
+  }
+  const allowed = new Set([...DEFAULT_REQUIRED_TECHNICAL_FIELDS, 'executionManifestHash']);
+  const fields = value.map((field) => requireText(field, 'required technical field'));
+  if (new Set(fields).size !== fields.length || fields.some((field) => !allowed.has(field))) {
+    throw new Error('required technical fields contain duplicate or unsupported values');
+  }
+  return fields;
+}
+
+function requireExecutionManifest(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('execution manifest must be an object');
+  }
+  return stableValue(value);
 }
 
 function verifyRequestEnvelope(request, requestHash) {
@@ -415,6 +541,7 @@ function main() {
   const output = requireText(args.output, 'output');
   const serverFingerprint = readOptionalJson(args['server-fingerprint']);
   const policyRows = readOptionalJson(args['policy-rows']) ?? [];
+  const executionManifest = readOptionalJson(args['execution-manifest']);
   if (mode === 'request') {
     const generatedAt = args['generated-at'] ?? new Date().toISOString();
     const request = buildCanonicalAuthorizationRequestForOperation({
@@ -422,6 +549,7 @@ function main() {
       operationId,
       serverFingerprint,
       policyRows,
+      executionManifest,
       generatedAt,
       expiresAt: args['expires-at'] ?? new Date(Date.parse(generatedAt) + 24 * 60 * 60 * 1000).toISOString(),
     });
@@ -439,7 +567,11 @@ function main() {
     requestHash: requireText(args['request-hash'], 'request hash'),
     ...owner,
     currentTechnicalInput: {
-      ...resolveOperationTechnicalInput({ repoRoot: args['repo-root'] ?? process.cwd(), operationId: request.operationId }),
+      ...resolveCanonicalOperationTechnicalInput({
+        repoRoot: args['repo-root'] ?? process.cwd(),
+        operationId: request.operationId,
+        executionManifest,
+      }),
       serverFingerprint,
       policyRows,
     },
