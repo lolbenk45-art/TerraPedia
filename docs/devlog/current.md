@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 21:31 CST by Codex
+Last updated: 2026-07-27 21:46 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -26,7 +26,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   suite passes 55/55. Task 6 now cuts backend, recipe expansion, pipeline group
   readers, and the admin page to canonical repositories. Its fresh gates pass
   backend 34/34, Node 83/83, admin 8/8, and Nuxt typecheck; V57 remains
-  unapplied. Task 7 preview/apply registration is next.
+  unapplied. Task 7 expands the exact capability catalog from 19 to 21 with
+  the disabled canonical group preview/apply pair, source-derived ownership,
+  backend child-status progress, and fail-closed admin visibility; its combined
+  Node suite passes 61/61 and backend tests pass 28/28. Task 8 readiness evidence
+  is next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 

@@ -78,6 +78,27 @@ class AdminCrawlerAutomationControllerTest {
             .andExpect(jsonPath("$.data.domains[0].disabledReasons[0].messageZh").value("自动化策略当前为禁用状态。"));
     }
 
+    @Test
+    void getOverviewReturnsUnbootstrappedCanonicalItemGroupsAsL0Disabled() throws Exception {
+        when(automationService.getOverview()).thenReturn(new CrawlerAutomationOverviewDTO(
+            "2026-07-27T22:00:00", 0, 0, 0,
+            List.of(new CrawlerAutomationOverviewDTO.DomainSummary(
+                "item_groups", "L0", "DISABLED", null, null, null, List.of(),
+                List.of(new CrawlerAutomationOverviewDTO.DisabledReason(
+                    "POLICY_NOT_BOOTSTRAPPED", "当前域尚未完成策略 bootstrap。"
+                ))
+            ))
+        ));
+
+        mockMvc.perform(get("/admin/crawler-automation/overview"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.domains[0].domainId").value("item_groups"))
+            .andExpect(jsonPath("$.data.domains[0].automationLevel").value("L0"))
+            .andExpect(jsonPath("$.data.domains[0].operationalState").value("DISABLED"))
+            .andExpect(jsonPath("$.data.domains[0].disabledReasons[0].code")
+                .value("POLICY_NOT_BOOTSTRAPPED"));
+    }
+
     // ── Runs ─────────────────────────────────────────────────────────────────
 
     @Test

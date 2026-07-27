@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-24",
-  "note": "Canonical 19-operation capability matrix. All operations default to L0 + DISABLED. No operation has L1/L2 eligibility until explicitly activated with Owner approval.",
+  "generatedAt": "2026-07-27",
+  "note": "Canonical 21-operation capability matrix. All operations default to L0 + DISABLED. No operation has L1/L2 eligibility until explicitly activated with Owner approval.",
   "operations": [
     {
       "actionId": "wiki-items-refresh",
@@ -533,6 +533,184 @@
       "rollbackMode": "scope_snapshot_latest_writer",
       "previewPairOf": null,
       "applyPairOf": "boss-loot-backfill"
+    },
+    {
+      "actionId": "item-group-canonical-preview",
+      "domain": "item_groups",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/item-groups/item-group-canonical-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/item-group-canonical-preview.child-status.json",
+        "isolatedTestPath": "scripts/data/item-groups/item-group-canonical-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.item_groups_raw_landings",
+        "maint.item_group_projection",
+        "relation.item_group_projection"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "item-group-canonical-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "item-group-canonical-apply",
+      "domain": "item_groups",
+      "mode": "apply",
+      "progressContract": {
+        "ownerScript": "scripts/data/item-groups/item-group-canonical-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/item-group-canonical-apply.child-status.json",
+        "isolatedTestPath": "scripts/data/item-groups/item-group-canonical-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "maint",
+          "table": "maint_item_groups",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_item_group_members",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_item_group_aliases",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_item_groups",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_item_group_members",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_item_group_aliases",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_groups",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_group_members",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_group_aliases",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_group_projection_state",
+          "fieldGroup": "projection_state",
+          "logicalPredicate": {
+            "kind": "serialized_singleton",
+            "mutex": "item_group_projection_state",
+            "singletonKey": 1,
+            "resolverVersion": 1
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.item_groups_raw_landings",
+        "maint.item_group_projection",
+        "relation.item_group_projection"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "item-group-canonical-preview"
     }
   ]
 }

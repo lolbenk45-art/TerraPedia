@@ -618,6 +618,8 @@ git commit -m "feat(item-groups): use canonical repositories"
 - Modify: `scripts/data/automation/capability-owned-table-contract.test.mjs`
 - Modify: `scripts/data/automation/run-automation-acceptance.mjs`
 - Modify: `scripts/data/automation/run-automation-acceptance.test.mjs`
+- Modify: `scripts/data/workflow/backend-data-refresh-plan.mjs`
+- Modify: `scripts/data/workflow/backend-data-refresh-plan.test.mjs`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationServiceImpl.java`
@@ -625,20 +627,20 @@ git commit -m "feat(item-groups): use canonical repositories"
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminCrawlerAutomationControllerTest.java`
 - Modify: `data-query-app/pages/operations/crawler-automation.contract.test.mjs`
 
-- [ ] **Step 1: Write RED 19-to-21 catalog tests**
+- [x] **Step 1: Write RED 19-to-21 catalog tests**
 
 Add exact action IDs `item-group-canonical-preview` and
 `item-group-canonical-apply`. Both start `L0 + DISABLED`; pairing is symmetric;
 apply owns only `recipe_reference`/`source_group` rows and projection state.
 
-- [ ] **Step 2: Add monitor-visible progress before work**
+- [x] **Step 2: Add monitor-visible progress before work**
 
 Use the canonical backend child-status path and payload fields `actionId`,
 `status`, `generatedAt`, `lastHeartbeatAt`, `childStatusPath`, `phase`, `message`,
 `current`, and `total`. Tests isolate `WORKTREE_ROOT`, prove initial write before
 the first long step, heartbeats, and completed/failed terminal writes.
 
-- [ ] **Step 3: Verify all catalog surfaces atomically**
+- [x] **Step 3: Verify all catalog surfaces atomically**
 
 ```bash
 node --test \
@@ -646,11 +648,12 @@ node --test \
   scripts/data/automation/capability-manifest.test.mjs \
   scripts/data/automation/capability-owned-table-contract.test.mjs \
   scripts/data/automation/run-automation-acceptance.test.mjs \
+  scripts/data/workflow/backend-data-refresh-plan.test.mjs \
   data-query-app/pages/operations/crawler-automation.contract.test.mjs
 cd back && mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerAutomationServiceImplTest,AdminCrawlerAutomationControllerTest test
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/data/item-groups/item-group-canonical-action.mjs \
@@ -660,6 +663,8 @@ git add scripts/data/item-groups/item-group-canonical-action.mjs \
   scripts/data/automation/capability-owned-table-contract.test.mjs \
   scripts/data/automation/run-automation-acceptance.mjs \
   scripts/data/automation/run-automation-acceptance.test.mjs \
+  scripts/data/workflow/backend-data-refresh-plan.mjs \
+  scripts/data/workflow/backend-data-refresh-plan.test.mjs \
   back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java \
   back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java \
   back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationServiceImpl.java \

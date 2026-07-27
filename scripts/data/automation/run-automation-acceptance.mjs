@@ -123,14 +123,14 @@ async function runT0ProvisioningStage(runKey, manifest) {
 }
 
 async function runT0GatesStage(manifest) {
-  // Contract gate: verify that the capability manifest covers exactly 19 operations
+  // Contract gate: verify that the capability manifest covers exactly 21 operations
   const capabilitiesPath = path.join(ROOT, 'scripts/data/automation/fixtures/crawler-automation-capabilities.json');
   if (!existsSync(capabilitiesPath)) {
     throw new Error('[HARD STOP] capabilities fixture is missing');
   }
   const capabilities = JSON.parse(await readFile(capabilitiesPath, 'utf8'));
-  if (capabilities.operations.length !== 19) {
-    throw new Error(`[HARD STOP] expected 19 capability rows, found ${capabilities.operations.length}`);
+  if (capabilities.operations.length !== 21) {
+    throw new Error(`[HARD STOP] expected 21 capability rows, found ${capabilities.operations.length}`);
   }
 
   // No write operation should be active (all must be L0 + DISABLED)
@@ -143,7 +143,7 @@ async function runT0GatesStage(manifest) {
     }
   }
 
-  return { capabilityRowsValidated: 19, allDisabled: true };
+  return { capabilityRowsValidated: 21, allDisabled: true };
 }
 
 async function runT2ReadOnlyShadowStage() {
@@ -155,7 +155,7 @@ async function runT2ReadOnlyShadowStage() {
     profile: 't2-readonly',
     readOnly: expectedReadOnly,
     mutationControlsDisabled: true,
-    domainsShadowed: 19
+    domainsShadowed: 21
   };
 }
 

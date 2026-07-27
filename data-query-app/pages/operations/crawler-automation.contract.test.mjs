@@ -4,6 +4,10 @@ import test from 'node:test';
 
 const pageUrl = new URL('./crawler-monitor.vue', import.meta.url);
 const componentRoot = new URL('../../components/crawler-monitor/', import.meta.url);
+const capabilityFixtureUrl = new URL(
+  '../../../scripts/data/automation/fixtures/crawler-automation-capabilities.json',
+  import.meta.url,
+);
 
 // Contract tests for the crawler-automation admin page.
 // These validate the API contract expectations used by the Vue components,
@@ -99,6 +103,21 @@ test('domain rows expose backend-owned disabled reasons', () => {
   }
   assert.equal(domain.disabledReasons[0].code, 'POLICY_DISABLED');
   assert.equal(typeof domain.disabledReasons[0].messageZh, 'string');
+});
+
+test('admin automation catalog exposes the canonical item-group pair as L0 disabled', async () => {
+  const fixture = JSON.parse(await readFile(capabilityFixtureUrl, 'utf8'));
+  const itemGroupActions = fixture.operations.filter((operation) => operation.domain === 'item_groups');
+
+  assert.equal(fixture.operations.length, 21);
+  assert.deepEqual(
+    itemGroupActions.map((operation) => operation.actionId),
+    ['item-group-canonical-preview', 'item-group-canonical-apply'],
+  );
+  for (const operation of itemGroupActions) {
+    assert.equal(operation.automationLevel, 'L0');
+    assert.equal(operation.operationalState, 'DISABLED');
+  }
 });
 
 test('run DTO declares all required fields including nested decision', () => {

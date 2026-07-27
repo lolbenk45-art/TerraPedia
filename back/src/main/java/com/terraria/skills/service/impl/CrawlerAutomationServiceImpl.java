@@ -14,8 +14,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
@@ -24,6 +26,7 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
     private final CrawlerAutomationPolicyMapper policyMapper;
     private final CrawlerAutomationApprovalMapper approvalMapper;
     private final CrawlerAutomationPolicyService policyService;
+    private final CrawlerMonitorActionRegistry actionRegistry;
     private final boolean readOnlyProfile;
 
     public CrawlerAutomationServiceImpl(
@@ -31,12 +34,14 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
         CrawlerAutomationPolicyMapper policyMapper,
         CrawlerAutomationApprovalMapper approvalMapper,
         CrawlerAutomationPolicyService policyService,
+        CrawlerMonitorActionRegistry actionRegistry,
         @Value("${terraria.crawler.automation.read-only:true}") boolean readOnlyProfile
     ) {
         this.runMapper = Objects.requireNonNull(runMapper);
         this.policyMapper = Objects.requireNonNull(policyMapper);
         this.approvalMapper = Objects.requireNonNull(approvalMapper);
         this.policyService = Objects.requireNonNull(policyService);
+        this.actionRegistry = Objects.requireNonNull(actionRegistry);
         this.readOnlyProfile = readOnlyProfile;
     }
 
@@ -46,9 +51,21 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
         List<CrawlerAutomationOverviewDTO.DomainSummary> rawDomains =
             runMapper.findActiveDomainSummaries();
         if (rawDomains == null) rawDomains = Collections.emptyList();
-        List<CrawlerAutomationOverviewDTO.DomainSummary> domains = rawDomains.stream()
-            .map(this::withDisabledReasons)
-            .toList();
+        List<CrawlerAutomationOverviewDTO.DomainSummary> domains = new ArrayList<>();
+        Set<String> bootstrappedDomains = new HashSet<>();
+        for (CrawlerAutomationOverviewDTO.DomainSummary domain : rawDomains) {
+            domains.add(withDisabledReasons(domain, false));
+            bootstrappedDomains.add(domain.domainId());
+        }
+        actionRegistry.all().stream()
+            .map(CrawlerMonitorActionDefinition::domain)
+            .distinct()
+            .filter(domainId -> !bootstrappedDomains.contains(domainId))
+            .map(domainId -> new CrawlerAutomationOverviewDTO.DomainSummary(
+                domainId, "L0", "DISABLED", null, null, null, List.of()
+            ))
+            .map(domain -> withDisabledReasons(domain, true))
+            .forEach(domains::add);
 
         long openCircuits = domains.stream()
             .filter(d -> "CIRCUIT_OPEN".equals(d.operationalState()))
@@ -116,9 +133,13 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
     }
 
     private CrawlerAutomationOverviewDTO.DomainSummary withDisabledReasons(
-        CrawlerAutomationOverviewDTO.DomainSummary domain
+        CrawlerAutomationOverviewDTO.DomainSummary domain,
+        boolean policyNotBootstrapped
     ) {
         List<CrawlerAutomationOverviewDTO.DisabledReason> reasons = new ArrayList<>();
+        if (policyNotBootstrapped) {
+            reasons.add(reason("POLICY_NOT_BOOTSTRAPPED", "当前域尚未完成策略 bootstrap。"));
+        }
         if (readOnlyProfile) {
             reasons.add(reason("T2_READ_ONLY_PROFILE", "T2 只读环境禁止自动入库变更。"));
         }

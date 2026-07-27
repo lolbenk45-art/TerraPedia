@@ -153,6 +153,8 @@ test('backend refresh plan keeps check force preview and apply commands distinct
       'npc-loot-apply',
       'boss-loot-backfill',
       'boss-loot-apply',
+      'item-group-canonical-preview',
+      'item-group-canonical-apply',
     ],
   });
   const action = (id) => plan.actions.find((entry) => entry.id === id);
@@ -170,11 +172,21 @@ test('backend refresh plan keeps check force preview and apply commands distinct
   assert.ok(action('npc-loot-apply').args.includes('--dry-run=false'));
   assert.ok(action('boss-loot-backfill').args.includes('--dry-run=true'));
   assert.ok(action('boss-loot-apply').args.includes('--dry-run=false'));
+  assert.deepEqual(action('item-group-canonical-preview').args, [
+    'scripts/data/item-groups/item-group-canonical-action.mjs',
+    '--action-id=item-group-canonical-preview',
+  ]);
+  assert.deepEqual(action('item-group-canonical-apply').args, [
+    'scripts/data/item-groups/item-group-canonical-action.mjs',
+    '--action-id=item-group-canonical-apply',
+  ]);
 
   const defaultIds = buildBackendDataRefreshPlan().actions.map((entry) => entry.id);
   assert.ok(!defaultIds.includes('wiki-items-force-refresh'));
   assert.ok(!defaultIds.includes('recipe-reference-apply'));
   assert.ok(!defaultIds.includes('npc-loot-apply'));
+  assert.ok(!defaultIds.includes('item-group-canonical-preview'));
+  assert.ok(!defaultIds.includes('item-group-canonical-apply'));
 });
 
 test('run-backend-data-refresh replaces output path placeholders before spawning actions', () => {

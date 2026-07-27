@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MAINT_TABLE_NAMES } from '../maint/maint-schema.mjs';
+import { RELATION_TABLE_CATALOG } from '../relation/relation-schema.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..', '..');
@@ -28,16 +29,8 @@ function loadLocalTableNames() {
   return names;
 }
 
-// relation-table-catalog.mjs require()s mysql2 at import time, which is unavailable offline,
-// so the catalog is read textually. The declarations are a plain literal list, so this is
-// exact rather than a heuristic.
 function loadRelationTableNames() {
-  const source = fs.readFileSync(path.join(repoRoot, 'scripts', 'data', 'relation', 'relation-table-catalog.mjs'), 'utf8');
-  const names = new Set();
-  for (const match of source.matchAll(/tableName:\s*'([a-z0-9_]+)'/g)) {
-    names.add(match[1]);
-  }
-  return names;
+  return new Set(RELATION_TABLE_CATALOG.map((entry) => entry.table));
 }
 
 function physicalTablesByRole() {
@@ -107,4 +100,27 @@ test('readDependencies are logical descriptors and are declared as such, never m
   }
 
   assert.ok(logicalCount > 0, 'expected some logical read dependencies; if all became physical, update this contract deliberately');
+});
+
+test('canonical item-group capability owns the exact maint relation and local projection tables', () => {
+  const apply = loadCapabilities().find((operation) => (
+    operation.actionId === 'item-group-canonical-apply'
+  ));
+
+  assert.ok(apply, 'item-group-canonical-apply must be registered');
+  assert.deepEqual(
+    apply.ownedTables.map(({ databaseRole, table }) => `${databaseRole}.${table}`).sort(),
+    [
+      'local.item_group_aliases',
+      'local.item_group_members',
+      'local.item_group_projection_state',
+      'local.item_groups',
+      'maint.maint_item_group_aliases',
+      'maint.maint_item_group_members',
+      'maint.maint_item_groups',
+      'relation.relation_item_group_aliases',
+      'relation.relation_item_group_members',
+      'relation.relation_item_groups',
+    ],
+  );
 });

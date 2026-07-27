@@ -21,6 +21,7 @@ const PROGRESS_OWNER_WORK_BOUNDARIES = new Map([
   ['scripts/data/fetch/fetch-wiki-bosses.mjs', 'const overview = await fetchBossSections'],
   ['scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', 'const { records, scraped, skipped } = await crawlRecords'],
   ['scripts/data/fetch/fetch-wiki-shimmer-page.mjs', 'const revision = await fetchRevision'],
+  ['scripts/data/item-groups/item-group-canonical-action.mjs', 'const result = await execute'],
 ]);
 
 async function loadCapabilities() {
@@ -28,7 +29,7 @@ async function loadCapabilities() {
   return JSON.parse(raw);
 }
 
-// Canonical 19-operation action IDs derived from CrawlerMonitorActionRegistry.defaultActions()
+// Canonical 21-operation action IDs derived from CrawlerMonitorActionRegistry.defaultActions()
 const EXPECTED_ACTION_IDS = new Set([
   'wiki-items-refresh',
   'wiki-items-force-refresh',
@@ -49,6 +50,8 @@ const EXPECTED_ACTION_IDS = new Set([
   'npc-loot-apply',
   'boss-loot-backfill',
   'boss-loot-apply',
+  'item-group-canonical-preview',
+  'item-group-canonical-apply',
 ]);
 
 // Operations that write the database must declare owned tables
@@ -60,12 +63,12 @@ test('capabilities fixture has correct schema version', async () => {
   assert.ok(Array.isArray(capabilities.operations));
 });
 
-test('capabilities fixture covers exactly the 19 registered operations', async () => {
+test('capabilities fixture covers exactly the 21 registered operations', async () => {
   const capabilities = await loadCapabilities();
   const registry = await readFile(registryUrl, 'utf8');
   const fixtureIds = new Set(capabilities.operations.map((op) => op.actionId));
 
-  assert.strictEqual(fixtureIds.size, 19, `expected 19 unique actionIds, found ${fixtureIds.size}`);
+  assert.strictEqual(fixtureIds.size, 21, `expected 21 unique actionIds, found ${fixtureIds.size}`);
 
   for (const expected of EXPECTED_ACTION_IDS) {
     assert.ok(fixtureIds.has(expected), `missing actionId: ${expected}`);
@@ -134,7 +137,7 @@ test('declared progress owners write running before work and own heartbeat plus 
     assert.match(ownerSource, /'completed'/, `${operation.actionId}: owner lacks completed terminal state`);
     assert.match(ownerSource, /'failed'/, `${operation.actionId}: owner lacks failed terminal state`);
 
-    if (contract.ownerScript.includes('/workflow/')) {
+    if (contract.canonicalPath.startsWith('reports/backend-refresh/history/')) {
       assert.match(
         registry,
         /reports\/backend-refresh\/history\/<run>\.runtime\/" \+ actionId \+ "\.child-status\.json/,
@@ -303,6 +306,40 @@ test('boss-loot and npc-loot owned tables use exclusive partitions', async () =>
   assert.strictEqual(bossPred.kind, 'partition');
   assert.notStrictEqual(npcPred.partition, bossPred.partition, 'partitions must differ');
   assert.strictEqual(npcPred.group, bossPred.group, 'partition groups must match');
+});
+
+test('canonical item-group apply owns only source-derived rows and serialized projection state', async () => {
+  const capabilities = await loadCapabilities();
+  const preview = capabilities.operations.find((op) => op.actionId === 'item-group-canonical-preview');
+  const apply = capabilities.operations.find((op) => op.actionId === 'item-group-canonical-apply');
+
+  assert.ok(preview, 'item-group-canonical-preview must be present');
+  assert.ok(apply, 'item-group-canonical-apply must be present');
+  assert.equal(preview.progressContract.ownerScript, 'scripts/data/item-groups/item-group-canonical-action.mjs');
+  assert.equal(apply.progressContract.ownerScript, preview.progressContract.ownerScript);
+  assert.deepEqual(apply.progressContract.terminalStatuses, ['completed', 'failed']);
+  assert.equal(apply.writesDatabase, true);
+  assert.equal(apply.snapshotRequired, true);
+  assert.equal(apply.rollbackMode, 'scope_snapshot_latest_writer');
+  assert.equal(apply.ownedTables.length, 10);
+  for (const owned of apply.ownedTables.filter((row) => row.table !== 'item_group_projection_state')) {
+    assert.deepEqual(owned.logicalPredicate, {
+      kind: 'partition',
+      group: 'item_group_source_layer',
+      partition: 'source_derived',
+      resolver: 'resolveItemGroupSourceLayer',
+      resolverVersion: 1,
+    });
+  }
+  assert.deepEqual(
+    apply.ownedTables.find((row) => row.table === 'item_group_projection_state')?.logicalPredicate,
+    {
+      kind: 'serialized_singleton',
+      mutex: 'item_group_projection_state',
+      singletonKey: 1,
+      resolverVersion: 1,
+    },
+  );
 });
 
 test('readDependencies are non-empty for all operations', async () => {

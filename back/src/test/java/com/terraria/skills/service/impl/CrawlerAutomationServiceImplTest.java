@@ -39,9 +39,10 @@ class CrawlerAutomationServiceImplTest {
             CrawlerAutomationPolicyMapper.class,
             CrawlerAutomationApprovalMapper.class,
             CrawlerAutomationPolicyService.class,
+            CrawlerMonitorActionRegistry.class,
             boolean.class
         );
-        Value annotation = constructor.getParameters()[4].getAnnotation(Value.class);
+        Value annotation = constructor.getParameters()[5].getAnnotation(Value.class);
 
         assertNotNull(annotation);
         assertEquals("${terraria.crawler.automation.read-only:true}", annotation.value());
@@ -54,7 +55,8 @@ class CrawlerAutomationServiceImplTest {
             domain("bosses", "L1", "ACTIVE", "AWAITING_APPROVAL")
         ));
         var service = new CrawlerAutomationServiceImpl(
-            runMapper, policyMapper, approvalMapper, policyService, false
+            runMapper, policyMapper, approvalMapper, policyService,
+            CrawlerMonitorActionRegistry.defaults(), false
         );
 
         CrawlerAutomationOverviewDTO overview = service.getOverview();
@@ -75,13 +77,35 @@ class CrawlerAutomationServiceImplTest {
             domain("items", "L1", "ACTIVE", "COMMITTED")
         ));
         var service = new CrawlerAutomationServiceImpl(
-            runMapper, policyMapper, approvalMapper, policyService, true
+            runMapper, policyMapper, approvalMapper, policyService,
+            CrawlerMonitorActionRegistry.defaults(), true
         );
 
         CrawlerAutomationOverviewDTO.DomainSummary domain = service.getOverview().domains().get(0);
 
         assertEquals(List.of("T2_READ_ONLY_PROFILE"), reasonCodes(domain));
         assertEquals("T2 只读环境禁止自动入库变更。", domain.disabledReasons().get(0).messageZh());
+    }
+
+    @Test
+    void overviewKeepsRegisteredItemGroupDomainVisibleAndDisabledBeforePolicyBootstrap() {
+        when(runMapper.findActiveDomainSummaries()).thenReturn(List.of());
+        var service = new CrawlerAutomationServiceImpl(
+            runMapper, policyMapper, approvalMapper, policyService,
+            CrawlerMonitorActionRegistry.defaults(), false
+        );
+
+        CrawlerAutomationOverviewDTO.DomainSummary itemGroups = service.getOverview().domains().stream()
+            .filter(domain -> "item_groups".equals(domain.domainId()))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals("L0", itemGroups.automationLevel());
+        assertEquals("DISABLED", itemGroups.operationalState());
+        assertEquals(
+            List.of("POLICY_NOT_BOOTSTRAPPED", "POLICY_DISABLED", "AUTOMATION_LEVEL_L0"),
+            reasonCodes(itemGroups)
+        );
     }
 
     private static CrawlerAutomationOverviewDTO.DomainSummary domain(

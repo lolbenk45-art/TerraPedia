@@ -164,6 +164,26 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'item-group-canonical-preview',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/item-groups/item-group-canonical-action.mjs',
+        '--action-id=item-group-canonical-preview'
+      ]
+    },
+    {
+      id: 'item-group-canonical-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/item-groups/item-group-canonical-action.mjs',
+        '--action-id=item-group-canonical-apply'
+      ]
+    },
+    {
       id: 'boss-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,

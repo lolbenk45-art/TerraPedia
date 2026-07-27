@@ -12,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CrawlerMonitorActionRegistryTest {
 
     @Test
-    void exposesNineteenOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
+    void exposesTwentyOneOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(19, registry.all().size());
+        assertEquals(21, registry.all().size());
         assertEquals(List.of("check", "force"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
@@ -84,7 +84,9 @@ class CrawlerMonitorActionRegistryTest {
             "npc-loot-backfill",
             "npc-loot-apply",
             "boss-loot-backfill",
-            "boss-loot-apply"
+            "boss-loot-apply",
+            "item-group-canonical-preview",
+            "item-group-canonical-apply"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::actionId).toList());
 
         CrawlerMonitorActionDefinition townNpc = registry.require(
@@ -109,10 +111,26 @@ class CrawlerMonitorActionRegistryTest {
         CrawlerMonitorActionDefinition npcLoot = registry.require("npc_loot", "npc-loot-backfill");
         assertTrue(npcLoot.backendRefresh());
         assertFalse(npcLoot.wikiDomain());
+
+        CrawlerMonitorActionDefinition itemGroupPreview = registry.require(
+            "item_groups", "item-group-canonical-preview"
+        );
+        assertTrue(itemGroupPreview.backendRefresh());
+        assertEquals("read", itemGroupPreview.databaseAccess());
+        assertEquals("preview", itemGroupPreview.operationId());
+        assertEquals("summary", itemGroupPreview.confirmationLevel());
+
+        CrawlerMonitorActionDefinition itemGroupApply = registry.require(
+            "item_groups", "item-group-canonical-apply"
+        );
+        assertTrue(itemGroupApply.backendRefresh());
+        assertEquals("write", itemGroupApply.databaseAccess());
+        assertEquals("apply", itemGroupApply.operationId());
+        assertEquals("destructive", itemGroupApply.confirmationLevel());
     }
 
     @Test
-    void allTwelveRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
+    void allThirteenRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
         String base = "reports/crawler-monitor/v2/2026-07-14/attempt-test/";
         String progressPath = base + "progress.json";
@@ -129,7 +147,8 @@ class CrawlerMonitorActionRegistryTest {
             "town_npc_maintenance",
             "shimmer",
             "npc_loot",
-            "boss_loot"
+            "boss_loot",
+            "item_groups"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::domain).distinct().toList());
 
         for (CrawlerMonitorActionDefinition action : registry.all()) {

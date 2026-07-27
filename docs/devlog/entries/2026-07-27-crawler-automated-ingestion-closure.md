@@ -95,6 +95,16 @@
   uses Node-compatible record keys and local snapshot hashes. V57 now includes
   the immutable append-only audit table but remains unapplied. See git for
   code-level diff details.
+- Task 7 RED reproduced the missing action module, 19-row catalog, absent
+  backend refresh steps, and missing pre-bootstrap admin visibility. GREEN
+  passes the combined Node catalog/progress/backend-plan/admin suite 61/61 and
+  backend registry/service/controller tests 28/28. The exact catalog is now 21
+  operations; both canonical group operations remain `L0 + DISABLED`, and the
+  apply scope contains only source-derived group rows plus the serialized
+  projection-state singleton. The action writes running state before work,
+  heartbeats, and completed/failed terminal state. A plan repair added the two
+  backend refresh plan files required to make registered commands resolvable.
+  No capability, schema, or data operation was executed.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -126,7 +136,11 @@
   the admin page to canonical repositories with fail-closed read/write state,
   authenticated audit identity, bounded synchronous writes, and cross-language
   snapshot identity. See git for code-level diff details.
-- Not completed: Tasks 7-16 and every formal authorization checkpoint.
+- Completed: Task 7 registers the canonical group preview/apply pair across the
+  21-operation fixture, backend registry, backend refresh plan, acceptance
+  runner, and admin visibility with monitor-owned progress. See git for
+  code-level diff details.
+- Not completed: Tasks 8-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -138,8 +152,8 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 7 canonical group preview/apply registration with
-  RED -> GREEN; do not apply V56/V57 or bootstrap data to formal databases.
+- Coordinator: execute Task 8 canonical readiness evidence with RED -> GREEN;
+  do not apply V56/V57 or bootstrap data to formal databases.
 
 ## Commits
 
@@ -149,4 +163,5 @@
 - `988b1bbf` `feat(data): reconcile item group bootstrap`
 - `c8d4fc31` `feat(data): project canonical item groups`
 - `bf96cca6` `feat(data): export canonical item group compatibility`
-- Task 6 canonical-repository checkpoint pending.
+- `f8769ac8` `feat(item-groups): use canonical repositories`
+- Task 7 canonical-action checkpoint pending.

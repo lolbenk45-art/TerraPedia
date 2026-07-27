@@ -335,6 +335,22 @@ public class CrawlerMonitorActionRegistry {
                 "通过既有 import lane 正式写入 Boss 掉落。",
                 "写入导入结果和审计报告", "write", null, false,
                 "destructive", false, false, false
+            ),
+            backend(
+                "item_groups", "预览规范物品组入库", "canonical.item_groups",
+                "规范物品组 landing、maint、relation 和 local projection",
+                "item-group-canonical-preview", "preview", "data_process", "preview",
+                "校验并冻结来源派生物品组差异，不写入数据库。",
+                "写入规范物品组预览和进度证据", "read", null, false,
+                "summary", true, false, false
+            ),
+            backend(
+                "item_groups", "正式写入规范物品组", "canonical.item_groups",
+                "规范物品组 landing、maint、relation 和 local projection",
+                "item-group-canonical-apply", "apply", "data_process", "apply",
+                "通过受治理执行器写入来源派生物品组及 projection state。",
+                "写入规范物品组、快照、审计和进度证据", "write", null, false,
+                "destructive", false, false, false
             )
         );
     }
