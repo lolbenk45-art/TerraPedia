@@ -8,9 +8,18 @@ import {
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './canonical-operation-catalog.mjs';
 
+const AUTHORIZED_CONTEXT_CODE_PATHS = Object.freeze([
+  'scripts/data/automation/authorized-operation-context.mjs',
+  'scripts/data/automation/build-canonical-cutover-authorization.mjs',
+  'scripts/data/automation/canonical-operation-catalog.mjs',
+  'scripts/data/automation/canonical-operation-execution-manifest.mjs',
+  'scripts/data/automation/policy-set-hash.mjs',
+]);
+
 const CODE_PATHS = Object.freeze({
   'automation-biomes-l0-bootstrap': Object.freeze([
     'scripts/data/automation/bootstrap-automation-policy.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'scripts/data/lib/mysql-module.mjs',
     'scripts/data/lib/project-root.mjs',
   ]),
@@ -79,6 +88,57 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/crawler/src/domains/npc-domain.mjs',
     'scripts/data/workflow/backend-refresh-runtime-state.mjs',
   ]),
+  'canonical-schema-v56-v58': Object.freeze([
+    'scripts/data/automation/run-canonical-schema-migration.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/maint/maint-schema.mjs',
+    'scripts/data/relation/relation-schema.mjs',
+    'back/src/main/java/com/terraria/skills/tooling/CanonicalFlywayMigrationCli.java',
+    'back/pom.xml',
+  ]),
+  'automation-biomes-l1-policy-promotion': Object.freeze([
+    'scripts/data/automation/run-automation-policy-decision.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/lib/mysql-module.mjs',
+  ]),
+  'automation-biomes-l2-promotion': Object.freeze([
+    'scripts/data/automation/run-automation-policy-decision.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/lib/mysql-module.mjs',
+  ]),
+  'automation-biomes-scheduler-activation': Object.freeze([
+    'scripts/data/automation/run-automation-policy-decision.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/lib/mysql-module.mjs',
+  ]),
+  'canonical-item-group-bootstrap': Object.freeze([
+    'scripts/data/item-groups/item-group-canonical-action.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/item-groups/item-group-live-acceptance.mjs',
+    'scripts/data/item-groups/item-group-bootstrap.mjs',
+    'scripts/data/item-groups/item-group-canonical-sync.mjs',
+    'scripts/data/item-groups/export-item-group-compatibility.mjs',
+    'scripts/data/workflow/backend-refresh-runtime-state.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+  ]),
+  'automation-biomes-first-l1': Object.freeze([
+    'scripts/data/automation/run-biomes-automation-operation.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/import/import-biomes-to-db.mjs',
+    'scripts/data/lib/base-domain-row-reconcile.mjs',
+    'scripts/data/lib/load-standardized-dataset.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/data/lib/project-root.mjs',
+  ]),
+  'automation-biomes-second-l1': Object.freeze([
+    'scripts/data/automation/run-biomes-automation-operation.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/import/import-biomes-to-db.mjs',
+    'scripts/data/lib/base-domain-row-reconcile.mjs',
+    'scripts/data/lib/load-standardized-dataset.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/data/lib/project-root.mjs',
+  ]),
 });
 
 export const CANONICAL_EXECUTABLE_OPERATION_IDS = Object.freeze(
@@ -95,7 +155,7 @@ export function buildCanonicalOperationExecutionManifest({
 } = {}) {
   const contract = buildCanonicalOperationExecutionContract({ operationId, artifactDate, npcLimit });
   const root = path.resolve(repoRoot);
-  const codeBundleEntries = CODE_PATHS[operationId].map((relativePath) => {
+  const codeBundleEntries = expandRepositoryCodePaths(root, CODE_PATHS[operationId]).map((relativePath) => {
     const fullPath = path.join(root, relativePath);
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
       throw new Error(`operation code file is missing: ${relativePath}`);
@@ -134,7 +194,11 @@ export function buildCanonicalOperationExecutionContract({
   };
 }
 
-export function assertCanonicalOperationExecutionManifestContract({ operationId, manifest } = {}) {
+export function assertCanonicalOperationExecutionManifestContract({
+  repoRoot = process.cwd(),
+  operationId,
+  manifest,
+} = {}) {
   const npcLimit = operationId === 'canonical-npc-crawler'
     ? Number(manifest?.bounds?.targetLimit)
     : 25;
@@ -150,10 +214,53 @@ export function assertCanonicalOperationExecutionManifestContract({ operationId,
   const actualCodePaths = Array.isArray(codeBundleEntries)
     ? codeBundleEntries.map((entry) => entry?.path)
     : [];
-  if (JSON.stringify(actualCodePaths) !== JSON.stringify(CODE_PATHS[operationId])) {
+  const expectedCodePaths = expandRepositoryCodePaths(path.resolve(repoRoot), CODE_PATHS[operationId]);
+  if (JSON.stringify(actualCodePaths) !== JSON.stringify(expectedCodePaths)) {
     throw new Error(`execution manifest contract drifted for operation code bundle: ${operationId}`);
   }
   return true;
+}
+
+function expandRepositoryCodePaths(repoRoot, seedPaths) {
+  const paths = [];
+  const seen = new Set();
+  const queue = [...seedPaths];
+  while (queue.length > 0) {
+    const relativePath = queue.shift();
+    if (seen.has(relativePath)) continue;
+    const fullPath = path.join(repoRoot, relativePath);
+    if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+      throw new Error(`operation code file is missing: ${relativePath}`);
+    }
+    seen.add(relativePath);
+    paths.push(relativePath);
+    if (!relativePath.endsWith('.mjs')) continue;
+    const source = fs.readFileSync(fullPath, 'utf8');
+    for (const specifier of staticRelativeImports(source)) {
+      let importedPath = path.posix.normalize(path.posix.join(
+        path.posix.dirname(relativePath),
+        specifier,
+      ));
+      if (!path.posix.extname(importedPath)) importedPath += '.mjs';
+      const importedFullPath = path.join(repoRoot, importedPath);
+      if (fs.existsSync(importedFullPath) && fs.statSync(importedFullPath).isFile()
+          && !seen.has(importedPath)) {
+        queue.push(importedPath);
+      }
+    }
+  }
+  return paths;
+}
+
+function staticRelativeImports(source) {
+  const imports = [];
+  for (const pattern of [
+    /(?:import\s+(?:[^'\"]*?\s+from\s+)?|export\s+[^'\"]*?\s+from\s+)['\"](\.[^'\"]+)['\"]/g,
+    /import\s*\(\s*['\"](\.[^'\"]+)['\"]\s*\)/g,
+  ]) {
+    for (const match of source.matchAll(pattern)) imports.push(match[1]);
+  }
+  return imports;
 }
 
 export function writeCanonicalOperationExecutionManifest({ outputPath, ...options } = {}) {
@@ -337,8 +444,95 @@ function buildDefinition(operationId, artifactDate, npcLimit) {
       databaseWrites: false,
       networkAccess: true,
     },
+    'canonical-schema-v56-v58': {
+      executionClass: 'formal_schema_migration',
+      command: [
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--output=reports/authorization/canonical/canonical-schema-v56-v58.result.json',
+        '--apply=true',
+      ],
+      inputPaths: [
+        'back/src/main/resources/db/migration/V56__extend_source_dataset_landings_for_canonical_inputs.sql',
+        'back/src/main/resources/db/migration/V57__create_canonical_item_group_runtime_tables.sql',
+        'back/src/main/resources/db/migration/V58__create_crawler_automation_activation_decisions.sql',
+      ],
+      outputPaths: ['reports/authorization/canonical/canonical-schema-v56-v58.result.json'],
+      reportPaths: [],
+      progressPaths: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    'canonical-item-group-bootstrap': {
+      executionClass: 'formal_database_bootstrap',
+      command: [
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--action-id=item-group-canonical-apply',
+        '--input=reports/authorization/canonical/canonical-item-group-bootstrap.input.json',
+        '--output=reports/authorization/canonical/canonical-item-group-bootstrap.result.json',
+        '--progress-path=reports/backend-refresh/history/canonical-item-group-bootstrap.runtime/child-status.json',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-item-group-bootstrap.input.json',
+        'data/generated/recipe-material-reference.json',
+        'data/generated/recipe-group-overrides.json',
+        'data/generated/item-group-overrides.json',
+        'data/standardized/items.standardized.json',
+      ],
+      outputPaths: ['reports/authorization/canonical/canonical-item-group-bootstrap.result.json'],
+      reportPaths: [],
+      progressPaths: ['reports/backend-refresh/history/canonical-item-group-bootstrap.runtime/child-status.json'],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    'automation-biomes-l1-policy-promotion': policyDecisionDefinition({ operationId }),
+    'automation-biomes-first-l1': biomesApplyDefinition({ operationId }),
+    'automation-biomes-second-l1': biomesApplyDefinition({ operationId }),
+    'automation-biomes-l2-promotion': policyDecisionDefinition({ operationId }),
+    'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
   };
   return definitions[operationId];
+}
+
+function biomesApplyDefinition({ operationId }) {
+  const inputPath = `reports/authorization/canonical/${operationId}.bundle.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_automation_l1_apply',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      `--input=${inputPath}`,
+      `--output=${outputPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function policyDecisionDefinition({ operationId }) {
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_policy_decision',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      `--input=${inputPath}`,
+      `--output=${outputPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
 }
 
 function requireText(value, label) {

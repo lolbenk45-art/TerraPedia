@@ -174,6 +174,7 @@ test('manifest command dispatch uses no shell and rejects credential-shaped argu
   let observed;
   const result = await runExecutionManifestCommand({
     cwd: '/tmp/worktree',
+    authorizationPacketPath: '/tmp/private/packet.json',
     manifest: {
       command: ['node', 'scripts/data/fetch/example.mjs', '--limit=10'],
     },
@@ -183,11 +184,11 @@ test('manifest command dispatch uses no shell and rejects credential-shaped argu
     },
   });
   assert.equal(result.exitCode, 0);
-  assert.deepEqual(observed, {
-    command: 'node',
-    args: ['scripts/data/fetch/example.mjs', '--limit=10'],
-    options: { cwd: '/tmp/worktree', shell: false },
-  });
+  assert.equal(observed.command, 'node');
+  assert.deepEqual(observed.args, ['scripts/data/fetch/example.mjs', '--limit=10']);
+  assert.equal(observed.options.cwd, '/tmp/worktree');
+  assert.equal(observed.options.shell, false);
+  assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_PACKET_PATH, '/tmp/private/packet.json');
   await assert.rejects(() => runExecutionManifestCommand({
     cwd: '/tmp/worktree',
     manifest: { command: ['node', 'script.mjs', '--password=secret'] },

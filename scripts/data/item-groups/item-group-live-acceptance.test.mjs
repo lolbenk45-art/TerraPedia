@@ -58,6 +58,27 @@ test('real frozen inputs produce the exact T1 canonical group evidence', async (
   );
 });
 
+test('formal projection rebinds landing lineage to persisted auto-increment ids', async () => {
+  assert.equal(typeof acceptance.bindItemGroupFormalLandingIds, 'function');
+  const projection = acceptance.buildItemGroupAcceptanceProjection({
+    ...await loadInputs(),
+    runKey: 'grp_0123456789abcdef',
+  });
+  const ids = new Map(projection.landingRows.map((row, index) => [row.sourceKey, 9000 + index]));
+  const rebound = acceptance.bindItemGroupFormalLandingIds(projection, ids);
+  assert.deepEqual(rebound.landingRows.map((row) => row.id), [9000, 9001, 9002, 9003]);
+  for (const row of rebound.maint.groups) {
+    assert.equal(row.landingSourceId, ids.get(row.sourceKey));
+  }
+  for (const row of rebound.relation.groups) {
+    assert.equal(row.landingSourceId, ids.get(row.landingSourceKey));
+  }
+  assert.throws(
+    () => acceptance.bindItemGroupFormalLandingIds(projection, new Map()),
+    /landing id.*missing/i,
+  );
+});
+
 test('T1 SQL is isolated and proves rollback commit restore plus published state', async () => {
   assert.equal(typeof acceptance.buildItemGroupAcceptanceSql, 'function');
   const projection = acceptance.buildItemGroupAcceptanceProjection({

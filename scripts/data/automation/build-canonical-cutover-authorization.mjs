@@ -279,7 +279,7 @@ function verifyExecutionManifestCodeBundle(repoRoot, manifest, operationId) {
       throw new Error(`execution manifest code bundle hash mismatch: ${entryPath}`);
     }
   }
-  assertCanonicalOperationExecutionManifestContract({ operationId, manifest: normalized });
+  assertCanonicalOperationExecutionManifestContract({ repoRoot, operationId, manifest: normalized });
   return normalized;
 }
 
@@ -430,15 +430,35 @@ function readCompleteEntries(repoRoot, relativePaths) {
 }
 
 function readNpcCrawlerEntries(repoRoot) {
-  const normalizedDir = path.join(repoRoot, 'data', 'wiki-crawler', 'normalized-light', 'npc');
-  const auditDir = path.join(repoRoot, 'data', 'wiki-crawler', 'audit', 'npc');
-  if (!fs.existsSync(normalizedDir) || !fs.existsSync(auditDir)) return null;
-  const names = fs.readdirSync(normalizedDir).filter((name) => name.endsWith('.latest.json')).sort();
-  if (names.length === 0 || names.some((name) => !fs.existsSync(path.join(auditDir, name)))) return null;
-  return names.flatMap((name) => [
-    readEntry(repoRoot, `data/wiki-crawler/normalized-light/npc/${name}`),
-    readEntry(repoRoot, `data/wiki-crawler/audit/npc/${name}`),
-  ]);
+  const inputPath = 'reports/authorization/canonical/canonical-npc-apply.input.json';
+  const fullInputPath = path.join(repoRoot, inputPath);
+  if (!fs.existsSync(fullInputPath) || !fs.statSync(fullInputPath).isFile()) return null;
+  const input = JSON.parse(fs.readFileSync(fullInputPath, 'utf8'));
+  if (input?.schemaVersion !== 1 || input?.operationId !== 'canonical-npc-apply'
+      || input?.pairCount !== 25 || !Array.isArray(input?.evidencePairs)
+      || input.evidencePairs.length !== 25) {
+    throw new Error('canonical NPC apply input must contain exactly 25 frozen evidence pairs');
+  }
+  const summaries = [input.targetManifest];
+  const seenEntityIds = new Set();
+  for (const pair of input.evidencePairs) {
+    const entityId = requireText(pair?.entityId, 'NPC apply evidence entityId');
+    if (seenEntityIds.has(entityId)) throw new Error(`NPC apply evidence entityId is duplicated: ${entityId}`);
+    seenEntityIds.add(entityId);
+    summaries.push(pair?.normalized, pair?.audit);
+  }
+  const seenPaths = new Set();
+  return summaries.map((summary) => {
+    const relativePath = requireNormalizedPath(summary?.path, 'NPC apply evidence path');
+    if (seenPaths.has(relativePath)) throw new Error(`NPC apply evidence path is duplicated: ${relativePath}`);
+    seenPaths.add(relativePath);
+    const entry = readEntry(repoRoot, relativePath);
+    const contentHash = `sha256:${createHash('sha256').update(entry.bytes).digest('hex')}`;
+    if (summary?.contentHash !== contentHash || Number(summary?.sizeBytes) !== entry.bytes.length) {
+      throw new Error(`NPC apply evidence file drifted: ${relativePath}`);
+    }
+    return entry;
+  });
 }
 
 function readEntry(repoRoot, relativePath) {

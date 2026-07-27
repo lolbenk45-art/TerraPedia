@@ -326,7 +326,31 @@
       "ownedTables": [
         {
           "databaseRole": "local",
-          "table": "npc_biomes",
+          "table": "biomes",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "biome_relations",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "biome_resources",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_biomes",
           "fieldGroup": "all_columns",
           "logicalPredicate": {
             "kind": "all"

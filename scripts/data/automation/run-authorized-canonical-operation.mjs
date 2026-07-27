@@ -46,6 +46,8 @@ export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity } = {
 export async function runExecutionManifestCommand({
   manifest,
   cwd = process.cwd(),
+  authorizationPacketPath = null,
+  env = process.env,
   spawnImpl = spawnCommand,
 } = {}) {
   const commandParts = manifest?.command;
@@ -60,9 +62,18 @@ export async function runExecutionManifestCommand({
     throw new Error('execution manifest command contains a credential-shaped argument');
   }
   if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
+  const childEnv = authorizationPacketPath == null
+    ? env
+    : {
+        ...env,
+        TERRAPEDIA_AUTHORIZED_PACKET_PATH: path.resolve(
+          requireText(authorizationPacketPath, 'authorization packet path'),
+        ),
+      };
   const result = await spawnImpl(commandParts[0], commandParts.slice(1), {
     cwd: path.resolve(cwd),
     shell: false,
+    env: childEnv,
   });
   const exitCode = Number(result?.exitCode);
   if (!Number.isInteger(exitCode) || exitCode !== 0) {
@@ -203,6 +214,7 @@ async function main() {
       [packet.operationId]: () => runExecutionManifestCommand({
         manifest: packet.executionManifest,
         cwd: repoRoot,
+        authorizationPacketPath: args.packet,
       }),
     },
   });

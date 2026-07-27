@@ -19,6 +19,20 @@ const DEFAULT_POLICY = {
   requireSnapshot: true,
 };
 
+function loadBootstrapAuthorizationContext({ operationId }) {
+  assert.equal(operationId, 'automation-biomes-l0-bootstrap');
+  return {
+    operationId,
+    actor: 'system-owner',
+    reason: 'Bootstrap the exact disabled biomes L0 policy.',
+    authorizationReference: 'decision://automation/bootstrap/1',
+    decisionIdentity: 'automation-bootstrap-1',
+    packetHash: `sha256:${'a'.repeat(64)}`,
+    authorizedAt: '2026-07-28T00:30:00.000Z',
+    expiresAt: '2026-07-28T02:00:00.000Z',
+  };
+}
+
 function fakeConnection({ owner = null, policy = null, maxVersion = 0, versionForHash = null } = {}) {
   const executed = [];
   return {
@@ -306,15 +320,10 @@ test('formal bootstrap CLI consumes one frozen input, uses environment credentia
     schemaVersion: 1,
     operationId: 'automation-biomes-l0-bootstrap',
     databaseName: 'terria_v1_local',
-    ownerUsername: 'system-owner',
     domainId: 'biomes',
     level: 'L0',
     operationalState: 'DISABLED',
     policy: DEFAULT_POLICY,
-    actor: 'system-owner',
-    reason: 'Bootstrap the exact disabled biomes L0 policy.',
-    authorizationReference: 'decision://automation/bootstrap/1',
-    decisionIdentity: 'automation-bootstrap-1',
   }, null, 2)}\n`);
 
   const connection = fakeConnection();
@@ -335,6 +344,7 @@ test('formal bootstrap CLI consumes one frozen input, uses environment credentia
         return connection;
       },
     },
+    loadAuthorizationContextImpl: loadBootstrapAuthorizationContext,
     now: '2026-07-28T01:00:00.000Z',
   });
 
@@ -355,15 +365,10 @@ test('formal bootstrap CLI rejects unbound operation fields and missing credenti
     schemaVersion: 1,
     operationId: 'automation-biomes-l0-bootstrap',
     databaseName: 'terria_v1_local',
-    ownerUsername: 'system-owner',
     domainId: 'biomes',
     level: 'L0',
     operationalState: 'DISABLED',
     policy: DEFAULT_POLICY,
-    actor: 'system-owner',
-    reason: 'Bootstrap the exact disabled biomes L0 policy.',
-    authorizationReference: 'decision://automation/bootstrap/2',
-    decisionIdentity: 'automation-bootstrap-2',
   };
   const validEnv = {
     TERRAPEDIA_DB_HOST: '127.0.0.1',
@@ -378,7 +383,6 @@ test('formal bootstrap CLI rejects unbound operation fields and missing credenti
     ['domain', { domainId: 'items' }, /domainId.*biomes/i],
     ['level', { level: 'L1' }, /level.*L0/i],
     ['state', { operationalState: 'ENABLED' }, /operationalState.*DISABLED/i],
-    ['decision', { decisionIdentity: '' }, /decisionIdentity/i],
   ]) {
     const inputPath = path.join(tempDir, `${label}.json`);
     fs.writeFileSync(inputPath, JSON.stringify({ ...base, ...mutation }));
@@ -386,6 +390,7 @@ test('formal bootstrap CLI rejects unbound operation fields and missing credenti
       () => runBootstrapCli({
         argv: [`--input=${inputPath}`, `--output=${inputPath}.out`, '--apply=true'],
         env: validEnv,
+        loadAuthorizationContextImpl: loadBootstrapAuthorizationContext,
         mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
       }),
       pattern,
@@ -399,6 +404,7 @@ test('formal bootstrap CLI rejects unbound operation fields and missing credenti
     () => runBootstrapCli({
       argv: [`--input=${inputPath}`, `--output=${inputPath}.out`, '--apply=true'],
       env: { ...validEnv, TERRAPEDIA_DB_PASSWORD: '' },
+      loadAuthorizationContextImpl: loadBootstrapAuthorizationContext,
       mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
     }),
     /TERRAPEDIA_DB_PASSWORD/i,

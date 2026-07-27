@@ -31,7 +31,12 @@ export function buildCanonicalNpcTargets({
   if (!Number.isFinite(Date.parse(generatedAt))) throw new Error('generatedAt must be a timestamp');
   const bytes = toBuffer(standardizedBytes, 'standardized NPC bytes');
   const coverage = buildNpcCoverageTargets({ standardizedPayload, crawledEntityIds });
-  const available = coverage.targets.filter((target) => !target.alreadyCrawled);
+  const available = coverage.targets.filter((target) => (
+    !target.alreadyCrawled
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(target.entityId ?? ''))
+    && Array.isArray(target.targetEntityIds)
+    && target.targetEntityIds.length > 0
+  ));
   if (available.length < targetLimit) {
     throw new Error(`canonical NPC target selection requires exactly ${targetLimit} uncrawled targets`);
   }

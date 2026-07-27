@@ -132,3 +132,14 @@ test('NPC crawler-fact capability owns only the canonical maint fact table', () 
     'maint.maint_npc_crawler_facts',
   ]);
 });
+
+test('biome apply capability owns every table written by the biome-only importer', () => {
+  const apply = loadCapabilities().find((operation) => operation.actionId === 'biome-sync');
+  assert.ok(apply);
+  assert.deepEqual(apply.ownedTables.map(({ databaseRole, table }) => `${databaseRole}.${table}`).sort(), [
+    'local.biome_relations',
+    'local.biome_resources',
+    'local.biomes',
+    'local.item_biomes',
+  ]);
+});

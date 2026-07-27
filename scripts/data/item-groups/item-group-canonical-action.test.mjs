@@ -6,7 +6,10 @@ import test from 'node:test';
 
 import {
   ITEM_GROUP_CANONICAL_ACTION_IDS,
+  buildItemGroupFormalApplyPlan,
   resolveItemGroupCanonicalProgressPath,
+  runGovernedItemGroupApply,
+  runItemGroupCanonicalCli,
   runItemGroupCanonicalAction,
 } from './item-group-canonical-action.mjs';
 
@@ -98,4 +101,90 @@ test('action writes a failed terminal payload and rethrows the owning error', as
   ]) {
     assert.ok(Object.hasOwn(final, field), `missing progress field: ${field}`);
   }
+});
+
+test('governed group bootstrap applies the exact frozen projection in one transaction', async () => {
+  const repoRoot = path.resolve(import.meta.dirname, '../../..');
+  const draft = buildItemGroupFormalApplyPlan({
+    repoRoot,
+    input: {
+      schemaVersion: 1,
+      operationId: 'canonical-item-group-bootstrap',
+      runKey: 'ig_0123456789abcdef',
+      databases: {
+        local: 'terria_v1_local',
+        maint: 'terria_v1_maint',
+        relation: 'terria_v1_relation',
+      },
+    },
+  });
+  const plan = buildItemGroupFormalApplyPlan({
+    repoRoot,
+    input: {
+      schemaVersion: 1,
+      operationId: 'canonical-item-group-bootstrap',
+      runKey: 'ig_0123456789abcdef',
+      databases: draft.databases,
+      expectedCounts: draft.counts,
+      expectedRuntimeSnapshotHash: draft.runtimeSnapshotHash,
+      expectedCompatibilitySnapshotHash: draft.compatibilitySnapshotHash,
+    },
+  });
+  const calls = [];
+  const adapter = {
+    async begin() { calls.push('begin'); },
+    async lockProjectionState() { calls.push('lock'); return null; },
+    async assertSourceScopeEmpty() { calls.push('empty'); },
+    async applyLandings() { calls.push('landings'); },
+    async readLandingIds(value) {
+      calls.push('landing-ids');
+      return new Map(value.projection.landingRows.map((row, index) => [row.sourceKey, 9000 + index]));
+    },
+    async applyProjection(value) { calls.push('apply'); assert.equal(value.runtimeSnapshotHash, plan.runtimeSnapshotHash); },
+    async verifyProjection(value) { calls.push('verify'); return { counts: value.counts, snapshotHash: value.runtimeSnapshotHash }; },
+    async commit() { calls.push('commit'); },
+    async rollback() { calls.push('rollback'); },
+  };
+  const result = await runGovernedItemGroupApply({ plan, adapter });
+  assert.deepEqual(calls, ['begin', 'lock', 'empty', 'landings', 'landing-ids', 'apply', 'verify', 'commit']);
+  assert.equal(result.status, 'completed');
+  assert.equal(result.runtimeSnapshotHash, plan.runtimeSnapshotHash);
+  assert.equal(plan.counts.local.groupCount, 34);
+});
+
+test('governed group bootstrap rejects target and frozen projection drift', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '../../..');
+  const base = {
+    schemaVersion: 1,
+    operationId: 'canonical-item-group-bootstrap',
+    runKey: 'ig_0123456789abcdef',
+    databases: { local: 'terria_v1_local', maint: 'terria_v1_maint', relation: 'terria_v1_relation' },
+  };
+  assert.throws(() => buildItemGroupFormalApplyPlan({
+    repoRoot,
+    input: { ...base, databases: { ...base.databases, local: 'scratch' } },
+  }), /terria_v1_local/i);
+  const draft = buildItemGroupFormalApplyPlan({ repoRoot, input: base });
+  assert.throws(() => buildItemGroupFormalApplyPlan({
+    repoRoot,
+    input: { ...base, expectedCounts: { ...draft.counts, local: { groupCount: 0 } } },
+  }), /expectedCounts/i);
+});
+
+test('formal group CLI requires the exact child authorization context before reading frozen input', async () => {
+  await assert.rejects(
+    () => runItemGroupCanonicalCli({
+      argv: [
+        '--action-id=item-group-canonical-apply',
+        '--input=missing.input.json',
+        '--output=unused.result.json',
+      ],
+      env: {},
+      loadAuthorizationContextImpl: ({ operationId }) => {
+        assert.equal(operationId, 'canonical-item-group-bootstrap');
+        throw new Error('exact child authorization is missing');
+      },
+    }),
+    /exact child authorization is missing/i,
+  );
 });

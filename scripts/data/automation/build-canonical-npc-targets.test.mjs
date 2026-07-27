@@ -83,6 +83,36 @@ test('canonical NPC targets fail closed when the requested bound cannot be fille
   );
 });
 
+test('canonical NPC targets exclude coverage rows without a stable entity identity before quota selection', () => {
+  const standardizedPayload = payload();
+  standardizedPayload.records.unshift({
+    id: 547,
+    internalName: 'DD2AttackerTest',
+    name: '???',
+    flags: { boss: false, friendly: false },
+    extras: { townNPC: false },
+  });
+  const sourceBytes = `${JSON.stringify(standardizedPayload, null, 2)}\n`;
+
+  const result = buildCanonicalNpcTargets({
+    standardizedPayload,
+    standardizedBytes: sourceBytes,
+    generatedAt: '2026-07-28T02:00:00.000Z',
+    targetLimit: 25,
+  });
+
+  assert.equal(result.targets.length, 25);
+  assert.equal(result.targets.some((target) => target.pageTitle === '???'), false);
+  assert.equal(result.targets.every((target) => target.entityId.length > 0), true);
+  assert.equal(result.targets.every((target) => target.targetEntityIds.length > 0), true);
+  assert.deepEqual(result.selection.selectedCounts, {
+    p0_town: 8,
+    p0_boss: 8,
+    p1_friendly: 4,
+    p1_enemy: 5,
+  });
+});
+
 test('canonical NPC target writer emits a private atomic artifact', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-targets-'));
   const sourcePath = path.join(tempDir, 'npcs.standardized.json');

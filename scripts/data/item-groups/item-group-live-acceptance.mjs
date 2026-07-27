@@ -331,11 +331,15 @@ function landingInsert(database, projection) {
   return insertRows(database, 'source_dataset_landings', rows);
 }
 
-function applySql(databases, projection) {
+function applySql(databases, projection, {
+  seedItems = true,
+  includeLanding = true,
+  materializedAt = new Date(0).toISOString(),
+} = {}) {
   const runtimePayload = buildItemGroupRuntimeSnapshotPayload(projection.runtime);
   const localGroups = runtimePayload.groups.map((row) => ({
     ...row,
-    materializedAt: new Date(0).toISOString(),
+    materializedAt,
   }));
   const state = {
     singletonKey: 1,
@@ -346,7 +350,7 @@ function applySql(databases, projection) {
     memberCount: projection.runtime.members.length,
     aliasCount: projection.runtime.aliases.length,
     publicationStatus: 'PUBLISHED',
-    publishedAt: new Date(0).toISOString(),
+    publishedAt: materializedAt,
   };
   const itemRows = new Map();
   for (const member of projection.relation.members.filter((row) => row.itemId != null)) {
@@ -356,8 +360,8 @@ function applySql(databases, projection) {
     .map((item) => `(${sqlValue(item.id)}, ${sqlValue(item.name || item.internalName)}, ${sqlValue(item.internalName)})`)
     .join(',\n');
   return [
-    itemInsert && `INSERT INTO \`${databases.local}\`.\`items\` (\`id\`, \`name\`, \`internal_name\`) VALUES\n${itemInsert} ON DUPLICATE KEY UPDATE \`id\` = VALUES(\`id\`)`,
-    landingInsert(databases.local, projection),
+    seedItems && itemInsert && `INSERT INTO \`${databases.local}\`.\`items\` (\`id\`, \`name\`, \`internal_name\`) VALUES\n${itemInsert} ON DUPLICATE KEY UPDATE \`id\` = VALUES(\`id\`)`,
+    includeLanding && landingInsert(databases.local, projection),
     insertRows(databases.maint, 'maint_item_groups', projection.maint.groups,
       { columns: INSERT_COLUMNS.maint_item_groups }),
     insertRows(databases.maint, 'maint_item_group_members', projection.maint.members,
@@ -417,6 +421,63 @@ export function buildItemGroupAcceptanceSql({ databases, projection } = {}) {
     `SELECT 'state', \`publication_status\`, \`canonical_snapshot_hash\` FROM \`${names.local}\`.\`item_group_projection_state\` WHERE \`singleton_key\` = 1`,
     'START TRANSACTION', restore, 'COMMIT', countSelect('restore', names),
   ].filter(Boolean).join(';\n') + ';\n';
+}
+
+export function buildItemGroupFormalBootstrapSql({ databases, projection, materializedAt } = {}) {
+  const expected = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  if (JSON.stringify(databases) !== JSON.stringify(expected)) {
+    throw new Error('formal item-group bootstrap requires the exact local/maint/relation databases');
+  }
+  return `${applySql(databases, projection, {
+    seedItems: false,
+    includeLanding: false,
+    materializedAt,
+  })};\n`;
+}
+
+export function buildItemGroupFormalLandingSql({ databases, projection } = {}) {
+  if (databases?.local !== 'terria_v1_local') {
+    throw new Error('formal item-group landing requires terria_v1_local');
+  }
+  return `${landingInsert(databases.local, projection)};\n`;
+}
+
+export function bindItemGroupFormalLandingIds(projection, landingIdsBySourceKey) {
+  if (!(landingIdsBySourceKey instanceof Map)) {
+    throw new TypeError('landing ids must be a Map');
+  }
+  const requireLandingId = (sourceKey) => {
+    const id = Number(landingIdsBySourceKey.get(sourceKey));
+    if (!Number.isSafeInteger(id) || id < 1) {
+      throw new Error(`landing id is missing for source key: ${sourceKey}`);
+    }
+    return id;
+  };
+  return {
+    ...projection,
+    landingRows: projection.landingRows.map((row) => ({
+      ...row,
+      id: requireLandingId(row.sourceKey),
+    })),
+    maint: {
+      ...projection.maint,
+      groups: projection.maint.groups.map((row) => ({
+        ...row,
+        landingSourceId: requireLandingId(row.sourceKey),
+      })),
+    },
+    relation: {
+      ...projection.relation,
+      groups: projection.relation.groups.map((row) => ({
+        ...row,
+        landingSourceId: requireLandingId(row.landingSourceKey),
+      })),
+    },
+  };
 }
 
 export function parseItemGroupAcceptanceOutput(output, projection) {

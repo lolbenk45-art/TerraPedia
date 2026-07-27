@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
+import { loadAuthorizedOperationContext } from './authorized-operation-context.mjs';
 
 const LEVELS = ['L0', 'L1', 'L2'];
 const DOMAIN_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
@@ -150,6 +151,7 @@ export async function runBootstrapCli({
   env = process.env,
   mysqlModule = null,
   now = new Date().toISOString(),
+  loadAuthorizationContextImpl = loadAuthorizedOperationContext,
 } = {}) {
   const args = parseArgs(argv);
   const inputPath = path.resolve(requireText(args.input, '--input'));
@@ -158,19 +160,25 @@ export async function runBootstrapCli({
     throw new Error('--apply=true is required for the authorized bootstrap entrypoint.');
   }
   const input = readBootstrapInput(inputPath);
+  const authorizationContext = loadAuthorizationContextImpl({
+    env,
+    operationId: 'automation-biomes-l0-bootstrap',
+    now,
+  });
   const plan = buildBootstrapPlan({
     databaseName: input.databaseName,
-    ownerUsername: input.ownerUsername,
+    ownerUsername: authorizationContext.actor,
     domainId: input.domainId,
     level: input.level,
     policy: input.policy,
-    reason: input.reason,
-    actor: input.actor,
+    reason: authorizationContext.reason,
+    actor: authorizationContext.actor,
     apply: true,
     formalAuthorization: {
-      reference: input.authorizationReference,
-      approvedBy: input.actor,
-      decisionIdentity: input.decisionIdentity,
+      reference: authorizationContext.authorizationReference,
+      approvedBy: authorizationContext.actor,
+      decisionIdentity: authorizationContext.decisionIdentity,
+      packetHash: authorizationContext.packetHash,
     },
     now,
   });
@@ -183,7 +191,8 @@ export async function runBootstrapCli({
       schemaVersion: 1,
       operationId: input.operationId,
       operationalState: input.operationalState,
-      decisionIdentity: input.decisionIdentity,
+      decisionIdentity: authorizationContext.decisionIdentity,
+      packetHash: authorizationContext.packetHash,
       generatedAt: now,
     };
     writeJsonAtomic(outputPath, report);
@@ -213,11 +222,6 @@ function readBootstrapInput(filePath) {
   if (input.operationalState !== 'DISABLED') {
     throw new Error('operationalState must be DISABLED.');
   }
-  requireText(input.ownerUsername, 'ownerUsername');
-  requireText(input.actor, 'actor');
-  requireText(input.reason, 'reason');
-  requireText(input.authorizationReference, 'authorizationReference');
-  requireText(input.decisionIdentity, 'decisionIdentity');
   if (!input.policy || typeof input.policy !== 'object' || Array.isArray(input.policy)) {
     throw new Error('policy must be a JSON object.');
   }

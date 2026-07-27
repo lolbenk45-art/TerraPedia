@@ -1123,6 +1123,88 @@ closure path even if a packet file exists.
 Do not reuse an approval or interpret blanket implementation authorization as
 the missing actor/reason/reference/decision/exact-hash packet identity.
 
+## Task 12A: Replace Placeholder Dispatch With Real Governed Executors
+
+The continuation audit found that eight operation IDs had no executable
+entrypoint. Seven now have packet-consuming formal executors. The remaining
+`canonical-npc-apply` operation cannot legally use one cross-capability writer:
+`npc_crawler_facts` owns only `maint.maint_npc_crawler_facts`, while its
+relation/local consumers are owned by other capabilities. It stays explicitly
+non-executable until the operation is split by owner or a cross-capability
+orchestration decision is added.
+
+The formal execution architecture is Node-owned. The packet runner revalidates
+current bytes and dispatches the exact domain executor, which owns its database
+transaction. The unused backend
+`FailClosedCrawlerAutomationApplyContextProvider` remains fail-closed; enabling
+it would create a second apply protocol and would violate the existing
+same-transaction/no-independent-connection contract.
+
+**Files:**
+- Create: `scripts/data/automation/run-canonical-schema-migration.mjs`
+- Create: `back/src/main/java/com/terraria/skills/tooling/CanonicalFlywayMigrationCli.java`
+- Modify: `scripts/data/item-groups/item-group-canonical-action.mjs`
+- Modify: `scripts/data/npc-canonical/npc-crawler-fact-action.mjs`
+- Create: `scripts/data/automation/run-automation-policy-decision.mjs`
+- Create: `scripts/data/automation/run-biomes-automation-operation.mjs`
+- Modify: `scripts/data/automation/canonical-operation-catalog.mjs`
+- Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
+- Modify/add exact same-basename tests for every entrypoint above.
+
+- [x] **Step 1: Add RED contracts for the seven eligible executors and one explicit ownership blocker**
+
+Require a real default implementation for schema migration, group apply, L1
+policy promotion, first and second L1 apply, L2 promotion, and scheduler
+activation. Require `canonical-npc-apply` to remain `null` while its writes
+cross capability owners. Injected test adapters are allowed, but a production
+CLI whose default behavior only throws `no governed executor` is not executable.
+
+- [x] **Step 2: Implement the formal schema entrypoint through Flyway**
+
+The Node wrapper may dispatch a dedicated Java CLI without a shell. The Java CLI
+must use Flyway, require the exact formal local database and environment-only
+credentials, migrate only the frozen V56-V58 range on top of registered V55,
+write a private result, and close all resources. It must never synthesize rows in
+`flyway_schema_history`.
+
+- [x] **Step 3A: Implement the group frozen apply entrypoint**
+
+The group path consumes its exact frozen projection, uses one same-server
+three-database transaction, serializes through the projection-state fence,
+publishes backend child progress, and verifies counts and hashes.
+
+- [ ] **Step 3B: Implement an ownership-valid NPC frozen apply entrypoint**
+
+NPC apply must first resolve the capability-owner split. It then consumes paired
+normalized/audit crawler bytes; it cannot crawl, renormalize, or fall back to
+the retired bridge. Missing real crawler evidence is a separate input blocker.
+
+- [x] **Step 4: Implement automation preview, persistence, and apply ownership**
+
+The `biomes` preview must create an immutable bundle and persist the exact
+run/policy/evidence/bundle/decision chain. L1 apply must load and revalidate that
+chain, consume the one-time approval in the apply transaction, apply only frozen
+content without network access, and persist apply/fence/generation evidence.
+The packet-consuming Node executor is the only formal write path. Keep the
+backend provider fail-closed because it has no production caller and cannot
+participate in the Node importer's transaction without opening a second
+connection/protocol.
+
+- [x] **Step 5: Implement L1/L2/scheduler policy-decision entrypoints**
+
+Policy promotion and activation decisions use one transaction, bind the exact
+packet/decision identity, preserve append-only policy/activation history, and
+re-read current policy identity plus successful committed L1 count immediately
+before commit. Scheduler activation records eligibility only; it does not start
+an unbounded scheduler run.
+
+- [x] **Step 6: Regenerate manifests and requests from current bytes**
+
+Sixteen operations have real governed manifests; `canonical-npc-apply` has the
+explicit ownership blocker. All 17 request artifacts remain `AWAITING_OWNER`
+and retain their operation-specific input blockers. The packet runner's
+no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
+
 ## Task 13: Perform Separately Authorized T2 Cutovers
 
 **Files:**
@@ -1159,8 +1241,10 @@ successful canonical cutover.
 `crawler_automation_decision`, `crawler_automation_approval`,
 `crawler_automation_snapshot`, `crawler_automation_apply`,
 `crawler_automation_write_fence`, and `crawler_automation_mutation_generation`.
-No code changes are allowed unless the run exposes a reproducible defect with a
-RED regression test.
+Task 12A must first complete the Node-owned preview/apply persistence path with
+RED-to-GREEN tests and keep the unused backend path fail-closed. After that
+prerequisite is green, no further code changes are allowed unless the run
+exposes a reproducible defect with a RED regression test.
 
 - [ ] **Step 1: Request the L1 policy-promotion decision for the fixed `biomes` candidate**
 

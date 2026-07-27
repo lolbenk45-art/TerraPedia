@@ -16,7 +16,16 @@ import {
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 
-test('manifest builder covers exactly the operations with real governed entrypoints', () => {
+test('manifest builder covers 16 governed operations and keeps NPC apply explicitly fail closed', () => {
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 17);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 16);
+  assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
+  assert.deepEqual(
+    Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
+      .filter(([, entrypoint]) => entrypoint === null)
+      .map(([operationId]) => operationId),
+    ['canonical-npc-apply'],
+  );
   assert.deepEqual(
     CANONICAL_EXECUTABLE_OPERATION_IDS,
     CANONICAL_CUTOVER_OPERATION_IDS.filter((operationId) => (
@@ -90,16 +99,133 @@ test('bootstrap, recipe, and NPC manifests freeze exact safety-critical argument
   assert.equal(npc.networkAccess, true);
 });
 
-test('manifest builder refuses missing executors and invalid NPC limits', () => {
-  for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS.filter((id) => (
-    CANONICAL_OPERATION_ENTRYPOINTS[id] === null
-  ))) {
-    assert.throws(
-      () => buildCanonicalOperationExecutionManifest({ repoRoot, operationId }),
-      /no governed executor/i,
+test('formal child executors bind the exact packet verifier into their code bundles', () => {
+  for (const operationId of [
+    'automation-biomes-l0-bootstrap',
+    'canonical-schema-v56-v58',
+    'canonical-item-group-bootstrap',
+    'automation-biomes-l1-policy-promotion',
+    'automation-biomes-l2-promotion',
+    'automation-biomes-scheduler-activation',
+  ]) {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
       operationId,
-    );
+      artifactDate: '2026-07-28',
+    });
+    const paths = manifest.codeBundleEntries.map((entry) => entry.path);
+    assert.ok(paths.includes('scripts/data/automation/authorized-operation-context.mjs'), operationId);
+    assert.ok(paths.includes('scripts/data/automation/build-canonical-cutover-authorization.mjs'), operationId);
   }
+});
+
+test('schema manifest binds every role schema module executed after Flyway', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-schema-v56-v58',
+    artifactDate: '2026-07-28',
+  });
+  const paths = manifest.codeBundleEntries.map((entry) => entry.path);
+  assert.ok(paths.includes('scripts/data/maint/maint-schema.mjs'));
+  assert.ok(paths.includes('scripts/data/relation/relation-schema.mjs'));
+});
+
+test('every manifest binds all repository-local static imports of its code bundle', () => {
+  for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-07-28',
+      npcLimit: 25,
+    });
+    const paths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+    const missing = [];
+    for (const relativePath of paths) {
+      if (!relativePath.endsWith('.mjs')) continue;
+      const source = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+      for (const specifier of staticRelativeImports(source)) {
+        let importedPath = path.posix.normalize(path.posix.join(
+          path.posix.dirname(relativePath),
+          specifier,
+        ));
+        if (!path.posix.extname(importedPath)) importedPath += '.mjs';
+        if (fs.existsSync(path.join(repoRoot, importedPath)) && !paths.has(importedPath)) {
+          missing.push(importedPath);
+        }
+      }
+    }
+    assert.deepEqual([...new Set(missing)], [], operationId);
+  }
+});
+
+test('formal cutover and activation manifests freeze exact safety-critical arguments', () => {
+  const expected = {
+    'canonical-schema-v56-v58': [
+      'node', 'scripts/data/automation/run-canonical-schema-migration.mjs',
+      '--output=reports/authorization/canonical/canonical-schema-v56-v58.result.json',
+      '--apply=true',
+    ],
+    'canonical-item-group-bootstrap': [
+      'node', 'scripts/data/item-groups/item-group-canonical-action.mjs',
+      '--action-id=item-group-canonical-apply',
+      '--input=reports/authorization/canonical/canonical-item-group-bootstrap.input.json',
+      '--output=reports/authorization/canonical/canonical-item-group-bootstrap.result.json',
+      '--progress-path=reports/backend-refresh/history/canonical-item-group-bootstrap.runtime/child-status.json',
+    ],
+    'automation-biomes-l1-policy-promotion': [
+      'node', 'scripts/data/automation/run-automation-policy-decision.mjs',
+      '--operation-id=automation-biomes-l1-policy-promotion',
+      '--input=reports/authorization/canonical/automation-biomes-l1-policy-promotion.input.json',
+      '--output=reports/authorization/canonical/automation-biomes-l1-policy-promotion.result.json',
+      '--apply=true',
+    ],
+    'automation-biomes-first-l1': [
+      'node', 'scripts/data/automation/run-biomes-automation-operation.mjs',
+      '--operation-id=automation-biomes-first-l1',
+      '--input=reports/authorization/canonical/automation-biomes-first-l1.bundle.json',
+      '--output=reports/authorization/canonical/automation-biomes-first-l1.result.json',
+      '--apply=true',
+    ],
+    'automation-biomes-second-l1': [
+      'node', 'scripts/data/automation/run-biomes-automation-operation.mjs',
+      '--operation-id=automation-biomes-second-l1',
+      '--input=reports/authorization/canonical/automation-biomes-second-l1.bundle.json',
+      '--output=reports/authorization/canonical/automation-biomes-second-l1.result.json',
+      '--apply=true',
+    ],
+    'automation-biomes-l2-promotion': [
+      'node', 'scripts/data/automation/run-automation-policy-decision.mjs',
+      '--operation-id=automation-biomes-l2-promotion',
+      '--input=reports/authorization/canonical/automation-biomes-l2-promotion.input.json',
+      '--output=reports/authorization/canonical/automation-biomes-l2-promotion.result.json',
+      '--apply=true',
+    ],
+    'automation-biomes-scheduler-activation': [
+      'node', 'scripts/data/automation/run-automation-policy-decision.mjs',
+      '--operation-id=automation-biomes-scheduler-activation',
+      '--input=reports/authorization/canonical/automation-biomes-scheduler-activation.input.json',
+      '--output=reports/authorization/canonical/automation-biomes-scheduler-activation.result.json',
+      '--apply=true',
+    ],
+  };
+  for (const [operationId, command] of Object.entries(expected)) {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-07-28',
+    });
+    assert.deepEqual(manifest.command, command, operationId);
+    assert.equal(manifest.databaseWrites, true, operationId);
+    assert.equal(manifest.networkAccess, false, operationId);
+  }
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-npc-apply',
+    artifactDate: '2026-07-28',
+  }), /no governed executor.*canonical-npc-apply/i);
+});
+
+test('manifest builder refuses invalid NPC limits', () => {
   assert.throws(
     () => buildCanonicalOperationExecutionManifest({
       repoRoot,
@@ -127,3 +253,14 @@ test('manifest writer atomically emits one private operation artifact', () => {
     fs.rmSync(outputDir, { recursive: true, force: true });
   }
 });
+
+function staticRelativeImports(source) {
+  const imports = [];
+  for (const pattern of [
+    /(?:import\s+(?:[^'\"]*?\s+from\s+)?|export\s+[^'\"]*?\s+from\s+)['\"](\.[^'\"]+)['\"]/g,
+    /import\s*\(\s*['\"](\.[^'\"]+)['\"]\s*\)/g,
+  ]) {
+    for (const match of source.matchAll(pattern)) imports.push(match[1]);
+  }
+  return imports;
+}

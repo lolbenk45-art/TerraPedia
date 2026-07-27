@@ -24,6 +24,12 @@
   independent lane; keep a failed or incomplete lane fail-closed, continue
   unrelated eligible lanes, and consolidate only the exact identity/external
   decisions that still require the user at final handoff.
+- Continuation architecture resolution on 2026-07-28: the packet-consuming Node
+  runner is the single formal apply path. Seven missing executors now have real
+  implementations; the unused backend apply bean remains deliberately
+  fail-closed so it cannot create a second transaction/protocol. The eighth,
+  `canonical-npc-apply`, stays non-executable because its proposed writes cross
+  capability owners and no cross-capability orchestration decision exists.
 - Plan audit repair: NPC fixture evidence is capped at `CODE_READY` until a real,
   separately authorized crawler artifact exists; missing import/backfill reports
   remain operation checkpoints rather than code defects; backend registry and
@@ -299,6 +305,20 @@
   scan pass for the planning scope.
 - Phase 1A evidence inherited from parent: six-file no-database suite 41/41 and V56 parser contract; V56 remains unexecuted.
 - Not run at kickoff: formal schema/data mutation, crawler, bootstrap, L1/L2, scheduler, restart, push, or merge.
+- Task 12A focused Node aggregate passes 88/88 across authorization, manifest,
+  capability ownership, schema, group, biomes, policy decision, NPC target/input,
+  and crawler coverage contracts. Backend focused validation passes 227/227,
+  including the Java Flyway CLI environment/version contract. No formal database
+  connection, crawler, bootstrap, apply, activation, or scheduler was run.
+- Manifest review found and repaired unbound transitive imports. All 16
+  executable manifests now freeze every repository-local static import reachable
+  from their explicit safety-critical code seeds; current-hash validation rejects
+  dependency drift.
+- NPC target generation reproduced one invalid source candidate (`???` with an
+  empty entity identity). A RED regression now filters unstable identities before
+  quota selection and still selects exactly 25 balanced targets. Frozen apply
+  input generation then stopped on missing real `angler` normalized evidence, as
+  required; no crawler was started to manufacture it.
 
 ## Result
 
@@ -344,16 +364,19 @@
   authorization requests, fail-closed request-to-packet conversion, exact code
   manifest verification, durable one-time decision use, and a packet-consuming
   no-shell runner.
-- Completed in Task 12 continuation: exact per-operation data path resolution,
-  strict manifest operation/entrypoint/argument/code binding, a formal bootstrap
-  CLI contract, nine reproducible manifests for existing governed entrypoints,
-  and a frozen bounded 25-target NPC crawler input.
+- Completed in Task 12/12A continuation: exact per-operation data path
+  resolution, recursive manifest operation/entrypoint/argument/code binding, a
+  formal Flyway schema path, a governed group apply, biomes preview/L1 apply,
+  L1/L2/scheduler decision executors, 16 reproducible governed manifests, 17
+  refreshed `AWAITING_OWNER` requests, and a valid bounded 25-target NPC crawler
+  input.
 - Completed in Task 15 within the code-only boundary: append-only V58 activation
   decision contract, repeated committed-L1 and exact current-policy gating,
   transaction-time L2 revalidation, and scheduler fail-closed visibility.
-- Not completed: Task 10's nine operation-dependent warning panels, Task 11 real
-  crawler/T1, Task 12 Owner authorization, Tasks 13-14, Task 15 Steps 3-5,
-  Task 16, and every formal apply or activation checkpoint.
+- Not completed: NPC ownership-valid apply orchestration, Task 10's nine
+  operation-dependent warning panels, Task 11 real crawler/T1, Task 12 Owner
+  authorization, Tasks 13-14, Task 15 Steps 3-5, Task 16, and every formal apply
+  or activation checkpoint.
 
 ## Residual Risks
 
@@ -364,15 +387,20 @@
   dry-run artifacts now fail closed; armor is no longer a warning.
 - V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
-- The current 17 request files begin expiring at `2026-07-28T18:52:05.940Z`; expired requests
+- The current 17 request files expire at `2026-07-28T20:00:16.000Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
   green after repairing its four queue contract failures.
-- Eight formal operations still lack a real governed executor and therefore
-  cannot produce an executable manifest. Boss-loot, recipe-apply, shimmer, and
-  NPC-apply also still lack their complete frozen producer inputs. These lanes
-  remain independently fail-closed while executable lanes continue preparation.
+- Sixteen formal operations have governed executors. Only
+  `canonical-npc-apply` lacks a manifest, by design, because its write set crosses
+  capability owners. Boss-loot, recipe-apply, shimmer, NPC-apply, bootstrap, and
+  biomes policy/apply lanes also lack future producer or policy inputs; these are
+  independent data/governance blockers rather than missing entrypoint code.
+- `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
+  backend default and has no production apply caller. Formal execution is owned
+  by the exact packet-consuming Node executor; enabling the backend bean without
+  a same-transaction domain importer would be a protocol bypass.
 
 ## Follow-up
 
@@ -383,6 +411,10 @@
   reason/reference/decision identity for each selected operation. Task 10 Steps
   5-6, Task 11 real crawler/T1, T2, both L1 applies, L2, and scheduler activation
   remain separate packets.
+- Capability owners: decide whether NPC canonical apply is split into separately
+  owned maint/relation/local operation IDs or approved as an explicit
+  cross-capability orchestration contract. Until then, `canonical-npc-apply`
+  remains `executor: null` even after crawler evidence exists.
 
 ## Commits
 

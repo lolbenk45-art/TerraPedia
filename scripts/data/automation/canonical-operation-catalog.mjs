@@ -46,6 +46,7 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   ]),
   'canonical-schema-v56-v58': Object.freeze([]),
   'canonical-item-group-bootstrap': Object.freeze([
+    'reports/authorization/canonical/canonical-item-group-bootstrap.input.json',
     'data/generated/recipe-material-reference.json',
     'data/generated/recipe-group-overrides.json',
     'data/generated/item-group-overrides.json',
@@ -54,7 +55,10 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'canonical-npc-crawler': Object.freeze([
     'reports/authorization/canonical/canonical-npc-crawler.targets.json',
   ]),
-  'canonical-npc-apply': Object.freeze(['data/standardized/npcs.standardized.json']),
+  'canonical-npc-apply': Object.freeze([
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'data/standardized/npcs.standardized.json',
+  ]),
   'automation-biomes-l1-policy-promotion': Object.freeze([
     'reports/authorization/canonical/automation-biomes-l1-policy-promotion.input.json',
   ]),
@@ -81,13 +85,13 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-recipe-crawler': 'scripts/data/fetch/fetch-wiki-zh-recipe-pages.mjs',
   'canonical-recipe-apply': 'scripts/data/pipeline/run-wiki-zh-recipe-sync-pipeline.mjs',
   'canonical-shimmer-import': 'scripts/data/import/import-wiki-shimmer-to-db.mjs',
-  'canonical-schema-v56-v58': null,
-  'canonical-item-group-bootstrap': null,
+  'canonical-schema-v56-v58': 'scripts/data/automation/run-canonical-schema-migration.mjs',
+  'canonical-item-group-bootstrap': 'scripts/data/item-groups/item-group-canonical-action.mjs',
   'canonical-npc-crawler': 'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
   'canonical-npc-apply': null,
-  'automation-biomes-l1-policy-promotion': null,
-  'automation-biomes-first-l1': null,
-  'automation-biomes-second-l1': null,
-  'automation-biomes-l2-promotion': null,
-  'automation-biomes-scheduler-activation': null,
+  'automation-biomes-l1-policy-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'automation-biomes-first-l1': 'scripts/data/automation/run-biomes-automation-operation.mjs',
+  'automation-biomes-second-l1': 'scripts/data/automation/run-biomes-automation-operation.mjs',
+  'automation-biomes-l2-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'automation-biomes-scheduler-activation': 'scripts/data/automation/run-automation-policy-decision.mjs',
 });

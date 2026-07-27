@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 02:52 CST by Codex
+Last updated: 2026-07-28 04:00 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -10,7 +10,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
-  blocked-by: exact operation-level authorization only at formal write/crawler/L1/L2/scheduler checkpoints;
+  blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints,
+  plus an ownership-valid `canonical-npc-apply` split/orchestration decision;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
   current post-cutover inventory is 10 after registering the explicit readiness
@@ -61,12 +62,16 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Real NPC crawler/T1, nine warning
   panels, exact Owner identity fields, T2, and two L1 applies remain distinct
   checkpoints.
-  The continuation now freezes exact input paths for all 17 operations, provides
-  a real bootstrap CLI, binds manifests to exact operation/entrypoint/arguments/
-  code lists, generates nine real-entrypoint manifests, and freezes a balanced
-  25-target NPC input. The combined focused suite passes 48/48. Eight operations
-  remain fail-closed because no governed executor exists; formal schema and data
-  state remains unchanged.
+  Task 12A now supplies governed schema, group, biomes L1, and policy/activation
+  executors. Sixteen of 17 operations have manifests whose hashes recursively
+  bind repository-local static imports; all 17 requests were regenerated and
+  remain `AWAITING_OWNER`. Focused Node validation passes 88/88 and backend
+  validation passes 227/227. The packet-consuming Node runner is the single
+  formal write path; the unused backend apply bean remains fail-closed. Only
+  `canonical-npc-apply` has no executor because its proposed write set crosses
+  capability owners. Its valid 25-target manifest is frozen, but real normalized
+  evidence is absent and no crawler was run. Formal schema/data/policy state is
+  unchanged.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
