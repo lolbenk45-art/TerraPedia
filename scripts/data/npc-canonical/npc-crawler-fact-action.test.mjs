@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   NPC_CRAWLER_FACT_ACTION_IDS,
   resolveNpcCrawlerFactProgressPath,
+  runGovernedNpcCrawlerPreview,
   runNpcCrawlerFactAction,
 } from './npc-crawler-fact-action.mjs';
 
@@ -78,4 +79,45 @@ test('action writes failed terminal progress and rethrows the owning error', asy
     'actionId', 'status', 'generatedAt', 'lastHeartbeatAt', 'childStatusPath',
     'phase', 'message', 'current', 'total',
   ]) assert.ok(Object.hasOwn(final, field), `missing progress field: ${field}`);
+});
+
+test('governed preview requires a bounded targets file and invokes the real crawler batch with fanout writes', async () => {
+  const worktreeRoot = tempWorktree();
+  const targetsFile = path.join(worktreeRoot, 'coverage-audit.latest.json');
+  fs.writeFileSync(targetsFile, JSON.stringify({ eligibleBatchTargets: [{ pageTitle: 'Merchant' }] }));
+  let observedArgs;
+  const progress = [];
+
+  const result = await runGovernedNpcCrawlerPreview({
+    repoRoot: worktreeRoot,
+    targetsFile,
+    targetPriority: 'P0',
+    limit: 10,
+    outputRoot: path.join(worktreeRoot, 'data/wiki-crawler'),
+    publishProgress: (value) => progress.push(value),
+    runCliImpl: async (args) => {
+      observedArgs = args;
+      return { summary: { total: 1, pass: 1, warn: 0, fail: 0 }, reportPath: 'batch.json' };
+    },
+  });
+
+  assert.deepEqual(observedArgs, [
+    'batch',
+    '--domain=npc',
+    `--targets-file=${targetsFile}`,
+    '--target-priority=P0',
+    '--limit=10',
+    '--write-files',
+    `--output-root=${path.join(worktreeRoot, 'data/wiki-crawler')}`,
+  ]);
+  assert.equal(result.current, 1);
+  assert.equal(result.total, 1);
+  assert.ok(progress.some((value) => value.phase === 'crawl'));
+
+  await assert.rejects(() => runGovernedNpcCrawlerPreview({
+    repoRoot: worktreeRoot,
+    targetsFile,
+    limit: 0,
+    runCliImpl: async () => ({}),
+  }), /positive bounded limit/i);
 });

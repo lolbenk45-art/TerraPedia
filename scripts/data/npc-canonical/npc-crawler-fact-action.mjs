@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6,6 +7,7 @@ import {
   createCrawlerProgressHeartbeat,
   writeJsonFile,
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { runCli as runNpcCrawlerCli } from '../crawler/src/cli.mjs';
 
 export const NPC_CRAWLER_FACT_ACTION_IDS = Object.freeze({
   preview: 'npc-crawler-facts-preview',
@@ -92,6 +94,56 @@ export async function runNpcCrawlerFactAction({
   }
 }
 
+export async function runGovernedNpcCrawlerPreview({
+  repoRoot = process.cwd(),
+  targetsFile,
+  targetPriority = null,
+  limit,
+  outputRoot = null,
+  publishProgress = () => {},
+  runCliImpl = runNpcCrawlerCli,
+} = {}) {
+  const resolvedTargetsFile = path.resolve(String(targetsFile ?? ''));
+  if (!String(targetsFile ?? '').trim() || !fs.existsSync(resolvedTargetsFile)
+      || !fs.statSync(resolvedTargetsFile).isFile()) {
+    throw new Error('governed NPC crawler preview requires an existing targets file');
+  }
+  const boundedLimit = Number(limit);
+  if (!Number.isInteger(boundedLimit) || boundedLimit < 1 || boundedLimit > 500) {
+    throw new Error('governed NPC crawler preview requires a positive bounded limit of at most 500');
+  }
+  if (typeof runCliImpl !== 'function') throw new TypeError('NPC crawler CLI implementation is required');
+  const resolvedOutputRoot = path.resolve(outputRoot ?? path.join(repoRoot, 'data', 'wiki-crawler'));
+  const args = [
+    'batch',
+    '--domain=npc',
+    `--targets-file=${resolvedTargetsFile}`,
+  ];
+  if (String(targetPriority ?? '').trim()) args.push(`--target-priority=${String(targetPriority).trim()}`);
+  args.push(
+    `--limit=${boundedLimit}`,
+    '--write-files',
+    `--output-root=${resolvedOutputRoot}`,
+  );
+  publishProgress({
+    phase: 'crawl',
+    message: `starting bounded NPC crawl limit=${boundedLimit}`,
+    current: 0,
+    total: boundedLimit,
+  });
+  const result = await runCliImpl(args);
+  const actual = Number(result?.summary?.total ?? 0);
+  return {
+    phase: 'verify',
+    message: `completed bounded NPC crawl total=${actual}`,
+    current: actual,
+    total: actual,
+    outputPath: resolvedOutputRoot,
+    reportPath: result?.reportPath ?? null,
+    result,
+  };
+}
+
 function requireActionId(actionId) {
   if (!ACTION_IDS.has(actionId)) {
     throw new Error(`unsupported NPC crawler-fact actionId: ${actionId ?? ''}`);
@@ -111,7 +163,17 @@ async function runCli() {
   await runNpcCrawlerFactAction({
     actionId,
     progressPath: args['progress-path'] ?? null,
-    execute: async () => {
+    execute: async ({ publishProgress }) => {
+      if (actionId === NPC_CRAWLER_FACT_ACTION_IDS.preview) {
+        return runGovernedNpcCrawlerPreview({
+          repoRoot: process.env.WORKTREE_ROOT ?? process.cwd(),
+          targetsFile: args['targets-file'],
+          targetPriority: args['target-priority'] ?? null,
+          limit: args.limit,
+          outputRoot: args['output-root'] ?? null,
+          publishProgress,
+        });
+      }
       throw new Error(
         `${actionId} requires frozen crawler evidence and a governed executor; no crawler or database mutation was attempted`,
       );
