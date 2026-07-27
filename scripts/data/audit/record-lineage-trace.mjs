@@ -14,7 +14,7 @@ const mysql = require('mysql2/promise');
 
 const DEFAULTS = {
   entity: 'item',
-  landingDatabase: 'terria_v1_maint',
+  landingDatabase: 'terria_v1_local',
   maintDatabase: 'terria_v1_maint',
   relationDatabase: 'terria_v1_relation',
   localDatabase: 'terria_v1_local',
@@ -168,9 +168,15 @@ WHERE deleted = 0
       {
         stageId: 'landing.current_rows',
         title: 'Landing source rows',
-        sql: `SELECT *
+        sql: `SELECT *,
+       artifact_role AS artifactRole,
+       producer_id AS producerId,
+       producer_version AS producerVersion,
+       producer_run_key AS producerRunKey,
+       bootstrap_manifest_hash AS bootstrapManifestHash,
+       full_file_content_hash AS fullFileContentHash
 FROM ${landing}
-WHERE is_current = 1
+WHERE current_slot = 1
   AND (${itemLandingWhereClause(options)})`,
         params: itemLandingParams(options),
       },
@@ -249,9 +255,15 @@ WHERE deleted = 0 AND npc_id = ?`,
       {
         stageId: 'landing.current_rows',
         title: 'Landing source rows',
-        sql: `SELECT *
+        sql: `SELECT *,
+       artifact_role AS artifactRole,
+       producer_id AS producerId,
+       producer_version AS producerVersion,
+       producer_run_key AS producerRunKey,
+       bootstrap_manifest_hash AS bootstrapManifestHash,
+       full_file_content_hash AS fullFileContentHash
 FROM ${landing}
-WHERE is_current = 1
+WHERE current_slot = 1
   AND (${npcLandingWhereClause(options)})`,
         params: npcLandingParams(options),
       },

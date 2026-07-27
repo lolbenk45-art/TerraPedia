@@ -7,10 +7,16 @@ import { createRequire } from 'node:module';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { resolveProjectPath } from '../lib/project-root.mjs';
 
-const require = createRequire(import.meta.url);
+const repoRoot = resolveProjectPath();
+const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));
 const mysql = require('mysql2/promise');
 
-const repoRoot = resolveProjectPath();
+const LANDING_INTEGRITY_COUNT_KEYS = [
+  'duplicateCurrentIdentityCount',
+  'governedCurrentMissingIdentityCount',
+  'governedCompatExportCount',
+  'duplicateBootstrapManifestCount',
+];
 
 function parseArgs(argv) {
   const args = {};
@@ -55,11 +61,77 @@ export function buildDomainAuditPlan(compareDatabase) {
   ];
 }
 
+export function buildLandingIntegrityQueries() {
+  return [
+    {
+      id: 'duplicateCurrentIdentityCount',
+      sql: `SELECT COUNT(*) AS total
+FROM (
+  SELECT dataset_type, provider, source_key, source_page
+  FROM source_dataset_landings
+  WHERE current_slot = 1
+  GROUP BY dataset_type, provider, source_key, source_page
+  HAVING COUNT(*) > 1
+) duplicate_currents`,
+    },
+    {
+      id: 'governedCurrentMissingIdentityCount',
+      sql: `SELECT COUNT(*) AS total
+FROM source_dataset_landings
+WHERE dataset_type = 'item_groups_raw'
+  AND current_slot = 1
+  AND (
+    artifact_role IS NULL
+    OR producer_id IS NULL
+    OR producer_version IS NULL
+    OR producer_run_key IS NULL
+    OR full_file_content_hash IS NULL
+    OR full_file_byte_size IS NULL
+  )`,
+    },
+    {
+      id: 'governedCompatExportCount',
+      sql: `SELECT COUNT(*) AS total
+FROM source_dataset_landings
+WHERE dataset_type = 'item_groups_raw'
+  AND artifact_role = 'compat_export'`,
+    },
+    {
+      id: 'duplicateBootstrapManifestCount',
+      sql: `SELECT COUNT(*) AS total
+FROM (
+  SELECT dataset_type, provider, source_key, source_page, bootstrap_manifest_hash
+  FROM source_dataset_landings
+  WHERE bootstrap_manifest_hash IS NOT NULL
+  GROUP BY dataset_type, provider, source_key, source_page, bootstrap_manifest_hash
+  HAVING COUNT(*) > 1
+) duplicate_bootstraps`,
+    },
+  ];
+}
+
+export async function queryLandingIntegrityCounts(connection) {
+  const counts = {};
+  for (const { id, sql } of buildLandingIntegrityQueries()) {
+    const [rows] = await connection.query(sql);
+    const rawTotal = rows?.[0]?.total;
+    const total = ['number', 'string'].includes(typeof rawTotal) && String(rawTotal).trim()
+      ? Number(rawTotal)
+      : Number.NaN;
+    if (rows?.length !== 1 || !Number.isFinite(total)) {
+      throw new Error(`landing integrity query rejected: ${id} must return one numeric total`);
+    }
+    counts[id] = total;
+  }
+  return counts;
+}
+
 export function buildLandingAuditSummary({
   generatedAt,
   landingByType = [],
   landingByProvider = [],
   businessTableCounts = [],
+  integrityCounts = {},
 }) {
   const byType = {};
   let totalRows = 0;
@@ -88,12 +160,22 @@ export function buildLandingAuditSummary({
     };
   }
 
+  const normalizedIntegrityCounts = Object.fromEntries(
+    LANDING_INTEGRITY_COUNT_KEYS.map((key) => [key, Number(integrityCounts[key] ?? 0)]),
+  );
+  const blockingCount = Object.values(normalizedIntegrityCounts).filter((count) => count !== 0).length;
+
   return {
     generatedAt,
     landing: {
       totalRows,
       byType,
       byProvider,
+    },
+    integrity: {
+      status: blockingCount > 0 ? 'blocked' : 'pass',
+      blockingCount,
+      ...normalizedIntegrityCounts,
     },
     business,
   };
@@ -126,17 +208,18 @@ async function main() {
     const [landingByType] = await connection.query(
       `SELECT dataset_type AS datasetType, COUNT(*) AS total
        FROM source_dataset_landings
-       WHERE is_current = 1
+       WHERE current_slot = 1
        GROUP BY dataset_type
        ORDER BY dataset_type`,
     );
     const [landingByProvider] = await connection.query(
       `SELECT provider, COUNT(*) AS total
        FROM source_dataset_landings
-       WHERE is_current = 1
+       WHERE current_slot = 1
        GROUP BY provider
        ORDER BY provider`,
     );
+    const integrityCounts = await queryLandingIntegrityCounts(connection);
 
     const businessTableCounts = [];
     for (const planEntry of buildDomainAuditPlan(compareDatabase)) {
@@ -152,6 +235,7 @@ async function main() {
       landingByType,
       landingByProvider,
       businessTableCounts,
+      integrityCounts,
     });
 
     await fs.mkdir(path.dirname(reportPath), { recursive: true });

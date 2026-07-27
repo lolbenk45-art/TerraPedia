@@ -13,7 +13,7 @@ const execFileAsync = promisify(execFile);
 
 test('parseArgs defaults cross-db referential integrity audit to quick mode', () => {
   assert.deepEqual(parseArgs([]), {
-    landingDatabase: 'terria_v1_maint',
+    landingDatabase: 'terria_v1_local',
     maintDatabase: 'terria_v1_maint',
     relationDatabase: 'terria_v1_relation',
     localDatabase: 'terria_v1_local',
@@ -34,7 +34,7 @@ test('parseArgs preserves generatedAt for acceptance report timestamps', () => {
       '--date-tag=2026-05-07',
     ]),
     {
-      landingDatabase: 'terria_v1_maint',
+      landingDatabase: 'terria_v1_local',
       maintDatabase: 'terria_v1_maint',
       relationDatabase: 'terria_v1_relation',
       localDatabase: 'terria_v1_local',
@@ -58,6 +58,8 @@ test('buildCrossDbReferentialIntegrityQueries emits SELECT-only checks across la
 
   const byId = new Map(queries.map((query) => [query.id, query.sql]));
   assert.match(byId.get('maint_items_missing_current_landing'), /source_dataset_landings/);
+  assert.match(byId.get('maint_items_missing_current_landing'), /l\.current_slot = 1/);
+  assert.doesNotMatch(byId.get('maint_items_missing_current_landing'), /l\.is_current = 1/);
   assert.match(byId.get('maint_item_sources_missing_relation_facts'), /item_source_facts/);
   assert.match(byId.get('relation_shop_missing_local_entries'), /npc_shop_entries/);
   assert.match(byId.get('relation_loot_missing_local_entries'), /npc_loot_entries/);

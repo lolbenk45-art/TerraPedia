@@ -15,7 +15,7 @@ const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.jso
 const mysql = require('mysql2/promise');
 
 const DEFAULTS = {
-  landingDatabase: 'terria_v1_maint',
+  landingDatabase: 'terria_v1_local',
   maintDatabase: 'terria_v1_maint',
   relationDatabase: 'terria_v1_relation',
   localDatabase: 'terria_v1_local',
@@ -408,7 +408,7 @@ function quoteIdentifier(value) {
 }
 
 function currentLandingClause() {
-  return 'AND l.is_current = 1 AND l.deleted = 0';
+  return 'AND l.current_slot = 1 AND l.deleted = 0';
 }
 
 function maintRecencyFilter(alias, options) {
