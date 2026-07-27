@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 19:55 CST by Codex
+Last updated: 2026-07-27 20:08 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -12,9 +12,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
   blocked-by: exact operation-level authorization only at formal write/crawler/L1/L2/scheduler checkpoints;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
-  Task 1 now locks 13 pre-cutover group JSON production references; inventory
-  passes 1/1, landing passes 32/32, and the no-write domain baseline remains
-  35 pass / 10 warning / 0 blocked. Task 2 schema/ownership RED -> GREEN is next.
+  Task 1 locks 13 pre-cutover group JSON production references. Task 2 now
+  defines the 4 maint / 3 relation / 4 local canonical group tables, certified
+  source/admin partitions, and shared projection-state fence; its final suite
+  passes 30/30 and V57 remains unapplied. Task 3 bootstrap reconciliation is next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 

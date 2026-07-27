@@ -24,6 +24,12 @@
   separately authorized crawler artifact exists; missing import/backfill reports
   remain operation checkpoints rather than code defects; backend registry and
   Task 6-11 file ownership now use exact repository paths.
+- Task 2 implementation audit repaired two Important ownership/model defects:
+  local group rows retain `(canonical_key, source_layer)` so consumer-specific
+  winner selection remains possible, and the two projection-state writers share
+  one serialized singleton fence while all source-layer rows remain disjoint.
+  Local aliases likewise retain canonical key plus source layer so a valid
+  same-group override does not collide with its reference-layer alias.
 
 ## Scope
 
@@ -40,6 +46,11 @@
   with 13 production references; landing schema/import/audit/V56 contract suite
   passes 32/32; domain generation remains 45 panels, 35 pass, 10 warning,
   0 blocked, and 0 written.
+- Task 2 RED reproduced 11 expected contract failures after the test syntax was
+  corrected. The final schema/ownership/migration-byte suite passes 30/30.
+  Two GREEN-run defects were traced to an imprecise singleton-overlap diagnostic
+  and a stale local column catalog; their focused regression rerun passes 2/2.
+  V57 remains an unapplied migration artifact.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -52,7 +63,10 @@
 - Completed: closure scope, authorization boundary, source-chain decomposition, and executable master plan drafted.
 - Completed: Task 1 freezes the exact three-file production consumer inventory
   without suppressing the known runtime and pipeline readers.
-- Not completed: Tasks 2-16 and every formal authorization checkpoint.
+- Completed: Task 2 defines four maint, three relation, and four layer-preserving
+  local group tables plus disjoint source/admin ownership and a shared serialized
+  projection-state fence. See git for code-level diff details.
+- Not completed: Tasks 3-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -64,10 +78,11 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 2 schema/ownership contracts with RED -> GREEN; do
-  not apply V56/V57 to formal databases.
+- Coordinator: execute Task 3 frozen bootstrap parsing/reconciliation with RED
+  -> GREEN; do not apply V56/V57 or bootstrap data to formal databases.
 
 ## Commits
 
 - `7c43c439` `docs(plan): define automated ingestion closure`
-- Task 1 inventory checkpoint pending.
+- `4d279ad6` `test(data): lock canonical group consumers`
+- Task 2 schema/ownership checkpoint pending.

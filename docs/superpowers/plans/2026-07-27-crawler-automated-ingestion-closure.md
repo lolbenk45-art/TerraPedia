@@ -257,7 +257,7 @@ git commit -m "docs(plan): define automated ingestion closure"
 - Create: `scripts/data/item-groups/item-group-consumer-contract.test.mjs`
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
 
-- [ ] **Step 1: Add a passing exact inventory test for all three group compatibility inputs**
+- [x] **Step 1: Add a passing exact inventory test for all three group compatibility inputs**
 
 The test scans non-test production files for `recipe-material-reference.json`,
 `recipe-group-overrides.json`, and `item-group-overrides.json`. It snapshots each
@@ -272,7 +272,7 @@ assert.deepEqual(actualInventory, EXPECTED_PRE_CUTOVER_INVENTORY);
 assert.equal(actualInventory.some((row) => row.role === 'runtime_reader'), true);
 ```
 
-- [ ] **Step 2: Capture the no-write baseline**
+- [x] **Step 2: Capture the no-write baseline**
 
 Run:
 
@@ -288,7 +288,7 @@ node --test \
 Expected baseline: 45 panels, 35 pass, 10 warning, 0 blocked; landing suite
 passes. Record any drift before implementation.
 
-- [ ] **Step 3: Commit the inventory test**
+- [x] **Step 3: Commit the inventory test**
 
 ```bash
 git add scripts/data/item-groups/item-group-consumer-contract.test.mjs \
@@ -309,11 +309,16 @@ git commit -m "test(data): lock canonical group consumers"
 - Create: `scripts/data/item-groups/item-group-contract.mjs`
 - Create: `scripts/data/item-groups/item-group-contract.test.mjs`
 
-- [ ] **Step 1: Write RED schema contracts**
+- [x] **Step 1: Write RED schema contracts**
 
 Assert the exact four maint tables, three relation tables, four local tables,
-logical unique keys, restrictive same-database child keys, record-key lineage,
-published singleton state, and required source-layer fields.
+logical unique keys including local `(canonical_key, source_layer)`, restrictive
+same-database child keys, record-key lineage, published singleton state, and
+required source-layer fields. Source-derived versus admin rows use certified
+disjoint partitions; both writers use one identical serialized predicate for the
+singleton projection state so the runtime fence serializes them.
+Local aliases retain `(normalized_alias, canonical_key, source_layer)`; collisions
+across different canonical keys remain a processor-level blocking condition.
 
 ```js
 assert.deepEqual(ITEM_GROUP_SOURCE_LAYERS, [
@@ -323,7 +328,7 @@ assert.deepEqual(ITEM_GROUP_ALLOWED_LAYERS.recipe_expansion, ['recipe_reference'
 assert.match(localSql, /UNIQUE KEY `uk_item_group_projection_state_singleton`/);
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 ```bash
 node --test \
@@ -336,14 +341,15 @@ node --test \
 Expected: failures naming missing group tables, source-layer predicates, and
 projection-state contract.
 
-- [ ] **Step 3: Implement schema and ownership catalogs**
+- [x] **Step 3: Implement schema and ownership catalogs**
 
 Add `admin_item_group_writer` ownership restricted to
 `source_layer = 'central_override'`; add `item_group_canonical` ownership for
 `recipe_reference` and `source_group`. The ownership validator must certify
-these predicates as disjoint rather than treating the tables as globally owned.
+these row predicates as disjoint, allow only an identical serialized singleton
+predicate for shared projection-state ownership, and reject any other overlap.
 
-- [ ] **Step 4: Verify GREEN and migration bytes without applying them**
+- [x] **Step 4: Verify GREEN and migration bytes without applying them**
 
 ```bash
 node --test \
@@ -354,7 +360,7 @@ node --test \
   scripts/data/automation/crawler-automation-migration-contract.test.mjs
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add back/src/main/resources/db/migration/V57__create_canonical_item_group_runtime_tables.sql \

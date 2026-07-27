@@ -33,7 +33,18 @@ test('all reviewed shared tables expose every owner with conservative read/write
     ['relation:npc_buff_relations', ['buffs:write', 'npcs:read']],
     ['local:npc_buff_relations', ['buffs:write', 'npcs:read']],
     ['local:npc_biomes', ['biomes:write', 'npcs:read']],
-    ['local:item_acquisition_sources', ['biomes:write', 'items:read']]
+    ['local:item_acquisition_sources', ['biomes:write', 'items:read']],
+    ['maint:maint_item_groups', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['maint:maint_item_group_members', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['maint:maint_item_group_aliases', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['maint:maint_item_group_member_exclusions', ['admin_item_group_writer:write']],
+    ['relation:relation_item_groups', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['relation:relation_item_group_members', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['relation:relation_item_group_aliases', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['local:item_groups', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['local:item_group_members', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['local:item_group_aliases', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['local:item_group_projection_state', ['admin_item_group_writer:write', 'item_group_canonical:write']]
   ]);
   for (const [identity, owners] of expected) {
     const [databaseRole, table] = identity.split(':');
@@ -41,6 +52,55 @@ test('all reviewed shared tables expose every owner with conservative read/write
       .map((row) => `${row.capability}:${row.writeMode}`).sort();
     assert.deepEqual(actual, owners.sort(), identity);
   }
+});
+
+test('group source rows are disjoint while projection state shares one serialized fence', () => {
+  const sourceRows = findOwnershipRows('maint_item_groups', 'maint');
+  const canonical = sourceRows.find((row) => row.capability === 'item_group_canonical');
+  const admin = sourceRows.find((row) => row.capability === 'admin_item_group_writer');
+  assert.ok(canonical);
+  assert.ok(admin);
+  assert.equal(matchesOwnershipPredicate(canonical, { sourceLayer: 'recipe_reference' }), true);
+  assert.equal(matchesOwnershipPredicate(canonical, { sourceLayer: 'source_group' }), true);
+  assert.equal(matchesOwnershipPredicate(canonical, { sourceLayer: 'central_override' }), false);
+  assert.equal(matchesOwnershipPredicate(admin, { sourceLayer: 'central_override' }), true);
+  assert.doesNotThrow(() => assertNoOwnershipOverlap([canonical, admin]));
+
+  const stateRows = findOwnershipRows('item_group_projection_state', 'local');
+  assert.equal(stateRows.length, 2);
+  assert.deepEqual(stateRows[0].logicalPredicate, stateRows[1].logicalPredicate);
+  assert.deepEqual(stateRows[0].logicalPredicate, {
+    kind: 'serialized_singleton',
+    mutex: 'item_group_projection_state',
+    singletonKey: 1,
+    resolverVersion: 1,
+  });
+  assert.doesNotThrow(() => assertNoOwnershipOverlap(stateRows));
+});
+
+test('serialized overlap is accepted only for the same validated singleton mutex', () => {
+  const base = TABLE_OWNERSHIP_MATRIX.find(
+    (row) => row.key === 'local.item_group_projection_state.canonical',
+  );
+  assert.ok(base);
+  const predicate = {
+    kind: 'serialized_singleton',
+    mutex: 'item_group_projection_state',
+    singletonKey: 1,
+    resolverVersion: 1,
+  };
+  const rows = [
+    { ...base, key: 'local.npcs.serialized-a', capability: 'a', logicalPredicate: predicate },
+    { ...base, key: 'local.npcs.serialized-b', capability: 'b', logicalPredicate: predicate },
+  ];
+  assert.doesNotThrow(() => validateOwnershipMatrix(rows));
+  assert.throws(
+    () => validateOwnershipMatrix([
+      rows[0],
+      { ...rows[1], logicalPredicate: { ...predicate, mutex: 'different' } },
+    ]),
+    /overlap/i,
+  );
 });
 
 test('non-boss and Boss loot use certified disjoint predicate partitions', () => {

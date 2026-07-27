@@ -375,12 +375,22 @@ Add these tables to `terria_v1_local`:
 
 | Table | Ownership and logical key |
 | --- | --- |
-| `item_groups` | Active runtime group per `canonical_key`, carrying `source_layer` |
+| `item_groups` | Active runtime group per `(canonical_key, source_layer)` |
 | `item_group_members` | Runtime members per `(group_id, item_id)` |
-| `item_group_aliases` | Runtime alias per `normalized_alias` |
+| `item_group_aliases` | Runtime alias per `(normalized_alias, canonical_key, source_layer)` |
 | `item_group_projection_state` | Single published snapshot row |
 
-Only active, non-blocked, fully resolved relation rows are materialized. Runtime members reference local canonical items by database identity; compatibility names remain display and trace fields, not lookup authority. `source_layer` is indexed because it is the read-time predicate every consumer applies.
+Only active, non-blocked, fully resolved relation rows are materialized. Local
+retains one row per contributing source layer; collapsing to one global winner
+would discard the reference row needed by a narrower consumer after a
+`central_override` appears. Runtime members reference local canonical items by
+database identity; compatibility names remain display and trace fields, not
+lookup authority. `source_layer` is indexed because it is the read-time predicate
+every consumer applies, and winner selection occurs within that filtered subset.
+Aliases retain the same layer identity. The relation processor still blocks one
+normalized alias from resolving to different canonical keys; duplicate alias
+text for the same canonical key across layers is valid evidence and must not be
+collapsed before consumer filtering.
 
 The local projection carries relation record key, source content hash, canonical version, and materialized timestamp. `item_group_projection_state` is a singleton requiring canonical snapshot hash/version, relation run key, group/member/alias counts, publication status, and published timestamp. Runtime rows and their `PUBLISHED` state transition commit in the same local transaction, so API responses and acceptance audits can prove which complete snapshot they expose. One snapshot row rather than one per consumer means a single hash identifies what every consumer is reading.
 
@@ -602,7 +612,7 @@ Three writers touch the group tables and all three need ownership rows:
 | `admin_item_group_writer` | `central_override` rows and member exclusion rules, plus projection state | backend-owned, synchronous, ADMIN-authenticated, no approval queue |
 | `item_group_compat_export` | no database rows | filesystem only, never acquires a writer lock |
 
-Ownership is enforced by `source_layer` predicate intersection, so the admin writer cannot modify a source-derived row and the capability cannot modify an admin-authored one. An attempt to write outside the owned layer fails closed rather than succeeding with a warning.
+Ownership is enforced by `source_layer` predicate intersection, so the admin writer cannot modify a source-derived row and the capability cannot modify an admin-authored one. The singleton projection-state row is the deliberate exception to disjointness: both writers declare the same serialized singleton predicate and therefore contend on the same physical fence before either transaction starts. Different or unknown singleton predicates are not certified and fail as an overlap. An attempt to write outside the owned layer fails closed rather than succeeding with a warning.
 
 Writes serialize on physical ownership, not only domain name:
 

@@ -55,7 +55,10 @@ const EXPECTED_TABLE_NAMES = [
   'boss_effect_relations',
   'npc_series_nodes',
   'npc_series_memberships',
-  'npc_series_item_relations'
+  'npc_series_item_relations',
+  'relation_item_groups',
+  'relation_item_group_members',
+  'relation_item_group_aliases'
 ];
 
 function extractTableDdl(sql, tableName) {
@@ -99,6 +102,23 @@ test('buildRelationSchemaSql joins the statement list', () => {
   const sql = buildRelationSchemaSql();
   const statements = buildRelationSchemaStatements();
   assert.equal(sql, `${statements.join('\n\n')}\n`);
+});
+
+test('canonical item group relation tables preserve layers and restrictive lineage', () => {
+  const sql = buildRelationSchemaSql();
+  const groups = extractTableDdl(sql, 'relation_item_groups');
+  const members = extractTableDdl(sql, 'relation_item_group_members');
+  const aliases = extractTableDdl(sql, 'relation_item_group_aliases');
+
+  assert.match(groups, /UNIQUE KEY `uk_relation_item_groups_canonical_layer` \(`canonical_key`, `source_layer`\)/);
+  assert.match(groups, /`source_maint_record_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(groups, /`resolved_member_count` INT NOT NULL DEFAULT 0/);
+  assert.match(groups, /`ambiguous_member_count` INT NOT NULL DEFAULT 0/);
+  assert.match(members, /UNIQUE KEY `uk_relation_item_group_members_group_member` \(`group_record_key`, `member_key`\)/);
+  assert.match(members, /FOREIGN KEY \(`group_record_key`\) REFERENCES `terria_v1_relation`\.`relation_item_groups` \(`record_key`\) ON DELETE RESTRICT/);
+  assert.match(aliases, /UNIQUE KEY `uk_relation_item_group_aliases_group_alias` \(`group_record_key`, `normalized_alias`\)/);
+  assert.match(aliases, /KEY `idx_relation_item_group_aliases_normalized_alias` \(`normalized_alias`\)/);
+  assert.doesNotMatch(`${groups}\n${members}\n${aliases}`, /ON DELETE CASCADE/i);
 });
 
 test('table-scoped relation run metadata columns are correct', () => {

@@ -12,10 +12,32 @@ const COLUMN_MODES = new Set(['whole_table', 'columns']);
 
 const EXCLUSIVE_PARTITIONS = Object.freeze({
   maint_npc_kind: Object.freeze({ resolver: 'resolveNpcKind', partitions: new Set(['non_town', 'town']) }),
-  npc_loot_parent_kind: Object.freeze({ resolver: 'resolveNpcLootParentKind', partitions: new Set(['non_boss', 'boss']) })
+  npc_loot_parent_kind: Object.freeze({ resolver: 'resolveNpcLootParentKind', partitions: new Set(['non_boss', 'boss']) }),
+  item_group_source_layer: Object.freeze({
+    resolver: 'resolveItemGroupSourceLayer',
+    partitions: new Set(['source_derived', 'central_override'])
+  })
+});
+
+const SERIALIZED_SINGLETONS = Object.freeze({
+  item_group_projection_state: Object.freeze({
+    databaseRole: 'local', table: 'item_group_projection_state', singletonKey: 1
+  })
 });
 
 export const LOCAL_TARGET_SCHEMA_CATALOG = Object.freeze({
+  item_groups: Object.freeze(['canonical_key', 'canonical_name', 'canonical_version', 'created_at',
+    'deleted', 'id', 'materialized_at', 'name', 'name_zh', 'normalized_domains_json',
+    'record_key', 'relation_record_key', 'source_content_hash', 'source_layer', 'source_priority',
+    'status', 'updated_at']),
+  item_group_members: Object.freeze(['created_at', 'group_id', 'id', 'internal_name', 'item_id',
+    'member_key', 'name', 'name_zh', 'record_key', 'resolution_state', 'sort_order', 'source_item_id',
+    'updated_at']),
+  item_group_aliases: Object.freeze(['alias_kind', 'alias_language', 'alias_text', 'canonical_key',
+    'created_at', 'id', 'normalized_alias', 'record_key', 'sort_order', 'source_layer', 'updated_at']),
+  item_group_projection_state: Object.freeze(['alias_count', 'canonical_snapshot_hash',
+    'canonical_version', 'created_at', 'group_count', 'id', 'member_count', 'publication_status',
+    'published_at', 'relation_run_key', 'singleton_key', 'updated_at']),
   npcs: Object.freeze(['ai_style', 'banner_item_id', 'banner_source_item_id', 'behavior_notes',
     'boss_group_id', 'boss_role', 'buff_immune', 'catch_item_id', 'catch_source_item_id', 'category_id',
     'created_at', 'damage', 'defense', 'deleted', 'game_id', 'game_model_id', 'game_period_id', 'height',
@@ -51,6 +73,10 @@ function predicatePartition(group, partition) {
   return Object.freeze({ kind: 'partition', group, partition, resolver: EXCLUSIVE_PARTITIONS[group].resolver, resolverVersion: 1 });
 }
 
+function predicateSerializedSingleton(mutex, singletonKey) {
+  return Object.freeze({ kind: 'serialized_singleton', mutex, singletonKey, resolverVersion: 1 });
+}
+
 function row({
   key, capability, databaseRole, table, fieldGroup = 'all_columns', columnMode = 'whole_table',
   columns = null, logicalPredicate = predicateAll(), writeMode = 'write',
@@ -80,7 +106,10 @@ function capabilityForTable(table) {
 
 const SHARED_SCHEMA_TABLES = new Set([
   'maint_npcs', 'maint_item_sources', 'maint_item_biomes', 'item_source_facts', 'item_source_details',
-  'item_npc_shop_relations', 'item_npc_loot_relations', 'npc_buff_relations'
+  'item_npc_shop_relations', 'item_npc_loot_relations', 'npc_buff_relations',
+  'maint_item_groups', 'maint_item_group_members', 'maint_item_group_aliases',
+  'maint_item_group_member_exclusions', 'relation_item_groups', 'relation_item_group_members',
+  'relation_item_group_aliases'
 ]);
 
 const schemaRows = [...MAINT_TABLE_CATALOG, ...RELATION_TABLE_CATALOG, ...PROJECTION_TABLE_CATALOG]
@@ -118,7 +147,21 @@ const sharedRows = [
   row({ key: 'relation.item_npc_loot_relations.npc_loot_read', capability: 'npc_loot', databaseRole: 'relation', table: 'item_npc_loot_relations', writeMode: 'read', rollbackMode: 'none' }),
   row({ key: 'relation.item_npc_loot_relations.boss_loot_read', capability: 'boss_loot', databaseRole: 'relation', table: 'item_npc_loot_relations', writeMode: 'read', rollbackMode: 'none' }),
   row({ key: 'relation.npc_buff_relations.buffs', capability: 'buffs', databaseRole: 'relation', table: 'npc_buff_relations' }),
-  row({ key: 'relation.npc_buff_relations.npcs_read', capability: 'npcs', databaseRole: 'relation', table: 'npc_buff_relations', writeMode: 'read', rollbackMode: 'none' })
+  row({ key: 'relation.npc_buff_relations.npcs_read', capability: 'npcs', databaseRole: 'relation', table: 'npc_buff_relations', writeMode: 'read', rollbackMode: 'none' }),
+  ...['maint_item_groups', 'maint_item_group_members', 'maint_item_group_aliases'].flatMap((table) => [
+    row({ key: `maint.${table}.canonical`, capability: 'item_group_canonical', databaseRole: 'maint', table,
+      logicalPredicate: predicatePartition('item_group_source_layer', 'source_derived') }),
+    row({ key: `maint.${table}.admin`, capability: 'admin_item_group_writer', databaseRole: 'maint', table,
+      logicalPredicate: predicatePartition('item_group_source_layer', 'central_override') })
+  ]),
+  row({ key: 'maint.maint_item_group_member_exclusions.admin', capability: 'admin_item_group_writer',
+    databaseRole: 'maint', table: 'maint_item_group_member_exclusions' }),
+  ...['relation_item_groups', 'relation_item_group_members', 'relation_item_group_aliases'].flatMap((table) => [
+    row({ key: `relation.${table}.canonical`, capability: 'item_group_canonical', databaseRole: 'relation', table,
+      logicalPredicate: predicatePartition('item_group_source_layer', 'source_derived') }),
+    row({ key: `relation.${table}.admin`, capability: 'admin_item_group_writer', databaseRole: 'relation', table,
+      logicalPredicate: predicatePartition('item_group_source_layer', 'central_override') })
+  ])
 ];
 
 const SYSTEM_MANAGED_COLUMNS = new Set(['id', 'created_at', 'updated_at']);
@@ -180,7 +223,19 @@ const localRows = [
     table: 'item_acquisition_sources', columnMode: 'columns', columns: mutableColumns('item_acquisition_sources'),
     writeMode: 'read', rollbackMode: 'none' }),
   row({ key: 'local.items.category_id', capability: 'category_support', databaseRole: 'local', table: 'items',
-    fieldGroup: 'category_id', columnMode: 'columns', columns: ['category_id'] })
+    fieldGroup: 'category_id', columnMode: 'columns', columns: ['category_id'] }),
+  ...['item_groups', 'item_group_members', 'item_group_aliases'].flatMap((table) => [
+    row({ key: `local.${table}.canonical`, capability: 'item_group_canonical', databaseRole: 'local', table,
+      logicalPredicate: predicatePartition('item_group_source_layer', 'source_derived') }),
+    row({ key: `local.${table}.admin`, capability: 'admin_item_group_writer', databaseRole: 'local', table,
+      logicalPredicate: predicatePartition('item_group_source_layer', 'central_override') })
+  ]),
+  row({ key: 'local.item_group_projection_state.canonical', capability: 'item_group_canonical',
+    databaseRole: 'local', table: 'item_group_projection_state',
+    logicalPredicate: predicateSerializedSingleton('item_group_projection_state', 1) }),
+  row({ key: 'local.item_group_projection_state.admin', capability: 'admin_item_group_writer',
+    databaseRole: 'local', table: 'item_group_projection_state',
+    logicalPredicate: predicateSerializedSingleton('item_group_projection_state', 1) })
 ];
 
 export const TABLE_OWNERSHIP_MATRIX = Object.freeze([...schemaRows, ...sharedRows, ...localRows]);
@@ -209,6 +264,17 @@ function predicatesAreCertifiedDisjoint(left, right) {
     && leftPredicate.partition !== rightPredicate.partition);
 }
 
+function predicatesShareCertifiedSerialization(left, right) {
+  const leftPredicate = left.logicalPredicate;
+  const rightPredicate = right.logicalPredicate;
+  if (leftPredicate.kind !== 'serialized_singleton' || rightPredicate.kind !== 'serialized_singleton') {
+    return false;
+  }
+  return leftPredicate.mutex === rightPredicate.mutex
+    && leftPredicate.singletonKey === rightPredicate.singletonKey
+    && leftPredicate.resolverVersion === rightPredicate.resolverVersion;
+}
+
 export function assertNoOwnershipOverlap(rows) {
   const writers = rows.filter((entry) => entry.writeMode === 'write');
   for (let leftIndex = 0; leftIndex < writers.length; leftIndex += 1) {
@@ -216,7 +282,9 @@ export function assertNoOwnershipOverlap(rows) {
       const left = writers[leftIndex];
       const right = writers[rightIndex];
       if (left.databaseRole !== right.databaseRole || left.table !== right.table) continue;
-      if (columnsIntersect(left, right) && !predicatesAreCertifiedDisjoint(left, right)) {
+      if (columnsIntersect(left, right)
+        && !predicatesAreCertifiedDisjoint(left, right)
+        && !predicatesShareCertifiedSerialization(left, right)) {
         throw new Error(`ownership overlap: ${left.key} intersects ${right.key}`);
       }
     }
@@ -257,6 +325,14 @@ export function validateOwnershipMatrix(rows = TABLE_OWNERSHIP_MATRIX) {
         throw new Error(`unknown predicate partition or resolver for ${entry.key}`);
       }
     }
+    if (predicate.kind === 'serialized_singleton') {
+      const singletonSpec = SERIALIZED_SINGLETONS[predicate.mutex];
+      if (!singletonSpec || singletonSpec.databaseRole !== entry.databaseRole
+        || singletonSpec.table !== entry.table || singletonSpec.singletonKey !== predicate.singletonKey
+        || predicate.resolverVersion !== 1) {
+        throw new Error(`ownership overlap: unknown serialized singleton predicate for ${entry.key}`);
+      }
+    }
     if (!Number.isInteger(entry.logicalKeySchemaVersion) || entry.logicalKeySchemaVersion < 1) {
       throw new Error(`invalid logicalKeySchemaVersion for ${entry.key}`);
     }
@@ -268,11 +344,16 @@ export function validateOwnershipMatrix(rows = TABLE_OWNERSHIP_MATRIX) {
 }
 
 function requireStructuredPredicate(predicate, key) {
-  if (!predicate || typeof predicate !== 'object' || !['all', 'partition'].includes(predicate.kind)) {
+  if (!predicate || typeof predicate !== 'object'
+    || !['all', 'partition', 'serialized_singleton'].includes(predicate.kind)) {
     throw new Error(`structured logicalPredicate is required for ${key}`);
   }
   if (predicate.kind === 'partition' && (!predicate.group || !predicate.partition)) {
     throw new Error(`predicate group and partition are required for ${key}`);
+  }
+  if (predicate.kind === 'serialized_singleton'
+    && (!predicate.mutex || !Number.isInteger(predicate.singletonKey))) {
+    throw new Error(`serialized singleton mutex and key are required for ${key}`);
   }
   return predicate;
 }
@@ -286,6 +367,9 @@ export function findOwnershipRows(table, databaseRole) {
 export function matchesOwnershipPredicate(entry, candidate) {
   const predicate = requireStructuredPredicate(entry.logicalPredicate, entry.key);
   if (predicate.kind === 'all') return true;
+  if (predicate.kind === 'serialized_singleton') {
+    return Number(candidate.singletonKey ?? candidate.singleton_key) === predicate.singletonKey;
+  }
   const resolver = {
     resolveNpcKind: (value) => {
       const marker = value.isTownNpc ?? value.is_town_npc;
@@ -297,6 +381,12 @@ export function matchesOwnershipPredicate(entry, candidate) {
       const parentKind = value.parentKind ?? value.parent_kind;
       if (parentKind === 'non_boss' && (value.dropSourceKind ?? value.drop_source_kind) === 'npc_drop') return 'non_boss';
       if (parentKind === 'boss' && (value.bossGroupDeclared ?? value.boss_group_declared) === true) return 'boss';
+      return null;
+    },
+    resolveItemGroupSourceLayer: (value) => {
+      const layer = value.sourceLayer ?? value.source_layer;
+      if (layer === 'recipe_reference' || layer === 'source_group') return 'source_derived';
+      if (layer === 'central_override') return 'central_override';
       return null;
     }
   }[predicate.resolver];

@@ -31,6 +31,10 @@ export const MAINT_TABLE_NAMES = [
   'maint_shimmer_decraft_rules',
   'maint_shimmer_entity_transforms',
   'maint_shimmer_npc_transforms',
+  'maint_item_groups',
+  'maint_item_group_members',
+  'maint_item_group_aliases',
+  'maint_item_group_member_exclusions',
 ];
 
 export const MAINT_TABLE_CATALOG = Object.freeze(MAINT_TABLE_NAMES.map((table) => Object.freeze({
@@ -1026,6 +1030,98 @@ CREATE TABLE IF NOT EXISTS \`maint_shimmer_npc_transforms\` (
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_shimmer_npc_transforms_record_key\` (\`record_key\`),
   KEY \`idx_maint_shimmer_npc_transforms_code\` (\`code\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_groups\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`canonical_key\` VARCHAR(255) NOT NULL,
+  \`canonical_name\` VARCHAR(255) DEFAULT NULL,
+  \`display_name\` VARCHAR(255) DEFAULT NULL,
+  \`display_name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`normalized_domains_json\` LONGTEXT,
+  \`source_layer\` VARCHAR(32) NOT NULL,
+  \`source_priority\` INT NOT NULL,
+  \`source_provider\` VARCHAR(128) DEFAULT NULL,
+  \`source_key\` VARCHAR(255) NOT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_locator\` VARCHAR(500) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`landing_source_id\` BIGINT DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) DEFAULT NULL,
+  \`provenance_mode\` VARCHAR(32) NOT NULL,
+  \`admin_audit_record_key\` CHAR(64) DEFAULT NULL,
+  \`status\` VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  \`block_reason\` VARCHAR(255) DEFAULT NULL,
+  \`source_metadata_json\` LONGTEXT,
+  \`canonical_version\` BIGINT NOT NULL,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_groups_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_groups_canonical_layer_source\` (\`canonical_key\`, \`source_layer\`, \`source_key\`),
+  KEY \`idx_maint_item_groups_layer_status\` (\`source_layer\`, \`status\`, \`deleted\`),
+  CHECK (\`source_layer\` IN ('recipe_reference', 'source_group', 'central_override'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_group_members\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`group_record_key\` CHAR(64) NOT NULL,
+  \`source_item_id\` INT DEFAULT NULL,
+  \`internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`name\` VARCHAR(255) DEFAULT NULL,
+  \`name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`member_key\` VARCHAR(255) NOT NULL,
+  \`sort_order\` INT NOT NULL DEFAULT 0,
+  \`source_metadata_json\` LONGTEXT,
+  \`resolution_hint\` VARCHAR(255) DEFAULT NULL,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_group_members_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_group_members_group_member\` (\`group_record_key\`, \`member_key\`),
+  KEY \`idx_maint_item_group_members_group_record_key\` (\`group_record_key\`),
+  CONSTRAINT \`fk_maint_item_group_members_group_record_key\`
+    FOREIGN KEY (\`group_record_key\`) REFERENCES \`maint_item_groups\` (\`record_key\`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_group_aliases\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`group_record_key\` CHAR(64) NOT NULL,
+  \`alias_text\` VARCHAR(255) NOT NULL,
+  \`normalized_alias\` VARCHAR(255) NOT NULL,
+  \`alias_kind\` VARCHAR(32) NOT NULL,
+  \`alias_language\` VARCHAR(16) DEFAULT NULL,
+  \`sort_order\` INT NOT NULL DEFAULT 0,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_group_aliases_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_group_aliases_group_alias\` (\`group_record_key\`, \`normalized_alias\`),
+  KEY \`idx_maint_item_group_aliases_group_record_key\` (\`group_record_key\`),
+  CONSTRAINT \`fk_maint_item_group_aliases_group_record_key\`
+    FOREIGN KEY (\`group_record_key\`) REFERENCES \`maint_item_groups\` (\`record_key\`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_group_member_exclusions\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`canonical_key\` VARCHAR(255) NOT NULL,
+  \`member_key\` VARCHAR(255) NOT NULL,
+  \`reason\` VARCHAR(500) NOT NULL,
+  \`actor\` VARCHAR(255) NOT NULL,
+  \`evidence_reference\` VARCHAR(1000) NOT NULL,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_group_member_exclusions_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_group_member_exclusions_group_member\` (\`canonical_key\`, \`member_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `.trim();
 }
