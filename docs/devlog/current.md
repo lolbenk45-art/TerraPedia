@@ -1,10 +1,20 @@
 # Current Devlog
 
-Last updated: 2026-07-27 19:22 CST by Codex
+Last updated: 2026-07-27 19:47 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Open Work
+
+- Automated-ingestion closure execution is active.
+  Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
+  worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
+  child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
+  blocked-by: exact operation-level authorization only at formal write/crawler/L1/L2/scheduler checkpoints;
+  contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
+  Serial execution begins with fresh consumer inventory, group CODE_READY/T1, NPC
+  fixture CODE_READY, and exact authorization packets. Real NPC T1, nine warning
+  panels, T2, and the first L1 remain distinct authorization checkpoints.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
