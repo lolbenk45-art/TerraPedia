@@ -47,7 +47,7 @@ The following are safe to execute without another formal-write authorization:
 
 Each of the following is a separate hard checkpoint and cannot share approval:
 
-- formal V56/V57 schema application;
+- formal V56/V57/V58 schema application;
 - frozen group bootstrap apply;
 - frozen NPC base/crawler-fact apply;
 - first real crawler execution;
@@ -98,6 +98,7 @@ retired bridge path.
 
 ### Shared schema and ownership
 
+- `back/src/main/resources/db/migration/V58__create_crawler_automation_activation_decisions.sql`
 - `back/src/main/resources/db/migration/V57__create_canonical_item_group_runtime_tables.sql`
 - `scripts/data/maint/maint-schema.mjs`
 - `scripts/data/maint/maint-schema.test.mjs`
@@ -1056,8 +1057,8 @@ formal schema/fingerprints but must not mutate databases.
 ```bash
 node --test scripts/data/automation/build-canonical-cutover-authorization.test.mjs
 node scripts/data/automation/build-canonical-cutover-authorization.mjs \
-  --mode=request --operation-id=canonical-schema-v56-v57 \
-  --output=reports/authorization/canonical/canonical-schema-v56-v57.request.json
+  --mode=request --operation-id=canonical-schema-v56-v58 \
+  --output=reports/authorization/canonical/canonical-schema-v56-v58.request.json
 ```
 
 The remaining stable IDs are `canonical-item-group-bootstrap`,
@@ -1098,7 +1099,7 @@ actor/reference/exact-hash approval.
   `docs/project-governance/00_CURRENT_SPEC.md`
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
 
-- [ ] **Step 1: Apply authorized V56/V57 schema packet**
+- [ ] **Step 1: Apply authorized V56/V57/V58 schema packet**
 - [ ] **Step 2: Re-read schema and verify exact table/index fingerprints**
 - [ ] **Step 3: Apply authorized frozen group bootstrap once**
 - [ ] **Step 4: Run shadow parity, disable group JSON fallback, restart through standard scripts, and run read-only API/runtime smoke**
@@ -1139,6 +1140,12 @@ patch and re-audit this plan before executing; do not substitute dynamically.
 ## Task 15: Gate L2 And Scheduler Availability
 
 **Files:**
+- Create: `back/src/main/resources/db/migration/V58__create_crawler_automation_activation_decisions.sql`
+- Modify: `scripts/data/automation/crawler-automation-migration-contract.test.mjs`
+- Modify: `scripts/data/automation/build-canonical-cutover-authorization.mjs`
+- Modify: `scripts/data/automation/build-canonical-cutover-authorization.test.mjs`
+- Create: `back/src/main/java/com/terraria/skills/mapper/CrawlerAutomationActivationDecisionMapper.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/CrawlerAutomationPolicyService.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImpl.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImplTest.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationServiceImpl.java`
@@ -1149,8 +1156,22 @@ patch and re-audit this plan before executing; do not substitute dynamically.
   `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
 
-- [ ] **Step 1: Add tests requiring repeated successful L1 evidence, no open circuit breaker, fresh policy hash, and explicit promotion decision**
-- [ ] **Step 2: Verify scheduler refuses all L0/L1/disabled/stale domains**
+V58 stores append-only `L2_PROMOTION` and `SCHEDULER_ACTIVATION` decisions with
+the exact domain, policy version/hash, policy-set hash, minimum successful L1
+count, actor, reason, authorization reference, one-time decision identity,
+packet hash, authorization time, and expiry. The schema enforces at least two
+successful L1 applies for promotion and immutable update/delete triggers. V58
+is an unapplied artifact until the replacement `canonical-schema-v56-v58`
+request receives exact Owner authorization.
+
+- [x] **Step 1: Add tests requiring at least two successful L1 applies, no open circuit breaker, exact current policy version/hash/set, and a fresh explicit promotion decision**
+- [x] **Step 2: Verify scheduler refuses all L0/L1/disabled/stale domains**
+
+The scheduler eligibility check also requires a fresh exact
+`SCHEDULER_ACTIVATION` decision. Neither eligibility check may infer approval
+from `crawler_automation_policy_version.approved_by` or `reason`. The existing
+V1 changed-only wiki crawler scheduler is not the automated-ingestion scheduler
+and remains untouched.
 
 ```bash
 cd back && mvn -Dtest=CrawlerAutomationPolicyServiceImplTest,CrawlerAutomationServiceImplTest,CrawlerMonitorServiceImplTest test

@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.entity.CrawlerAutomationApproval;
 import com.terraria.skills.mapper.CrawlerAutomationApprovalMapper;
+import com.terraria.skills.mapper.CrawlerAutomationActivationDecisionMapper;
 import com.terraria.skills.mapper.CrawlerAutomationDecisionMapper;
 import com.terraria.skills.mapper.CrawlerAutomationPolicyMapper;
 import com.terraria.skills.mapper.CrawlerAutomationRunMapper;
@@ -25,6 +26,8 @@ import com.terraria.skills.service.CrawlerAutomationPolicyService.PolicyRow;
 import com.terraria.skills.service.CrawlerAutomationPolicyService.PolicyState;
 import com.terraria.skills.service.CrawlerAutomationPolicyService.ScopeChangeCounts;
 import com.terraria.skills.service.CrawlerAutomationPolicyService.RunPolicyRow;
+import com.terraria.skills.service.CrawlerAutomationPolicyService.ActivationDecisionRecord;
+import com.terraria.skills.service.CrawlerAutomationPolicyService.AutomationEligibility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,6 +63,7 @@ class CrawlerAutomationPolicyServiceImplTest {
     private static final String DIFF_HASH = sha(DIFF_IDENTITY);
 
     private CrawlerAutomationApprovalMapper approvalMapper;
+    private CrawlerAutomationActivationDecisionMapper activationDecisionMapper;
     private CrawlerAutomationRunMapper runMapper;
     private CrawlerAutomationPolicyMapper policyMapper;
     private CrawlerAutomationDecisionMapper decisionMapper;
@@ -69,6 +74,7 @@ class CrawlerAutomationPolicyServiceImplTest {
     @BeforeEach
     void setUp() {
         approvalMapper = mock(CrawlerAutomationApprovalMapper.class);
+        activationDecisionMapper = mock(CrawlerAutomationActivationDecisionMapper.class);
         runMapper = mock(CrawlerAutomationRunMapper.class);
         policyMapper = mock(CrawlerAutomationPolicyMapper.class);
         decisionMapper = mock(CrawlerAutomationDecisionMapper.class);
@@ -78,8 +84,18 @@ class CrawlerAutomationPolicyServiceImplTest {
         when(runMapper.countStaleRunPolicies("run-1")).thenReturn(0);
         when(runMapper.findRunPolicies("run-1")).thenReturn(List.of(new RunPolicyRow("recipes", 1, POLICY_HASH, POLICY_SET_HASH)));
         when(policyMapper.findPolicyState("recipes")).thenReturn(new PolicyState("recipes", 1, POLICY_HASH, "L2", "ACTIVE"));
+        when(policyMapper.findCurrentPolicyRows()).thenReturn(List.of(new PolicyRow("recipes", 1, POLICY_HASH)));
+        when(activationDecisionMapper.countSuccessfulL1Applies(
+            "recipes", 1, POLICY_HASH, POLICY_SET_HASH)).thenReturn(2);
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "recipes"))
+            .thenReturn(activationDecision("L2_PROMOTION", POLICY_HASH,
+                LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1)));
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "recipes"))
+            .thenReturn(activationDecision("SCHEDULER_ACTIVATION", POLICY_HASH,
+                LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1)));
         TransactionSynchronizationManager.setActualTransactionActive(true);
         service = new CrawlerAutomationPolicyServiceImpl(approvalMapper, runMapper, policyMapper, decisionMapper,
+            activationDecisionMapper,
             new ObjectMapper(), applyContextProvider, applyProtocolExecutor);
     }
 
@@ -128,6 +144,87 @@ class CrawlerAutomationPolicyServiceImplTest {
         Decision decision = service.evaluate(request("L2", counts(100, 10, 10, 5, 0), false, false, true));
         assertEquals(DecisionType.AUTO_APPLY_L2, decision.type());
         assertTrue(decision.writeIntent());
+    }
+
+    @Test
+    void oneSuccessfulL1ApplyCannotCreateL2WriteIntent() {
+        when(activationDecisionMapper.countSuccessfulL1Applies(
+            "recipes", 1, POLICY_HASH, POLICY_SET_HASH)).thenReturn(1);
+
+        Decision decision = service.evaluate(request("L2", counts(100, 1, 0, 0, 0), false, false, true));
+
+        assertEquals(DecisionType.BLOCKED_L0, decision.type());
+        assertTrue(decision.reasonCodes().contains("L2_REPEATED_L1_EVIDENCE_REQUIRED"));
+        assertFalse(decision.writeIntent());
+    }
+
+    @Test
+    void missingExpiredOrMismatchedPromotionDecisionCannotCreateL2WriteIntent() {
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "recipes"))
+            .thenReturn(null)
+            .thenReturn(activationDecision("L2_PROMOTION", POLICY_HASH,
+                LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1)))
+            .thenReturn(activationDecision("L2_PROMOTION", sha('f'),
+                LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1)))
+            .thenReturn(new ActivationDecisionRecord(
+                "L2_PROMOTION", "recipes", 1, POLICY_HASH, sha('f'), 2,
+                "owner", "operation-specific reason", "decision://automation/recipes",
+                "decision-identity-2", sha('q'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true
+            ));
+
+        for (String reason : List.of(
+            "L2_PROMOTION_DECISION_REQUIRED",
+            "L2_PROMOTION_DECISION_STALE",
+            "L2_PROMOTION_POLICY_IDENTITY_MISMATCH",
+            "L2_PROMOTION_POLICY_SET_MISMATCH"
+        )) {
+            Decision decision = service.evaluate(request("L2", counts(100, 1, 0, 0, 0), false, false, true));
+            assertEquals(DecisionType.BLOCKED_L0, decision.type());
+            assertTrue(decision.reasonCodes().contains(reason), reason);
+            assertFalse(decision.writeIntent());
+        }
+    }
+
+    @Test
+    void schedulerRejectsL0L1DisabledCircuitAndStalePolicyStates() {
+        List<PolicyState> states = List.of(
+            new PolicyState("recipes", 1, POLICY_HASH, "L0", "ACTIVE"),
+            new PolicyState("recipes", 1, POLICY_HASH, "L1", "ACTIVE"),
+            new PolicyState("recipes", 1, POLICY_HASH, "L2", "DISABLED"),
+            new PolicyState("recipes", 1, POLICY_HASH, "L2", "CIRCUIT_OPEN"),
+            new PolicyState("recipes", 2, sha('f'), "L2", "ACTIVE")
+        );
+
+        for (PolicyState state : states) {
+            when(policyMapper.findPolicyState("recipes")).thenReturn(state);
+            AutomationEligibility eligibility = service.schedulerEligibility("recipes");
+            assertFalse(eligibility.eligible(), state.toString());
+        }
+    }
+
+    @Test
+    void schedulerRequiresFreshExactActivationDecisionAfterPromotionEligibility() {
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "recipes"))
+            .thenReturn(null)
+            .thenReturn(activationDecision("SCHEDULER_ACTIVATION", POLICY_HASH,
+                LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1)));
+
+        AutomationEligibility missing = service.schedulerEligibility("recipes");
+        AutomationEligibility expired = service.schedulerEligibility("recipes");
+
+        assertFalse(missing.eligible());
+        assertTrue(missing.reasonCodes().contains("SCHEDULER_ACTIVATION_DECISION_REQUIRED"));
+        assertFalse(expired.eligible());
+        assertTrue(expired.reasonCodes().contains("SCHEDULER_ACTIVATION_DECISION_STALE"));
+    }
+
+    @Test
+    void schedulerIsEligibleOnlyWhenPromotionAndActivationContractsAreExact() {
+        AutomationEligibility eligibility = service.schedulerEligibility("recipes");
+
+        assertTrue(eligibility.eligible());
+        assertEquals(List.of(), eligibility.reasonCodes());
     }
 
     @Test
@@ -315,6 +412,26 @@ class CrawlerAutomationPolicyServiceImplTest {
     }
 
     @Test
+    void l2ExecutionRejectsPromotionExpiryBeforeApplyWork() {
+        DecisionContext l2 = new DecisionContext("run-1", "SNAPSHOT_READY", 4L, "AUTO_APPLY_L2", DIFF_HASH,
+            "[\"WITHIN_POLICY_CEILINGS\"]", POLICY_SET_HASH, EVIDENCE_HASH, BUNDLE_HASH, DIFF_HASH,
+            DIFF_IDENTITY, BASELINE, "recipe-reference-apply", true);
+        ActivationDecisionRecord fresh = activationDecision("L2_PROMOTION", POLICY_HASH,
+            LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1));
+        ActivationDecisionRecord expired = activationDecision("L2_PROMOTION", POLICY_HASH,
+            LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1));
+        when(runMapper.findDecisionContext("run-1", DIFF_HASH)).thenReturn(l2);
+        when(applyContextProvider.load("run-1", DIFF_HASH, ApplyMode.AUTO_APPLY_L2)).thenReturn(trustedContext());
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "recipes"))
+            .thenReturn(fresh, expired);
+        ApplyAuthorization authorization = service.authorizeApply(new ApplyAuthorizationRequest(
+            "run-1", DIFF_HASH, ApplyMode.AUTO_APPLY_L2));
+
+        assertThrows(IllegalStateException.class, () -> service.executeAutoApplyL2(authorization));
+        verifyNoInteractions(applyProtocolExecutor);
+    }
+
+    @Test
     void disabledPolicyRejectsApplyAuthorization() {
         when(runMapper.findDecisionContext("run-1", DIFF_HASH)).thenReturn(context());
         when(runMapper.countStaleRunPolicies("run-1")).thenReturn(1);
@@ -408,6 +525,20 @@ class CrawlerAutomationPolicyServiceImplTest {
         approval.setLogicalDiffIdentityJson(DIFF_IDENTITY); approval.setBaselineFingerprint(BASELINE); approval.setPlannedApplyActionId("recipe-reference-apply");
         approval.setReason("reviewed"); approval.setAction("APPROVE"); approval.setRunVersion(4L); approval.setVersion(0L);
         return approval;
+    }
+
+    private static ActivationDecisionRecord activationDecision(
+        String decisionKind,
+        String policyHash,
+        LocalDateTime authorizedAt,
+        LocalDateTime expiresAt
+    ) {
+        return new ActivationDecisionRecord(
+            decisionKind, "recipes", 1, policyHash, POLICY_SET_HASH, 2,
+            "owner", "operation-specific reason", "decision://automation/recipes",
+            "decision-identity-1", sha('p'), authorizedAt, expiresAt,
+            !authorizedAt.isAfter(LocalDateTime.now()) && expiresAt.isAfter(LocalDateTime.now())
+        );
     }
 
     private static String sha(char value) { return sha(String.valueOf(value).repeat(64)); }

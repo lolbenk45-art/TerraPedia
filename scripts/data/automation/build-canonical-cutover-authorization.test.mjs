@@ -19,7 +19,7 @@ const EXPIRES_AT = '2026-07-28T15:00:00.000Z';
 
 function technicalInput(overrides = {}) {
   return {
-    operationId: 'canonical-schema-v56-v57',
+    operationId: 'canonical-schema-v56-v58',
     targetDatabases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
     serverFingerprint: {
       host: '127.0.0.1',
@@ -30,6 +30,7 @@ function technicalInput(overrides = {}) {
     schemaEntries: [
       { path: 'back/src/main/resources/db/migration/V56.sql', bytes: 'CREATE TABLE a (id INT);\n' },
       { path: 'back/src/main/resources/db/migration/V57.sql', bytes: 'CREATE TABLE b (id INT);\n' },
+      { path: 'back/src/main/resources/db/migration/V58.sql', bytes: 'CREATE TABLE c (id INT);\n' },
     ],
     dataEntries: [],
     policyRows: [{ domainId: 'biomes', policyVersion: 1, policyHash: HASH }],
@@ -43,7 +44,7 @@ test('authorization request freezes all technical identity and remains AWAITING_
   const request = buildCanonicalAuthorizationRequest(technicalInput());
 
   assert.equal(request.authorizationStatus, 'AWAITING_OWNER');
-  assert.equal(request.operationId, 'canonical-schema-v56-v57');
+  assert.equal(request.operationId, 'canonical-schema-v56-v58');
   assert.match(request.serverFingerprint, /^sha256:[a-f0-9]{64}$/);
   assert.match(request.schemaBundleSha256, /^sha256:[a-f0-9]{64}$/);
   assert.match(request.dataBundleSha256, /^sha256:[a-f0-9]{64}$/);
@@ -52,6 +53,7 @@ test('authorization request freezes all technical identity and remains AWAITING_
   assert.deepEqual(request.schemaBundleEntries.map((entry) => entry.path), [
     'back/src/main/resources/db/migration/V56.sql',
     'back/src/main/resources/db/migration/V57.sql',
+    'back/src/main/resources/db/migration/V58.sql',
   ]);
   assert.ok(request.schemaBundleEntries.every((entry) => (
     Number.isInteger(entry.sizeBytes)
@@ -91,7 +93,7 @@ test('authorize requires exact Owner fields and unchanged request-bound technica
   const request = buildCanonicalAuthorizationRequest(technicalInput());
   const owner = {
     actor: 'system-owner@example.test',
-    reason: 'Approve the exact V56/V57 schema bundle for formal cutover.',
+    reason: 'Approve the exact V56/V57/V58 schema bundle for formal cutover.',
     authorizationReference: 'decision://canonical-schema/2026-07-28',
     decisionIdentity: 'canonical-schema-decision-001',
     authorizedAt: '2026-07-27T16:00:00.000Z',
@@ -202,7 +204,7 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
     request,
     requestHash: request.requestHash,
     actor: 'system-owner@example.test',
-    reason: 'Approve the exact V56/V57 schema bundle for formal cutover.',
+    reason: 'Approve the exact V56/V57/V58 schema bundle for formal cutover.',
     authorizationReference: 'decision://canonical-schema/2026-07-28',
     decisionIdentity: 'canonical-schema-decision-002',
     authorizedAt: '2026-07-27T16:00:00.000Z',
@@ -231,7 +233,7 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
 
 test('operation request builder exposes the exact seven stable IDs without fabricating unavailable evidence', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
-    'canonical-schema-v56-v57',
+    'canonical-schema-v56-v58',
     'canonical-item-group-bootstrap',
     'canonical-npc-crawler',
     'canonical-npc-apply',
@@ -245,18 +247,24 @@ test('operation request builder exposes the exact seven stable IDs without fabri
   fs.mkdirSync(path.join(repoRoot, 'data', 'generated'), { recursive: true });
   fs.writeFileSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V56__a.sql'), 'DDL-56');
   fs.writeFileSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V57__b.sql'), 'DDL-57');
+  fs.writeFileSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V58__c.sql'), 'DDL-58');
   for (const name of ['recipe-material-reference.json', 'recipe-group-overrides.json', 'item-group-overrides.json']) {
     fs.writeFileSync(path.join(repoRoot, 'data', 'generated', name), `{\"name\":\"${name}\"}`);
   }
 
   const schema = buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
-    operationId: 'canonical-schema-v56-v57',
+    operationId: 'canonical-schema-v56-v58',
     generatedAt: GENERATED_AT,
     expiresAt: EXPIRES_AT,
   });
   assert.match(schema.schemaBundleSha256, /^sha256:/);
   assert.match(schema.dataBundleSha256, /^sha256:/);
+  assert.deepEqual(schema.schemaBundleEntries.map((entry) => entry.path), [
+    'back/src/main/resources/db/migration/V56__a.sql',
+    'back/src/main/resources/db/migration/V57__b.sql',
+    'back/src/main/resources/db/migration/V58__c.sql',
+  ]);
   assert.ok(schema.missingTechnicalFields.includes('serverFingerprint'));
   assert.ok(schema.missingTechnicalFields.includes('policySetHash'));
 

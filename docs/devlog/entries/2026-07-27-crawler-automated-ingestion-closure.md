@@ -34,6 +34,14 @@
   required append-only admin audit record had no physical table. V57 will retain
   four runtime tables and add one admin-only immutable audit table; the plan,
   design, ownership, and DDL contracts now name it explicitly.
+- Task 15 plan audit found one Critical authorization gap: V55 can describe an
+  L2 policy but cannot durably bind an L2 promotion or scheduler activation to
+  an exact decision identity, packet hash, authorization reference, and expiry.
+  The repaired plan adds an unapplied append-only V58 activation-decision
+  artifact and requires backend eligibility to bind repeated committed L1
+  evidence plus the exact current policy version/hash/set to fresh
+  `L2_PROMOTION` and `SCHEDULER_ACTIVATION` records. The old V1 wiki scheduler
+  remains outside this automation path.
 
 ## Scope
 
@@ -193,6 +201,30 @@
   first L1 `sha256:ff6ea2be57d472a24f136542cad6a863246d6e4e6a6a5d9728514dd403150c80`;
   L2 `sha256:070441ac54f0f0371e66db11db2db764b5c0bd69ca0ceb090649ed11a82d4323`;
   scheduler `sha256:1196894d7f4aca7cc050adde6b035851c4d9c1bfb7847572cc7081fe891d9fc7`.
+  These seven hashes are superseded by the V58 authorization-contract repair;
+  none was executable.
+- Task 15 replacement request hashes: schema
+  `sha256:a95fc92497540d23006da976b27295d9f13814f231aa1d564a8b95455fdf9481`;
+  group bootstrap `sha256:4f71b233c24b2167a798d1c25a716aafefde015ce3e5cfb7d6ecfaa98962b732`;
+  NPC crawler `sha256:854a103a9a57a3056d9392d9e8e464ac19ea2f613240ccc27f4e0fcdd9251bdf`;
+  NPC apply `sha256:5f0d0b3aadb88309ea4b1df84c26e253a1e55458f9bc41812d1632cee78fa4cf`;
+  first L1 `sha256:8b3c59bc4f9d767acfc9b398dd9f116fb9a597bf7bd0e4b2e81ce0cb22649890`;
+  L2 `sha256:3a57fbbcc2d02973cbfe0d6f0b66334bda6b73c17152df9990a01fab83af74ab`;
+  scheduler `sha256:fb13d0f462222a33fae0980a98fac056afe27e1b2a1ff5f8b25013ef31e822a5`.
+  All seven are `AWAITING_OWNER`, zero packet files exist, and the earliest
+  expiry is `2026-07-28T17:23:23.584Z`. Because the old request retained only a
+  hash of its raw server fingerprint, replacements fail closed with fresh
+  server fingerprint plus policy/data evidence listed as missing rather than
+  fabricating or reusing technical identity.
+- Task 15 RED reproduced missing V58 migration bytes, old V56-V57 packet IDs,
+  absent durable activation records, and absent backend eligibility APIs. GREEN
+  passes the migration/authorization suite 11/11 and policy/service tests 37/37.
+  The required backend regression including controller and the unchanged V1
+  monitor passes 237/237. One initial monitor run observed a stale-heartbeat
+  timing assertion (`timed_out` versus `failed`); the exact test then passed 1/1
+  and the full rerun passed without a code change. Database freshness
+  is evaluated by MySQL `CURRENT_TIMESTAMP`, avoiding JVM/database timezone
+  drift. V58 remains unapplied. See git for code-level diff details.
 - An initial broad backend run found four stale V2 queue assertions caused by the
   two newly registered domains; they were repaired and the integrated 59-test
   backend suite passes. A fresh broad rerun executes 1,510 tests with six failures,
@@ -247,9 +279,12 @@
   fail-closed acceptance surfaces, and fixture-level T0 `CODE_READY`.
 - Completed in Task 12 within the read-only boundary: seven exact authorization
   requests and fail-closed request-to-packet conversion logic.
+- Completed in Task 15 within the code-only boundary: append-only V58 activation
+  decision contract, repeated committed-L1 and exact current-policy gating,
+  transaction-time L2 revalidation, and scheduler fail-closed visibility.
 - Not completed: Task 10's nine operation-dependent warning panels, Task 11 real
-  crawler/T1, Task 12 Owner authorization, Tasks 13-16, and every formal apply or
-  activation checkpoint.
+  crawler/T1, Task 12 Owner authorization, Tasks 13-14, Task 15 Steps 3-5,
+  Task 16, and every formal apply or activation checkpoint.
 
 ## Residual Risks
 
@@ -258,9 +293,9 @@
 - Nine warning panels depend on real crawler/import/backfill/image evidence and
   cannot pass before their independently authorized operations. Empty-shell and
   dry-run artifacts now fail closed; armor is no longer a warning.
-- V56/V57 and the group bootstrap remain unapplied to formal databases; the T1
+- V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
-- The seven request files expire around `2026-07-28T16:05:35Z`; expired requests
+- The seven replacement request files expire around `2026-07-28T17:23:23Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is

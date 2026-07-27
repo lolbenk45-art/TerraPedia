@@ -4,10 +4,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.terraria.skills.entity.CrawlerAutomationPolicy;
 import com.terraria.skills.service.CrawlerAutomationPolicyService.OwnerRecord;
 import com.terraria.skills.service.CrawlerAutomationPolicyService.PolicyState;
+import com.terraria.skills.service.CrawlerAutomationPolicyService.PolicyRow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
 
 @Mapper
 public interface CrawlerAutomationPolicyMapper extends BaseMapper<CrawlerAutomationPolicy> {
@@ -25,6 +28,16 @@ public interface CrawlerAutomationPolicyMapper extends BaseMapper<CrawlerAutomat
         WHERE p.domain_id = #{domainId}
         """)
     PolicyState findPolicyState(@Param("domainId") String domainId);
+
+    @Select("""
+        SELECT p.domain_id AS domainId, p.current_version AS policyVersion,
+               pv.policy_hash AS policyHash
+        FROM crawler_automation_policy p
+        JOIN crawler_automation_policy_version pv
+          ON pv.domain_id = p.domain_id AND pv.policy_version = p.current_version
+        ORDER BY p.domain_id
+        """)
+    List<PolicyRow> findCurrentPolicyRows();
 
     @Update("""
         UPDATE crawler_automation_reauth_challenge

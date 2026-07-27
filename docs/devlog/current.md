@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 00:44 CST by Codex
+Last updated: 2026-07-28 01:33 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -45,7 +45,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   T0 `npc_7a854dc3e2150815` proves 13 tables, paired evidence, one matched fact,
   non-empty Buff/shop/loot relation/local lanes, `0/1/0` transaction counts, and
   zero cleanup leaks. Task 12 produced seven `AWAITING_OWNER` request hashes;
-  formal policy remains zero rows. Real NPC crawler/T1, nine warning panels,
+  those hashes are superseded by the Task 15 V58 authorization-contract repair
+  and replacement requests remain non-executable. Formal policy remains zero
+  rows. Task 15 code-only gating requires two committed L1 applies, closed
+  circuit state, exact current policy identity, and fresh promotion/scheduler
+  decisions; V58 remains unapplied. Real NPC crawler/T1, nine warning panels,
   Owner authorization, T2, and first L1 remain distinct checkpoints.
 
 - Crawler automated-ingestion readiness implementation remains active.
@@ -80,7 +84,7 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   verifiable phases. Phase 1A is complete through commits `f4221d6d`, `8402611c`, and
   `a11cd7b8`: it defines canonical landing identity/history, fail-closed importer rotation,
   and read-only audit/lineage consumers. The canonical group implementation now reaches
-  CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57 remain parser-checked,
+  CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57/V58 remain parser-checked,
   isolated-only migration artifacts and were not executed on formal databases. Task 10
   CODE_READY and filesystem-only work are complete; Task 11 fixture `CODE_READY`
   and Task 12 read-only request generation are complete. No executable packet exists.
@@ -218,8 +222,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
 - For automated-ingestion closure, read
-  `entries/2026-07-27-crawler-automated-ingestion-closure.md` and resume Task 11.
-  Group CODE_READY/T1 and Task 10's authorized scope are complete. Do not execute V56/V57, formal bootstrap,
+  `entries/2026-07-27-crawler-automated-ingestion-closure.md` and resume Task 15.
+  Group CODE_READY/T1 and Task 10's authorized scope are complete. Do not execute V56/V57/V58, formal bootstrap,
   crawler/import/backfill/image-sync/apply, Owner/policy bootstrap, L1/L2/T2,
   or scheduler activation without the separate operation-level authorization
   named by the plan.

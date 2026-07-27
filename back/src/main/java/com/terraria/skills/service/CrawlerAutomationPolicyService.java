@@ -2,6 +2,7 @@ package com.terraria.skills.service;
 
 import com.terraria.skills.entity.CrawlerAutomationApproval;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface CrawlerAutomationPolicyService {
@@ -11,6 +12,8 @@ public interface CrawlerAutomationPolicyService {
     CrawlerAutomationApproval consumeApproval(ApprovalRequest request);
 
     ApplyAuthorization authorizeApply(ApplyAuthorizationRequest request);
+
+    AutomationEligibility schedulerEligibility(String domainId);
 
     void executeApprovedL1(ApplyAuthorization authorization);
 
@@ -141,6 +144,25 @@ public interface CrawlerAutomationPolicyService {
 
     record RunPolicyRow(String domainId, long policyVersion, String policyHash,
                         String policySetHash) { }
+
+    record ActivationDecisionRecord(
+        String decisionKind,
+        String domainId,
+        long policyVersion,
+        String policyHash,
+        String policySetHash,
+        int minimumSuccessfulL1Runs,
+        String actor,
+        String reason,
+        String authorizationReference,
+        String decisionIdentity,
+        String packetHash,
+        LocalDateTime authorizedAt,
+        LocalDateTime expiresAt,
+        boolean fresh
+    ) { }
+
+    record AutomationEligibility(boolean eligible, List<String> reasonCodes) { }
 
     interface ApplyContextProvider {
         TrustedApplyContext load(String runId, String decisionHash, ApplyMode mode);

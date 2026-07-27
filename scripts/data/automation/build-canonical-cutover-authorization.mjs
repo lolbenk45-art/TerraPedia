@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 
 export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
-  'canonical-schema-v56-v57',
+  'canonical-schema-v56-v58',
   'canonical-item-group-bootstrap',
   'canonical-npc-crawler',
   'canonical-npc-apply',
@@ -165,11 +165,11 @@ export function buildCanonicalAuthorizationRequestForOperation({
 function resolveOperationTechnicalInput({ repoRoot, operationId }) {
   requireOperationId(operationId);
   const root = path.resolve(repoRoot);
-  const schemaEntries = operationId === 'canonical-schema-v56-v57'
+  const schemaEntries = operationId === 'canonical-schema-v56-v58'
     ? readMigrationEntries(root)
     : [];
   let dataEntries;
-  if (operationId === 'canonical-schema-v56-v57') {
+  if (operationId === 'canonical-schema-v56-v58') {
     dataEntries = [];
   } else if (operationId === 'canonical-item-group-bootstrap') {
     dataEntries = readRequiredEntries(root, [
@@ -290,10 +290,11 @@ function verifyRequestEnvelope(request, requestHash) {
 function readMigrationEntries(repoRoot) {
   const dir = path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration');
   const names = fs.existsSync(dir)
-    ? fs.readdirSync(dir).filter((name) => /^V5[67]__.*\.sql$/.test(name)).sort()
+    ? fs.readdirSync(dir).filter((name) => /^V5[678]__.*\.sql$/.test(name)).sort()
     : [];
-  if (names.length !== 2 || !names[0].startsWith('V56__') || !names[1].startsWith('V57__')) {
-    throw new Error('canonical schema request requires exact V56 and V57 migration bytes');
+  if (names.length !== 3 || !names[0].startsWith('V56__') || !names[1].startsWith('V57__')
+      || !names[2].startsWith('V58__')) {
+    throw new Error('canonical schema request requires exact V56, V57, and V58 migration bytes');
   }
   return names.map((name) => readEntry(repoRoot, `back/src/main/resources/db/migration/${name}`));
 }

@@ -158,6 +158,16 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
         if ("AWAITING_APPROVAL".equals(domain.lastRunStatus())) {
             reasons.add(reason("OWNER_APPROVAL_REQUIRED", "最近运行正在等待 Owner 审批。"));
         }
+        if ("L2".equals(domain.automationLevel()) && "ACTIVE".equals(domain.operationalState())) {
+            CrawlerAutomationPolicyService.AutomationEligibility eligibility =
+                policyService.schedulerEligibility(domain.domainId());
+            if (eligibility == null || !eligibility.eligible()) {
+                List<String> schedulerReasons = eligibility == null
+                    ? List.of("SCHEDULER_ELIGIBILITY_UNAVAILABLE")
+                    : eligibility.reasonCodes();
+                schedulerReasons.forEach(code -> reasons.add(reason(code, schedulerReasonMessage(code))));
+            }
+        }
         return new CrawlerAutomationOverviewDTO.DomainSummary(
             domain.domainId(),
             domain.automationLevel(),
@@ -172,6 +182,16 @@ public class CrawlerAutomationServiceImpl implements CrawlerAutomationService {
 
     private static CrawlerAutomationOverviewDTO.DisabledReason reason(String code, String messageZh) {
         return new CrawlerAutomationOverviewDTO.DisabledReason(code, messageZh);
+    }
+
+    private static String schedulerReasonMessage(String code) {
+        return switch (code) {
+            case "SCHEDULER_ACTIVATION_DECISION_REQUIRED" -> "缺少与当前策略绑定的调度激活授权。";
+            case "SCHEDULER_ACTIVATION_DECISION_STALE" -> "调度激活授权已过期或尚未生效。";
+            case "L2_REPEATED_L1_EVIDENCE_REQUIRED" -> "尚未达到重复成功 L1 入库证据要求。";
+            case "POLICY_CIRCUIT_OPEN" -> "断路器已打开，调度保持禁用。";
+            default -> "调度激活条件未满足，已按禁用处理。";
+        };
     }
 
     private CrawlerAutomationRunDTO toDTO(CrawlerAutomationPolicyService.DecisionContext ctx) {

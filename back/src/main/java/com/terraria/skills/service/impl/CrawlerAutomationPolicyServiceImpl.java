@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.terraria.skills.entity.CrawlerAutomationApproval;
 import com.terraria.skills.entity.CrawlerAutomationDecision;
 import com.terraria.skills.mapper.CrawlerAutomationApprovalMapper;
+import com.terraria.skills.mapper.CrawlerAutomationActivationDecisionMapper;
 import com.terraria.skills.mapper.CrawlerAutomationPolicyMapper;
 import com.terraria.skills.mapper.CrawlerAutomationRunMapper;
 import com.terraria.skills.mapper.CrawlerAutomationDecisionMapper;
@@ -46,6 +47,7 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
     private final CrawlerAutomationRunMapper runMapper;
     private final CrawlerAutomationPolicyMapper policyMapper;
     private final CrawlerAutomationDecisionMapper decisionMapper;
+    private final CrawlerAutomationActivationDecisionMapper activationDecisionMapper;
     private final ObjectMapper objectMapper;
     private final ApplyContextProvider applyContextProvider;
     private final ApplyProtocolExecutor applyProtocolExecutor;
@@ -55,6 +57,7 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         CrawlerAutomationRunMapper runMapper,
         CrawlerAutomationPolicyMapper policyMapper,
         CrawlerAutomationDecisionMapper decisionMapper,
+        CrawlerAutomationActivationDecisionMapper activationDecisionMapper,
         ObjectMapper objectMapper,
         ApplyContextProvider applyContextProvider,
         ApplyProtocolExecutor applyProtocolExecutor
@@ -63,6 +66,7 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         this.runMapper = runMapper;
         this.policyMapper = policyMapper;
         this.decisionMapper = decisionMapper;
+        this.activationDecisionMapper = activationDecisionMapper;
         this.objectMapper = objectMapper == null ? new ObjectMapper() : objectMapper;
         this.applyContextProvider = applyContextProvider;
         this.applyProtocolExecutor = applyProtocolExecutor;
@@ -90,6 +94,13 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
             return persistDecision(request, decision(request, DecisionType.BLOCKED_L0, reasons, false, false));
         }
         String effectiveLevel = policyState.currentLevel();
+        if ("L2".equals(effectiveLevel)) {
+            List<String> eligibilityReasons = l2PromotionReasons(request.policyRows(), request.policySetHash());
+            if (!eligibilityReasons.isEmpty()) {
+                return persistDecision(request, decision(
+                    request, DecisionType.BLOCKED_L0, eligibilityReasons, false, false));
+            }
+        }
         if (request.anomaly() || hasNegativeCounts(request.counts()) || !validScopes(request)) {
             reasons.add("ANOMALY_DETECTED");
             return persistDecision(request, decision(request, DecisionType.CIRCUIT_BREAK, reasons, false, false));
@@ -185,6 +196,17 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
                 .map(row -> new PolicyRow(row.domainId(), row.policyVersion(), row.policyHash())).toList()))) {
             throw new IllegalStateException("persisted policy set is missing or changed");
         }
+        if (request.mode() == ApplyMode.AUTO_APPLY_L2) {
+            List<String> eligibilityReasons = l2PromotionReasons(
+                persistedPolicies.stream()
+                    .map(row -> new PolicyRow(row.domainId(), row.policyVersion(), row.policyHash()))
+                    .toList(),
+                context.policySetHash()
+            );
+            if (!eligibilityReasons.isEmpty()) {
+                throw new IllegalStateException("L2 promotion is not eligible: " + String.join(",", eligibilityReasons));
+            }
+        }
         assertEqual("run version", context.runVersion(), actual.currentRunVersion());
         assertEqual("policySetHash", context.policySetHash(), actual.policySetHash());
         assertEqual("evidenceHash", context.evidenceHash(), actual.evidenceHash());
@@ -206,6 +228,44 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         assertEqual("approval logicalDiffIdentity", canonicalJson(context.logicalDiffIdentityJson()), canonicalJson(approval.getLogicalDiffIdentityJson()));
         return new ApplyAuthorization(approval.getId(), approval.getVersion(), request.mode(), request.runId(), request.decisionHash(),
             contextFingerprint(context, actual));
+    }
+
+    @Override
+    public AutomationEligibility schedulerEligibility(String domainId) {
+        if (domainId == null || !domainId.matches("[a-z][a-z0-9_]{0,63}")) {
+            return new AutomationEligibility(false, List.of("SCHEDULER_DOMAIN_INVALID"));
+        }
+        PolicyState state = policyMapper.findPolicyState(domainId);
+        List<PolicyRow> policyRows = policyMapper.findCurrentPolicyRows();
+        if (state == null || policyRows == null || policyRows.isEmpty()) {
+            return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_UNAVAILABLE"));
+        }
+        PolicyRow current = policyRows.stream()
+            .filter(row -> Objects.equals(domainId, row.domainId()))
+            .findFirst()
+            .orElse(null);
+        if (current == null || state.policyVersion() != current.policyVersion()
+            || !Objects.equals(state.policyHash(), current.policyHash())) {
+            return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_IDENTITY_MISMATCH"));
+        }
+        if ("CIRCUIT_OPEN".equals(state.operationalState())) {
+            return new AutomationEligibility(false, List.of("POLICY_CIRCUIT_OPEN"));
+        }
+        if (!"L2".equals(state.currentLevel()) || !"ACTIVE".equals(state.operationalState())) {
+            return new AutomationEligibility(false, List.of("SCHEDULER_REQUIRES_ACTIVE_L2"));
+        }
+        String policySetHash;
+        try {
+            policySetHash = canonicalPolicySetHash(policyRows);
+        } catch (IllegalArgumentException exception) {
+            return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_SET_INVALID"));
+        }
+        List<String> reasons = new ArrayList<>(l2PromotionReasons(policyRows, policySetHash));
+        if (reasons.isEmpty()) {
+            reasons.addAll(activationDecisionReasons(
+                "SCHEDULER_ACTIVATION", "SCHEDULER_ACTIVATION", current, policySetHash));
+        }
+        return new AutomationEligibility(reasons.isEmpty(), List.copyOf(reasons));
     }
 
     @Override
@@ -249,6 +309,69 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         return String.join("|", context.runId(), context.decisionHash(), context.policySetHash(), context.bundleHash(),
             context.evidenceHash(), context.logicalDiffHash(), context.baselineFingerprint(),
             actual.logicalDiffIdentityJson(), Long.toString(actual.currentRunVersion()));
+    }
+
+    private List<String> l2PromotionReasons(List<PolicyRow> policyRows, String policySetHash) {
+        List<String> reasons = new ArrayList<>();
+        for (PolicyRow row : policyRows) {
+            PolicyState state = policyMapper.findPolicyState(row.domainId());
+            if (state == null || state.policyVersion() != row.policyVersion()
+                || !Objects.equals(state.policyHash(), row.policyHash())) {
+                reasons.add("L2_PROMOTION_POLICY_IDENTITY_MISMATCH");
+                continue;
+            }
+            if ("CIRCUIT_OPEN".equals(state.operationalState())) {
+                reasons.add("POLICY_CIRCUIT_OPEN");
+                continue;
+            }
+            if (!"L2".equals(state.currentLevel()) || !"ACTIVE".equals(state.operationalState())) {
+                reasons.add("L2_PROMOTION_REQUIRES_ACTIVE_L2_POLICY");
+                continue;
+            }
+            reasons.addAll(activationDecisionReasons(
+                "L2_PROMOTION", "L2_PROMOTION", row, policySetHash));
+        }
+        return List.copyOf(new LinkedHashSet<>(reasons));
+    }
+
+    private List<String> activationDecisionReasons(
+        String decisionKind,
+        String reasonPrefix,
+        PolicyRow policy,
+        String policySetHash
+    ) {
+        ActivationDecisionRecord record = activationDecisionMapper.findLatestActivationDecision(
+            decisionKind, policy.domainId());
+        if (record == null) return List.of(reasonPrefix + "_DECISION_REQUIRED");
+        if (record.authorizedAt() == null || record.expiresAt() == null
+            || !record.fresh()) {
+            return List.of(reasonPrefix + "_DECISION_STALE");
+        }
+        if (!Objects.equals(decisionKind, record.decisionKind())
+            || !Objects.equals(policy.domainId(), record.domainId())
+            || policy.policyVersion() != record.policyVersion()
+            || !Objects.equals(policy.policyHash(), record.policyHash())) {
+            return List.of(reasonPrefix + "_POLICY_IDENTITY_MISMATCH");
+        }
+        if (!Objects.equals(policySetHash, record.policySetHash())) {
+            return List.of(reasonPrefix + "_POLICY_SET_MISMATCH");
+        }
+        if (record.minimumSuccessfulL1Runs() < 2
+            || blank(record.actor()) || blank(record.reason())
+            || blank(record.authorizationReference()) || blank(record.decisionIdentity())
+            || record.packetHash() == null || !SHA256.matcher(record.packetHash()).matches()) {
+            return List.of(reasonPrefix + "_DECISION_INVALID");
+        }
+        int successfulL1 = activationDecisionMapper.countSuccessfulL1Applies(
+            policy.domainId(), policy.policyVersion(), policy.policyHash(), policySetHash);
+        if (successfulL1 < record.minimumSuccessfulL1Runs()) {
+            return List.of("L2_REPEATED_L1_EVIDENCE_REQUIRED");
+        }
+        return List.of();
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private static void requireActiveTransaction() {

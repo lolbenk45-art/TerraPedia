@@ -108,6 +108,26 @@ class CrawlerAutomationServiceImplTest {
         );
     }
 
+    @Test
+    void overviewReportsL2SchedulerAsUnavailableWithoutExactActivationDecision() {
+        when(runMapper.findActiveDomainSummaries()).thenReturn(List.of(
+            domain("recipes", "L2", "ACTIVE", "COMMITTED")
+        ));
+        when(policyService.schedulerEligibility("recipes")).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(
+                false, List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED")
+            )
+        );
+        var service = new CrawlerAutomationServiceImpl(
+            runMapper, policyMapper, approvalMapper, policyService,
+            CrawlerMonitorActionRegistry.defaults(), false
+        );
+
+        CrawlerAutomationOverviewDTO.DomainSummary domain = service.getOverview().domains().get(0);
+
+        assertEquals(List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED"), reasonCodes(domain));
+    }
+
     private static CrawlerAutomationOverviewDTO.DomainSummary domain(
         String domainId,
         String automationLevel,
