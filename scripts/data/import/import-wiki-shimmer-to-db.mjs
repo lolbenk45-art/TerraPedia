@@ -2,15 +2,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
-
-const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
 
@@ -23,7 +21,7 @@ if (isDirectExecution()) {
 }
 
 async function main() {
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const args = parseCliArgs(process.argv.slice(2));
   const apply = booleanOption(args.apply, false);
   const allowNonPrimaryDb = booleanOption(

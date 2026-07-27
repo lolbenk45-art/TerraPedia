@@ -3,19 +3,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
 import { resolveReferenceOnlyBossSource } from './boss-reference-source.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import {
   createMinioImageUploader,
   DEFAULT_MANAGED_URL_PREFIX,
   isManagedUrlForEntity,
   isManagedUrl,
 } from '../lib/minio-image-upload.mjs';
-
-const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
 
@@ -140,7 +138,7 @@ async function main() {
   });
   const managedUrlPrefixes = [args.managedUrlPrefix ?? DEFAULT_MANAGED_URL_PREFIX];
   const generatedNpcMapPath = path.resolve(args['generated-npc-map'] ?? path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json'));
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const payload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const records = Array.isArray(payload?.records) ? payload.records : [];
   if (records.length === 0) {

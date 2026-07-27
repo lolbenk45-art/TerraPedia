@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import { reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+
+test('boss importer resolves mysql2 through the repository module loader', () => {
+  const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
+  assert.match(source, /import \{ loadMysqlModule \} from '\.\.\/lib\/mysql-module\.mjs'/);
+  assert.match(source, /const mysql = loadMysqlModule\(\)/);
+  assert.doesNotMatch(source, /createRequire|require\('mysql2\/promise'\)/);
+});
 
 test('reconcileBossMembers skips unchanged existing boss member assignments', async () => {
   const conn = createFakeConnection({

@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import { importShimmerItemTransforms } from './import-wiki-shimmer-to-db.mjs';
+
+test('shimmer importer resolves mysql2 through the repository module loader', () => {
+  const source = fs.readFileSync(new URL('./import-wiki-shimmer-to-db.mjs', import.meta.url), 'utf8');
+  assert.match(source, /import \{ loadMysqlModule \} from '\.\.\/lib\/mysql-module\.mjs'/);
+  assert.match(source, /const mysql = loadMysqlModule\(\)/);
+  assert.doesNotMatch(source, /createRequire|require\('mysql2\/promise'\)/);
+});
 
 test('importShimmerItemTransforms skips source scope rewrite when projection is unchanged', async () => {
   const record = shimmerItemRecord();
