@@ -156,6 +156,10 @@ audit table is not a fifth runtime projection and is owned only by
 - `back/src/test/java/com/terraria/skills/service/impl/DomainAcceptanceServiceImplTest.java`
 - `back/src/main/java/com/terraria/skills/controller/AdminDomainAcceptanceController.java`
 - `back/src/test/java/com/terraria/skills/controller/AdminDomainAcceptanceControllerTest.java`
+- `back/src/main/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImpl.java`
+- `back/src/test/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImplTest.java`
+- `back/src/main/java/com/terraria/skills/controller/AdminDataSourceAcceptanceController.java`
+- `back/src/test/java/com/terraria/skills/controller/AdminDataSourceAcceptanceControllerTest.java`
 - `data-query-app/pages/operations/crawler-automation.contract.test.mjs`
 - `data-query-app/pages/operations/data-source-acceptance.vue`
 - `data-query-app/tests/data-source-acceptance-page-contract.test.mjs`
@@ -687,26 +691,26 @@ git commit -m "feat(automation): register canonical item group actions"
 - Modify: `scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs`
 - Modify: `scripts/dev/quality-gate.sh`
 - Modify: `scripts/dev/quality-gate.test.mjs`
-- Modify: `back/src/main/java/com/terraria/skills/service/impl/DomainAcceptanceServiceImpl.java`
-- Modify: `back/src/test/java/com/terraria/skills/service/impl/DomainAcceptanceServiceImplTest.java`
-- Modify: `back/src/test/java/com/terraria/skills/controller/AdminDomainAcceptanceControllerTest.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImpl.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImplTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/controller/AdminDataSourceAcceptanceControllerTest.java`
 - Modify: `data-query-app/pages/operations/data-source-acceptance.vue`
 - Modify: `data-query-app/tests/data-source-acceptance-page-contract.test.mjs`
 
-- [ ] **Step 1: Write RED report-contract tests**
+- [x] **Step 1: Write RED report-contract tests**
 
 Require exact schema version, landing/maint/relation/local counts and hashes,
 zero unresolved/ambiguous members, per-consumer shadow parity, zero direct JSON
 readers, disabled fallback, API snapshot hash, export freshness, database role,
 cutover identity, and `writesDatabase=false`.
 
-- [ ] **Step 2: Add report generation and fail-closed freshness routing**
+- [x] **Step 2: Add report generation and fail-closed freshness routing**
 
 Missing, malformed, stale (>24 h), unknown-risk, database-writing, wrong-T2, or
 hash-mismatched evidence is blocking. The refresh plan displays commands with
 `executeMode: "manual"` and never runs them.
 
-- [ ] **Step 3: Verify Node, backend, admin, and quality-gate contracts**
+- [x] **Step 3: Verify Node, backend, admin, and quality-gate contracts**
 
 ```bash
 node --test \
@@ -715,11 +719,11 @@ node --test \
   scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs \
   scripts/dev/quality-gate.test.mjs
-cd back && mvn -Dtest=DomainAcceptanceServiceImplTest,AdminDomainAcceptanceControllerTest test
+cd back && mvn -Dtest=DataSourceAcceptanceServiceImplTest,AdminDataSourceAcceptanceControllerTest test
 cd ../data-query-app && node --test tests/data-source-acceptance-page-contract.test.mjs
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -m "feat(audit): gate canonical item group readiness"

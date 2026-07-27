@@ -14,6 +14,7 @@ import java.nio.file.attribute.FileTime;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -53,8 +54,8 @@ class DataSourceAcceptanceServiceImplTest {
         assertFalse(overview.getRelationHealth().getReportPath().contains(repoRoot.toString()));
         assertEquals("node scripts/data/relation/replacement-readiness-audit.mjs", overview.getReplacementReadiness().getGeneratorCommand());
         assertEquals(false, overview.getReplacementReadiness().getWritesDatabase());
-        assertEquals("node scripts/data/audit/audit-any-item-group-sources.mjs", overview.getSourceGroupAudit().getGeneratorCommand());
-        assertEquals(false, overview.getSourceGroupAudit().getRequiresDatabase());
+        assertEquals("node scripts/data/item-groups/item-group-readiness.mjs", overview.getSourceGroupAudit().getGeneratorCommand());
+        assertEquals(true, overview.getSourceGroupAudit().getRequiresDatabase());
         assertEquals("fresh", overview.getRelationHealth().getFreshnessStatus());
         assertEquals(12L, overview.getRelationHealth().getAgeHours());
         assertEquals(24, overview.getRelationHealth().getStaleAfterHours());
@@ -96,27 +97,18 @@ class DataSourceAcceptanceServiceImplTest {
     }
 
     @Test
-    void shouldBlockOverviewWhenSourceGroupAuditHasBlockedReferences() throws Exception {
+    void shouldBlockOverviewWhenCanonicalItemGroupReadinessIsInvalid() throws Exception {
         Path repoRoot = createRepoRoot();
         writePassReports(repoRoot);
-        Files.writeString(repoRoot.resolve("reports/item-groups/any-item-group-source-audit-2026-05-04.json"), """
-            {
-              "generatedAt": "2026-05-04T00:00:00Z",
-              "summary": {
-                "blockedGroupReferences": 2,
-                "duplicateGroupKeys": 0,
-                "consumerOnlyReferences": 0,
-                "unresolvedMemberReferences": 0
-              }
-            }
-            """);
+        Path report = repoRoot.resolve("reports/canonical-migration/canonical-item-group-readiness-2026-05-03.json");
+        Files.writeString(report, Files.readString(report).replace("\"databaseRole\": \"t2-readonly\"", "\"databaseRole\": \"t1\""));
 
         DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
 
         assertEquals("blocked", overview.getOverallStatus());
         assertEquals("blocked", overview.getSourceGroupAudit().getStatus());
-        assertEquals(2, overview.getSourceGroupAudit().getBlockingCount());
-        assertEquals(2, overview.getSourceGroupAudit().getMetrics().get("blockedGroupReferences"));
+        assertTrue(overview.getSourceGroupAudit().getBlockingCount() > 0);
+        assertEquals("node scripts/data/item-groups/item-group-readiness.mjs", overview.getSourceGroupAudit().getNextEvidenceCommand());
         assertTrue(overview.getBlockingReasons().stream().anyMatch(reason -> reason.contains("sourceGroupAudit")));
     }
 
@@ -199,12 +191,12 @@ class DataSourceAcceptanceServiceImplTest {
 
         DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
 
-        assertEquals("missing", overview.getOverallStatus());
-        assertEquals(6, overview.getMissingCount());
+        assertEquals("blocked", overview.getOverallStatus());
+        assertEquals(5, overview.getMissingCount());
         assertEquals("missing", overview.getRelationHealth().getStatus());
         assertEquals("missing", overview.getReplacementReadiness().getStatus());
         assertEquals("missing", overview.getSourceDatasetLanding().getStatus());
-        assertEquals("missing", overview.getSourceGroupAudit().getStatus());
+        assertEquals("blocked", overview.getSourceGroupAudit().getStatus());
         assertEquals("missing", overview.getImageReadiness().getStatus());
         assertEquals("missing", overview.getEntitySourceCoverage().getStatus());
         assertEquals("pass", overview.getCrawlerMonitor().getStatus());
@@ -332,34 +324,33 @@ class DataSourceAcceptanceServiceImplTest {
         DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
 
         assertEquals("missing", overview.getRelationHealth().getStatus());
-        assertEquals("missing", overview.getOverallStatus());
+        assertEquals("blocked", overview.getOverallStatus());
     }
 
     @Test
-    void shouldUseTopLevelSourceGroupBlockedReferencesWhenSummaryCountIsMissing() throws Exception {
+    void shouldBlockMalformedStaleWritingOrHashMismatchedCanonicalReadiness() throws Exception {
         Path repoRoot = createRepoRoot();
         writePassReports(repoRoot);
-        Files.writeString(repoRoot.resolve("reports/item-groups/any-item-group-source-audit-2026-05-04.json"), """
-            {
-              "generatedAt": "2026-05-04T00:00:00Z",
-              "summary": {
-                "duplicateGroupKeys": 0,
-                "consumerOnlyReferences": 0,
-                "unresolvedMemberReferences": 0
-              },
-              "blockedGroupReferences": [
-                {"groupKey": "any adamantite bar"},
-                {"groupKey": "any cobalt bar"}
-              ]
-            }
-            """);
+        Path report = repoRoot.resolve("reports/canonical-migration/canonical-item-group-readiness-2026-05-03.json");
+        String valid = Files.readString(report);
+        List<String> invalidReports = List.of(
+            "{",
+            valid.replace("2026-05-03T00:00:00Z", "2026-05-01T00:00:00Z"),
+            valid.replace("\"generatedAt\": \"2026-05-03T00:00:00Z\",", ""),
+            valid.replace("\"writesDatabase\": false", "\"writesDatabase\": true"),
+            valid.replace(
+                "\"api\": {\"snapshotHash\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                "\"api\": {\"snapshotHash\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}"
+            )
+        );
 
-        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
-
-        assertEquals("blocked", overview.getOverallStatus());
-        assertEquals("blocked", overview.getSourceGroupAudit().getStatus());
-        assertEquals(2, overview.getSourceGroupAudit().getBlockingCount());
-        assertEquals(2, overview.getSourceGroupAudit().getMetrics().get("blockedGroupReferences"));
+        for (String invalid : invalidReports) {
+            Files.writeString(report, invalid);
+            DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
+            assertEquals("blocked", overview.getOverallStatus());
+            assertEquals("blocked", overview.getSourceGroupAudit().getStatus());
+            assertTrue(overview.getSourceGroupAudit().getBlockingCount() > 0);
+        }
     }
 
     @Test
@@ -423,7 +414,7 @@ class DataSourceAcceptanceServiceImplTest {
         Files.createDirectories(repoRoot.resolve("data-query-app"));
         Files.createDirectories(repoRoot.resolve("scripts"));
         Files.createDirectories(repoRoot.resolve("reports/relation"));
-        Files.createDirectories(repoRoot.resolve("reports/item-groups"));
+        Files.createDirectories(repoRoot.resolve("reports/canonical-migration"));
         Files.createDirectories(repoRoot.resolve("reports/audit"));
         return repoRoot;
     }
@@ -456,15 +447,42 @@ class DataSourceAcceptanceServiceImplTest {
               }
             }
             """);
-        Files.writeString(repoRoot.resolve("reports/item-groups/any-item-group-source-audit-2026-05-03.json"), """
+        Files.writeString(repoRoot.resolve("reports/canonical-migration/canonical-item-group-readiness-2026-05-03.json"), """
             {
+              "schemaVersion": 1,
+              "reportKind": "canonical_item_group_readiness",
               "generatedAt": "2026-05-03T00:00:00Z",
-              "summary": {
-                "blockedGroupReferences": 0,
-                "duplicateGroupKeys": 0,
-                "consumerOnlyReferences": 0,
-                "unresolvedMemberReferences": 0
-              }
+              "writesDatabase": false,
+              "databaseRole": "t2-readonly",
+              "cutoverIdentity": {"state": "T2_CUTOVER_VERIFIED", "operationId": "canonical-item-groups"},
+              "counts": {
+                "landing": {"sourceCount": 4, "groupCount": 64},
+                "maint": {"groupCount": 35, "memberCount": 163, "aliasCount": 72, "exclusionCount": 2},
+                "relation": {"groupCount": 35, "memberCount": 163, "aliasCount": 72, "unresolvedCount": 0, "ambiguousCount": 0, "rejectedCount": 2},
+                "local": {"groupCount": 34, "memberCount": 161, "aliasCount": 70}
+              },
+              "hashes": {
+                "landing": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "maint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "relation": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "local": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "shadows": {
+                "adminItemGroups": {"parity": true, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "adminRecipeGroups": {"parity": true, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "recipeTree": {"parity": true, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+              },
+              "consumerContract": {"directJsonReaders": 0, "fallbackEnabled": false},
+              "api": {"snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+              "exports": [
+                {"artifact": "recipe-material-reference.json", "fresh": true, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                {"artifact": "recipe-group-overrides.json", "fresh": true, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                {"artifact": "item-group-overrides.json", "fresh": true, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+              ],
+              "summary": {"status": "pass", "blockingCount": 0, "warningCount": 0},
+              "blockingReasons": [],
+              "warningReasons": [],
+              "checks": []
             }
             """);
         Files.writeString(repoRoot.resolve("reports/audit/image-asset-readiness-2026-05-03.json"), """

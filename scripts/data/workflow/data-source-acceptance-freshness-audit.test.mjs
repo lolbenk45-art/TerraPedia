@@ -150,6 +150,50 @@ test('buildDataSourceAcceptanceFreshnessAudit blocks when a manifest command is 
   assert.deepEqual(audit.warningReasons, ['unsafePanel evidence is missing']);
 });
 
+test('canonical item-group evidence blocks when missing or malformed', () => {
+  const repoRoot = createTempRepo();
+  const manifest = buildDataSourceAcceptanceReportManifest()
+    .filter((entry) => entry.panelId === 'sourceGroupAudit');
+
+  let audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot, manifest, generatedAt: '2026-07-27T14:00:00Z',
+  });
+  assert.equal(audit.overallStatus, 'blocked');
+
+  writeText(repoRoot, 'reports/canonical-migration/canonical-item-group-readiness.json', '{');
+  audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot, manifest, generatedAt: '2026-07-27T14:00:00Z',
+  });
+  assert.equal(audit.overallStatus, 'blocked');
+  assert.ok(audit.blockingReasons.some((reason) => reason.includes('sourceGroupAudit')));
+});
+
+test('canonical item-group evidence blocks stale and semantically invalid reports', () => {
+  const manifest = buildDataSourceAcceptanceReportManifest()
+    .filter((entry) => entry.panelId === 'sourceGroupAudit');
+  const cases = [
+    ['stale', validCanonicalReport('2026-07-25T00:00:00Z')],
+    ['writer', { ...validCanonicalReport(), writesDatabase: true }],
+    ['wrong role', { ...validCanonicalReport(), databaseRole: 't1' }],
+    ['hash mismatch', {
+      ...validCanonicalReport(),
+      api: { snapshotHash: `sha256:${'b'.repeat(64)}` },
+    }],
+  ];
+
+  for (const [name, report] of cases) {
+    const repoRoot = createTempRepo();
+    writeJson(repoRoot, 'reports/canonical-migration/canonical-item-group-readiness.json', report);
+    const audit = buildDataSourceAcceptanceFreshnessAudit({
+      repoRoot, manifest, generatedAt: '2026-07-27T14:00:00Z',
+    });
+    assert.equal(audit.overallStatus, 'blocked', name);
+    const panel = panelById(audit, 'sourceGroupAudit');
+    assert.equal(panel.blocking, true, name);
+    assert.equal(panel.nextEvidenceCommand, 'node scripts/data/item-groups/item-group-readiness.mjs', name);
+  }
+});
+
 test('CLI prints legal JSON without executing evidence commands', async () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/relation/relation-health-2026-05-03.json', {
@@ -204,4 +248,36 @@ function panelById(audit, panelId) {
   const panel = audit.panels.find((entry) => entry.panelId === panelId);
   assert.ok(panel, `${panelId} panel should be present`);
   return panel;
+}
+
+function validCanonicalReport(generatedAt = '2026-07-27T13:00:00Z') {
+  const hash = `sha256:${'a'.repeat(64)}`;
+  return {
+    schemaVersion: 1,
+    reportKind: 'canonical_item_group_readiness',
+    generatedAt,
+    writesDatabase: false,
+    databaseRole: 't2-readonly',
+    cutoverIdentity: { state: 'T2_CUTOVER_VERIFIED', operationId: 'canonical-item-groups' },
+    counts: {
+      landing: { sourceCount: 4, groupCount: 64 },
+      maint: { groupCount: 35, memberCount: 163, aliasCount: 72, exclusionCount: 2 },
+      relation: { groupCount: 35, memberCount: 163, aliasCount: 72, unresolvedCount: 0, ambiguousCount: 0, rejectedCount: 2 },
+      local: { groupCount: 34, memberCount: 161, aliasCount: 70 },
+    },
+    hashes: { landing: hash, maint: hash, relation: hash, local: hash },
+    shadows: {
+      adminItemGroups: { parity: true, snapshotHash: hash },
+      adminRecipeGroups: { parity: true, snapshotHash: hash },
+      recipeTree: { parity: true, snapshotHash: hash },
+    },
+    consumerContract: { directJsonReaders: 0, fallbackEnabled: false },
+    api: { snapshotHash: hash },
+    exports: [
+      { artifact: 'recipe-material-reference.json', fresh: true, snapshotHash: hash },
+      { artifact: 'recipe-group-overrides.json', fresh: true, snapshotHash: hash },
+      { artifact: 'item-group-overrides.json', fresh: true, snapshotHash: hash },
+    ],
+    summary: { status: 'pass', blockingCount: 0, warningCount: 0 },
+  };
 }

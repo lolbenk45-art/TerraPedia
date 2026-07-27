@@ -75,6 +75,10 @@ class AdminDataSourceAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.replacementReadiness.status").value("pass"))
             .andExpect(jsonPath("$.data.sourceDatasetLanding.status").value("pass"))
             .andExpect(jsonPath("$.data.sourceGroupAudit.status").value("pass"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.reportPattern").value("reports/canonical-migration/canonical-item-group-readiness*.json"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.generatorCommand").value("node scripts/data/item-groups/item-group-readiness.mjs"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.writesDatabase").value(false))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.requiresDatabase").value(true))
             .andExpect(jsonPath("$.data.imageReadiness.status").value("missing"))
             .andExpect(jsonPath("$.data.imageReadiness.freshnessStatus").value("missing"))
             .andExpect(jsonPath("$.data.imageReadiness.staleAfterHours").value(24))
@@ -116,6 +120,12 @@ class AdminDataSourceAcceptanceControllerTest {
             panel.setRequiresDatabase(true);
             panel.setNotes("Feeds imageReadiness from the latest image asset readiness audit report.");
             panel.setFreshnessStatus("missing");
+        }
+        if ("sourceGroupAudit".equals(id)) {
+            panel.setReportPattern("reports/canonical-migration/canonical-item-group-readiness*.json");
+            panel.setGeneratorCommand("node scripts/data/item-groups/item-group-readiness.mjs");
+            panel.setWritesDatabase(false);
+            panel.setRequiresDatabase(true);
         }
         return panel;
     }

@@ -105,6 +105,15 @@
   heartbeats, and completed/failed terminal state. A plan repair added the two
   backend refresh plan files required to make registered commands resolvable.
   No capability, schema, or data operation was executed.
+- Task 8 corrected the plan from the unrelated domain-acceptance classes to the
+  real `DataSourceAcceptanceServiceImpl` overview chain. RED reproduced missing,
+  malformed, stale, wrong-role, writer, hash-mismatch, unknown-command-risk, and
+  fresh-but-invalid routing gaps. Local review additionally caught missing
+  `generatedAt`, duplicate compatibility-export, and refresh-plan filtering
+  bypasses before commit. Final focused validation passes Node 45/45, backend
+  16/16, and admin 15/15. Canonical readiness remains read-only, requires exact
+  T2 cutover identity/count/hash/parity/export evidence, and blocks every
+  acceptance surface when absent or invalid. See git for code-level diff details.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -140,7 +149,11 @@
   21-operation fixture, backend registry, backend refresh plan, acceptance
   runner, and admin visibility with monitor-owned progress. See git for
   code-level diff details.
-- Not completed: Tasks 8-16 and every formal authorization checkpoint.
+- Completed: Task 8 replaces the legacy source-group audit evidence with a
+  fail-closed canonical item-group readiness v1 contract across offline
+  freshness, manual refresh planning, backend overview, admin labeling, and the
+  local quality gate. See git for code-level diff details.
+- Not completed: Tasks 9-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -152,7 +165,7 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 8 canonical readiness evidence with RED -> GREEN;
+- Coordinator: execute Task 9 complete group suite plus disposable T0/T1;
   do not apply V56/V57 or bootstrap data to formal databases.
 
 ## Commits
@@ -164,4 +177,5 @@
 - `c8d4fc31` `feat(data): project canonical item groups`
 - `bf96cca6` `feat(data): export canonical item group compatibility`
 - `f8769ac8` `feat(item-groups): use canonical repositories`
-- Task 7 canonical-action checkpoint pending.
+- `ef4d4af4` `feat(automation): register canonical item group actions`
+- Task 8 canonical-readiness checkpoint pending.

@@ -73,6 +73,18 @@ test('image readiness generator uses the database source explicitly', () => {
   assert.match(imageReadiness.generatorCommand, /\s--source=db\b/);
 });
 
+test('source group panel is the fail-closed canonical item-group readiness report', () => {
+  const entry = buildDataSourceAcceptanceReportManifest()
+    .find((item) => item.panelId === 'sourceGroupAudit');
+
+  assert.ok(entry);
+  assert.equal(entry.reportPattern, 'reports/canonical-migration/canonical-item-group-readiness*.json');
+  assert.equal(entry.generatorCommand, 'node scripts/data/item-groups/item-group-readiness.mjs');
+  assert.equal(entry.requiresDatabase, true);
+  assert.equal(entry.writesDatabase, false);
+  assert.equal(entry.statusImpact, 'invalid-to-blocked');
+});
+
 test('manifest metadata stays aligned with the backend acceptance overview contract', () => {
   const manifest = buildDataSourceAcceptanceReportManifest();
   const backendSource = readFileSync(
@@ -94,7 +106,11 @@ test('manifest declares backend freshness policy for acceptance evidence', () =>
       ['missing', 'stale', 'unknown', 'unreadable'],
       `${entry.panelId} next evidence triggers`,
     );
-    assert.equal(entry.statusImpact, 'stale-pass-to-warning', `${entry.panelId} status impact`);
+    assert.equal(
+      entry.statusImpact,
+      entry.panelId === 'sourceGroupAudit' ? 'invalid-to-blocked' : 'stale-pass-to-warning',
+      `${entry.panelId} status impact`,
+    );
   }
 
   const crawlerMonitor = manifest.find((entry) => entry.panelId === 'crawlerMonitor');
@@ -164,7 +180,7 @@ function extractBackendPanelMetadata(source) {
       freshnessSource: 'report-generatedAt-or-mtime',
       staleAfterHours: extractDefaultStaleAfterHours(source),
       nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
-      statusImpact: 'stale-pass-to-warning',
+      statusImpact: match[1] === 'sourceGroupAudit' ? 'invalid-to-blocked' : 'stale-pass-to-warning',
     };
   }
 

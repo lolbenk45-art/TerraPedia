@@ -177,7 +177,7 @@ test('buildDataSourceAcceptanceRefreshPlan blocks database-writing commands even
   assert.equal(plan.actions[0].status, 'blocked');
 });
 
-test('buildDataSourceAcceptanceRefreshPlan requires confirmation for unknown command risk', () => {
+test('buildDataSourceAcceptanceRefreshPlan blocks unknown command risk', () => {
   const plan = buildDataSourceAcceptanceRefreshPlan({
     generatedAt: '2026-05-03T12:00:00Z',
     audit: {
@@ -194,10 +194,41 @@ test('buildDataSourceAcceptanceRefreshPlan requires confirmation for unknown com
     },
   });
 
-  assert.equal(plan.overallStatus, 'needs_confirmation');
-  assert.equal(plan.actions[0].status, 'needs_confirmation');
+  assert.equal(plan.overallStatus, 'blocked');
+  assert.equal(plan.actions[0].status, 'blocked');
   assert.equal(plan.actions[0].commandRisk, 'unknown');
-  assert.deepEqual(plan.confirmationReasons, ['unknownRiskPanel command risk is unknown']);
+  assert.deepEqual(plan.blockingReasons, ['unknownRiskPanel command risk is unknown']);
+});
+
+test('refresh plan preserves canonical readiness blocking and remains manual plan-only', () => {
+  const plan = buildDataSourceAcceptanceRefreshPlan({
+    audit: { panels: [{
+      panelId: 'sourceGroupAudit', freshnessStatus: 'stale', blocking: true,
+      blockingReason: 'canonical item-group evidence is stale',
+      nextEvidenceCommand: 'node scripts/data/item-groups/item-group-readiness.mjs',
+      commandRisk: 'safe-read-only', requiresDatabase: true, writesDatabase: false,
+    }] },
+  });
+  assert.equal(plan.overallStatus, 'blocked');
+  assert.equal(plan.actions[0].status, 'blocked');
+  assert.equal(plan.actions[0].executeMode, 'manual');
+  assert.equal(plan.actions[0].executionPolicy, 'plan-only');
+});
+
+test('refresh plan includes fresh but semantically blocked canonical evidence', () => {
+  const plan = buildDataSourceAcceptanceRefreshPlan({
+    audit: { panels: [{
+      panelId: 'sourceGroupAudit', freshnessStatus: 'fresh', blocking: true,
+      blockingReason: 'canonical item-group database role is invalid',
+      nextEvidenceCommand: 'node scripts/data/item-groups/item-group-readiness.mjs',
+      commandRisk: 'safe-read-only', requiresDatabase: true, writesDatabase: false,
+    }] },
+  });
+
+  assert.equal(plan.overallStatus, 'blocked');
+  assert.equal(plan.actions.length, 1);
+  assert.equal(plan.actions[0].status, 'blocked');
+  assert.equal(plan.actions[0].command, 'node scripts/data/item-groups/item-group-readiness.mjs');
 });
 
 test('buildDataSourceAcceptanceRefreshPlan blocks stale evidence without a refresh command', () => {

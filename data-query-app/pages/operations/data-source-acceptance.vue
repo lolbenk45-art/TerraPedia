@@ -273,7 +273,7 @@ const panelItems = computed(() => [
   { key: 'relationHealth', label: '关系健康', panel: overview.value?.relationHealth },
   { key: 'replacementReadiness', label: '替换就绪', panel: overview.value?.replacementReadiness },
   { key: 'sourceDatasetLanding', label: '来源落地', panel: overview.value?.sourceDatasetLanding },
-  { key: 'sourceGroupAudit', label: '来源组审计', panel: overview.value?.sourceGroupAudit },
+  { key: 'sourceGroupAudit', label: '规范物品组就绪', panel: overview.value?.sourceGroupAudit },
   { key: 'imageReadiness', label: '图片就绪', panel: overview.value?.imageReadiness },
   { key: 'crawlerMonitor', label: '爬取监控', panel: overview.value?.crawlerMonitor },
   { key: 'entitySourceCoverage', label: '实体覆盖', panel: overview.value?.entitySourceCoverage },

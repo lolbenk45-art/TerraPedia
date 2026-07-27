@@ -63,6 +63,7 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/fetch/snapshot-policy.test.mjs \
   scripts/data/maint/gc-snapshots.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
+  scripts/data/item-groups/item-group-readiness.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
   scripts/data/audit/canonical-source-contract-registry.test.mjs \
   scripts/data/audit/build-npc-bridge-retirement-report.test.mjs \

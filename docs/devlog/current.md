@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 21:46 CST by Codex
+Last updated: 2026-07-27 22:04 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -29,8 +29,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   unapplied. Task 7 expands the exact capability catalog from 19 to 21 with
   the disabled canonical group preview/apply pair, source-derived ownership,
   backend child-status progress, and fail-closed admin visibility; its combined
-  Node suite passes 61/61 and backend tests pass 28/28. Task 8 readiness evidence
-  is next.
+  Node suite passes 61/61 and backend tests pass 28/28. Task 8 now routes the
+  fail-closed canonical item-group readiness v1 contract through offline
+  freshness, manual refresh planning, backend overview, admin labeling, and the
+  local gate; focused Node 45/45, backend 16/16, and admin 15/15 pass. Task 9
+  complete group CODE_READY plus disposable T0/T1 is next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 
