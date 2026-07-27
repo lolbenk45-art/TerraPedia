@@ -5,11 +5,40 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  buildCanonicalItemGroupRelationProjection,
   parseArgs,
   readWikiArmorSets,
   rewriteArmorSetRelatedItemImages,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
+
+test('canonical item group relation entrypoint resolves maint rows without compatibility files', () => {
+  const actual = buildCanonicalItemGroupRelationProjection({
+    maintProjection: {
+      groups: [{
+        recordKey: 'g'.repeat(64),
+        canonicalKey: 'any-wood',
+        canonicalName: 'Any Wood',
+        sourceLayer: 'recipe_reference',
+        sourcePriority: 100,
+        status: 'ACTIVE',
+      }],
+      members: [{
+        recordKey: 'm'.repeat(64),
+        groupRecordKey: 'g'.repeat(64),
+        memberKey: 'Wood',
+        internalName: 'Wood',
+      }],
+      aliases: [],
+      exclusions: [],
+    },
+    items: [{ id: 9, internalName: 'Wood' }],
+  });
+
+  assert.equal(actual.groups.length, 1);
+  assert.equal(actual.members[0].itemId, 9);
+  assert.equal(actual.members[0].resolutionState, 'RESOLVED');
+});
 
 const MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',

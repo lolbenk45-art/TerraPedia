@@ -14,8 +14,12 @@ function toNullableNumber(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function buildGroupIndex(recipeReferencePayload = {}) {
-  const groups = Array.isArray(recipeReferencePayload?.groups) ? recipeReferencePayload.groups : [];
+function buildGroupIndex(recipeReferencePayload = {}, canonicalGroups = null) {
+  const groups = Array.isArray(canonicalGroups)
+    ? canonicalGroups.filter((group) => (
+      normalizeText(group?.sourceLayer ?? group?.source_layer) === 'recipe_reference'
+    ))
+    : Array.isArray(recipeReferencePayload?.groups) ? recipeReferencePayload.groups : [];
   const index = new Map();
 
   for (const group of groups) {
@@ -50,9 +54,10 @@ function buildGroupIndex(recipeReferencePayload = {}) {
 
 export function buildRecipeGroupExpansions({
   recipeIngredients = [],
-  recipeReferencePayload = {}
+  recipeReferencePayload = {},
+  canonicalGroups = null,
 } = {}) {
-  const groupIndex = buildGroupIndex(recipeReferencePayload);
+  const groupIndex = buildGroupIndex(recipeReferencePayload, canonicalGroups);
   const groupExpansions = [];
 
   for (const ingredient of recipeIngredients) {

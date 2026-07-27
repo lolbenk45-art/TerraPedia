@@ -432,7 +432,7 @@ git commit -m "feat(data): reconcile item group bootstrap"
 - Modify: `scripts/data/relation/recipe-expansion-processor.mjs`
 - Modify: `scripts/data/relation/recipe-expansion-processor.test.mjs`
 
-- [ ] **Step 1: Write RED fake-adapter tests**
+- [x] **Step 1: Write RED fake-adapter tests**
 
 Test source rotation, exclusion application, alias collision, protected recipe
 identity, zero resolved members, per-consumer layer selection, immutable record
@@ -445,7 +445,7 @@ assert.deepEqual(selectWinner(rows, ['recipe_reference', 'central_override']).so
   'central_override');
 ```
 
-- [ ] **Step 2: Verify RED, implement minimal processors, verify GREEN**
+- [x] **Step 2: Verify RED, implement minimal processors, verify GREEN**
 
 ```bash
 node --test \
@@ -458,7 +458,7 @@ node --test \
 No test may reference formal database names or connect without an injected
 adapter.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add scripts/data/item-groups/item-group-canonical-sync.mjs \

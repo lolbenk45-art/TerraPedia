@@ -108,6 +108,37 @@ test('extractMaintEntitiesFromLandingRow preserves explicit zero-valued item fac
   assert.equal(row.majorValue, 0);
 });
 
+test('extractMaintEntitiesFromLandingRow expands canonical item group landing rows', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 71,
+    dataset_type: 'item_groups_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'recipe-material-reference',
+    source_key: 'wiki.recipe_material_groups',
+    content_hash: 'g'.repeat(64),
+    payload_json: JSON.stringify({
+      groups: [{
+        canonicalKey: 'any-wood',
+        canonicalName: 'Any Wood',
+        sourceLayer: 'recipe_reference',
+        sourcePriority: 100,
+        sourceKind: 'generated_recipe_reference',
+        status: 'ACTIVE',
+        aliases: ['any timber'],
+        members: [{ internalName: 'Wood', name: 'Wood', nameZh: 'wood' }],
+      }],
+    }),
+  });
+
+  assert.equal(actual.scope, 'item_groups');
+  assert.deepEqual(actual.rows.map((row) => row.tableName), [
+    'maint_item_groups',
+    'maint_item_group_members',
+    'maint_item_group_aliases',
+  ]);
+  assert.ok(actual.rows.every((row) => row.recordKey));
+});
+
 test('extractMaintEntitiesFromLandingRow expands armor attribute rows with linked item identity', async () => {
   const landingRow = {
     id: 51,
@@ -448,7 +479,11 @@ test('listSourceDatasetLandingInputs locates generated NPC item relation bundles
   };
   await writeJson(path.join(repoRoot, 'data', 'generated', 'npc-item-relations.bundle.json'), payload);
 
-  const actual = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot });
+  const actual = await listSourceDatasetLandingInputs({
+    repoRoot,
+    sharedDataRoot,
+    datasets: ['npc_item_relations_bundle_raw'],
+  });
   const entry = actual.find((candidate) => candidate.datasetType === 'npc_item_relations_bundle_raw');
 
   assert.ok(entry);

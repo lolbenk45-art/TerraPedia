@@ -19,6 +19,7 @@ import { buildImageRelations } from './image-processor.mjs';
 import { buildCategoryRelations } from './category-relation-processor.mjs';
 import { buildRecipeRelations } from './recipe-relation-processor.mjs';
 import { buildRecipeGroupExpansions } from './recipe-expansion-processor.mjs';
+import { buildItemGroupRelationProjection } from '../item-groups/item-group-canonical-sync.mjs';
 import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildBossSeriesRelations } from './boss-series-processor.mjs';
@@ -81,6 +82,8 @@ const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
   'item_group_requires_expansion',
   'legacy_only_item_not_in_current_corpus',
 ]);
+
+export const buildCanonicalItemGroupRelationProjection = buildItemGroupRelationProjection;
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;

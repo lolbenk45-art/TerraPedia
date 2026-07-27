@@ -15,6 +15,7 @@ import { extractItemPageRecipeRecords, extractRecipePageRecipeRecords } from './
 import { extractShimmerStructuredRecords } from './shimmer-structured-parser.mjs';
 import { extractItemSellStat } from './item-page-statistics-parser.mjs';
 import { loadZhSourceIndexes } from './zh-source-index.mjs';
+import { buildItemGroupMaintProjection } from '../item-groups/item-group-canonical-sync.mjs';
 
 const require = createRequire(import.meta.url);
 let mysqlModule = null;
@@ -1260,6 +1261,18 @@ export async function extractMaintEntitiesFromLandingRow(landingRow, options = {
   if (datasetType === 'shimmer_raw') {
     const rows = extractShimmerMaintRows(landingRow, payload);
     return { scope: 'shimmer', rows };
+  }
+  if (datasetType === 'item_groups_raw') {
+    const projection = buildItemGroupMaintProjection({ landingRows: [landingRow] });
+    return {
+      scope: 'item_groups',
+      rows: [
+        ...projection.groups,
+        ...projection.members,
+        ...projection.aliases,
+        ...projection.exclusions,
+      ],
+    };
   }
   return { scope: null, rows: [] };
 }

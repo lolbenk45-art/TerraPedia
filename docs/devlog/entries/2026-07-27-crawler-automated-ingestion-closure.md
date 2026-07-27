@@ -62,6 +62,15 @@
   exclusions, one source group, one blocked group, and zero admin bootstrap
   groups. Full-file bytes remain lineage only; group payloads are 28,698 bytes
   or less.
+- Task 4 RED reproduced the missing canonical sync, maint extraction, relation
+  entrypoint, and protected recipe-reader contracts. Focused validation passes
+  81/81 with one existing skip; the Task 2-4 dependency suite passes 123/123
+  with the same existing skip. A real-file, pure-memory projection reports 35
+  maint groups / 163 members / 2 aliases / 2 exclusions, 161 resolved and 2
+  rejected relation members, one blocked group, and 34 runtime groups / 161
+  runtime members. Runtime rows and `PUBLISHED` state use one injected local
+  transaction. No formal database name or connection appears in the new sync
+  tests.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -81,7 +90,11 @@
   filesystem writes, reconciles the exact 27 redundant rows and two exclusions,
   preserves blocked/source classifications, and emits group-only landing payloads.
   See git for code-level diff details.
-- Not completed: Tasks 4-16 and every formal authorization checkpoint.
+- Completed: Task 4 builds deterministic maint, relation, and layer-preserving
+  local projections with source rotation, exclusion and identity gates, stable
+  record keys/hashes, per-consumer winner selection, and atomic local publish.
+  See git for code-level diff details.
+- Not completed: Tasks 5-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -93,13 +106,14 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 4 maint/relation/local projection with injected
-  adapters and RED -> GREEN; do not apply V56/V57 or bootstrap data to formal
-  databases.
+- Coordinator: execute Task 5 shadow parity and deterministic one-way
+  compatibility exports with RED -> GREEN; do not apply V56/V57 or bootstrap
+  data to formal databases.
 
 ## Commits
 
 - `7c43c439` `docs(plan): define automated ingestion closure`
 - `4d279ad6` `test(data): lock canonical group consumers`
 - `88e8392c` `feat(data): define canonical item group schemas`
-- Task 3 bootstrap checkpoint pending.
+- `988b1bbf` `feat(data): reconcile item group bootstrap`
+- Task 4 projection checkpoint pending.

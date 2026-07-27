@@ -50,3 +50,36 @@ test('buildRecipeGroupExpansions expands group ingredients using recipe material
   assert.equal(actual.groupExpansions[0].quantityText, '5');
   assert.equal(actual.groupExpansions[0].sourceMaintTable, 'maint_item_recipes');
 });
+
+test('buildRecipeGroupExpansions selects only protected recipe_reference canonical rows', () => {
+  const actual = buildRecipeGroupExpansions({
+    recipeIngredients: [{
+      recordKey: 'i'.repeat(64),
+      recipeKey: 'r'.repeat(64),
+      ingredientNameRaw: 'Any Iron Bar',
+      ingredientGroupType: 'group',
+    }],
+    canonicalGroups: [
+      {
+        canonicalName: 'Any Iron Bar',
+        displayNameZh: 'any iron bar',
+        sourceLayer: 'central_override',
+        members: [{ internalName: 'GoldBar', name: 'Gold Bar', nameZh: 'gold bar' }],
+      },
+      {
+        canonicalName: 'Any Iron Bar',
+        displayNameZh: 'any iron bar',
+        sourceLayer: 'recipe_reference',
+        members: [
+          { internalName: 'IronBar', name: 'Iron Bar', nameZh: 'iron bar' },
+          { internalName: 'LeadBar', name: 'Lead Bar', nameZh: 'lead bar' },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    actual.groupExpansions.map((row) => row.memberInternalName),
+    ['IronBar', 'LeadBar'],
+  );
+});
