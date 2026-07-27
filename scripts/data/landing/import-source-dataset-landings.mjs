@@ -11,10 +11,14 @@ import {
   resolveDatasetFilter,
 } from './source-dataset-locator.mjs';
 import {
+  GOVERNED_CANONICAL_DATASET_TYPES,
+  LANDING_COMPATIBILITY_DEFAULTS,
   LANDING_DATASET_TYPES,
   LANDING_PARSE_STATUSES,
   LANDING_TABLE_NAME,
+  buildLegacyProducerRunKey,
   buildSourceDatasetLandingCreateTableSql,
+  validateLandingArtifactRole,
 } from './source-dataset-landing-schema.mjs';
 
 const require = createRequire(import.meta.url);
@@ -168,6 +172,10 @@ function normalizeText(value, fallback = '') {
   return text;
 }
 
+function normalizeNullableText(value) {
+  return normalizeText(value) || null;
+}
+
 function toMysqlDateTime(value) {
   if (!value) {
     return null;
@@ -297,22 +305,106 @@ export async function expandLandingEntries(entries = [], options = {}) {
 }
 
 function buildLandingRow(entry, payload) {
+  const datasetType = normalizeText(entry.datasetType);
+  const governed = GOVERNED_CANONICAL_DATASET_TYPES.includes(datasetType);
+  const artifactRole = normalizeText(
+    entry.artifactRole,
+    governed ? '' : LANDING_COMPATIBILITY_DEFAULTS.artifactRole,
+  );
+  const contentHash = normalizeText(entry.contentHash);
   return {
-    datasetType: normalizeText(entry.datasetType),
+    datasetType,
     provider: normalizeText(entry.provider),
     sourceKind: normalizeText(entry.sourceKind),
     sourceKey: normalizeText(entry.sourceKey),
     sourceLocator: normalizeText(entry.sourceLocator),
     sourcePage: normalizeText(entry.sourcePage, normalizeText(entry.sourceKey)),
     sourceRevisionTimestamp: toMysqlDateTime(entry.sourceRevisionTimestamp),
-    contentHash: normalizeText(entry.contentHash),
+    contentHash,
     payloadJson: JSON.stringify(payload ?? null),
     fetchedAt: toMysqlDateTime(entry.fetchedAt),
     parsedAt: toMysqlDateTime(entry.parsedAt),
     parseStatus: normalizeText(entry.parseStatus, 'ok') || 'ok',
+    artifactRole,
+    producerId: normalizeText(
+      entry.producerId,
+      governed ? '' : LANDING_COMPATIBILITY_DEFAULTS.producerId,
+    ),
+    producerVersion: normalizeText(
+      entry.producerVersion,
+      governed ? '' : LANDING_COMPATIBILITY_DEFAULTS.producerVersion,
+    ),
+    producerRunKey: normalizeText(
+      entry.producerRunKey,
+      governed ? '' : buildLegacyProducerRunKey(contentHash),
+    ),
+    bootstrapManifestHash: normalizeNullableText(entry.bootstrapManifestHash),
+    fullFileContentHash: normalizeNullableText(entry.fullFileContentHash),
+    fullFileByteSize: entry.fullFileByteSize == null ? null : Number(entry.fullFileByteSize),
     isCurrent: 1,
     notes: entry.notes == null ? null : String(entry.notes),
   };
+}
+
+function rejectArtifactContract(field, reason) {
+  throw new Error(`landing artifact contract rejected: ${field}: ${reason}`);
+}
+
+function requireText(row, field) {
+  if (!normalizeText(row[field])) {
+    rejectArtifactContract(field, 'required');
+  }
+}
+
+function requireSha256(row, field) {
+  requireText(row, field);
+  if (!/^[a-f0-9]{64}$/i.test(normalizeText(row[field]))) {
+    rejectArtifactContract(field, 'must be a 64-character sha256');
+  }
+}
+
+function validateLandingArtifactContract(row) {
+  const governed = GOVERNED_CANONICAL_DATASET_TYPES.includes(row.datasetType);
+  if (!validateLandingArtifactRole(row.artifactRole)) {
+    rejectArtifactContract('artifactRole', 'unknown role');
+  }
+  if (row.artifactRole === 'compat_export') {
+    rejectArtifactContract('artifactRole', 'compat_export cannot be imported');
+  }
+  if (governed && !['bootstrap_input', 'source_evidence'].includes(row.artifactRole)) {
+    rejectArtifactContract('artifactRole', `${row.artifactRole} is not accepted for ${row.datasetType}`);
+  }
+  if (!governed && row.artifactRole === 'bootstrap_input') {
+    rejectArtifactContract('artifactRole', 'bootstrap_input requires a governed dataset type');
+  }
+
+  requireText(row, 'producerId');
+  requireText(row, 'producerVersion');
+  requireText(row, 'producerRunKey');
+
+  if (governed) {
+    requireSha256(row, 'fullFileContentHash');
+    if (!Number.isSafeInteger(row.fullFileByteSize) || row.fullFileByteSize < 0) {
+      rejectArtifactContract('fullFileByteSize', 'must be a non-negative safe integer');
+    }
+  }
+
+  if (row.artifactRole === 'bootstrap_input') {
+    requireSha256(row, 'bootstrapManifestHash');
+  } else if (row.bootstrapManifestHash != null) {
+    rejectArtifactContract('bootstrapManifestHash', `forbidden for ${row.artifactRole}`);
+  }
+}
+
+async function prepareLandingRows(entries) {
+  const rows = [];
+  for (const entry of entries) {
+    const payload = await resolveEntryPayload(entry);
+    const row = buildLandingRow(entry, payload);
+    validateLandingArtifactContract(row);
+    rows.push(row);
+  }
+  return rows;
 }
 
 async function loadCurrentLandingRows(connection, row) {
@@ -356,9 +448,16 @@ async function insertLandingRow(connection, row) {
       fetched_at,
       parsed_at,
       parse_status,
+      artifact_role,
+      producer_id,
+      producer_version,
+      producer_run_key,
+      bootstrap_manifest_hash,
+      full_file_content_hash,
+      full_file_byte_size,
       is_current,
       notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       row.datasetType,
       row.provider,
@@ -372,6 +471,13 @@ async function insertLandingRow(connection, row) {
       row.fetchedAt,
       row.parsedAt,
       row.parseStatus,
+      row.artifactRole,
+      row.producerId,
+      row.producerVersion,
+      row.producerRunKey,
+      row.bootstrapManifestHash,
+      row.fullFileContentHash,
+      row.fullFileByteSize,
       row.isCurrent,
       row.notes,
     ],
@@ -389,6 +495,13 @@ async function updateLandingRow(connection, rowId, row) {
          fetched_at = ?,
          parsed_at = ?,
          parse_status = ?,
+         artifact_role = ?,
+         producer_id = ?,
+         producer_version = ?,
+         producer_run_key = ?,
+         bootstrap_manifest_hash = ?,
+         full_file_content_hash = ?,
+         full_file_byte_size = ?,
          notes = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
@@ -401,6 +514,13 @@ async function updateLandingRow(connection, rowId, row) {
       row.fetchedAt,
       row.parsedAt,
       row.parseStatus,
+      row.artifactRole,
+      row.producerId,
+      row.producerVersion,
+      row.producerRunKey,
+      row.bootstrapManifestHash,
+      row.fullFileContentHash,
+      row.fullFileByteSize,
       row.notes,
       rowId,
     ],
@@ -432,7 +552,9 @@ async function retireLandingRow(connection, rowId, row, sourcePage) {
     provider: normalizeText(row.provider),
     sourceKey: normalizeText(row.sourceKey),
   };
-  await clearArchivedLandingRowForKey(connection, retirementKey, sourcePage, rowId);
+  if (!GOVERNED_CANONICAL_DATASET_TYPES.includes(row.datasetType)) {
+    await clearArchivedLandingRowForKey(connection, retirementKey, sourcePage, rowId);
+  }
   await connection.execute(
     `UPDATE source_dataset_landings
      SET is_current = 0,
@@ -442,9 +564,33 @@ async function retireLandingRow(connection, rowId, row, sourcePage) {
   );
 }
 
-async function upsertLandingEntry(connection, entry, summary) {
-  const payload = await resolveEntryPayload(entry);
-  const row = buildLandingRow(entry, payload);
+async function assertBootstrapManifestNotReplayed(connection, row) {
+  if (row.bootstrapManifestHash == null) {
+    return;
+  }
+  const [rows] = await connection.execute(
+    `SELECT id
+     FROM source_dataset_landings
+     WHERE dataset_type = ?
+       AND provider = ?
+       AND source_key = ?
+       AND source_page = ?
+       AND bootstrap_manifest_hash = ?
+     LIMIT 1`,
+    [
+      row.datasetType,
+      row.provider,
+      row.sourceKey,
+      row.sourcePage,
+      row.bootstrapManifestHash,
+    ],
+  );
+  if (rows.length > 0) {
+    rejectArtifactContract('bootstrapManifestHash', 'already accepted for source identity');
+  }
+}
+
+async function upsertLandingRow(connection, row, summary) {
   const datasetCurrentRows = SINGLE_CURRENT_DATASET_TYPES.has(row.datasetType)
     ? await loadCurrentDatasetRows(connection, row)
     : [];
@@ -493,26 +639,32 @@ export async function runLandingImport(options = {}, dependencies = {}) {
     datasets: options.datasets,
   });
   const expandedEntries = await expandLandingEntries(datasetEntries);
+  const landingRows = await prepareLandingRows(expandedEntries);
   const summary = planLandingImportExecution(options, expandedEntries);
 
   if (options.apply) {
     const connection = await mysqlModule.createConnection(options.db);
+    let transactionStarted = false;
     try {
-      if (typeof connection.beginTransaction === 'function') {
-        await connection.beginTransaction();
+      for (const row of landingRows) {
+        await assertBootstrapManifestNotReplayed(connection, row);
       }
       await connection.query(buildSourceDatasetLandingCreateTableSql());
       summary.schema.applied = true;
+      if (typeof connection.beginTransaction === 'function') {
+        await connection.beginTransaction();
+        transactionStarted = true;
+      }
 
-      for (const entry of expandedEntries) {
-        await upsertLandingEntry(connection, entry, summary);
+      for (const row of landingRows) {
+        await upsertLandingRow(connection, row, summary);
       }
 
       if (typeof connection.commit === 'function') {
         await connection.commit();
       }
     } catch (error) {
-      if (typeof connection.rollback === 'function') {
+      if (transactionStarted && typeof connection.rollback === 'function') {
         await connection.rollback();
       }
       throw error;
