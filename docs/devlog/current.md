@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 07:00 CST by Codex
+Last updated: 2026-07-28 07:05 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -69,7 +69,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   regenerated against policy-set hash
   `sha256:fddd9c42ad0f2c22c4d611f63fb06fbe2444e4aea97029d0c11396e66d0b0e3c`.
   Six are technically complete but remain `AWAITING_OWNER`: schema, image,
-  boss, projectile, recipe crawler, and NPC crawler. Focused Node validation passes 88/88 and backend
+  boss, projectile, recipe crawler, and NPC crawler. The fresh post-bootstrap
+  full gate passes data workflow 287/287 and automation contracts 177/177,
+  then fail-closes at the expected 36 pass / 9 warning / 0 blocked domain
+  evidence checkpoint. Focused Node validation passes 88/88 and backend
   validation passes 227/227. The packet-consuming Node runner is the single
   formal write path; the unused backend apply bean remains fail-closed. Only
   `canonical-npc-apply` has no executor because its proposed write set crosses

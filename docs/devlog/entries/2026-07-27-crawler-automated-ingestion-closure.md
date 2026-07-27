@@ -339,6 +339,12 @@
   Six downstream operations are now technically complete but still require
   their own exact Owner fields: schema V56-V58, image sync, boss import,
   projectile backfill, recipe crawler, and NPC crawler.
+- The post-bootstrap full quality gate was started from the beginning. Data
+  workflow acceptance passes 287/287 and crawler automation contracts pass
+  177/177. The gate then stops, as designed, at the domain acceptance dry-run:
+  36 pass / 9 warning / 0 blocked. The nine warnings are the exact missing
+  image, boss, projectile, recipe, and shimmer producer evidence already mapped
+  in Task 10; no implementation regression or threshold defect was found.
 
 ## Result
 
@@ -411,7 +417,8 @@
 - Deferred NPC facts require real crawler evidence; absence remains blocking rather than falling back to the retired bridge.
 - Nine warning panels depend on real crawler/import/backfill/image evidence and
   cannot pass before their independently authorized operations. Empty-shell and
-  dry-run artifacts now fail closed; armor is no longer a warning.
+  dry-run artifacts now fail closed; armor is no longer a warning. The fresh
+  post-bootstrap full gate reproduces exactly 36 pass / 9 warning / 0 blocked.
 - V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
 - The regenerated downstream request files expire at `2026-07-31T20:00:00.000Z`; expired requests
