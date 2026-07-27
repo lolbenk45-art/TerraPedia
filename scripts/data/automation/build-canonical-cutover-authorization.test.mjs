@@ -7,12 +7,15 @@ import test from 'node:test';
 
 import {
   CANONICAL_CUTOVER_OPERATION_IDS,
+  CANONICAL_OPERATION_DATA_PATHS,
+  CANONICAL_OPERATION_ENTRYPOINTS,
   authorizeCanonicalCutoverRequest,
   buildCanonicalAuthorizationRequest,
   buildCanonicalAuthorizationRequestForOperation,
   hashOrderedBundleBytes,
   verifyCanonicalAuthorizationPacket,
 } from './build-canonical-cutover-authorization.mjs';
+import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const GENERATED_AT = '2026-07-27T15:00:00.000Z';
@@ -256,12 +259,19 @@ test('operation request builder exposes all 17 independent stable IDs', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorization-request-'));
   fs.mkdirSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration'), { recursive: true });
   fs.mkdirSync(path.join(repoRoot, 'data', 'generated'), { recursive: true });
+  fs.mkdirSync(path.join(repoRoot, 'data', 'standardized'), { recursive: true });
+  fs.mkdirSync(path.join(repoRoot, 'reports', 'authorization', 'canonical'), { recursive: true });
   fs.writeFileSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V56__a.sql'), 'DDL-56');
   fs.writeFileSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V57__b.sql'), 'DDL-57');
   fs.writeFileSync(path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V58__c.sql'), 'DDL-58');
   for (const name of ['recipe-material-reference.json', 'recipe-group-overrides.json', 'item-group-overrides.json']) {
     fs.writeFileSync(path.join(repoRoot, 'data', 'generated', name), `{\"name\":\"${name}\"}`);
   }
+  fs.writeFileSync(path.join(repoRoot, 'data', 'standardized', 'items.standardized.json'), '{"records":[]}');
+  fs.writeFileSync(
+    path.join(repoRoot, 'reports', 'authorization', 'canonical', 'canonical-npc-crawler.targets.json'),
+    '{"targets":[]}',
+  );
 
   const bootstrap = buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
@@ -300,6 +310,7 @@ test('operation request builder exposes all 17 independent stable IDs', () => {
     'data/generated/recipe-material-reference.json',
     'data/generated/recipe-group-overrides.json',
     'data/generated/item-group-overrides.json',
+    'data/standardized/items.standardized.json',
   ]);
 
   const npc = buildCanonicalAuthorizationRequestForOperation({
@@ -309,7 +320,9 @@ test('operation request builder exposes all 17 independent stable IDs', () => {
     expiresAt: EXPIRES_AT,
   });
   assert.match(npc.dataBundleSha256, /^sha256:/);
-  assert.deepEqual(npc.dataBundleEntries, []);
+  assert.deepEqual(npc.dataBundleEntries.map((entry) => entry.path), [
+    'reports/authorization/canonical/canonical-npc-crawler.targets.json',
+  ]);
   assert.equal(npc.executionManifestHash, null);
   assert.ok(npc.missingTechnicalFields.includes('executionManifestHash'));
 
@@ -321,6 +334,149 @@ test('operation request builder exposes all 17 independent stable IDs', () => {
   });
   assert.equal(secondL1.operationId, 'automation-biomes-second-l1');
   assert.ok(secondL1.requiredTechnicalFields.includes('dataBundleSha256'));
+});
+
+test('every operation resolves its exact frozen data inputs and fails closed when one is missing', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-data-'));
+  const write = (relativePath, content = '{}') => {
+    const filePath = path.join(repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+  for (const paths of Object.values(CANONICAL_OPERATION_DATA_PATHS)) {
+    for (const relativePath of paths) write(relativePath, `{"path":"${relativePath}"}`);
+  }
+  write('back/src/main/resources/db/migration/V56__a.sql', 'DDL-56');
+  write('back/src/main/resources/db/migration/V57__b.sql', 'DDL-57');
+  write('back/src/main/resources/db/migration/V58__c.sql', 'DDL-58');
+  write('data/wiki-crawler/normalized-light/npc/slime.latest.json', '{"normalized":true}');
+  write('data/wiki-crawler/audit/npc/slime.latest.json', '{"audit":true}');
+
+  for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
+    const request = buildCanonicalAuthorizationRequestForOperation({
+      repoRoot,
+      operationId,
+      generatedAt: GENERATED_AT,
+      expiresAt: EXPIRES_AT,
+    });
+    const expectedPaths = operationId === 'canonical-npc-apply'
+      ? [
+          ...CANONICAL_OPERATION_DATA_PATHS[operationId],
+          'data/wiki-crawler/normalized-light/npc/slime.latest.json',
+          'data/wiki-crawler/audit/npc/slime.latest.json',
+        ]
+      : CANONICAL_OPERATION_DATA_PATHS[operationId];
+    assert.deepEqual(
+      request.dataBundleEntries?.map((entry) => entry.path),
+      expectedPaths,
+      operationId,
+    );
+  }
+
+  const missingPath = CANONICAL_OPERATION_DATA_PATHS['canonical-shimmer-import'][0];
+  fs.rmSync(path.join(repoRoot, missingPath));
+  const incomplete = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-shimmer-import',
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.equal(incomplete.dataBundleSha256, null);
+  assert.equal(incomplete.dataBundleEntries, null);
+  assert.ok(incomplete.missingTechnicalFields.includes('dataBundleSha256'));
+});
+
+test('operation manifests are bound to the exact governed entrypoint and missing executors stay closed', () => {
+  assert.deepEqual(Object.keys(CANONICAL_OPERATION_ENTRYPOINTS), CANONICAL_CUTOVER_OPERATION_IDS);
+  assert.deepEqual(
+    Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
+      .filter(([, entrypoint]) => entrypoint === null)
+      .map(([operationId]) => operationId),
+    [
+      'canonical-schema-v56-v58',
+      'canonical-item-group-bootstrap',
+      'canonical-npc-apply',
+      'automation-biomes-l1-policy-promotion',
+      'automation-biomes-first-l1',
+      'automation-biomes-second-l1',
+      'automation-biomes-l2-promotion',
+      'automation-biomes-scheduler-activation',
+    ],
+  );
+
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-entrypoint-'));
+  const wrongPath = 'scripts/data/fetch/wrong.mjs';
+  fs.mkdirSync(path.join(repoRoot, path.dirname(wrongPath)), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, wrongPath), 'export const wrong = true;\n');
+  const contentHash = `sha256:${createHash('sha256')
+    .update(fs.readFileSync(path.join(repoRoot, wrongPath)))
+    .digest('hex')}`;
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-image-sync',
+    executionManifest: {
+      schemaVersion: 1,
+      operationId: 'canonical-image-sync',
+      command: ['node', wrongPath, '--apply=true'],
+      codeBundleEntries: [{ path: wrongPath, contentHash }],
+    },
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /entrypoint must be scripts\/data\/workflow\/run-image-sync\.mjs/i);
+
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-schema-v56-v58',
+    executionManifest: {
+      schemaVersion: 1,
+      operationId: 'canonical-schema-v56-v58',
+      command: ['node', wrongPath],
+      codeBundleEntries: [{ path: wrongPath, contentHash }],
+    },
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /no governed executor/i);
+});
+
+test('operation request builder rejects safe-entrypoint manifests whose exact arguments drift', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '../../..');
+  const recipe = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-recipe-crawler',
+    artifactDate: '2026-07-28',
+  });
+  const mutatedRecipe = {
+    ...recipe,
+    command: recipe.command.map((value) => (
+      value === '--max-depth=1' ? '--max-depth=2' : value
+    )),
+    bounds: { ...recipe.bounds, maxDepth: 2 },
+  };
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-recipe-crawler',
+    executionManifest: mutatedRecipe,
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /execution manifest contract.*drift/i);
+
+  const npc = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-npc-crawler',
+    artifactDate: '2026-07-28',
+    npcLimit: 25,
+  });
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-npc-crawler',
+    executionManifest: {
+      ...npc,
+      command: npc.command.map((value) => value === '--limit=25' ? '--limit=500' : value),
+      bounds: { ...npc.bounds, targetLimit: 500 },
+    },
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /npcLimit.*exactly 25|execution manifest contract.*drift/i);
 });
 
 test('operation-specific execution manifests are hash-bound and drift is rejected', () => {
@@ -362,25 +518,22 @@ test('operation-specific execution manifests are hash-bound and drift is rejecte
 });
 
 test('operation request builder verifies manifest code hashes against current repo bytes', () => {
-  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorization-code-'));
-  const codePath = 'scripts/data/fetch/example.mjs';
-  fs.mkdirSync(path.join(repoRoot, path.dirname(codePath)), { recursive: true });
-  fs.writeFileSync(path.join(repoRoot, codePath), 'export const value = 1;\n');
-  const baseManifest = {
-    schemaVersion: 1,
-    command: ['node', codePath, '--limit=1'],
-    codeBundleEntries: [{
-      path: codePath,
-      contentHash: `sha256:${'0'.repeat(64)}`,
-    }],
-    outputPaths: ['data/generated/example.latest.json'],
-    progressPaths: ['data/generated/wiki-sync-progress.latest.json'],
-  };
+  const repoRoot = path.resolve(import.meta.dirname, '../../..');
+  const baseManifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-recipe-crawler',
+    artifactDate: '2026-07-28',
+  });
 
   assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
     operationId: 'canonical-recipe-crawler',
-    executionManifest: baseManifest,
+    executionManifest: {
+      ...baseManifest,
+      codeBundleEntries: baseManifest.codeBundleEntries.map((entry, index) => (
+        index === 0 ? { ...entry, contentHash: `sha256:${'0'.repeat(64)}` } : entry
+      )),
+    },
     generatedAt: GENERATED_AT,
     expiresAt: EXPIRES_AT,
   }), /code bundle.*hash mismatch/i);
@@ -390,22 +543,26 @@ test('operation request builder verifies manifest code hashes against current re
     operationId: 'canonical-recipe-crawler',
     executionManifest: {
       ...baseManifest,
-      command: ['node', 'scripts/data/fetch/unbound-entrypoint.mjs', '--limit=1'],
+      command: baseManifest.command.map((value, index) => (
+        index === 1 ? 'scripts/data/fetch/unbound-entrypoint.mjs' : value
+      )),
     },
     generatedAt: GENERATED_AT,
     expiresAt: EXPIRES_AT,
-  }), /command entrypoint.*code bundle/i);
+  }), /execution manifest entrypoint must be/i);
 
-  const contentHash = `sha256:${createHash('sha256')
-    .update(fs.readFileSync(path.join(repoRoot, codePath)))
-    .digest('hex')}`;
+  assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-npc-crawler',
+    executionManifest: baseManifest,
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  }), /manifest operationId.*canonical-npc-crawler/i);
+
   const request = buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
     operationId: 'canonical-recipe-crawler',
-    executionManifest: {
-      ...baseManifest,
-      codeBundleEntries: [{ path: codePath, contentHash }],
-    },
+    executionManifest: baseManifest,
     generatedAt: GENERATED_AT,
     expiresAt: EXPIRES_AT,
   });

@@ -5,27 +5,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  CANONICAL_CUTOVER_OPERATION_IDS,
+  CANONICAL_OPERATION_DATA_PATHS,
+  CANONICAL_OPERATION_ENTRYPOINTS,
+} from './canonical-operation-catalog.mjs';
+import { assertCanonicalOperationExecutionManifestContract } from './canonical-operation-execution-manifest.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 
-export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
-  'automation-biomes-l0-bootstrap',
-  'canonical-image-sync',
-  'canonical-boss-import',
-  'canonical-boss-loot-import',
-  'canonical-projectile-backfill',
-  'canonical-recipe-crawler',
-  'canonical-recipe-apply',
-  'canonical-shimmer-import',
-  'canonical-schema-v56-v58',
-  'canonical-item-group-bootstrap',
-  'canonical-npc-crawler',
-  'canonical-npc-apply',
-  'automation-biomes-l1-policy-promotion',
-  'automation-biomes-first-l1',
-  'automation-biomes-second-l1',
-  'automation-biomes-l2-promotion',
-  'automation-biomes-scheduler-activation',
-]);
+export {
+  CANONICAL_CUTOVER_OPERATION_IDS,
+  CANONICAL_OPERATION_DATA_PATHS,
+  CANONICAL_OPERATION_ENTRYPOINTS,
+};
 
 const OPERATION_ID_SET = new Set(CANONICAL_CUTOVER_OPERATION_IDS);
 const FORMAL_DATABASES = Object.freeze(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
@@ -215,28 +207,16 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
   const root = path.resolve(repoRoot);
   const verifiedExecutionManifest = executionManifest == null
     ? null
-    : verifyExecutionManifestCodeBundle(root, executionManifest);
+    : verifyExecutionManifestCodeBundle(root, executionManifest, operationId);
   const schemaEntries = operationId === 'canonical-schema-v56-v58'
     ? readMigrationEntries(root)
     : [];
-  let dataEntries;
-  if (operationId === 'canonical-schema-v56-v58') {
-    dataEntries = [];
-  } else if (operationId === 'canonical-item-group-bootstrap') {
-    dataEntries = readRequiredEntries(root, [
-      'data/generated/recipe-material-reference.json',
-      'data/generated/recipe-group-overrides.json',
-      'data/generated/item-group-overrides.json',
-    ]);
-  } else if (operationId === 'canonical-npc-crawler' || operationId === 'canonical-recipe-crawler') {
-    dataEntries = [];
-  } else if (operationId === 'canonical-npc-apply') {
+  let dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
+  if (operationId === 'canonical-npc-apply') {
     const crawlerEntries = readNpcCrawlerEntries(root);
-    dataEntries = crawlerEntries === null
+    dataEntries = dataEntries === null || crawlerEntries === null
       ? null
-      : readRequiredEntries(root, ['data/standardized/npcs.standardized.json']).concat(crawlerEntries);
-  } else {
-    dataEntries = null;
+      : dataEntries.concat(crawlerEntries);
   }
   return {
     operationId,
@@ -250,10 +230,13 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
   };
 }
 
-function verifyExecutionManifestCodeBundle(repoRoot, manifest) {
+function verifyExecutionManifestCodeBundle(repoRoot, manifest, operationId) {
   const normalized = requireExecutionManifest(manifest);
   if (!Number.isSafeInteger(normalized.schemaVersion) || normalized.schemaVersion < 1) {
     throw new Error('execution manifest schemaVersion must be a positive integer');
+  }
+  if (normalized.operationId !== operationId) {
+    throw new Error(`execution manifest operationId must be ${operationId}`);
   }
   if (!Array.isArray(normalized.command) || normalized.command.length < 2
       || normalized.command.some((part) => typeof part !== 'string' || !part.trim())) {
@@ -266,6 +249,13 @@ function verifyExecutionManifestCodeBundle(repoRoot, manifest) {
     normalized.command[1],
     'execution manifest command entrypoint',
   );
+  const expectedEntrypoint = CANONICAL_OPERATION_ENTRYPOINTS[operationId];
+  if (expectedEntrypoint === null) {
+    throw new Error(`no governed executor is registered for operation: ${operationId}`);
+  }
+  if (commandEntrypoint !== expectedEntrypoint) {
+    throw new Error(`execution manifest entrypoint must be ${expectedEntrypoint}`);
+  }
   const declaredCodePaths = normalized.codeBundleEntries.map((entry) => (
     requireNormalizedPath(entry?.path, 'execution manifest code bundle path')
   ));
@@ -289,6 +279,7 @@ function verifyExecutionManifestCodeBundle(repoRoot, manifest) {
       throw new Error(`execution manifest code bundle hash mismatch: ${entryPath}`);
     }
   }
+  assertCanonicalOperationExecutionManifestContract({ operationId, manifest: normalized });
   return normalized;
 }
 
@@ -427,6 +418,15 @@ function readMigrationEntries(repoRoot) {
 
 function readRequiredEntries(repoRoot, relativePaths) {
   return relativePaths.map((relativePath) => readEntry(repoRoot, relativePath));
+}
+
+function readCompleteEntries(repoRoot, relativePaths) {
+  if (!Array.isArray(relativePaths)) return null;
+  if (relativePaths.some((relativePath) => {
+    const fullPath = path.join(repoRoot, requireNormalizedPath(relativePath, 'bundle path'));
+    return !fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile();
+  })) return null;
+  return readRequiredEntries(repoRoot, relativePaths);
 }
 
 function readNpcCrawlerEntries(repoRoot) {

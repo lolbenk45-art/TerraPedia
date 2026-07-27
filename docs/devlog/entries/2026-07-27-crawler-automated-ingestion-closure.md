@@ -270,6 +270,29 @@
   backend suite passes. A fresh broad rerun executes 1,510 tests with six failures,
   all outside this task in legacy port cleanup (2), audio streaming (1), and item
   image SQL contracts (3); they are not treated as automated-ingestion regressions.
+- Authorization continuation now supplies a formal bootstrap CLI that consumes
+  one frozen input, accepts credentials only from environment variables, applies
+  inside the existing transaction, writes a private atomic result, and always
+  closes its connection. The 17-operation catalog now freezes exact data input
+  paths, rejects incomplete input families as a whole, binds every manifest to
+  its operation ID and governed entrypoint, and rejects any command, bounds,
+  path, write-boundary, or exact code-list drift.
+- Nine operations with existing real entrypoints now have reproducible exact
+  manifest generation. Eight remaining operations explicitly retain `no governed
+  executor` rather than accepting a placeholder command: schema V56-V58, group
+  apply, NPC apply, L1 policy promotion, two L1 applies, L2 promotion, and
+  scheduler activation. The offline NPC target builder froze 25 uncrawled
+  targets at `8/8/4/5` town/boss/friendly/enemy without network access.
+- Fresh focused validation passes 48/48 across bootstrap, authorization, runner,
+  manifest, NPC-target, crawler coverage, and NPC governed-action tests. A
+  read-only formal `information_schema` probe found only
+  `local.source_dataset_landings` and `maint.source_dataset_landings` among the
+  15 queried V56-V58/group/NPC canonical tables; no formal schema mutation ran.
+  The 17 regenerated pre-bootstrap request hashes have sorted request-set hash
+  `sha256:a4b443da60dbcc1c23fca6191eb183655a46fea9a82f8481a205bbd8d93ee9be`;
+  individual request hashes remain in the ignored request artifacts and no
+  packet exists.
+  See git for code-level diff details.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -321,6 +344,10 @@
   authorization requests, fail-closed request-to-packet conversion, exact code
   manifest verification, durable one-time decision use, and a packet-consuming
   no-shell runner.
+- Completed in Task 12 continuation: exact per-operation data path resolution,
+  strict manifest operation/entrypoint/argument/code binding, a formal bootstrap
+  CLI contract, nine reproducible manifests for existing governed entrypoints,
+  and a frozen bounded 25-target NPC crawler input.
 - Completed in Task 15 within the code-only boundary: append-only V58 activation
   decision contract, repeated committed-L1 and exact current-policy gating,
   transaction-time L2 revalidation, and scheduler fail-closed visibility.
@@ -337,11 +364,15 @@
   dry-run artifacts now fail closed; armor is no longer a warning.
 - V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
-- The current 17 request files begin expiring around `2026-07-28T17:52Z`; expired requests
+- The current 17 request files begin expiring at `2026-07-28T18:52:05.940Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
   green after repairing its four queue contract failures.
+- Eight formal operations still lack a real governed executor and therefore
+  cannot produce an executable manifest. Boss-loot, recipe-apply, shimmer, and
+  NPC-apply also still lack their complete frozen producer inputs. These lanes
+  remain independently fail-closed while executable lanes continue preparation.
 
 ## Follow-up
 

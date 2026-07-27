@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 
 const LEVELS = ['L0', 'L1', 'L2'];
 const DOMAIN_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
@@ -140,6 +145,125 @@ export async function executeBootstrapPlan({ connection, plan } = {}) {
   return runPlanOnly(connection, plan);
 }
 
+export async function runBootstrapCli({
+  argv = process.argv.slice(2),
+  env = process.env,
+  mysqlModule = null,
+  now = new Date().toISOString(),
+} = {}) {
+  const args = parseArgs(argv);
+  const inputPath = path.resolve(requireText(args.input, '--input'));
+  const outputPath = path.resolve(requireText(args.output, '--output'));
+  if (args.apply !== 'true') {
+    throw new Error('--apply=true is required for the authorized bootstrap entrypoint.');
+  }
+  const input = readBootstrapInput(inputPath);
+  const plan = buildBootstrapPlan({
+    databaseName: input.databaseName,
+    ownerUsername: input.ownerUsername,
+    domainId: input.domainId,
+    level: input.level,
+    policy: input.policy,
+    reason: input.reason,
+    actor: input.actor,
+    apply: true,
+    formalAuthorization: {
+      reference: input.authorizationReference,
+      approvedBy: input.actor,
+      decisionIdentity: input.decisionIdentity,
+    },
+    now,
+  });
+  const connectionOptions = buildConnectionOptions(env, input.databaseName);
+  const connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions);
+  try {
+    const result = await executeBootstrapPlan({ connection, plan });
+    const report = {
+      ...result,
+      schemaVersion: 1,
+      operationId: input.operationId,
+      operationalState: input.operationalState,
+      decisionIdentity: input.decisionIdentity,
+      generatedAt: now,
+    };
+    writeJsonAtomic(outputPath, report);
+    return report;
+  } finally {
+    await connection.end();
+  }
+}
+
+function readBootstrapInput(filePath) {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new Error(`bootstrap input file is missing: ${filePath}`);
+  }
+  const input = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('bootstrap input must be a JSON object.');
+  }
+  if (input.schemaVersion !== 1) throw new Error('schemaVersion must be 1.');
+  if (input.operationId !== 'automation-biomes-l0-bootstrap') {
+    throw new Error('operationId must be automation-biomes-l0-bootstrap.');
+  }
+  if (input.databaseName !== 'terria_v1_local') {
+    throw new Error('databaseName must be terria_v1_local.');
+  }
+  if (input.domainId !== 'biomes') throw new Error('domainId must be biomes.');
+  if (input.level !== 'L0') throw new Error('level must be L0.');
+  if (input.operationalState !== 'DISABLED') {
+    throw new Error('operationalState must be DISABLED.');
+  }
+  requireText(input.ownerUsername, 'ownerUsername');
+  requireText(input.actor, 'actor');
+  requireText(input.reason, 'reason');
+  requireText(input.authorizationReference, 'authorizationReference');
+  requireText(input.decisionIdentity, 'decisionIdentity');
+  if (!input.policy || typeof input.policy !== 'object' || Array.isArray(input.policy)) {
+    throw new Error('policy must be a JSON object.');
+  }
+  return input;
+}
+
+function buildConnectionOptions(env, databaseName) {
+  const host = requireText(env.TERRAPEDIA_DB_HOST, 'TERRAPEDIA_DB_HOST');
+  const port = Number(requireText(env.TERRAPEDIA_DB_PORT, 'TERRAPEDIA_DB_PORT'));
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('TERRAPEDIA_DB_PORT must be an integer from 1 to 65535.');
+  }
+  return {
+    host,
+    port,
+    user: requireText(env.TERRAPEDIA_DB_USERNAME, 'TERRAPEDIA_DB_USERNAME'),
+    password: requireText(env.TERRAPEDIA_DB_PASSWORD, 'TERRAPEDIA_DB_PASSWORD'),
+    database: databaseName,
+    multipleStatements: false,
+  };
+}
+
+function parseArgs(argv) {
+  return Object.fromEntries(argv.map((arg) => {
+    const [key, ...values] = String(arg).replace(/^--/, '').split('=');
+    return [key, values.join('=')];
+  }));
+}
+
+function requireText(value, label) {
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${label} is required.`);
+  return text;
+}
+
+function writeJsonAtomic(filePath, payload) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temporary = `${filePath}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+    fs.renameSync(temporary, filePath);
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+}
+
 async function collectState(connection, plan) {
   const owner = await readOwner(connection, plan);
   if (owner && owner.username !== plan.ownerUsername) {
@@ -233,4 +357,13 @@ async function runInsideTransaction(connection, plan) {
   }
   await connection.commit();
   return { ...summary, applied: true };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  runBootstrapCli().then((result) => {
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+  }).catch((error) => {
+    process.stderr.write(`automation policy bootstrap failed: ${error.message}\n`);
+    process.exitCode = 1;
+  });
 }

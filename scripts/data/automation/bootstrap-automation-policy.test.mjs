@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   computePolicyHash,
   buildBootstrapPlan,
   executeBootstrapPlan,
+  runBootstrapCli,
 } from './bootstrap-automation-policy.mjs';
 
 const DEFAULT_POLICY = {
@@ -292,4 +296,111 @@ test('promoting an unchanged policy to a new level reuses its version rather tha
   assert.equal(result.policyVersion, 1);
   assert.ok(!connection.executed.some((e) => /INSERT INTO crawler_automation_policy_version/i.test(e.sql)));
   assert.ok(connection.executed.some((e) => /UPDATE crawler_automation_policy SET/i.test(e.sql)));
+});
+
+test('formal bootstrap CLI consumes one frozen input, uses environment credentials, and closes the connection', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-bootstrap-cli-'));
+  const inputPath = path.join(tempDir, 'bootstrap.input.json');
+  const outputPath = path.join(tempDir, 'bootstrap.result.json');
+  fs.writeFileSync(inputPath, `${JSON.stringify({
+    schemaVersion: 1,
+    operationId: 'automation-biomes-l0-bootstrap',
+    databaseName: 'terria_v1_local',
+    ownerUsername: 'system-owner',
+    domainId: 'biomes',
+    level: 'L0',
+    operationalState: 'DISABLED',
+    policy: DEFAULT_POLICY,
+    actor: 'system-owner',
+    reason: 'Bootstrap the exact disabled biomes L0 policy.',
+    authorizationReference: 'decision://automation/bootstrap/1',
+    decisionIdentity: 'automation-bootstrap-1',
+  }, null, 2)}\n`);
+
+  const connection = fakeConnection();
+  let connectionOptions = null;
+  let ended = false;
+  connection.end = async () => { ended = true; };
+  const result = await runBootstrapCli({
+    argv: [`--input=${inputPath}`, `--output=${outputPath}`, '--apply=true'],
+    env: {
+      TERRAPEDIA_DB_HOST: '127.0.0.1',
+      TERRAPEDIA_DB_PORT: '13306',
+      TERRAPEDIA_DB_USERNAME: 'automation-owner',
+      TERRAPEDIA_DB_PASSWORD: 'not-written-to-output',
+    },
+    mysqlModule: {
+      async createConnection(options) {
+        connectionOptions = options;
+        return connection;
+      },
+    },
+    now: '2026-07-28T01:00:00.000Z',
+  });
+
+  assert.equal(result.applied, true);
+  assert.equal(result.operationId, 'automation-biomes-l0-bootstrap');
+  assert.equal(result.operationalState, 'DISABLED');
+  assert.equal(connectionOptions.database, 'terria_v1_local');
+  assert.equal(connectionOptions.password, 'not-written-to-output');
+  assert.equal(ended, true);
+  const written = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+  assert.equal(written.decisionIdentity, 'automation-bootstrap-1');
+  assert.equal(JSON.stringify(written).includes('not-written-to-output'), false);
+});
+
+test('formal bootstrap CLI rejects unbound operation fields and missing credential environment', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-bootstrap-cli-invalid-'));
+  const base = {
+    schemaVersion: 1,
+    operationId: 'automation-biomes-l0-bootstrap',
+    databaseName: 'terria_v1_local',
+    ownerUsername: 'system-owner',
+    domainId: 'biomes',
+    level: 'L0',
+    operationalState: 'DISABLED',
+    policy: DEFAULT_POLICY,
+    actor: 'system-owner',
+    reason: 'Bootstrap the exact disabled biomes L0 policy.',
+    authorizationReference: 'decision://automation/bootstrap/2',
+    decisionIdentity: 'automation-bootstrap-2',
+  };
+  const validEnv = {
+    TERRAPEDIA_DB_HOST: '127.0.0.1',
+    TERRAPEDIA_DB_PORT: '13306',
+    TERRAPEDIA_DB_USERNAME: 'automation-owner',
+    TERRAPEDIA_DB_PASSWORD: 'secret',
+  };
+
+  for (const [label, mutation, pattern] of [
+    ['operation', { operationId: 'canonical-image-sync' }, /operationId/i],
+    ['database', { databaseName: 'terria_v1_maint' }, /terria_v1_local/i],
+    ['domain', { domainId: 'items' }, /domainId.*biomes/i],
+    ['level', { level: 'L1' }, /level.*L0/i],
+    ['state', { operationalState: 'ENABLED' }, /operationalState.*DISABLED/i],
+    ['decision', { decisionIdentity: '' }, /decisionIdentity/i],
+  ]) {
+    const inputPath = path.join(tempDir, `${label}.json`);
+    fs.writeFileSync(inputPath, JSON.stringify({ ...base, ...mutation }));
+    await assert.rejects(
+      () => runBootstrapCli({
+        argv: [`--input=${inputPath}`, `--output=${inputPath}.out`, '--apply=true'],
+        env: validEnv,
+        mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
+      }),
+      pattern,
+      label,
+    );
+  }
+
+  const inputPath = path.join(tempDir, 'valid.json');
+  fs.writeFileSync(inputPath, JSON.stringify(base));
+  await assert.rejects(
+    () => runBootstrapCli({
+      argv: [`--input=${inputPath}`, `--output=${inputPath}.out`, '--apply=true'],
+      env: { ...validEnv, TERRAPEDIA_DB_PASSWORD: '' },
+      mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
+    }),
+    /TERRAPEDIA_DB_PASSWORD/i,
+  );
 });

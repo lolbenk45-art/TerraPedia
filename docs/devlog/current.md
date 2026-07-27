@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 02:15 CST by Codex
+Last updated: 2026-07-28 02:52 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -57,9 +57,16 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   dispatch. Recipe progress and NPC governed preview are now code-ready, with
   focused authorization 15/15 and crawler 18/18 tests passing. Recipe has an
   exact execution manifest but still lacks the post-bootstrap policy-set hash;
-  NPC still lacks a frozen targets manifest. Real NPC crawler/T1, nine warning
+  NPC now has a frozen 25-target manifest but still lacks the same policy hash.
+  Real NPC crawler/T1, nine warning
   panels, exact Owner identity fields, T2, and two L1 applies remain distinct
   checkpoints.
+  The continuation now freezes exact input paths for all 17 operations, provides
+  a real bootstrap CLI, binds manifests to exact operation/entrypoint/arguments/
+  code lists, generates nine real-entrypoint manifests, and freezes a balanced
+  25-target NPC input. The combined focused suite passes 48/48. Eight operations
+  remain fail-closed because no governed executor exists; formal schema and data
+  state remains unchanged.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
