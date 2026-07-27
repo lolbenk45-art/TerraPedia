@@ -44,6 +44,7 @@ test('all reviewed shared tables expose every owner with conservative read/write
     ['local:item_groups', ['admin_item_group_writer:write', 'item_group_canonical:write']],
     ['local:item_group_members', ['admin_item_group_writer:write', 'item_group_canonical:write']],
     ['local:item_group_aliases', ['admin_item_group_writer:write', 'item_group_canonical:write']],
+    ['local:item_group_admin_audit', ['admin_item_group_writer:write']],
     ['local:item_group_projection_state', ['admin_item_group_writer:write', 'item_group_canonical:write']]
   ]);
   for (const [identity, owners] of expected) {

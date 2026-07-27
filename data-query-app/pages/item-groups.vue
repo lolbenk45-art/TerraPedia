@@ -17,8 +17,8 @@
           <button type="button" class="btn btn-secondary" :disabled="loading" @click="reloadGroups">
             {{ loading ? '刷新中...' : '刷新' }}
           </button>
-          <button type="button" class="btn btn-secondary" :disabled="saving" @click="createNewGroup">新建组</button>
-          <button type="button" class="btn btn-strong toolbar-top__primary" :disabled="saving || !draft || !isDirty" @click="saveGroup">
+          <button type="button" class="btn btn-secondary" :disabled="saving || !writeAvailability.enabled" @click="createNewGroup">新建组</button>
+          <button type="button" class="btn btn-strong toolbar-top__primary" :disabled="saving || !writeAvailability.enabled || !draft || !isDirty" @click="saveGroup">
             {{ saving ? '保存中...' : '保存来源组' }}
           </button>
         </div>
@@ -37,6 +37,10 @@
             {{ option.label }}
           </button>
         </nav>
+        <div v-if="!writeAvailability.enabled" class="write-availability" role="alert">
+          <strong>当前为只读模式</strong>
+          <span>{{ writeAvailability.reason }}</span>
+        </div>
       </div>
     </section>
 
@@ -104,7 +108,7 @@
               <h2 class="section-card__title">{{ isCreating ? '新建来源组' : '来源组编辑器' }}</h2>
               <p class="section-card__subtitle">保存前必须填写来源提供方，并至少提供来源页、来源 URL 或来源文件之一。</p>
             </div>
-            <button v-if="activeGroup && canDeleteActiveGroup" type="button" class="btn btn-danger" :disabled="saving" @click="removeGroup">
+            <button v-if="activeGroup && canDeleteActiveGroup" type="button" class="btn btn-danger" :disabled="saving || !writeAvailability.enabled" @click="removeGroup">
               删除本地覆盖
             </button>
           </div>
@@ -257,12 +261,14 @@
 
 <script setup lang="ts">
 import AdminItemLookupInput from '~/components/AdminItemLookupInput.vue'
+import { get } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import type { ItemGroup, ItemGroupMember } from '~/stores/itemGroups'
 
 definePageMeta({ title: '任意物品组管理', navSection: '/item-groups', headerVariant: 'compact' })
 
 type SuggestionItem = { id: number; name: string; nameZh?: string; internalName?: string; image?: string }
+type WriteAvailability = { enabled: boolean; reason: string }
 
 const route = useRoute()
 const router = useRouter()
@@ -289,11 +295,18 @@ const loadError = ref('')
 const domainText = ref('')
 const aliasText = ref('')
 const sourceUrlsText = ref('')
+const writeAvailability = reactive<WriteAvailability>({
+  enabled: false,
+  reason: '正在确认 canonical 数据库写入拓扑',
+})
 
 let reloadTimer: ReturnType<typeof setTimeout> | null = null
 
 const isDirty = computed(() => JSON.stringify(draft.value || null) !== JSON.stringify(activeGroup.value || null))
-const canDeleteActiveGroup = computed(() => activeGroup.value?.sourceFile === 'data/generated/item-group-overrides.json')
+const canDeleteActiveGroup = computed(() => (
+  activeGroup.value?.manualOnly
+  && activeGroup.value?.sourceKind === 'canonical:central_override'
+))
 const activeDomainLabel = computed(() => domainOptions.find((option) => option.value === activeDomain.value)?.label || activeDomain.value)
 const summaryCards = computed(() => [
   { label: '组数量', value: String(groups.value.length) },
@@ -389,6 +402,20 @@ async function reloadGroups() {
   }
 }
 
+async function loadWriteAvailability() {
+  try {
+    const response = await get('/admin/item-groups/write-availability')
+    const source = response?.data ?? response
+    writeAvailability.enabled = source?.enabled === true
+    writeAvailability.reason = writeAvailability.enabled
+      ? ''
+      : String(source?.reason || '后端未开放 canonical 物品组写入')
+  } catch (error: any) {
+    writeAvailability.enabled = false
+    writeAvailability.reason = error?.data?.message || error?.message || '无法确认后端写入状态'
+  }
+}
+
 function debouncedReload() {
   if (reloadTimer) clearTimeout(reloadTimer)
   reloadTimer = setTimeout(() => {
@@ -406,6 +433,7 @@ async function selectGroup(canonicalName: string, force = false) {
 }
 
 function createNewGroup() {
+  if (!writeAvailability.enabled) return
   if (isDirty.value && !window.confirm('当前组有未保存修改，确认新建吗？')) return
   activeGroup.value = null
   draft.value = {
@@ -458,7 +486,7 @@ function sortMembers() {
 }
 
 async function saveGroup() {
-  if (!draft.value) return
+  if (!draft.value || !writeAvailability.enabled) return
   syncDomainsFromText()
   syncAliasesFromText()
   syncSourceUrlsFromText()
@@ -493,7 +521,7 @@ async function saveGroup() {
 }
 
 async function removeGroup() {
-  if (!activeGroup.value) return
+  if (!activeGroup.value || !canDeleteActiveGroup.value || !writeAvailability.enabled) return
   if (!window.confirm(`确认删除 ${activeGroup.value.canonicalName} 的中心覆盖记录吗？`)) return
   saving.value = true
   try {
@@ -560,7 +588,7 @@ watch(
 )
 
 onMounted(async () => {
-  await reloadGroups()
+  await Promise.all([loadWriteAvailability(), reloadGroups()])
 })
 </script>
 
@@ -570,6 +598,20 @@ onMounted(async () => {
   grid-template-columns: 340px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
+}
+
+.write-availability {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-warning, #b45309);
+  font-size: 12px;
+}
+
+.write-availability span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .side-panel,

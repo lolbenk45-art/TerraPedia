@@ -106,6 +106,10 @@ retired bridge path.
 - `scripts/data/automation/table-ownership-matrix.mjs`
 - `scripts/data/automation/table-ownership-matrix.test.mjs`
 
+V57 contains four runtime tables plus one append-only admin audit table. The
+audit table is not a fifth runtime projection and is owned only by
+`admin_item_group_writer`.
+
 ### Group canonical pipeline
 
 - `scripts/data/item-groups/item-group-contract.mjs`
@@ -525,8 +529,28 @@ git commit -m "feat(data): export canonical item group compatibility"
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/RecipeTreeServiceImplTest.java`
 - Modify: `data-query-app/pages/item-groups.vue`
 - Modify: `data-query-app/tests/item-groups-page-contract.test.mjs`
+- Modify: `back/src/main/resources/db/migration/V57__create_canonical_item_group_runtime_tables.sql`
+- Modify: `scripts/data/item-groups/item-group-contract.test.mjs`
+- Modify: `scripts/data/automation/table-ownership-matrix.mjs`
+- Modify: `scripts/data/automation/table-ownership-matrix.test.mjs`
+- Modify: `scripts/data/item-groups/item-group-canonical-sync.mjs`
+- Modify: `scripts/data/item-groups/item-group-canonical-sync.test.mjs`
+- Modify: `scripts/data/item-groups/item-group-consumer-contract.test.mjs`
+- Modify: `scripts/data/relation/recipe-expansion-processor.mjs`
+- Modify: `scripts/data/relation/recipe-expansion-processor.test.mjs`
+- Modify: `scripts/data/relation/sync-maint-to-relation.mjs`
+- Modify: `scripts/data/relation/relation-table-catalog.mjs`
+- Modify: `scripts/data/fetch/build-item-relations-bundle.mjs`
+- Modify: `scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs`
+- Modify: `scripts/data/audit/reconcile-live-recipe-coverage.mjs`
+- Modify: `scripts/data/generate/generate-recipe-material-reference.mjs`
 
-- [ ] **Step 1: Write RED repository and controller contracts**
+Task 6 plan repair: the original file map required append-only admin audit
+evidence but provided no physical table for `admin_audit_record_key`. Add one
+local append-only audit table, immutable update/delete triggers, and exclusive
+admin-writer ownership before implementing the service.
+
+- [x] **Step 1: Write RED repository and controller contracts**
 
 Tests prove that reads never open the three JSON source files, each consumer uses
 its exact layer allowlist, admin writes create append-only audit evidence and
@@ -550,14 +574,14 @@ cd back && mvn -Dtest=AdminItemGroupControllerTest,AdminRecipeGroupControllerTes
 Expected RED: the three Java consumers and remaining pipeline/relation JSON
 readers are reported as unapproved or the new canonical service is missing.
 
-- [ ] **Step 2: Implement repository/service boundary**
+- [x] **Step 2: Implement repository/service boundary**
 
 Controllers depend on `ItemGroupCanonicalService`; they do not parse files or
 build SQL. `RecipeTreeServiceImpl` and recipe expansion use canonical readers.
 Admin mutations use `admin_item_group_writer` and never enter the crawler approval
 queue.
 
-- [ ] **Step 3: Run focused backend/admin GREEN**
+- [x] **Step 3: Run focused backend/admin GREEN**
 
 ```bash
 cd back && mvn -Dtest=AdminItemGroupControllerTest,AdminRecipeGroupControllerTest,RecipeTreeServiceImplTest,ItemGroupCanonicalServiceImplTest test
@@ -565,7 +589,7 @@ cd ../data-query-app && node --test tests/item-groups-page-contract.test.mjs
 pnpm run check
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add \

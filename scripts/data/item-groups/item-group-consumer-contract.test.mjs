@@ -11,29 +11,23 @@ const compatibilityFiles = [
   'item-group-overrides.json',
 ];
 
-const expectedPreCutoverInventory = [
-  entry('back/src/main/java/com/terraria/skills/controller/AdminItemGroupController.java', 'runtime_reader'),
-  entry('back/src/main/java/com/terraria/skills/controller/AdminRecipeGroupController.java', 'runtime_reader'),
-  entry('back/src/main/java/com/terraria/skills/service/impl/RecipeTreeServiceImpl.java', 'runtime_reader'),
+const expectedPostCutoverInventory = [
   entry('scripts/data/audit/audit-any-item-group-sources.mjs', 'governance'),
   entry('scripts/data/audit/canonical-source-contract-registry.mjs', 'governance'),
   entry('scripts/data/audit/domain-readiness-audit.mjs', 'governance'),
-  entry('scripts/data/audit/reconcile-live-recipe-coverage.mjs', 'pipeline_input'),
-  entry('scripts/data/fetch/build-item-relations-bundle.mjs', 'pipeline_input'),
   entry('scripts/data/generate/generate-item-group-overrides.mjs', 'compat_export'),
   entry('scripts/data/generate/generate-recipe-material-reference.mjs', 'compat_export'),
   entry('scripts/data/item-groups/item-group-bootstrap.mjs', 'bootstrap'),
   entry('scripts/data/landing/source-dataset-locator.mjs', 'bootstrap'),
-  entry('scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs', 'pipeline_input'),
-  entry('scripts/data/relation/relation-table-catalog.mjs', 'governance'),
-  entry('scripts/data/relation/sync-maint-to-relation.mjs', 'pipeline_input'),
 ];
 
-test('group compatibility inputs have an exact pre-cutover production inventory', async () => {
+test('group compatibility inputs have an exact post-cutover production inventory', async () => {
   const actualInventory = await scanProductionInventory();
 
-  assert.deepEqual(actualInventory, expectedPreCutoverInventory);
-  assert.equal(actualInventory.some((row) => row.role === 'runtime_reader'), true);
+  assert.deepEqual(actualInventory, expectedPostCutoverInventory);
+  assert.equal(actualInventory.every((row) => (
+    ['bootstrap', 'compat_export', 'governance'].includes(row.role)
+  )), true);
 });
 
 async function scanProductionInventory() {

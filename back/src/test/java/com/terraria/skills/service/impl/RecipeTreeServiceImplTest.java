@@ -2,6 +2,8 @@ package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.ItemDTO;
+import com.terraria.skills.dto.ItemGroupDTO;
+import com.terraria.skills.dto.ItemGroupMemberDTO;
 import com.terraria.skills.dto.RecipeConditionDTO;
 import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeIngredientDTO;
@@ -11,19 +13,16 @@ import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemService;
+import com.terraria.skills.service.ItemGroupCanonicalService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.ManagedItemImageResolver;
 import com.terraria.skills.service.RecipeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,11 +54,13 @@ class RecipeTreeServiceImplTest {
     @Mock
     private ManagedImageUrlPolicy managedImageUrlPolicy;
 
-    @TempDir
-    Path tempDir;
+    @Mock
+    private ItemGroupCanonicalService itemGroupCanonicalService;
 
     @BeforeEach
     void setUp() {
+        lenient().when(itemGroupCanonicalService.listGroups(ItemGroupCanonicalService.Consumer.RECIPE_TREE))
+            .thenReturn(defaultCanonicalGroups());
         lenient().when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(Map.of());
         lenient().when(managedItemImageResolver.resolveManagedImage(any(), anyMap())).thenAnswer(invocation -> {
             Item item = invocation.getArgument(0);
@@ -136,31 +137,15 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
-    void shouldExposeAllRecipeGroupMembersInsteadOfPreviewOnly() throws IOException {
-        String originalUserDir = System.getProperty("user.dir");
-        Path repoRoot = tempDir.resolve("repo-all-group-members");
-        Files.createDirectories(repoRoot.resolve("back"));
-        Files.createDirectories(repoRoot.resolve("data/generated"));
-        Files.writeString(repoRoot.resolve("data/generated/recipe-material-reference.json"), """
-            {
-              "groups": [
-                {
-                  "canonicalName": "Any Wood",
-                  "displayNameEn": "Any Wood",
-                  "displayNameZh": "任何木材",
-                  "members": [
-                    { "internalName": "Wood", "name": "Wood" },
-                    { "internalName": "Ebonwood", "name": "Ebonwood" },
-                    { "internalName": "RichMahogany", "name": "Rich Mahogany" },
-                    { "internalName": "Pearlwood", "name": "Pearlwood" }
-                  ]
-                }
-              ]
-            }
-            """);
-        try {
-            System.setProperty("user.dir", repoRoot.resolve("back").toString());
-            RecipeTreeServiceImpl service = newService();
+    void shouldExposeAllRecipeGroupMembersInsteadOfPreviewOnly() {
+        when(itemGroupCanonicalService.listGroups(ItemGroupCanonicalService.Consumer.RECIPE_TREE))
+            .thenReturn(List.of(canonicalGroup("Any Wood", "任何木材", List.of(
+                canonicalMember(9L, "Wood", "Wood"),
+                canonicalMember(619L, "Ebonwood", "Ebonwood"),
+                canonicalMember(620L, "RichMahogany", "Rich Mahogany"),
+                canonicalMember(621L, "Pearlwood", "Pearlwood")
+            ))));
+        RecipeTreeServiceImpl service = newService();
 
             ItemDTO item = recipeTreeItem(8L, "Torch", "Torch", "火把");
             RecipeIngredientDTO groupIngredient = groupIngredient("任何木材", null);
@@ -175,20 +160,13 @@ class RecipeTreeServiceImplTest {
                 itemEntity(621L, "Pearlwood", "Pearlwood", "珍珠木", "https://terraria.wiki.gg/images/Pearlwood.png")
             ));
 
-            RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(8L, 3);
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(8L, 3);
 
-            RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-            assertEquals(4, groupNode.getGroupMembers().size());
-            assertEquals(List.of("Wood", "Ebonwood", "RichMahogany", "Pearlwood"), groupNode.getGroupMembers().stream()
-                .map(member -> member.getInternalName())
-                .toList());
-        } finally {
-            if (originalUserDir == null) {
-                System.clearProperty("user.dir");
-            } else {
-                System.setProperty("user.dir", originalUserDir);
-            }
-        }
+        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        assertEquals(4, groupNode.getGroupMembers().size());
+        assertEquals(List.of("Wood", "Ebonwood", "RichMahogany", "Pearlwood"), groupNode.getGroupMembers().stream()
+            .map(member -> member.getInternalName())
+            .toList());
     }
 
     @Test
@@ -389,10 +367,10 @@ class RecipeTreeServiceImplTest {
         RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
             itemService,
             recipeService,
-            objectMapper,
             itemMapper,
             managedItemImageResolver,
-            managedImageUrlPolicy
+            managedImageUrlPolicy,
+            itemGroupCanonicalService
         );
 
         ItemDTO item = recipeTreeItem(250L, "HoneyDispenser", "Honey Dispenser", "Honey Dispenser");
@@ -657,37 +635,12 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
-    void shouldResolveRecipeGroupFromCentralItemGroupOverride() throws IOException {
-        String originalUserDir = System.getProperty("user.dir");
-        Path repoRoot = tempDir.resolve("repo");
-        Files.createDirectories(repoRoot.resolve("back"));
-        Files.createDirectories(repoRoot.resolve("data/generated"));
-        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
-            {
-              "schemaVersion": "1.0.0",
-              "groups": [
-                {
-                  "canonicalName": "Any Pylon",
-                  "displayNameEn": "Any Pylon",
-                  "aliases": ["Any Teleportation Pylon"],
-                  "displayNameZh": "Any Pylon",
-                  "domains": ["recipe", "npc_shop"],
-                  "sourceProvider": "wiki_gg",
-                  "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
-                  "members": [
-                    {
-                      "internalName": "TeleportationPylonPurity",
-                      "name": "Forest Pylon",
-                      "nameZh": "Forest Pylon"
-                    }
-                  ]
-                }
-              ]
-            }
-            """);
-        try {
-            System.setProperty("user.dir", repoRoot.resolve("back").toString());
-            RecipeTreeServiceImpl service = newService();
+    void shouldResolveRecipeGroupFromCentralItemGroupOverride() {
+        when(itemGroupCanonicalService.listGroups(ItemGroupCanonicalService.Consumer.RECIPE_TREE))
+            .thenReturn(List.of(canonicalGroup("Any Pylon", "Any Pylon", List.of(
+                canonicalMember(4875L, "TeleportationPylonPurity", "Forest Pylon")
+            ), List.of("Any Teleportation Pylon"))));
+        RecipeTreeServiceImpl service = newService();
 
             ItemDTO item = recipeTreeItem(9001L, "PylonTestItem", "Pylon Test Item", "Pylon Test Item");
             RecipeIngredientDTO groupIngredient = groupIngredient("Any Teleportation Pylon", "1");
@@ -699,61 +652,29 @@ class RecipeTreeServiceImplTest {
                 itemEntity(4875L, "TeleportationPylonPurity", "Forest Pylon", "Forest Pylon", "https://terraria.wiki.gg/images/Forest_Pylon.png")
             ));
 
-            RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(9001L, 4);
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(9001L, 4);
 
-            RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-            assertEquals("Any Pylon", groupNode.getDisplayName());
-            assertEquals("Any Pylon", groupNode.getSecondaryName());
-            assertEquals("Any Pylon", groupNode.getGroupCanonicalName());
-            assertEquals(1, groupNode.getGroupMembers().size());
-            assertEquals("TeleportationPylonPurity", groupNode.getGroupMembers().get(0).getInternalName());
-        } finally {
-            if (originalUserDir == null) {
-                System.clearProperty("user.dir");
-            } else {
-                System.setProperty("user.dir", originalUserDir);
-            }
-        }
+        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        assertEquals("Any Pylon", groupNode.getDisplayName());
+        assertEquals("Any Pylon", groupNode.getSecondaryName());
+        assertEquals("Any Pylon", groupNode.getGroupCanonicalName());
+        assertEquals(1, groupNode.getGroupMembers().size());
+        assertEquals("TeleportationPylonPurity", groupNode.getGroupMembers().get(0).getInternalName());
     }
 
     @Test
-    void shouldNotLetCentralItemGroupAliasShadowRecipeReferenceGroup() throws IOException {
-        String originalUserDir = System.getProperty("user.dir");
-        Path repoRoot = tempDir.resolve("repo-shadow");
-        Files.createDirectories(repoRoot.resolve("back"));
-        Files.createDirectories(repoRoot.resolve("data/generated"));
-        Files.writeString(repoRoot.resolve("data/generated/recipe-material-reference.json"), """
-            {
-              "groups": [
-                {
-                  "canonicalName": "Any Wood",
-                  "displayNameEn": "Any Wood",
-                  "members": [
-                    { "internalName": "Wood", "name": "Wood" },
-                    { "internalName": "Ebonwood", "name": "Ebonwood" }
-                  ]
-                }
-              ]
-            }
-            """);
-        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
-            {
-              "groups": [
-                {
-                  "canonicalName": "Any Timber",
-                  "displayNameEn": "Any Timber",
-                  "aliases": ["Any Wood"],
-                  "domains": ["recipe"],
-                  "members": [
-                    { "internalName": "StoneBlock", "name": "Stone Block" }
-                  ]
-                }
-              ]
-            }
-            """);
-        try {
-            System.setProperty("user.dir", repoRoot.resolve("back").toString());
-            RecipeTreeServiceImpl service = newService();
+    void shouldNotLetCentralItemGroupAliasShadowRecipeReferenceGroup() {
+        when(itemGroupCanonicalService.listGroups(ItemGroupCanonicalService.Consumer.RECIPE_TREE))
+            .thenReturn(List.of(
+                canonicalGroup("Any Wood", "Any Wood", List.of(
+                    canonicalMember(9L, "Wood", "Wood"),
+                    canonicalMember(619L, "Ebonwood", "Ebonwood")
+                )),
+                canonicalGroup("Any Timber", "Any Timber", List.of(
+                    canonicalMember(3L, "StoneBlock", "Stone Block")
+                ), List.of("Any Wood"))
+            ));
+        RecipeTreeServiceImpl service = newService();
 
             ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "Coffin Minecart");
             RecipeIngredientDTO groupIngredient = groupIngredient("Any Wood", "10");
@@ -767,31 +688,80 @@ class RecipeTreeServiceImplTest {
                 itemEntity(3L, "StoneBlock", "Stone Block", "Stone Block", "https://terraria.wiki.gg/images/Stone_Block.png")
             ));
 
-            RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
 
-            RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-            assertEquals("Any Wood", groupNode.getGroupCanonicalName());
-            assertEquals(2, groupNode.getGroupMembers().size());
-            assertEquals("Wood", groupNode.getGroupMembers().get(0).getInternalName());
-            assertEquals("Ebonwood", groupNode.getGroupMembers().get(1).getInternalName());
-        } finally {
-            if (originalUserDir == null) {
-                System.clearProperty("user.dir");
-            } else {
-                System.setProperty("user.dir", originalUserDir);
-            }
-        }
+        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        assertEquals("Any Wood", groupNode.getGroupCanonicalName());
+        assertEquals(2, groupNode.getGroupMembers().size());
+        assertEquals("Wood", groupNode.getGroupMembers().get(0).getInternalName());
+        assertEquals("Ebonwood", groupNode.getGroupMembers().get(1).getInternalName());
     }
 
     private RecipeTreeServiceImpl newService() {
         return new RecipeTreeServiceImpl(
             itemService,
             recipeService,
-            new ObjectMapper(),
             itemMapper,
             managedItemImageResolver,
-            managedImageUrlPolicy
+            managedImageUrlPolicy,
+            itemGroupCanonicalService
         );
+    }
+
+    private List<ItemGroupDTO> defaultCanonicalGroups() {
+        return List.of(
+            canonicalGroup("Any Balloon", "任意气球", List.of(
+                canonicalMember(3735L, "SillyBalloonGreen", "Silly Green Balloon"),
+                canonicalMember(3736L, "SillyBalloonPink", "Silly Pink Balloon")
+            )),
+            canonicalGroup("Any Wood", "任意木材", List.of(
+                canonicalMember(9L, "Wood", "Wood"),
+                canonicalMember(619L, "Ebonwood", "Ebonwood"),
+                canonicalMember(620L, "RichMahogany", "Rich Mahogany"),
+                canonicalMember(621L, "Pearlwood", "Pearlwood"),
+                canonicalMember(911L, "Shadewood", "Shadewood"),
+                canonicalMember(2503L, "BorealWood", "Boreal Wood"),
+                canonicalMember(5215L, "AshWood", "Ash Wood"),
+                canonicalMember(2260L, "SpookyWood", "Spooky Wood"),
+                canonicalMember(1729L, "DynastyWood", "Dynasty Wood")
+            )),
+            canonicalGroup("Any Iron Bar", "任意铁锭", List.of(
+                canonicalMember(22L, "IronBar", "Iron Bar"),
+                canonicalMember(704L, "LeadBar", "Lead Bar")
+            )),
+            canonicalGroup("Any Pylon", "Any Pylon", List.of(
+                canonicalMember(4875L, "TeleportationPylonPurity", "Forest Pylon")
+            ), List.of("Any Teleportation Pylon"))
+        );
+    }
+
+    private ItemGroupDTO canonicalGroup(String canonicalName, String nameZh, List<ItemGroupMemberDTO> members) {
+        return canonicalGroup(canonicalName, nameZh, members, List.of());
+    }
+
+    private ItemGroupDTO canonicalGroup(
+        String canonicalName,
+        String nameZh,
+        List<ItemGroupMemberDTO> members,
+        List<String> aliases
+    ) {
+        ItemGroupDTO group = new ItemGroupDTO();
+        group.setCanonicalName(canonicalName);
+        group.setDisplayNameEn(canonicalName);
+        group.setDisplayNameZh(nameZh);
+        group.setAliases(aliases);
+        group.setDomains(List.of("recipe"));
+        group.setMembers(members);
+        return group;
+    }
+
+    private ItemGroupMemberDTO canonicalMember(Long itemId, String internalName, String name) {
+        ItemGroupMemberDTO member = new ItemGroupMemberDTO();
+        member.setItemId(itemId);
+        member.setInternalName(internalName);
+        member.setName(name);
+        member.setNameZh(name);
+        return member;
     }
 
     private ItemDTO recipeTreeItem(Long id, String internalName, String name, String nameZh) {

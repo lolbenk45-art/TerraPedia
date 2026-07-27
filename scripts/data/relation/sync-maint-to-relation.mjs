@@ -18,7 +18,10 @@ import { buildBuffEntityRelations } from './buff-entity-processor.mjs';
 import { buildImageRelations } from './image-processor.mjs';
 import { buildCategoryRelations } from './category-relation-processor.mjs';
 import { buildRecipeRelations } from './recipe-relation-processor.mjs';
-import { buildRecipeGroupExpansions } from './recipe-expansion-processor.mjs';
+import {
+  buildCanonicalRecipeGroups,
+  buildRecipeGroupExpansions,
+} from './recipe-expansion-processor.mjs';
 import { buildItemGroupRelationProjection } from '../item-groups/item-group-canonical-sync.mjs';
 import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
@@ -1348,6 +1351,8 @@ export async function runSync(options, dependencies = {}) {
     maintArmorSetImages,
     maintArmorAttributeRows,
     existingRelationArmorSetImages,
+    maintItemGroupRows,
+    maintItemGroupMemberRows,
     inheritanceRules,
     reviewedNonNpcSourceExclusions,
     reviewedSourceOnlyItemExclusions
@@ -1377,6 +1382,8 @@ export async function runSync(options, dependencies = {}) {
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', []),
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_attribute_rows WHERE deleted = 0', []),
     queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', []),
+    queryMaintOptional(queryMaint, "SELECT * FROM maint_item_groups WHERE deleted = 0 AND status = 'ACTIVE'", []),
+    queryMaintOptional(queryMaint, 'SELECT * FROM maint_item_group_members WHERE deleted = 0', []),
     loadInheritanceRules(),
     loadReviewedNonNpcSourceExclusions(),
     loadReviewedSourceOnlyItemExclusions()
@@ -1413,13 +1420,13 @@ export async function runSync(options, dependencies = {}) {
 
   const category = buildCategoryRelations({ categoryRows, itemCategoryRows });
   const recipe = buildRecipeRelations({ itemRecipes, itemPageRecipes, recipePageRecipes, itemIndex });
-  const recipeReferencePath = path.join(repoRoot, 'data', 'generated', 'recipe-material-reference.json');
-  const recipeReferencePayload = fs.existsSync(recipeReferencePath)
-    ? JSON.parse(fs.readFileSync(recipeReferencePath, 'utf8'))
-    : { groups: [] };
+  const canonicalRecipeGroups = buildCanonicalRecipeGroups({
+    groupRows: maintItemGroupRows,
+    memberRows: maintItemGroupMemberRows,
+  });
   const recipeExpansions = buildRecipeGroupExpansions({
     recipeIngredients: recipe.recipeIngredients,
-    recipeReferencePayload
+    canonicalGroups: canonicalRecipeGroups,
   });
   const itemSource = buildItemSourceRelations({
     itemSourceRows,

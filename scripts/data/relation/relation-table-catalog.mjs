@@ -3,14 +3,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { RELATION_DATABASE_NAME } from './relation-schema.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
+const mysql = loadMysqlModule();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -365,7 +364,7 @@ const TABLE_DEFINITIONS = [
     status: 'kept',
     layer: 'expansion',
     purpose: 'Expanded material-group members for recipe placeholders.',
-    source: 'item_recipe_ingredients + data/generated/recipe-material-reference.json',
+    source: 'item_recipe_ingredients + maint_item_groups + maint_item_group_members',
     primaryKeys: ['record_key', 'recipe_key', 'ingredient_record_key', 'member_internal_name'],
     notes: 'Compatibility expansion layer; not the canonical recipe source.'
   },

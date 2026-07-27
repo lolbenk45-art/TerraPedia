@@ -17,6 +17,7 @@ import {
   normalizeText,
   parseRecipeTable
 } from '../lib/wiki-page-utils.mjs';
+import { resolveRecipeMaterialReferenceOutputPath } from '../generate/generate-recipe-material-reference.mjs';
 
 const DEFAULT_BIOME_CONFIG = {
   forest: {
@@ -84,7 +85,7 @@ export async function buildItemRelationsBundle({
   itemPageDir = sharedDataPath('raw', 'wiki', 'item-pages'),
   biomeDir = sharedDataPath('raw', 'wiki', 'biomes'),
   npcParsedPath = sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
-  recipeReferencePath = path.join(process.cwd(), 'data', 'generated', 'recipe-material-reference.json'),
+  recipeReferencePath = resolveRecipeMaterialReferenceOutputPath(process.cwd()),
   outputPath = sharedDataPath('normalized', 'item-relations.bundle.json'),
   reportDir = sharedDataPath('reports', 'normalize'),
   limit = null,
@@ -423,7 +424,7 @@ if (isDirectRun(import.meta.url)) {
     itemPageDir: options['item-pages'] ?? sharedDataPath('raw', 'wiki', 'item-pages'),
     biomeDir: options['biome-pages'] ?? sharedDataPath('raw', 'wiki', 'biomes'),
     npcParsedPath: options.npcs ?? sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
-    recipeReferencePath: options['recipe-reference'] ?? path.join(process.cwd(), 'data', 'generated', 'recipe-material-reference.json'),
+    recipeReferencePath: options['recipe-reference'] ?? resolveRecipeMaterialReferenceOutputPath(process.cwd()),
     outputPath: options.output ?? sharedDataPath('normalized', 'item-relations.bundle.json'),
     limit: numericOption(options.limit, null),
     refreshRecipeReference: booleanOption(options['refresh-recipe-reference'] ?? options.refreshRecipeReference, false),
@@ -666,11 +667,10 @@ function resolveItemFromLookup(itemLookup, ...names) {
 
 function loadRecipeReference(filePath) {
   if (!fs.existsSync(filePath)) {
-    return { sourceType: null, recipesByResultInternalName: new Map(), groupsByCanonicalName: new Map() };
+    return { sourceType: null, recipesByResultInternalName: new Map() };
   }
   const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   const supplementalRecipes = Array.isArray(payload?.supplementalRecipes) ? payload.supplementalRecipes : [];
-  const groups = Array.isArray(payload?.groups) ? payload.groups : [];
 
   return {
     sourceType: typeof payload?.sourceType === 'string' ? payload.sourceType : null,
@@ -683,11 +683,6 @@ function loadRecipeReference(filePath) {
         else acc.push([key, [recipe]]);
         return acc;
       }, [])
-    ),
-    groupsByCanonicalName: new Map(
-      groups
-        .map((group) => [normalizeIdentity(group?.canonicalName), group])
-        .filter(([key]) => key)
     )
   };
 }

@@ -100,9 +100,26 @@ function buildMaintChildren(group, groupRow) {
       deleted: 0,
     };
   });
-  const aliases = (Array.isArray(group?.aliases) ? group.aliases : []).map((alias, index) => {
-    const aliasText = text(alias?.aliasText ?? alias);
+  const aliasInputs = [
+    { aliasText: groupRow.canonicalName, aliasKind: 'canonical_name' },
+    { aliasText: groupRow.displayName, aliasKind: 'display_name_en' },
+    { aliasText: groupRow.displayNameZh, aliasKind: 'display_name_zh' },
+    ...(Array.isArray(group?.aliases) ? group.aliases : []).map((alias) => ({
+      aliasText: alias?.aliasText ?? alias,
+      normalizedAlias: alias?.normalizedAlias,
+      aliasKind: alias?.aliasKind ?? 'explicit',
+      aliasLanguage: alias?.aliasLanguage,
+    })),
+  ];
+  const uniqueAliases = new Map();
+  for (const alias of aliasInputs) {
+    const aliasText = text(alias?.aliasText);
     const normalizedAlias = normalizeAlias(alias?.normalizedAlias ?? aliasText);
+    if (!normalizedAlias || uniqueAliases.has(normalizedAlias)) continue;
+    uniqueAliases.set(normalizedAlias, { ...alias, aliasText, normalizedAlias });
+  }
+  const aliases = [...uniqueAliases.values()].map((alias, index) => {
+    const { aliasText, normalizedAlias } = alias;
     if (!normalizedAlias) throw new Error(`canonical item group ${groupRow.canonicalName} has an empty alias`);
     return {
       scope: 'item_groups',
@@ -367,6 +384,50 @@ export function selectWinner(rows = [], allowedLayers = []) {
       - Number(left.sourcePriority ?? left.source_priority ?? 0))[0] ?? null;
 }
 
+export function buildItemGroupRuntimeSnapshotPayload(runtimeProjection = {}) {
+  const groups = stableSort(runtimeProjection.groups ?? [], (row) => row.recordKey).map((row) => ({
+    recordKey: text(row.recordKey),
+    canonicalKey: text(row.canonicalKey),
+    canonicalName: text(row.canonicalName) || null,
+    name: text(row.displayName ?? row.name) || null,
+    nameZh: text(row.displayNameZh ?? row.nameZh) || null,
+    normalizedDomainsJson: text(row.normalizedDomainsJson) || null,
+    sourceLayer: text(row.sourceLayer),
+    sourcePriority: Number(row.sourcePriority),
+    relationRecordKey: text(row.relationRecordKey),
+    sourceContentHash: text(row.sourceContentHash),
+    canonicalVersion: Number(row.canonicalVersion),
+    status: text(row.status),
+    deleted: Number(row.deleted ?? 0),
+  }));
+  const members = stableSort(runtimeProjection.members ?? [], (row) => row.recordKey).map((row) => ({
+    recordKey: text(row.recordKey),
+    groupRecordKey: text(row.groupRecordKey),
+    itemId: numberOrNull(row.itemId),
+    sourceItemId: numberOrNull(row.sourceItemId),
+    memberKey: text(row.memberKey),
+    internalName: text(row.internalName) || null,
+    name: text(row.name) || null,
+    nameZh: text(row.nameZh) || null,
+    sortOrder: Number(row.sortOrder ?? 0),
+    resolutionState: text(row.resolutionState),
+  }));
+  const aliases = stableSort(runtimeProjection.aliases ?? [], (row) => row.recordKey).map((row) => ({
+    recordKey: text(row.recordKey),
+    groupRecordKey: text(row.groupRecordKey),
+    aliasText: text(row.aliasText),
+    normalizedAlias: text(row.normalizedAlias),
+    aliasKind: text(row.aliasKind),
+    aliasLanguage: text(row.aliasLanguage) || null,
+    sortOrder: Number(row.sortOrder ?? 0),
+  }));
+  return { schemaVersion: 1, groups, members, aliases };
+}
+
+export function hashItemGroupRuntimeSnapshot(snapshotPayload) {
+  return hash(snapshotPayload);
+}
+
 export function buildItemGroupRuntimeProjection(relationProjection) {
   const groups = relationProjection.groups.filter((group) => (
     group.status === 'ACTIVE'
@@ -393,7 +454,8 @@ export function buildItemGroupRuntimeProjection(relationProjection) {
     members: stableSort(members, (row) => row.recordKey),
     aliases: stableSort(aliases, (row) => row.recordKey),
   };
-  return { ...sorted, snapshotHash: hash(sorted) };
+  const snapshotPayload = buildItemGroupRuntimeSnapshotPayload(sorted);
+  return { ...sorted, snapshotHash: hashItemGroupRuntimeSnapshot(snapshotPayload) };
 }
 
 export async function runItemGroupCanonicalSync({

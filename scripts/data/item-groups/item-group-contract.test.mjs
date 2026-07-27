@@ -56,3 +56,22 @@ test('V57 defines layer-preserving local runtime tables and a published singleto
   assert.match(sql, /FOREIGN KEY \(`group_id`\) REFERENCES `item_groups` \(`id`\) ON DELETE RESTRICT/);
   assert.doesNotMatch(sql, /ON DELETE CASCADE/i);
 });
+
+test('V57 persists append-only admin item group audit evidence', async () => {
+  const sql = await readFile(migrationUrl, 'utf8').catch(() => '');
+
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `item_group_admin_audit`/);
+  for (const column of [
+    'record_key',
+    'actor',
+    'action',
+    'canonical_key',
+    'before_logical_key',
+    'after_logical_key',
+    'canonical_snapshot_hash',
+  ]) {
+    assert.match(sql, new RegExp('`' + column + '`'));
+  }
+  assert.match(sql, /CREATE TRIGGER `trg_item_group_admin_audit_no_update`[\s\S]*BEFORE UPDATE/);
+  assert.match(sql, /CREATE TRIGGER `trg_item_group_admin_audit_no_delete`[\s\S]*BEFORE DELETE/);
+});

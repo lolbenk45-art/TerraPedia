@@ -67,6 +67,30 @@ CREATE TABLE IF NOT EXISTS `item_group_aliases` (
   CHECK (`source_layer` IN ('recipe_reference', 'source_group', 'central_override'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `item_group_admin_audit` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_key` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  `actor` VARCHAR(255) NOT NULL,
+  `action` VARCHAR(16) NOT NULL,
+  `canonical_key` VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,
+  `before_logical_key` VARCHAR(767) DEFAULT NULL,
+  `after_logical_key` VARCHAR(767) DEFAULT NULL,
+  `canonical_snapshot_hash` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_item_group_admin_audit_record_key` (`record_key`),
+  KEY `idx_item_group_admin_audit_canonical_key` (`canonical_key`, `created_at`),
+  CHECK (`action` IN ('CREATE', 'UPDATE', 'DELETE'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TRIGGER `trg_item_group_admin_audit_no_update`
+BEFORE UPDATE ON `item_group_admin_audit` FOR EACH ROW
+  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'item group admin audit rows are immutable';
+
+CREATE TRIGGER `trg_item_group_admin_audit_no_delete`
+BEFORE DELETE ON `item_group_admin_audit` FOR EACH ROW
+  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'item group admin audit rows are immutable';
+
 CREATE TABLE IF NOT EXISTS `item_group_projection_state` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `singleton_key` TINYINT NOT NULL DEFAULT 1,

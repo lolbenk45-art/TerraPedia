@@ -80,6 +80,26 @@ test('maint projection preserves immutable record keys while rotating changed so
   assert.deepEqual(removed.rotation.retiredRecordKeys, [first.groups[0].recordKey]);
 });
 
+test('maint projection persists implicit identities while keeping alias kinds explicit', () => {
+  const projection = sync.buildItemGroupMaintProjection({
+    landingRows: [landingEntry({ groups: [group({
+      displayNameZh: '任意木材',
+      aliases: ['Wood Group'],
+    })] })],
+  });
+
+  assert.deepEqual(
+    projection.aliases
+      .map((row) => [row.aliasText, row.aliasKind])
+      .sort((left, right) => left[0].localeCompare(right[0])),
+    [
+      ['Any Wood', 'canonical_name'],
+      ['Wood Group', 'explicit'],
+      ['任意木材', 'display_name_zh'],
+    ],
+  );
+});
+
 test('maint projection treats recipe override groups as reconciliation evidence only', () => {
   const projection = sync.buildItemGroupMaintProjection({
     landingRows: [landingEntry({
@@ -241,6 +261,35 @@ test('runtime projection and PUBLISHED state commit through one injected local t
   assert.equal(result.state.memberCount, 2);
   assert.equal(result.state.publicationStatus, 'PUBLISHED');
   assert.equal(result.state.canonicalVersion, 3);
+});
+
+test('runtime snapshot hash covers only the persisted local projection contract', () => {
+  const maint = sync.buildItemGroupMaintProjection({ landingRows: [landingEntry()] });
+  const relation = sync.buildItemGroupRelationProjection({
+    maintProjection: maint,
+    items: [item(9, 'Wood'), item(27, 'BorealWood')],
+  });
+  const runtime = sync.buildItemGroupRuntimeProjection(relation);
+  const payload = sync.buildItemGroupRuntimeSnapshotPayload(runtime);
+
+  assert.equal(payload.schemaVersion, 1);
+  assert.deepEqual(Object.keys(payload.groups[0]), [
+    'recordKey',
+    'canonicalKey',
+    'canonicalName',
+    'name',
+    'nameZh',
+    'normalizedDomainsJson',
+    'sourceLayer',
+    'sourcePriority',
+    'relationRecordKey',
+    'sourceContentHash',
+    'canonicalVersion',
+    'status',
+    'deleted',
+  ]);
+  assert.equal(payload.groups[0].landingSourceKey, undefined);
+  assert.equal(runtime.snapshotHash, sync.hashItemGroupRuntimeSnapshot(payload));
 });
 
 test('new canonical sync tests contain no formal database names', async () => {

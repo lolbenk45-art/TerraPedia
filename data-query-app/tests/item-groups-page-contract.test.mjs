@@ -68,6 +68,20 @@ test('item groups page exposes API load failures instead of showing a false empt
   assert.match(fetchItemGroups, /throw error/)
 })
 
+test('item groups page obeys backend-owned canonical write availability', () => {
+  const page = read('data-query-app/pages/item-groups.vue')
+
+  assert.match(page, /get\('\/admin\/item-groups\/write-availability'\)/)
+  assert.match(page, /writeAvailability\.enabled/)
+  assert.match(page, /writeAvailability\.reason/)
+  assert.match(page, /:disabled="saving \|\| !writeAvailability\.enabled" @click="createNewGroup"/)
+  assert.match(page, /:disabled="saving \|\| !writeAvailability\.enabled \|\| !draft \|\| !isDirty" @click="saveGroup"/)
+  assert.match(page, /:disabled="saving \|\| !writeAvailability\.enabled" @click="removeGroup"/)
+  assert.match(page, /activeGroup\.value\?\.manualOnly/)
+  assert.match(page, /sourceKind === 'canonical:central_override'/)
+  assert.doesNotMatch(page, /sourceFile === 'data\/generated\/item-group-overrides\.json'/)
+})
+
 test('item groups page uses Chinese-first canonical name copy', () => {
   const page = read('data-query-app/pages/item-groups.vue')
 

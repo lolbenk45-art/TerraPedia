@@ -6,7 +6,10 @@ import { createRequire } from 'node:module';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, sharedDataPath, writeJson } from '../lib/wiki-item-utils.mjs';
-import { buildAuditRecipeKey } from '../generate/generate-recipe-material-reference.mjs';
+import {
+  buildAuditRecipeKey,
+  resolveRecipeMaterialReferenceOutputPath,
+} from '../generate/generate-recipe-material-reference.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -15,7 +18,9 @@ const options = parseCliArgs(process.argv.slice(2));
 const repoRoot = getProjectRoot();
 const generatedDir = path.join(repoRoot, 'data', 'generated');
 
-const recipeReferencePath = path.resolve(options['recipe-reference'] ?? path.join(generatedDir, 'recipe-material-reference.json'));
+const recipeReferencePath = path.resolve(
+  options['recipe-reference'] ?? resolveRecipeMaterialReferenceOutputPath(repoRoot),
+);
 const pageStatsPath = path.resolve(options['page-stats'] ?? path.join(generatedDir, 'live-recipe-page-stats.latest.json'));
 const bundlePath = path.resolve(options.bundle ?? sharedDataPath('normalized', 'item-relations.bundle.json'));
 const outputPath = path.resolve(options.output ?? path.join(generatedDir, 'live-recipe-reconciliation.latest.json'));
@@ -62,7 +67,6 @@ const reconciliation = {
   missingPages: Array.isArray(recipeReference?.skippedRecipeSourcePages) ? recipeReference.skippedRecipeSourcePages.map((page) => page.sourcePage) : [],
   missingResultItems,
   duplicateRecipeKeys: summarizeDuplicates(liveRecipes),
-  ambiguousGroups: summarizeAmbiguousGroups(recipeReference?.groups),
   bundleRecipesRaw: bundleRecipes.length,
   bundleRecipeKeys: bundleRecipeKeys.size,
   dbRecipes: dbSnapshot.recipesCount,
@@ -189,11 +193,4 @@ function summarizeDuplicates(recipes) {
   return [...counts.entries()]
     .filter(([, count]) => count > 1)
     .map(([key, count]) => ({ key, count }));
-}
-
-function summarizeAmbiguousGroups(groups) {
-  return (Array.isArray(groups) ? groups : [])
-    .filter((group) => !Array.isArray(group?.members) || group.members.length === 0)
-    .map((group) => group.canonicalName)
-    .filter(Boolean);
 }

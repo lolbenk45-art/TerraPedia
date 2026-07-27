@@ -47,6 +47,10 @@ const RECIPE_HOME_SECTION = 'Recipes by crafting station';
 const GROUP_SOURCE_KIND = 'group_reference';
 const PAGE_SOURCE_KIND = 'recipe_page';
 
+export function resolveRecipeMaterialReferenceOutputPath(root = repoRoot) {
+  return path.join(root, 'data', 'generated', 'recipe-material-reference.json');
+}
+
 export async function generateRecipeMaterialReference(rawOptions = {}) {
   const options = resolveOptions(rawOptions);
   const normalizedItemsPayload = JSON.parse(await fs.promises.readFile(options.itemsPath, 'utf8'));
@@ -340,7 +344,7 @@ function resolveOptions(rawOptions) {
     .filter(Boolean);
   return {
     itemsPath: path.resolve(rawOptions.items ?? path.join(sharedDataRoot, 'normalized', 'items.wiki.json')),
-    outputPath: path.resolve(rawOptions.output ?? path.join(generatedDir, 'recipe-material-reference.json')),
+    outputPath: path.resolve(rawOptions.output ?? resolveRecipeMaterialReferenceOutputPath()),
     manifestPath: path.resolve(rawOptions['manifest-output'] ?? path.join(generatedDir, 'live-recipe-source-manifest.latest.json')),
     pageStatsPath: path.resolve(rawOptions['page-stats-output'] ?? path.join(generatedDir, 'live-recipe-page-stats.latest.json')),
     reconciliationPath: path.resolve(rawOptions['reconciliation-output'] ?? path.join(generatedDir, 'live-recipe-reconciliation.latest.json')),

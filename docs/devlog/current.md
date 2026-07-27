@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 20:33 CST by Codex
+Last updated: 2026-07-27 21:31 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -23,7 +23,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   the dependency suite passes 123/123 with one existing skip. V57 and bootstrap
   remain unapplied. Task 5 now proves the only two allowed shadow
   normalizations and an exact 35-row compatibility round trip; its dependency
-  suite passes 55/55. Task 6 canonical backend/admin consumer cutover is next.
+  suite passes 55/55. Task 6 now cuts backend, recipe expansion, pipeline group
+  readers, and the admin page to canonical repositories. Its fresh gates pass
+  backend 34/34, Node 83/83, admin 8/8, and Nuxt typecheck; V57 remains
+  unapplied. Task 7 preview/apply registration is next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 

@@ -379,6 +379,7 @@ Add these tables to `terria_v1_local`:
 | `item_group_members` | Runtime members per `(group_id, item_id)` |
 | `item_group_aliases` | Runtime alias per `(normalized_alias, canonical_key, source_layer)` |
 | `item_group_projection_state` | Single published snapshot row |
+| `item_group_admin_audit` | Append-only admin mutation evidence keyed by immutable `record_key` |
 
 Only active, non-blocked, fully resolved relation rows are materialized. Local
 retains one row per contributing source layer; collapsing to one global winner
@@ -391,6 +392,11 @@ Aliases retain the same layer identity. The relation processor still blocks one
 normalized alias from resolving to different canonical keys; duplicate alias
 text for the same canonical key across layers is valid evidence and must not be
 collapsed before consumer filtering.
+
+`item_group_admin_audit` is not a runtime projection. It records actor, action,
+before/after logical keys, and the resulting canonical snapshot hash in the same
+transaction as an admin mutation. Update and delete triggers make each record
+append-only, and only `admin_item_group_writer` owns the table.
 
 The local projection carries relation record key, source content hash, canonical version, and materialized timestamp. `item_group_projection_state` is a singleton requiring canonical snapshot hash/version, relation run key, group/member/alias counts, publication status, and published timestamp. Runtime rows and their `PUBLISHED` state transition commit in the same local transaction, so API responses and acceptance audits can prove which complete snapshot they expose. One snapshot row rather than one per consumer means a single hash identifies what every consumer is reading.
 

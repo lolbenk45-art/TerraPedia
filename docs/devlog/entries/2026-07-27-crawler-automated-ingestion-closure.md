@@ -30,6 +30,10 @@
   one serialized singleton fence while all source-layer rows remain disjoint.
   Local aliases likewise retain canonical key plus source layer so a valid
   same-group override does not collide with its reference-layer alias.
+- Task 6 plan repair found one Important schema gap before implementation: the
+  required append-only admin audit record had no physical table. V57 will retain
+  four runtime tables and add one admin-only immutable audit table; the plan,
+  design, ownership, and DDL contracts now name it explicitly.
 
 ## Scope
 
@@ -66,11 +70,14 @@
   entrypoint, and protected recipe-reader contracts. Focused validation passes
   81/81 with one existing skip; the Task 2-4 dependency suite passes 123/123
   with the same existing skip. A real-file, pure-memory projection reports 35
-  maint groups / 163 members / 2 aliases / 2 exclusions, 161 resolved and 2
-  rejected relation members, one blocked group, and 34 runtime groups / 161
-  runtime members. Runtime rows and `PUBLISHED` state use one injected local
-  transaction. No formal database name or connection appears in the new sync
-  tests.
+  maint groups / 163 members / 2 exclusions, 161 resolved and 2 rejected
+  relation members, one blocked group, and 34 runtime groups / 161 runtime
+  members. Task 6 corrected the persisted implicit-identity contract to 72
+  maint aliases and 70 runtime aliases, and versioned the local persisted-field
+  snapshot hash; the frozen read-only projection now hashes to
+  `3c934d57e747e34ccec74822ca609948b330f61b4f9d7280d8476d3dc48e1c32`.
+  Runtime rows and `PUBLISHED` state use one injected local transaction. No
+  formal database name or connection appears in the new sync tests.
 - Task 5 RED reproduced nine missing shadow/export/source-evidence contracts.
   Focused GREEN passes 15/15; the bootstrap/sync/consumer/landing dependency
   suite passes 55/55. A read-only real-file round trip preserves 35 canonical
@@ -79,6 +86,15 @@
   The exporter rejects writer credentials and revision-mismatched or missing
   recipe non-group evidence; landing continues to reject `compat_export` before
   opening a connection.
+- Task 6 GREEN passes backend 34/34, canonical/pipeline Node 83/83, admin page
+  contracts 8/8, and Nuxt typecheck. Canonical consumers no longer read the
+  three compatibility JSON files at runtime. The admin writer is same-server
+  only, commits maint/relation/local/state/audit in one transaction, records the
+  authenticated username, applies the 1 MiB / 160-member / 32-alias caps,
+  validates identity collisions while holding the shared projection fence, and
+  uses Node-compatible record keys and local snapshot hashes. V57 now includes
+  the immutable append-only audit table but remains unapplied. See git for
+  code-level diff details.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -106,7 +122,11 @@
   null-to-value member-name enrichment, and provides deterministic one-way
   compatibility export/reparse with exact blocked, exclusion, source metadata,
   and snapshot-hash fidelity. See git for code-level diff details.
-- Not completed: Tasks 6-16 and every formal authorization checkpoint.
+- Completed: Task 6 cuts backend, recipe expansion, pipeline group readers, and
+  the admin page to canonical repositories with fail-closed read/write state,
+  authenticated audit identity, bounded synchronous writes, and cross-language
+  snapshot identity. See git for code-level diff details.
+- Not completed: Tasks 7-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -118,7 +138,7 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 6 canonical backend/admin repository cutover with
+- Coordinator: execute Task 7 canonical group preview/apply registration with
   RED -> GREEN; do not apply V56/V57 or bootstrap data to formal databases.
 
 ## Commits
@@ -128,4 +148,5 @@
 - `88e8392c` `feat(data): define canonical item group schemas`
 - `988b1bbf` `feat(data): reconcile item group bootstrap`
 - `c8d4fc31` `feat(data): project canonical item groups`
-- Task 5 compatibility-export checkpoint pending.
+- `bf96cca6` `feat(data): export canonical item group compatibility`
+- Task 6 canonical-repository checkpoint pending.

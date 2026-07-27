@@ -35,6 +35,8 @@ export const LOCAL_TARGET_SCHEMA_CATALOG = Object.freeze({
     'updated_at']),
   item_group_aliases: Object.freeze(['alias_kind', 'alias_language', 'alias_text', 'canonical_key',
     'created_at', 'id', 'normalized_alias', 'record_key', 'sort_order', 'source_layer', 'updated_at']),
+  item_group_admin_audit: Object.freeze(['action', 'actor', 'after_logical_key',
+    'before_logical_key', 'canonical_key', 'canonical_snapshot_hash', 'created_at', 'id', 'record_key']),
   item_group_projection_state: Object.freeze(['alias_count', 'canonical_snapshot_hash',
     'canonical_version', 'created_at', 'group_count', 'id', 'member_count', 'publication_status',
     'published_at', 'relation_run_key', 'singleton_key', 'updated_at']),
@@ -230,6 +232,8 @@ const localRows = [
     row({ key: `local.${table}.admin`, capability: 'admin_item_group_writer', databaseRole: 'local', table,
       logicalPredicate: predicatePartition('item_group_source_layer', 'central_override') })
   ]),
+  row({ key: 'local.item_group_admin_audit.admin', capability: 'admin_item_group_writer',
+    databaseRole: 'local', table: 'item_group_admin_audit', rollbackMode: 'append_only' }),
   row({ key: 'local.item_group_projection_state.canonical', capability: 'item_group_canonical',
     databaseRole: 'local', table: 'item_group_projection_state',
     logicalPredicate: predicateSerializedSingleton('item_group_projection_state', 1) }),
