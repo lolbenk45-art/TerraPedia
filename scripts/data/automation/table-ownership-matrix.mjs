@@ -107,7 +107,7 @@ function capabilityForTable(table) {
 }
 
 const SHARED_SCHEMA_TABLES = new Set([
-  'maint_npcs', 'maint_item_sources', 'maint_item_biomes', 'item_source_facts', 'item_source_details',
+  'maint_npcs', 'maint_npc_crawler_facts', 'maint_item_sources', 'maint_item_biomes', 'item_source_facts', 'item_source_details',
   'item_npc_shop_relations', 'item_npc_loot_relations', 'npc_buff_relations',
   'maint_item_groups', 'maint_item_group_members', 'maint_item_group_aliases',
   'maint_item_group_member_exclusions', 'relation_item_groups', 'relation_item_group_members',
@@ -124,6 +124,8 @@ const schemaRows = [...MAINT_TABLE_CATALOG, ...RELATION_TABLE_CATALOG, ...PROJEC
   }));
 
 const sharedRows = [
+  row({ key: 'maint.maint_npc_crawler_facts.canonical', capability: 'npc_crawler_facts',
+    databaseRole: 'maint', table: 'maint_npc_crawler_facts' }),
   row({ key: 'maint.maint_npcs.npcs', capability: 'npcs', databaseRole: 'maint', table: 'maint_npcs',
     logicalPredicate: predicatePartition('maint_npc_kind', 'non_town') }),
   row({ key: 'maint.maint_npcs.town', capability: 'town_npc_maintenance', databaseRole: 'maint', table: 'maint_npcs',

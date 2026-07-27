@@ -105,16 +105,25 @@ test('domain rows expose backend-owned disabled reasons', () => {
   assert.equal(typeof domain.disabledReasons[0].messageZh, 'string');
 });
 
-test('admin automation catalog exposes the canonical item-group pair as L0 disabled', async () => {
+test('admin automation catalog exposes both canonical pairs as L0 disabled', async () => {
   const fixture = JSON.parse(await readFile(capabilityFixtureUrl, 'utf8'));
   const itemGroupActions = fixture.operations.filter((operation) => operation.domain === 'item_groups');
+  const npcFactActions = fixture.operations.filter((operation) => operation.domain === 'npc_crawler_facts');
 
-  assert.equal(fixture.operations.length, 21);
+  assert.equal(fixture.operations.length, 23);
   assert.deepEqual(
     itemGroupActions.map((operation) => operation.actionId),
     ['item-group-canonical-preview', 'item-group-canonical-apply'],
   );
   for (const operation of itemGroupActions) {
+    assert.equal(operation.automationLevel, 'L0');
+    assert.equal(operation.operationalState, 'DISABLED');
+  }
+  assert.deepEqual(
+    npcFactActions.map((operation) => operation.actionId),
+    ['npc-crawler-facts-preview', 'npc-crawler-facts-apply'],
+  );
+  for (const operation of npcFactActions) {
     assert.equal(operation.automationLevel, 'L0');
     assert.equal(operation.operationalState, 'DISABLED');
   }

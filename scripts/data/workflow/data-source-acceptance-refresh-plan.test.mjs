@@ -231,6 +231,23 @@ test('refresh plan includes fresh but semantically blocked canonical evidence', 
   assert.equal(plan.actions[0].command, 'node scripts/data/item-groups/item-group-readiness.mjs');
 });
 
+test('refresh plan preserves NPC CODE_READY as a manual T2-blocked action', () => {
+  const plan = buildDataSourceAcceptanceRefreshPlan({
+    audit: { panels: [{
+      panelId: 'npcCanonicalReadiness', freshnessStatus: 'fresh', blocking: true,
+      blockingReason: 'NPC canonical readiness must reach T2_CUTOVER_VERIFIED',
+      nextEvidenceCommand: 'node scripts/data/npc-canonical/npc-canonical-readiness.mjs',
+      commandRisk: 'safe-read-only', requiresDatabase: true, writesDatabase: false,
+    }] },
+  });
+
+  assert.equal(plan.overallStatus, 'blocked');
+  assert.equal(plan.actions.length, 1);
+  assert.equal(plan.actions[0].panelId, 'npcCanonicalReadiness');
+  assert.equal(plan.actions[0].status, 'blocked');
+  assert.equal(plan.actions[0].executionPolicy, 'plan-only');
+});
+
 test('buildDataSourceAcceptanceRefreshPlan blocks stale evidence without a refresh command', () => {
   const plan = buildDataSourceAcceptanceRefreshPlan({
     generatedAt: '2026-05-03T12:00:00Z',

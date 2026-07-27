@@ -184,6 +184,26 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'npc-crawler-facts-preview',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+        '--action-id=npc-crawler-facts-preview'
+      ]
+    },
+    {
+      id: 'npc-crawler-facts-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+        '--action-id=npc-crawler-facts-apply'
+      ]
+    },
+    {
       id: 'boss-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,

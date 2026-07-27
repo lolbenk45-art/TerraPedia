@@ -12,6 +12,7 @@ import { createLiveAutomationAdapter } from './mysql-automation-acceptance-adapt
 import { provisionAutomationDatabases } from './provision-automation-databases.mjs';
 import { dropAutomationDatabases } from './drop-automation-databases.mjs';
 import { runItemGroupLiveAcceptance } from '../item-groups/item-group-live-acceptance.mjs';
+import { runNpcCanonicalT0Acceptance } from '../npc-canonical/npc-canonical-t0-acceptance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PROBE_TABLE = '__automation_acceptance_probe';
@@ -85,7 +86,9 @@ export function parseProbeCounts(output) {
 
 export function resolveAcceptanceScope(scope, executor) {
   if (scope === undefined || scope === null || scope === '') return null;
-  if (scope !== 'item-groups') throw new Error(`unsupported live acceptance scope: ${scope}`);
+  if (!['item-groups', 'npc-canonical'].includes(scope)) {
+    throw new Error(`unsupported live acceptance scope: ${scope}`);
+  }
   if (typeof executor !== 'function') throw new Error(`${scope} acceptance executor is required`);
   return executor;
 }
@@ -227,7 +230,9 @@ async function main() {
   const scope = args.scope;
   const acceptanceExecutor = resolveAcceptanceScope(
     scope,
-    scope === 'item-groups' ? runItemGroupLiveAcceptance : undefined,
+    scope === 'item-groups'
+      ? runItemGroupLiveAcceptance
+      : scope === 'npc-canonical' ? runNpcCanonicalT0Acceptance : undefined,
   );
   const privateDirectory = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-${profile}-live-`));
   const runId = args['run-id'] || `${profile}-${Date.now()}-${randomBytes(8).toString('hex')}`;

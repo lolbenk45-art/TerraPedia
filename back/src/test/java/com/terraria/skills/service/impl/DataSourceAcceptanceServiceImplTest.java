@@ -47,6 +47,7 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals("pass", overview.getReplacementReadiness().getStatus());
         assertEquals("pass", overview.getSourceDatasetLanding().getStatus());
         assertEquals("pass", overview.getSourceGroupAudit().getStatus());
+        assertEquals("pass", overview.getNpcCanonicalReadiness().getStatus());
         assertEquals("pass", overview.getImageReadiness().getStatus());
         assertEquals("pass", overview.getEntitySourceCoverage().getStatus());
         assertEquals("pass", overview.getCrawlerMonitor().getStatus());
@@ -56,6 +57,8 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals(false, overview.getReplacementReadiness().getWritesDatabase());
         assertEquals("node scripts/data/item-groups/item-group-readiness.mjs", overview.getSourceGroupAudit().getGeneratorCommand());
         assertEquals(true, overview.getSourceGroupAudit().getRequiresDatabase());
+        assertEquals("node scripts/data/npc-canonical/npc-canonical-readiness.mjs", overview.getNpcCanonicalReadiness().getGeneratorCommand());
+        assertEquals(true, overview.getNpcCanonicalReadiness().getRequiresDatabase());
         assertEquals("fresh", overview.getRelationHealth().getFreshnessStatus());
         assertEquals(12L, overview.getRelationHealth().getAgeHours());
         assertEquals(24, overview.getRelationHealth().getStaleAfterHours());
@@ -110,6 +113,41 @@ class DataSourceAcceptanceServiceImplTest {
         assertTrue(overview.getSourceGroupAudit().getBlockingCount() > 0);
         assertEquals("node scripts/data/item-groups/item-group-readiness.mjs", overview.getSourceGroupAudit().getNextEvidenceCommand());
         assertTrue(overview.getBlockingReasons().stream().anyMatch(reason -> reason.contains("sourceGroupAudit")));
+    }
+
+    @Test
+    void shouldBlockOverviewWhenNpcReadinessIsOnlyFixtureCodeReady() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writePassReports(repoRoot);
+        Path report = repoRoot.resolve("reports/canonical-migration/canonical-npc-crawler-facts-readiness-2026-05-03.json");
+        String fixtureReport = Files.readString(report)
+            .replace("\"readinessLevel\": \"T2_CUTOVER_VERIFIED\"", "\"readinessLevel\": \"CODE_READY\"")
+            .replace("\"evidenceScope\": \"formal-t2\"", "\"evidenceScope\": \"fixture\"")
+            .replace("\"databaseRole\": \"t2-readonly\"", "\"databaseRole\": \"t0-fixture\"");
+        Files.writeString(report, fixtureReport);
+
+        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
+
+        assertEquals("blocked", overview.getOverallStatus());
+        assertEquals("blocked", overview.getNpcCanonicalReadiness().getStatus());
+        assertTrue(overview.getNpcCanonicalReadiness().getBlockingCount() > 0);
+        assertEquals(
+            "node scripts/data/npc-canonical/npc-canonical-readiness.mjs",
+            overview.getNpcCanonicalReadiness().getNextEvidenceCommand()
+        );
+        assertTrue(overview.getBlockingReasons().stream().anyMatch(reason -> reason.contains("npcCanonicalReadiness")));
+    }
+
+    @Test
+    void shouldNameNpcReadinessWhenItsReportIsMissing() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writePassReports(repoRoot);
+        Files.delete(repoRoot.resolve("reports/canonical-migration/canonical-npc-crawler-facts-readiness-2026-05-03.json"));
+
+        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
+
+        assertEquals("blocked", overview.getNpcCanonicalReadiness().getStatus());
+        assertEquals("Canonical NPC readiness evidence is missing.", overview.getNpcCanonicalReadiness().getErrorMessage());
     }
 
     @Test
@@ -482,6 +520,52 @@ class DataSourceAcceptanceServiceImplTest {
               "summary": {"status": "pass", "blockingCount": 0, "warningCount": 0},
               "blockingReasons": [],
               "warningReasons": [],
+              "checks": []
+            }
+            """);
+        Files.writeString(repoRoot.resolve("reports/canonical-migration/canonical-npc-crawler-facts-readiness-2026-05-03.json"), """
+            {
+              "schemaVersion": 1,
+              "reportKind": "canonical_npc_crawler_facts_readiness",
+              "generatedAt": "2026-05-03T00:00:00Z",
+              "readinessLevel": "T2_CUTOVER_VERIFIED",
+              "evidenceScope": "formal-t2",
+              "writesDatabase": false,
+              "databaseRole": "t2-readonly",
+              "cutoverIdentity": {
+                "state": "T2_CUTOVER_VERIFIED",
+                "operationId": "canonical-npc-apply",
+                "runId": "canonical-npc-t2-001",
+                "decisionIdentity": "canonical-npc-decision-001",
+                "schemaBundleSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "dataBundleSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "serverFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "policySetHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "landing": {
+                "base": {"fresh": true, "currentCount": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "crawlerFacts": {"fresh": true, "currentCount": 1, "normalizedCount": 1, "auditCount": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+              },
+              "maint": {"factCount": 1, "matchCounts": {"MATCHED": 1, "UNMATCHED": 0, "AMBIGUOUS": 0, "REJECTED": 0}, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+              "relation": {
+                "npcBuff": {"count": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "npcShop": {"count": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "npcLoot": {"count": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "local": {
+                "npcBuff": {"count": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "npcShop": {"count": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "npcLoot": {"count": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "runtime": {"sampleCount": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+              "api": {
+                "admin": {"sampleCount": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                "public": {"sampleCount": 1, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+              },
+              "bridgeRetirement": {"referenceCount": 0, "snapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+              "summary": {"status": "pass", "blockingCount": 0, "warningCount": 0},
               "checks": []
             }
             """);

@@ -126,11 +126,11 @@ class CrawlerQueueV2ApplicationServiceTest {
 
         assertEquals(2, first.queueContractVersion());
         assertEquals("attempt-1", first.domainStates().get(0).currentAttemptId());
-        assertEquals(12, first.domainStates().size());
+        assertEquals(14, first.domainStates().size());
         assertEquals(1, first.domainStates().stream().filter(state ->
             "bosses".equals(state.domain()) && "attempt-1".equals(state.currentAttemptId())
         ).count());
-        assertEquals(11, first.domainStates().stream().filter(state ->
+        assertEquals(13, first.domainStates().stream().filter(state ->
             state.currentAttemptId() == null && "idle".equals(state.status())
         ).count());
         assertEquals(first.liveQueue().get(0).stateVersion(), second.liveQueue().get(0).stateVersion());
@@ -152,7 +152,8 @@ class CrawlerQueueV2ApplicationServiceTest {
 
         assertEquals(List.of(
             "items", "npcs", "projectiles", "buffs", "armor_sets", "recipes", "biomes", "bosses",
-            "town_npc_maintenance", "shimmer", "npc_loot", "boss_loot"
+            "town_npc_maintenance", "shimmer", "npc_loot", "boss_loot", "item_groups",
+            "npc_crawler_facts"
         ), snapshot.domainStates().stream().map(CrawlerQueueV2OverviewDTO.DomainStateDTO::domain).toList());
         assertTrue(snapshot.domainStates().stream().allMatch(state ->
             state.currentAttemptId() == null
@@ -472,7 +473,7 @@ class CrawlerQueueV2ApplicationServiceTest {
         assertEquals("maintenance", snapshot.queueHealth().status());
         assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, snapshot.queueHealth().reasonCode());
         assertTrue(snapshot.liveQueue().isEmpty());
-        assertEquals(12, snapshot.domainStates().size());
+        assertEquals(14, snapshot.domainStates().size());
         assertTrue(snapshot.domainStates().stream().allMatch(state ->
             state.currentAttemptId() == null
                 && "idle".equals(state.status())
@@ -1040,7 +1041,7 @@ class CrawlerQueueV2ApplicationServiceTest {
         CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
 
         assertTrue(snapshot.liveQueue().isEmpty());
-        assertEquals(12, snapshot.domainStates().size());
+        assertEquals(14, snapshot.domainStates().size());
         assertTrue(snapshot.domainStates().stream().allMatch(state ->
             state.currentAttemptId() == null && "idle".equals(state.status())
         ));

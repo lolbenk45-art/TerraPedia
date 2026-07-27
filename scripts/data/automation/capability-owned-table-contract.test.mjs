@@ -124,3 +124,11 @@ test('canonical item-group capability owns the exact maint relation and local pr
     ],
   );
 });
+
+test('NPC crawler-fact capability owns only the canonical maint fact table', () => {
+  const apply = loadCapabilities().find((operation) => operation.actionId === 'npc-crawler-facts-apply');
+  assert.ok(apply);
+  assert.deepEqual(apply.ownedTables.map(({ databaseRole, table }) => `${databaseRole}.${table}`), [
+    'maint.maint_npc_crawler_facts',
+  ]);
+});

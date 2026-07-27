@@ -54,6 +54,7 @@ class AdminDataSourceAcceptanceControllerTest {
         overview.setReplacementReadiness(panel("replacementReadiness", "pass"));
         overview.setSourceDatasetLanding(panel("sourceDatasetLanding", "pass"));
         overview.setSourceGroupAudit(panel("sourceGroupAudit", "pass"));
+        overview.setNpcCanonicalReadiness(panel("npcCanonicalReadiness", "pass"));
         overview.setImageReadiness(panel("imageReadiness", "missing"));
         overview.setCrawlerMonitor(panel("crawlerMonitor", "warning"));
         overview.setEntitySourceCoverage(panel("entitySourceCoverage", "pass"));
@@ -79,6 +80,9 @@ class AdminDataSourceAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.sourceGroupAudit.generatorCommand").value("node scripts/data/item-groups/item-group-readiness.mjs"))
             .andExpect(jsonPath("$.data.sourceGroupAudit.writesDatabase").value(false))
             .andExpect(jsonPath("$.data.sourceGroupAudit.requiresDatabase").value(true))
+            .andExpect(jsonPath("$.data.npcCanonicalReadiness.status").value("pass"))
+            .andExpect(jsonPath("$.data.npcCanonicalReadiness.reportPattern").value("reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json"))
+            .andExpect(jsonPath("$.data.npcCanonicalReadiness.generatorCommand").value("node scripts/data/npc-canonical/npc-canonical-readiness.mjs"))
             .andExpect(jsonPath("$.data.imageReadiness.status").value("missing"))
             .andExpect(jsonPath("$.data.imageReadiness.freshnessStatus").value("missing"))
             .andExpect(jsonPath("$.data.imageReadiness.staleAfterHours").value(24))
@@ -124,6 +128,12 @@ class AdminDataSourceAcceptanceControllerTest {
         if ("sourceGroupAudit".equals(id)) {
             panel.setReportPattern("reports/canonical-migration/canonical-item-group-readiness*.json");
             panel.setGeneratorCommand("node scripts/data/item-groups/item-group-readiness.mjs");
+            panel.setWritesDatabase(false);
+            panel.setRequiresDatabase(true);
+        }
+        if ("npcCanonicalReadiness".equals(id)) {
+            panel.setReportPattern("reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json");
+            panel.setGeneratorCommand("node scripts/data/npc-canonical/npc-canonical-readiness.mjs");
             panel.setWritesDatabase(false);
             panel.setRequiresDatabase(true);
         }

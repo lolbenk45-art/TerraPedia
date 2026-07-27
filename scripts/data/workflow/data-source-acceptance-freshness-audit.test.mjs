@@ -11,6 +11,7 @@ import {
   classifyCommandRisk,
 } from './data-source-acceptance-freshness-audit.mjs';
 import { buildDataSourceAcceptanceReportManifest } from './data-source-acceptance-report-manifest.mjs';
+import { buildNpcCanonicalReadinessReport } from '../npc-canonical/npc-canonical-readiness.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -194,6 +195,40 @@ test('canonical item-group evidence blocks stale and semantically invalid report
   }
 });
 
+test('NPC canonical evidence blocks when missing, malformed, or only fixture CODE_READY', () => {
+  const repoRoot = createTempRepo();
+  const manifest = buildDataSourceAcceptanceReportManifest()
+    .filter((entry) => entry.panelId === 'npcCanonicalReadiness');
+
+  let audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot, manifest, generatedAt: '2026-07-27T15:00:00Z',
+  });
+  assert.equal(audit.overallStatus, 'blocked');
+
+  writeText(repoRoot, 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json', '{');
+  audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot, manifest, generatedAt: '2026-07-27T15:00:00Z',
+  });
+  assert.equal(audit.overallStatus, 'blocked');
+
+  writeJson(
+    repoRoot,
+    'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json',
+    buildNpcCanonicalReadinessReport({
+      generatedAt: '2026-07-27T15:00:00Z',
+      evidence: validNpcFixtureEvidence(),
+    }),
+  );
+  audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot, manifest, generatedAt: '2026-07-27T15:00:00Z',
+  });
+  const panel = panelById(audit, 'npcCanonicalReadiness');
+  assert.equal(audit.overallStatus, 'blocked');
+  assert.equal(panel.freshnessStatus, 'fresh');
+  assert.equal(panel.blocking, true);
+  assert.match(panel.blockingReason, /T2_CUTOVER_VERIFIED/);
+});
+
 test('CLI prints legal JSON without executing evidence commands', async () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/relation/relation-health-2026-05-03.json', {
@@ -213,7 +248,7 @@ test('CLI prints legal JSON without executing evidence commands', async () => {
   assert.equal(stderr, '');
   const parsed = JSON.parse(stdout);
   assert.equal(parsed.generatedAt, '2026-05-03T12:00:00Z');
-  assert.equal(parsed.summary.panelCount, 7);
+  assert.equal(parsed.summary.panelCount, 8);
   assert.equal(panelById(parsed, 'relationHealth').freshnessStatus, 'fresh');
 });
 
@@ -279,5 +314,41 @@ function validCanonicalReport(generatedAt = '2026-07-27T13:00:00Z') {
       { artifact: 'item-group-overrides.json', fresh: true, snapshotHash: hash },
     ],
     summary: { status: 'pass', blockingCount: 0, warningCount: 0 },
+  };
+}
+
+function validNpcFixtureEvidence() {
+  const hash = `sha256:${'a'.repeat(64)}`;
+  return {
+    evidenceScope: 'fixture',
+    writesDatabase: false,
+    databaseRole: 't0-fixture',
+    landing: {
+      base: { fresh: true, currentCount: 1, snapshotHash: hash },
+      crawlerFacts: { fresh: true, currentCount: 1, normalizedCount: 1, auditCount: 1, snapshotHash: hash },
+    },
+    maint: {
+      factCount: 1,
+      matchCounts: { MATCHED: 1, UNMATCHED: 0, AMBIGUOUS: 0, REJECTED: 0 },
+      snapshotHash: hash,
+    },
+    relation: {
+      npcBuff: { count: 1, snapshotHash: hash },
+      npcShop: { count: 1, snapshotHash: hash },
+      npcLoot: { count: 1, snapshotHash: hash },
+      snapshotHash: hash,
+    },
+    local: {
+      npcBuff: { count: 1, snapshotHash: hash },
+      npcShop: { count: 1, snapshotHash: hash },
+      npcLoot: { count: 1, snapshotHash: hash },
+      snapshotHash: hash,
+    },
+    runtime: { sampleCount: 1, snapshotHash: hash },
+    api: {
+      admin: { sampleCount: 1, snapshotHash: hash },
+      public: { sampleCount: 1, snapshotHash: hash },
+    },
+    bridgeRetirement: { referenceCount: 0, snapshotHash: hash },
   };
 }

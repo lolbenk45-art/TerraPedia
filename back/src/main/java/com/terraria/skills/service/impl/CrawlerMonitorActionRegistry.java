@@ -351,6 +351,22 @@ public class CrawlerMonitorActionRegistry {
                 "通过受治理执行器写入来源派生物品组及 projection state。",
                 "写入规范物品组、快照、审计和进度证据", "write", null, false,
                 "destructive", false, false, false
+            ),
+            backend(
+                "npc_crawler_facts", "预览 NPC crawler facts 入库", "canonical.npc_crawler_facts",
+                "NPC base landing、crawler fact landing 与 maint/relation/local projection",
+                "npc-crawler-facts-preview", "preview", "data_process", "preview",
+                "校验并冻结 NPC crawler facts 差异，不运行 crawler、不写入数据库。",
+                "写入 NPC crawler facts 预览和进度证据", "read", null, false,
+                "summary", true, false, false
+            ),
+            backend(
+                "npc_crawler_facts", "正式写入 NPC crawler facts", "canonical.npc_crawler_facts",
+                "NPC base landing、crawler fact landing 与 maint/relation/local projection",
+                "npc-crawler-facts-apply", "apply", "data_process", "apply",
+                "通过受治理执行器写入已冻结且审核通过的 NPC crawler facts。",
+                "写入 NPC crawler facts、快照、审计和进度证据", "write", null, false,
+                "destructive", false, false, false
             )
         );
     }

@@ -64,6 +64,15 @@ const MANIFEST = [
     ...CANONICAL_READINESS_FRESHNESS_POLICY,
   },
   {
+    panelId: 'npcCanonicalReadiness',
+    reportPattern: 'reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json',
+    generatorCommand: 'node scripts/data/npc-canonical/npc-canonical-readiness.mjs',
+    writesDatabase: false,
+    requiresDatabase: true,
+    notes: 'Feeds npcCanonicalReadiness from the fail-closed canonical NPC crawler-fact readiness report.',
+    ...CANONICAL_READINESS_FRESHNESS_POLICY,
+  },
+  {
     panelId: 'imageReadiness',
     reportPattern: 'reports/audit/image-asset-readiness*.json',
     generatorCommand: 'node scripts/data/audit/image-asset-readiness-audit.mjs --source=db',

@@ -63,6 +63,7 @@ export interface DataSourceAcceptanceOverview {
   replacementReadiness?: DataSourceAcceptancePanel | null
   sourceDatasetLanding?: DataSourceAcceptancePanel | null
   sourceGroupAudit?: DataSourceAcceptancePanel | null
+  npcCanonicalReadiness?: DataSourceAcceptancePanel | null
   imageReadiness?: DataSourceAcceptancePanel | null
   crawlerMonitor?: DataSourceAcceptancePanel | null
   entitySourceCoverage?: DataSourceAcceptancePanel | null

@@ -23,6 +23,7 @@ test('matrix covers every relation/projection table and validates at module load
 
 test('all reviewed shared tables expose every owner with conservative read/write modes', () => {
   const expected = new Map([
+    ['maint:maint_npc_crawler_facts', ['npc_crawler_facts:write']],
     ['maint:maint_npcs', ['npcs:write', 'town_npc_maintenance:write']],
     ['maint:maint_item_sources', ['items:write', 'npcs:read', 'town_npc_maintenance:read']],
     ['maint:maint_item_biomes', ['biomes:write', 'items:read']],

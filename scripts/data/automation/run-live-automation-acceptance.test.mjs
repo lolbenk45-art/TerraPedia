@@ -40,10 +40,12 @@ test('probe count parser requires rollback zero, commit one, and restore zero fo
   assert.throws(() => parseProbeCounts('rollback\t1\t0\t0\ncommit\t1\t1\t1\nrestore\t0\t0\t0'), /rollback/i);
 });
 
-test('live acceptance resolves only the explicit item-groups scope', () => {
+test('live acceptance resolves only explicit registered scopes', () => {
   assert.equal(resolveAcceptanceScope(), null);
   const executor = () => {};
   assert.equal(resolveAcceptanceScope('item-groups', executor), executor);
+  assert.equal(resolveAcceptanceScope('npc-canonical', executor), executor);
   assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
   assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
+  assert.throws(() => resolveAcceptanceScope('npc-canonical'), /executor/i);
 });

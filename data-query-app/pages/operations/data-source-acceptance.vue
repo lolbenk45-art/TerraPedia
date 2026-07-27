@@ -274,6 +274,7 @@ const panelItems = computed(() => [
   { key: 'replacementReadiness', label: '替换就绪', panel: overview.value?.replacementReadiness },
   { key: 'sourceDatasetLanding', label: '来源落地', panel: overview.value?.sourceDatasetLanding },
   { key: 'sourceGroupAudit', label: '规范物品组就绪', panel: overview.value?.sourceGroupAudit },
+  { key: 'npcCanonicalReadiness', label: '规范 NPC 就绪', panel: overview.value?.npcCanonicalReadiness },
   { key: 'imageReadiness', label: '图片就绪', panel: overview.value?.imageReadiness },
   { key: 'crawlerMonitor', label: '爬取监控', panel: overview.value?.crawlerMonitor },
   { key: 'entitySourceCoverage', label: '实体覆盖', panel: overview.value?.entitySourceCoverage },

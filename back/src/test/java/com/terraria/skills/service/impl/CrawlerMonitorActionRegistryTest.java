@@ -12,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CrawlerMonitorActionRegistryTest {
 
     @Test
-    void exposesTwentyOneOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
+    void exposesTwentyThreeOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(21, registry.all().size());
+        assertEquals(23, registry.all().size());
         assertEquals(List.of("check", "force"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
@@ -86,7 +86,9 @@ class CrawlerMonitorActionRegistryTest {
             "boss-loot-backfill",
             "boss-loot-apply",
             "item-group-canonical-preview",
-            "item-group-canonical-apply"
+            "item-group-canonical-apply",
+            "npc-crawler-facts-preview",
+            "npc-crawler-facts-apply"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::actionId).toList());
 
         CrawlerMonitorActionDefinition townNpc = registry.require(
@@ -127,10 +129,17 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals("write", itemGroupApply.databaseAccess());
         assertEquals("apply", itemGroupApply.operationId());
         assertEquals("destructive", itemGroupApply.confirmationLevel());
+
+        CrawlerMonitorActionDefinition npcFactApply = registry.require(
+            "npc_crawler_facts", "npc-crawler-facts-apply"
+        );
+        assertTrue(npcFactApply.backendRefresh());
+        assertEquals("write", npcFactApply.databaseAccess());
+        assertEquals("apply", npcFactApply.operationId());
     }
 
     @Test
-    void allThirteenRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
+    void allFourteenRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
         String base = "reports/crawler-monitor/v2/2026-07-14/attempt-test/";
         String progressPath = base + "progress.json";
@@ -148,7 +157,8 @@ class CrawlerMonitorActionRegistryTest {
             "shimmer",
             "npc_loot",
             "boss_loot",
-            "item_groups"
+            "item_groups",
+            "npc_crawler_facts"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::domain).distinct().toList());
 
         for (CrawlerMonitorActionDefinition action : registry.all()) {

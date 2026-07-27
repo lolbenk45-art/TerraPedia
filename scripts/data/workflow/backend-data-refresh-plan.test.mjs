@@ -155,6 +155,8 @@ test('backend refresh plan keeps check force preview and apply commands distinct
       'boss-loot-apply',
       'item-group-canonical-preview',
       'item-group-canonical-apply',
+      'npc-crawler-facts-preview',
+      'npc-crawler-facts-apply',
     ],
   });
   const action = (id) => plan.actions.find((entry) => entry.id === id);
@@ -180,6 +182,14 @@ test('backend refresh plan keeps check force preview and apply commands distinct
     'scripts/data/item-groups/item-group-canonical-action.mjs',
     '--action-id=item-group-canonical-apply',
   ]);
+  assert.deepEqual(action('npc-crawler-facts-preview').args, [
+    'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+    '--action-id=npc-crawler-facts-preview',
+  ]);
+  assert.deepEqual(action('npc-crawler-facts-apply').args, [
+    'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+    '--action-id=npc-crawler-facts-apply',
+  ]);
 
   const defaultIds = buildBackendDataRefreshPlan().actions.map((entry) => entry.id);
   assert.ok(!defaultIds.includes('wiki-items-force-refresh'));
@@ -187,6 +197,8 @@ test('backend refresh plan keeps check force preview and apply commands distinct
   assert.ok(!defaultIds.includes('npc-loot-apply'));
   assert.ok(!defaultIds.includes('item-group-canonical-preview'));
   assert.ok(!defaultIds.includes('item-group-canonical-apply'));
+  assert.ok(!defaultIds.includes('npc-crawler-facts-preview'));
+  assert.ok(!defaultIds.includes('npc-crawler-facts-apply'));
 });
 
 test('run-backend-data-refresh replaces output path placeholders before spawning actions', () => {

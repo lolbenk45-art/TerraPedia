@@ -25,6 +25,7 @@ public class DataSourceAcceptanceOverviewDTO {
     private AcceptancePanelDTO replacementReadiness;
     private AcceptancePanelDTO sourceDatasetLanding;
     private AcceptancePanelDTO sourceGroupAudit;
+    private AcceptancePanelDTO npcCanonicalReadiness;
     private AcceptancePanelDTO imageReadiness;
     private AcceptancePanelDTO crawlerMonitor;
     private AcceptancePanelDTO entitySourceCoverage;

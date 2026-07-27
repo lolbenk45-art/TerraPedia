@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-07-27",
-  "note": "Canonical 21-operation capability matrix. All operations default to L0 + DISABLED. No operation has L1/L2 eligibility until explicitly activated with Owner approval.",
+  "note": "Canonical 23-operation capability matrix. All operations default to L0 + DISABLED. No operation has L1/L2 eligibility until explicitly activated with Owner approval.",
   "operations": [
     {
       "actionId": "wiki-items-refresh",
@@ -711,6 +711,75 @@
       "rollbackMode": "scope_snapshot_latest_writer",
       "previewPairOf": null,
       "applyPairOf": "item-group-canonical-preview"
+    },
+    {
+      "actionId": "npc-crawler-facts-preview",
+      "domain": "npc_crawler_facts",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/npc-canonical/npc-crawler-fact-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/npc-crawler-facts-preview.child-status.json",
+        "isolatedTestPath": "scripts/data/npc-canonical/npc-crawler-fact-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.npcs_base_raw_landings",
+        "local.npc_crawler_facts_raw_landings",
+        "maint.npc_crawler_fact_projection",
+        "relation.npc_crawler_fact_projection"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "npc-crawler-facts-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "npc-crawler-facts-apply",
+      "domain": "npc_crawler_facts",
+      "mode": "apply",
+      "progressContract": {
+        "ownerScript": "scripts/data/npc-canonical/npc-crawler-fact-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/npc-crawler-facts-apply.child-status.json",
+        "isolatedTestPath": "scripts/data/npc-canonical/npc-crawler-fact-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "maint",
+          "table": "maint_npc_crawler_facts",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.npcs_base_raw_landings",
+        "local.npc_crawler_facts_raw_landings",
+        "maint.npc_crawler_fact_projection",
+        "relation.npc_crawler_fact_projection"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "npc-crawler-facts-preview"
     }
   ]
 }

@@ -37,11 +37,11 @@ test('t0 acceptance passes unit-contract and t0 stages', async () => {
   assert.ok(result.stages.includes('t0-gates'));
 });
 
-test('t0 acceptance verifies 21 capabilities are all L0+DISABLED', async () => {
+test('t0 acceptance verifies 23 capabilities are all L0+DISABLED', async () => {
   const result = await runAcceptance({ profile: 't0' });
 
   const gates = result.results['t0-gates'];
-  assert.strictEqual(gates.capabilityRowsValidated, 21);
+  assert.strictEqual(gates.capabilityRowsValidated, 23);
   assert.strictEqual(gates.allDisabled, true);
 });
 
@@ -65,7 +65,7 @@ test('t2-readonly acceptance passes shadow stage with mutations disabled', async
   const shadow = result.results['t2-shadow'];
   assert.strictEqual(shadow.readOnly, true);
   assert.strictEqual(shadow.mutationControlsDisabled, true);
-  assert.strictEqual(shadow.domainsShadowed, 21);
+  assert.strictEqual(shadow.domainsShadowed, 23);
 });
 
 test('t2-readonly acceptance does not run t0 provisioning stages', async () => {

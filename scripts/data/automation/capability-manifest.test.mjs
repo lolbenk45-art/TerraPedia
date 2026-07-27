@@ -22,6 +22,7 @@ const PROGRESS_OWNER_WORK_BOUNDARIES = new Map([
   ['scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', 'const { records, scraped, skipped } = await crawlRecords'],
   ['scripts/data/fetch/fetch-wiki-shimmer-page.mjs', 'const revision = await fetchRevision'],
   ['scripts/data/item-groups/item-group-canonical-action.mjs', 'const result = await execute'],
+  ['scripts/data/npc-canonical/npc-crawler-fact-action.mjs', 'const result = await execute'],
 ]);
 
 async function loadCapabilities() {
@@ -29,7 +30,7 @@ async function loadCapabilities() {
   return JSON.parse(raw);
 }
 
-// Canonical 21-operation action IDs derived from CrawlerMonitorActionRegistry.defaultActions()
+// Canonical 23-operation action IDs derived from CrawlerMonitorActionRegistry.defaultActions()
 const EXPECTED_ACTION_IDS = new Set([
   'wiki-items-refresh',
   'wiki-items-force-refresh',
@@ -52,6 +53,8 @@ const EXPECTED_ACTION_IDS = new Set([
   'boss-loot-apply',
   'item-group-canonical-preview',
   'item-group-canonical-apply',
+  'npc-crawler-facts-preview',
+  'npc-crawler-facts-apply',
 ]);
 
 // Operations that write the database must declare owned tables
@@ -63,12 +66,12 @@ test('capabilities fixture has correct schema version', async () => {
   assert.ok(Array.isArray(capabilities.operations));
 });
 
-test('capabilities fixture covers exactly the 21 registered operations', async () => {
+test('capabilities fixture covers exactly the 23 registered operations', async () => {
   const capabilities = await loadCapabilities();
   const registry = await readFile(registryUrl, 'utf8');
   const fixtureIds = new Set(capabilities.operations.map((op) => op.actionId));
 
-  assert.strictEqual(fixtureIds.size, 21, `expected 21 unique actionIds, found ${fixtureIds.size}`);
+  assert.strictEqual(fixtureIds.size, 23, `expected 23 unique actionIds, found ${fixtureIds.size}`);
 
   for (const expected of EXPECTED_ACTION_IDS) {
     assert.ok(fixtureIds.has(expected), `missing actionId: ${expected}`);
@@ -340,6 +343,22 @@ test('canonical item-group apply owns only source-derived rows and serialized pr
       resolverVersion: 1,
     },
   );
+});
+
+test('NPC crawler-fact pair is L0 disabled and apply owns only the maint fact table', async () => {
+  const capabilities = await loadCapabilities();
+  const preview = capabilities.operations.find((op) => op.actionId === 'npc-crawler-facts-preview');
+  const apply = capabilities.operations.find((op) => op.actionId === 'npc-crawler-facts-apply');
+  assert.ok(preview);
+  assert.ok(apply);
+  assert.equal(preview.progressContract.ownerScript, 'scripts/data/npc-canonical/npc-crawler-fact-action.mjs');
+  assert.equal(preview.previewPairOf, apply.actionId);
+  assert.equal(apply.applyPairOf, preview.actionId);
+  assert.equal(preview.automationLevel, 'L0');
+  assert.equal(apply.operationalState, 'DISABLED');
+  assert.deepEqual(apply.ownedTables.map(({ databaseRole, table }) => `${databaseRole}.${table}`), [
+    'maint.maint_npc_crawler_facts',
+  ]);
 });
 
 test('readDependencies are non-empty for all operations', async () => {

@@ -13,6 +13,7 @@ const EXPECTED_PANEL_IDS = [
   'replacementReadiness',
   'sourceDatasetLanding',
   'sourceGroupAudit',
+  'npcCanonicalReadiness',
   'imageReadiness',
   'crawlerMonitor',
   'entitySourceCoverage',
@@ -85,6 +86,18 @@ test('source group panel is the fail-closed canonical item-group readiness repor
   assert.equal(entry.statusImpact, 'invalid-to-blocked');
 });
 
+test('NPC canonical panel uses the read-only fail-closed readiness report', () => {
+  const entry = buildDataSourceAcceptanceReportManifest()
+    .find((item) => item.panelId === 'npcCanonicalReadiness');
+
+  assert.ok(entry);
+  assert.equal(entry.reportPattern, 'reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json');
+  assert.equal(entry.generatorCommand, 'node scripts/data/npc-canonical/npc-canonical-readiness.mjs');
+  assert.equal(entry.requiresDatabase, true);
+  assert.equal(entry.writesDatabase, false);
+  assert.equal(entry.statusImpact, 'invalid-to-blocked');
+});
+
 test('manifest metadata stays aligned with the backend acceptance overview contract', () => {
   const manifest = buildDataSourceAcceptanceReportManifest();
   const backendSource = readFileSync(
@@ -108,7 +121,9 @@ test('manifest declares backend freshness policy for acceptance evidence', () =>
     );
     assert.equal(
       entry.statusImpact,
-      entry.panelId === 'sourceGroupAudit' ? 'invalid-to-blocked' : 'stale-pass-to-warning',
+      ['sourceGroupAudit', 'npcCanonicalReadiness'].includes(entry.panelId)
+        ? 'invalid-to-blocked'
+        : 'stale-pass-to-warning',
       `${entry.panelId} status impact`,
     );
   }
@@ -180,7 +195,9 @@ function extractBackendPanelMetadata(source) {
       freshnessSource: 'report-generatedAt-or-mtime',
       staleAfterHours: extractDefaultStaleAfterHours(source),
       nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
-      statusImpact: match[1] === 'sourceGroupAudit' ? 'invalid-to-blocked' : 'stale-pass-to-warning',
+      statusImpact: ['sourceGroupAudit', 'npcCanonicalReadiness'].includes(match[1])
+        ? 'invalid-to-blocked'
+        : 'stale-pass-to-warning',
     };
   }
 

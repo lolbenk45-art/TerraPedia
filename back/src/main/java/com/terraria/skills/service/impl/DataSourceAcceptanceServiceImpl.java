@@ -76,6 +76,17 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         true,
         "Feeds sourceGroupAudit from the fail-closed canonical item-group readiness report."
     );
+    private static final ReportDefinition NPC_CANONICAL_READINESS = new ReportDefinition(
+        "npcCanonicalReadiness",
+        Path.of("reports", "canonical-migration"),
+        "canonical-npc-crawler-facts-readiness",
+        ".json",
+        "reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json",
+        "node scripts/data/npc-canonical/npc-canonical-readiness.mjs",
+        false,
+        true,
+        "Feeds npcCanonicalReadiness from the fail-closed canonical NPC crawler-fact readiness report."
+    );
     private static final ReportDefinition IMAGE_READINESS = new ReportDefinition(
         "imageReadiness",
         Path.of("reports", "audit"),
@@ -138,6 +149,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         overview.setReplacementReadiness(readReportPanel(repoRoot, REPLACEMENT_READINESS, this::fillReplacementReadiness));
         overview.setSourceDatasetLanding(readReportPanel(repoRoot, SOURCE_DATASET_LANDING, this::fillSourceDatasetLanding));
         overview.setSourceGroupAudit(readReportPanel(repoRoot, SOURCE_GROUP_AUDIT, this::fillSourceGroupAudit));
+        overview.setNpcCanonicalReadiness(readReportPanel(repoRoot, NPC_CANONICAL_READINESS, this::fillNpcCanonicalReadiness));
         overview.setImageReadiness(readReportPanel(repoRoot, IMAGE_READINESS, this::fillImageReadiness));
         overview.setCrawlerMonitor(buildCrawlerMonitorPanel());
         overview.setEntitySourceCoverage(readReportPanel(repoRoot, ENTITY_SOURCE_COVERAGE, this::fillEntitySourceCoverage));
@@ -500,6 +512,99 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         return reasons;
     }
 
+    private void fillNpcCanonicalReadiness(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        JsonNode summary = root.path("summary");
+        List<String> blockingReasons = validateNpcCanonicalReadiness(root);
+        panel.setRawSummary(toMap(summary));
+        panel.setChecks(toChecks(root.path("checks")));
+        panel.getMetrics().put("readinessLevel", text(root.path("readinessLevel")));
+        panel.getMetrics().put("maintFactCount", intValue(root.path("maint").path("factCount")));
+        panel.getMetrics().put("matchedFactCount", intValue(root.path("maint").path("matchCounts").path("MATCHED")));
+        panel.getMetrics().put("relationBuffCount", intValue(root.path("relation").path("npcBuff").path("count")));
+        panel.getMetrics().put("relationShopCount", intValue(root.path("relation").path("npcShop").path("count")));
+        panel.getMetrics().put("relationLootCount", intValue(root.path("relation").path("npcLoot").path("count")));
+        panel.setBlockingCount(blockingReasons.size());
+        panel.setWarningCount(0);
+        panel.setStatus(blockingReasons.isEmpty() ? "pass" : "blocked");
+        if (!blockingReasons.isEmpty()) {
+            panel.setErrorMessage(blockingReasons.get(0));
+        }
+    }
+
+    private List<String> validateNpcCanonicalReadiness(JsonNode root) {
+        List<String> reasons = new ArrayList<>();
+        require(reasons, root.path("schemaVersion").asInt(-1) == 1, "Canonical NPC schemaVersion must be 1.");
+        require(reasons, "canonical_npc_crawler_facts_readiness".equals(text(root.path("reportKind"))), "Canonical NPC reportKind is invalid.");
+        require(reasons, parseInstant(text(root.path("generatedAt"))) != null, "Canonical NPC generatedAt must be a valid timestamp.");
+        require(reasons, root.path("writesDatabase").isBoolean() && !root.path("writesDatabase").asBoolean(), "Canonical NPC readiness must be read-only.");
+        require(reasons, "formal-t2".equals(text(root.path("evidenceScope"))), "Canonical NPC evidence scope must be formal-t2.");
+        require(reasons, "T2_CUTOVER_VERIFIED".equals(text(root.path("readinessLevel"))), "Canonical NPC readiness must reach T2_CUTOVER_VERIFIED.");
+        require(reasons, "t2-readonly".equals(text(root.path("databaseRole"))), "Canonical NPC database role must be t2-readonly.");
+        require(reasons, "T2_CUTOVER_VERIFIED".equals(text(root.path("cutoverIdentity").path("state"))), "Canonical NPC cutover is not T2_CUTOVER_VERIFIED.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("operationId")), "Canonical NPC cutover operationId is missing.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("runId")), "Canonical NPC cutover runId is missing.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("decisionIdentity")), "Canonical NPC cutover decision identity is missing.");
+        for (String field : List.of("schemaBundleSha256", "dataBundleSha256", "serverFingerprint", "policySetHash")) {
+            require(reasons, isSha256(text(root.path("cutoverIdentity").path(field))),
+                "Canonical NPC cutover " + field + " must be SHA-256.");
+        }
+
+        JsonNode base = root.path("landing").path("base");
+        JsonNode crawler = root.path("landing").path("crawlerFacts");
+        require(reasons, base.path("fresh").asBoolean(false), "NPC base landing must be fresh.");
+        require(reasons, base.path("currentCount").asInt(-1) == 1, "NPC base landing must have exactly one current row.");
+        require(reasons, isSha256(text(base.path("snapshotHash"))), "NPC base landing hash must be SHA-256.");
+        int crawlerCount = crawler.path("currentCount").asInt(-1);
+        require(reasons, crawler.path("fresh").asBoolean(false), "NPC crawler-fact landing must be fresh.");
+        require(reasons, crawlerCount > 0, "NPC crawler-fact landing must be non-empty.");
+        require(reasons, crawler.path("normalizedCount").asInt(-1) == crawlerCount
+            && crawler.path("auditCount").asInt(-1) == crawlerCount,
+            "NPC crawler normalized and audit counts must match current facts.");
+        require(reasons, isSha256(text(crawler.path("snapshotHash"))), "NPC crawler-fact landing hash must be SHA-256.");
+
+        JsonNode maint = root.path("maint");
+        JsonNode matchCounts = maint.path("matchCounts");
+        int factCount = maint.path("factCount").asInt(-1);
+        int matched = matchCounts.path("MATCHED").asInt(-1);
+        int unmatched = matchCounts.path("UNMATCHED").asInt(-1);
+        int ambiguous = matchCounts.path("AMBIGUOUS").asInt(-1);
+        int rejected = matchCounts.path("REJECTED").asInt(-1);
+        require(reasons, factCount > 0, "NPC maint crawler facts must be non-empty.");
+        require(reasons, matched > 0, "NPC maint requires at least one MATCHED crawler fact.");
+        require(reasons, unmatched >= 0 && ambiguous >= 0 && rejected >= 0
+            && matched + unmatched + ambiguous + rejected == factCount,
+            "NPC maint four-state counts must equal factCount.");
+        require(reasons, isSha256(text(maint.path("snapshotHash"))), "NPC maint hash must be SHA-256.");
+
+        for (String stage : List.of("relation", "local")) {
+            JsonNode projection = root.path(stage);
+            for (String lane : List.of("npcBuff", "npcShop", "npcLoot")) {
+                require(reasons, projection.path(lane).path("count").asInt(-1) > 0,
+                    "NPC " + stage + " " + lane + " rows must be non-empty.");
+                require(reasons, isSha256(text(projection.path(lane).path("snapshotHash"))),
+                    "NPC " + stage + " " + lane + " hash must be SHA-256.");
+            }
+            require(reasons, isSha256(text(projection.path("snapshotHash"))),
+                "NPC " + stage + " hash must be SHA-256.");
+        }
+
+        String localHash = text(root.path("local").path("snapshotHash"));
+        require(reasons, root.path("runtime").path("sampleCount").asInt(-1) > 0, "NPC runtime requires a positive sample.");
+        require(reasons, localHash != null && localHash.equals(text(root.path("runtime").path("snapshotHash"))),
+            "NPC runtime snapshot hash must match local.");
+        for (String api : List.of("admin", "public")) {
+            require(reasons, root.path("api").path(api).path("sampleCount").asInt(-1) > 0,
+                "NPC " + api + " API requires a positive sample.");
+            require(reasons, localHash != null && localHash.equals(text(root.path("api").path(api).path("snapshotHash"))),
+                "NPC " + api + " API snapshot hash must match local.");
+        }
+        require(reasons, root.path("bridgeRetirement").path("referenceCount").asInt(-1) == 0,
+            "NPC bridge production reference count must be zero.");
+        require(reasons, isSha256(text(root.path("bridgeRetirement").path("snapshotHash"))),
+            "NPC bridge retirement hash must be SHA-256.");
+        return reasons;
+    }
+
     private void requireCount(List<String> reasons, JsonNode root, String stage, String field, int expected) {
         require(reasons, root.path("counts").path(stage).path(field).asInt(Integer.MIN_VALUE) == expected,
             stage + "." + field + " must equal " + expected + ".");
@@ -556,6 +661,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
             overview.getReplacementReadiness(),
             overview.getSourceDatasetLanding(),
             overview.getSourceGroupAudit(),
+            overview.getNpcCanonicalReadiness(),
             overview.getImageReadiness(),
             overview.getCrawlerMonitor(),
             overview.getEntitySourceCoverage()
@@ -616,7 +722,9 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setFreshnessStatus("missing");
         panel.setFreshnessReason("Missing acceptance report evidence.");
         if (isFailClosed(definition)) {
-            panel.setErrorMessage("Canonical item-group readiness evidence is missing.");
+            panel.setErrorMessage("npcCanonicalReadiness".equals(definition.id())
+                ? "Canonical NPC readiness evidence is missing."
+                : "Canonical item-group readiness evidence is missing.");
         }
         panel.setNextEvidenceCommand(definition.generatorCommand());
         return panel;
@@ -666,7 +774,8 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
     }
 
     private boolean isFailClosed(ReportDefinition definition) {
-        return "sourceGroupAudit".equals(definition.id());
+        return "sourceGroupAudit".equals(definition.id())
+            || "npcCanonicalReadiness".equals(definition.id());
     }
 
     private void applyCrawlerFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, CrawlerMonitorOverviewDTO overview) {

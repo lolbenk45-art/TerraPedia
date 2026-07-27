@@ -54,9 +54,12 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/fetch/snapshot-policy.test.mjs \
   scripts/data/maint/gc-snapshots.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
+  scripts/data/npc-canonical/npc-canonical-readiness.test.mjs \
+  scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \
   scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs \
+  scripts/data/automation/build-canonical-cutover-authorization.test.mjs \
   scripts/data/workflow/domain-acceptance-report-manifest.test.mjs \
   scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/domain-acceptance-refresh-plan.test.mjs \

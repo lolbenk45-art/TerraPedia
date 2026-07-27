@@ -23,6 +23,7 @@ test('data source acceptance page consumes the read-only overview API', () => {
     'replacementReadiness',
     'sourceDatasetLanding',
     'sourceGroupAudit',
+    'npcCanonicalReadiness',
     'imageReadiness',
     'crawlerMonitor',
     'entitySourceCoverage',
@@ -54,6 +55,12 @@ test('data source acceptance page labels sourceGroupAudit as canonical item-grou
   const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
 
   assert.match(page, /key:\s*'sourceGroupAudit',\s*label:\s*'规范物品组就绪'/)
+})
+
+test('data source acceptance page labels NPC canonical readiness independently', () => {
+  const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
+
+  assert.match(page, /key:\s*'npcCanonicalReadiness',\s*label:\s*'规范 NPC 就绪'/)
 })
 
 test('data source acceptance page separates API errors from missing evidence', () => {

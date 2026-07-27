@@ -8,6 +8,9 @@ test('quality gate includes domain acceptance workflow tests', () => {
   for (const testPath of [
     'scripts/data/crawler/tests/source-layout-warning.test.mjs',
     'scripts/data/item-groups/item-group-readiness.test.mjs',
+    'scripts/data/npc-canonical/npc-canonical-readiness.test.mjs',
+    'scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs',
+    'scripts/data/automation/build-canonical-cutover-authorization.test.mjs',
     'scripts/data/audit/domain-readiness-audit.test.mjs',
     'scripts/data/workflow/domain-acceptance-report-manifest.test.mjs',
     'scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs',

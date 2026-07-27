@@ -64,6 +64,8 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/maint/gc-snapshots.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
   scripts/data/item-groups/item-group-readiness.test.mjs \
+  scripts/data/npc-canonical/npc-canonical-readiness.test.mjs \
+  scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
   scripts/data/audit/canonical-source-contract-registry.test.mjs \
   scripts/data/audit/build-npc-bridge-retirement-report.test.mjs \
@@ -83,6 +85,7 @@ run_step "Crawler automation contract tests" . node --test \
   scripts/data/automation/table-ownership-matrix.test.mjs \
   scripts/data/automation/frozen-apply-bundle.test.mjs \
   scripts/data/automation/policy-set-hash.test.mjs \
+  scripts/data/automation/build-canonical-cutover-authorization.test.mjs \
   scripts/data/automation/crawler-automation-migration-contract.test.mjs \
   scripts/data/automation/mutation-generation.test.mjs \
   scripts/data/automation/table-ownership-fence.test.mjs \

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { buildDataSourceAcceptanceReportManifest } from './data-source-acceptance-report-manifest.mjs';
 import { validateItemGroupReadinessReport } from '../item-groups/item-group-readiness.mjs';
+import { validateNpcCanonicalReadinessReport } from '../npc-canonical/npc-canonical-readiness.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -83,7 +84,7 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
       ...base,
       freshnessStatus: 'missing',
       freshnessReason: 'No matching acceptance report evidence found.',
-      ...canonicalBlocking(entry, 'Canonical item-group readiness evidence is missing.'),
+      ...canonicalBlocking(entry, `${canonicalLabel(entry)} evidence is missing.`),
     };
   }
 
@@ -94,7 +95,7 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
       latestReportPath: latestReport.relativePath,
       freshnessStatus: 'unknown',
       freshnessReason: 'Acceptance report JSON is unreadable or invalid.',
-      ...canonicalBlocking(entry, 'Canonical item-group readiness evidence is unreadable or malformed.'),
+      ...canonicalBlocking(entry, `${canonicalLabel(entry)} evidence is unreadable or malformed.`),
     };
   }
   if (!reportTime.generatedAt) {
@@ -110,12 +111,12 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
   const staleAfterHours = Number(entry.staleAfterHours);
   const isStale = Number.isFinite(staleAfterHours) && ageHours > staleAfterHours;
   const canonicalValidation = entry.statusImpact === 'invalid-to-blocked'
-    ? validateItemGroupReadinessReport(reportTime.payload)
+    ? validateCanonicalReport(entry, reportTime.payload)
     : null;
   const blockingReason = isStale && canonicalValidation
-    ? 'Canonical item-group readiness evidence is stale.'
+    ? `${canonicalLabel(entry)} evidence is stale.`
     : canonicalValidation && !canonicalValidation.valid
-      ? `Canonical item-group readiness evidence is invalid: ${canonicalValidation.blockingReasons.join('; ')}`
+      ? `${canonicalLabel(entry)} evidence is invalid: ${canonicalValidation.blockingReasons.join('; ')}`
       : null;
   return {
     ...base,
@@ -131,6 +132,19 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
     blocking: Boolean(blockingReason),
     blockingReason,
   };
+}
+
+function validateCanonicalReport(entry, payload) {
+  if (entry.panelId === 'npcCanonicalReadiness') {
+    return validateNpcCanonicalReadinessReport(payload, { requiredLevel: 'T2_CUTOVER_VERIFIED' });
+  }
+  return validateItemGroupReadinessReport(payload);
+}
+
+function canonicalLabel(entry) {
+  return entry.panelId === 'npcCanonicalReadiness'
+    ? 'Canonical NPC readiness'
+    : 'Canonical item-group readiness';
 }
 
 function canonicalBlocking(entry, reason) {
