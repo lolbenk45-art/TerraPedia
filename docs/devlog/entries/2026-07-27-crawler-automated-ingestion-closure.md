@@ -24,6 +24,13 @@
   independent lane; keep a failed or incomplete lane fail-closed, continue
   unrelated eligible lanes, and consolidate only the exact identity/external
   decisions that still require the user at final handoff.
+- System Owner authorization received on 2026-07-28 for the exact
+  `automation-biomes-l0-bootstrap` proposal: actor/owner `admin`, fixed
+  `biomes` L0/DISABLED policy caps, operation-specific reason, durable
+  reference `devlog://crawler-automated-ingestion-closure/owner-authorization-2026-07-28`,
+  one-time decision identity `automation-biomes-l0-bootstrap-20260728-01`, and
+  expiry `2026-07-31T20:00:00.000Z`. This decision does not authorize reuse of
+  its identity for another operation.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -210,11 +217,12 @@
   was independently re-read as zero isolation databases, zero temporary accounts,
   Redis DB 14 size zero, empty reservation, no live-acceptance temp directory,
   and no progress `.tmp` files.
-- Task 12 generates seven filesystem-only `AWAITING_OWNER` requests with ordered
+- Historical pre-bootstrap Task 12 evidence generated seven filesystem-only
+  `AWAITING_OWNER` requests with ordered
   schema/data byte manifests and atomic output. Packet authorization rejects
   Owner/technical/time drift, duplicate decisions, and packet mutation; focused
   tests pass 7/7. Formal read-only inspection confirms the server identity is
-  available but `crawler_automation_policy` still has zero rows, so every request
+  available but `crawler_automation_policy` then had zero rows, so every request
   lacks `policySetHash`; crawler/L1/L2/scheduler requests also lack their future
   data bundle. No executable packet was generated.
 - Task 12 request hashes: schema `sha256:85ce71d6f44f230de14d2677b8e306fadf25a5571e52556c9f7f4d18e9e18cfb`;
@@ -319,6 +327,18 @@
   quota selection and still selects exactly 25 balanced targets. Frozen apply
   input generation then stopped on missing real `angler` normalized evidence, as
   required; no crawler was started to manufacture it.
+- The exact authorized bootstrap packet
+  `sha256:0ee4b49076ed5773bbe88bdfefb7fa277c3990fb942aff6ccb5235781e6ae682`
+  was consumed once by the formal Node runner. Database readback proves one
+  ACTIVE Owner (`admin`), one `biomes` L0/DISABLED policy, and policy version 1
+  with policy hash
+  `sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e`.
+  The persisted policy-set hash is
+  `sha256:fddd9c42ad0f2c22c4d611f63fb06fbe2444e4aea97029d0c11396e66d0b0e3c`.
+  Focused bootstrap/authorization/runner/manifest validation passes 43/43.
+  Six downstream operations are now technically complete but still require
+  their own exact Owner fields: schema V56-V58, image sync, boss import,
+  projectile backfill, recipe crawler, and NPC crawler.
 
 ## Result
 
@@ -364,6 +384,11 @@
   authorization requests, fail-closed request-to-packet conversion, exact code
   manifest verification, durable one-time decision use, and a packet-consuming
   no-shell runner.
+- Completed in Task 12/14 formal execution: the separately authorized
+  `automation-biomes-l0-bootstrap` request was converted to a private exact
+  packet, consumed once, applied transactionally, and verified by database
+  readback. Formal automation governance now contains exactly one Owner, one
+  current policy, and one immutable policy version.
 - Completed in Task 12/12A continuation: exact per-operation data path
   resolution, recursive manifest operation/entrypoint/argument/code binding, a
   formal Flyway schema path, a governed group apply, biomes preview/L1 apply,
@@ -375,19 +400,21 @@
   transaction-time L2 revalidation, and scheduler fail-closed visibility.
 - Not completed: NPC ownership-valid apply orchestration, Task 10's nine
   operation-dependent warning panels, Task 11 real crawler/T1, Task 12 Owner
-  authorization, Tasks 13-14, Task 15 Steps 3-5, Task 16, and every formal apply
-  or activation checkpoint.
+  authorization for the remaining independent operations, Task 13, Task 14
+  Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every formal apply or
+  activation checkpoint after bootstrap.
 
 ## Residual Risks
 
-- Formal completion depends on exact System Owner actor/reason/reference values that cannot be inferred.
+- Every remaining formal operation still depends on its own exact System Owner
+  reason/reference/decision identity; the consumed bootstrap identity cannot be reused.
 - Deferred NPC facts require real crawler evidence; absence remains blocking rather than falling back to the retired bridge.
 - Nine warning panels depend on real crawler/import/backfill/image evidence and
   cannot pass before their independently authorized operations. Empty-shell and
   dry-run artifacts now fail closed; armor is no longer a warning.
 - V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
-- The current 17 request files expire at `2026-07-28T20:00:16.000Z`; expired requests
+- The regenerated downstream request files expire at `2026-07-31T20:00:00.000Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
@@ -404,11 +431,10 @@
 
 ## Follow-up
 
-- System Owner: provide the exact initial Owner username, `biomes` L0/DISABLED
-  policy JSON, actor, bootstrap-specific reason, durable authorization reference,
-  and one-time decision identity. After that packet is applied, regenerate all
-  policy-bound requests against the persisted policy-set hash and provide a new
-  reason/reference/decision identity for each selected operation. Task 10 Steps
+- System Owner: provide a new operation-specific reason/reference/decision
+  identity for each selected downstream operation. The first technically ready
+  independent batch is schema V56-V58, image sync, boss import, projectile
+  backfill, recipe crawler, and NPC crawler. Task 10 Steps
   5-6, Task 11 real crawler/T1, T2, both L1 applies, L2, and scheduler activation
   remain separate packets.
 - Capability owners: decide whether NPC canonical apply is split into separately

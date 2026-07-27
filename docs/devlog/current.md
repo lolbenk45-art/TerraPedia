@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 04:00 CST by Codex
+Last updated: 2026-07-28 07:00 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -46,9 +46,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   T0 `npc_7a854dc3e2150815` proves 13 tables, paired evidence, one matched fact,
   non-empty Buff/shop/loot relation/local lanes, `0/1/0` transaction counts, and
   zero cleanup leaks. Task 12 produced seven `AWAITING_OWNER` request hashes;
-  those hashes are superseded by the Task 15 V58 authorization-contract repair
-  and replacement requests remain non-executable. Formal policy remains zero
-  rows. Task 15 code-only gating requires two committed L1 applies, closed
+  those hashes are superseded by the Task 15 V58 authorization-contract repair.
+  The exact bootstrap packet has now been consumed once: formal governance holds
+  one ACTIVE Owner (`admin`), one `biomes` L0/DISABLED policy, and one immutable
+  policy version. Task 15 code-only gating requires two committed L1 applies, closed
   circuit state, exact current policy identity, and fresh promotion/scheduler
   decisions; V58 remains unapplied. A continuation audit expanded authorization
   from seven incomplete requests to 17 independent operations and found that
@@ -64,14 +65,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   checkpoints.
   Task 12A now supplies governed schema, group, biomes L1, and policy/activation
   executors. Sixteen of 17 operations have manifests whose hashes recursively
-  bind repository-local static imports; all 17 requests were regenerated and
-  remain `AWAITING_OWNER`. Focused Node validation passes 88/88 and backend
+  bind repository-local static imports; the 16 downstream requests were
+  regenerated against policy-set hash
+  `sha256:fddd9c42ad0f2c22c4d611f63fb06fbe2444e4aea97029d0c11396e66d0b0e3c`.
+  Six are technically complete but remain `AWAITING_OWNER`: schema, image,
+  boss, projectile, recipe crawler, and NPC crawler. Focused Node validation passes 88/88 and backend
   validation passes 227/227. The packet-consuming Node runner is the single
   formal write path; the unused backend apply bean remains fail-closed. Only
   `canonical-npc-apply` has no executor because its proposed write set crosses
   capability owners. Its valid 25-target manifest is frozen, but real normalized
-  evidence is absent and no crawler was run. Formal schema/data/policy state is
-  unchanged.
+  evidence is absent and no crawler was run. Formal schema/data state is
+  unchanged; only the authorized L0/DISABLED governance bootstrap was applied.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
@@ -99,16 +103,16 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   automation tables were removed, the branch backend let Flyway apply and register V55 with
   checksum `166205513`, and a second complete startup reported schema version 55 up to date.
   V55 now owns 18 empty tables and 18 immutable-fact triggers. The Owner/policy bootstrap module
-  exists and is dry-run by default, but no formal governance row was created or promoted; its
-  formal target, domain, policy, reason, actor, and authorization reference remain an explicit
-  System Owner decision. The approved B1 group chain is decomposed into independently
+  exists and is dry-run by default; its exact authorized formal bootstrap has now
+  created the singleton Owner and the `biomes` L0/DISABLED policy. The approved B1 group chain is decomposed into independently
   verifiable phases. Phase 1A is complete through commits `f4221d6d`, `8402611c`, and
   `a11cd7b8`: it defines canonical landing identity/history, fail-closed importer rotation,
   and read-only audit/lineage consumers. The canonical group implementation now reaches
   CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57/V58 remain parser-checked,
   isolated-only migration artifacts and were not executed on formal databases. Task 10
   CODE_READY and filesystem-only work are complete; Task 11 fixture `CODE_READY`
-  and Task 12 read-only request generation are complete. No executable packet exists.
+  and Task 12 request generation are complete. The bootstrap packet was consumed;
+  no downstream executable packet exists yet.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and

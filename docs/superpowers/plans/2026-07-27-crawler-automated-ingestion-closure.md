@@ -1103,7 +1103,7 @@ Every request file is `<operationId>.request.json` under
 `reports/authorization/canonical/`. No packet is generated for an operation
 whose request still reports missing technical or Owner fields.
 
-- [ ] **Step 3: Convert one request to an executable packet only with exact Owner fields**
+- [x] **Step 3: Convert one request to an executable packet only with exact Owner fields**
 
 `--mode=authorize` requires the unchanged request hash plus non-empty actor,
 operation-specific reason, durable authorization reference, one-time decision
@@ -1253,7 +1253,7 @@ preview/apply pair already exercise it. The Owner must still approve its exact
 policy, actor, reason, reference, and hash. If the Owner selects another domain,
 patch and re-audit this plan before executing; do not substitute dynamically.
 
-- [ ] **Step 2: Bootstrap exact `biomes` policy under that separately authorized decision**
+- [x] **Step 2: Bootstrap exact `biomes` policy under that separately authorized decision**
 - [ ] **Step 3: Run full repository quality gate from the beginning**
 - [ ] **Step 4: Freeze and approve the first exact `biomes` preview bundle**
 - [ ] **Step 5: Execute first `biomes` L1 apply under its independent approval**
