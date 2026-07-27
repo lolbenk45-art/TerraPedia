@@ -20,6 +20,10 @@
 - Reasoning: Phase 1A alone is a shared landing foundation; claiming closure before canonical consumers, NPC evidence, formal cutover, and a real L1 would not satisfy the original automated-ingestion goal.
 - Authorization boundary: source/code tests and disposable T0/T1 may proceed. Formal schema/data writes, real crawler execution, bootstrap, L1/L2 promotion, and scheduler activation each require their own exact packet with System Owner identity and authorization reference.
 - Execution model: one serial coordinator; no subagents and no parallel writers.
+- User execution direction on 2026-07-28: treat every formal operation as an
+  independent lane; keep a failed or incomplete lane fail-closed, continue
+  unrelated eligible lanes, and consolidate only the exact identity/external
+  decisions that still require the user at final handoff.
 - Plan audit repair: NPC fixture evidence is capped at `CODE_READY` until a real,
   separately authorized crawler artifact exists; missing import/backfill reports
   remain operation checkpoints rather than code defects; backend registry and
@@ -42,6 +46,17 @@
   evidence plus the exact current policy version/hash/set to fresh
   `L2_PROMOTION` and `SCHEDULER_ACTIVATION` records. The old V1 wiki scheduler
   remains outside this automation path.
+- Continuation plan audit found three additional Critical defects and two
+  Important defects. The old seven-operation request catalog omitted bootstrap,
+  seven warning producers, L1 policy promotion, and the second L1 apply;
+  bootstrap incorrectly depended on a policy-set hash that does not exist yet;
+  crawler requests attempted to bind future output instead of a pre-run manifest;
+  no formal runner consumed packets before dispatch; and the NPC action CLI has
+  no governed executor while the recipe crawler has no monitor-visible progress
+  contract. The plan now defines 17 independent operation IDs, operation-specific
+  technical requirements, pre-run crawler manifests, post-crawl frozen apply
+  bundles, two L1 applies, and a packet-consuming runner gate. Affected lanes
+  remain non-executable until their code/progress/identity inputs are complete.
 
 ## Scope
 
@@ -49,6 +64,8 @@
 - Backend: canonical group repositories, transactional admin writer, crawler automation registry, acceptance APIs, and runtime smoke.
 - Data: group and NPC landing/maint/relation/local chains, compatibility exporters, readiness evidence, warning closure, T0/T1/T2 gates.
 - Docs/process: plan, current facts after they become true, audit records, devlog, and final acceptance.
+- Authorization execution: 17 request contracts plus a formal packet-consuming
+  runner; direct producer invocation is not accepted as an authorized result.
 - Out of scope: unrelated product features, redesigning recipe/shimmer/NPC semantics, destructive cleanup, push, or merge.
 
 ## Validation
@@ -225,6 +242,29 @@
   and the full rerun passed without a code change. Database freshness
   is evaluated by MySQL `CURRENT_TIMESTAMP`, avoiding JVM/database timezone
   drift. V58 remains unapplied. See git for code-level diff details.
+- Continuation authorization repair generates all 17 independent
+  `AWAITING_OWNER` requests with a fresh exact server fingerprint and no packets.
+  The operation contract now has operation-specific required fields, excludes
+  the impossible pre-bootstrap policy-set dependency, binds pre-run crawler
+  manifests instead of future output bytes, and rechecks every declared code
+  hash plus the command entrypoint. The formal runner revalidates all current
+  identity, atomically consumes a durable one-time decision, rejects
+  credential-shaped command arguments, dispatches without a shell, and keeps a
+  failed lane isolated while later eligible lanes continue. Its fail-closed CLI
+  probe rejected an `AWAITING_OWNER` request with exit 1 before creating a
+  ledger or starting a crawler. Authorization tests pass 15/15.
+- Recipe crawler progress now writes running state before work, mirrors an
+  explicit child path to the canonical monitor path, heartbeats, and writes
+  completed/failed terminal state. The current exact recipe execution manifest
+  binds two seed pages, depth 1, serial execution, output/report/progress paths,
+  and five code files; its request lacks only `policySetHash` plus the four Owner
+  fields. The NPC CLI's missing atomic fanout writer is restored, and the
+  governed preview now requires an existing targets file and a limit of 1-500.
+  Focused recipe/NPC/crawler tests pass 18/18. Producer preflight also reproduced
+  stale direct `mysql2` resolution in the boss and shimmer importers; both now
+  use the repository loader, their tests pass 6/6, and the real module resolves
+  from `data-query-app/node_modules`. No network or database operation ran. See
+  git for code-level diff details.
 - An initial broad backend run found four stale V2 queue assertions caused by the
   two newly registered domains; they were repaired and the integrated 59-test
   backend suite passes. A fresh broad rerun executes 1,510 tests with six failures,
@@ -277,8 +317,10 @@
 - Completed in Task 11: NPC source split, paired evidence limits, maint fact
   ownership, Buff/shop/loot reconstruction, 23-operation registration,
   fail-closed acceptance surfaces, and fixture-level T0 `CODE_READY`.
-- Completed in Task 12 within the read-only boundary: seven exact authorization
-  requests and fail-closed request-to-packet conversion logic.
+- Completed in Task 12 within the read-only boundary: 17 independent
+  authorization requests, fail-closed request-to-packet conversion, exact code
+  manifest verification, durable one-time decision use, and a packet-consuming
+  no-shell runner.
 - Completed in Task 15 within the code-only boundary: append-only V58 activation
   decision contract, repeated committed-L1 and exact current-policy gating,
   transaction-time L2 revalidation, and scheduler fail-closed visibility.
@@ -295,7 +337,7 @@
   dry-run artifacts now fail closed; armor is no longer a warning.
 - V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
-- The seven replacement request files expire around `2026-07-28T17:23:23Z`; expired requests
+- The current 17 request files begin expiring around `2026-07-28T17:52Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
@@ -303,11 +345,13 @@
 
 ## Follow-up
 
-- System Owner: provide a non-empty policy row plus exact actor, operation-specific
-  reason, durable authorization reference, and one-time decision identity for a
-  single still-fresh request. Regenerate any expired request first. Only then may
-  the coordinator authorize that exact operation. Task 10 Steps 5-6, Task 11 real
-  crawler/T1, T2, first L1, L2, and scheduler activation remain separate packets.
+- System Owner: provide the exact initial Owner username, `biomes` L0/DISABLED
+  policy JSON, actor, bootstrap-specific reason, durable authorization reference,
+  and one-time decision identity. After that packet is applied, regenerate all
+  policy-bound requests against the persisted policy-set hash and provide a new
+  reason/reference/decision identity for each selected operation. Task 10 Steps
+  5-6, Task 11 real crawler/T1, T2, both L1 applies, L2, and scheduler activation
+  remain separate packets.
 
 ## Commits
 

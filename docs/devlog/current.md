@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 01:33 CST by Codex
+Last updated: 2026-07-28 02:15 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -49,8 +49,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   and replacement requests remain non-executable. Formal policy remains zero
   rows. Task 15 code-only gating requires two committed L1 applies, closed
   circuit state, exact current policy identity, and fresh promotion/scheduler
-  decisions; V58 remains unapplied. Real NPC crawler/T1, nine warning panels,
-  Owner authorization, T2, and first L1 remain distinct checkpoints.
+  decisions; V58 remains unapplied. A continuation audit expanded authorization
+  from seven incomplete requests to 17 independent operations and found that
+  packet verification was not consumed by a formal runner. That defect is now
+  repaired with current-identity revalidation, durable one-time decision use,
+  and no-shell dispatch; its fail-closed request-as-packet probe exited before
+  dispatch. Recipe progress and NPC governed preview are now code-ready, with
+  focused authorization 15/15 and crawler 18/18 tests passing. Recipe has an
+  exact execution manifest but still lacks the post-bootstrap policy-set hash;
+  NPC still lacks a frozen targets manifest. Real NPC crawler/T1, nine warning
+  panels, exact Owner identity fields, T2, and two L1 applies remain distinct
+  checkpoints.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
