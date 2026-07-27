@@ -34,6 +34,25 @@
         --surface-2: rgba(244, 234, 208, 0.045);
         --surface-3: rgba(244, 234, 208, 0.07);
         --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+
+        /* ── 高度阶梯（v2 质感修复）──────────────────────
+           L0 页面底 → L1 卡片（浮起）→ L2 分组带（下沉）→ L3 条目（再浮起） */
+        --elev-card-bg: linear-gradient(180deg, rgba(24, 34, 26, 0.96), rgba(15, 22, 16, 0.94));
+        --elev-card-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.075),
+          0 1px 0 rgba(0, 0, 0, 0.55),
+          0 20px 44px -16px rgba(0, 0, 0, 0.85),
+          0 2px 10px -4px rgba(0, 0, 0, 0.6);
+        --elev-sunken-bg: linear-gradient(180deg, rgba(3, 6, 4, 0.62), rgba(6, 10, 7, 0.38));
+        --elev-sunken-shadow:
+          inset 0 2px 5px rgba(0, 0, 0, 0.55),
+          inset 0 -1px 0 rgba(244, 234, 208, 0.045);
+        --elev-item-bg: linear-gradient(180deg, rgba(31, 42, 32, 0.9), rgba(19, 27, 20, 0.9));
+        --elev-item-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.085),
+          0 1px 2px rgba(0, 0, 0, 0.5),
+          0 6px 14px -8px rgba(0, 0, 0, 0.7);
+        --elev-item-hover-bg: linear-gradient(180deg, rgba(42, 56, 43, 0.95), rgba(25, 35, 26, 0.95));
         --font-sans: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", Inter, system-ui, sans-serif;
         --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
         /* 好感度语义色：喜欢=苔绿 / 不喜欢=暖金 / 讨厌=砖红（复用既有暖色带，未新增品牌色） */
@@ -49,9 +68,11 @@
       html { scroll-behavior: smooth; }
       body {
         margin: 0;
+        /* 底色压深并加暗角，卡片才有可见的投影落点 */
         background:
-          radial-gradient(1200px 600px at 50% -10%, rgba(125, 165, 91, 0.07), transparent 60%),
-          linear-gradient(180deg, var(--bg-2), var(--bg) 40%);
+          radial-gradient(1100px 520px at 50% -8%, rgba(125, 165, 91, 0.09), transparent 62%),
+          radial-gradient(1400px 900px at 50% 42%, rgba(10, 17, 11, 0.85), transparent 72%),
+          linear-gradient(180deg, #070c08, #020403 62%);
         background-attachment: fixed;
         color: var(--text-main);
         font-family: var(--font-sans);
@@ -91,9 +112,17 @@
       /* ── HERO ───────────────────────────────────────── */
       .hero {
         position: relative; display: grid; grid-template-columns: 268px minmax(0, 1fr) 292px; gap: 26px;
-        padding: 24px 26px 22px; border: 1px solid var(--line); border-radius: 14px;
-        background: radial-gradient(560px 220px at 8% 0%, rgba(125,165,91,.08), transparent 70%), linear-gradient(180deg, var(--panel-2), var(--panel));
-        box-shadow: var(--shadow); overflow: hidden;
+        padding: 24px 26px 22px; border: 1px solid rgba(214, 177, 90, 0.26); border-radius: 14px;
+        background:
+          radial-gradient(620px 260px at 10% -10%, rgba(125,165,91,.13), transparent 68%),
+          radial-gradient(700px 300px at 92% 0%, rgba(214,177,90,.07), transparent 70%),
+          linear-gradient(180deg, rgba(28, 39, 29, 0.97), rgba(13, 20, 14, 0.96));
+        box-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.1),
+          0 1px 0 rgba(0, 0, 0, 0.6),
+          0 28px 60px -18px rgba(0, 0, 0, 0.9),
+          0 4px 14px -6px rgba(0, 0, 0, 0.7);
+        overflow: hidden;
       }
 
       /* 立绘 + 资产切换 */
@@ -106,6 +135,7 @@
           repeating-linear-gradient(0deg, rgba(244,234,208,.015) 0 2px, transparent 2px 8px),
           rgba(9, 14, 10, .92);
         display: grid; place-items: center; overflow: hidden;
+        box-shadow: inset 0 3px 8px rgba(0,0,0,.6), inset 0 -1px 0 rgba(244,234,208,.05);
       }
       .portrait-frame::after {
         content: ""; position: absolute; left: 12%; right: 12%; bottom: 16px; height: 10px; border-radius: 50%;
@@ -161,7 +191,7 @@
       .metrics { display: grid; gap: 9px; align-content: start; }
       .metrics-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-faint); letter-spacing: .06em; }
       .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .metric { padding: 10px 11px; border-radius: 9px; border: 1px solid var(--line); background: linear-gradient(180deg, var(--surface-2), var(--surface)); }
+      .metric { padding: 10px 11px; border-radius: 9px; border: 1px solid rgba(244,234,208,.075); background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow); }
       .metric .k { font-size: 11px; font-weight: 800; color: var(--text-faint); }
       .metric .v { font-family: var(--font-mono); font-size: 24px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; line-height: 1.2; }
       .metric .v small { font-size: 11px; font-family: var(--font-sans); color: var(--text-faint); margin-left: 3px; }
@@ -178,10 +208,24 @@
       /* ── 双栏 ───────────────────────────────────────── */
       .layout { display: grid; grid-template-columns: minmax(0, 1fr) 316px; gap: 24px; align-items: start; margin: 24px 0 40px; }
       .col { display: grid; gap: 18px; min-width: 0; }
-      .card { border: 1px solid var(--line); border-radius: 13px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow); padding: 20px 22px; }
-      .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-      .card-head h2 { font-size: 20px; }
-      .card-head .sub { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-top: 3px; }
+      .card {
+        position: relative;
+        border: 1px solid rgba(214, 177, 90, 0.2); border-radius: 13px;
+        background: var(--elev-card-bg); box-shadow: var(--elev-card-shadow); padding: 20px 22px;
+      }
+      /* 主线模块用金色立柱标记焦点，次级模块不加 */
+      .card.primary::before {
+        content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 2px;
+        border-radius: 0 2px 2px 0;
+        background: linear-gradient(180deg, var(--gold-2), rgba(214, 177, 90, 0));
+      }
+      .card-head {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+        margin: 0 0 16px; padding-bottom: 13px;
+        border-bottom: 1px solid rgba(244, 234, 208, 0.055);
+      }
+      .card-head h2 { font-size: 21px; color: var(--paper-3); letter-spacing: .01em; }
+      .card-head .sub { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-top: 4px; }
       .badge { height: 26px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 900; border: 1px solid rgba(240,207,116,.34); background: rgba(214,177,90,.12); color: var(--gold-2); }
       .badge.moss { border-color: rgba(150,198,122,.3); background: rgba(125,165,91,.12); color: var(--moss-2); }
 
@@ -207,19 +251,42 @@
       .group-head .d { font-size: 11px; color: var(--text-faint); font-weight: 700; }
       .group-head .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
 
-      .shop-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+      /* L2：商品网格坐进凹槽 */
+      .shop-grid {
+        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+        padding: 10px; border-radius: 11px;
+        border: 1px solid rgba(0, 0, 0, .5);
+        background: var(--elev-sunken-bg); box-shadow: var(--elev-sunken-shadow);
+      }
       .sku {
         position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 9px; align-items: center;
-        padding: 8px 10px 8px 8px; border-radius: 9px; border: 1px solid var(--line);
-        background: rgba(9, 14, 10, .58);
-        transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, background 180ms;
+        padding: 8px 10px 8px 8px; border-radius: 9px;
+        border: 1px solid rgba(244, 234, 208, 0.075);
+        background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow);
+        transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, background 180ms, box-shadow 180ms;
       }
-      .sku:hover { transform: translateY(-1px); border-color: var(--line-strong); background: rgba(20,29,22,.9); }
-      .sku-img { width: 38px; height: 38px; border-radius: 7px; border: 1px solid rgba(244,234,208,.06); background: rgba(244,234,208,.04); display: grid; place-items: center; }
+      .sku:hover {
+        transform: translateY(-2px); border-color: rgba(240, 207, 116, .34);
+        background: var(--elev-item-hover-bg);
+        box-shadow: inset 0 1px 0 rgba(244,234,208,.12), 0 10px 22px -8px rgba(0,0,0,.85);
+      }
+      /* 图标凹槽 */
+      .sku-img {
+        width: 38px; height: 38px; border-radius: 7px;
+        border: 1px solid rgba(0, 0, 0, .55);
+        background: linear-gradient(180deg, rgba(2, 4, 3, .7), rgba(10, 16, 11, .5));
+        box-shadow: inset 0 2px 4px rgba(0,0,0,.6), inset 0 -1px 0 rgba(244,234,208,.05);
+        display: grid; place-items: center;
+      }
       .sku-img img { width: 28px; height: 28px; object-fit: contain; }
       .sku-body { min-width: 0; display: grid; gap: 2px; }
       .sku-name { font-size: 13px; font-weight: 800; color: var(--paper-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sku-price { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+      /* 币种标签取自 front-nuxt/utils/price.ts 词表：铂金币 / 金币 / 银币 / 铜币 */
+      .sku-price { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+      .sku-price .coin { align-self: center; }
+      .sku-price .n { font-variant-numeric: tabular-nums; }
+      .sku-price .u { font-family: var(--font-sans); font-size: 10px; font-weight: 800; color: var(--text-subtle); margin-right: 3px; }
+      .sku-price .u:last-child { margin-right: 0; }
       .sku-cond { font-size: 10px; color: var(--text-faint); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .coin { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.4); flex: none; }
       .coin.gold { background: radial-gradient(circle at 32% 28%, #fff3c4, var(--coin-gold)); }
@@ -259,7 +326,8 @@
       .pref-head i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
       .pref {
         display: flex; align-items: center; gap: 8px; padding: 6px 9px 6px 6px; border-radius: 8px;
-        border: 1px solid var(--line); background: var(--surface); min-height: 40px;
+        border: 1px solid rgba(244, 234, 208, 0.07);
+        background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow); min-height: 40px;
       }
       .pref.like { border-left: 2px solid rgba(150,198,122,.6); }
       .pref.dislike { border-left: 2px solid rgba(214,177,90,.6); }
@@ -271,7 +339,12 @@
 
       /* ── 事实条 ─────────────────────────────────────── */
       .facts { display: grid; gap: 8px; }
-      .fact { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+      .fact {
+        display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+        padding: 11px 14px; border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, .45);
+        background: var(--elev-sunken-bg); box-shadow: var(--elev-sunken-shadow);
+      }
       .fact .k { font-size: 12px; font-weight: 800; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
       .fact .k i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
       .fact.ok .k i { background: var(--moss-2); box-shadow: 0 0 7px rgba(150,198,122,.6); }
@@ -283,12 +356,17 @@
 
       /* ── 侧栏 ───────────────────────────────────────── */
       .rail { position: sticky; top: 16px; display: grid; gap: 14px; }
-      .rail-card { border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow); padding: 15px 16px; }
+      .rail-card { border: 1px solid rgba(214, 177, 90, 0.2); border-radius: 12px; background: var(--elev-card-bg); box-shadow: var(--elev-card-shadow); padding: 15px 16px; }
       .rail-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; color: var(--text-muted); letter-spacing: .04em; margin-bottom: 12px; }
       .rail-title .bar { width: 16px; height: 2px; background: var(--gold); border-radius: 2px; }
       .rail-title .tail { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
-      .stat-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-      .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; background: rgba(9,14,10,.82); }
+      .stat-list {
+        display: grid; gap: 1px; background: rgba(0, 0, 0, .5);
+        border: 1px solid rgba(0, 0, 0, .5); border-radius: 8px; overflow: hidden;
+        box-shadow: var(--elev-sunken-shadow);
+      }
+      .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; background: linear-gradient(180deg, rgba(26, 36, 27, .92), rgba(17, 25, 18, .92)); }
+      .stat-row:nth-child(even) { background: linear-gradient(180deg, rgba(22, 31, 23, .92), rgba(14, 21, 15, .92)); }
       .stat-row .k { font-size: 12px; color: var(--text-faint); font-weight: 700; }
       .stat-row .v { font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
       .stat-row .v.txt { font-family: var(--font-sans); color: var(--moss-2); }
@@ -311,7 +389,7 @@
       .cover-list span.ok i { background: var(--moss-2); }
 
       .rel-list { display: grid; gap: 6px; }
-      .rel { display: flex; align-items: center; gap: 9px; padding: 6px 9px 6px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+      .rel { display: flex; align-items: center; gap: 9px; padding: 6px 9px 6px 6px; border-radius: 8px; border: 1px solid rgba(244,234,208,.07); background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow); }
       .rel img { width: 26px; height: 26px; object-fit: contain; }
       .rel .n { font-size: 12px; font-weight: 800; color: var(--paper-2); }
       .rel .t { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
@@ -321,6 +399,33 @@
       .designnote b { color: var(--paper-2); }
       .designnote ol { margin: 0; padding-left: 18px; }
       .designnote .flagged { color: var(--hate); font-weight: 800; }
+
+      /* ── v2 精修：主次分级与呼吸 ───────────────────── */
+      .layout .col { gap: 24px; }
+      .rail { gap: 16px; }
+      /* 次级模块降一档亮度与边框存在感，主线卡才立得住 */
+      .card:not(.primary) {
+        background: linear-gradient(180deg, rgba(20, 29, 21, 0.94), rgba(12, 18, 13, 0.92));
+        border-color: rgba(214, 177, 90, 0.13);
+        box-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.055),
+          0 1px 0 rgba(0, 0, 0, 0.5),
+          0 14px 30px -14px rgba(0, 0, 0, 0.8);
+      }
+      .card:not(.primary) .card-head h2 { font-size: 19px; color: var(--paper-2); }
+      /* 主线模块标题区铺一层金色渐隐，强化焦点 */
+      .card.primary .card-head {
+        margin: -20px -22px 16px; padding: 18px 22px 13px;
+        border-radius: 13px 13px 0 0;
+        background: linear-gradient(100deg, rgba(214, 177, 90, 0.1), rgba(214, 177, 90, 0.02) 46%, transparent 72%);
+      }
+      .card.primary .card-head h2 { display: flex; align-items: center; gap: 9px; }
+      .card.primary .card-head h2::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--gold-2); box-shadow: 0 0 10px rgba(240, 207, 116, .8);
+      }
+      .hero { margin-bottom: 2px; }
+
     </style>
   </head>
   <body>
@@ -410,7 +515,7 @@
       <div class="layout">
         <main class="col">
           <!-- 商店 -->
-          <section class="card" id="shop">
+          <section class="card primary" id="shop">
             <div class="card-head">
               <div>
                 <h2>商店</h2>
@@ -441,19 +546,19 @@
                 <span class="d">· 入住后随时可买</span><span class="rule"></span>
               </div>
               <div class="shop-grid">
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/2026/06/04/4bdfd86f03ea445ca64a1dc29dcc4bc9.png" alt="" /></span><span class="sku-body"><span class="sku-name">挖矿头盔</span><span class="sku-price"><i class="coin gold"></i>4</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f8/f8d579fa6115ac0df2498cf9b0033239c81cb8e0-piggy-bank-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">猪猪存钱罐</span><span class="sku-price"><i class="coin gold"></i>1</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/db/dbe1d0807b84bf7abaaf203856633ec13a5465da-iron-anvil-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铁砧</span><span class="sku-price"><i class="coin silver"></i>50</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/79/7953728380478762d0f65f1efaf940a6e0a2961c-bug-net-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">虫网</span><span class="sku-price"><i class="coin silver"></i>25</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/85/85091f2ecb468396b9a26d9487643217844211d0-copper-pickaxe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铜镐</span><span class="sku-price"><i class="coin silver"></i>5</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/64/6432bfa34751c4b65eecb9afffe537cc1fd7c3e8-copper-axe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铜斧</span><span class="sku-price"><i class="coin silver"></i>4</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/42/42c30bc57c88f7e965a48f85fefb0b2b8f35662f-torch-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">火把</span><span class="sku-price"><i class="coin copper"></i>50</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/67/67410d51d6540cddb7552fd057a3aa93387cfbf9-lesser-healing-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">弱效治疗药水</span><span class="sku-price"><i class="coin silver"></i>3</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/ef/efdfa312381ea8a2476c31d0d32b93f8e70a0928-lesser-mana-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">弱效魔力药水</span><span class="sku-price"><i class="coin silver"></i>1</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/36/36fd76ba972af937e6d50be2fae760dd9612946c-wooden-arrow-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">木箭</span><span class="sku-price"><i class="coin copper"></i>5</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/7c/7cec7d3109066930250f73e9e0c54e73a46778f6-shuriken-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">手里剑</span><span class="sku-price"><i class="coin copper"></i>15</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/c5/c5987bfab1dd617d2c19a213b0fe16feaa6a105d-rope-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">绳</span><span class="sku-price"><i class="coin copper"></i>10</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1c/1ceeeb709ff66779252369d3d75301a112378559-sickle-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">镰刀</span><span class="sku-price"><i class="coin silver"></i>60</span><span class="sku-cond">前代主机版限万圣节</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/2026/06/04/4bdfd86f03ea445ca64a1dc29dcc4bc9.png" alt="" /></span><span class="sku-body"><span class="sku-name">挖矿头盔</span><span class="sku-price"><i class="coin gold"></i><span class="n">4</span><span class="u">金币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f8/f8d579fa6115ac0df2498cf9b0033239c81cb8e0-piggy-bank-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">猪猪存钱罐</span><span class="sku-price"><i class="coin gold"></i><span class="n">1</span><span class="u">金币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/db/dbe1d0807b84bf7abaaf203856633ec13a5465da-iron-anvil-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铁砧</span><span class="sku-price"><i class="coin silver"></i><span class="n">50</span><span class="u">银币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/79/7953728380478762d0f65f1efaf940a6e0a2961c-bug-net-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">虫网</span><span class="sku-price"><i class="coin silver"></i><span class="n">25</span><span class="u">银币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/85/85091f2ecb468396b9a26d9487643217844211d0-copper-pickaxe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铜镐</span><span class="sku-price"><i class="coin silver"></i><span class="n">5</span><span class="u">银币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/64/6432bfa34751c4b65eecb9afffe537cc1fd7c3e8-copper-axe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">铜斧</span><span class="sku-price"><i class="coin silver"></i><span class="n">4</span><span class="u">银币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/42/42c30bc57c88f7e965a48f85fefb0b2b8f35662f-torch-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">火把</span><span class="sku-price"><i class="coin copper"></i><span class="n">50</span><span class="u">铜币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/67/67410d51d6540cddb7552fd057a3aa93387cfbf9-lesser-healing-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">弱效治疗药水</span><span class="sku-price"><i class="coin silver"></i><span class="n">3</span><span class="u">银币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/ef/efdfa312381ea8a2476c31d0d32b93f8e70a0928-lesser-mana-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">弱效魔力药水</span><span class="sku-price"><i class="coin silver"></i><span class="n">1</span><span class="u">银币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/36/36fd76ba972af937e6d50be2fae760dd9612946c-wooden-arrow-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">木箭</span><span class="sku-price"><i class="coin copper"></i><span class="n">5</span><span class="u">铜币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/7c/7cec7d3109066930250f73e9e0c54e73a46778f6-shuriken-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">手里剑</span><span class="sku-price"><i class="coin copper"></i><span class="n">15</span><span class="u">铜币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/c5/c5987bfab1dd617d2c19a213b0fe16feaa6a105d-rope-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">绳</span><span class="sku-price"><i class="coin copper"></i><span class="n">10</span><span class="u">铜币</span></span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1c/1ceeeb709ff66779252369d3d75301a112378559-sickle-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">镰刀</span><span class="sku-price"><i class="coin silver"></i><span class="n">60</span><span class="u">银币</span></span><span class="sku-cond">前代主机版限万圣节</span></span></span>
               </div>
             </div>
 
@@ -465,14 +570,14 @@
                 <span class="d">· 困难模式与 Boss 击败后</span><span class="rule"></span>
               </div>
               <div class="shop-grid">
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0b/0b2da6cd539a914b0dccfd4de740c1568fe434e1-healing-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">治疗药水</span><span class="sku-price"><i class="coin silver"></i>10</span><span class="sku-cond">困难模式</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/b4/b401a8b55db80504a9bb76069ab86a304a7aa42f-mana-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">魔力药水</span><span class="sku-price"><i class="coin silver"></i>2 <i class="coin copper"></i>50</span><span class="sku-cond">困难模式</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/4a/4ae02e8f01a971edc95e931e24948270d76b30fd-sharpening-station-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">利器站</span><span class="sku-price"><i class="coin gold"></i>10</span><span class="sku-cond">困难模式</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/16/162ce5afb7c5b0ccc2603f6a445f87d43786e4a7-disco-ball-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">迪斯科球</span><span class="sku-price"><i class="coin gold"></i>1</span><span class="sku-cond">困难模式</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/11/1177b5f6ef449efed80b08353bf797fa24f79560-safe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">保险箱</span><span class="sku-price"><i class="coin gold"></i>20</span><span class="sku-cond">骷髅王已击败</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/80/809ebf55c7442e5eb421aa1c3d3027dbb5d95efd-gold-dust-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">金尘</span><span class="sku-price"><i class="coin silver"></i>17</span><span class="sku-cond">血肉墙已击败</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/a0/a08d56115367ad4c64d71c6cd24d8f053b22369c-drumstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">鼓组</span><span class="sku-price"><i class="coin gold"></i>10</span><span class="sku-cond">任一初期 Boss 击败</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1a/1a256ec8f194fb8b2f81fe97b886508f483786e3-drumstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">鼓槌</span><span class="sku-price"><i class="coin silver"></i>50</span><span class="sku-cond">任一初期 Boss 击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0b/0b2da6cd539a914b0dccfd4de740c1568fe434e1-healing-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">治疗药水</span><span class="sku-price"><i class="coin silver"></i><span class="n">10</span><span class="u">银币</span></span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/b4/b401a8b55db80504a9bb76069ab86a304a7aa42f-mana-potion-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">魔力药水</span><span class="sku-price"><i class="coin silver"></i><span class="n">2</span><span class="u">银币</span> <i class="coin copper"></i><span class="n">50</span><span class="u">铜币</span></span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/4a/4ae02e8f01a971edc95e931e24948270d76b30fd-sharpening-station-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">利器站</span><span class="sku-price"><i class="coin gold"></i><span class="n">10</span><span class="u">金币</span></span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/16/162ce5afb7c5b0ccc2603f6a445f87d43786e4a7-disco-ball-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">迪斯科球</span><span class="sku-price"><i class="coin gold"></i><span class="n">1</span><span class="u">金币</span></span><span class="sku-cond">困难模式</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/11/1177b5f6ef449efed80b08353bf797fa24f79560-safe-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">保险箱</span><span class="sku-price"><i class="coin gold"></i><span class="n">20</span><span class="u">金币</span></span><span class="sku-cond">骷髅王已击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/80/809ebf55c7442e5eb421aa1c3d3027dbb5d95efd-gold-dust-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">金尘</span><span class="sku-price"><i class="coin silver"></i><span class="n">17</span><span class="u">银币</span></span><span class="sku-cond">血肉墙已击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/a0/a08d56115367ad4c64d71c6cd24d8f053b22369c-drumstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">鼓组</span><span class="sku-price"><i class="coin gold"></i><span class="n">10</span><span class="u">金币</span></span><span class="sku-cond">任一初期 Boss 击败</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/1a/1a256ec8f194fb8b2f81fe97b886508f483786e3-drumstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">鼓槌</span><span class="sku-price"><i class="coin silver"></i><span class="n">50</span><span class="u">银币</span></span><span class="sku-cond">任一初期 Boss 击败</span></span></span>
               </div>
             </div>
 
@@ -484,11 +589,11 @@
                 <span class="d">· 与所处生物群系、天气、时段相关</span><span class="rule"></span>
               </div>
               <div class="shop-grid">
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/28/2854e91cdbdd45fac9c014afb0f4d38bb7cba079-marshmallow-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">棉花糖</span><span class="sku-price"><i class="coin silver"></i>1</span><span class="sku-cond">雪原生物群系</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f9/f97ab7ad463a8738fae9d65675b88ffda05eab8c-furnace-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">熔炉</span><span class="sku-price"><i class="coin silver"></i>3</span><span class="sku-cond">丛林</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/68/683d015c46a25190b04af8f520ca0faf8cefe903-pin-wheel-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">风车</span><span class="sku-price"><i class="coin silver"></i>20</span><span class="sku-cond">大风天</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/69/69c6cecf3232f2ac9d90404d27300ce0a887999e-throwing-knife-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">投刀</span><span class="sku-price"><i class="coin copper"></i>50</span><span class="sku-cond">血月期间</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/36/367a14ca47bcecd439bd2e7b859bfafe27b2307d-glowstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">荧光棒</span><span class="sku-price"><i class="coin copper"></i>10</span><span class="sku-cond">夜晚</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/28/2854e91cdbdd45fac9c014afb0f4d38bb7cba079-marshmallow-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">棉花糖</span><span class="sku-price"><i class="coin silver"></i><span class="n">1</span><span class="u">银币</span></span><span class="sku-cond">雪原生物群系</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f9/f97ab7ad463a8738fae9d65675b88ffda05eab8c-furnace-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">熔炉</span><span class="sku-price"><i class="coin silver"></i><span class="n">3</span><span class="u">银币</span></span><span class="sku-cond">丛林</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/68/683d015c46a25190b04af8f520ca0faf8cefe903-pin-wheel-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">风车</span><span class="sku-price"><i class="coin silver"></i><span class="n">20</span><span class="u">银币</span></span><span class="sku-cond">大风天</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/69/69c6cecf3232f2ac9d90404d27300ce0a887999e-throwing-knife-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">投刀</span><span class="sku-price"><i class="coin copper"></i><span class="n">50</span><span class="u">铜币</span></span><span class="sku-cond">血月期间</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/36/367a14ca47bcecd439bd2e7b859bfafe27b2307d-glowstick-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">荧光棒</span><span class="sku-price"><i class="coin copper"></i><span class="n">10</span><span class="u">铜币</span></span><span class="sku-cond">夜晚</span></span></span>
               </div>
             </div>
 
@@ -500,9 +605,9 @@
                 <span class="d">· 物品栏中带有指定物品时上架</span><span class="rule"></span>
               </div>
               <div class="shop-grid">
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0d/0d56273fc21806b35bd91cf81e3a1a6fce862d25-flare-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">照明弹</span><span class="sku-price"><i class="coin copper"></i>7</span><span class="sku-cond">持有信号枪</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/40/40dafe7182e666c72f6a85a1d856e8de30a1b7e5-blue-flare-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">蓝照明弹</span><span class="sku-price"><i class="coin copper"></i>7</span><span class="sku-cond">持有信号枪</span></span></span>
-                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/65/655d2a76c0d2786f5e89357f499ba73a0e49dea5-nail-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">钉子</span><span class="sku-price"><i class="coin silver"></i>1</span><span class="sku-cond">持有钉枪</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/0d/0d56273fc21806b35bd91cf81e3a1a6fce862d25-flare-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">照明弹</span><span class="sku-price"><i class="coin copper"></i><span class="n">7</span><span class="u">铜币</span></span><span class="sku-cond">持有信号枪</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/40/40dafe7182e666c72f6a85a1d856e8de30a1b7e5-blue-flare-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">蓝照明弹</span><span class="sku-price"><i class="coin copper"></i><span class="n">7</span><span class="u">铜币</span></span><span class="sku-cond">持有信号枪</span></span></span>
+                <span class="sku"><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/65/655d2a76c0d2786f5e89357f499ba73a0e49dea5-nail-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">钉子</span><span class="sku-price"><i class="coin silver"></i><span class="n">1</span><span class="u">银币</span></span><span class="sku-cond">持有钉枪</span></span></span>
               </div>
             </div>
 
@@ -514,11 +619,11 @@
                 <span class="d">· 仅在对应节日期间上架</span><span class="rule"></span>
               </div>
               <div class="shop-grid">
-                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/77/779da328dc71c84a2dc0fd372fe5c53206ddb46a-timeless-traveler-s-hood-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">情人节戒指</span><span class="sku-price"><i class="coin gold"></i>1</span><span class="sku-cond">情人节</span></span></span>
-                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/9c/9c9dc7087c96aba253ddac8ac4868dd8861843b4-wandering-yukata-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">心箭</span><span class="sku-price"><i class="coin copper"></i>50</span><span class="sku-cond">情人节</span></span></span>
-                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f9/f9d60861d545a209b55fbd8339c23a424bddbd92-spinal-tap-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">Wiesnbräu 啤酒</span><span class="sku-price"><i class="coin silver"></i>9 <i class="coin copper"></i>95</span><span class="sku-cond">十月啤酒节</span></span></span>
-                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/fd/fd6a95bb0e62f471e8e1fb3c3327a3d36c2722b1-pinstripe-pants-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">火鸡羽毛</span><span class="sku-price"><i class="coin gold"></i>10</span><span class="sku-cond">感恩节</span></span></span>
-                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/40/40efcb3e900bc6fb5f04478e21dcd5995901a80a-antlion-eggs-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">节日大礼帽</span><span class="sku-price"><i class="coin gold"></i>1</span><span class="sku-cond">圣诞节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/77/779da328dc71c84a2dc0fd372fe5c53206ddb46a-timeless-traveler-s-hood-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">情人节戒指</span><span class="sku-price"><i class="coin gold"></i><span class="n">1</span><span class="u">金币</span></span><span class="sku-cond">情人节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/9c/9c9dc7087c96aba253ddac8ac4868dd8861843b4-wandering-yukata-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">心箭</span><span class="sku-price"><i class="coin copper"></i><span class="n">50</span><span class="u">铜币</span></span><span class="sku-cond">情人节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/f9/f9d60861d545a209b55fbd8339c23a424bddbd92-spinal-tap-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">Wiesnbräu 啤酒</span><span class="sku-price"><i class="coin silver"></i><span class="n">9</span><span class="u">银币</span> <i class="coin copper"></i><span class="n">95</span><span class="u">铜币</span></span><span class="sku-cond">十月啤酒节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/fd/fd6a95bb0e62f471e8e1fb3c3327a3d36c2722b1-pinstripe-pants-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">火鸡羽毛</span><span class="sku-price"><i class="coin gold"></i><span class="n">10</span><span class="u">金币</span></span><span class="sku-cond">感恩节</span></span></span>
+                <span class="sku"><span class="flag">!</span><span class="sku-img"><img class="px" src="http://localhost:9000/terrapedia-images/items/wiki/item-images/40/40efcb3e900bc6fb5f04478e21dcd5995901a80a-antlion-eggs-png.png" alt="" /></span><span class="sku-body"><span class="sku-name">节日大礼帽</span><span class="sku-price"><i class="coin gold"></i><span class="n">1</span><span class="u">金币</span></span><span class="sku-cond">圣诞节</span></span></span>
               </div>
             </div>
 
@@ -666,7 +771,9 @@
           <li><b>幸福度给结论而不是罗列</b>：左侧直接给「森林 + 公主/高尔夫球手/护士」的推荐方案和它换来的折扣与晶塔，右侧才是喜欢/不喜欢/讨厌三列明细。原页面三列等宽平铺，右两列大量留白。</li>
           <li><b>空模块压成事实条</b>：掉落物、状态效果对友好 NPC 本就不适用，写「不适用」比两张「暂无」空卡诚实。</li>
           <li class="flagged">数据问题（本稿如实呈现，未美化）：5 项节日商品的 <code>imageUrl</code> 指向完全无关的物品——情人节戒指→永恒旅者兜帽、心箭→浪人浴衣、Wiesnbräu啤酒→脊椎龙头、火鸡羽毛→细条纹裤、节日大礼帽→蚁狮卵。这是 Wiki 抓取错位，需要在数据侧修，不是前端能兜的。已在商店页脚和事实条里标出。</li>
+          <li><b>高度阶梯（第二轮质感修复）</b>：初版三层嵌套用同一套「1px 暖金 hairline + 2% 表面」，明度差不足读成一层。现改为 L0 页面底（压深并加暗角）→ L1 卡片浮起（顶部高光 + 可见投影）→ L2 分组带下沉（内阴影凹槽）→ L3 条目再浮起（高光 + 落影），物品图标另做凹槽。主线模块（合成链 / 商店）加金点与金色渐隐标题栏，次级模块降一档亮度。</li>
           <li>色值、圆角、间距、字号取自 <b>hifi-preview.css / tokens.css</b>；好感度三色复用既有暖色带（苔绿/暖金/砖红），未引入新品牌色。</li>
+          <li><b>价格用具体币种</b>：数值后带「铂金币 / 金币 / 银币 / 铜币」，词表取自 <code>front-nuxt/utils/price.ts</code>，复合价格如「2 银币 50 铜币」按段拆分。</li>
         </ol>
       </div>
     </div>

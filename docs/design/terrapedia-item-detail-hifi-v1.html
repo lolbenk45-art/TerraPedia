@@ -35,6 +35,27 @@
         --surface-3: rgba(244, 234, 208, 0.07);
         --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
         --shadow-heavy: 0 36px 90px rgba(0, 0, 0, 0.44);
+
+        /* ── 高度阶梯（v2 质感修复）──────────────────────
+           L0 页面底 → L1 卡片（浮起）→ L2 分组带（下沉）→ L3 条目（再浮起）
+           三层靠「明度差 + 顶部高光 + 底部暗线」区分，而不是靠同一条 hairline。 */
+        --elev-card-bg: linear-gradient(180deg, rgba(24, 34, 26, 0.96), rgba(15, 22, 16, 0.94));
+        --elev-card-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.075),
+          0 1px 0 rgba(0, 0, 0, 0.55),
+          0 20px 44px -16px rgba(0, 0, 0, 0.85),
+          0 2px 10px -4px rgba(0, 0, 0, 0.6);
+        --elev-sunken-bg: linear-gradient(180deg, rgba(3, 6, 4, 0.62), rgba(6, 10, 7, 0.38));
+        --elev-sunken-shadow:
+          inset 0 2px 5px rgba(0, 0, 0, 0.55),
+          inset 0 -1px 0 rgba(244, 234, 208, 0.045);
+        --elev-item-bg: linear-gradient(180deg, rgba(31, 42, 32, 0.9), rgba(19, 27, 20, 0.9));
+        --elev-item-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.085),
+          0 1px 2px rgba(0, 0, 0, 0.5),
+          0 6px 14px -8px rgba(0, 0, 0, 0.7);
+        --elev-item-hover-bg: linear-gradient(180deg, rgba(42, 56, 43, 0.95), rgba(25, 35, 26, 0.95));
+        --hairline: inset 0 0 0 1px rgba(244, 234, 208, 0.05);
         --font-sans: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", Inter, system-ui, sans-serif;
         --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
         /* 稀有度色：本条目为「浅红色」 */
@@ -50,9 +71,11 @@
       html { scroll-behavior: smooth; }
       body {
         margin: 0;
+        /* 底色压深并加暗角，卡片才有可见的投影落点 */
         background:
-          radial-gradient(1200px 600px at 50% -10%, rgba(125, 165, 91, 0.07), transparent 60%),
-          linear-gradient(180deg, var(--bg-2), var(--bg) 40%);
+          radial-gradient(1100px 520px at 50% -8%, rgba(125, 165, 91, 0.09), transparent 62%),
+          radial-gradient(1400px 900px at 50% 42%, rgba(10, 17, 11, 0.85), transparent 72%),
+          linear-gradient(180deg, #070c08, #020403 62%);
         background-attachment: fixed;
         color: var(--text-main);
         font-family: var(--font-sans);
@@ -119,17 +142,23 @@
         grid-template-columns: 232px minmax(0, 1fr) 300px;
         gap: 28px;
         padding: 26px 28px 22px;
-        border: 1px solid var(--line);
+        border: 1px solid rgba(214, 177, 90, 0.26);
         border-radius: 14px;
+        /* hero 比普通卡再高一级：更强渐变 + 稀有度光晕 + 更深投影 */
         background:
-          radial-gradient(560px 220px at 8% 0%, rgba(255, 143, 143, 0.07), transparent 70%),
-          linear-gradient(180deg, var(--panel-2), var(--panel));
-        box-shadow: var(--shadow);
+          radial-gradient(620px 260px at 10% -10%, rgba(255, 143, 143, 0.1), transparent 68%),
+          radial-gradient(700px 300px at 92% 0%, rgba(214, 177, 90, 0.07), transparent 70%),
+          linear-gradient(180deg, rgba(28, 39, 29, 0.97), rgba(13, 20, 14, 0.96));
+        box-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.1),
+          0 1px 0 rgba(0, 0, 0, 0.6),
+          0 28px 60px -18px rgba(0, 0, 0, 0.9),
+          0 4px 14px -6px rgba(0, 0, 0, 0.7);
         overflow: hidden;
       }
       .hero::after {
         content: ""; position: absolute; inset: 0;
-        background: linear-gradient(180deg, rgba(244, 234, 208, 0.05), transparent 24%);
+        background: linear-gradient(180deg, rgba(244, 234, 208, 0.055), transparent 20%);
         pointer-events: none;
       }
 
@@ -232,8 +261,10 @@
       .metrics-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-faint); letter-spacing: .06em; }
       .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .metric {
-        padding: 10px 11px; border-radius: 9px; border: 1px solid var(--line);
-        background: linear-gradient(180deg, var(--surface-2), var(--surface));
+        padding: 10px 11px; border-radius: 9px;
+        border: 1px solid rgba(244, 234, 208, 0.075);
+        background: var(--elev-item-bg);
+        box-shadow: var(--elev-item-shadow);
       }
       .metric .k { font-size: 11px; font-weight: 800; color: var(--text-faint); }
       .metric .v { font-family: var(--font-mono); font-size: 24px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; line-height: 1.2; }
@@ -244,10 +275,16 @@
       .price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .price {
         display: flex; align-items: center; justify-content: space-between; gap: 8px;
-        padding: 8px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface);
+        padding: 8px 11px; border-radius: 9px;
+        border: 1px solid rgba(0, 0, 0, .5);
+        background: var(--elev-sunken-bg); box-shadow: var(--elev-sunken-shadow);
         font-size: 12px; font-weight: 800; color: var(--text-faint);
       }
-      .coins { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 13px; color: var(--paper-3); }
+      /* 币种标签取自 front-nuxt/utils/price.ts 词表：铂金币 / 金币 / 银币 / 铜币 */
+      .coins { display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); font-size: 13px; color: var(--paper-3); }
+      .coins .n { font-variant-numeric: tabular-nums; font-weight: 800; }
+      .coins .u { font-family: var(--font-sans); font-size: 11px; font-weight: 800; color: var(--text-subtle); }
+      .coins .coin { align-self: center; }
       .coin { width: 13px; height: 13px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.4); }
       .coin.plat { background: radial-gradient(circle at 32% 28%, #fff, var(--coin-plat)); }
       .coin.gold { background: radial-gradient(circle at 32% 28%, #fff3c4, var(--coin-gold)); }
@@ -259,13 +296,24 @@
       .col { display: grid; gap: 18px; min-width: 0; }
 
       .card {
-        border: 1px solid var(--line); border-radius: 13px;
-        background: linear-gradient(180deg, var(--panel-2), var(--panel));
-        box-shadow: var(--shadow); padding: 20px 22px;
+        position: relative;
+        border: 1px solid rgba(214, 177, 90, 0.2); border-radius: 13px;
+        background: var(--elev-card-bg);
+        box-shadow: var(--elev-card-shadow); padding: 20px 22px;
       }
-      .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-      .card-head h2 { font-size: 20px; }
-      .card-head .sub { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-top: 3px; }
+      /* 主线模块用金色立柱标记焦点，次级模块不加 */
+      .card.primary::before {
+        content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 2px;
+        border-radius: 0 2px 2px 0;
+        background: linear-gradient(180deg, var(--gold-2), rgba(214, 177, 90, 0));
+      }
+      .card-head {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+        margin: 0 0 16px; padding-bottom: 13px;
+        border-bottom: 1px solid rgba(244, 234, 208, 0.055);
+      }
+      .card-head h2 { font-size: 21px; color: var(--paper-3); letter-spacing: .01em; }
+      .card-head .sub { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-top: 4px; }
       .badge {
         height: 26px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;
         font-size: 11px; font-weight: 900; letter-spacing: .03em;
@@ -291,13 +339,19 @@
       .band-label .n { font-family: var(--font-mono); font-size: 11px; color: var(--gold); font-weight: 800; }
       .band-label .t { font-size: 12px; font-weight: 800; color: var(--text-muted); }
       .band-label .c { font-size: 10px; color: var(--text-faint); font-weight: 700; }
+      /* L2：分组带下沉，和卡片形成"槽位"关系 */
       .band-body {
         position: relative; padding: 12px 14px; border-radius: 11px;
-        border: 1px solid var(--line); background: var(--surface);
+        border: 1px solid rgba(0, 0, 0, 0.5);
+        background: var(--elev-sunken-bg);
+        box-shadow: var(--elev-sunken-shadow);
       }
       .band-body.result {
-        border-color: rgba(255, 143, 143, .34);
-        background: linear-gradient(180deg, rgba(255, 143, 143, .07), var(--surface));
+        border-color: rgba(255, 143, 143, .3);
+        background:
+          radial-gradient(360px 120px at 12% 0%, rgba(255, 143, 143, .12), transparent 72%),
+          var(--elev-sunken-bg);
+        box-shadow: var(--elev-sunken-shadow), inset 0 0 24px rgba(255, 143, 143, .06);
       }
       .band-flow { display: grid; place-items: center; height: 26px; margin-left: 122px; }
       .band-flow span {
@@ -310,21 +364,44 @@
       }
 
       .nodes { display: flex; gap: 8px; flex-wrap: wrap; }
+      /* L3：条目从槽位里浮起 */
       .node {
         display: flex; align-items: center; gap: 9px;
         padding: 7px 11px 7px 7px; border-radius: 9px;
-        border: 1px solid var(--line); background: rgba(9, 14, 10, .62);
-        transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, background 180ms;
+        border: 1px solid rgba(244, 234, 208, 0.075);
+        background: var(--elev-item-bg);
+        box-shadow: var(--elev-item-shadow);
+        transition: transform 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, background 180ms, box-shadow 180ms;
       }
-      .node:hover { transform: translateY(-1px); border-color: var(--line-strong); background: rgba(20, 29, 22, .9); }
-      .node-img { width: 36px; height: 36px; border-radius: 7px; background: rgba(244,234,208,.04); display: grid; place-items: center; border: 1px solid rgba(244,234,208,.06); }
+      .node:hover {
+        transform: translateY(-2px); border-color: rgba(240, 207, 116, .34);
+        background: var(--elev-item-hover-bg);
+        box-shadow: inset 0 1px 0 rgba(244,234,208,.12), 0 10px 22px -8px rgba(0,0,0,.85);
+      }
+      /* 图标凹槽：物品图坐进去，而不是浮在同一平面 */
+      .node-img {
+        width: 36px; height: 36px; border-radius: 7px;
+        background: linear-gradient(180deg, rgba(2, 4, 3, .7), rgba(10, 16, 11, .5));
+        display: grid; place-items: center;
+        border: 1px solid rgba(0, 0, 0, .55);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,.6), inset 0 -1px 0 rgba(244,234,208,.05);
+      }
       .node-img img { width: 28px; height: 28px; object-fit: contain; }
       .node-text { display: grid; }
       .node-name { font-size: 13px; font-weight: 800; color: var(--paper-2); }
       .node-meta { font-size: 10px; color: var(--text-faint); font-weight: 700; }
       .qty { font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--gold-2); background: rgba(214,177,90,.12); border: 1px solid rgba(240,207,116,.26); border-radius: 5px; padding: 1px 6px; }
-      .node.key { border-color: rgba(240, 207, 116, .34); background: linear-gradient(180deg, rgba(214,177,90,.1), rgba(9,14,10,.62)); }
-      .node.result { border-color: rgba(255,143,143,.4); background: linear-gradient(180deg, rgba(255,143,143,.12), rgba(9,14,10,.7)); padding: 10px 14px 10px 10px; }
+      .node.key {
+        border-color: rgba(240, 207, 116, .36);
+        background: linear-gradient(180deg, rgba(58, 47, 22, .95), rgba(24, 30, 20, .92));
+        box-shadow: inset 0 1px 0 rgba(255, 232, 161, .14), 0 8px 18px -8px rgba(0,0,0,.8);
+      }
+      .node.result {
+        border-color: rgba(255,143,143,.42);
+        background: linear-gradient(180deg, rgba(74, 38, 38, .95), rgba(26, 24, 22, .92));
+        box-shadow: inset 0 1px 0 rgba(255, 201, 201, .16), 0 12px 26px -10px rgba(0,0,0,.85), 0 0 30px -12px rgba(255,143,143,.5);
+        padding: 10px 14px 10px 10px;
+      }
       .node.result .node-img { width: 46px; height: 46px; }
       .node.result .node-img img { width: 38px; height: 38px; }
       .node.result .node-name { font-size: 16px; color: var(--paper-3); }
@@ -344,7 +421,7 @@
       /* 制作站 */
       .stations { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
       .stations .k { font-size: 11px; font-weight: 800; color: var(--text-faint); }
-      .station { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 5px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12px; font-weight: 800; color: var(--text-muted); }
+      .station { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 5px; border-radius: 7px; border: 1px solid rgba(244,234,208,.08); background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow); font-size: 12px; font-weight: 800; color: var(--text-muted); }
       .station img { width: 20px; height: 20px; object-fit: contain; }
       .station .alt { font-size: 10px; color: var(--text-faint); }
 
@@ -356,7 +433,8 @@
       .tally-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .tally-row {
         display: flex; align-items: center; gap: 9px; padding: 7px 10px 7px 7px;
-        border-radius: 8px; border: 1px solid var(--line); background: rgba(9, 14, 10, .5);
+        border-radius: 8px; border: 1px solid rgba(244, 234, 208, 0.07);
+        background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow);
       }
       .tally-row .box { width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--line-strong); background: rgba(244,234,208,.04); flex: none; }
       .tally-row img { width: 24px; height: 24px; object-fit: contain; flex: none; }
@@ -378,7 +456,9 @@
       .facts { display: grid; gap: 8px; }
       .fact {
         display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 12px;
-        padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+        padding: 11px 14px; border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, .45);
+        background: var(--elev-sunken-bg); box-shadow: var(--elev-sunken-shadow);
       }
       .fact .k { font-size: 12px; font-weight: 800; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
       .fact .k i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
@@ -390,12 +470,17 @@
 
       /* ── 侧栏 ───────────────────────────────────────── */
       .rail { position: sticky; top: 16px; display: grid; gap: 14px; }
-      .rail-card { border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow); padding: 15px 16px; }
+      .rail-card { border: 1px solid rgba(214, 177, 90, 0.2); border-radius: 12px; background: var(--elev-card-bg); box-shadow: var(--elev-card-shadow); padding: 15px 16px; }
       .rail-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; color: var(--text-muted); letter-spacing: .04em; margin-bottom: 12px; }
       .rail-title .bar { width: 16px; height: 2px; background: var(--gold); border-radius: 2px; }
       .rail-title .tail { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
-      .stat-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-      .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; background: rgba(9, 14, 10, .82); }
+      .stat-list {
+        display: grid; gap: 1px; background: rgba(0, 0, 0, .5);
+        border: 1px solid rgba(0, 0, 0, .5); border-radius: 8px; overflow: hidden;
+        box-shadow: var(--elev-sunken-shadow);
+      }
+      .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 11px; background: linear-gradient(180deg, rgba(26, 36, 27, .92), rgba(17, 25, 18, .92)); }
+      .stat-row:nth-child(even) { background: linear-gradient(180deg, rgba(22, 31, 23, .92), rgba(14, 21, 15, .92)); }
       .stat-row .k { font-size: 12px; color: var(--text-faint); font-weight: 700; }
       .stat-row .v { font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--paper-3); font-variant-numeric: tabular-nums; }
       .stat-row .v.rarity { color: var(--rarity); font-family: var(--font-sans); }
@@ -421,9 +506,10 @@
       .rel-list { display: grid; gap: 6px; }
       .rel {
         display: flex; align-items: center; gap: 9px; padding: 6px 9px 6px 6px; border-radius: 8px;
-        border: 1px solid var(--line); background: var(--surface); transition: border-color 180ms, background 180ms;
+        border: 1px solid rgba(244,234,208,.07); background: var(--elev-item-bg); box-shadow: var(--elev-item-shadow);
+        transition: border-color 180ms, background 180ms, transform 180ms cubic-bezier(.2,.8,.2,1);
       }
-      .rel:hover { border-color: var(--line-strong); background: var(--surface-2); }
+      .rel:hover { border-color: rgba(240,207,116,.32); background: var(--elev-item-hover-bg); transform: translateY(-1px); }
       .rel img { width: 26px; height: 26px; object-fit: contain; }
       .rel .n { font-size: 12px; font-weight: 800; color: var(--paper-2); }
       .rel .t { margin-left: auto; font-size: 10px; color: var(--text-faint); font-weight: 700; }
@@ -437,6 +523,33 @@
       .designnote h3 { font-size: 13px; color: var(--moss-2); margin-bottom: 6px; }
       .designnote b { color: var(--paper-2); }
       .designnote ol { margin: 0; padding-left: 18px; }
+
+      /* ── v2 精修：主次分级与呼吸 ───────────────────── */
+      .layout .col { gap: 24px; }
+      .rail { gap: 16px; }
+      /* 次级模块降一档亮度与边框存在感，主线卡才立得住 */
+      .card:not(.primary) {
+        background: linear-gradient(180deg, rgba(20, 29, 21, 0.94), rgba(12, 18, 13, 0.92));
+        border-color: rgba(214, 177, 90, 0.13);
+        box-shadow:
+          inset 0 1px 0 rgba(244, 234, 208, 0.055),
+          0 1px 0 rgba(0, 0, 0, 0.5),
+          0 14px 30px -14px rgba(0, 0, 0, 0.8);
+      }
+      .card:not(.primary) .card-head h2 { font-size: 19px; color: var(--paper-2); }
+      /* 主线模块标题区铺一层金色渐隐，强化焦点 */
+      .card.primary .card-head {
+        margin: -20px -22px 16px; padding: 18px 22px 13px;
+        border-radius: 13px 13px 0 0;
+        background: linear-gradient(100deg, rgba(214, 177, 90, 0.1), rgba(214, 177, 90, 0.02) 46%, transparent 72%);
+      }
+      .card.primary .card-head h2 { display: flex; align-items: center; gap: 9px; }
+      .card.primary .card-head h2::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--gold-2); box-shadow: 0 0 10px rgba(240, 207, 116, .8);
+      }
+      .hero { margin-bottom: 2px; }
+
     </style>
   </head>
   <body>
@@ -537,8 +650,8 @@
             </div>
           </div>
           <div class="price-row">
-            <div class="price">买入<span class="coins"><i class="coin plat"></i>1</span></div>
-            <div class="price">售出<span class="coins"><i class="coin gold"></i>20</span></div>
+            <div class="price">买入<span class="coins"><i class="coin plat"></i><span class="n">1</span><span class="u">铂金币</span></span></div>
+            <div class="price">售出<span class="coins"><i class="coin gold"></i><span class="n">20</span><span class="u">金币</span></span></div>
           </div>
         </div>
       </section>
@@ -547,7 +660,7 @@
       <div class="layout">
         <main class="col">
           <!-- 合成链 -->
-          <section class="card" id="chain">
+          <section class="card primary" id="chain">
             <div class="card-head">
               <div>
                 <h2>合成链</h2>
@@ -764,8 +877,8 @@
               <div class="stat-row"><span class="k">使用时间</span><span class="v">18</span></div>
               <div class="stat-row"><span class="k">尺寸</span><span class="v">30 × 30</span></div>
               <div class="stat-row"><span class="k">最大堆叠</span><span class="v">1</span></div>
-              <div class="stat-row"><span class="k">买入</span><span class="v"><span class="coins"><i class="coin plat"></i>1</span></span></div>
-              <div class="stat-row"><span class="k">售出</span><span class="v"><span class="coins"><i class="coin gold"></i>20</span></span></div>
+              <div class="stat-row"><span class="k">买入</span><span class="v"><span class="coins"><i class="coin plat"></i><span class="n">1</span><span class="u">铂金币</span></span></span></div>
+              <div class="stat-row"><span class="k">售出</span><span class="v"><span class="coins"><i class="coin gold"></i><span class="n">20</span><span class="u">金币</span></span></span></div>
               <div class="stat-row"><span class="k">稀有度</span><span class="v rarity">浅红色</span></div>
             </div>
           </div>
@@ -814,7 +927,9 @@
           <li><b>空模块不再占整卡</b>：来源／状态效果／装备属性／图片压成 4 行事实条，每行说清「是什么状态 + 去哪里」，不再是 5 张「暂无 X」的全宽空卡。</li>
           <li><b>侧栏从目录变成工具</b>：属性表全程粘住，加页面锚点、资料完整度环、来自合成链的相关条目，替代原来只写「可查看／暂无」的资料概览。</li>
           <li><b>动效</b>（静态图看不到）：稀有度光环 5.4s 呼吸、节点 hover 上浮 1px、层间连接线渐显、锚点切换高亮位移，均在 180–280ms 区间。</li>
+          <li><b>高度阶梯（第二轮质感修复）</b>：初版三层嵌套用同一套「1px 暖金 hairline + 2% 表面」，明度差不足读成一层。现改为 L0 页面底（压深并加暗角）→ L1 卡片浮起（顶部高光 + 可见投影）→ L2 分组带下沉（内阴影凹槽）→ L3 条目再浮起（高光 + 落影），物品图标另做凹槽。主线模块（合成链 / 商店）加金点与金色渐隐标题栏，次级模块降一档亮度。</li>
           <li>色值、圆角、间距、字号全部取自 <b>hifi-preview.css / tokens.css</b> 既有令牌，稀有度色是唯一新增语义色（浅红 #ff8f8f，仅用于光环与稀有度文本）。</li>
+          <li><b>价格用具体币种</b>：数值后带「铂金币 / 金币 / 银币 / 铜币」，词表取自 <code>front-nuxt/utils/price.ts</code>，复合价格如「2 银币 50 铜币」按段拆分。</li>
         </ol>
       </div>
     </div>
