@@ -51,6 +51,17 @@
   Two GREEN-run defects were traced to an imprecise singleton-overlap diagnostic
   and a stale local column catalog; their focused regression rerun passes 2/2.
   V57 remains an unapplied migration artifact.
+- Task 3 scope repair: the exact consumer inventory now classifies the pure
+  bootstrap parser and landing locator as `bootstrap` readers. They are intended
+  one-time inputs, not steady-state pipeline readers; unknown references still
+  fail the inventory contract.
+- Task 3 RED reproduced five missing parser/locator contracts. Final combined
+  bootstrap, consumer-inventory, locator, landing schema/import/audit, and V56
+  contract validation passes 46/46. The read-only real-file probe emits four
+  governed descriptors: 33 recipe groups, 29 reconciliation groups with two
+  exclusions, one source group, one blocked group, and zero admin bootstrap
+  groups. Full-file bytes remain lineage only; group payloads are 28,698 bytes
+  or less.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -66,7 +77,11 @@
 - Completed: Task 2 defines four maint, three relation, and four layer-preserving
   local group tables plus disjoint source/admin ownership and a shared serialized
   projection-state fence. See git for code-level diff details.
-- Not completed: Tasks 3-16 and every formal authorization checkpoint.
+- Completed: Task 3 parses the frozen three-file bootstrap without DB/network/
+  filesystem writes, reconciles the exact 27 redundant rows and two exclusions,
+  preserves blocked/source classifications, and emits group-only landing payloads.
+  See git for code-level diff details.
+- Not completed: Tasks 4-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -78,11 +93,13 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 3 frozen bootstrap parsing/reconciliation with RED
-  -> GREEN; do not apply V56/V57 or bootstrap data to formal databases.
+- Coordinator: execute Task 4 maint/relation/local projection with injected
+  adapters and RED -> GREEN; do not apply V56/V57 or bootstrap data to formal
+  databases.
 
 ## Commits
 
 - `7c43c439` `docs(plan): define automated ingestion closure`
 - `4d279ad6` `test(data): lock canonical group consumers`
-- Task 2 schema/ownership checkpoint pending.
+- `88e8392c` `feat(data): define canonical item group schemas`
+- Task 3 bootstrap checkpoint pending.

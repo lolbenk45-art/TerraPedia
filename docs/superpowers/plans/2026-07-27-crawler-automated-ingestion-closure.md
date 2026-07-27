@@ -376,10 +376,11 @@ git commit -m "feat(data): define canonical item group schemas"
 **Files:**
 - Create: `scripts/data/item-groups/item-group-bootstrap.mjs`
 - Create: `scripts/data/item-groups/item-group-bootstrap.test.mjs`
+- Modify: `scripts/data/item-groups/item-group-consumer-contract.test.mjs`
 - Modify: `scripts/data/landing/source-dataset-locator.mjs`
 - Modify: `scripts/data/landing/source-dataset-locator.test.mjs`
 
-- [ ] **Step 1: Write RED parser/reconciliation tests**
+- [x] **Step 1: Write RED parser/reconciliation tests**
 
 Fixtures must prove:
 
@@ -399,7 +400,7 @@ assert.equal(result.unresolvedCount, 0);
 assert.equal(result.ambiguousCount, 0);
 ```
 
-- [ ] **Step 2: Verify RED, implement pure parser, verify GREEN**
+- [x] **Step 2: Verify RED, implement pure parser, verify GREEN**
 
 ```bash
 node --test scripts/data/item-groups/item-group-bootstrap.test.mjs \
@@ -409,7 +410,7 @@ node --test scripts/data/item-groups/item-group-bootstrap.test.mjs \
 The module must be pure: no DB connection, network access, compatibility-file
 write, or implicit current-working-directory dependency.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add scripts/data/item-groups/item-group-bootstrap.mjs \

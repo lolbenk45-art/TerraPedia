@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -292,4 +293,90 @@ test('listSourceDatasetLandingInputs still skips optional datasets that are abse
 
   const actual = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['projectiles_raw'] });
   assert.deepEqual(actual, []);
+});
+
+test('listSourceDatasetLandingInputs emits governed group-only bootstrap descriptors with full-file lineage', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-group-landing-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  const generatedDir = path.join(repoRoot, 'data', 'generated');
+  const recipeReference = {
+    generatedAt: '2026-07-27T10:00:00.000Z',
+    groups: [{
+      canonicalName: 'Any Wood',
+      displayNameEn: 'Any Wood',
+      displayNameZh: 'any wood',
+      members: [
+        { internalName: 'Wood', name: 'Wood', nameZh: null },
+        { internalName: 'Wood', name: 'Wood', nameZh: 'wood' },
+      ],
+    }],
+    supplementalRecipes: [{ resultInternalName: 'Workbench' }],
+  };
+  const recipeOverrides = {
+    schemaVersion: '1.0.0',
+    updatedAt: '2026-07-27T10:00:01.000Z',
+    groups: [{
+      canonicalName: 'Any Wood',
+      members: [{ internalName: 'Wood', name: 'Wood', nameZh: 'wood' }],
+    }],
+  };
+  const itemOverrides = {
+    schemaVersion: '1.0.0',
+    generatedAt: '2026-07-27T10:00:02.000Z',
+    sourceProvider: 'wiki_gg',
+    groups: [{
+      canonicalName: 'Any Pylon',
+      displayNameEn: 'Any Pylon',
+      displayNameZh: 'any pylon',
+      aliases: ['Any Teleportation Pylon'],
+      sourceKind: 'curated_wiki_item_group',
+      sourceProvider: 'wiki_gg',
+      sourcePage: 'https://terraria.wiki.gg/wiki/Pylons',
+      members: [{ internalName: 'ForestPylon', name: 'Forest Pylon', nameZh: 'forest pylon' }],
+    }],
+    blockedGroups: [{
+      canonicalName: 'Recorded Music Boxes',
+      displayNameEn: 'Recorded Music Boxes',
+      displayNameZh: 'recorded music boxes',
+      sourceKind: 'blocked_consumer_reference',
+      sourceProvider: 'wiki_gg',
+      sourcePage: 'https://terraria.wiki.gg/wiki/Shimmer',
+      blockReason: 'members not proven',
+    }],
+  };
+
+  await writeJson(path.join(generatedDir, 'recipe-material-reference.json'), recipeReference);
+  await writeJson(path.join(generatedDir, 'recipe-group-overrides.json'), recipeOverrides);
+  await writeJson(path.join(generatedDir, 'item-group-overrides.json'), itemOverrides);
+
+  const actual = await listSourceDatasetLandingInputs({
+    repoRoot,
+    sharedDataRoot,
+    datasets: ['item_groups_raw'],
+    producerRunKey: 'locator-bootstrap-run',
+  });
+
+  assert.equal(actual.length, 4);
+  assert.deepEqual(actual.map((entry) => entry.sourceKey).sort(), [
+    'admin.item_group_overrides',
+    'admin.recipe_group_overrides',
+    'wiki.recipe_material_groups',
+    'wiki.shimmer_item_groups',
+  ]);
+  const recipeEntry = actual.find((entry) => entry.sourceKey === 'wiki.recipe_material_groups');
+  const rawRecipeReference = await fs.readFile(
+    path.join(generatedDir, 'recipe-material-reference.json'),
+    'utf8',
+  );
+  assert.equal(recipeEntry.fullFileByteSize, Buffer.byteLength(rawRecipeReference, 'utf8'));
+  assert.equal(
+    recipeEntry.fullFileContentHash,
+    crypto.createHash('sha256').update(rawRecipeReference).digest('hex'),
+  );
+  assert.deepEqual(Object.keys(recipeEntry.payload), ['groups']);
+  assert.equal(recipeEntry.payload.groups[0].members[0].nameZh, 'wood');
+  assert.equal(recipeEntry.artifactRole, 'bootstrap_input');
+  assert.equal(recipeEntry.producerRunKey, 'locator-bootstrap-run');
+  assert.match(recipeEntry.bootstrapManifestHash, /^[a-f0-9]{64}$/);
 });

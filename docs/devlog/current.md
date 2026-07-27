@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 20:08 CST by Codex
+Last updated: 2026-07-27 20:17 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -14,8 +14,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Task 1 locks 13 pre-cutover group JSON production references. Task 2 now
   defines the 4 maint / 3 relation / 4 local canonical group tables, certified
-  source/admin partitions, and shared projection-state fence; its final suite
-  passes 30/30 and V57 remains unapplied. Task 3 bootstrap reconciliation is next.
+  source/admin partitions, and shared projection-state fence. Task 3 now parses
+  the frozen bootstrap at 33 recipe groups / 27 redundant overrides / 2
+  exclusions, emits four group-only landing descriptors, and passes the combined
+  suite 46/46. V57 and bootstrap remain unapplied. Task 4 projection is next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 

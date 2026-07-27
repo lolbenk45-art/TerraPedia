@@ -22,6 +22,8 @@ const expectedPreCutoverInventory = [
   entry('scripts/data/fetch/build-item-relations-bundle.mjs', 'pipeline_input'),
   entry('scripts/data/generate/generate-item-group-overrides.mjs', 'compat_export'),
   entry('scripts/data/generate/generate-recipe-material-reference.mjs', 'compat_export'),
+  entry('scripts/data/item-groups/item-group-bootstrap.mjs', 'bootstrap'),
+  entry('scripts/data/landing/source-dataset-locator.mjs', 'bootstrap'),
   entry('scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs', 'pipeline_input'),
   entry('scripts/data/relation/relation-table-catalog.mjs', 'governance'),
   entry('scripts/data/relation/sync-maint-to-relation.mjs', 'pipeline_input'),
@@ -72,6 +74,12 @@ function classifyRole(relativePath) {
   }
   if (relativePath.startsWith('scripts/data/generate/')) {
     return 'compat_export';
+  }
+  if (
+    relativePath === 'scripts/data/item-groups/item-group-bootstrap.mjs'
+    || relativePath === 'scripts/data/landing/source-dataset-locator.mjs'
+  ) {
+    return 'bootstrap';
   }
   if (relativePath === 'scripts/data/audit/reconcile-live-recipe-coverage.mjs') {
     return 'pipeline_input';

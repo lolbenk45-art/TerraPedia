@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { resolveProjectPath, resolveSharedDataRoot } from '../lib/project-root.mjs';
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { buildItemGroupBootstrap } from '../item-groups/item-group-bootstrap.mjs';
 
 const defaultRepoRoot = resolveProjectPath();
 const defaultSharedDataRoot = sharedDataPath();
@@ -492,6 +493,39 @@ export async function listSourceDatasetLandingInputs(options = {}) {
       sharedDataRoot,
     }),
   );
+
+  if (shouldInclude('item_groups_raw')) {
+    const artifactPaths = {
+      recipeReference: path.join(repoRoot, 'data', 'generated', 'recipe-material-reference.json'),
+      recipeOverrides: path.join(repoRoot, 'data', 'generated', 'recipe-group-overrides.json'),
+      itemOverrides: path.join(repoRoot, 'data', 'generated', 'item-group-overrides.json'),
+    };
+    const artifactAvailability = Object.fromEntries(await Promise.all(
+      Object.entries(artifactPaths).map(async ([key, filePath]) => [key, await exists(filePath)]),
+    ));
+    const availableCount = Object.values(artifactAvailability).filter(Boolean).length;
+    if (availableCount > 0 || datasetFilter.has('item_groups_raw')) {
+      for (const [key, filePath] of Object.entries(artifactPaths)) {
+        if (!artifactAvailability[key]) {
+          throw new Error(`item_groups_raw requires bootstrap artifact ${key}, but ${filePath} does not exist`);
+        }
+      }
+      const artifacts = {};
+      for (const [key, filePath] of Object.entries(artifactPaths)) {
+        const raw = await fs.readFile(filePath, 'utf8');
+        artifacts[key] = {
+          raw,
+          payload: JSON.parse(raw),
+          sourceLocator: toSourceLocator(filePath, repoRoot, sharedDataRoot),
+        };
+      }
+      const bootstrap = buildItemGroupBootstrap({
+        artifacts,
+        producerRunKey: options.producerRunKey,
+      });
+      entries.push(...bootstrap.landingEntries);
+    }
+  }
 
   entries.sort((left, right) => {
     if (left.datasetType !== right.datasetType) {
