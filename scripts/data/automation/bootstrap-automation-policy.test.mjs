@@ -15,7 +15,7 @@ const DEFAULT_POLICY = {
   requireSnapshot: true,
 };
 
-function fakeConnection({ owner = null, policy = null, maxVersion = 0 } = {}) {
+function fakeConnection({ owner = null, policy = null, maxVersion = 0, versionForHash = null } = {}) {
   const executed = [];
   return {
     executed,
@@ -23,6 +23,9 @@ function fakeConnection({ owner = null, policy = null, maxVersion = 0 } = {}) {
       executed.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
       if (/FROM crawler_automation_owner/i.test(sql)) {
         return [owner ? [owner] : []];
+      }
+      if (/FROM crawler_automation_policy_version/i.test(sql) && /policy_hash = \?/.test(sql)) {
+        return [versionForHash ? [versionForHash] : []];
       }
       if (/FROM crawler_automation_policy_version/i.test(sql)) {
         return [[{ maxVersion }]];
@@ -233,4 +236,60 @@ test('a failure inside apply rolls back and does not leave a partial bootstrap',
   await assert.rejects(() => executeBootstrapPlan({ connection, plan }), /simulated failure/);
   assert.ok(connection.executed.some((e) => e.sql === 'ROLLBACK'));
   assert.ok(!connection.executed.some((e) => e.sql === 'COMMIT'));
+});
+
+test('re-running with an unchanged policy is a no-op, not a duplicate-hash crash', async () => {
+  // V55 declares UNIQUE (domain_id, policy_hash) on crawler_automation_policy_version, so an
+  // unchanged policy cannot be re-inserted under a new version. Rehearsing against real MySQL
+  // caught this as ER_DUP_ENTRY; the fake connection had not modelled the constraint.
+  const plan = buildBootstrapPlan({
+    databaseName: 'terria_v1_automation_test_abc_local',
+    ownerUsername: 'admin',
+    domainId: 'biomes',
+    level: 'L0',
+    policy: DEFAULT_POLICY,
+    reason: 'second run, same policy',
+    actor: 'admin',
+    apply: true,
+  });
+
+  const connection = fakeConnection({
+    owner: { username: 'admin', status: 'ACTIVE', version: 0 },
+    policy: { domainId: 'biomes', currentVersion: 1, currentLevel: 'L0', operationalState: 'DISABLED' },
+    maxVersion: 1,
+    versionForHash: { policyVersion: 1, level: 'L0' },
+  });
+  const result = await executeBootstrapPlan({ connection, plan });
+
+  assert.equal(result.policyAction, 'unchanged');
+  assert.equal(result.policyVersion, 1);
+  assert.deepEqual(result.intendedStatements, []);
+  assert.ok(!connection.executed.some((e) => /^INSERT/i.test(e.sql)));
+  assert.ok(!connection.executed.some((e) => /^UPDATE/i.test(e.sql)));
+});
+
+test('promoting an unchanged policy to a new level reuses its version rather than duplicating the hash', async () => {
+  const plan = buildBootstrapPlan({
+    databaseName: 'terria_v1_automation_test_abc_local',
+    ownerUsername: 'admin',
+    domainId: 'biomes',
+    level: 'L1',
+    policy: DEFAULT_POLICY,
+    reason: 'promote to L1 with identical caps',
+    actor: 'admin',
+    apply: true,
+  });
+
+  const connection = fakeConnection({
+    owner: { username: 'admin', status: 'ACTIVE', version: 0 },
+    policy: { domainId: 'biomes', currentVersion: 1, currentLevel: 'L0', operationalState: 'DISABLED' },
+    maxVersion: 1,
+    versionForHash: { policyVersion: 1, level: 'L0' },
+  });
+  const result = await executeBootstrapPlan({ connection, plan });
+
+  assert.equal(result.policyAction, 'promoted');
+  assert.equal(result.policyVersion, 1);
+  assert.ok(!connection.executed.some((e) => /INSERT INTO crawler_automation_policy_version/i.test(e.sql)));
+  assert.ok(connection.executed.some((e) => /UPDATE crawler_automation_policy SET/i.test(e.sql)));
 });

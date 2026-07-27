@@ -108,6 +108,15 @@ async function readMaxPolicyVersion(connection, plan) {
   return Number.isFinite(value) ? value : 0;
 }
 
+async function readExistingVersionForHash(connection, plan) {
+  const [rows] = await connection.query(
+    'SELECT policy_version AS policyVersion, level FROM crawler_automation_policy_version'
+    + ' WHERE domain_id = ? AND policy_hash = ?',
+    [plan.domainId, plan.policyHash],
+  );
+  return rows?.[0] ?? null;
+}
+
 export async function executeBootstrapPlan({ connection, plan } = {}) {
   if (!connection) {
     throw new Error('connection is required.');
@@ -142,12 +151,26 @@ async function collectState(connection, plan) {
 
   const existingPolicy = await readPolicy(connection, plan);
   const maxVersion = await readMaxPolicyVersion(connection, plan);
-  const nextVersion = maxVersion + 1;
+
+  // policy_version carries UNIQUE (domain_id, policy_hash), so an unchanged policy cannot be
+  // re-inserted under a new version number. Re-running with identical content is a legitimate
+  // no-op, not an error, and must reuse the version that already carries this hash.
+  const existingForHash = await readExistingVersionForHash(connection, plan);
+  const reuseVersion = existingForHash ? Number(existingForHash.policyVersion) : null;
+  const nextVersion = reuseVersion ?? maxVersion + 1;
 
   const ownerAction = owner ? 'unchanged' : 'created';
-  const policyAction = !existingPolicy
-    ? 'created'
-    : existingPolicy.currentLevel === plan.level ? 'reversioned' : 'promoted';
+  const levelMatches = existingPolicy?.currentLevel === plan.level;
+  let policyAction;
+  if (!existingPolicy) {
+    policyAction = 'created';
+  } else if (reuseVersion && Number(existingPolicy.currentVersion) === reuseVersion && levelMatches) {
+    policyAction = 'unchanged';
+  } else if (levelMatches) {
+    policyAction = 'reversioned';
+  } else {
+    policyAction = 'promoted';
+  }
 
   const intendedStatements = [];
   if (ownerAction === 'created') {
@@ -156,22 +179,24 @@ async function collectState(connection, plan) {
       params: [plan.ownerUsername, 'ACTIVE'],
     });
   }
-  intendedStatements.push({
-    sql: 'INSERT INTO crawler_automation_policy_version'
-      + ' (domain_id, policy_version, level, policy_json, policy_hash, created_by, approved_by, reason)'
-      + ' VALUES (?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)',
-    params: [
-      plan.domainId, nextVersion, plan.level, canonicalJson(plan.policy), plan.policyHash,
-      plan.actor, plan.ownerUsername, plan.reason,
-    ],
-  });
+  if (!reuseVersion) {
+    intendedStatements.push({
+      sql: 'INSERT INTO crawler_automation_policy_version'
+        + ' (domain_id, policy_version, level, policy_json, policy_hash, created_by, approved_by, reason)'
+        + ' VALUES (?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)',
+      params: [
+        plan.domainId, nextVersion, plan.level, canonicalJson(plan.policy), plan.policyHash,
+        plan.actor, plan.ownerUsername, plan.reason,
+      ],
+    });
+  }
   if (policyAction === 'created') {
     intendedStatements.push({
       sql: 'INSERT INTO crawler_automation_policy (domain_id, current_version, current_level, operational_state)'
         + ' VALUES (?, ?, ?, ?)',
       params: [plan.domainId, nextVersion, plan.level, 'DISABLED'],
     });
-  } else {
+  } else if (policyAction !== 'unchanged') {
     intendedStatements.push({
       sql: 'UPDATE crawler_automation_policy SET current_version = ?, current_level = ?, version = version + 1'
         + ' WHERE domain_id = ?',
