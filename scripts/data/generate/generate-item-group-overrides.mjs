@@ -20,6 +20,8 @@ const WIKI_PROVIDER = 'wiki_gg';
 const PYLONS_SOURCE_PAGE = 'https://terraria.wiki.gg/wiki/Pylons';
 const SHIMMER_SOURCE_PAGE = 'https://terraria.wiki.gg/wiki/Shimmer';
 
+export const ITEM_GROUP_SOURCE_EVIDENCE_PRODUCER_VERSION = '1';
+
 export const ANY_PYLON_INTERNAL_NAMES = [
   'TeleportationPylonPurity',
   'TeleportationPylonJungle',
@@ -82,6 +84,23 @@ export function buildItemGroupOverrides({
     blockedGroups: [
       buildRecordedMusicBoxesBlockedGroup(shimmerRoot),
     ],
+  };
+}
+
+export function buildItemGroupSourceEvidence({ producerRunKey, ...inputs } = {}) {
+  const payload = buildItemGroupOverrides(inputs);
+  const runKey = text(producerRunKey);
+  if (!runKey) throw new Error('item group source evidence producerRunKey is required');
+  return {
+    artifactRole: 'source_evidence',
+    producerId: 'generate-item-group-source-evidence',
+    producerVersion: ITEM_GROUP_SOURCE_EVIDENCE_PRODUCER_VERSION,
+    producerRunKey: runKey,
+    generatedAt: payload.generatedAt,
+    payload: {
+      groups: payload.groups,
+      blockedGroups: payload.blockedGroups,
+    },
   };
 }
 

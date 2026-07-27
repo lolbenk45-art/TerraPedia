@@ -479,14 +479,14 @@ git commit -m "feat(data): project canonical item groups"
 - Modify: `scripts/data/generate/generate-item-group-overrides.mjs`
 - Modify: `scripts/data/generate/generate-item-group-overrides.test.mjs`
 
-- [ ] **Step 1: Write RED parity and round-trip tests**
+- [x] **Step 1: Write RED parity and round-trip tests**
 
 The only allowed normalizations are duplicate-member collapse and null-to-value
 `memberNameZh` enrichment. Genuine member loss and value-to-different-value name
 changes must fail. Export then reparse must reproduce groups, aliases, members,
 blocked groups, exclusions, source metadata, and snapshot hash exactly.
 
-- [ ] **Step 2: Verify RED, implement deterministic comparison/export, verify GREEN**
+- [x] **Step 2: Verify RED, implement deterministic comparison/export, verify GREEN**
 
 ```bash
 node --test \
@@ -498,7 +498,7 @@ node --test \
 Exporters receive read-only canonical snapshots, never DB writer credentials;
 landing rejects their `compat_export` role.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add scripts/data/item-groups/item-group-shadow.mjs \

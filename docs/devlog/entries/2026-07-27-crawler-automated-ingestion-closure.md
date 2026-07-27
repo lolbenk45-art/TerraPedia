@@ -71,6 +71,14 @@
   runtime members. Runtime rows and `PUBLISHED` state use one injected local
   transaction. No formal database name or connection appears in the new sync
   tests.
+- Task 5 RED reproduced nine missing shadow/export/source-evidence contracts.
+  Focused GREEN passes 15/15; the bootstrap/sync/consumer/landing dependency
+  suite passes 55/55. A read-only real-file round trip preserves 35 canonical
+  rows (34 active, one blocked), 163 members, two exclusions, and snapshot hash
+  `94765e084970db43fdb52523b813b2169791b5dbec4570f408f97ccdd08550a5`.
+  The exporter rejects writer credentials and revision-mismatched or missing
+  recipe non-group evidence; landing continues to reject `compat_export` before
+  opening a connection.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -94,7 +102,11 @@
   local projections with source rotation, exclusion and identity gates, stable
   record keys/hashes, per-consumer winner selection, and atomic local publish.
   See git for code-level diff details.
-- Not completed: Tasks 5-16 and every formal authorization checkpoint.
+- Completed: Task 5 bounds shadow normalization to duplicate collapse and
+  null-to-value member-name enrichment, and provides deterministic one-way
+  compatibility export/reparse with exact blocked, exclusion, source metadata,
+  and snapshot-hash fidelity. See git for code-level diff details.
+- Not completed: Tasks 6-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -106,9 +118,8 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 5 shadow parity and deterministic one-way
-  compatibility exports with RED -> GREEN; do not apply V56/V57 or bootstrap
-  data to formal databases.
+- Coordinator: execute Task 6 canonical backend/admin repository cutover with
+  RED -> GREEN; do not apply V56/V57 or bootstrap data to formal databases.
 
 ## Commits
 
@@ -116,4 +127,5 @@
 - `4d279ad6` `test(data): lock canonical group consumers`
 - `88e8392c` `feat(data): define canonical item group schemas`
 - `988b1bbf` `feat(data): reconcile item group bootstrap`
-- Task 4 projection checkpoint pending.
+- `c8d4fc31` `feat(data): project canonical item groups`
+- Task 5 compatibility-export checkpoint pending.

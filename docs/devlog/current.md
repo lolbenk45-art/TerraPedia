@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 20:24 CST by Codex
+Last updated: 2026-07-27 20:33 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -21,7 +21,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   deterministic maint/relation/local projection: the real dry-run yields 35
   maint groups, 161 resolved members, one blocked group, and 34 runtime groups;
   the dependency suite passes 123/123 with one existing skip. V57 and bootstrap
-  remain unapplied. Task 5 shadow parity/export is next.
+  remain unapplied. Task 5 now proves the only two allowed shadow
+  normalizations and an exact 35-row compatibility round trip; its dependency
+  suite passes 55/55. Task 6 canonical backend/admin consumer cutover is next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 

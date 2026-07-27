@@ -3,12 +3,34 @@ import assert from 'node:assert/strict';
 
 import {
   buildItemGroupOverrides,
+  buildItemGroupSourceEvidence,
   buildItemLookup,
   extractShimmerPylonItemIds,
   selectRecordedMusicBoxMembers,
   selectRequiredMembersByItemIds,
   selectRequiredMembers,
 } from './generate-item-group-overrides.mjs';
+
+test('item group generator emits source evidence instead of a compatibility export', () => {
+  const evidence = buildItemGroupSourceEvidence({
+    generatedAt: '2026-05-01T00:00:00.000Z',
+    producerRunKey: 'source-run-17',
+    standardizedItemsRoot: {
+      records: [{ id: 4876, internalName: 'TeleportationPylonPurity', name: 'Forest Pylon', nameZh: '森林晶塔' }],
+    },
+    shimmerRawRoot: {
+      revisionTimestamp: '2026-03-09T05:12:48Z',
+      wikitext: '4876, <!-- Any Pylon (=> Aether Pylon) -->',
+    },
+  });
+
+  assert.equal(evidence.artifactRole, 'source_evidence');
+  assert.equal(evidence.producerId, 'generate-item-group-source-evidence');
+  assert.equal(evidence.producerRunKey, 'source-run-17');
+  assert.deepEqual(Object.keys(evidence.payload), ['groups', 'blockedGroups']);
+  assert.equal(evidence.payload.groups[0].canonicalName, 'Any Pylon');
+  assert.equal(evidence.payload.blockedGroups[0].canonicalName, 'Recorded Music Boxes');
+});
 
 test('buildItemLookup joins standardized items with zh map records', () => {
   const lookup = buildItemLookup({
