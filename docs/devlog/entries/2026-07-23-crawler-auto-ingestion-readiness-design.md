@@ -144,9 +144,11 @@
 
 - 2026-07-27 Phase 1A baseline: the five-file no-database baseline passed 26/27. The only failure occurred before test registration because `audit-source-dataset-landings.mjs` resolved `mysql2/promise` from `import.meta.url`; `data-query-app/node_modules/mysql2` is present and the two sibling audit consumers already resolve it from `data-query-app/package.json`. The audit file is already a Phase 1A Task 3 target, so the plan now requires a failing source contract and the same declared-dependency resolution pattern before its query changes. This is a pre-existing target-file defect, not a Phase 1A regression. No database connection or write was attempted.
 
+- 2026-07-27 Phase 1A landing foundation checkpoint: `f4221d6d` defines the `item_groups_raw` artifact vocabulary, append-only/current-slot landing schema, and parser-checked V56 contract (focused 6/6); `8402611c` validates governed producer/full-file identity before connection, rejects compatibility exports and manifest replay, and preserves governed history while retaining legacy cleanup (schema/importer 23/23); `a11cd7b8` moves all planned current-row consumers to `current_slot = 1`, restores declared-package `mysql2` resolution, defaults landing reads to `terria_v1_local`, adds four blocking artifact-integrity counts, and exposes six lineage aliases (five-file 39/39). The final six-file no-database suite passes 41/41, forbidden-boundary scans find no landing-history delete in V56 and only the retained legacy importer cleanup, and `git diff --check` passes. V56 exists but was not executed. No formal schema apply, bootstrap, T0/T1, T2, crawler, import, backfill, cutover, service restart, push, or merge ran. Next is a separately planned Phase 1B for the maint/relation canonical group model, reconciliation, member resolution, exclusions, and ownership predicates. The System Owner bootstrap domain, L0 policy, reason, actor, and authorization reference remain independent and unresolved.
+
 ## Follow-up
 
-- Implementer: execute `docs/superpowers/plans/2026-07-27-b1-group-landing-foundation.md` serially, starting with failing no-database schema contracts. Keep V56 as an unexecuted artifact until a later exact-bundle authorization.
+- Implementer: prepare and review the separately executable Phase 1B maint/relation canonical group plan. Keep V56 as an unexecuted artifact until a later exact-bundle authorization.
 - Project/data owner: after the full group chain reaches its separately defined milestone, close or explicitly re-govern the remaining B1 canonical-migration contracts and rerun `bash ./scripts/dev/quality-gate.sh` from the beginning.
 - System Owner: V55 is now registered on `terria_v1_local`. Choose the exact bootstrap domain, L0 policy, reason, actor, and authorization reference before invoking the bootstrap module; then separately authorize any domain-scoped first L1 run only after the repository-wide gate is green. Formal T2 data writes, real crawler execution, L1/L2 promotion, scheduler activation, push, and merge remain unauthorized.
 
@@ -161,3 +163,8 @@
 - `43069974` — Task 7 admin API and T2 read-only boundary.
 - `1f036845` — Task 8 acceptance runner contract.
 - `11a4e515` — Task 9 documentation checkpoint; later audit reopened the plan for remaining gates.
+- `ffe4cb03` — V55 recovery evidence and Phase 1A execution-contract checkpoint.
+- `cd26ce3e` — Phase 1A landing-audit baseline repair checkpoint.
+- `f4221d6d` — Phase 1A canonical landing history and V56 text contract.
+- `8402611c` — governed landing importer history and fail-closed contract.
+- `a11cd7b8` — read-only landing audit and lineage identity contract.

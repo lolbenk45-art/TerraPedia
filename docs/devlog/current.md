@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 18:54 CST by Codex
+Last updated: 2026-07-27 19:22 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -34,10 +34,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   V55 now owns 18 empty tables and 18 immutable-fact triggers. The Owner/policy bootstrap module
   exists and is dry-run by default, but no formal governance row was created or promoted; its
   formal target, domain, policy, reason, actor, and authorization reference remain an explicit
-  System Owner decision. The approved B1 group chain is now decomposed into independently
-  verifiable phases. Phase 1A has an execution-ready plan at
-  `../superpowers/plans/2026-07-27-b1-group-landing-foundation.md`; it changes landing contracts
-  and tests only, and does not authorize V56 execution or any data mutation.
+  System Owner decision. The approved B1 group chain is decomposed into independently
+  verifiable phases. Phase 1A is complete through commits `f4221d6d`, `8402611c`, and
+  `a11cd7b8`: it defines canonical landing identity/history, fail-closed importer rotation,
+  and read-only audit/lineage consumers. The complete no-database suite passes 41/41; V56
+  exists as a parser-checked artifact but was not executed. Phase 1B is next and owns the
+  maint/relation canonical group model, reconciliation, and ownership predicates.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
@@ -172,11 +174,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
 - For crawler automation readiness, read
-  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and execute
-  `../superpowers/plans/2026-07-27-b1-group-landing-foundation.md` serially. The design review
-  gate is closed, but this phase is no-database: do not execute V56, another T0/T1 acceptance,
-  crawler/import/backfill/apply, Owner/policy bootstrap, or L1/L2/T2 activation without the
-  separate authorization named by the plan.
+  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`. Phase 1A is checkpointed;
+  start by preparing and reviewing the separately executable Phase 1B maint/relation canonical
+  group plan. Do not execute V56, another T0/T1 acceptance, crawler/import/backfill/apply,
+  Owner/policy bootstrap, or L1/L2/T2 activation without the separate authorization named by
+  the design.
 
 ## Current Risks
 
