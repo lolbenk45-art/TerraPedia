@@ -148,6 +148,8 @@ audit table is not a fifth runtime projection and is owned only by
 - `scripts/data/automation/capability-manifest.test.mjs`
 - `scripts/data/automation/run-automation-acceptance.mjs`
 - `scripts/data/automation/run-automation-acceptance.test.mjs`
+- `scripts/data/automation/run-live-automation-acceptance.mjs`
+- `scripts/data/automation/run-live-automation-acceptance.test.mjs`
 - `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java`
 - `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java`
 - `back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationServiceImpl.java`
@@ -170,6 +172,7 @@ audit table is not a fifth runtime projection and is owned only by
 - `scripts/data/workflow/data-source-acceptance-refresh-plan.mjs`
 - `scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs`
 - `scripts/dev/quality-gate.sh`
+- `scripts/dev/quality-gate-ci.sh`
 - `scripts/dev/quality-gate.test.mjs`
 
 ### NPC canonical closure
@@ -194,7 +197,7 @@ audit table is not a fifth runtime projection and is owned only by
 - `scripts/data/relation/sync-buffs-to-relation.test.mjs`
 - `scripts/data/relation/sync-relation-to-local-compat-tables.mjs`
 - `scripts/data/relation/sync-relation-to-local-compat-tables.test.mjs`
-- `scripts/data/crawler/src/domains/npc-parser.mjs`
+- `scripts/data/crawler/src/domains/npc-domain.mjs`
 - `scripts/data/crawler/tests/npc-parser.test.mjs`
 - `scripts/data/npc-canonical/npc-canonical-contract.mjs`
 - `scripts/data/npc-canonical/npc-canonical-contract.test.mjs`
@@ -202,6 +205,8 @@ audit table is not a fifth runtime projection and is owned only by
 - `scripts/data/npc-canonical/npc-crawler-fact-action.test.mjs`
 - `scripts/data/npc-canonical/npc-canonical-readiness.mjs`
 - `scripts/data/npc-canonical/npc-canonical-readiness.test.mjs`
+- `scripts/data/npc-canonical/npc-canonical-t0-acceptance.mjs`
+- `scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs`
 - `scripts/data/automation/fixtures/crawler-automation-capabilities.json`
 - `scripts/data/automation/capability-manifest.test.mjs`
 - `scripts/data/automation/capability-owned-table-contract.test.mjs`
@@ -887,7 +892,7 @@ Use one commit per independent domain, e.g.
 - Modify: `scripts/data/relation/sync-buffs-to-relation.test.mjs`
 - Modify: `scripts/data/relation/sync-relation-to-local-compat-tables.mjs`
 - Modify: `scripts/data/relation/sync-relation-to-local-compat-tables.test.mjs`
-- Modify: `scripts/data/crawler/src/domains/npc-parser.mjs`
+- Modify: `scripts/data/crawler/src/domains/npc-domain.mjs`
 - Modify: `scripts/data/crawler/tests/npc-parser.test.mjs`
 - Create: `scripts/data/npc-canonical/npc-canonical-contract.mjs`
 - Create: `scripts/data/npc-canonical/npc-canonical-contract.test.mjs`
@@ -895,6 +900,8 @@ Use one commit per independent domain, e.g.
 - Create: `scripts/data/npc-canonical/npc-crawler-fact-action.test.mjs`
 - Create: `scripts/data/npc-canonical/npc-canonical-readiness.mjs`
 - Create: `scripts/data/npc-canonical/npc-canonical-readiness.test.mjs`
+- Create: `scripts/data/npc-canonical/npc-canonical-t0-acceptance.mjs`
+- Create: `scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs`
 - Modify: `scripts/data/automation/fixtures/crawler-automation-capabilities.json`
 - Modify: `scripts/data/automation/capability-manifest.test.mjs`
 - Modify: `scripts/data/automation/capability-owned-table-contract.test.mjs`
@@ -902,8 +909,25 @@ Use one commit per independent domain, e.g.
 - Modify: `scripts/data/automation/table-ownership-matrix.test.mjs`
 - Modify: `scripts/data/automation/run-automation-acceptance.mjs`
 - Modify: `scripts/data/automation/run-automation-acceptance.test.mjs`
+- Modify: `scripts/data/automation/run-live-automation-acceptance.mjs`
+- Modify: `scripts/data/automation/run-live-automation-acceptance.test.mjs`
+- Modify: `scripts/data/workflow/backend-data-refresh-plan.mjs`
+- Modify: `scripts/data/workflow/backend-data-refresh-plan.test.mjs`
+- Modify: `scripts/data/workflow/data-source-acceptance-report-manifest.mjs`
+- Modify: `scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs`
+- Modify: `scripts/data/workflow/data-source-acceptance-freshness-audit.mjs`
+- Modify: `scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs`
+- Modify: `scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs`
+- Modify: `scripts/dev/quality-gate.sh`
+- Modify: `scripts/dev/quality-gate-ci.sh`
+- Modify: `scripts/dev/quality-gate.test.mjs`
+- Modify: `back/src/main/java/com/terraria/skills/dto/DataSourceAcceptanceOverviewDTO.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImpl.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImplTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/controller/AdminDataSourceAcceptanceControllerTest.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationServiceImpl.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerAutomationServiceImplTest.java`
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminCrawlerAutomationControllerTest.java`
@@ -914,10 +938,11 @@ Use one commit per independent domain, e.g.
 - Modify: `data-query-app/pages/operations/crawler-automation.contract.test.mjs`
 - Modify: `data-query-app/pages/operations/data-source-acceptance.vue`
 - Modify: `data-query-app/tests/data-source-acceptance-page-contract.test.mjs`
+- Modify: `data-query-app/types/dataSourceAcceptance.ts`
 
 No bridge generator or bridge compatibility exporter is added.
 
-- [ ] **Step 1: Write RED source-split contracts**
+- [x] **Step 1: Write RED source-split contracts**
 
 Register `npcs_base_raw` and `npc_crawler_facts_raw`; base resolves only to the
 tracked standardized file; crawler facts require immutable crawler evidence.
@@ -934,7 +959,7 @@ node --test \
 Expected RED: both new dataset types, paired normalized/audit identity, and
 bridge-free source selection are missing.
 
-- [ ] **Step 2: Add maint crawler facts and relation joins**
+- [x] **Step 2: Add maint crawler facts and relation joins**
 
 Add `maint_npc_crawler_facts` with exact landing lineage. Existing canonical NPC,
 NPC-Buff, shop, and loot relations consume it without introducing a second NPC
@@ -953,7 +978,7 @@ node --test \
   scripts/data/relation/sync-relation-to-local-compat-tables.test.mjs
 ```
 
-- [ ] **Step 3: Register preview/apply at 21-to-23**
+- [x] **Step 3: Register preview/apply at 21-to-23**
 
 Add `npc-crawler-facts-preview` and `npc-crawler-facts-apply`, both `L0 +
 DISABLED`, with symmetric pairing, ownership, snapshots, rollback, and the same
@@ -969,7 +994,7 @@ node --test \
 cd back && mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerAutomationServiceImplTest,AdminCrawlerAutomationControllerTest test
 ```
 
-- [ ] **Step 4: Add readiness evidence and fixture-level T0**
+- [x] **Step 4: Add readiness evidence and fixture-level T0**
 
 Require base/crawler landing freshness, maint match counts, NPC-Buff/shop/loot
 relation/local hashes, positive API/runtime samples, and zero bridge references.
@@ -978,11 +1003,16 @@ Run disposable T0 with paired normalized/audit fixtures. Record only NPC
 
 ```bash
 node --test \
+  scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs \
   scripts/data/npc-canonical/npc-canonical-readiness.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \
   scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs \
   scripts/dev/quality-gate.test.mjs
+TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED=1 node \
+  scripts/data/automation/run-live-automation-acceptance.mjs \
+  --profile=t0 --scope=npc-canonical --config-path=<ignored-local-config> \
+  --redis-db=<explicit-empty-db> --run-id=<unique-run-id>
 ```
 
 - [ ] **Step 5: Cross the real-data checkpoint only after crawler authorization**
@@ -993,7 +1023,7 @@ shop, and loot samples, exact landing/maint/relation/local hashes, rollback,
 restore, and zero leaked databases/accounts/Redis reservations. Only this step may
 record NPC `T1_VERIFIED`.
 
-- [ ] **Step 6: Commit in schema, pipeline, capability, and evidence checkpoints**
+- [x] **Step 6: Commit in schema, pipeline, capability, and evidence checkpoints**
 
 Use `feat(npc): ...` / `test(npc): ...` focused commits and record exact counts in
 the child devlog.
@@ -1008,13 +1038,13 @@ the child devlog.
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
   with request/packet hashes only, never credentials or reauthentication secrets.
 
-- [ ] **Step 1: Write RED fail-closed packet tests**
+- [x] **Step 1: Write RED fail-closed packet tests**
 
 Prove ordered DDL bytes, artifact bytes, database fingerprints, policy hash,
 actor, reason, reference, expiry, operation ID, and one-time decision identity
 are required and hash-bound.
 
-- [ ] **Step 2: Build read-only authorization requests**
+- [x] **Step 2: Build read-only authorization requests**
 
 Generate separate non-executable requests for schema, group bootstrap, NPC
 crawler, NPC apply, first L1 apply, L2 promotion, and scheduler activation. Each
@@ -1048,7 +1078,7 @@ operation-specific reason, durable authorization reference, one-time decision
 identity, and a future bounded expiry. It rejects any request/bundle/fingerprint
 drift and emits `authorizationStatus: "AUTHORIZED"`.
 
-- [ ] **Step 4: Hard stop until each packet is explicitly authorized**
+- [x] **Step 4: Hard stop until each packet is explicitly authorized**
 
 Do not reuse an approval or interpret this implementation request as the missing
 actor/reference/exact-hash approval.

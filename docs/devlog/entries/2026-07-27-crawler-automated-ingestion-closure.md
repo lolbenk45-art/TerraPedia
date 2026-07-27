@@ -155,6 +155,49 @@
   baseline is now 45 panels / 36 pass / 9 warning / 0 blocked / 0 written. No
   threshold, deadline, producer report, database row, or formal operation was
   changed. See git for code-level diff details.
+- Task 11 now separates `npcs_base_raw` from immutable paired
+  `npc_crawler_facts_raw`, persists four-state maint facts, and reconstructs
+  Buff/shop/loot relation and local inputs only from `MATCHED` facts. The exact
+  capability catalog is 23 operations; both NPC operations remain
+  `L0 + DISABLED`, and their only write ownership is
+  `maint.maint_npc_crawler_facts`. The modified/untracked Node aggregate passes
+  375/376 with one existing skip; backend action/acceptance/queue tests pass
+  59/59; admin Nuxt typecheck passes; bridge retirement scans 3,023 files with
+  zero production references. See git for code-level diff details.
+- Task 11 disposable T0 run `npc_7a854dc3e2150815` passed 13 required-table
+  probes. Paired base/crawler/normalized/audit evidence is `1/1/1/1`; maint is
+  one `MATCHED` fact; relation and local each contain one Buff, shop, and loot
+  fixture. Target-row rollback/commit/restore counts are `0/1/0`, the readiness
+  contract emits only `CODE_READY`, and independent cleanup confirms zero
+  databases, accounts, Redis DB 14 keys, and reservations. A first live attempt
+  exposed an invalid nullable-column projection; the regression was reproduced,
+  fixed at the T0 SQL column mapping, and its failure cleanup also reached zero.
+- Final fresh closeout keeps the modified/untracked Node aggregate at 375/376
+  with one existing skip, backend focused tests at 59/59, admin Nuxt typecheck
+  green, and quality-gate inclusion contracts at 15/15. The read-only bridge
+  scan remains pass at 3,023 files / zero production references. Post-run cleanup
+  was independently re-read as zero isolation databases, zero temporary accounts,
+  Redis DB 14 size zero, empty reservation, no live-acceptance temp directory,
+  and no progress `.tmp` files.
+- Task 12 generates seven filesystem-only `AWAITING_OWNER` requests with ordered
+  schema/data byte manifests and atomic output. Packet authorization rejects
+  Owner/technical/time drift, duplicate decisions, and packet mutation; focused
+  tests pass 7/7. Formal read-only inspection confirms the server identity is
+  available but `crawler_automation_policy` still has zero rows, so every request
+  lacks `policySetHash`; crawler/L1/L2/scheduler requests also lack their future
+  data bundle. No executable packet was generated.
+- Task 12 request hashes: schema `sha256:85ce71d6f44f230de14d2677b8e306fadf25a5571e52556c9f7f4d18e9e18cfb`;
+  group bootstrap `sha256:0971bd58d2e5c0cbbddcba60ba64dd344a9cdecd3654c03e23d7a48cd763c0e3`;
+  NPC crawler `sha256:d29044c41221418fe2d8796b0456b2cdf110d110f3f880ddeab21bef10051b4c`;
+  NPC apply `sha256:b7c41c237a617ada271ddb537ec9686055a5ed0b084c5b6c6051ae4c186061d4`;
+  first L1 `sha256:ff6ea2be57d472a24f136542cad6a863246d6e4e6a6a5d9728514dd403150c80`;
+  L2 `sha256:070441ac54f0f0371e66db11db2db764b5c0bd69ca0ceb090649ed11a82d4323`;
+  scheduler `sha256:1196894d7f4aca7cc050adde6b035851c4d9c1bfb7847572cc7081fe891d9fc7`.
+- An initial broad backend run found four stale V2 queue assertions caused by the
+  two newly registered domains; they were repaired and the integrated 59-test
+  backend suite passes. A fresh broad rerun executes 1,510 tests with six failures,
+  all outside this task in legacy port cleanup (2), audio streaming (1), and item
+  image SQL contracts (3); they are not treated as automated-ingestion regressions.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -199,8 +242,14 @@
   restore, and zero-leak evidence. See git for code-level diff details.
 - Completed in Task 10: warning/producer CODE_READY contracts and the only
   authorized filesystem repair; armor source readiness is pass.
-- Not completed: Task 10's nine operation-dependent warning panels, Tasks 11-16,
-  and every formal authorization checkpoint.
+- Completed in Task 11: NPC source split, paired evidence limits, maint fact
+  ownership, Buff/shop/loot reconstruction, 23-operation registration,
+  fail-closed acceptance surfaces, and fixture-level T0 `CODE_READY`.
+- Completed in Task 12 within the read-only boundary: seven exact authorization
+  requests and fail-closed request-to-packet conversion logic.
+- Not completed: Task 10's nine operation-dependent warning panels, Task 11 real
+  crawler/T1, Task 12 Owner authorization, Tasks 13-16, and every formal apply or
+  activation checkpoint.
 
 ## Residual Risks
 
@@ -211,13 +260,19 @@
   dry-run artifacts now fail closed; armor is no longer a warning.
 - V56/V57 and the group bootstrap remain unapplied to formal databases; the T1
   evidence is isolated and does not authorize T2.
+- The seven request files expire around `2026-07-28T16:05:35Z`; expired requests
+  must be regenerated from current bytes and fingerprints rather than reused.
+- Full backend `mvn test` is not green because six observed failures remain in
+  unrelated pre-existing test areas; the task-owned focused backend suite is
+  green after repairing its four queue contract failures.
 
 ## Follow-up
 
-- Coordinator: execute Task 11 through fixture-level NPC `CODE_READY`, stopping
-  before the real crawler/T1 checkpoint, then generate Task 12 read-only
-  authorization requests. Task 10 Steps 5-6 remain behind their exact crawler,
-  import, backfill, image-sync, and formal-write authorizations.
+- System Owner: provide a non-empty policy row plus exact actor, operation-specific
+  reason, durable authorization reference, and one-time decision identity for a
+  single still-fresh request. Regenerate any expired request first. Only then may
+  the coordinator authorize that exact operation. Task 10 Steps 5-6, Task 11 real
+  crawler/T1, T2, first L1, L2, and scheduler activation remain separate packets.
 
 ## Commits
 
@@ -231,4 +286,7 @@
 - `ef4d4af4` `feat(automation): register canonical item group actions`
 - `7c5095bd` `feat(audit): gate canonical item group readiness`
 - `56009156` `test(data): verify canonical item groups in T1`
-- Task 10 warning-contract and armor checkpoint pending.
+- `83de1e3a` `fix(data): enforce readiness producer evidence`
+- `340095fd` `feat(npc): add canonical crawler fact pipeline`
+- `8c28a549` `feat(authorization): bind canonical cutover requests`
+- `53fb31f9` `feat(automation): gate canonical npc readiness`

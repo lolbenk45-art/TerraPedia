@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 23:15 CST by Codex
+Last updated: 2026-07-28 00:44 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -41,9 +41,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   trip, rollback/commit/restore, and zero resource leaks. Task 10 now fail-closes
   empty-shell/dry-run producer evidence and repairs armor definitions to 132
   mapped plus 19 reviewed placeholders; the read-only baseline is 36 pass / 9
-  warning / 0 blocked. Task 11 NPC fixture-level CODE_READY is next. Real NPC
-  crawler/T1, nine warning panels, T2, and first L1 remain distinct authorization
-  checkpoints.
+  warning / 0 blocked. Task 11 now reaches fixture-only NPC `CODE_READY`: scoped
+  T0 `npc_7a854dc3e2150815` proves 13 tables, paired evidence, one matched fact,
+  non-empty Buff/shop/loot relation/local lanes, `0/1/0` transaction counts, and
+  zero cleanup leaks. Task 12 produced seven `AWAITING_OWNER` request hashes;
+  formal policy remains zero rows. Real NPC crawler/T1, nine warning panels,
+  Owner authorization, T2, and first L1 remain distinct checkpoints.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
@@ -79,7 +82,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   and read-only audit/lineage consumers. The canonical group implementation now reaches
   CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57 remain parser-checked,
   isolated-only migration artifacts and were not executed on formal databases. Task 10
-  CODE_READY and filesystem-only work are complete; Task 11 is next.
+  CODE_READY and filesystem-only work are complete; Task 11 fixture `CODE_READY`
+  and Task 12 read-only request generation are complete. No executable packet exists.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
