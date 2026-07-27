@@ -12,12 +12,15 @@ const compatibilityFiles = [
 ];
 
 const expectedPostCutoverInventory = [
+  entry('back/src/main/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImpl.java', 'governance'),
   entry('scripts/data/audit/audit-any-item-group-sources.mjs', 'governance'),
   entry('scripts/data/audit/canonical-source-contract-registry.mjs', 'governance'),
   entry('scripts/data/audit/domain-readiness-audit.mjs', 'governance'),
   entry('scripts/data/generate/generate-item-group-overrides.mjs', 'compat_export'),
   entry('scripts/data/generate/generate-recipe-material-reference.mjs', 'compat_export'),
   entry('scripts/data/item-groups/item-group-bootstrap.mjs', 'bootstrap'),
+  entry('scripts/data/item-groups/item-group-live-acceptance.mjs', 'bootstrap'),
+  entry('scripts/data/item-groups/item-group-readiness.mjs', 'governance'),
   entry('scripts/data/landing/source-dataset-locator.mjs', 'bootstrap'),
 ];
 
@@ -63,6 +66,9 @@ async function walkProductionFiles(directory) {
 }
 
 function classifyRole(relativePath) {
+  if (relativePath === 'back/src/main/java/com/terraria/skills/service/impl/DataSourceAcceptanceServiceImpl.java') {
+    return 'governance';
+  }
   if (relativePath.startsWith('back/src/main/java/')) {
     return 'runtime_reader';
   }
@@ -71,6 +77,7 @@ function classifyRole(relativePath) {
   }
   if (
     relativePath === 'scripts/data/item-groups/item-group-bootstrap.mjs'
+    || relativePath === 'scripts/data/item-groups/item-group-live-acceptance.mjs'
     || relativePath === 'scripts/data/landing/source-dataset-locator.mjs'
   ) {
     return 'bootstrap';
@@ -80,6 +87,7 @@ function classifyRole(relativePath) {
   }
   if (
     relativePath.startsWith('scripts/data/audit/')
+    || relativePath === 'scripts/data/item-groups/item-group-readiness.mjs'
     || relativePath === 'scripts/data/relation/relation-table-catalog.mjs'
   ) {
     return 'governance';

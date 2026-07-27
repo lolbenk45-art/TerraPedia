@@ -114,6 +114,33 @@
   16/16, and admin 15/15. Canonical readiness remains read-only, requires exact
   T2 cutover identity/count/hash/parity/export evidence, and blocks every
   acceptance surface when absent or invalid. See git for code-level diff details.
+- Task 9 final no-formal-write validation passes the complete Node aggregate at
+  300 test positions with one existing skip, backend 78/78, admin 37/37, and
+  Nuxt typecheck. Disposable T0 run `t0g_ef820e65a3de94ef` passed 36 schema
+  evidence checks and three-database rollback/commit/restore counts of `0/1/0`.
+- Task 9 disposable T1 run `t1g_bbc162216efc9d01` froze and verified 128
+  ownership-allowlisted tables with snapshot hash
+  `sha256:5c4d063f273c6fa73bc8f9d12d5d30c6c95d2aa248c53b4953a415b0a040568e`
+  and verification hash
+  `sha256:4a52b876fb33002e5b0328cb7038e69c758b619a845dbc2b01f235cd7c50de70`.
+  Twelve pre-cutover canonical tables were represented explicitly as
+  `sourceAvailable=false`; their migrated isolated targets existed and remained
+  empty before the canonical transaction.
+- T1 canonical evidence passed at 4 landing sources; 35/163/72/2 maint rows;
+  35/163/72 relation rows with zero unresolved/ambiguous, two rejected, and one
+  blocked group; and 34/161/70 local rows plus one published state. Runtime hash
+  `8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819`,
+  compatibility hash
+  `54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d`,
+  round trip, rollback, commit, and restore all passed.
+- Live repair evidence: the adapter now projects V55 landing samples through
+  the exact V56 legacy backfill contract, preserves child stderr across EPIPE,
+  selects the isolated local session for temporary tables, and uses explicit
+  physical columns plus the canonical runtime snapshot mapper. Every failed
+  attempt and the final run cleaned databases, accounts, Redis reservations,
+  and private temporary directories to zero. Redis 16380 was temporarily
+  started because it was initially stopped, then restored to stopped. See git
+  for code-level diff details.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -153,7 +180,10 @@
   fail-closed canonical item-group readiness v1 contract across offline
   freshness, manual refresh planning, backend overview, admin labeling, and the
   local quality gate. See git for code-level diff details.
-- Not completed: Tasks 9-16 and every formal authorization checkpoint.
+- Completed: Task 9 proves group `CODE_READY` and `T1_VERIFIED` through exact
+  schema, frozen snapshot, canonical transaction, compatibility round trip,
+  restore, and zero-leak evidence. See git for code-level diff details.
+- Not completed: Tasks 10-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -162,11 +192,14 @@
 - Nine warning panels depend on real crawler/import/backfill/image evidence and
   cannot pass before their independently authorized operations; armor definition
   placeholders are the only current warning class eligible for filesystem-only repair.
+- V56/V57 and the group bootstrap remain unapplied to formal databases; the T1
+  evidence is isolated and does not authorize T2.
 
 ## Follow-up
 
-- Coordinator: execute Task 9 complete group suite plus disposable T0/T1;
-  do not apply V56/V57 or bootstrap data to formal databases.
+- Coordinator: execute Task 10 warning/producer contracts and the
+  filesystem-only armor definition repair. Stop at each crawler, import,
+  backfill, image-sync, or formal-write authorization checkpoint.
 
 ## Commits
 
@@ -178,4 +211,5 @@
 - `bf96cca6` `feat(data): export canonical item group compatibility`
 - `f8769ac8` `feat(item-groups): use canonical repositories`
 - `ef4d4af4` `feat(automation): register canonical item group actions`
-- Task 8 canonical-readiness checkpoint pending.
+- `7c5095bd` `feat(audit): gate canonical item group readiness`
+- Task 9 T1 checkpoint pending.

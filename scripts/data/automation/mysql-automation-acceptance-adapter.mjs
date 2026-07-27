@@ -13,6 +13,20 @@ import { buildRelationSchemaStatements } from '../relation/relation-schema.mjs';
 const IDENTIFIER = /^[a-z0-9_]+$/;
 const FORMAL_REFERENCE = /terria_v1_(?:local|maint|relation)(?=[^a-z0-9_]|$)/i;
 const SENSITIVE_COLUMN = /(?:password|passwd|secret|token|email|phone|credential|session|cookie)/i;
+const PRE_CUTOVER_CANONICAL_TABLES = new Set([
+  'local.item_groups',
+  'local.item_group_members',
+  'local.item_group_aliases',
+  'local.item_group_admin_audit',
+  'local.item_group_projection_state',
+  'maint.maint_item_groups',
+  'maint.maint_item_group_members',
+  'maint.maint_item_group_aliases',
+  'maint.maint_item_group_member_exclusions',
+  'relation.relation_item_groups',
+  'relation.relation_item_group_members',
+  'relation.relation_item_group_aliases',
+]);
 
 function requireIdentifier(value, label) {
   const text = String(value ?? '');
@@ -20,7 +34,7 @@ function requireIdentifier(value, label) {
   return text;
 }
 
-function defaultExecute({ command, args, stdin, env }) {
+export function defaultExecute({ command, args, stdin, env }) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       env: { ...process.env, ...env },
@@ -32,8 +46,21 @@ function defaultExecute({ command, args, stdin, env }) {
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
-    child.once('error', reject);
-    child.once('close', (exitCode) => resolve({ stdout, stderr, exitCode }));
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    child.once('error', fail);
+    child.stdin.on('error', (error) => {
+      if (error.code !== 'EPIPE') fail(error);
+    });
+    child.once('close', (exitCode) => {
+      if (settled) return;
+      settled = true;
+      resolve({ stdout, stderr, exitCode });
+    });
     child.stdin.end(stdin);
   });
 }
@@ -130,6 +157,26 @@ export function buildBoundedSnapshotPlan({ maxRowsPerTable = 2 } = {}) {
   )));
 }
 
+export function buildUnavailableSourceSnapshotEntry({ role, table, maxRows } = {}) {
+  const safeRole = String(role ?? '');
+  const safeTable = requireIdentifier(table, 'snapshot table');
+  if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 25) {
+    throw new Error('snapshot row cap must be between 1 and 25');
+  }
+  if (!PRE_CUTOVER_CANONICAL_TABLES.has(`${safeRole}.${safeTable}`)) {
+    throw new Error(`${safeRole}.${safeTable} is not an allowed pre-cutover canonical table`);
+  }
+  return Object.freeze({
+    role: safeRole,
+    table: safeTable,
+    maxRows,
+    sourceCount: 0,
+    sourceAvailable: false,
+    sampleHash: null,
+    schemaHash: null,
+  });
+}
+
 export function buildSnapshotRowSelect({ table, columns, maxRows } = {}) {
   requireIdentifier(table, 'snapshot table');
   if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 25) throw new Error('snapshot row cap is invalid');
@@ -159,6 +206,28 @@ function commonSnapshotColumns(row, targetColumns) {
   return Object.keys(row ?? {})
     .filter((column) => target.has(column) && !SENSITIVE_COLUMN.test(column))
     .sort((left, right) => left.localeCompare(right));
+}
+
+export function buildSnapshotTargetRow({ role, table, row, targetColumns } = {}) {
+  const sourceRow = { ...(row ?? {}) };
+  const target = new Set((targetColumns ?? []).map((column) => (
+    requireIdentifier(column, 'snapshot target column')
+  )));
+  if (role !== 'local' || table !== 'source_dataset_landings' || !target.has('artifact_role')) {
+    return sourceRow;
+  }
+  const required = ['artifact_role', 'producer_id', 'producer_version', 'producer_run_key', 'source_page'];
+  if (required.every((column) => sourceRow[column] !== null && sourceRow[column] !== undefined)) {
+    return sourceRow;
+  }
+  return {
+    ...sourceRow,
+    artifact_role: 'legacy_compat',
+    producer_id: 'legacy.source-dataset-importer',
+    producer_version: 'pre-v56',
+    producer_run_key: `legacy-${sourceRow.id}`,
+    source_page: sourceRow.source_page ?? sourceRow.source_key,
+  };
 }
 
 export function buildSnapshotInsertSql({ table, row, targetColumns } = {}) {
@@ -424,6 +493,13 @@ export async function createLiveAutomationAdapter({
       const tables = [];
       for (const entry of plan) {
         const sourceDatabase = FORMAL_DATABASES[entry.role];
+        const sourceAvailable = Number((await readonly.query(
+          `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '${sourceDatabase}' AND table_name = '${entry.table}'`,
+        )).trim()) === 1;
+        if (!sourceAvailable) {
+          tables.push(buildUnavailableSourceSnapshotEntry(entry));
+          continue;
+        }
         const countText = await readonly.query(`SELECT COUNT(*) FROM \`${entry.table}\``, sourceDatabase);
         const columnOutput = await readonly.query(
           `SELECT column_name, extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '${entry.table}' ORDER BY ordinal_position`,
@@ -452,6 +528,7 @@ export async function createLiveAutomationAdapter({
         tables.push({
           ...entry,
           sourceCount: Number(countText.trim()),
+          sourceAvailable: true,
           sampleHash: `sha256:${createHash('sha256').update(frozenContent).digest('hex')}`,
           schemaHash: `sha256:${createHash('sha256').update(schemaSql).digest('hex')}`,
           sourceColumnCount: columns.length,
@@ -459,10 +536,12 @@ export async function createLiveAutomationAdapter({
         });
       }
       const snapshotHash = `sha256:${createHash('sha256').update(JSON.stringify(
-        tables.map(({ role, table, maxRows, sourceCount, sampleHash }) => ({ role, table, maxRows, sourceCount, sampleHash }))
+        tables.map(({ role, table, maxRows, sourceCount, sourceAvailable, sampleHash }) => ({
+          role, table, maxRows, sourceCount, sourceAvailable, sampleHash
+        }))
       )).digest('hex')}`;
-      const publicTables = tables.map(({ role, table, maxRows, sourceCount, sampleHash, schemaHash }) => ({
-        role, table, maxRows, sourceCount, sampleHash, schemaHash
+      const publicTables = tables.map(({ role, table, maxRows, sourceCount, sourceAvailable, sampleHash, schemaHash }) => ({
+        role, table, maxRows, sourceCount, sourceAvailable, sampleHash, schemaHash
       }));
       const snapshot = {
         snapshotId, profile: 't2-readonly', readOnly: true, scrubbed: true, snapshotHash,
@@ -485,6 +564,18 @@ export async function createLiveAutomationAdapter({
           `SELECT column_name, extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '${table.table}' ORDER BY ordinal_position`,
           targetDatabase
         );
+        if (table.sourceAvailable === false) {
+          if (!parseLines(columnOutput).length) {
+            throw new Error(`pre-cutover target table is missing for ${table.role}.${table.table}`);
+          }
+          const targetCount = Number((await provisioner.query(
+            `SELECT COUNT(*) FROM \`${table.table}\``, targetDatabase
+          )).trim());
+          if (targetCount !== 0) {
+            throw new Error(`pre-cutover target table is not empty for ${table.role}.${table.table}`);
+          }
+          continue;
+        }
         const frozen = JSON.parse(fs.readFileSync(table.samplePath, 'utf8'));
         if (!parseLines(columnOutput).length) {
           const schemaSql = rewriteFrozenCreateTable({
@@ -502,7 +593,11 @@ export async function createLiveAutomationAdapter({
           .filter(([, extra]) => !/GENERATED/i.test(extra ?? ''))
           .map(([column]) => column);
         const inserts = frozen.rows.map((row) => buildSnapshotInsertSql({
-          table: table.table, row, targetColumns
+          table: table.table,
+          row: buildSnapshotTargetRow({
+            role: table.role, table: table.table, row, targetColumns
+          }),
+          targetColumns
         }));
         if (inserts.length) {
           await provisioner.query(`SET FOREIGN_KEY_CHECKS=0;\n${inserts.join(';\n')};\nSET FOREIGN_KEY_CHECKS=1;`, targetDatabase);
@@ -515,29 +610,47 @@ export async function createLiveAutomationAdapter({
       const counts = [];
       for (const table of snapshot.privateTables) {
         const targetDatabase = targetDatabases[table.role].name;
-        const count = Number((await provisioner.query(
-          `SELECT COUNT(*) FROM \`${table.table}\``, targetDatabases[table.role].name
-        )).trim());
-        if (!Number.isInteger(count) || count < 0) throw new Error(`snapshot target count is invalid for ${table.role}.${table.table}`);
-        if (table.sourceCount > 0 && count < 1) throw new Error(`snapshot representative sample is missing for ${table.role}.${table.table}`);
         const targetColumnOutput = await provisioner.query(
           `SELECT column_name, extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '${table.table}' ORDER BY ordinal_position`,
           targetDatabase
         );
+        const count = Number((await provisioner.query(
+          `SELECT COUNT(*) FROM \`${table.table}\``, targetDatabases[table.role].name
+        )).trim());
+        if (!Number.isInteger(count) || count < 0) throw new Error(`snapshot target count is invalid for ${table.role}.${table.table}`);
+        if (table.sourceAvailable === false) {
+          if (!parseLines(targetColumnOutput).length || count !== 0) {
+            throw new Error(`pre-cutover target table must exist and remain empty for ${table.role}.${table.table}`);
+          }
+          counts.push({
+            role: table.role,
+            table: table.table,
+            sourceCount: 0,
+            sourceAvailable: false,
+            targetCount: 0,
+            sampleHash: null,
+            verificationHash: null,
+          });
+          continue;
+        }
+        if (table.sourceCount > 0 && count < 1) throw new Error(`snapshot representative sample is missing for ${table.role}.${table.table}`);
         const targetColumns = parseLines(targetColumnOutput).map((line) => line.split('\t'))
           .filter(([, extra]) => !/GENERATED/i.test(extra ?? ''))
           .map(([column]) => column);
         const frozen = JSON.parse(fs.readFileSync(table.samplePath, 'utf8'));
         const projectedRows = [];
         for (const row of frozen.rows) {
+          const targetRow = buildSnapshotTargetRow({
+            role: table.role, table: table.table, row, targetColumns
+          });
           const matched = Number((await provisioner.query(
-            buildSnapshotRowMatchSql({ table: table.table, row, targetColumns }), targetDatabase
+            buildSnapshotRowMatchSql({ table: table.table, row: targetRow, targetColumns }), targetDatabase
           )).trim());
           if (!Number.isInteger(matched) || matched < 1) {
             throw new Error(`snapshot frozen row mismatch for ${table.role}.${table.table}`);
           }
-          const columns = commonSnapshotColumns(row, targetColumns);
-          projectedRows.push(Object.fromEntries(columns.map((column) => [column, row[column]])));
+          const columns = commonSnapshotColumns(targetRow, targetColumns);
+          projectedRows.push(Object.fromEntries(columns.map((column) => [column, targetRow[column]])));
         }
         const verificationHash = `sha256:${createHash('sha256').update(JSON.stringify(projectedRows)).digest('hex')}`;
         counts.push({

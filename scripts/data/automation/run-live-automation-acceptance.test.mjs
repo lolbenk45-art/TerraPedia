@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {
   buildAcceptanceProbeSql,
   buildLiveResourceNames,
-  parseProbeCounts
+  parseProbeCounts,
+  resolveAcceptanceScope,
 } from './run-live-automation-acceptance.mjs';
 
 test('live resource names are exact runKey-isolated databases and bounded temporary accounts', () => {
@@ -37,4 +38,12 @@ test('probe count parser requires rollback zero, commit one, and restore zero fo
   ].join('\n'));
   assert.deepEqual(parsed, { rollback: [0, 0, 0], commit: [1, 1, 1], restore: [0, 0, 0] });
   assert.throws(() => parseProbeCounts('rollback\t1\t0\t0\ncommit\t1\t1\t1\nrestore\t0\t0\t0'), /rollback/i);
+});
+
+test('live acceptance resolves only the explicit item-groups scope', () => {
+  assert.equal(resolveAcceptanceScope(), null);
+  const executor = () => {};
+  assert.equal(resolveAcceptanceScope('item-groups', executor), executor);
+  assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
+  assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
 });

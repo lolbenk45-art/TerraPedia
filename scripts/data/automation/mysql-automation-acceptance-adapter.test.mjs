@@ -6,8 +6,11 @@ import {
   buildSnapshotInsertSql,
   buildSnapshotRowMatchSql,
   buildSnapshotRowSelect,
+  buildSnapshotTargetRow,
   buildSchemaDumpArgs,
+  buildUnavailableSourceSnapshotEntry,
   createMysqlCommandClient,
+  defaultExecute,
   requiresBootstrapMigrationSession,
   rewriteFrozenCreateTable,
   rewriteSchemaForIsolatedDatabase,
@@ -81,6 +84,28 @@ test('snapshot rows freeze source values while copy projects only safe common co
   assert.doesNotMatch(insert, /source_only|target_only/);
 });
 
+test('pre-V56 landing rows use the exact isolated migration backfill projection', () => {
+  const row = buildSnapshotTargetRow({
+    role: 'local',
+    table: 'source_dataset_landings',
+    row: { id: '7', source_key: 'wiki.page.sample', source_page: null },
+    targetColumns: ['id', 'source_key', 'source_page', 'artifact_role', 'producer_id',
+      'producer_version', 'producer_run_key'],
+  });
+  assert.deepEqual(row, {
+    id: '7',
+    source_key: 'wiki.page.sample',
+    source_page: 'wiki.page.sample',
+    artifact_role: 'legacy_compat',
+    producer_id: 'legacy.source-dataset-importer',
+    producer_version: 'pre-v56',
+    producer_run_key: 'legacy-7',
+  });
+  assert.deepEqual(buildSnapshotTargetRow({
+    role: 'local', table: 'items', row: { id: '7' }, targetColumns: ['id'],
+  }), { id: '7' });
+});
+
 test('only trigger DDL requires the isolated bootstrap migration session', () => {
   assert.equal(requiresBootstrapMigrationSession('CREATE TABLE sample (id INT)'), false);
   assert.equal(requiresBootstrapMigrationSession('CREATE TRIGGER sample BEFORE UPDATE ON t FOR EACH ROW SET @x=1'), true);
@@ -105,6 +130,17 @@ test('mysql command client passes SQL on stdin and keeps credentials out of argv
   assert.equal(calls[0].stdin, 'SELECT 1');
   assert.equal(calls[0].args.some((value) => value.includes('top-secret')), false);
   assert.equal(calls[0].env.MYSQL_PWD, 'top-secret');
+});
+
+test('command execution preserves child stderr when a large stdin hits EPIPE', async () => {
+  const result = await defaultExecute({
+    command: process.execPath,
+    args: ['-e', "process.stderr.write('expected child failure'); process.exit(2)"],
+    stdin: 'x'.repeat(4 * 1024 * 1024),
+    env: {},
+  });
+  assert.equal(result.exitCode, 2);
+  assert.equal(result.stderr, 'expected child failure');
 });
 
 test('schema rewrite replaces the one reviewed formal qualifier and rejects every remaining formal token', () => {
@@ -133,6 +169,24 @@ test('bounded snapshot plan is deduplicated, allowlisted, and capped', () => {
   assert.equal(plan.some((entry) => entry.role === 'maint' && entry.table === 'maint_items'), true);
   assert.equal(plan.some((entry) => entry.role === 'relation'), true);
   assert.throws(() => buildBoundedSnapshotPlan({ maxRowsPerTable: 0 }), /row cap/i);
+});
+
+test('pre-cutover owned tables may freeze only as explicit source-absent entries', () => {
+  const entry = buildUnavailableSourceSnapshotEntry({
+    role: 'local', table: 'item_groups', maxRows: 2,
+  });
+  assert.deepEqual(entry, {
+    role: 'local', table: 'item_groups', maxRows: 2, sourceCount: 0,
+    sourceAvailable: false, sampleHash: null, schemaHash: null,
+  });
+  assert.throws(
+    () => buildUnavailableSourceSnapshotEntry({ role: 'local', table: 'users', maxRows: 2 }),
+    /pre-cutover/i,
+  );
+  assert.throws(
+    () => buildUnavailableSourceSnapshotEntry({ role: 'local', table: 'item_groups', maxRows: 0 }),
+    /row cap/i,
+  );
 });
 
 test('temporary account grants accept exact isolation and formal read-only grants only', () => {

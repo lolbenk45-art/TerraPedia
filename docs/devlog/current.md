@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-27 22:04 CST by Codex
+Last updated: 2026-07-27 22:54 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -13,7 +13,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   blocked-by: exact operation-level authorization only at formal write/crawler/L1/L2/scheduler checkpoints;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
-  current exact inventory is 15 after adding two explicit bootstrap readers. Task 2
+  current post-cutover inventory is 10 after registering the explicit readiness
+  and T1 bootstrap readers. Task 2
   defines the 4 maint / 3 relation / 4 local canonical group tables, certified
   source/admin partitions, and shared projection-state fence. Task 3 now parses
   the frozen bootstrap at 33 recipe groups / 27 redundant overrides / 2
@@ -33,7 +34,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   fail-closed canonical item-group readiness v1 contract through offline
   freshness, manual refresh planning, backend overview, admin labeling, and the
   local gate; focused Node 45/45, backend 16/16, and admin 15/15 pass. Task 9
-  complete group CODE_READY plus disposable T0/T1 is next.
+  now proves group CODE_READY and T1_VERIFIED: final Node coverage has 300 test
+  positions with one existing skip, backend passes 78/78, admin passes 37/37
+  plus typecheck, T0 passes 36 schema checks, and T1 freezes/verifies 128 tables
+  before proving 35 maint groups, 34 runtime groups, exact compatibility round
+  trip, rollback/commit/restore, and zero resource leaks. Task 10 warning
+  contracts and its filesystem-only armor repair are next.
   Real NPC T1, nine warning panels, T2, and first L1 remain distinct authorization
   checkpoints.
 
@@ -68,9 +74,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   System Owner decision. The approved B1 group chain is decomposed into independently
   verifiable phases. Phase 1A is complete through commits `f4221d6d`, `8402611c`, and
   `a11cd7b8`: it defines canonical landing identity/history, fail-closed importer rotation,
-  and read-only audit/lineage consumers. The complete no-database suite passes 41/41; V56
-  exists as a parser-checked artifact but was not executed. Phase 1B is next and owns the
-  maint/relation canonical group model, reconciliation, and ownership predicates.
+  and read-only audit/lineage consumers. The canonical group implementation now reaches
+  CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57 remain parser-checked,
+  isolated-only migration artifacts and were not executed on formal databases. Task 10 is next.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
@@ -204,12 +210,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   route V1 until they run `scripts/dev/crawler-v2-cutover.sh`.
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
-- For crawler automation readiness, read
-  `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`. Phase 1A is checkpointed;
-  start by preparing and reviewing the separately executable Phase 1B maint/relation canonical
-  group plan. Do not execute V56, another T0/T1 acceptance, crawler/import/backfill/apply,
-  Owner/policy bootstrap, or L1/L2/T2 activation without the separate authorization named by
-  the design.
+- For automated-ingestion closure, read
+  `entries/2026-07-27-crawler-automated-ingestion-closure.md` and resume Task 10.
+  Group CODE_READY/T1 is complete. Do not execute V56/V57, formal bootstrap,
+  crawler/import/backfill/image-sync/apply, Owner/policy bootstrap, L1/L2/T2,
+  or scheduler activation without the separate operation-level authorization
+  named by the plan.
 
 ## Current Risks
 

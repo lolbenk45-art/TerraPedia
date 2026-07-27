@@ -135,8 +135,19 @@ test('extractMaintEntitiesFromLandingRow expands canonical item group landing ro
     'maint_item_groups',
     'maint_item_group_members',
     'maint_item_group_aliases',
+    'maint_item_group_aliases',
   ]);
   assert.ok(actual.rows.every((row) => row.recordKey));
+  assert.deepEqual(
+    actual.rows
+      .filter((row) => row.tableName === 'maint_item_group_aliases')
+      .map((row) => [row.aliasKind, row.normalizedAlias])
+      .sort(([left], [right]) => left.localeCompare(right)),
+    [
+      ['canonical_name', 'any wood'],
+      ['explicit', 'any timber'],
+    ],
+  );
 });
 
 test('extractMaintEntitiesFromLandingRow expands armor attribute rows with linked item identity', async () => {

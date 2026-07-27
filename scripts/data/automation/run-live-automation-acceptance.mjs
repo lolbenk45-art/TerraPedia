@@ -11,6 +11,7 @@ import {
 import { createLiveAutomationAdapter } from './mysql-automation-acceptance-adapter.mjs';
 import { provisionAutomationDatabases } from './provision-automation-databases.mjs';
 import { dropAutomationDatabases } from './drop-automation-databases.mjs';
+import { runItemGroupLiveAcceptance } from '../item-groups/item-group-live-acceptance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PROBE_TABLE = '__automation_acceptance_probe';
@@ -82,6 +83,13 @@ export function parseProbeCounts(output) {
   return parsed;
 }
 
+export function resolveAcceptanceScope(scope, executor) {
+  if (scope === undefined || scope === null || scope === '') return null;
+  if (scope !== 'item-groups') throw new Error(`unsupported live acceptance scope: ${scope}`);
+  if (typeof executor !== 'function') throw new Error(`${scope} acceptance executor is required`);
+  return executor;
+}
+
 export async function runLiveAutomationAcceptance({
   profile,
   runId,
@@ -90,10 +98,13 @@ export async function runLiveAutomationAcceptance({
   environmentId = 'local-automation-acceptance',
   privateDirectory,
   maxRowsPerTable = 2,
+  scope,
+  acceptanceExecutor,
   onResources = () => {}
 } = {}) {
   if (!['t0', 't1'].includes(profile)) throw new Error('live acceptance profile must be t0 or t1');
   if (!runId || !privateDirectory) throw new Error('runId and privateDirectory are required');
+  const scopedExecutor = resolveAcceptanceScope(scope, acceptanceExecutor);
   fs.mkdirSync(privateDirectory, { recursive: true, mode: 0o700 });
   fs.chmodSync(privateDirectory, 0o700);
   const mappings = openDurableRunKeyRegistry(path.join(privateDirectory, 'run-keys.json'));
@@ -136,6 +147,13 @@ export async function runLiveAutomationAcceptance({
     const probeCounts = parseProbeCounts(await adapter.provisionerClient.query(
       buildAcceptanceProbeSql(resources.databases, probeId)
     ));
+    const acceptance = scopedExecutor ? await scopedExecutor({
+      profile,
+      repoRoot: ROOT,
+      databases: resources.databases,
+      client: adapter.provisionerClient,
+      manifest,
+    }) : null;
     return {
       profile,
       runId,
@@ -155,6 +173,7 @@ export async function runLiveAutomationAcceptance({
         verificationHash: snapshotVerification.verificationHash
       } : null,
       probeCounts,
+      acceptance,
       status: 'passed'
     };
   } catch (error) {
@@ -205,6 +224,11 @@ async function main() {
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   const profile = args.profile;
   const redisLogicalDb = Number(args['redis-db']);
+  const scope = args.scope;
+  const acceptanceExecutor = resolveAcceptanceScope(
+    scope,
+    scope === 'item-groups' ? runItemGroupLiveAcceptance : undefined,
+  );
   const privateDirectory = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-${profile}-live-`));
   const runId = args['run-id'] || `${profile}-${Date.now()}-${randomBytes(8).toString('hex')}`;
   try {
@@ -225,6 +249,8 @@ async function main() {
         logicalDb: redisLogicalDb
       },
       maxRowsPerTable: Number(args['max-rows'] || 2),
+      scope,
+      acceptanceExecutor,
       onResources: async (resources) => {
         process.stdout.write(`${JSON.stringify({ safetyBoundary: {
           formalDatabases: 'read-only',

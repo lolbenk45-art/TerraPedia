@@ -732,22 +732,30 @@ git commit -m "feat(audit): gate canonical item group readiness"
 ## Task 9: Reach Group CODE_READY And T1_VERIFIED
 
 **Files:**
-- Modify: automation acceptance runner/tests and active child devlog.
+- Create: `scripts/data/item-groups/item-group-live-acceptance.mjs`
+- Create: `scripts/data/item-groups/item-group-live-acceptance.test.mjs`
+- Modify: `scripts/data/automation/run-live-automation-acceptance.mjs`
+- Modify: `scripts/data/automation/run-live-automation-acceptance.test.mjs`
+- Modify: `scripts/data/automation/mysql-automation-acceptance-adapter.mjs`
+- Modify: `scripts/data/automation/mysql-automation-acceptance-adapter.test.mjs`
+- Modify: `scripts/data/item-groups/item-group-consumer-contract.test.mjs`
+- Modify: `scripts/data/maint/sync-landing-to-maint.test.mjs`
+- Modify: active child devlog and `docs/devlog/current.md`.
 
-- [ ] **Step 1: Run complete no-formal-write group suite**
+- [x] **Step 1: Run complete no-formal-write group suite**
 
 Run all Task 2-8 tests plus the Phase 1A 41-test suite. Repair any failure at
 its owning module; do not weaken assertions or add allowlists for unexplained
 diffs.
 
-- [ ] **Step 2: Run disposable T0 schema smoke**
+- [x] **Step 2: Run disposable T0 schema smoke**
 
 Provision `terria_v1_automation_test_<runKey>_{local,maint,relation}`, apply the
 exact V56/V57 and maint/relation schema bundle there, assert all group tables,
 indexes, predicates, rollback, and cleanup. Formal database names are a hard
 failure.
 
-- [ ] **Step 3: Run isolated T1 group chain**
+- [x] **Step 3: Run isolated T1 group chain**
 
 Provision `terria_v1_automation_acceptance_<runKey>_{local,maint,relation}`;
 freeze the three tracked bootstrap files; execute landing→maint→relation→local;
@@ -755,7 +763,7 @@ assert 34 active canonical groups, one blocked group, two exclusions, zero
 unresolved/ambiguous members, per-consumer parity, round-trip exports, restore,
 and zero leaked databases/accounts/Redis reservations.
 
-- [ ] **Step 4: Persist T1 evidence and commit**
+- [x] **Step 4: Persist T1 evidence and commit**
 
 ```bash
 git commit -m "test(data): verify canonical item groups in T1"
