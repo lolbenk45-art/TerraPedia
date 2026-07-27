@@ -67,7 +67,7 @@ This phase is complete when a no-database contract suite proves:
 | `scripts/data/landing/source-dataset-landing-schema.test.mjs` (modify) | Contract tests for required columns, generated current slot, indexes, and accepted values |
 | `scripts/data/landing/import-source-dataset-landings.mjs` (modify) | Normalize artifact metadata, reject feedback/replay, and retain governed history |
 | `scripts/data/landing/import-source-dataset-landings.test.mjs` (modify) | Executable importer behavior with injected connection calls |
-| `scripts/data/landing/audit-source-dataset-landings.mjs` (modify) | Report current/history/artifact-role integrity without mutating data |
+| `scripts/data/landing/audit-source-dataset-landings.mjs` (modify) | Resolve the declared `mysql2` dependency from `data-query-app`, then report current/history/artifact-role integrity without mutating data |
 | `scripts/data/landing/audit-source-dataset-landings.test.mjs` (modify) | Audit query and summary contracts |
 | `scripts/data/audit/cross-db-referential-integrity.mjs` (modify) | Join only the generated current slot and reject missing artifact identity for governed types |
 | `scripts/data/audit/cross-db-referential-integrity.test.mjs` (modify) | Query-plan regression coverage |
@@ -409,6 +409,14 @@ git commit -m "fix(data): preserve governed landing history"
 
 - [ ] **Step 1: Add failing query-contract tests**
 
+First add a source contract proving the audit resolves `mysql2/promise` from the package that declares it:
+
+```js
+const source = await fs.readFile(new URL('./audit-source-dataset-landings.mjs', import.meta.url), 'utf8');
+assert.match(source, /createRequire\(path\.join\(repoRoot, 'data-query-app', 'package\.json'\)\)/);
+assert.doesNotMatch(source, /createRequire\(import\.meta\.url\)/);
+```
+
 Require every current-row read to use `current_slot = 1`, not merely an unscoped landing join. Add audit summary cases for:
 
 ```js
@@ -442,11 +450,13 @@ node --test \
   scripts/data/audit/record-lineage-trace.test.mjs
 ```
 
-Expected: FAIL because the current queries do not expose or validate the artifact identity.
+Expected: FAIL because the audit still resolves `mysql2` from its own module path and the current queries do not expose or validate the artifact identity.
 
 - [ ] **Step 3: Update current-row joins and audit checks**
 
-Change current-row predicates from `is_current = 1` to `current_slot = 1` in these three consumers. Keep `is_current` in output where operators need to distinguish history. Correct both `cross-db-referential-integrity.mjs` and `record-lineage-trace.mjs` so their landing database default is `terria_v1_local`, matching the current spec and landing importer; update each `parseArgs([])` assertion for that exact default while keeping `maintDatabase = 'terria_v1_maint'`.
+Before changing queries, move `const repoRoot = resolveProjectPath();` above dependency creation and replace the audit's `createRequire(import.meta.url)` with `createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))`. This is the same dependency-ownership pattern already used by `record-lineage-trace.mjs` and `cross-db-referential-integrity.mjs`.
+
+Then change current-row predicates from `is_current = 1` to `current_slot = 1` in these three consumers. Keep `is_current` in output where operators need to distinguish history. Correct both `cross-db-referential-integrity.mjs` and `record-lineage-trace.mjs` so their landing database default is `terria_v1_local`, matching the current spec and landing importer; update each `parseArgs([])` assertion for that exact default while keeping `maintDatabase = 'terria_v1_maint'`.
 
 Add four read-only integrity queries to the landing audit:
 
@@ -591,5 +601,5 @@ The approved design still requires these independently executable plans:
 - **Execution continuity:** Schema drift repairs the plan before DDL changes; directly affected consumers may be added only with a recorded scope change.
 - **Ownership:** One serial implementer owns the shared contract; no parallel write split is safe.
 - **Critical defects:** None after self-review.
-- **Important defects:** None after correcting bootstrap replay identity, clean-schema migration ordering, nullable source-page uniqueness, deferred NPC registration, and landing-database defaults.
+- **Important defects:** None after correcting bootstrap replay identity, clean-schema migration ordering, nullable source-page uniqueness, deferred NPC registration, landing-database defaults, and the landing audit's `mysql2` resolution base.
 - **Residual risk:** V56 SQL is not executed against MySQL in this phase. Phase 1B must add an authorized disposable T0 schema smoke before the group chain can claim executable schema readiness; formal T2 execution remains a later exact-bundle authorization.
