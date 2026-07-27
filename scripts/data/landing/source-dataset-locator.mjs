@@ -5,6 +5,10 @@ import path from 'node:path';
 import { resolveProjectPath, resolveSharedDataRoot } from '../lib/project-root.mjs';
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { buildItemGroupBootstrap } from '../item-groups/item-group-bootstrap.mjs';
+import {
+  buildNpcCrawlerFactEvidence,
+  validateNpcCrawlerFactRunEvidence,
+} from '../npc-canonical/npc-canonical-contract.mjs';
 
 const defaultRepoRoot = resolveProjectPath();
 const defaultSharedDataRoot = sharedDataPath();
@@ -179,10 +183,10 @@ export async function listSourceDatasetLandingInputs(options = {}) {
   );
 
   await pushFileDescriptor(
-    'npcs_raw',
+    'npcs_base_raw',
     path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json'),
     (filePath, payload) => buildFileDescriptor({
-      datasetType: 'npcs_raw',
+      datasetType: 'npcs_base_raw',
       filePath,
       payload,
       provider: 'terrapedia.standardized',
@@ -198,6 +202,57 @@ export async function listSourceDatasetLandingInputs(options = {}) {
     }),
     { required: true },
   );
+
+  if (shouldInclude('npc_crawler_facts_raw')) {
+    const normalizedDir = path.join(repoRoot, 'data', 'wiki-crawler', 'normalized-light', 'npc');
+    const auditDir = path.join(repoRoot, 'data', 'wiki-crawler', 'audit', 'npc');
+    const explicitlyRequested = datasetFilter.has('npc_crawler_facts_raw');
+    if (!(await exists(normalizedDir))) {
+      if (explicitlyRequested) {
+        throw new Error('npc_crawler_facts_raw requires matching audit evidence and normalized crawler evidence');
+      }
+    } else {
+      const fileNames = (await fs.readdir(normalizedDir))
+        .filter((name) => name.endsWith('.latest.json'))
+        .sort();
+      validateNpcCrawlerFactRunEvidence(fileNames.map(() => ({ payloadBytes: 0 })));
+      if (explicitlyRequested && fileNames.length === 0) {
+        throw new Error('npc_crawler_facts_raw requires matching audit evidence and normalized crawler evidence');
+      }
+      const crawlerFactEntries = [];
+      for (const fileName of fileNames) {
+        const normalizedPath = path.join(normalizedDir, fileName);
+        const auditPath = path.join(auditDir, fileName);
+        if (!(await exists(auditPath))) {
+          throw new Error(`npc_crawler_facts_raw requires matching audit evidence for ${fileName}`);
+        }
+        const normalized = await readJson(normalizedPath);
+        const audit = await readJson(auditPath);
+        const evidence = buildNpcCrawlerFactEvidence({ normalized, audit });
+        crawlerFactEntries.push({
+          datasetType: 'npc_crawler_facts_raw',
+          provider: 'terraria.wiki.gg',
+          sourceKind: 'npc_crawler_fact',
+          sourceKey: `wiki.npc.crawler_fact:${evidence.entityId}`,
+          sourcePage: evidence.sourcePage,
+          sourceLocator: toSourceLocator(normalizedPath, repoRoot, sharedDataRoot),
+          sourceRevisionTimestamp: evidence.sourceRevisionTimestamp,
+          fetchedAt: evidence.fetchedAt,
+          parsedAt: evidence.parsedAt,
+          parseStatus: evidence.parseStatus,
+          payloadBytes: evidence.payloadBytes,
+          contentHash: evidence.contentHash,
+          payload: evidence.payload,
+          auditLocator: toSourceLocator(auditPath, repoRoot, sharedDataRoot),
+          normalizedContentHash: evidence.normalizedContentHash,
+          auditContentHash: evidence.auditContentHash,
+          recordKey: evidence.recordKey,
+        });
+        validateNpcCrawlerFactRunEvidence(crawlerFactEntries);
+      }
+      entries.push(...crawlerFactEntries);
+    }
+  }
 
   await pushFileDescriptor(
     'projectiles_raw',

@@ -19,6 +19,7 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.deepEqual(MAINT_TABLE_NAMES, [
     'maint_items',
     'maint_npcs',
+    'maint_npc_crawler_facts',
     'maint_projectiles',
     'maint_buffs',
     'maint_npc_images',
@@ -56,6 +57,11 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   ]);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_items`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npcs`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npc_crawler_facts`/);
+  assert.match(sql, /`match_status` VARCHAR\(32\) NOT NULL/);
+  assert.match(sql, /CHECK \(`match_status` IN \('MATCHED', 'UNMATCHED', 'AMBIGUOUS', 'REJECTED'\)\)/);
+  assert.match(sql, /`landing_source_id` BIGINT NOT NULL/);
+  assert.match(sql, /`crawler_audit_hash` CHAR\(64\) NOT NULL/);
   assert.match(sql, /`sub_name_zh` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_projectiles`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_buffs`/);

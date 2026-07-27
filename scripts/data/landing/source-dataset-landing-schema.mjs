@@ -17,6 +17,8 @@ export const LANDING_DATASET_TYPES = [
   'item_relations_bundle_raw',
   'npc_item_relations_bundle_raw',
   'item_groups_raw',
+  'npcs_base_raw',
+  'npc_crawler_facts_raw',
 ];
 
 export const LANDING_PARSE_STATUSES = ['ok', 'partial', 'error', 'skipped'];
@@ -30,6 +32,8 @@ export const LANDING_ARTIFACT_ROLES = Object.freeze([
 
 export const GOVERNED_CANONICAL_DATASET_TYPES = Object.freeze([
   'item_groups_raw',
+  'npcs_base_raw',
+  'npc_crawler_facts_raw',
 ]);
 
 export const LANDING_COMPATIBILITY_DEFAULTS = Object.freeze({

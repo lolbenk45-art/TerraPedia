@@ -108,6 +108,102 @@ test('extractMaintEntitiesFromLandingRow preserves explicit zero-valued item fac
   assert.equal(row.majorValue, 0);
 });
 
+test('extractMaintEntitiesFromLandingRow matches NPC crawler facts and preserves exact landing lineage', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 91,
+    dataset_type: 'npc_crawler_facts_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Medusa',
+    source_key: 'wiki.npc.crawler_fact:medusa',
+    source_revision_timestamp: '2026-07-27T01:00:00Z',
+    content_hash: 'c'.repeat(64),
+    fetched_at: '2026-07-27T01:01:00Z',
+    parsed_at: '2026-07-27T01:02:00Z',
+    payload_json: JSON.stringify({
+      normalized: {
+        entityId: 'Medusa',
+        source: { pageTitle: 'Medusa' },
+        sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+        display: { name: 'Medusa' },
+        buffInflictions: [{ buffName: 'Stoned', durationText: '1 second' }],
+        shop: { normalizedRows: [{ itemName: 'Torch', priceText: '50 Copper' }] },
+        loot: [{ itemName: 'Medusa Head', chanceText: '1%' }],
+      },
+      audit: { status: 'pass' },
+    }),
+  }, {
+    maintNpcRows: [{ source_id: 477, internal_name: 'Medusa', english_name: 'Medusa' }],
+  });
+
+  assert.equal(actual.scope, 'npc_crawler_facts');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_npc_crawler_facts');
+  assert.equal(actual.rows[0].npcSourceId, 477);
+  assert.equal(actual.rows[0].npcInternalName, 'Medusa');
+  assert.equal(actual.rows[0].matchStatus, 'MATCHED');
+  assert.equal(actual.rows[0].landingSourceId, 91);
+  assert.equal(actual.rows[0].landingSourceKey, 'wiki.npc.crawler_fact:medusa');
+  assert.equal(actual.rows[0].landingContentHash, 'c'.repeat(64));
+  assert.equal(JSON.parse(actual.rows[0].buffInflictionsJson).length, 1);
+  assert.equal(JSON.parse(actual.rows[0].shopFactsJson).length, 1);
+  assert.equal(JSON.parse(actual.rows[0].lootFactsJson).length, 1);
+});
+
+test('extractMaintEntitiesFromLandingRow keeps unmatched and ambiguous NPC facts out of MATCHED state', async () => {
+  const landing = {
+    id: 92,
+    dataset_type: 'npc_crawler_facts_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Unknown',
+    source_key: 'wiki.npc.crawler_fact:unknown',
+    source_revision_timestamp: '2026-07-27T01:00:00Z',
+    content_hash: 'd'.repeat(64),
+    payload_json: JSON.stringify({
+      normalized: {
+        entityId: 'Unknown',
+        source: { pageTitle: 'Unknown' },
+        sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+        display: { name: 'Shared Name' },
+      },
+      audit: { status: 'pass' },
+    }),
+  };
+  const unmatched = await extractMaintEntitiesFromLandingRow(landing, { maintNpcRows: [] });
+  const ambiguous = await extractMaintEntitiesFromLandingRow(landing, {
+    maintNpcRows: [
+      { source_id: 1, internal_name: 'SharedA', english_name: 'Shared Name' },
+      { source_id: 2, internal_name: 'SharedB', english_name: 'Shared Name' },
+    ],
+  });
+
+  assert.equal(unmatched.rows[0].matchStatus, 'UNMATCHED');
+  assert.equal(ambiguous.rows[0].matchStatus, 'AMBIGUOUS');
+});
+
+test('extractMaintEntitiesFromLandingRow preserves explicit rejected NPC identity reviews', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 93,
+    dataset_type: 'npc_crawler_facts_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Bestiary',
+    source_key: 'wiki.npc.crawler.fact:bestiary',
+    source_revision_timestamp: '2026-07-27T01:00:00Z',
+    content_hash: 'e'.repeat(64),
+    payload_json: JSON.stringify({
+      normalized: {
+        entityId: 'bestiary-index',
+        source: { pageTitle: 'Bestiary' },
+        sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+        identityReview: { status: 'REJECTED', reason: 'page_is_not_an_npc_entity' },
+      },
+      audit: { status: 'pass' },
+    }),
+  }, { maintNpcRows: [] });
+
+  assert.equal(actual.rows[0].matchStatus, 'REJECTED');
+  assert.equal(actual.rows[0].matchReason, 'page_is_not_an_npc_entity');
+});
+
 test('extractMaintEntitiesFromLandingRow expands canonical item group landing rows', async () => {
   const actual = await extractMaintEntitiesFromLandingRow({
     id: 71,
@@ -690,6 +786,49 @@ test('runMaintSync includes NPC item bundle item source and candidate rows for n
   assert.equal(summary.rows.byScope.npcs, 1);
   assert.equal(summary.rows.byScope.item_sources, 1);
   assert.equal(summary.rows.byScope.backfill_candidates, 1);
+});
+
+test('runMaintSync matches crawler facts against base NPC rows in the same dry-run batch', async () => {
+  const basePayload = {
+    records: [{ id: 477, internalName: 'Medusa', name: 'Medusa' }],
+  };
+  const factPayload = {
+    normalized: {
+      entityId: 'Medusa',
+      source: { pageTitle: 'Medusa' },
+      sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+      display: { name: 'Medusa' },
+      buffInflictions: [{ buffName: 'Stoned' }],
+      shop: { normalizedRows: [{ itemName: 'Torch' }] },
+      loot: [{ itemName: 'Medusa Head' }],
+    },
+    audit: { status: 'pass' },
+  };
+  const summary = await runMaintSync({ apply: false, scopes: ['npcs'] }, {
+    zhSourceIndexes: {},
+    loadLandingRows: async () => [{
+      id: 90,
+      dataset_type: 'npcs_base_raw',
+      provider: 'terrapedia.standardized',
+      source_page: 'data/standardized/npcs.standardized.json',
+      source_key: 'standardized.npcs',
+      source_revision_timestamp: '2026-07-27T00:00:00Z',
+      content_hash: 'b'.repeat(64),
+      payload_json: JSON.stringify(basePayload),
+    }, {
+      id: 91,
+      dataset_type: 'npc_crawler_facts_raw',
+      provider: 'terraria.wiki.gg',
+      source_page: 'Medusa',
+      source_key: 'wiki.npc.crawler.fact:medusa',
+      source_revision_timestamp: '2026-07-27T01:00:00Z',
+      content_hash: 'c'.repeat(64),
+      payload_json: JSON.stringify(factPayload),
+    }],
+  });
+
+  assert.equal(summary.rows.byScope.npcs, 1);
+  assert.equal(summary.rows.byScope.npc_crawler_facts, 1);
 });
 
 test('runMaintSync upserts NPC item bundle source and backfill rows on apply', async () => {

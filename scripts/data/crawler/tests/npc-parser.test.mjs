@@ -68,6 +68,30 @@ test('extractNpcLeadSummary prefers the first readable paragraph', () => {
   );
 });
 
+test('NPC normalized output preserves immutable crawler source identity', async () => {
+  const { buildNpcNormalizedLight } = await import('../src/domains/npc-domain.mjs');
+  const normalized = buildNpcNormalizedLight({
+    entityId: 'medusa',
+    pageTitle: 'Medusa',
+    pageDescription: 'Medusa is an enemy.',
+    revisionText: "'''Medusa''' is an enemy.\n\n{{npc infobox|type=Enemy|environment=Marble Cave}}",
+    sourceMetadata: {
+      pageId: 480,
+      revisionTimestamp: '2026-07-27T01:00:00Z',
+      fetchedAt: '2026-07-27T01:01:00Z',
+      parsedAt: '2026-07-27T01:02:00Z',
+    },
+  });
+
+  assert.deepEqual(normalized.source, {
+    pageTitle: 'Medusa',
+    pageDescription: 'Medusa is an enemy.',
+    revisionTimestamp: '2026-07-27T01:00:00Z',
+    fetchedAt: '2026-07-27T01:01:00Z',
+    parsedAt: '2026-07-27T01:02:00Z',
+  });
+});
+
 const INFBOX_INLINE_CLOSING_SAMPLE = `{{npc infobox
 | type = NPC
 | type2 = Goblin

@@ -1,7 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
+import {
+  buildItemSourceRelations,
+  buildNpcCrawlerFactItemSourceRows,
+} from './item-source-relation-processor.mjs';
+
+test('buildNpcCrawlerFactItemSourceRows reconstructs only MATCHED shop and loot facts', () => {
+  const rows = buildNpcCrawlerFactItemSourceRows([
+    {
+      record_key: 'a'.repeat(64),
+      npc_source_id: 477,
+      npc_internal_name: 'Medusa',
+      npc_name: 'Medusa',
+      match_status: 'MATCHED',
+      shop_facts_json: JSON.stringify([{ itemName: 'Torch', priceText: '50 Copper', conditionText: 'At night' }]),
+      loot_facts_json: JSON.stringify([{ itemName: 'Medusa Head', chanceText: '1%', quantityText: '1' }]),
+      landing_source_id: 91,
+      landing_source_key: 'wiki.npc.crawler_fact:medusa',
+      landing_source_page: 'Medusa',
+      landing_content_hash: 'c'.repeat(64),
+      source_revision_timestamp: '2026-07-27 01:00:00',
+    },
+    {
+      record_key: 'b'.repeat(64),
+      match_status: 'UNMATCHED',
+      shop_facts_json: JSON.stringify([{ itemName: 'Should Not Publish' }]),
+      loot_facts_json: '[]',
+    },
+  ]);
+
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((row) => row.source_type), ['shop', 'drop']);
+  assert.equal(rows.every((row) => row.source_ref_type === 'npc'), true);
+  assert.equal(rows.every((row) => row.source_ref_name === 'Medusa'), true);
+  assert.equal(rows.every((row) => row.landing_source_key === 'wiki.npc.crawler_fact:medusa'), true);
+  assert.equal(JSON.parse(rows[0].raw_json).crawlerFactRecordKey, 'a'.repeat(64));
+  assert.equal(JSON.parse(rows[0].raw_json).sourceRefResolution, 'exact_internal_name');
+});
 
 test('buildItemSourceRelations splits resolved shop and unresolved drops', () => {
   const acornRows = [

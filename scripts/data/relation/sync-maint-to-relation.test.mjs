@@ -12,6 +12,35 @@ import {
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
 
+test('buildNpcCrawlerFactRelationInputs reconstructs non-empty shop, loot, and buff inputs', async () => {
+  const { buildNpcCrawlerFactRelationInputs } = await import('./sync-maint-to-relation.mjs');
+  const actual = buildNpcCrawlerFactRelationInputs({
+    maintNpcCrawlerFactRows: [{
+      record_key: 'a'.repeat(64),
+      npc_source_id: 477,
+      npc_internal_name: 'Medusa',
+      npc_name: 'Medusa',
+      match_status: 'MATCHED',
+      buff_inflictions_json: JSON.stringify([{ buffName: 'Stoned' }]),
+      shop_facts_json: JSON.stringify([{ itemName: 'Torch', priceText: '50 Copper' }]),
+      loot_facts_json: JSON.stringify([{ itemName: 'Medusa Head', chanceText: '1%' }]),
+      landing_source_id: 91,
+      landing_source_key: 'wiki.npc.crawler.fact:medusa',
+      landing_source_page: 'Medusa',
+      landing_content_hash: 'c'.repeat(64),
+    }],
+    maintBuffRows: [{
+      source_id: 156,
+      internal_name: 'Stoned',
+      english_name: 'Stoned',
+      raw_json: JSON.stringify({ inflictingNpcs: [] }),
+    }],
+  });
+
+  assert.equal(actual.itemSourceRows.length, 2);
+  assert.equal(JSON.parse(actual.maintBuffRows[0].raw_json).inflictingNpcs.length, 1);
+});
+
 test('canonical item group relation entrypoint resolves maint rows without compatibility files', () => {
   const actual = buildCanonicalItemGroupRelationProjection({
     maintProjection: {
@@ -718,6 +747,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.match(itemSourceRead[1], /\bWHERE\b/i);
   assert.match(itemSourceRead[1], /\bstatus\s*=\s*1\b/i);
   assert.match(itemSourceRead[1], /\bdeleted\s*=\s*0\b/i);
+  assert.ok(reads.some(([, sql]) => /\bFROM\s+maint_npc_crawler_facts\b/i.test(sql)));
   assert.ok(relationReads.some(([, sql]) => sql.includes('relation_armor_set_images')));
   assert.equal(writeCalled, false);
   assert.equal(result.summary.domainSummary.base, 4);

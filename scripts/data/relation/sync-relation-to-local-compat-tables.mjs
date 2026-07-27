@@ -69,12 +69,15 @@ export function buildRelationCompatSyncSql({
   const localLoot = qualified(localDatabase, 'npc_loot_entries');
   const localShop = qualified(localDatabase, 'npc_shop_entries');
   const localShopConditions = qualified(localDatabase, 'npc_shop_conditions');
+  const localNpcBuffRelations = qualified(localDatabase, 'npc_buff_relations');
   const localItems = qualified(localDatabase, 'items');
   const localNpcs = qualified(localDatabase, 'npcs');
+  const localBuffs = qualified(localDatabase, 'buffs');
   const sourceFacts = qualified(relationDatabase, 'item_source_facts');
   const sourceDetails = qualified(relationDatabase, 'item_source_details');
   const lootRelations = qualified(relationDatabase, 'item_npc_loot_relations');
   const shopRelations = qualified(relationDatabase, 'item_npc_shop_relations');
+  const npcBuffRelations = qualified(relationDatabase, 'npc_buff_relations');
   const acceptedReviewStatuses = "('accepted', 'resolved', 'promoted')";
   const itemBackedSourceRefTypes = "('item', 'container', 'crate', 'treasure_bag')";
   const publishableFactWhere = `f.deleted = 0
@@ -185,6 +188,12 @@ WHERE ${publishableFactWhere}
   AND (${publishableSourceRefWhere})`.trim()
     },
     npc_loot_entries: {
+      sourceLineage: [
+        'maint_npc_crawler_facts',
+        'maint_item_sources',
+        'item_source_facts',
+        'item_npc_loot_relations'
+      ],
       deleteSql: `DELETE FROM ${localLoot}
 WHERE drop_source_kind IS NULL
    OR drop_source_kind = 'npc_drop'`,
@@ -250,6 +259,12 @@ WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}`.trim()
     },
     npc_shop_entries: {
+      sourceLineage: [
+        'maint_npc_crawler_facts',
+        'maint_item_sources',
+        'item_source_facts',
+        'item_npc_shop_relations'
+      ],
       deleteSql: `DELETE se
 FROM ${localShop} se
 INNER JOIN ${localNpcs} n
@@ -383,6 +398,59 @@ WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
   AND COALESCE(n.is_town_npc, 0) <> 1
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`.trim()
+    },
+    npc_buff_relations: {
+      sourceLineage: ['maint_npc_crawler_facts', 'npc_buff_relations'],
+      deleteSql: `DELETE FROM ${localNpcBuffRelations}`,
+      countSql: `SELECT COUNT(*) AS total
+FROM ${npcBuffRelations} r
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localBuffs} b
+  ON b.internal_name COLLATE utf8mb4_unicode_ci = r.buff_internal_name COLLATE utf8mb4_unicode_ci
+ AND b.deleted = 0
+ AND b.status = 1
+WHERE ${publishableRelationWhere}`,
+      sampleSql: `SELECT r.npc_internal_name, r.buff_internal_name, r.relation_type
+FROM ${npcBuffRelations} r
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localBuffs} b
+  ON b.internal_name COLLATE utf8mb4_unicode_ci = r.buff_internal_name COLLATE utf8mb4_unicode_ci
+ AND b.deleted = 0
+ AND b.status = 1
+WHERE ${publishableRelationWhere}
+LIMIT 5`,
+      insertSql: `
+INSERT INTO ${localNpcBuffRelations}
+  (\`npc_id\`, \`buff_id\`, \`buff_source_id\`, \`relation_type\`, \`duration_ticks\`, \`chance_value\`, \`chance_text\`, \`conditions\`, \`notes\`, \`sort_order\`, \`status\`, \`deleted\`)
+SELECT
+  n.id,
+  b.id,
+  r.buff_source_id,
+  r.relation_type,
+  r.duration_ticks,
+  r.chance_value,
+  r.chance_text,
+  r.conditions,
+  r.reason,
+  0,
+  1,
+  0
+FROM ${npcBuffRelations} r
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localBuffs} b
+  ON b.internal_name COLLATE utf8mb4_unicode_ci = r.buff_internal_name COLLATE utf8mb4_unicode_ci
+ AND b.deleted = 0
+ AND b.status = 1
+WHERE ${publishableRelationWhere}`.trim()
     }
   };
 }
@@ -448,6 +516,7 @@ export async function runRelationToLocalCompatSync(options = {}, dependencies = 
           'npc_shop_conditions',
           'npc_shop_entries',
           'npc_loot_entries',
+          'npc_buff_relations',
           'item_acquisition_sources'
         ]) {
           await connection.query(sql[tableName].deleteSql);
@@ -456,7 +525,8 @@ export async function runRelationToLocalCompatSync(options = {}, dependencies = 
           'item_acquisition_sources',
           'npc_loot_entries',
           'npc_shop_entries',
-          'npc_shop_conditions'
+          'npc_shop_conditions',
+          'npc_buff_relations'
         ]) {
           await connection.query(sql[tableName].insertSql);
         }

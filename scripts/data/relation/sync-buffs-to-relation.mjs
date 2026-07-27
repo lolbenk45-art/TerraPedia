@@ -217,6 +217,64 @@ export function buildBuffRelationSyncPayload({
   };
 }
 
+export function mergeNpcCrawlerFactsIntoMaintBuffRows({
+  maintBuffRows = [],
+  maintNpcCrawlerFactRows = [],
+} = {}) {
+  const factsByBuff = new Map();
+  for (const fact of maintNpcCrawlerFactRows ?? []) {
+    if (String(fact.match_status ?? fact.matchStatus ?? '').toUpperCase() !== 'MATCHED') continue;
+    const npcInternalName = String(fact.npc_internal_name ?? fact.npcInternalName ?? '').trim();
+    if (!npcInternalName) continue;
+    let buffFacts = [];
+    try {
+      const parsed = typeof (fact.buff_inflictions_json ?? fact.buffInflictionsJson) === 'string'
+        ? JSON.parse(fact.buff_inflictions_json ?? fact.buffInflictionsJson)
+        : fact.buff_inflictions_json ?? fact.buffInflictionsJson;
+      buffFacts = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      buffFacts = [];
+    }
+    for (const buffFact of buffFacts) {
+      const key = String(buffFact.buffInternalName ?? buffFact.internalName ?? buffFact.buffName ?? buffFact.name ?? '').trim().toLowerCase();
+      if (!key) continue;
+      const entries = factsByBuff.get(key) ?? [];
+      entries.push({
+        npcId: Number(fact.npc_source_id ?? fact.npcSourceId) || null,
+        internalName: npcInternalName,
+        name: fact.npc_name ?? fact.npcName ?? npcInternalName,
+        durationText: buffFact.durationText ?? buffFact.duration_text ?? null,
+        chanceText: buffFact.chanceText ?? buffFact.chance_text ?? null,
+        crawlerFactRecordKey: fact.record_key ?? fact.recordKey,
+        landingSourceKey: fact.landing_source_key ?? fact.landingSourceKey ?? null,
+      });
+      factsByBuff.set(key, entries);
+    }
+  }
+
+  return (maintBuffRows ?? []).map((row) => {
+    const keys = [row.internal_name, row.internalName, row.english_name, row.name]
+      .map((value) => String(value ?? '').trim().toLowerCase())
+      .filter(Boolean);
+    const additions = keys.flatMap((key) => factsByBuff.get(key) ?? []);
+    if (additions.length === 0) return row;
+    let raw = {};
+    try {
+      raw = typeof row.raw_json === 'string' ? JSON.parse(row.raw_json) : row.raw_json ?? {};
+    } catch {
+      raw = {};
+    }
+    const existing = Array.isArray(raw.inflictingNpcs) ? raw.inflictingNpcs : [];
+    const merged = [...existing];
+    for (const addition of additions) {
+      if (!merged.some((entry) => entry.internalName === addition.internalName && entry.crawlerFactRecordKey === addition.crawlerFactRecordKey)) {
+        merged.push(addition);
+      }
+    }
+    return { ...row, raw_json: JSON.stringify({ ...raw, inflictingNpcs: merged }) };
+  });
+}
+
 async function defaultWriteReport(reportPath, payload) {
   await fs.mkdir(path.dirname(reportPath), { recursive: true });
   await fs.writeFile(reportPath, JSON.stringify(payload, null, 2), 'utf8');
@@ -264,12 +322,17 @@ export async function runBuffRelationSync(options = {}, dependencies = {}) {
     }
   });
 
-  const [maintBuffRows, maintItemRows, maintNpcRows, relationBuffImageRows] = await Promise.all([
+  const [baseMaintBuffRows, maintItemRows, maintNpcRows, relationBuffImageRows, maintNpcCrawlerFactRows] = await Promise.all([
     queryMaint('SELECT * FROM maint_buffs WHERE status = 1 AND deleted = 0'),
     queryMaint('SELECT * FROM maint_items WHERE status = 1 AND deleted = 0'),
     queryMaint('SELECT * FROM maint_npcs WHERE status = 1 AND deleted = 0'),
     queryRelation('SELECT * FROM relation_buff_images WHERE deleted = 0'),
+    queryMaint('SELECT * FROM maint_npc_crawler_facts WHERE match_status = \'MATCHED\' AND status = 1 AND deleted = 0'),
   ]);
+  const maintBuffRows = mergeNpcCrawlerFactsIntoMaintBuffRows({
+    maintBuffRows: baseMaintBuffRows,
+    maintNpcCrawlerFactRows,
+  });
   const payload = buildBuffRelationSyncPayload({
     maintBuffRows,
     maintItemRows,

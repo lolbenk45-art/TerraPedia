@@ -50,3 +50,10 @@ test('getRelationTableDefinitions documents npc projectile audits', () => {
   assert.match(table.purpose, /NPC-to-projectile/);
   assert.ok(table.primaryKeys.includes('npc_internal_name'));
 });
+
+test('getRelationTableDefinitions records canonical NPC crawler-fact lineage', () => {
+  const byName = new Map(getRelationTableDefinitions().map((entry) => [entry.tableName, entry]));
+  assert.match(byName.get('item_npc_shop_relations').source, /maint_npc_crawler_facts/);
+  assert.match(byName.get('item_npc_loot_relations').source, /maint_npc_crawler_facts/);
+  assert.match(byName.get('npc_buff_relations').source, /maint_npc_crawler_facts/);
+});

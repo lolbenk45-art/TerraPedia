@@ -66,8 +66,10 @@ test('landing schema exports the planned dataset types and parse statuses', () =
     'item_relations_bundle_raw',
     'npc_item_relations_bundle_raw',
     'item_groups_raw',
+    'npcs_base_raw',
+    'npc_crawler_facts_raw',
   ]);
-  assert.equal(LANDING_DATASET_TYPES.length, 16);
+  assert.equal(LANDING_DATASET_TYPES.length, 18);
   assert.deepEqual(LANDING_PARSE_STATUSES, ['ok', 'partial', 'error', 'skipped']);
 });
 
@@ -77,8 +79,8 @@ test('validateLandingDatasetType only accepts registered dataset types', () => {
   assert.equal(validateLandingDatasetType('armor_attributes_raw'), true);
   assert.equal(validateLandingDatasetType('npc_item_relations_bundle_raw'), true);
   assert.equal(validateLandingDatasetType('item_groups_raw'), true);
-  assert.equal(validateLandingDatasetType('npcs_base_raw'), false);
-  assert.equal(validateLandingDatasetType('npc_crawler_facts_raw'), false);
+  assert.equal(validateLandingDatasetType('npcs_base_raw'), true);
+  assert.equal(validateLandingDatasetType('npc_crawler_facts_raw'), true);
   assert.equal(validateLandingDatasetType('unknown_raw'), false);
   assert.equal(validateLandingDatasetType(''), false);
 });
@@ -90,7 +92,11 @@ test('landing artifact contracts expose only the approved Phase 1A vocabulary', 
     'source_evidence',
     'compat_export',
   ]);
-  assert.deepEqual(landingSchema.GOVERNED_CANONICAL_DATASET_TYPES, ['item_groups_raw']);
+  assert.deepEqual(landingSchema.GOVERNED_CANONICAL_DATASET_TYPES, [
+    'item_groups_raw',
+    'npcs_base_raw',
+    'npc_crawler_facts_raw',
+  ]);
   assert.deepEqual(landingSchema.LANDING_COMPATIBILITY_DEFAULTS, {
     artifactRole: 'legacy_compat',
     producerId: 'legacy.source-dataset-importer',

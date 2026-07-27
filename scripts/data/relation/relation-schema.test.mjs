@@ -9,6 +9,17 @@ import {
   buildRelationSchemaStatements
 } from './relation-schema.mjs';
 
+test('NPC crawler facts feed only the existing registered relation targets', async () => {
+  const { NPC_CRAWLER_FACT_RELATION_TARGETS } = await import('./relation-schema.mjs');
+  assert.deepEqual(NPC_CRAWLER_FACT_RELATION_TARGETS, [
+    'item_source_facts',
+    'item_source_details',
+    'item_npc_shop_relations',
+    'item_npc_loot_relations',
+    'npc_buff_relations',
+  ]);
+});
+
 test('RELATION_TABLE_CATALOG exposes stable automation ownership metadata', () => {
   assert.deepEqual(RELATION_TABLE_CATALOG.map((entry) => entry.table), RELATION_TABLE_NAMES);
   assert.equal(RELATION_TABLE_CATALOG.every((entry) => entry.databaseRole === 'relation'), true);

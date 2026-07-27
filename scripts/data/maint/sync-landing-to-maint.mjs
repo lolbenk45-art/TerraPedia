@@ -16,6 +16,7 @@ import { extractShimmerStructuredRecords } from './shimmer-structured-parser.mjs
 import { extractItemSellStat } from './item-page-statistics-parser.mjs';
 import { loadZhSourceIndexes } from './zh-source-index.mjs';
 import { buildItemGroupMaintProjection } from '../item-groups/item-group-canonical-sync.mjs';
+import { buildNpcCrawlerFactMaintRow } from '../npc-canonical/npc-canonical-contract.mjs';
 
 const require = createRequire(import.meta.url);
 let mysqlModule = null;
@@ -40,7 +41,7 @@ const repoRoot = getProjectRoot();
 
 const SCOPE_TO_DATASETS = {
   items: ['items_raw'],
-  npcs: ['npcs_raw', 'npc_item_relations_bundle_raw'],
+  npcs: ['npcs_base_raw', 'npc_crawler_facts_raw', 'npc_item_relations_bundle_raw'],
   projectiles: ['projectiles_raw'],
   buffs: ['buffs_raw'],
   item_pages: ['item_pages_raw'],
@@ -62,6 +63,7 @@ const SCOPE_TO_DATASETS = {
 const SCOPE_TO_TABLE = {
   items: 'maint_items',
   npcs: 'maint_npcs',
+  npc_crawler_facts: 'maint_npc_crawler_facts',
   projectiles: 'maint_projectiles',
   buffs: 'maint_buffs',
   item_pages: 'maint_item_pages',
@@ -1197,9 +1199,18 @@ export async function extractMaintEntitiesFromLandingRow(landingRow, options = {
     const rows = extractItemsMaintRows(landingRow, payload, zhSourceIndexes);
     return { scope: 'items', rows };
   }
-  if (datasetType === 'npcs_raw') {
+  if (datasetType === 'npcs_raw' || datasetType === 'npcs_base_raw') {
     const rows = extractNpcsMaintRows(landingRow, payload, zhSourceIndexes);
     return { scope: 'npcs', rows };
+  }
+  if (datasetType === 'npc_crawler_facts_raw') {
+    return {
+      scope: 'npc_crawler_facts',
+      rows: [buildNpcCrawlerFactMaintRow({
+        landingRow,
+        maintNpcRows: options.maintNpcRows ?? [],
+      })],
+    };
   }
   if (datasetType === 'projectiles_raw') {
     const rows = extractProjectilesMaintRows(landingRow, payload, zhSourceIndexes);
@@ -1364,6 +1375,7 @@ function dedupeEntityRows(rows, seenRecordKeys) {
 function filterRowsByScopes(rows, scopes) {
   const scopeSet = new Set(scopes);
   if (scopeSet.has('npcs')) {
+    scopeSet.add('npc_crawler_facts');
     scopeSet.add('item_sources');
     scopeSet.add('backfill_candidates');
   }
@@ -1580,6 +1592,24 @@ function isSameCurrentRecordKeyRow(existing, row) {
 }
 
 async function upsertRecordKeyRow(connection, row) {
+  if (row.tableName === 'maint_npc_crawler_facts') {
+    const excluded = new Set(['scope', 'tableName']);
+    const entries = Object.entries(row)
+      .filter(([key, value]) => !excluded.has(key) && value !== undefined)
+      .map(([key, value]) => [key.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`), value]);
+    const columns = entries.map(([key]) => key);
+    const updates = columns
+      .filter((column) => !['record_key', 'created_at'].includes(column))
+      .map((column) => `\`${column}\` = VALUES(\`${column}\`)`)
+      .join(', ');
+    await connection.execute(
+      `INSERT INTO \`maint_npc_crawler_facts\` (${columns.map((column) => `\`${column}\``).join(', ')})
+       VALUES (${columns.map(() => '?').join(', ')})
+       ON DUPLICATE KEY UPDATE ${updates}`,
+      entries.map(([, value]) => value),
+    );
+    return 'inserted';
+  }
   if (row.tableName === 'maint_item_pages') {
     const [existingRows] = await connection.execute(
       `SELECT id, status, deleted, landing_source_id, landing_content_hash FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`,
@@ -2628,8 +2658,17 @@ export async function runMaintSync(options, dependencies = {}) {
     };
     let hasCategoryRuleSummary = false;
     const seenRecordKeys = new Set();
+    const inBatchMaintNpcRows = [];
     for (const landingRow of loaded) {
-      const result = await extractMaintEntitiesFromLandingRow(landingRow, { zhSourceIndexes });
+      if (!['npcs_raw', 'npcs_base_raw'].includes(landingRow.dataset_type)) continue;
+      const baseResult = await extractMaintEntitiesFromLandingRow(landingRow, { zhSourceIndexes });
+      inBatchMaintNpcRows.push(...baseResult.rows);
+    }
+    for (const landingRow of loaded) {
+      const result = await extractMaintEntitiesFromLandingRow(landingRow, {
+        zhSourceIndexes,
+        maintNpcRows: inBatchMaintNpcRows,
+      });
       if (result.categoryRules) {
         mergeCategoryRuleSummary({ categoryRules: categoryRuleSummary }, result.categoryRules);
         hasCategoryRuleSummary = true;
@@ -2711,8 +2750,15 @@ export async function runMaintSync(options, dependencies = {}) {
       source = defaultIterateLandingRows(scopes, readConnection);
     }
 
+    const pendingNpcFactLandingRows = [];
+    const streamedMaintNpcRows = [...(dependencies.maintNpcRows ?? [])];
     for await (const landingRow of source) {
+      if (landingRow.dataset_type === 'npc_crawler_facts_raw') {
+        pendingNpcFactLandingRows.push(landingRow);
+        continue;
+      }
       const result = await extractMaintEntitiesFromLandingRow(landingRow, { zhSourceIndexes });
+      streamedMaintNpcRows.push(...result.rows.filter((row) => row.tableName === 'maint_npcs'));
       mergeCategoryRuleSummary(summary, result.categoryRules);
       const dedupedRows = filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes);
       addRowsToStreamSummary(summary, dedupedRows);
@@ -2724,6 +2770,25 @@ export async function runMaintSync(options, dependencies = {}) {
         for (const recordKey of recordKeys) {
           target.add(recordKey);
         }
+      }
+      if (writeConnection) {
+        for (const row of dedupedRows) {
+          const action = await upsertMaintRow(writeConnection, row);
+          summary.writes[action] += 1;
+        }
+      }
+    }
+
+    for (const landingRow of pendingNpcFactLandingRows) {
+      const result = await extractMaintEntitiesFromLandingRow(landingRow, {
+        zhSourceIndexes,
+        maintNpcRows: streamedMaintNpcRows,
+      });
+      const dedupedRows = filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes);
+      addRowsToStreamSummary(summary, dedupedRows);
+      for (const [tableName, recordKeys] of collectRecordKeysByTable(dedupedRows)) {
+        if (!recordKeysByTable.has(tableName)) recordKeysByTable.set(tableName, new Set());
+        for (const recordKey of recordKeys) recordKeysByTable.get(tableName).add(recordKey);
       }
       if (writeConnection) {
         for (const row of dedupedRows) {

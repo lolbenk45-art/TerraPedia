@@ -68,7 +68,10 @@ export function buildNpcNormalizedLight(raw) {
     entityId: source.entityId ?? '',
     source: {
       pageTitle: source.pageTitle ?? '',
-      pageDescription: source.pageDescription ?? ''
+      pageDescription: source.pageDescription ?? '',
+      revisionTimestamp: source.sourceMetadata?.revisionTimestamp ?? null,
+      fetchedAt: source.sourceMetadata?.fetchedAt ?? null,
+      parsedAt: source.sourceMetadata?.parsedAt ?? source.sourceMetadata?.fetchedAt ?? null
     },
     sourceMetadata: source.sourceMetadata ?? {},
     sourceInfoboxes,

@@ -46,6 +46,14 @@ export const RELATION_TABLE_NAMES = [
   'relation_item_group_aliases'
 ];
 
+export const NPC_CRAWLER_FACT_RELATION_TARGETS = Object.freeze([
+  'item_source_facts',
+  'item_source_details',
+  'item_npc_shop_relations',
+  'item_npc_loot_relations',
+  'npc_buff_relations',
+]);
+
 export const RELATION_TABLE_CATALOG = Object.freeze(RELATION_TABLE_NAMES.map((table) => Object.freeze({
   databaseRole: 'relation',
   table,

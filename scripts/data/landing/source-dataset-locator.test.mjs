@@ -138,7 +138,8 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   }, {});
 
   assert.equal(datasetCounts.items_raw, 1);
-  assert.equal(datasetCounts.npcs_raw, 1);
+  assert.equal(datasetCounts.npcs_base_raw, 1);
+  assert.equal(datasetCounts.npcs_raw, undefined);
   assert.equal(datasetCounts.item_pages_raw, 2);
   assert.equal(datasetCounts.biomes_raw, 1);
   assert.equal(datasetCounts.armor_set_images_raw, 1);
@@ -156,7 +157,7 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(typeof itemPageEntry.contentHash, 'string');
   assert.equal(itemPageEntry.contentHash.length, 64);
 
-  const npcEntry = actual.find((entry) => entry.datasetType === 'npcs_raw');
+  const npcEntry = actual.find((entry) => entry.datasetType === 'npcs_base_raw');
   assert.equal(npcEntry.provider, 'terrapedia.standardized');
   assert.equal(npcEntry.sourceKind, 'standardized_dataset');
   assert.equal(npcEntry.sourceKey, 'standardized.npcs');
@@ -271,7 +272,7 @@ test('listSourceDatasetLandingInputs respects requested dataset filters', async 
   assert.equal(actual[0].datasetType, 'recipes_raw');
 });
 
-test('listSourceDatasetLandingInputs fails loudly when a required dataset input is absent', async () => {
+test('listSourceDatasetLandingInputs fails loudly when a required base dataset input is absent', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-landing-missing-'));
   const repoRoot = path.join(tempRoot, 'repo');
   const sharedDataRoot = path.join(tempRoot, 'shared');
@@ -279,8 +280,78 @@ test('listSourceDatasetLandingInputs fails loudly when a required dataset input 
   await fs.mkdir(sharedDataRoot, { recursive: true });
 
   await assert.rejects(
-    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npcs_raw'] }),
-    /npcs_raw requires an accepted landing source/,
+    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npcs_base_raw'] }),
+    /npcs_base_raw requires an accepted landing source/,
+  );
+});
+
+test('listSourceDatasetLandingInputs requires paired immutable NPC crawler evidence', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-npc-facts-landing-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  const normalizedPath = path.join(repoRoot, 'data', 'wiki-crawler', 'normalized-light', 'npc', 'medusa.latest.json');
+  const auditPath = path.join(repoRoot, 'data', 'wiki-crawler', 'audit', 'npc', 'medusa.latest.json');
+  const normalized = {
+    entityId: 'medusa',
+    source: { pageTitle: 'Medusa' },
+    sourceMetadata: {
+      revisionTimestamp: '2026-07-27T01:00:00Z',
+      fetchedAt: '2026-07-27T01:01:00Z',
+      parsedAt: '2026-07-27T01:02:00Z',
+    },
+    buffInflictions: [{ buffName: 'Stoned' }],
+    shop: { normalizedRows: [] },
+    loot: [{ itemName: 'Medusa Head' }],
+  };
+  const normalizedContentHash = crypto.createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
+
+  await writeJson(normalizedPath, normalized);
+  await assert.rejects(
+    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npc_crawler_facts_raw'] }),
+    /matching audit evidence/i,
+  );
+
+  await writeJson(auditPath, {
+    status: 'pass',
+    entityId: 'medusa',
+    sourcePage: 'Medusa',
+    sourceRevisionTimestamp: '2026-07-27T01:00:00Z',
+    normalizedContentHash,
+    auditedAt: '2026-07-27T01:03:00Z',
+    reasons: [],
+  });
+  const entries = await listSourceDatasetLandingInputs({
+    repoRoot,
+    sharedDataRoot,
+    datasets: ['npc_crawler_facts_raw'],
+  });
+
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].datasetType, 'npc_crawler_facts_raw');
+  assert.equal(entries[0].provider, 'terraria.wiki.gg');
+  assert.equal(entries[0].sourceKind, 'npc_crawler_fact');
+  assert.equal(entries[0].sourceKey, 'wiki.npc.crawler_fact:medusa');
+  assert.equal(entries[0].sourcePage, 'Medusa');
+  assert.equal(entries[0].sourceRevisionTimestamp, '2026-07-27T01:00:00Z');
+  assert.equal(entries[0].parseStatus, 'ok');
+  assert.equal(entries[0].payload.normalized.entityId, 'medusa');
+  assert.equal(entries[0].payload.audit.status, 'pass');
+});
+
+test('listSourceDatasetLandingInputs rejects oversized NPC fact counts before reading files', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-npc-fact-count-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  const normalizedDir = path.join(repoRoot, 'data', 'wiki-crawler', 'normalized-light', 'npc');
+  await fs.mkdir(normalizedDir, { recursive: true });
+  await fs.mkdir(sharedDataRoot, { recursive: true });
+  await Promise.all(Array.from({ length: 2049 }, (_, index) => (
+    fs.writeFile(path.join(normalizedDir, `${String(index).padStart(4, '0')}.latest.json`), '')
+  )));
+
+  await assert.rejects(
+    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npc_crawler_facts_raw'] }),
+    /2,048 facts per run/i,
   );
 });
 

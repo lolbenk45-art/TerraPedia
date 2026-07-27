@@ -1,6 +1,7 @@
 export const MAINT_TABLE_NAMES = [
   'maint_items',
   'maint_npcs',
+  'maint_npc_crawler_facts',
   'maint_projectiles',
   'maint_buffs',
   'maint_npc_images',
@@ -115,6 +116,43 @@ CREATE TABLE IF NOT EXISTS \`maint_npcs\` (
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_npcs_source_id\` (\`source_id\`),
   UNIQUE KEY \`uk_maint_npcs_internal_name\` (\`internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_npc_crawler_facts\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`npc_identity_key\` VARCHAR(255) NOT NULL,
+  \`npc_source_id\` INT DEFAULT NULL,
+  \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`npc_name\` VARCHAR(255) DEFAULT NULL,
+  \`match_status\` VARCHAR(32) NOT NULL,
+  \`match_reason\` VARCHAR(255) NOT NULL,
+  \`source_page\` VARCHAR(255) NOT NULL,
+  \`source_revision_timestamp\` DATETIME NOT NULL,
+  \`fetched_at\` DATETIME DEFAULT NULL,
+  \`parsed_at\` DATETIME DEFAULT NULL,
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`normalized_content_hash\` CHAR(64) NOT NULL,
+  \`crawler_audit_hash\` CHAR(64) NOT NULL,
+  \`crawler_audit_status\` VARCHAR(32) NOT NULL,
+  \`buff_inflictions_json\` LONGTEXT NOT NULL,
+  \`shop_facts_json\` LONGTEXT NOT NULL,
+  \`loot_facts_json\` LONGTEXT NOT NULL,
+  \`source_metadata_json\` LONGTEXT NOT NULL,
+  \`raw_evidence_json\` LONGTEXT NOT NULL,
+  \`review_status\` VARCHAR(32) NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_npc_crawler_facts_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_npc_crawler_facts_identity_revision\` (\`npc_identity_key\`, \`source_page\`, \`source_revision_timestamp\`),
+  KEY \`idx_maint_npc_crawler_facts_match\` (\`match_status\`, \`deleted\`),
+  CHECK (\`match_status\` IN ('MATCHED', 'UNMATCHED', 'AMBIGUOUS', 'REJECTED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS \`maint_projectiles\` (

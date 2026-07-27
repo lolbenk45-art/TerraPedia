@@ -24,6 +24,8 @@ import {
 } from './recipe-expansion-processor.mjs';
 import { buildItemGroupRelationProjection } from '../item-groups/item-group-canonical-sync.mjs';
 import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
+import { buildNpcCrawlerFactItemSourceRows } from './item-source-relation-processor.mjs';
+import { mergeNpcCrawlerFactsIntoMaintBuffRows } from './sync-buffs-to-relation.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
@@ -87,6 +89,19 @@ const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
 ]);
 
 export const buildCanonicalItemGroupRelationProjection = buildItemGroupRelationProjection;
+
+export function buildNpcCrawlerFactRelationInputs({
+  maintNpcCrawlerFactRows = [],
+  maintBuffRows = [],
+} = {}) {
+  return {
+    itemSourceRows: buildNpcCrawlerFactItemSourceRows(maintNpcCrawlerFactRows),
+    maintBuffRows: mergeNpcCrawlerFactsIntoMaintBuffRows({
+      maintBuffRows,
+      maintNpcCrawlerFactRows,
+    }),
+  };
+}
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -1330,9 +1345,9 @@ export async function runSync(options, dependencies = {}) {
     itemRecipes,
     itemPageRecipes,
     recipePageRecipes,
-    itemSourceRows,
+    baseItemSourceRows,
     itemBiomeRows,
-    maintBuffRows,
+    baseMaintBuffRows,
     maintBossRows,
     maintNpcImageRows,
     maintItems,
@@ -1355,7 +1370,8 @@ export async function runSync(options, dependencies = {}) {
     maintItemGroupMemberRows,
     inheritanceRules,
     reviewedNonNpcSourceExclusions,
-    reviewedSourceOnlyItemExclusions
+    reviewedSourceOnlyItemExclusions,
+    maintNpcCrawlerFactRows
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -1387,6 +1403,8 @@ export async function runSync(options, dependencies = {}) {
     loadInheritanceRules(),
     loadReviewedNonNpcSourceExclusions(),
     loadReviewedSourceOnlyItemExclusions()
+    ,
+    queryMaintOptional(queryMaint, "SELECT * FROM maint_npc_crawler_facts WHERE match_status = 'MATCHED' AND status = 1 AND deleted = 0", [])
   ]);
   validateInheritanceRules(inheritanceRules);
   validateReviewedNonNpcSourceExclusions(reviewedNonNpcSourceExclusions);
@@ -1394,6 +1412,12 @@ export async function runSync(options, dependencies = {}) {
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const armorSetDefinitionMap = readArmorSetDefinitionMap();
+  const npcCrawlerInputs = buildNpcCrawlerFactRelationInputs({
+    maintNpcCrawlerFactRows,
+    maintBuffRows: baseMaintBuffRows,
+  });
+  const itemSourceRows = [...baseItemSourceRows, ...npcCrawlerInputs.itemSourceRows];
+  const maintBuffRows = npcCrawlerInputs.maintBuffRows;
   const itemIndex = buildItemIndex(maintItems);
   const itemSourceLookupIndex = buildItemSourceLookupIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);

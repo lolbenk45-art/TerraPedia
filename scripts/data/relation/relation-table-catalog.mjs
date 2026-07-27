@@ -391,7 +391,7 @@ const TABLE_DEFINITIONS = [
     status: 'kept',
     layer: 'fact',
     purpose: 'Formal NPC shop facts with structured condition fields.',
-    source: 'maint_item_sources -> item_source_facts',
+    source: 'maint_npc_crawler_facts -> maint_item_sources -> item_source_facts',
     primaryKeys: ['record_key', 'source_fact_key', 'item_internal_name', 'npc_internal_name'],
     notes: 'Canonical NPC shop table.'
   },
@@ -400,7 +400,7 @@ const TABLE_DEFINITIONS = [
     status: 'kept',
     layer: 'fact',
     purpose: 'Formal NPC loot/drop facts with structured condition fields.',
-    source: 'maint_item_sources -> item_source_facts',
+    source: 'maint_npc_crawler_facts -> maint_item_sources -> item_source_facts',
     primaryKeys: ['record_key', 'source_fact_key', 'item_internal_name', 'npc_internal_name'],
     notes: 'Canonical NPC loot table.'
   },
@@ -418,7 +418,7 @@ const TABLE_DEFINITIONS = [
     status: 'kept',
     layer: 'relation',
     purpose: 'NPC-to-buff inflicted bridge.',
-    source: 'maint_buffs + maint_npcs',
+    source: 'maint_npc_crawler_facts + maint_buffs + maint_npcs',
     primaryKeys: ['record_key', 'buff_internal_name', 'npc_internal_name'],
     notes: 'Derived from buff inflicting NPC evidence.'
   },
