@@ -36,6 +36,10 @@
 ## Validation
 
 - Baseline read-only domain generation: 45 panels; 35 pass, 10 warning, 0 blocked; no report written.
+- Task 1 fresh baseline: exact pre-cutover group consumer inventory passes 1/1
+  with 13 production references; landing schema/import/audit/V56 contract suite
+  passes 32/32; domain generation remains 45 panels, 35 pass, 10 warning,
+  0 blocked, and 0 written.
 - Plan audit: 2 Critical and 4 Important defects found and repaired before execution;
   post-repair audit reports 0 Critical and 0 Important defects. `git diff --check`,
   closure-level/source-chain/authorization consistency scans, and the no-placeholder
@@ -46,7 +50,9 @@
 ## Result
 
 - Completed: closure scope, authorization boundary, source-chain decomposition, and executable master plan drafted.
-- Not completed: Tasks 1-16 and every formal authorization checkpoint.
+- Completed: Task 1 freezes the exact three-file production consumer inventory
+  without suppressing the known runtime and pipeline readers.
+- Not completed: Tasks 2-16 and every formal authorization checkpoint.
 
 ## Residual Risks
 
@@ -58,8 +64,10 @@
 
 ## Follow-up
 
-- Coordinator: execute Task 0 plan audit/commit, then Task 1 baseline inventory and continue serially.
+- Coordinator: execute Task 2 schema/ownership contracts with RED -> GREEN; do
+  not apply V56/V57 to formal databases.
 
 ## Commits
 
-- Pending planning checkpoint.
+- `7c43c439` `docs(plan): define automated ingestion closure`
+- Task 1 inventory checkpoint pending.
