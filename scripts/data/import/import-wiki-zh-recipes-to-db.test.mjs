@@ -10,6 +10,13 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 const repoRoot = getProjectRoot();
 const scriptPath = path.join(repoRoot, 'scripts', 'data', 'import', 'import-wiki-zh-recipes-to-db.mjs');
 
+test('recipe importer resolves mysql2 through the repository module loader', () => {
+  const source = fs.readFileSync(scriptPath, 'utf8');
+  assert.match(source, /import \{ loadMysqlModule \} from '\.\.\/lib\/mysql-module\.mjs'/);
+  assert.match(source, /const mysql = loadMysqlModule\(\)/);
+  assert.doesNotMatch(source, /createRequire|require\('mysql2\/promise'\)/);
+});
+
 test('import-wiki-zh-recipes-to-db dry-run counts environment relations from environment recipe pages', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-recipe-import-'));
   const inputPath = path.join(tempDir, 'sample.json');

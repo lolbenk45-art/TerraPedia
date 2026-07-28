@@ -210,12 +210,27 @@ async function main() {
 
     for (const record of records) {
       const memberMapping = mapBossMembers(record, npcLookup);
-      const localizedBossImageUrl = await localizeBossImage(record, uploader, summary);
-      if (await reconcileBossMemberImages(memberMapping.members, generatedNpcMap, uploader, summary)) {
+      const localizedBossImageUrl = await localizeBossImage(
+        record,
+        uploader,
+        summary,
+        managedUrlPrefixes,
+      );
+      if (await reconcileBossMemberImages(
+        memberMapping.members,
+        generatedNpcMap,
+        uploader,
+        summary,
+        managedUrlPrefixes,
+      )) {
         generatedNpcMapDirty = true;
       }
 
-      const imageUrl = resolveBossImageUrl({ ...record, imageUrl: localizedBossImageUrl }, memberMapping.members);
+      const imageUrl = resolveBossImageUrl(
+        { ...record, imageUrl: localizedBossImageUrl },
+        memberMapping.members,
+        managedUrlPrefixes,
+      );
       const bossGroupResult = await upsertBossGroup(conn, record, imageUrl);
       if (bossGroupResult.created) summary.createdBossGroups += 1;
       else summary.updatedBossGroups += 1;
@@ -432,7 +447,7 @@ function dedupeMembers(members) {
   return out;
 }
 
-async function localizeBossImage(record, uploader, summary) {
+async function localizeBossImage(record, uploader, summary, managedUrlPrefixes) {
   const sourceUrl = toText(record?.imageUrl);
   if (!sourceUrl) {
     return null;
@@ -464,7 +479,13 @@ async function localizeBossImage(record, uploader, summary) {
   return managedUrl;
 }
 
-async function reconcileBossMemberImages(members, generatedNpcMap, uploader, summary) {
+async function reconcileBossMemberImages(
+  members,
+  generatedNpcMap,
+  uploader,
+  summary,
+  managedUrlPrefixes,
+) {
   if (!members.length) {
     return false;
   }
@@ -555,7 +576,7 @@ function applyManagedUrlToGeneratedNpcMapRecord(record, managedUrl) {
   return changed;
 }
 
-function resolveBossImageUrl(record, members) {
+function resolveBossImageUrl(record, members, managedUrlPrefixes) {
   const directImageUrl = toText(record?.imageUrl);
   if (isManagedUrlForEntity(directImageUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
     return directImageUrl;

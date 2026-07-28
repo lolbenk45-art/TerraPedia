@@ -2,17 +2,15 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { fetchWikiApiJson, parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { isRecipeGroupName } from '../lib/recipe-material-reference.mjs';
-
-const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
 
@@ -76,7 +74,7 @@ async function main() {
     return;
   }
 
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const conn = await mysql.createConnection(db);
   try {
   await conn.query('SET NAMES utf8mb4');
