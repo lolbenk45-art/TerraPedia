@@ -32,23 +32,30 @@ export function writeCanonicalNpcApplyInput({
   const targets = validateTargetManifest(targetManifest);
   const evidence = [];
   const evidencePairs = targets.map((target) => {
-    const normalizedPath = path.join(
+    const { normalizedPath, auditPath, redirected } = resolveNpcEvidenceFiles({
       crawlerRoot,
-      'normalized-light/npc',
-      `${target.entityId}.latest.json`,
-    );
-    const auditPath = path.join(crawlerRoot, 'audit/npc', `${target.entityId}.latest.json`);
+      target,
+    });
     const normalizedBytes = readRequiredFile(normalizedPath, `${target.entityId} normalized evidence`);
     const auditBytes = readRequiredFile(auditPath, `${target.entityId} audit evidence`);
+    const normalized = JSON.parse(normalizedBytes.toString('utf8'));
     const fact = buildNpcCrawlerFactEvidence({
-      normalized: JSON.parse(normalizedBytes.toString('utf8')),
+      normalized,
       audit: JSON.parse(auditBytes.toString('utf8')),
     });
-    if (fact.entityId !== target.entityId || fact.sourcePage !== target.pageTitle) {
+    if (!redirected && (fact.entityId !== target.entityId || fact.sourcePage !== target.pageTitle)) {
       throw new Error(`NPC target identity drifted for ${target.entityId}`);
+    }
+    if (redirected && !target.standardizedRecords.some((record) => (
+      normalized.sourceInfoboxes ?? []
+    ).some((infobox) => String(infobox?.autoId ?? '') === String(record.id)))) {
+      throw new Error(`NPC redirected evidence does not contain target standardized identity for ${target.entityId}`);
     }
     evidence.push(fact);
     return {
+      targetEntityId: target.entityId,
+      targetPageTitle: target.pageTitle,
+      targetStandardizedRecordIds: target.standardizedRecords.map((record) => record.id),
       entityId: fact.entityId,
       sourcePage: fact.sourcePage,
       sourceRevisionTimestamp: fact.sourceRevisionTimestamp,
@@ -97,8 +104,55 @@ function validateTargetManifest(manifest) {
     if (!ENTITY_ID_PATTERN.test(entityId)) throw new Error(`target entityId is invalid: ${entityId}`);
     if (seen.has(entityId)) throw new Error(`target entityId is duplicated: ${entityId}`);
     seen.add(entityId);
-    return { entityId, pageTitle: requireText(target?.pageTitle, `${entityId} pageTitle`) };
+    const standardizedRecords = Array.isArray(target?.standardizedRecords)
+      ? target.standardizedRecords
+        .map((record) => ({ id: Number(record?.id), internalName: String(record?.internalName ?? '') }))
+        .filter((record) => Number.isInteger(record.id) && record.id > 0)
+      : [];
+    return {
+      entityId,
+      pageTitle: requireText(target?.pageTitle, `${entityId} pageTitle`),
+      standardizedRecords,
+    };
   });
+}
+
+function resolveNpcEvidenceFiles({ crawlerRoot, target }) {
+  const normalizedDir = path.join(crawlerRoot, 'normalized-light/npc');
+  const exactNormalizedPath = path.join(normalizedDir, `${target.entityId}.latest.json`);
+  if (fs.existsSync(exactNormalizedPath) && fs.statSync(exactNormalizedPath).isFile()) {
+    return {
+      normalizedPath: exactNormalizedPath,
+      auditPath: path.join(crawlerRoot, 'audit/npc', `${target.entityId}.latest.json`),
+      redirected: false,
+    };
+  }
+
+  const targetIds = new Set(target.standardizedRecords.map((record) => String(record.id)));
+  if (targetIds.size === 0) {
+    throw new Error(`${target.entityId} normalized evidence file is missing: ${exactNormalizedPath}`);
+  }
+  const candidates = fs.readdirSync(normalizedDir)
+    .filter((name) => name.endsWith('.latest.json'))
+    .sort()
+    .map((name) => path.join(normalizedDir, name))
+    .filter((filePath) => {
+      const normalized = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      return (normalized.sourceInfoboxes ?? [])
+        .some((infobox) => targetIds.has(String(infobox?.autoId ?? '')));
+    });
+  if (candidates.length !== 1) {
+    throw new Error(
+      `${target.entityId} redirected NPC evidence must resolve to exactly one candidate; found ${candidates.length}`,
+    );
+  }
+  const normalizedPath = candidates[0];
+  const entityId = path.basename(normalizedPath, '.latest.json');
+  return {
+    normalizedPath,
+    auditPath: path.join(crawlerRoot, 'audit/npc', `${entityId}.latest.json`),
+    redirected: true,
+  };
 }
 
 function summarizeFile(repoRoot, filePath, bytes) {

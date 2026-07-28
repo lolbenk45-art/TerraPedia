@@ -175,10 +175,16 @@ function matchNpcIdentity(normalized, maintNpcRows) {
     normalized.display?.name,
     normalized.source?.pageTitle,
   ].map(normalizeLookupText).filter(Boolean));
-  const sourceIdHint = Number(normalized.sourceMetadata?.sourceId ?? normalized.sourceId);
+  const sourceIdHints = new Set([
+    normalized.sourceMetadata?.sourceId,
+    normalized.sourceId,
+    ...(Array.isArray(normalized.sourceInfoboxes)
+      ? normalized.sourceInfoboxes.map((infobox) => infobox?.autoId)
+      : []),
+  ].map(Number).filter((value) => Number.isFinite(value) && value > 0));
   const candidates = (Array.isArray(maintNpcRows) ? maintNpcRows : []).filter((row) => {
     const sourceId = Number(row.source_id ?? row.sourceId);
-    if (Number.isFinite(sourceIdHint) && sourceIdHint > 0 && sourceId === sourceIdHint) {
+    if (sourceIdHints.has(sourceId)) {
       return true;
     }
     return [row.internal_name, row.internalName, row.english_name, row.name, row.name_zh]

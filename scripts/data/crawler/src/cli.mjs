@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -149,12 +150,25 @@ async function loadRawInput(argv, {
 function buildNpcClosurePayload(raw) {
   const normalized = buildNpcNormalizedLight(raw);
   const canonical = canonicalizeNpc(normalized);
-  const audit = auditNpcRichClosure({
+  const closure = auditNpcRichClosure({
     ...normalized,
     sourceSignals: buildSourceSignals(raw)
   });
+  const audit = {
+    ...closure,
+    entityId: normalized.entityId,
+    sourcePage: normalized.source.pageTitle,
+    sourceRevisionTimestamp: normalized.sourceMetadata.revisionTimestamp
+      ?? normalized.source.revisionTimestamp,
+    normalizedContentHash: hashJson(normalized),
+    auditedAt: new Date().toISOString()
+  };
 
   return { normalized, canonical, audit };
+}
+
+function hashJson(value) {
+  return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
 function buildSourceSignals(raw) {

@@ -382,6 +382,15 @@
   `gem-bunnies`, and `gem-squirrels`) instead of their frozen target IDs. The
   batch summary's 25/25 result is crawler completion evidence, not valid apply
   evidence; no NPC apply input or request was generated from it.
+- NPC contract repair is now code-complete in a separate RED-to-GREEN
+  checkpoint: CLI audit fanout binds entity/page/revision/normalized hash and
+  audit time; redirected target evidence can be selected only by a unique
+  stable standardized infobox ID; and maint matching consumes those infobox IDs
+  for group pages. The focused crawler/NPC suite passes 95/95. Existing Batch
+  01 crawler bytes remain invalid under the repaired contract and were not
+  rewritten. A new bounded crawler request is generated at
+  `sha256:4d7862e35e08db52c7ce1e6dc3f953e026b83ca6bae2a746fbb888d8c52870ba`;
+  it is `AWAITING_OWNER` in the Batch 02 proposal.
 
 ## Result
 
@@ -444,6 +453,8 @@
 - Completed in formal Batch 01: projectile backfill and the bounded recipe/NPC
   crawler operations. Local V56-V58 and the maint role schema are applied; the
   schema operation still needs an independently authorized relation-role retry.
+- Completed in code-only repair: NPC paired audit identity and redirected
+  standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Not completed: NPC ownership-valid apply orchestration, Task 10's nine
   operation-dependent warning panels, Task 11 isolated NPC T1, Task 12 Owner
   authorization for the remaining independent operations, Task 13, Task 14
@@ -455,6 +466,9 @@
 - Every remaining formal operation still depends on its own exact System Owner
   reason/reference/decision identity; the consumed bootstrap identity cannot be reused.
 - Deferred NPC facts require real crawler evidence; absence remains blocking rather than falling back to the retired bridge.
+- The first NPC crawler output is not reusable as apply evidence because its
+  audit files predate the paired-identity repair; a fresh authorized crawl is
+  required before isolated NPC T1.
 - Nine warning panels depend on real crawler/import/backfill/image evidence and
   cannot pass before their independently authorized operations. Empty-shell and
   dry-run artifacts now fail closed; armor is no longer a warning. The fresh

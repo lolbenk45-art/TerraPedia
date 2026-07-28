@@ -24,6 +24,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `sha256:523c61a376d9990148422afd6b3286c7180ad7927605ba2fe6d50b7d058177bd`.
   NPC apply remains fail-closed because real audit fanout lacks identity/hash
   metadata and five redirected targets do not retain their frozen target IDs.
+  The code-only repair now binds audit identity and stable standardized infobox
+  IDs (focused NPC/crawler suite 95/95); old Batch 01 bytes remain invalid and
+  a fresh crawler request `sha256:4d7862e35e08db52c7ce1e6dc3f953e026b83ca6bae2a746fbb888d8c52870ba`
+  is pending exact Owner authorization.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the

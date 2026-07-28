@@ -1,4 +1,5 @@
 import test from 'node:test';
+import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -24,6 +25,17 @@ test('runCli supports entity npc mode by page-id', async () => {
 
   assert.equal(payload.normalized.display.name, 'Goblin Tinkerer');
   assert.equal(payload.audit.status, 'pass');
+  assert.equal(payload.audit.entityId, payload.normalized.entityId);
+  assert.equal(payload.audit.sourcePage, payload.normalized.source.pageTitle);
+  assert.equal(
+    payload.audit.sourceRevisionTimestamp,
+    payload.normalized.sourceMetadata.revisionTimestamp ?? payload.normalized.source.revisionTimestamp,
+  );
+  assert.equal(
+    payload.audit.normalizedContentHash,
+    crypto.createHash('sha256').update(JSON.stringify(payload.normalized)).digest('hex'),
+  );
+  assert.match(payload.audit.auditedAt, /^\d{4}-\d{2}-\d{2}T/);
 });
 
 test('runCli supports entity npc mode by page-title', async () => {

@@ -8,6 +8,7 @@ import test from 'node:test';
 import {
   NPC_CANONICAL_LIMITS,
   buildNpcCrawlerFactEvidence,
+  buildNpcCrawlerFactMaintRow,
   validateNpcCrawlerFactRunEvidence,
   verifyNpcBridgeRetirement,
 } from './npc-canonical-contract.mjs';
@@ -111,4 +112,40 @@ test('NPC canonical contract reports zero unclassified bridge consumers', () => 
   const report = verifyNpcBridgeRetirement({ repoRoot, generatedAt: '2026-07-27T00:00:00Z' });
   assert.equal(report.status, 'pass');
   assert.equal(report.referenceCount, 0);
+});
+
+test('NPC maint matching uses a stable source infobox identity for redirected group pages', () => {
+  const { normalized, audit } = fixture();
+  const redirected = {
+    ...normalized,
+    entityId: 'gem-bunnies',
+    source: { pageTitle: 'Gem Bunnies' },
+    sourceInfoboxes: [
+      { autoId: '646', image: 'Amethyst Bunny.png', name: '' },
+      { autoId: '652', image: 'Amber Bunny.png', name: '' },
+    ],
+  };
+  const redirectedAudit = {
+    ...audit,
+    entityId: 'gem-bunnies',
+    sourcePage: 'Gem Bunnies',
+    normalizedContentHash: crypto.createHash('sha256')
+      .update(JSON.stringify(redirected)).digest('hex'),
+  };
+  const row = buildNpcCrawlerFactMaintRow({
+    landingRow: {
+      id: 1,
+      source_key: 'npc-crawler-facts/gem-bunnies',
+      source_page: 'Gem Bunnies',
+      content_hash: 'landing-hash',
+      payload_json: JSON.stringify({ normalized: redirected, audit: redirectedAudit }),
+    },
+    maintNpcRows: [
+      { source_id: 652, internal_name: 'GemBunnyAmber', english_name: 'Amber Bunny' },
+    ],
+  });
+
+  assert.equal(row.matchStatus, 'MATCHED');
+  assert.equal(row.npcSourceId, 652);
+  assert.equal(row.npcInternalName, 'GemBunnyAmber');
 });

@@ -114,3 +114,54 @@ test('NPC apply input fails closed on a missing target pair or mismatched audit'
     outputPath: path.join(mismatched.repoRoot, 'mismatch.json'),
   }), /identity/i);
 });
+
+test('NPC apply input maps a redirected page by its stable standardized infobox identity', () => {
+  const fixture = prepareRun();
+  const target = fixture.targets[0];
+  const targetsPath = fixture.targetsPath;
+  const targetManifest = JSON.parse(fs.readFileSync(targetsPath, 'utf8'));
+  targetManifest.targets[0] = {
+    ...target,
+    entityId: 'bound-goblin',
+    pageTitle: 'Bound Goblin',
+    standardizedRecords: [{ id: 105, internalName: 'BoundGoblin', name: 'Bound Goblin' }],
+  };
+  fs.writeFileSync(targetsPath, `${JSON.stringify(targetManifest, null, 2)}\n`);
+
+  const normalizedPath = path.join(
+    fixture.crawlerOutputRoot,
+    'normalized-light/npc/npc-1.latest.json',
+  );
+  const auditPath = path.join(fixture.crawlerOutputRoot, 'audit/npc/npc-1.latest.json');
+  const normalized = JSON.parse(fs.readFileSync(normalizedPath, 'utf8'));
+  const redirected = {
+    ...normalized,
+    entityId: 'goblin-tinkerer',
+    source: { ...normalized.source, pageTitle: 'Goblin Tinkerer' },
+    sourceInfoboxes: [{ autoId: '107', image: 'Goblin Tinkerer.gif', name: '' }, { autoId: '105', image: 'Bound Goblin.png', name: '' }],
+  };
+  fs.rmSync(normalizedPath);
+  fs.rmSync(auditPath);
+  writeJson(path.join(fixture.crawlerOutputRoot, 'normalized-light/npc/goblin-tinkerer.latest.json'), redirected);
+  writeJson(path.join(fixture.crawlerOutputRoot, 'audit/npc/goblin-tinkerer.latest.json'), {
+    status: 'pass',
+    entityId: redirected.entityId,
+    sourcePage: redirected.source.pageTitle,
+    sourceRevisionTimestamp: redirected.sourceMetadata.revisionTimestamp,
+    normalizedContentHash: crypto.createHash('sha256').update(JSON.stringify(redirected)).digest('hex'),
+    auditedAt: '2026-07-28T02:02:00.000Z',
+    reasons: [],
+  });
+
+  const result = writeCanonicalNpcApplyInput({
+    repoRoot: fixture.repoRoot,
+    targetsPath,
+    crawlerOutputRoot: fixture.crawlerOutputRoot,
+    outputPath: path.join(fixture.repoRoot, 'redirected.json'),
+    generatedAt: '2026-07-28T03:00:00.000Z',
+  });
+
+  assert.equal(result.evidencePairs[0].targetEntityId, 'bound-goblin');
+  assert.equal(result.evidencePairs[0].entityId, 'goblin-tinkerer');
+  assert.equal(result.evidencePairs[0].sourcePage, 'Goblin Tinkerer');
+});
