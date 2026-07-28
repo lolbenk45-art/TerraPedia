@@ -152,8 +152,14 @@ export function buildCanonicalOperationExecutionManifest({
   operationId,
   artifactDate = new Date().toISOString().slice(0, 10),
   npcLimit = 25,
+  backendApiBase = null,
 } = {}) {
-  const contract = buildCanonicalOperationExecutionContract({ operationId, artifactDate, npcLimit });
+  const contract = buildCanonicalOperationExecutionContract({
+    operationId,
+    artifactDate,
+    npcLimit,
+    backendApiBase,
+  });
   const root = path.resolve(repoRoot);
   const codeBundleEntries = expandRepositoryCodePaths(root, CODE_PATHS[operationId]).map((relativePath) => {
     const fullPath = path.join(root, relativePath);
@@ -172,6 +178,7 @@ export function buildCanonicalOperationExecutionContract({
   operationId,
   artifactDate = new Date().toISOString().slice(0, 10),
   npcLimit = 25,
+  backendApiBase = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -185,7 +192,7 @@ export function buildCanonicalOperationExecutionContract({
   if (operationId === 'canonical-npc-crawler' && npcLimit !== 25) {
     throw new Error('npcLimit must be exactly 25 for the frozen canonical NPC operation');
   }
-  const definition = buildDefinition(operationId, artifactDate, npcLimit);
+  const definition = buildDefinition(operationId, artifactDate, npcLimit, backendApiBase);
   return {
     schemaVersion: 1,
     operationId,
@@ -202,10 +209,14 @@ export function assertCanonicalOperationExecutionManifestContract({
   const npcLimit = operationId === 'canonical-npc-crawler'
     ? Number(manifest?.bounds?.targetLimit)
     : 25;
+  const backendApiBase = manifest?.command?.find((argument) => (
+    typeof argument === 'string' && argument.startsWith('--apiBase=')
+  ))?.slice('--apiBase='.length) ?? null;
   const expected = buildCanonicalOperationExecutionContract({
     operationId,
     artifactDate: manifest?.artifactDate,
     npcLimit,
+    backendApiBase,
   });
   const { codeBundleEntries, ...actualContract } = manifest ?? {};
   if (JSON.stringify(stableValue(actualContract)) !== JSON.stringify(stableValue(expected))) {
@@ -278,7 +289,7 @@ export function writeCanonicalOperationExecutionManifest({ outputPath, ...option
   return manifest;
 }
 
-function buildDefinition(operationId, artifactDate, npcLimit) {
+function buildDefinition(operationId, artifactDate, npcLimit, backendApiBase) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
       executionClass: 'formal_database_bootstrap',
@@ -300,6 +311,7 @@ function buildDefinition(operationId, artifactDate, npcLimit) {
       executionClass: 'formal_asset_sync',
       command: [
         'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--apply=true', '--scopes=items',
+        `--apiBase=${requireBackendApiBase(operationId, backendApiBase)}`,
         `--output=reports/workflow-image-sync-${artifactDate}.json`,
         '--progress-path=reports/backend-refresh/history/canonical-image-sync.runtime/child-status.json',
       ],
@@ -314,6 +326,7 @@ function buildDefinition(operationId, artifactDate, npcLimit) {
       executionClass: 'formal_database_import',
       command: [
         'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--apiBase=${requireBackendApiBase(operationId, backendApiBase)}`,
         '--input=data/generated/wiki-bosses.latest.json',
         `--report-json=reports/wiki-bosses-import-${artifactDate}.json`,
         '--database=terria_v1_local', '--dry-run=false', '--strict=true',
@@ -493,6 +506,22 @@ function buildDefinition(operationId, artifactDate, npcLimit) {
   return definitions[operationId];
 }
 
+function requireBackendApiBase(operationId, value) {
+  if (!['canonical-image-sync', 'canonical-boss-import'].includes(operationId)) return '';
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${operationId} backendApiBase is required`);
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new Error(`${operationId} backendApiBase must be an absolute URL`);
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error(`${operationId} backendApiBase must use http or https`);
+  }
+  return text.replace(/\/$/, '');
+}
+
 function biomesApplyDefinition({ operationId }) {
   const inputPath = `reports/authorization/canonical/${operationId}.bundle.json`;
   const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
@@ -564,6 +593,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       operationId: args['operation-id'],
       artifactDate: args['artifact-date'] ?? new Date().toISOString().slice(0, 10),
       npcLimit: args['npc-limit'] == null ? 25 : Number(args['npc-limit']),
+      backendApiBase: args['backend-api-base'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

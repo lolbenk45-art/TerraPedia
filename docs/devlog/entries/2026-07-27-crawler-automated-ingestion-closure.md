@@ -391,6 +391,17 @@
   rewritten. A new bounded crawler request is generated at
   `sha256:4d7862e35e08db52c7ce1e6dc3f953e026b83ca6bae2a746fbb888d8c52870ba`;
   it is `AWAITING_OWNER` in the Batch 02 proposal.
+- Image/boss retry manifests now require an explicit absolute backend API base
+  and freeze it into the executable command; generation without that value
+  fails closed. The active runtime value `http://127.0.0.1:18191/api` produces
+  image request
+  `sha256:4ef44f5810bc8589ed856517f59dd447d9b15f6e8edd1ed43ff244a88970abc0`
+  and boss request
+  `sha256:f9220e5a56f72da7da9172eb3ef6cc1e9f65aed4f437f3698e28ba910e8c9094`.
+  Manifest/authorization validation passes 22/22. Together with schema retry,
+  recipe apply, and NPC crawler retry, they form exact proposal
+  `canonical-downstream-batch-02-20260728`; no packet exists before that new
+  proposal is explicitly authorized.
 
 ## Result
 
@@ -455,6 +466,8 @@
   schema operation still needs an independently authorized relation-role retry.
 - Completed in code-only repair: NPC paired audit identity and redirected
   standardized-ID evidence binding, with no data rewrite or second crawler run.
+- Completed in code-only repair: image/boss manifests freeze the active backend
+  API base instead of resolving a stale task-worktree port at execution time.
 - Not completed: NPC ownership-valid apply orchestration, Task 10's nine
   operation-dependent warning panels, Task 11 isolated NPC T1, Task 12 Owner
   authorization for the remaining independent operations, Task 13, Task 14
@@ -479,6 +492,8 @@
   authorize T2.
 - The regenerated downstream request files expire at `2026-07-31T20:00:00.000Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
+- Batch 02 is an unexecuted exact proposal. Earlier blanket authorization and
+  consumed Batch 01 decisions do not authorize its new request/code hashes.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
   green after repairing its four queue contract failures.

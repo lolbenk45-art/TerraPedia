@@ -28,6 +28,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   IDs (focused NPC/crawler suite 95/95); old Batch 01 bytes remain invalid and
   a fresh crawler request `sha256:4d7862e35e08db52c7ce1e6dc3f953e026b83ca6bae2a746fbb888d8c52870ba`
   is pending exact Owner authorization.
+  Image/boss manifests now require and freeze the active API base 18191;
+  refreshed requests are `sha256:4ef44f5810bc8589ed856517f59dd447d9b15f6e8edd1ed43ff244a88970abc0`
+  and `sha256:f9220e5a56f72da7da9172eb3ef6cc1e9f65aed4f437f3698e28ba910e8c9094`.
+  Exact proposal `canonical-downstream-batch-02-20260728` contains schema retry,
+  recipe apply, NPC crawler retry, image retry, and boss retry; it is
+  unexecuted pending explicit Owner authorization of the new hashes.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the

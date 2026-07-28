@@ -39,6 +39,9 @@ test('manifest builder covers 16 governed operations and keeps NPC apply explici
       operationId,
       artifactDate: '2026-07-28',
       npcLimit: 25,
+      ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
+        ? { backendApiBase: 'http://127.0.0.1:18191/api' }
+        : {}),
     });
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.operationId, operationId);
@@ -137,6 +140,9 @@ test('every manifest binds all repository-local static imports of its code bundl
       operationId,
       artifactDate: '2026-07-28',
       npcLimit: 25,
+      ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
+        ? { backendApiBase: 'http://127.0.0.1:18191/api' }
+        : {}),
     });
     const paths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
     const missing = [];
@@ -223,6 +229,34 @@ test('formal cutover and activation manifests freeze exact safety-critical argum
     operationId: 'canonical-npc-apply',
     artifactDate: '2026-07-28',
   }), /no governed executor.*canonical-npc-apply/i);
+});
+
+test('image and boss manifests require and freeze the active backend API base', () => {
+  assert.throws(
+    () => buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: 'canonical-image-sync',
+      artifactDate: '2026-07-28',
+    }),
+    /backendApiBase.*required/i,
+  );
+  assert.throws(
+    () => buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: 'canonical-boss-import',
+      artifactDate: '2026-07-28',
+    }),
+    /backendApiBase.*required/i,
+  );
+  for (const operationId of ['canonical-image-sync', 'canonical-boss-import']) {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-07-28',
+      backendApiBase: 'http://127.0.0.1:18191/api',
+    });
+    assert.ok(manifest.command.includes('--apiBase=http://127.0.0.1:18191/api'));
+  }
 });
 
 test('manifest builder refuses invalid NPC limits', () => {
