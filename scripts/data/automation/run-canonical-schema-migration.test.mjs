@@ -4,7 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { runCanonicalSchemaMigrationCli } from './run-canonical-schema-migration.mjs';
+import {
+  applyCanonicalRoleSchemas,
+  runCanonicalSchemaMigrationCli,
+} from './run-canonical-schema-migration.mjs';
 
 const env = {
   TERRAPEDIA_DB_HOST: '127.0.0.1',
@@ -89,4 +92,55 @@ test('schema wrapper refuses non-formal targets, missing apply, and failed Flywa
     }),
     /migration failed/i,
   );
+});
+
+test('role schema verification accepts MySQL uppercase information_schema column labels', async () => {
+  const requiredColumns = [
+    'artifact_role', 'producer_id', 'producer_version', 'producer_run_key',
+    'bootstrap_manifest_hash', 'full_file_content_hash', 'full_file_byte_size', 'current_slot',
+  ];
+  const maintTables = [
+    'maint_npc_crawler_facts', 'maint_item_groups', 'maint_item_group_members',
+    'maint_item_group_aliases', 'maint_item_group_member_exclusions',
+  ];
+  const relationTables = [
+    'relation_item_groups', 'relation_item_group_members', 'relation_item_group_aliases',
+    'item_source_facts', 'item_source_details', 'item_npc_shop_relations',
+    'item_npc_loot_relations', 'npc_buff_relations',
+  ];
+  const connections = [];
+  const mysqlModule = {
+    async createConnection(options) {
+      const connection = {
+        database: options.database,
+        ended: false,
+        async query(sql) {
+          if (/information_schema\.columns/i.test(sql)) {
+            return [requiredColumns.map((name) => ({ COLUMN_NAME: name }))];
+          }
+          if (/information_schema\.tables/i.test(sql)) {
+            const names = options.database === 'terria_v1_maint' ? maintTables : relationTables;
+            return [names.map((name) => ({ TABLE_NAME: name }))];
+          }
+          return [{ affectedRows: 0 }];
+        },
+        async end() { this.ended = true; },
+      };
+      connections.push(connection);
+      return connection;
+    },
+  };
+
+  const result = await applyCanonicalRoleSchemas({
+    repoRoot: process.cwd(),
+    env,
+    mysqlModule,
+  });
+
+  assert.equal(result.maint.applied, true);
+  assert.equal(result.relation.applied, true);
+  assert.deepEqual(connections.map((entry) => entry.database), [
+    'terria_v1_maint', 'terria_v1_relation',
+  ]);
+  assert.equal(connections.every((entry) => entry.ended), true);
 });

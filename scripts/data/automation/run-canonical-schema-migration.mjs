@@ -98,7 +98,7 @@ async function applyMaintRoleSchema({ mysql, base, v56Sql }) {
       + ' WHERE table_schema = ? AND table_name = ? AND column_name IN (?)',
       [database, 'source_dataset_landings', requiredColumns],
     );
-    const present = new Set((columnRows ?? []).map((row) => row.column_name));
+    const present = new Set((columnRows ?? []).map((row) => row.column_name ?? row.COLUMN_NAME));
     if (present.size !== 0 && present.size !== requiredColumns.length) {
       throw new Error('maint V56 landing schema is partially applied');
     }
@@ -141,7 +141,7 @@ async function requireTables(connection, database, tables) {
     + ' WHERE table_schema = ? AND table_name IN (?)',
     [database, tables],
   );
-  const present = new Set((rows ?? []).map((row) => row.table_name));
+  const present = new Set((rows ?? []).map((row) => row.table_name ?? row.TABLE_NAME));
   const missing = tables.filter((table) => !present.has(table));
   if (missing.length) throw new Error(`${database} canonical schema tables are missing: ${missing.join(', ')}`);
 }

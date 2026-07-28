@@ -31,6 +31,12 @@
   one-time decision identity `automation-biomes-l0-bootstrap-20260728-01`, and
   expiry `2026-07-31T20:00:00.000Z`. This decision does not authorize reuse of
   its identity for another operation.
+- System Owner authorization received on 2026-07-28 for exact proposal
+  `canonical-downstream-batch-01-20260728`. It binds actor `admin`, expiry
+  `2026-07-31T20:00:00.000Z`, and six request-specific hashes, reasons,
+  references, and one-time identities for schema V56-V58, image sync, boss
+  import, projectile backfill, bounded recipe crawler, and bounded 25-target NPC
+  crawler. Every lane remains independent and consumes only its own identity.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -92,7 +98,7 @@
   corrected. The final schema/ownership/migration-byte suite passes 30/30.
   Two GREEN-run defects were traced to an imprecise singleton-overlap diagnostic
   and a stale local column catalog; their focused regression rerun passes 2/2.
-  V57 remains an unapplied migration artifact.
+  At that Task 2 checkpoint, V57 was still an unapplied migration artifact.
 - Task 3 scope repair: the exact consumer inventory now classifies the pure
   bootstrap parser and landing locator as `bootstrap` readers. They are intended
   one-time inputs, not steady-state pipeline readers; unknown references still
@@ -255,7 +261,8 @@
   timing assertion (`timed_out` versus `failed`); the exact test then passed 1/1
   and the full rerun passed without a code change. Database freshness
   is evaluated by MySQL `CURRENT_TIMESTAMP`, avoiding JVM/database timezone
-  drift. V58 remains unapplied. See git for code-level diff details.
+  drift. At that code-only Task 15 checkpoint, V58 was still unapplied. See git
+  for code-level diff details.
 - Continuation authorization repair generates all 17 independent
   `AWAITING_OWNER` requests with a fresh exact server fingerprint and no packets.
   The operation contract now has operation-specific required fields, excludes
@@ -345,6 +352,36 @@
   36 pass / 9 warning / 0 blocked. The nine warnings are the exact missing
   image, boss, projectile, recipe, and shimmer producer evidence already mapped
   in Task 10; no implementation regression or threshold defect was found.
+- Authorized downstream Batch 01 consumed all six independent decision
+  identities. Projectile backfill completed at 1,111 total / 1,006 Chinese
+  matches / 1,110 managed images with zero changed rows; recipe crawl completed
+  41 pages / 40 recipe pages / 61 tables / 3,663 rows; and the bounded NPC
+  crawler reported 25/25 completed with monitor-visible terminal progress.
+  Image sync and boss import both failed before mutation because their exact
+  manifests used stale backend port 18188 while the active runtime manifest
+  exposes `http://127.0.0.1:18191/api`.
+- The schema packet applied and registered local Flyway V56-V58 with checksums
+  `-585051534`, `-1166263000`, and `535001711`. Local has all six queried
+  V57/V58 tables; maint has all eight V56 landing columns plus all five
+  canonical role tables. Post-role verification then failed because MySQL 9
+  returned uppercase `COLUMN_NAME` / `TABLE_NAME` labels while the wrapper read
+  only lowercase properties. The relation database therefore has five of the
+  eight required role tables and is missing the three canonical item-group
+  tables. A RED-to-GREEN metadata-label regression repair passes 3/3; the
+  consumed schema identity cannot be reused for the relation retry.
+- Recipe apply input is now frozen from the real 3,663-row crawler output. Its
+  regenerated request hash is
+  `sha256:523c61a376d9990148422afd6b3286c7180ad7927605ba2fe6d50b7d058177bd`,
+  data-bundle hash is
+  `sha256:50f44d231b5654ba352245ee104dc63f86eda0a0c73f9a989e48489ae96c26d2`,
+  and no technical fields are missing.
+- Real NPC apply-input freezing remains fail-closed. The crawler audit fanout
+  contains only `status` / `reasons`, not the entity, revision, and normalized
+  hash identity required by the apply contract. Five redirected targets also
+  wrote canonical page IDs (`goblin-tinkerer`, `mechanic`, `wizard`,
+  `gem-bunnies`, and `gem-squirrels`) instead of their frozen target IDs. The
+  batch summary's 25/25 result is crawler completion evidence, not valid apply
+  evidence; no NPC apply input or request was generated from it.
 
 ## Result
 
@@ -404,8 +441,11 @@
 - Completed in Task 15 within the code-only boundary: append-only V58 activation
   decision contract, repeated committed-L1 and exact current-policy gating,
   transaction-time L2 revalidation, and scheduler fail-closed visibility.
+- Completed in formal Batch 01: projectile backfill and the bounded recipe/NPC
+  crawler operations. Local V56-V58 and the maint role schema are applied; the
+  schema operation still needs an independently authorized relation-role retry.
 - Not completed: NPC ownership-valid apply orchestration, Task 10's nine
-  operation-dependent warning panels, Task 11 real crawler/T1, Task 12 Owner
+  operation-dependent warning panels, Task 11 isolated NPC T1, Task 12 Owner
   authorization for the remaining independent operations, Task 13, Task 14
   Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every formal apply or
   activation checkpoint after bootstrap.
@@ -419,8 +459,10 @@
   cannot pass before their independently authorized operations. Empty-shell and
   dry-run artifacts now fail closed; armor is no longer a warning. The fresh
   post-bootstrap full gate reproduces exactly 36 pass / 9 warning / 0 blocked.
-- V56/V57/V58 and the group bootstrap remain unapplied to formal databases; the T1
-  evidence is isolated and does not authorize T2.
+- Local V56/V57/V58 and the maint role schema are applied, but the relation
+  canonical item-group role tables are still absent and no schema result JSON
+  exists. The group bootstrap remains unapplied; isolated T1 evidence does not
+  authorize T2.
 - The regenerated downstream request files expire at `2026-07-31T20:00:00.000Z`; expired requests
   must be regenerated from current bytes and fingerprints rather than reused.
 - Full backend `mvn test` is not green because six observed failures remain in
@@ -428,9 +470,10 @@
   green after repairing its four queue contract failures.
 - Sixteen formal operations have governed executors. Only
   `canonical-npc-apply` lacks a manifest, by design, because its write set crosses
-  capability owners. Boss-loot, recipe-apply, shimmer, NPC-apply, bootstrap, and
-  biomes policy/apply lanes also lack future producer or policy inputs; these are
-  independent data/governance blockers rather than missing entrypoint code.
+  capability owners. Recipe apply now has complete technical input. Boss-loot,
+  shimmer, NPC apply, group bootstrap, and biomes policy/apply lanes still lack
+  producer, ownership, or policy inputs; these are independent data/governance
+  blockers rather than missing entrypoint code.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
   by the exact packet-consuming Node executor; enabling the backend bean without
@@ -438,12 +481,11 @@
 
 ## Follow-up
 
-- System Owner: provide a new operation-specific reason/reference/decision
-  identity for each selected downstream operation. The first technically ready
-  independent batch is schema V56-V58, image sync, boss import, projectile
-  backfill, recipe crawler, and NPC crawler. Task 10 Steps
-  5-6, Task 11 real crawler/T1, T2, both L1 applies, L2, and scheduler activation
-  remain separate packets.
+- System Owner: provide new operation-specific reasons/references/decision
+  identities for the relation-role schema retry, image sync and boss import
+  retries bound to runtime port 18191, and the technically complete recipe
+  apply request. Task 10 Steps 5-6, NPC crawler-contract repair/T1, T2, both L1
+  applies, L2, and scheduler activation remain separate packets.
 - Capability owners: decide whether NPC canonical apply is split into separately
   owned maint/relation/local operation IDs or approved as an explicit
   cross-capability orchestration contract. Until then, `canonical-npc-apply`

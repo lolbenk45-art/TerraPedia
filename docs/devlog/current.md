@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 07:05 CST by Codex
+Last updated: 2026-07-28 17:42 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -13,6 +13,19 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints,
   plus an ownership-valid `canonical-npc-apply` split/orchestration decision;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
+  Current execution snapshot: Batch 01 completed projectile backfill, the
+  3,663-row recipe crawl, and the bounded 25-target NPC crawl. Image sync and
+  boss import failed before mutation on stale backend port 18188; retries must
+  bind active port 18191. Local Flyway V56-V58 and the maint role schema are
+  applied, while the three relation item-group tables remain pending after a
+  MySQL 9 metadata-label verification defect. The focused fix passes 3/3 and
+  needs a new schema identity after commit. Recipe apply has complete frozen
+  technical input under request hash
+  `sha256:523c61a376d9990148422afd6b3286c7180ad7927605ba2fe6d50b7d058177bd`.
+  NPC apply remains fail-closed because real audit fanout lacks identity/hash
+  metadata and five redirected targets do not retain their frozen target IDs.
+  The detailed task progression below is historical context; this snapshot is
+  the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
   current post-cutover inventory is 10 after registering the explicit readiness
   and T1 bootstrap readers. Task 2
@@ -22,13 +35,13 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   exclusions and emits four group-only landing descriptors. Task 4 now proves
   deterministic maint/relation/local projection: the real dry-run yields 35
   maint groups, 161 resolved members, one blocked group, and 34 runtime groups;
-  the dependency suite passes 123/123 with one existing skip. V57 and bootstrap
-  remain unapplied. Task 5 now proves the only two allowed shadow
+  the dependency suite passes 123/123 with one existing skip. The group
+  bootstrap remains unapplied. Task 5 now proves the only two allowed shadow
   normalizations and an exact 35-row compatibility round trip; its dependency
   suite passes 55/55. Task 6 now cuts backend, recipe expansion, pipeline group
   readers, and the admin page to canonical repositories. Its fresh gates pass
-  backend 34/34, Node 83/83, admin 8/8, and Nuxt typecheck; V57 remains
-  unapplied. Task 7 expands the exact capability catalog from 19 to 21 with
+  backend 34/34, Node 83/83, admin 8/8, and Nuxt typecheck. Task 7 expands the
+  exact capability catalog from 19 to 21 with
   the disabled canonical group preview/apply pair, source-derived ownership,
   backend child-status progress, and fail-closed admin visibility; its combined
   Node suite passes 61/61 and backend tests pass 28/28. Task 8 now routes the
@@ -51,16 +64,16 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   one ACTIVE Owner (`admin`), one `biomes` L0/DISABLED policy, and one immutable
   policy version. Task 15 code-only gating requires two committed L1 applies, closed
   circuit state, exact current policy identity, and fresh promotion/scheduler
-  decisions; V58 remains unapplied. A continuation audit expanded authorization
+  decisions; V58 is now applied on formal local. A continuation audit expanded authorization
   from seven incomplete requests to 17 independent operations and found that
   packet verification was not consumed by a formal runner. That defect is now
   repaired with current-identity revalidation, durable one-time decision use,
   and no-shell dispatch; its fail-closed request-as-packet probe exited before
   dispatch. Recipe progress and NPC governed preview are now code-ready, with
-  focused authorization 15/15 and crawler 18/18 tests passing. Recipe has an
-  exact execution manifest but still lacks the post-bootstrap policy-set hash;
-  NPC now has a frozen 25-target manifest but still lacks the same policy hash.
-  Real NPC crawler/T1, nine warning
+  focused authorization 15/15 and crawler 18/18 tests passing. Both crawler
+  operations ran under Batch 01; recipe apply input is frozen, while NPC apply
+  input fails closed on the real audit/redirect contract gap. NPC isolated T1,
+  nine warning
   panels, exact Owner identity fields, T2, and two L1 applies remain distinct
   checkpoints.
   Task 12A now supplies governed schema, group, biomes L1, and policy/activation
@@ -68,17 +81,18 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   bind repository-local static imports; the 16 downstream requests were
   regenerated against policy-set hash
   `sha256:fddd9c42ad0f2c22c4d611f63fb06fbe2444e4aea97029d0c11396e66d0b0e3c`.
-  Six are technically complete but remain `AWAITING_OWNER`: schema, image,
-  boss, projectile, recipe crawler, and NPC crawler. The fresh post-bootstrap
+  All six Batch 01 decision identities are consumed. Projectile, recipe crawl,
+  and NPC crawl completed; schema needs a relation-role retry, and image/boss
+  need port-correct retries. The fresh post-bootstrap
   full gate passes data workflow 287/287 and automation contracts 177/177,
   then fail-closes at the expected 36 pass / 9 warning / 0 blocked domain
   evidence checkpoint. Focused Node validation passes 88/88 and backend
   validation passes 227/227. The packet-consuming Node runner is the single
   formal write path; the unused backend apply bean remains fail-closed. Only
   `canonical-npc-apply` has no executor because its proposed write set crosses
-  capability owners. Its valid 25-target manifest is frozen, but real normalized
-  evidence is absent and no crawler was run. Formal schema/data state is
-  unchanged; only the authorized L0/DISABLED governance bootstrap was applied.
+  capability owners. Its valid 25-target manifest and real crawler outputs are
+  present, but the apply evidence contract is not satisfied. Local V56-V58 and
+  maint role schema are applied; no group or NPC T2 apply has run.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
@@ -111,11 +125,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   verifiable phases. Phase 1A is complete through commits `f4221d6d`, `8402611c`, and
   `a11cd7b8`: it defines canonical landing identity/history, fail-closed importer rotation,
   and read-only audit/lineage consumers. The canonical group implementation now reaches
-  CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57/V58 remain parser-checked,
-  isolated-only migration artifacts and were not executed on formal databases. Task 10
+  CODE_READY/T1_VERIFIED through closure-plan Tasks 2-9; V56/V57/V58 are now
+  registered on formal local while relation role completion remains pending. Task 10
   CODE_READY and filesystem-only work are complete; Task 11 fixture `CODE_READY`
-  and Task 12 request generation are complete. The bootstrap packet was consumed;
-  no downstream executable packet exists yet.
+  and Task 12 request generation are complete. The bootstrap and Batch 01
+  packets were consumed; none of their decision identities can be reused.
   No production deployment, V1 deletion, new external sources, scheduler activation,
   or formal T2 apply was performed. L1/L2 promotion requires separate Owner authorization.
   See `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md` and
