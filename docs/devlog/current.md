@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-28 17:42 CST by Codex
+Last updated: 2026-07-29 04:59 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -34,6 +34,21 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Exact proposal `canonical-downstream-batch-02-20260728` contains schema retry,
   recipe apply, NPC crawler retry, image retry, and boss retry; it is
   unexecuted pending explicit Owner authorization of the new hashes.
+  A fresh read-only domain acceptance run at 2026-07-28 21:26 CST reports
+  39 pass / 6 warning / 0 blocked; exit 1 remains expected because warning
+  failure is enabled. The six warning panels are items image, bosses source /
+  relation / image, recipe blocking, and shimmer blocking.
+  Offline preparation has now frozen a technically complete canonical group
+  bootstrap request
+  `sha256:ed8d2508322ab7392d7af833e342c11c812251c25b29e0ca3626bdf07cfa14e2`
+  and an exact biomes L1 policy-promotion request
+  `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
+  both have zero technical gaps and remain `AWAITING_OWNER`. Group bootstrap
+  validation passes 29/29 and policy-decision validation passes 27/27. The
+  group apply must follow the schema retry, and L1 promotion must remain a
+  later independent checkpoint. Boss-loot still lacks its frozen bundle;
+  shimmer lacks the raw file and three of five importable data shards in this
+  worktree, so neither lane was fabricated or dispatched.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
@@ -64,8 +79,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   before proving 35 maint groups, 34 runtime groups, exact compatibility round
   trip, rollback/commit/restore, and zero resource leaks. Task 10 now fail-closes
   empty-shell/dry-run producer evidence and repairs armor definitions to 132
-  mapped plus 19 reviewed placeholders; the read-only baseline is 36 pass / 9
-  warning / 0 blocked. Task 11 now reaches fixture-only NPC `CODE_READY`: scoped
+  mapped plus 19 reviewed placeholders; the current read-only result is 39 pass /
+  6 warning / 0 blocked. Task 11 now reaches fixture-only NPC `CODE_READY`: scoped
   T0 `npc_7a854dc3e2150815` proves 13 tables, paired evidence, one matched fact,
   non-empty Buff/shop/loot relation/local lanes, `0/1/0` transaction counts, and
   zero cleanup leaks. Task 12 produced seven `AWAITING_OWNER` request hashes;
@@ -83,7 +98,7 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   focused authorization 15/15 and crawler 18/18 tests passing. Both crawler
   operations ran under Batch 01; recipe apply input is frozen, while NPC apply
   input fails closed on the real audit/redirect contract gap. NPC isolated T1,
-  nine warning
+  six warning
   panels, exact Owner identity fields, T2, and two L1 applies remain distinct
   checkpoints.
   Task 12A now supplies governed schema, group, biomes L1, and policy/activation
@@ -94,8 +109,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   All six Batch 01 decision identities are consumed. Projectile, recipe crawl,
   and NPC crawl completed; schema needs a relation-role retry, and image/boss
   need port-correct retries. The fresh post-bootstrap
-  full gate passes data workflow 287/287 and automation contracts 177/177,
-  then fail-closes at the expected 36 pass / 9 warning / 0 blocked domain
+  full gate passes data workflow 287/287 and automation contracts 177/177;
+  the latest read-only domain rerun fail-closes at 39 pass / 6 warning / 0 blocked
   evidence checkpoint. Focused Node validation passes 88/88 and backend
   validation passes 227/227. The packet-consuming Node runner is the single
   formal write path; the unused backend apply bean remains fail-closed. Only

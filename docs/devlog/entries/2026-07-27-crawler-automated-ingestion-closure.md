@@ -402,6 +402,31 @@
   recipe apply, and NPC crawler retry, they form exact proposal
   `canonical-downstream-batch-02-20260728`; no packet exists before that new
   proposal is explicitly authorized.
+- A fresh read-only domain acceptance rerun at 2026-07-28 21:26 CST reports
+  39 pass / 6 warning / 0 blocked / 0 written. Exit 1 is expected because
+  `--fail-on-warning=true`. Projectile image/relation and recipe source now
+  pass; the six remaining panels are `items/imageReadiness`,
+  `bosses/sourceReadiness`, `bosses/relationReadiness`,
+  `bosses/imageReadiness`, `support.recipe/blockingGate`, and
+  `support.shimmer/blockingGate`.
+- Offline continuation froze the exact canonical group projection as four
+  landing sources / 64 landing groups, maint 35 groups / 163 members / 72
+  aliases / 2 exclusions, relation 35 / 163 / 72 with 0 unresolved and 2
+  rejected exclusions, and local 34 / 161 / 70. The resulting group bootstrap
+  request is technically complete at
+  `sha256:ed8d2508322ab7392d7af833e342c11c812251c25b29e0ca3626bdf07cfa14e2`;
+  its data bundle is
+  `sha256:f35af62742c412e5e5ac2d99a9f927cf63b364edb41bc2b24966d9760160eafe`.
+  Group/manifest/authorization validation passes 29/29. No apply ran.
+- Formal readback still shows Owner `admin` ACTIVE and the exact `biomes`
+  version 1 policy at L0/DISABLED with unchanged policy and policy-set hashes.
+  The L1 promotion input is now frozen and technically complete at request
+  `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
+  policy-decision/manifest/authorization validation passes 27/27. No policy
+  mutation ran. Boss-loot remains missing its frozen bundle. The worktree's
+  shimmer set contains context, item-transform, and manifest files but lacks
+  the raw file plus decraft/entity/NPC importable shards; an older raw file in
+  the main worktree was not copied or used to bypass crawler authorization.
 
 ## Result
 
@@ -468,7 +493,7 @@
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
-- Not completed: NPC ownership-valid apply orchestration, Task 10's nine
+- Not completed: NPC ownership-valid apply orchestration, Task 10's six
   operation-dependent warning panels, Task 11 isolated NPC T1, Task 12 Owner
   authorization for the remaining independent operations, Task 13, Task 14
   Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every formal apply or
@@ -482,10 +507,10 @@
 - The first NPC crawler output is not reusable as apply evidence because its
   audit files predate the paired-identity repair; a fresh authorized crawl is
   required before isolated NPC T1.
-- Nine warning panels depend on real crawler/import/backfill/image evidence and
+- Six warning panels depend on real crawler/import/image evidence and
   cannot pass before their independently authorized operations. Empty-shell and
-  dry-run artifacts now fail closed; armor is no longer a warning. The fresh
-  post-bootstrap full gate reproduces exactly 36 pass / 9 warning / 0 blocked.
+  dry-run artifacts now fail closed; armor and projectile are no longer warnings.
+  The fresh read-only domain rerun reports exactly 39 pass / 6 warning / 0 blocked.
 - Local V56/V57/V58 and the maint role schema are applied, but the relation
   canonical item-group role tables are still absent and no schema result JSON
   exists. The group bootstrap remains unapplied; isolated T1 evidence does not
@@ -500,9 +525,10 @@
 - Sixteen formal operations have governed executors. Only
   `canonical-npc-apply` lacks a manifest, by design, because its write set crosses
   capability owners. Recipe apply now has complete technical input. Boss-loot,
-  shimmer, NPC apply, group bootstrap, and biomes policy/apply lanes still lack
-  producer, ownership, or policy inputs; these are independent data/governance
-  blockers rather than missing entrypoint code.
+  shimmer, NPC apply, and biomes apply lanes still lack producer, ownership, or
+  preview-bundle inputs. Group bootstrap and biomes L1 promotion now have
+  technically complete frozen requests but remain independently Owner-gated.
+  These are data/governance blockers rather than missing entrypoint code.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
   by the exact packet-consuming Node executor; enabling the backend bean without
@@ -515,6 +541,11 @@
   retries bound to runtime port 18191, and the technically complete recipe
   apply request. Task 10 Steps 5-6, NPC crawler-contract repair/T1, T2, both L1
   applies, L2, and scheduler activation remain separate packets.
+- Immediate authorization checkpoint: authorize exact proposal
+  `canonical-downstream-batch-02-20260728` before its five new request hashes
+  are converted to packets or dispatched. Group bootstrap and biomes L1
+  promotion retain their own later requests and must not be folded into that
+  authorization.
 - Capability owners: decide whether NPC canonical apply is split into separately
   owned maint/relation/local operation IDs or approved as an explicit
   cross-capability orchestration contract. Until then, `canonical-npc-apply`
