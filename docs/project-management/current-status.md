@@ -2,11 +2,11 @@
 
 ## Date
 
-2026-07-10
+2026-07-29
 
 ## Current Phase
 
-Project governance reset and crawler reliability stabilization.
+Crawler reliability stabilization and approval-gated automated-ingestion closure.
 
 ## Active Sequence
 
@@ -15,6 +15,13 @@ Document-level judgment: July work is focused on crawler monitor reliability, cr
 Current sequence:
 
 P0 governance/status synchronization -> P1 crawler monitor and resume/recovery stabilization -> P2 homepage aggregation and public UI polish.
+
+The automated-ingestion closure branch has reached group `CODE_READY/T1_VERIFIED`,
+NPC fixture `CODE_READY`, formal Flyway V58, and one L0/DISABLED `biomes`
+policy. Batch 02 completed the repaired 25-target NPC crawler and localized
+1,788 item images. Formal relation item-group schema, group T2, NPC apply/T1,
+five warning panels, one blocked item-image panel, the first two L1 applies,
+L2, and scheduler activation remain approval- or evidence-gated.
 
 ## Current Gate Boundary
 
@@ -82,6 +89,9 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 - `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
 - Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
 - Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
+- Automated ingestion remains fail-closed: Batch 03 schema/recipe/boss retries
+  require exact request-hash authorization; NPC apply has no ownership-valid
+  executor; item image readiness blocks on missing/unresolved source uploads.
 
 ## Next Actions
 

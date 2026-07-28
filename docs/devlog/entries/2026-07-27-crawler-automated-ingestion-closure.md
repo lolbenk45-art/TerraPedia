@@ -37,6 +37,13 @@
   references, and one-time identities for schema V56-V58, image sync, boss
   import, projectile backfill, bounded recipe crawler, and bounded 25-target NPC
   crawler. Every lane remains independent and consumes only its own identity.
+- System Owner authorization received on 2026-07-29 for exact proposal
+  `canonical-downstream-batch-02-20260728`. Its five lanes were executed
+  independently: NPC crawl and item image sync completed; schema stopped before
+  dispatch on manifest drift; recipe apply failed before connection; and boss
+  import rolled back. Consumed recipe/NPC/image/boss decision identities cannot
+  be reused. The unconsumed schema identity remains bound to the superseded
+  request and is not treated as authorization for replacement bytes.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -409,7 +416,7 @@
   `bosses/sourceReadiness`, `bosses/relationReadiness`,
   `bosses/imageReadiness`, `support.recipe/blockingGate`, and
   `support.shimmer/blockingGate`.
-- Offline continuation froze the exact canonical group projection as four
+- Offline continuation initially froze the exact canonical group projection as four
   landing sources / 64 landing groups, maint 35 groups / 163 members / 72
   aliases / 2 exclusions, relation 35 / 163 / 72 with 0 unresolved and 2
   rejected exclusions, and local 34 / 161 / 70. The resulting group bootstrap
@@ -418,6 +425,12 @@
   its data bundle is
   `sha256:f35af62742c412e5e5ac2d99a9f927cf63b364edb41bc2b24966d9760160eafe`.
   Group/manifest/authorization validation passes 29/29. No apply ran.
+  Batch 02 item-image changes later superseded those request/data hashes. The
+  current technically complete replacement request is
+  `sha256:9461520c1788e5aa84d8eb45e7be3580ecb31a206de737b6505479e343b69096`
+  with data bundle
+  `sha256:c2360a3eaf26e4d0be8ec8e31d8e310809d0dcb21ed5df00c520fd0b378868f5`;
+  it remains a separate Owner checkpoint and is not part of Batch 03.
 - Formal readback still shows Owner `admin` ACTIVE and the exact `biomes`
   version 1 policy at L0/DISABLED with unchanged policy and policy-set hashes.
   The L1 promotion input is now frozen and technically complete at request
@@ -427,6 +440,45 @@
   shimmer set contains context, item-transform, and manifest files but lacks
   the raw file plus decraft/entity/NPC importable shards; an older raw file in
   the main worktree was not copied or used to bypass crawler authorization.
+- Authorized downstream Batch 02 kept all five lanes independent. Schema packet
+  conversion rejected the stale execution-manifest code hash before dispatch,
+  so no schema decision was consumed. Recipe apply consumed its decision and
+  then failed before DB connection because the importer directly resolved
+  `mysql2/promise`. The 25-target NPC crawler completed with terminal 25/25
+  progress and exactly 25 normalized-light, canonical, and audit files. Item
+  image sync completed 6,131 rows / 2,119 candidates / 1,788 uploaded and
+  changed / 4,012 missing source; the tracked item file changed in exactly
+  1,788 `imageUrl` fields. Boss import consumed its decision, raised
+  `ReferenceError: managedUrlPrefixes is not defined`, and rolled back; formal
+  boss groups remain 33.
+- RED-to-GREEN repairs now route recipe mysql loading through the repository
+  module loader and pass `managedUrlPrefixes` explicitly through boss image
+  localization, member reconciliation, and final image selection. Focused
+  recipe/boss/mysql/strict validation passes 15/15; dependent authorization,
+  manifest, capability, runner, and NPC freeze validation passes 50/50. See git
+  for code-level diff details.
+- Fresh formal readback reports successful Flyway V56-V58 rows 3/3, one Owner,
+  one policy, recipe/ingredient/station counts 11,658 / 19,601 / 15,195, and 33
+  boss groups. The three relation item-group tables are still absent.
+- The repaired NPC crawl is now frozen into 25 exact normalized/audit pairs
+  (`payloadBytes=268479`), including five redirected targets resolved only by
+  stable standardized IDs. Its request has data bundle
+  `sha256:2aaceace90f0673eec4657bb0cee5acbb08ee6c82673d0fdbf0024dc3bccac94`
+  but remains technically incomplete only at `executionManifestHash` because
+  `canonical-npc-apply` still has no ownership-valid executor.
+- Fresh schema, recipe, and boss requests have zero technical gaps and form
+  proposal `canonical-downstream-batch-03-20260729`, expiring
+  `2026-07-31T21:40:00.000Z`: schema
+  `sha256:b53190046a74d0d5383a97fabaa81378089d578b8406c88a9d3c45737b34a87e`,
+  recipe `sha256:d4f6b0a31d298e7dedc108c2c4c02b33600a5ce82c9785655edd62fd611eefa4`,
+  and boss `sha256:40090985c899f8827a555245ea79b9322842ca216eb2f8f86ed8c13a50d07af5`.
+  Proposal/request/owner inputs match, all technical fields are complete, and
+  all three proposed decision identities are unused. No packet was created.
+- The post-image read-only domain rerun is 39 pass / 5 warning / 1 blocked.
+  `items/imageReadiness` now truthfully blocks on 4,012 missing sources and 331
+  candidate uploads without a managed URL. Boss source/relation/image, recipe
+  blocking, and shimmer blocking remain warnings. No threshold was weakened and
+  no report was fabricated.
 
 ## Result
 
@@ -489,12 +541,16 @@
 - Completed in formal Batch 01: projectile backfill and the bounded recipe/NPC
   crawler operations. Local V56-V58 and the maint role schema are applied; the
   schema operation still needs an independently authorized relation-role retry.
+- Completed in formal Batch 02: repaired bounded NPC crawler evidence and the
+  partial item image localization described above. Schema, recipe, and boss
+  remain fail-closed at their recorded pre-dispatch/pre-connection/rollback
+  boundaries.
 - Completed in code-only repair: NPC paired audit identity and redirected
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
-- Not completed: NPC ownership-valid apply orchestration, Task 10's six
-  operation-dependent warning panels, Task 11 isolated NPC T1, Task 12 Owner
+- Not completed: NPC ownership-valid apply orchestration, Task 10's five
+  warning panels plus the blocked item-image panel, Task 11 isolated NPC T1, Task 12 Owner
   authorization for the remaining independent operations, Task 13, Task 14
   Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every formal apply or
   activation checkpoint after bootstrap.
@@ -503,22 +559,27 @@
 
 - Every remaining formal operation still depends on its own exact System Owner
   reason/reference/decision identity; the consumed bootstrap identity cannot be reused.
-- Deferred NPC facts require real crawler evidence; absence remains blocking rather than falling back to the retired bridge.
+- Deferred NPC facts now have real paired crawler evidence; the ownership-valid
+  executor remains blocking rather than falling back to the retired bridge.
 - The first NPC crawler output is not reusable as apply evidence because its
-  audit files predate the paired-identity repair; a fresh authorized crawl is
-  required before isolated NPC T1.
-- Six warning panels depend on real crawler/import/image evidence and
-  cannot pass before their independently authorized operations. Empty-shell and
+  audit files predate the paired-identity repair. Batch 02 repaired that evidence
+  and produced a complete frozen data bundle, but apply/T1 still require an
+  ownership-valid executor and separate exact authorization.
+- Five warning panels and one blocked image panel depend on real
+  import/image/source evidence and cannot pass before their independently
+  authorized operations or source repair. Empty-shell and
   dry-run artifacts now fail closed; armor and projectile are no longer warnings.
-  The fresh read-only domain rerun reports exactly 39 pass / 6 warning / 0 blocked.
+  The fresh post-image read-only domain rerun reports exactly 39 pass / 5 warning / 1 blocked.
 - Local V56/V57/V58 and the maint role schema are applied, but the relation
   canonical item-group role tables are still absent and no schema result JSON
   exists. The group bootstrap remains unapplied; isolated T1 evidence does not
   authorize T2.
-- The regenerated downstream request files expire at `2026-07-31T20:00:00.000Z`; expired requests
-  must be regenerated from current bytes and fingerprints rather than reused.
-- Batch 02 is an unexecuted exact proposal. Earlier blanket authorization and
-  consumed Batch 01 decisions do not authorize its new request/code hashes.
+- Batch 03 requests expire at `2026-07-31T21:40:00.000Z`; the refreshed group
+  request expires ten minutes later. Expired requests must be regenerated from
+  current bytes and fingerprints rather than reused.
+- Batch 02 is fully accounted for; four of its decision identities are consumed
+  and the schema identity was never consumed but is bound to superseded bytes.
+  None authorizes Batch 03.
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
   green after repairing its four queue contract failures.
@@ -536,14 +597,14 @@
 
 ## Follow-up
 
-- System Owner: provide new operation-specific reasons/references/decision
-  identities for the relation-role schema retry, image sync and boss import
-  retries bound to runtime port 18191, and the technically complete recipe
-  apply request. Task 10 Steps 5-6, NPC crawler-contract repair/T1, T2, both L1
+- System Owner: authorize exact proposal
+  `canonical-downstream-batch-03-20260729` for the relation-role schema retry,
+  recipe apply retry, and boss import retry. The item image source repair and
+  any retry require a separate future request. Task 10 Steps 5-6, NPC apply/T1, T2, both L1
   applies, L2, and scheduler activation remain separate packets.
 - Immediate authorization checkpoint: authorize exact proposal
-  `canonical-downstream-batch-02-20260728` before its five new request hashes
-  are converted to packets or dispatched. Group bootstrap and biomes L1
+  `canonical-downstream-batch-03-20260729` before its three request hashes are
+  converted to packets or dispatched. Group bootstrap and biomes L1
   promotion retain their own later requests and must not be folded into that
   authorization.
 - Capability owners: decide whether NPC canonical apply is split into separately

@@ -148,11 +148,19 @@
 
 - 2026-07-28 closure-plan handoff: canonical groups are already `CODE_READY/T1_VERIFIED`; deferred NPC crawler facts now reach fixture-only `CODE_READY` through split base/crawler landings, four-state maint facts, Buff/shop/loot relation/local projections, and disposable T0 run `npc_7a854dc3e2150815` with 13 schema probes, `0/1/0` transaction evidence, and zero resource leaks. The catalog is 23 operations and the NPC pair remains `L0 + DISABLED`. The first seven filesystem-only formal request hashes were superseded when Task 15 added the missing append-only V58 promotion/scheduler decision contract; replacement requests remain `AWAITING_OWNER`, formal policy rows remain zero, and no executable packet exists. No real crawler, formal V56/V57/V58/bootstrap/NPC apply, warning-producing operation, L1/L2/T2, scheduler activation, push, or merge ran. Exact validation and hashes live in child entry `2026-07-27-crawler-automated-ingestion-closure.md`.
 
+- 2026-07-29 Batch 02 continuation: the repaired bounded NPC crawler and item image sync completed; schema stopped before dispatch on stale manifest identity, recipe stopped before DB connection, and boss import rolled back. Recipe mysql resolution and boss managed-URL-prefix propagation now pass focused and dependent tests. The 25 NPC evidence pairs are frozen but apply remains ownership/executor-blocked. Image sync changed 1,788 item URLs while leaving a truthful 4,012-source / 331-upload gap, so the current read-only domain result is 39 pass / 5 warning / 1 blocked. Fresh schema/recipe/boss proposal `canonical-downstream-batch-03-20260729` is pending exact authorization. Details and hashes live in the child entry.
+
 ## Follow-up
 
-- Implementer: stop at the authorization boundary. Regenerate an expired or superseded request, then authorize and execute only one exact operation after the System Owner supplies all missing technical and Owner fields. Keep V56/V57/V58 unexecuted until their exact packet exists.
+- Implementer: continue from the child entry. V56-V58 are registered on formal
+  local, but the relation role schema remains incomplete. Regenerate any
+  expired or superseded request and execute only its exact operation after the
+  System Owner authorizes the replacement hash.
 - Project/data owner: after the full group chain reaches its separately defined milestone, close or explicitly re-govern the remaining B1 canonical-migration contracts and rerun `bash ./scripts/dev/quality-gate.sh` from the beginning.
-- System Owner: V55 is now registered on `terria_v1_local`. Choose the exact bootstrap domain, L0 policy, reason, actor, and authorization reference before invoking the bootstrap module; then separately authorize any domain-scoped first L1 run only after the repository-wide gate is green. Formal T2 data writes, real crawler execution, L1/L2 promotion, scheduler activation, push, and merge remain unauthorized.
+- System Owner: the singleton Owner and `biomes` L0/DISABLED policy now exist.
+  Authorize only exact current requests for the remaining formal retries,
+  group/NPC T2, L1/L2, or scheduler checkpoints. Push and merge remain outside
+  this task.
 
 ## Commits
 
