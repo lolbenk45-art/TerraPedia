@@ -269,6 +269,7 @@ export function createCanonicalNpcOwnerMysqlAdapter({
         repoRoot: root,
         operationId,
         input: plan.input.payload,
+        inputHash: plan.input.contentHash,
         ownershipKeys,
         databases,
       });
@@ -310,9 +311,9 @@ export function createCanonicalNpcOwnerMysqlAdapter({
   };
 }
 
-async function applyOwnedOperation({ connection, repoRoot, operationId, input, ownershipKeys, databases }) {
+async function applyOwnedOperation({ connection, repoRoot, operationId, input, inputHash, ownershipKeys, databases }) {
   if (operationId === LANDING_OPERATION_ID) {
-    return applyLandingOperation({ connection, repoRoot, input, ownershipKeys });
+    return applyLandingOperation({ connection, repoRoot, input, inputHash, ownershipKeys });
   }
   if (operationId === 'canonical-npc-facts-maint-apply') {
     return applyMaintFactsOperation({ connection, input, ownershipKeys, databases });
@@ -326,7 +327,7 @@ async function applyOwnedOperation({ connection, repoRoot, operationId, input, o
   return applyLocalProjectionOperation({ connection, operationId, ownershipKeys, databases });
 }
 
-async function applyLandingOperation({ connection, repoRoot, input, ownershipKeys }) {
+async function applyLandingOperation({ connection, repoRoot, input, inputHash, ownershipKeys }) {
   const expectedLocators = new Set(input.evidencePairs.map((pair) => `repo://${pair.normalized.path}`));
   const located = await listSourceDatasetLandingInputs({
     repoRoot,
@@ -341,7 +342,17 @@ async function applyLandingOperation({ connection, repoRoot, input, ownershipKey
   if (baseCount !== 1 || crawlerCount !== input.pairCount) {
     throw new Error(`frozen NPC landing selection must contain 1 base and ${input.pairCount} crawler rows`);
   }
-  const rows = await prepareLandingRows(await expandLandingEntries(selected));
+  const producerRunKey = `canonical-npc-landing:${inputHash}`;
+  const governedEntries = selected.map((entry) => ({
+    ...entry,
+    artifactRole: 'source_evidence',
+    producerId: 'canonical-npc-landing-bundle',
+    producerVersion: '1',
+    producerRunKey,
+    fullFileContentHash: entry.contentHash,
+    fullFileByteSize: entry.payloadBytes,
+  }));
+  const rows = await prepareLandingRows(await expandLandingEntries(governedEntries));
   const summary = { rows: { inserted: 0, updated: 0, replaced: 0, unchanged: 0 } };
   for (const row of rows) await upsertLandingRow(connection, row, summary);
   return {

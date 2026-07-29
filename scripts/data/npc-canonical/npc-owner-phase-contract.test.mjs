@@ -17,6 +17,7 @@ import {
 
 const INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
 const COMPLETED_AT = '2026-07-29T05:30:00.000Z';
+const REPO_ROOT = path.resolve(import.meta.dirname, '../../..');
 
 function hashBytes(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -245,6 +246,48 @@ test('production adapter re-reads the owned partition before commit', async () =
     /readback counts do not match writes/i,
   );
   assert.equal(countReads, 2);
+});
+
+test('production landing adapter supplies governed source-evidence metadata', async () => {
+  const plan = await buildNpcOwnerOperationPlan({
+    repoRoot: REPO_ROOT,
+    operationId: 'canonical-npc-landing-apply',
+  });
+  const inserts = [];
+  const connection = {
+    beginTransaction: async () => {},
+    execute: async (sql, params = []) => {
+      if (/^SELECT COUNT\(\*\)/.test(sql.trim())) return [[{ total: 1 }]];
+      if (/^SELECT id, content_hash, source_page/.test(sql.trim())) return [[]];
+      if (/^INSERT INTO source_dataset_landings/.test(sql.trim())) {
+        inserts.push(params);
+        return [{}];
+      }
+      throw new Error(`unexpected landing SQL: ${sql.trim().split('\n')[0]}`);
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+  const result = await executeNpcOwnerOperation({
+    plan,
+    adapter: createCanonicalNpcOwnerMysqlAdapter({
+      repoRoot: REPO_ROOT,
+      plan,
+      connectionFactory: async () => connection,
+    }),
+    completedAt: COMPLETED_AT,
+  });
+
+  assert.equal(result.rowCounts['local.source_dataset_landings.npcs_base'], 1);
+  assert.equal(result.rowCounts['local.source_dataset_landings.npc_crawler_facts'], 25);
+  assert.equal(inserts.length, 26);
+  assert.equal(inserts.every((params) => params[12] === 'source_evidence'), true);
+  assert.equal(inserts.every((params) => params[13] === 'canonical-npc-landing-bundle'), true);
+  assert.equal(inserts.every((params) => params[14] === '1'), true);
+  assert.equal(inserts.every((params) => /^canonical-npc-landing:sha256:[a-f0-9]{64}$/.test(params[15])), true);
+  assert.equal(inserts.every((params) => /^[a-f0-9]{64}$/.test(params[17])), true);
+  assert.equal(inserts.every((params) => Number.isSafeInteger(params[18]) && params[18] > 0), true);
 });
 
 test('operation executor commits one exact ownership set and rolls back without success evidence on failure', async () => {

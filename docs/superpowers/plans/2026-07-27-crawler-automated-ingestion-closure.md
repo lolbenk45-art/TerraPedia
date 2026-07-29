@@ -1321,6 +1321,14 @@ run `ig_export_20260729_01`. The combined step remains open because canonical NP
 readiness is not yet available. No source contract flips while the complete
 repository gate is non-green.
 
+The first authorized landing-prerequisite attempt consumed decision identity
+`canonical-npc-landing-apply-20260729-01` and stopped before its first row write:
+the strict importer rejected generic NPC descriptors that lacked governed
+`source_evidence` producer metadata. Formal counts remained zero and the
+transaction rolled back. The repaired executor binds all 26 selected descriptors
+to the frozen input hash and governed full-file identity; formal retry requires
+the replacement exact request rather than reusing the consumed decision.
+
 Any failure keeps pre-cutover readers active or triggers the existing
 latest-writer rollback/circuit-breaker. Never silently re-enable JSON after a
 successful canonical cutover.

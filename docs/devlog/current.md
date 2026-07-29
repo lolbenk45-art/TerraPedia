@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 13:35 CST by Codex
+Last updated: 2026-07-29 14:07 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -53,7 +53,7 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   hash `8d3fb0b1...fe819`, separate compatibility hash `54130fe0...00d`, and
   `sourceGroupAudit` fresh/non-blocking; readiness now also binds the three live
   export byte hashes so partial publication fails closed. The full gate still
-  fail-closes after 303/303 data-workflow and 177/177 automation tests at the
+  fail-closes after 304/304 data-workflow and 177/177 automation tests at the
   unchanged 40 pass / 4 warning / 1 blocked domain result, so no source contract
   was flipped. NPC
   frozen evidence is now `T1_PREPARED` as seven single-owner phases with 9 Buff,
@@ -68,11 +68,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   base/crawler landings and zero maint crawler facts, so one separate
   `landing`-owned prerequisite is required before phase 1; completion must bind
   that result plus all seven phase results. Partial completion cannot unlock readiness.
-  The landing request is technically complete at
-  `sha256:5d37276a373b3d0e32c52a3ed0db5c6248fff927bb4619b5a7f713de7bc64887`;
+  The first landing identity `canonical-npc-landing-apply-20260729-01` was
+  consumed once, then the importer rejected missing governed `artifactRole`
+  metadata before the first row write. The transaction rolled back, both NPC
+  landing counts and maint facts remain zero, and the identity cannot be reused.
+  The defect is repaired RED-to-GREEN by binding every selected descriptor to
+  `source_evidence` metadata and the frozen input hash. The current retry request
+  is technically complete at
+  `sha256:6395b6031dc5bc4e8c0b08357a855163fe09ad93ec5e90aa367c0a4e5ce8ff19`;
   all seven downstream requests intentionally lack `dataBundleSha256` until
-  their exact predecessor results exist. Fresh focused validation passes 86/86;
-  the full gate passes 303/303 data-workflow and 177/177 automation tests before
+  their exact predecessor results exist. Fresh focused validation passes 98/98;
+  the full gate passes 304/304 data-workflow and 177/177 automation tests before
   the expected 40 pass / 4 warning / 1 blocked / 0 written domain fail-close.
   No database write,
   crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. Plan
@@ -87,6 +93,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   a later independent checkpoint. Boss-loot still lacks its frozen bundle;
   shimmer lacks the raw file and three of five importable data shards in this
   worktree, so neither lane was fabricated or dispatched.
+  Retry preparation revalidation confirms formal NPC base landing 0, crawler
+  landing 0, active maint fact 0, and active transaction 0. The shared backend
+  at `18191` is currently not running (connection refused; no Java listener),
+  so its health cannot be re-confirmed; it was not restarted from this isolated
+  worktree.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the

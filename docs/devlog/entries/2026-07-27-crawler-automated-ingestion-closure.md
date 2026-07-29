@@ -98,6 +98,16 @@
   `local.source_dataset_landings`; the seven single-owner phases remain intact
   and phase 1 now binds that landing result. The final aggregator/readiness must
   verify the prerequisite plus all seven phases for the same input hash.
+- System Owner authorized exact landing proposal
+  `canonical-npc-landing-apply-20260729-01` on 2026-07-29. It bound actor
+  `admin`, request
+  `sha256:5d37276a373b3d0e32c52a3ed0db5c6248fff927bb4619b5a7f713de7bc64887`,
+  packet `sha256:3befd429bb52eca5eea3f811267925079882187aad5fa5222e5e1c465c8d4a68`,
+  the operation-specific reason/reference, and the matching one-time decision
+  identity. The formal runner consumed that identity once, then failed before
+  the first row write because generic NPC descriptors lacked the governed
+  landing artifact role and producer metadata. The transaction rolled back;
+  the identity cannot authorize a retry.
 - Task 2 implementation audit repaired two Important ownership/model defects:
   local group rows retain `(canonical_key, source_layer)` so consumer-specific
   winner selection remains possible, and the two projection-state writers share
@@ -671,14 +681,14 @@
   results, and requires the landing-plus-seven completion artifact for NPC T1/T2
   readiness. The operation catalog contains 25 stable IDs: 24 have governed
   manifests and only the retired `canonical-npc-apply` umbrella remains null.
-  The regenerated landing request is technically complete with 53 exact data
-  entries at request hash
+  The first generated landing request was technically complete with 53 exact
+  data entries at request hash
   `sha256:5d37276a373b3d0e32c52a3ed0db5c6248fff927bb4619b5a7f713de7bc64887`;
   the seven downstream requests intentionally have no `dataBundleSha256` until
   their exact predecessor result files exist.
   Focused dependency validation passed 86/86 after the readback regression was
   reproduced RED and repaired GREEN. See git for code-level diff details.
-- Fresh full-gate validation passed data workflow 303/303 and automation
+- Fresh full-gate validation passed data workflow 304/304 and automation
   contracts 177/177, then stopped at the expected read-only domain result of 40
   pass / 4 warning / 1 blocked / 0 written. Exit 1 is the preserved project
   fail-close, not a failure in the Step 3B contract suite. Fresh formal-database
@@ -692,6 +702,26 @@
   no longer reports already-registered executors as missing. RED/GREEN evidence
   and the fresh focused/full validation above satisfy re-review; no Critical or
   Important finding remains open for this commit scope.
+- The first authorized landing execution reproduced the missing governance
+  metadata failure before mutation. Formal readback immediately afterward was
+  base landing 0, crawler landing 0, active maint fact 0, other active
+  transactions 0; decision identity
+  `canonical-npc-landing-apply-20260729-01` is durably consumed. A real-input
+  regression test failed RED with the same `artifactRole: unknown role`, then
+  passed GREEN after the owner executor added exact `source_evidence`, producer,
+  full-file, and frozen-input run identity without weakening the landing
+  importer. The current focused dependency suite passes 93/93. The replacement
+  retry request is technically complete at
+  `sha256:6395b6031dc5bc4e8c0b08357a855163fe09ad93ec5e90aa367c0a4e5ce8ff19`.
+- Retry-preparation revalidation passed 98/98 targeted landing, NPC ownership,
+  manifest, authorization, and formal-runner contracts. A fresh formal read-only
+  query still reports 0 NPC base landings, 0 NPC crawler-fact landings, 0 active
+  maint crawler facts, and 0 active transactions. The retry artifact remains
+  `AWAITING_OWNER`, binds 53 exact data entries, and expires at
+  `2026-07-30T05:53:26.000Z`. The shared backend health endpoint at `18191` now
+  refuses connections and no Java listener exists; this isolated worktree did
+  not restart it, so shared-stack health is a validation availability gap rather
+  than evidence of a landing-side mutation.
 - Batch 05 pre-commit validation reproduced the partial-publication readiness
   gap as RED at 3/4, then passed publisher/readiness GREEN at 7/7 and the full
   focused chain at 64/64. The complete local gate again passed data workflow
@@ -793,6 +823,9 @@
   exact predecessor/result binding, transaction-local write/readback checks,
   private result evidence, and an all-eight completion gate. The legacy umbrella
   remains non-executable, and partial completion cannot unlock downstream gates.
+- First formal landing attempt stopped safely before mutation on missing
+  governed descriptor metadata. Its identity is consumed; the defect is fixed
+  with real frozen-input RED/GREEN coverage and requires retry authorization.
 - Completed in code-only repair after Batch 03: both remaining recipe stages
   use the repository mysql loader; managed entity uploads accept validated GIF
   while avatar restrictions remain unchanged; the boss manifest binds the
@@ -860,6 +893,13 @@
   or preview-bundle inputs. Group bootstrap is applied; biomes L1 promotion has a
   technically complete frozen request but remains independently Owner-gated.
   These are data/governance blockers rather than missing entrypoint code.
+- Landing decision `canonical-npc-landing-apply-20260729-01` is consumed and
+  failed before write; it cannot be reused. Only retry request
+  `sha256:6395b6031dc5bc4e8c0b08357a855163fe09ad93ec5e90aa367c0a4e5ce8ff19`
+  matches the repaired current code bytes.
+- The shared backend process is currently absent at `18191`; do not infer a
+  landing regression from that shared-stack availability gap, and do not restart
+  it from this worktree without a separately scoped stack-operation request.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
   by the exact packet-consuming Node executor; enabling the backend bean without
@@ -878,8 +918,8 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- System Owner: authorize only the current exact
-  `canonical-npc-landing-apply` request first. After it commits, regenerate and
+- System Owner: authorize only the current exact landing retry request first.
+  After it commits, regenerate and
   authorize each of the seven downstream requests serially; every request must
   bind all exact predecessor result bytes. The legacy `canonical-npc-apply`
   remains `executor: null` throughout and cannot substitute for these packets.
