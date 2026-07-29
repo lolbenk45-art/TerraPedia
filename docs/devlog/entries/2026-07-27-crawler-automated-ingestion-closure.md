@@ -875,8 +875,10 @@
   fields (`source_revision_timestamp`, `fetched_at`, `parsed_at`) as UTC;
   80 focused authorization, manifest, ownership, landing, and adapter contracts
   pass. Independent code review found no remaining Critical or Important issue.
-  Both consumed phase-1 identities remain non-reusable; the next retry requires a new
-  current-byte manifest, request, and exact Owner decision.
+  Both consumed phase-1 identities remain non-reusable. Retry-03 now binds the
+  committed current-byte manifest and request
+  `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`;
+  it is `AWAITING_OWNER` and expires at `2026-07-30T07:53:51.208Z`.
 - Not completed: the landing-plus-seven NPC formal authorizations/executions and
   real T1/apply, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
@@ -967,9 +969,10 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- System Owner: do not reuse either consumed NPC phase-1 decision. After the
-  committed DATETIME repair generates a new exact request, authorize only that
-  request. After phase 1 commits, regenerate and authorize each later NPC owner
+- System Owner: do not reuse either consumed NPC phase-1 decision. Authorize
+  only retry-03 request
+  `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`.
+  After phase 1 commits, regenerate and authorize each later NPC owner
   phase serially; every request must bind all exact predecessor result bytes.
   The legacy `canonical-npc-apply` remains `executor: null` throughout and
   cannot substitute for these packets.

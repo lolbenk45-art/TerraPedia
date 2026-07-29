@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 15:52 CST by Codex
+Last updated: 2026-07-29 15:54 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,9 +11,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
   blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints;
-  next formal dependency is a new current-byte `canonical-npc-facts-maint-apply`
-  retry request after the DATETIME persistence fix is committed; the first
-  frozen biomes L1 apply remains a separate later preview-bundle and
+  next formal dependency is `canonical-npc-facts-maint-apply` retry-03 request
+  `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`;
+  the first frozen biomes L1 apply remains a separate later preview-bundle and
   Owner-authorization checkpoint;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
@@ -123,9 +123,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   rejected ISO-8601 values for `DATETIME` fields. A RED-to-GREEN adapter
   regression now normalizes `source_revision_timestamp`, `fetched_at`, and
   `parsed_at` as UTC at the persistence boundary; 80 focused contracts pass.
-  Maint
-  facts remain 0, the governed 1/25 landing remains current, and a new request
-  must bind the committed current code before any phase-2 request can exist.
+  Maint facts remain 0, the governed 1/25 landing remains current, and retry-03
+  request `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`
+  is `AWAITING_OWNER`; no phase-2 request can exist until it commits.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
