@@ -1220,8 +1220,8 @@ no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
   `docs/project-governance/00_CURRENT_SPEC.md`
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
 
-- [ ] **Step 1: Apply authorized V56/V57/V58 schema packet**
-- [ ] **Step 2: Re-read schema and verify exact table/index fingerprints**
+- [x] **Step 1: Apply authorized V56/V57/V58 schema packet**
+- [x] **Step 2: Re-read schema and verify exact table/index fingerprints**
 - [ ] **Step 3: Apply authorized frozen group bootstrap once**
 - [ ] **Step 4: Run shadow parity, disable group JSON fallback, restart through standard scripts, and run read-only API/runtime smoke**
 - [ ] **Step 5: Execute separately authorized real NPC crawler and frozen NPC apply**

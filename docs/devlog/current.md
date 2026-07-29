@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 05:43 CST by Codex
+Last updated: 2026-07-29 09:02 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -13,26 +13,24 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints,
   plus an ownership-valid `canonical-npc-apply` split/orchestration decision;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
-  Current execution snapshot: Batch 01 completed projectile backfill and the
-  recipe/NPC crawlers. Authorized Batch 02 then completed the repaired bounded
-  25-target NPC crawler and item image sync; schema stopped before dispatch on
-  manifest drift, recipe failed before DB connection on direct mysql loading,
-  and boss import rolled back on an undefined managed-URL prefix. The recipe
-  and boss root causes now have RED-to-GREEN fixes (focused 15/15; dependent
-  authorization/manifest/NPC suite 50/50). Local Flyway V56-V58 and the maint
-  role schema remain applied, while the three relation item-group tables remain
-  absent. Formal data counts remain recipes 11,658 / ingredients 19,601 /
-  stations 15,195 and boss groups 33.
+  Current execution snapshot: Batch 03 consumed all three exact identities.
+  Schema completed and created/verified the missing three relation item-group
+  tables with zero rows; plan progress is 62/86. Recipe completed its importer
+  stage then stopped on a second direct mysql loader; boss strict import rolled
+  back because the backend rejected all 21 valid GIF uploads. RED-to-GREEN
+  repairs now cover both remaining recipe stages, validated managed GIF upload,
+  and the boss manifest's backend contract. Formal counts remain recipes 11,658
+  / ingredients 19,601 / stations 15,195 and boss groups 33.
   Batch 02 NPC outputs are valid and frozen as 25 normalized/audit pairs. NPC
   apply remains fail-closed only because its cross-capability write set has no
   ownership-valid executor or execution manifest. Image sync changed exactly
   1,788 item `imageUrl` fields, but the latest read-only domain gate is 39 pass /
-  5 warning / 1 blocked because 4,012 item rows lack a source and 331 candidates
-  did not produce managed URLs.
-  Fresh technically complete schema, recipe, and boss requests form proposal
-  `canonical-downstream-batch-03-20260729`: `b5319004...34a87e`,
-  `d4f6b0a3...11eefa4`, and `40090985...d07af5`. No Batch 03 packet exists;
-  exact Owner authorization is required. Batch 02 identities cannot be reused.
+  4 warning / 2 blocked because item image coverage and the partially completed
+  recipe pipeline remain blocked.
+  Fresh technically complete recipe and boss requests form proposal
+  `canonical-downstream-batch-04-20260729`: `679684a1...fe71d9` and
+  `59292fc0...7c5bc8`. No Batch 04 packet exists; exact Owner authorization is
+  required. Batch 03 identities cannot be reused.
   Offline preparation has now regenerated the technically complete canonical
   group bootstrap request after the item-image byte change:
   `sha256:9461520c1788e5aa84d8eb45e7be3580ecb31a206de737b6505479e343b69096`
@@ -101,17 +99,18 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   regenerated against policy-set hash
   `sha256:fddd9c42ad0f2c22c4d611f63fb06fbe2444e4aea97029d0c11396e66d0b0e3c`.
   All six Batch 01 decision identities are consumed. Projectile, recipe crawl,
-  and NPC crawl completed; schema/recipe/boss need exact Batch 03 retries, while
-  the partial image result remains blocked on source/upload coverage. The fresh post-bootstrap
+  and NPC crawl completed; Batch 03 completed schema while recipe and boss now
+  need the exact Batch 04 retries. The partial image result remains blocked on
+  source/upload coverage. The fresh post-bootstrap
   full gate passes data workflow 287/287 and automation contracts 177/177;
-  the latest read-only domain rerun fail-closes at 39 pass / 5 warning / 1 blocked
+  the latest read-only domain rerun fail-closes at 39 pass / 4 warning / 2 blocked
   evidence checkpoint. Focused Node validation passes 88/88 and backend
   validation passes 227/227. The packet-consuming Node runner is the single
   formal write path; the unused backend apply bean remains fail-closed. Only
   `canonical-npc-apply` has no executor because its proposed write set crosses
   capability owners. Its valid 25-target manifest and real crawler outputs are
   present, but the apply evidence contract is not satisfied. Local V56-V58 and
-  maint role schema are applied; no group or NPC T2 apply has run.
+  maint/relation role schemas are applied; no group or NPC T2 apply has run.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:

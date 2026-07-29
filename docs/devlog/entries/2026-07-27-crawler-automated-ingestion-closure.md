@@ -44,6 +44,12 @@
   import rolled back. Consumed recipe/NPC/image/boss decision identities cannot
   be reused. The unconsumed schema identity remains bound to the superseded
   request and is not treated as authorization for replacement bytes.
+- System Owner authorization received on 2026-07-29 for exact proposal
+  `canonical-downstream-batch-03-20260729`. Schema, recipe, and boss were
+  executed serially with independent fail-close boundaries. All three one-time
+  identities are consumed. Schema completed; recipe stopped after its importer
+  stage on a second direct mysql loader; boss rolled back after the backend
+  rejected all 21 valid GIF uploads. Neither failed identity is reusable.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -479,6 +485,46 @@
   candidate uploads without a managed URL. Boss source/relation/image, recipe
   blocking, and shimmer blocking remain warnings. No threshold was weakened and
   no report was fabricated.
+- Batch 03 schema completed with local Flyway already at V58 and zero new local
+  migrations. The governed role-schema executor verified maint and created the
+  missing relation schema; `relation_item_groups`,
+  `relation_item_group_members`, and `relation_item_group_aliases` now exist
+  with their expected indexes and zero business rows. The schema result is
+  complete, the decision ledger contains its identity exactly once, and the
+  post-run transaction count is zero.
+- Batch 03 recipe consumed `canonical-recipe-apply-20260729-02`. Its importer
+  completed the frozen 3,663-row input stage, after which
+  `backfill-recipe-zh-display-names.mjs` failed to resolve `mysql2/promise`.
+  Formal totals remained 11,658 recipes / 19,601 ingredients / 15,195 stations
+  with zero active transactions; the import report exists but consolidation
+  and pipeline summary reports do not. A read-only post-repair smoke proves
+  124 group ingredient updates and a 45-activate / 3,429-deactivate provider
+  consolidation remain pending.
+- Batch 03 boss consumed `canonical-boss-import-20260729-03` and rolled back
+  with 21 failed boss images, zero unresolved bosses, and zero missing member
+  images. Frozen input inspection and backend logs localize the exact boundary:
+  29 candidates are 21 GIF plus 8 PNG, the wiki GIF source is reachable, and
+  `MinioObjectStorageServiceImpl` rejected every GIF through the avatar-only
+  JPEG/PNG/WebP validator. Boss groups remain 33 and no result report was
+  written because strict failure precedes report persistence.
+- RED-to-GREEN repairs now route both remaining recipe database stages through
+  the repository mysql loader and validate real GIF87a/GIF89a entity uploads
+  without changing avatar policy; spoofed GIF and SVG uploads remain rejected.
+  Boss manifests now bind the backend upload controller/service/validator
+  contract rather than only the Node importer. Node recipe tests pass 10/10,
+  manifest/authorization tests pass 23/23, and MinIO service tests pass 9/9.
+- Replacement recipe and boss requests have zero technical gaps and form
+  proposal `canonical-downstream-batch-04-20260729`, expiring
+  `2026-08-01T00:37:00.000Z`: recipe
+  `sha256:679684a1184c9b4b6d11f6f0eb1de2803846c4d8df8eac9629513aac53fe71d9`
+  and boss
+  `sha256:59292fc0a919b56dff26f8d1ee840477a88aeccbbd82576b95e868b5877c5bc8`.
+  The boss request targets an isolated worktree backend at `18192`; no packet
+  exists and neither operation has been retried.
+- The fresh post-Batch-03 read-only domain result is 39 pass / 4 warning / 2
+  blocked. Relation schema readiness is restored. Items image readiness and
+  recipe blocking gate are blocked; boss source/relation/image and shimmer
+  blocking remain warnings. No report was written and no gate was weakened.
 
 ## Result
 
@@ -545,13 +591,22 @@
   partial item image localization described above. Schema, recipe, and boss
   remain fail-closed at their recorded pre-dispatch/pre-connection/rollback
   boundaries.
+- Completed in formal Batch 03: the exact schema operation consumed its
+  one-time identity, preserved Flyway V58, and created/verified all missing
+  relation role tables and indexes. Recipe and boss consumed their independent
+  identities and stopped at the recorded partial-import and rollback boundaries.
+- Completed in code-only repair after Batch 03: both remaining recipe stages
+  use the repository mysql loader; managed entity uploads accept validated GIF
+  while avatar restrictions remain unchanged; the boss manifest binds the
+  backend upload contract. Replacement Batch 04 requests are technically
+  complete but not authorized.
 - Completed in code-only repair: NPC paired audit identity and redirected
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
-- Not completed: NPC ownership-valid apply orchestration, Task 10's five
-  warning panels plus the blocked item-image panel, Task 11 isolated NPC T1, Task 12 Owner
-  authorization for the remaining independent operations, Task 13, Task 14
+- Not completed: NPC ownership-valid apply orchestration, Task 10's four
+  warning panels plus the blocked item-image and recipe panels, Task 11 isolated NPC T1, Task 12 Owner
+  authorization for the remaining independent operations, Task 13 Steps 3-7, Task 14
   Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every formal apply or
   activation checkpoint after bootstrap.
 
@@ -565,18 +620,16 @@
   audit files predate the paired-identity repair. Batch 02 repaired that evidence
   and produced a complete frozen data bundle, but apply/T1 still require an
   ownership-valid executor and separate exact authorization.
-- Five warning panels and one blocked image panel depend on real
+- Four warning panels and two blocked panels depend on real
   import/image/source evidence and cannot pass before their independently
   authorized operations or source repair. Empty-shell and
   dry-run artifacts now fail closed; armor and projectile are no longer warnings.
-  The fresh post-image read-only domain rerun reports exactly 39 pass / 5 warning / 1 blocked.
-- Local V56/V57/V58 and the maint role schema are applied, but the relation
-  canonical item-group role tables are still absent and no schema result JSON
-  exists. The group bootstrap remains unapplied; isolated T1 evidence does not
-  authorize T2.
-- Batch 03 requests expire at `2026-07-31T21:40:00.000Z`; the refreshed group
-  request expires ten minutes later. Expired requests must be regenerated from
-  current bytes and fingerprints rather than reused.
+  The fresh post-Batch-03 read-only domain rerun reports exactly 39 pass / 4 warning / 2 blocked.
+- Local V56/V57/V58 plus maint and relation role schemas are applied. The group
+  bootstrap remains unapplied; isolated T1 evidence does not authorize T2.
+- Batch 03 is fully accounted for and all three identities are consumed. Recipe
+  and boss retries require the exact replacement Batch 04 hashes; conversational
+  continuation or the old Batch 03 authorization cannot authorize changed bytes.
 - Batch 02 is fully accounted for; four of its decision identities are consumed
   and the schema identity was never consumed but is bound to superseded bytes.
   None authorizes Batch 03.
@@ -598,12 +651,12 @@
 ## Follow-up
 
 - System Owner: authorize exact proposal
-  `canonical-downstream-batch-03-20260729` for the relation-role schema retry,
-  recipe apply retry, and boss import retry. The item image source repair and
+  `canonical-downstream-batch-04-20260729` for the recipe apply retry and boss
+  import retry against the isolated worktree backend. The item image source repair and
   any retry require a separate future request. Task 10 Steps 5-6, NPC apply/T1, T2, both L1
   applies, L2, and scheduler activation remain separate packets.
 - Immediate authorization checkpoint: authorize exact proposal
-  `canonical-downstream-batch-03-20260729` before its three request hashes are
+  `canonical-downstream-batch-04-20260729` before its two request hashes are
   converted to packets or dispatched. Group bootstrap and biomes L1
   promotion retain their own later requests and must not be folded into that
   authorization.
