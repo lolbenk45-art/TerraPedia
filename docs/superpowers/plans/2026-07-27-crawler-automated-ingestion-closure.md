@@ -1223,7 +1223,7 @@ no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
 - [x] **Step 1: Apply authorized V56/V57/V58 schema packet**
 - [x] **Step 2: Re-read schema and verify exact table/index fingerprints**
 - [x] **Step 3: Apply authorized frozen group bootstrap once**
-- [ ] **Step 4: Run shadow parity, disable group JSON fallback, restart through standard scripts, and run read-only API/runtime smoke**
+- [x] **Step 4: Run shadow parity, disable group JSON fallback, restart through standard scripts, and run read-only API/runtime smoke**
 - [ ] **Step 5: Execute separately authorized real NPC crawler and frozen NPC apply**
 - [ ] **Step 6: Generate fresh canonical group, canonical NPC, and bridge-retirement reports**
 - [ ] **Step 7: Flip each source contract only after its exact report passes**

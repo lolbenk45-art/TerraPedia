@@ -16,6 +16,8 @@ const expectedPostCutoverInventory = [
   entry('scripts/data/audit/audit-any-item-group-sources.mjs', 'governance'),
   entry('scripts/data/audit/canonical-source-contract-registry.mjs', 'governance'),
   entry('scripts/data/audit/domain-readiness-audit.mjs', 'governance'),
+  entry('scripts/data/automation/canonical-operation-catalog.mjs', 'governance'),
+  entry('scripts/data/automation/canonical-operation-execution-manifest.mjs', 'governance'),
   entry('scripts/data/generate/generate-item-group-overrides.mjs', 'compat_export'),
   entry('scripts/data/generate/generate-recipe-material-reference.mjs', 'compat_export'),
   entry('scripts/data/item-groups/item-group-bootstrap.mjs', 'bootstrap'),
@@ -87,6 +89,8 @@ function classifyRole(relativePath) {
   }
   if (
     relativePath.startsWith('scripts/data/audit/')
+    || relativePath === 'scripts/data/automation/canonical-operation-catalog.mjs'
+    || relativePath === 'scripts/data/automation/canonical-operation-execution-manifest.mjs'
     || relativePath === 'scripts/data/item-groups/item-group-readiness.mjs'
     || relativePath === 'scripts/data/relation/relation-table-catalog.mjs'
   ) {

@@ -595,7 +595,25 @@
   progress reached completed 3/3, and post-run active transactions are zero.
   Focused group action, sync, T1, readiness, shadow, and runner tests pass 35/35.
   A read-only domain rerun remains 40 pass / 4 warning / 1 blocked because
-  compatibility fallback and final readiness evidence belong to later steps.
+  final compatibility exports/readiness and source-contract flips belong to
+  later steps.
+- Task 13 Step 4 completed under authorization
+  `canonical-item-group-cutover-step-04-20260729`. The tracked cutover verifier
+  runs formal DB reads inside `START TRANSACTION READ ONLY`, signs a short-lived
+  local admin token without calling the write-bearing login endpoint, scans the
+  exact production JSON inventory, and sends only three GET requests. Evidence
+  `reports/canonical-migration/item-group-cutover-verification.json` is `passed`
+  at SHA-256 `0c642da1f5619432118c9e4ffcb9466df957fa960002b99038f7dbf6ba7995fa`:
+  all three shadows are `PASS`, runtime/API snapshot is `8d3fb0b1...fe819`,
+  direct readers are zero, fallback is false, APIs return 34 item groups and 33
+  recipe groups, and recipe-tree exposes `Any Iron Bar`. Standard slot 13 used
+  backend `18201`, front `15187`, admin `13014`, and Redis DB 13; it started and
+  stopped through the maintained scripts. Post-stop DB13 is empty, the three
+  ports are closed, item-group admin audit remains zero, other active
+  transactions are zero, and main backend `18191` remains UP on PID 654976.
+  Fresh focused validation passes Node 30/30 and backend 34/34; standard
+  preflight also passed backend compile plus both frontend checks. See git for
+  code-level diff details.
 
 ## Result
 
@@ -673,8 +691,11 @@
 - Completed in Task 13 Step 3: the authorized frozen canonical group bootstrap
   consumed `canonical-item-group-bootstrap-20260729-02` once, committed all
   expected landing/maint/relation/local rows in one transaction, published the
-  exact frozen runtime snapshot, and left zero active transactions. Compatibility
-  readers and the running service remain unchanged for Step 4.
+  exact frozen runtime snapshot, and left zero active transactions.
+- Completed in Task 13 Step 4: formal read-only DB/API shadow verification
+  reached group `T2_CUTOVER_VERIFIED`, disabled JSON fallback, preserved the
+  compatibility artifacts as non-runtime inputs, and proved the standard
+  isolated lifecycle without affecting the main stack.
 - Completed in code-only repair after Batch 03: both remaining recipe stages
   use the repository mysql loader; managed entity uploads accept validated GIF
   while avatar restrictions remain unchanged; the boss manifest binds the
@@ -687,7 +708,7 @@
 - Not completed: NPC ownership-valid apply orchestration, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
   Task 12 Owner authorization for the remaining independent operations, Task 13
-  Steps 4-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
+  Steps 5-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
   formal apply or activation checkpoint after bootstrap.
 
 ## Residual Risks
@@ -706,8 +727,9 @@
   The fresh post-Batch-04 read-only domain rerun reports exactly 40 pass / 4
   warning / 1 blocked.
 - Local V56/V57/V58 plus maint and relation role schemas and the frozen group
-  bootstrap are applied. Compatibility readers remain active; bootstrap success
-  alone does not authorize fallback disablement or complete Task 13 Step 4.
+  bootstrap are applied. Runtime JSON fallback is disabled and Step 4 is
+  verified; the three compatibility files remain bounded non-runtime inputs
+  until fresh exports/readiness and explicit source-contract flips pass.
 - Group bootstrap identity `canonical-item-group-bootstrap-20260729-01` was not
   consumed, but its authorization is bound to a superseded request and must not
   be reused. Retry identity `canonical-item-group-bootstrap-20260729-02` is
@@ -735,15 +757,15 @@
 
 ## Follow-up
 
-- System Owner: Batch 04 needs no further authorization. The item image source
+- System Owner: Batch 04 and group Step 4 need no further authorization. The item image source
   repair and any retry require a separate future request. Task 10 Steps 5-6,
-  NPC apply/T1, group T2, both L1 applies, L2, and scheduler activation remain
+  NPC apply/T1, both L1 applies, L2, and scheduler activation remain
   separate packets or decisions.
-- Group bootstrap needs no further apply authorization. Task 13 Step 4 must
-  separately prove live shadow/API parity, disable the JSON fallback, restart
-  through the standard service lifecycle, and run read-only runtime smoke. The
-  independent biomes L1 policy-promotion request remains a later checkpoint and
-  must not be folded into group cutover. Item image and
+- Group bootstrap/cutover needs no further authorization. Task 13 Steps 6-7
+  still require fresh canonical group readiness and an explicit three-contract
+  flip; they are not implied by Step 4. The independent biomes L1
+  policy-promotion request remains a later checkpoint and must not be folded
+  into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
 - Capability owners: decide whether NPC canonical apply is split into separately

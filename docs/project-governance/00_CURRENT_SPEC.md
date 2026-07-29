@@ -51,6 +51,14 @@ restore, own, or report V2 live work. See
 `docs/runbooks/crawler-monitor-queue-v2-cutover.md` for the authenticated
 cutover, first-mutation, reset, and restart procedure.
 
+Canonical item-group runtime reads use the published formal
+`terria_v1_local` projection backed by maint and relation lineage. The admin
+item-group, admin recipe-group, and recipe-tree consumers have no production
+JSON reader or JSON fallback. The three JSON artifacts remain bounded
+bootstrap, compatibility-export, and governance inputs until their independent
+fresh readiness report passes and the source-contract registry is explicitly
+flipped.
+
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
 DB `15`, and exposes verification codes only through the E2E profile's

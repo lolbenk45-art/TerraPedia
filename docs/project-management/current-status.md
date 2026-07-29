@@ -16,12 +16,14 @@ Current sequence:
 
 P0 governance/status synchronization -> P1 crawler monitor and resume/recovery stabilization -> P2 homepage aggregation and public UI polish.
 
-The automated-ingestion closure branch has reached group `CODE_READY/T1_VERIFIED`,
+The automated-ingestion closure branch has reached group `T2_CUTOVER_VERIFIED`,
 NPC fixture `CODE_READY`, formal Flyway V58, and one L0/DISABLED `biomes`
 policy. Batch 02 completed the repaired 25-target NPC crawler and localized
-1,788 item images. Formal relation item-group schema, group T2, NPC apply/T1,
-five warning panels, one blocked item-image panel, the first two L1 applies,
-L2, and scheduler activation remain approval- or evidence-gated.
+1,788 item images. Group runtime reads now have zero production JSON readers
+and no JSON fallback; fresh compatibility exports and source-contract flips
+remain later gates. NPC apply/T1, four warning panels, one blocked item-image
+panel, the first two L1 applies, L2, and scheduler activation remain approval-
+or evidence-gated.
 
 ## Current Gate Boundary
 

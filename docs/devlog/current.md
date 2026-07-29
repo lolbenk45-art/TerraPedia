@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 10:23 CST by Codex
+Last updated: 2026-07-29 11:16 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -39,22 +39,29 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `sha256:dddef0127ccb1fe02e05f9045e06a2dec04af4fbd5a0db937bfa8ff6c7bb51f5`
   exactly once and completed. Readback proves 4 landing sources; maint
   `35/163/72/2`; relation `35/163/72`; local `34/161/70`; `PUBLISHED` state at
-  snapshot `8d3fb0b1...fe819`; and zero active transactions. Compatibility readers
-  and the running service were not changed. Plan progress is now 63/86. The
+  snapshot `8d3fb0b1...fe819`; and zero active transactions. Authorized Task 13
+  Step 4 then reached `T2_CUTOVER_VERIFIED`: all three consumer shadows pass,
+  the exact production inventory has zero runtime JSON readers, fallback is
+  disabled, and live API hash parity passes at 34 item groups / 33 recipe groups
+  with `Any Iron Bar` recipe-tree coverage. The standard slot-13 stack on
+  `18201/15187/13014` started and stopped cleanly; Redis DB 13 was restored to
+  zero, no item-group admin write occurred, and original backend `18191` remains
+  on PID 654976. Evidence hash is `sha256:0c642da1f5619432118c9e4ffcb9466df957fa960002b99038f7dbf6ba7995fa`.
+  Plan progress is now 64/86. The
   independent biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
   it remains `AWAITING_OWNER`. Group bootstrap action/acceptance/shadow/readiness/
   runner validation passes 35/35 and policy-decision validation passes 27/27.
-  Full group cutover still requires Task 13 Step 4 shadow/API evidence, fallback
-  disablement, and an authorized service lifecycle. L1 promotion remains a later
-  independent checkpoint. Boss-loot still lacks its frozen bundle;
+  Fresh group compatibility exports/readiness and the three source-contract
+  flips remain later gates; Step 4 does not authorize them. L1 promotion remains
+  a later independent checkpoint. Boss-loot still lacks its frozen bundle;
   shimmer lacks the raw file and three of five importable data shards in this
   worktree, so neither lane was fabricated or dispatched.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
-  current post-cutover inventory is 10 after registering the explicit readiness
-  and T1 bootstrap readers. Task 2
+  current post-cutover inventory is 12 after registering the explicit readiness,
+  T1 bootstrap, and authorization-manifest governance readers. Task 2
   defines the 4 maint / 3 relation / 4 local canonical group tables, certified
   source/admin partitions, and shared projection-state fence. Task 3 now parses
   the frozen bootstrap at 33 recipe groups / 27 redundant overrides / 2
@@ -62,7 +69,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   deterministic maint/relation/local projection: the real dry-run yields 35
   maint groups, 161 resolved members, one blocked group, and 34 runtime groups;
   the dependency suite passes 123/123 with one existing skip. The group
-  bootstrap remains unapplied. Task 5 now proves the only two allowed shadow
+  bootstrap was unapplied at that checkpoint and is now formally published.
+  Task 5 now proves the only two allowed shadow
   normalizations and an exact 35-row compatibility round trip; its dependency
   suite passes 55/55. Task 6 now cuts backend, recipe expansion, pipeline group
   readers, and the admin page to canonical repositories. Its fresh gates pass

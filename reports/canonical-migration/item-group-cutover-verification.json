@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "reportKind": "canonical_item_group_cutover_verification",
+  "generatedAt": "2026-07-29T03:12:25.860Z",
+  "databaseRole": "t2-readonly",
+  "status": "passed",
+  "writesDatabase": false,
+  "runtimeSnapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+  "shadows": {
+    "adminItemGroups": {
+      "consumer": "adminItemGroups",
+      "status": "PASS",
+      "differences": [],
+      "normalizations": {
+        "duplicateMembersCollapsed": 0,
+        "memberNameZhEnriched": 0
+      }
+    },
+    "adminRecipeGroups": {
+      "consumer": "adminRecipeGroups",
+      "status": "PASS",
+      "differences": [],
+      "normalizations": {
+        "duplicateMembersCollapsed": 0,
+        "memberNameZhEnriched": 0
+      }
+    },
+    "recipeTree": {
+      "consumer": "recipeTree",
+      "status": "PASS",
+      "differences": [],
+      "normalizations": {
+        "duplicateMembersCollapsed": 0,
+        "memberNameZhEnriched": 0
+      }
+    }
+  },
+  "consumerContract": {
+    "directJsonReaders": 0,
+    "fallbackEnabled": false
+  },
+  "api": {
+    "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+    "adminItemGroupCount": 34,
+    "adminRecipeGroupCount": 33,
+    "recipeTree": {
+      "sampleGroup": "Any Iron Bar"
+    }
+  },
+  "blockingReasons": [],
+  "operationId": "canonical-item-group-cutover",
+  "bootstrapRunKey": "ig_20260728a12639ff",
+  "bootstrapOperationId": "canonical-item-group-bootstrap",
+  "cutoverState": "T2_CUTOVER_VERIFIED",
+  "counts": {
+    "landing": {
+      "sourceCount": 4,
+      "groupCount": 64
+    },
+    "maint": {
+      "groupCount": 35,
+      "memberCount": 163,
+      "aliasCount": 72,
+      "exclusionCount": 2
+    },
+    "relation": {
+      "groupCount": 35,
+      "memberCount": 163,
+      "aliasCount": 72,
+      "unresolvedCount": 0,
+      "ambiguousCount": 0,
+      "rejectedCount": 2
+    },
+    "local": {
+      "groupCount": 34,
+      "memberCount": 161,
+      "aliasCount": 70
+    }
+  }
+}
