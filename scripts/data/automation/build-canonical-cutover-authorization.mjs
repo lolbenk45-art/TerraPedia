@@ -212,7 +212,7 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     ? readMigrationEntries(root)
     : [];
   let dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
-  if (operationId === 'canonical-npc-apply') {
+  if (operationId === 'canonical-npc-apply' || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')) {
     const crawlerEntries = readNpcCrawlerEntries(root);
     dataEntries = dataEntries === null || crawlerEntries === null
       ? null

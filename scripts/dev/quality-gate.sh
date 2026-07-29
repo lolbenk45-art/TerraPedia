@@ -68,6 +68,7 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/npc-canonical/npc-canonical-readiness.test.mjs \
   scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs \
   scripts/data/npc-canonical/npc-apply-ownership-preparation.test.mjs \
+  scripts/data/npc-canonical/npc-owner-phase-contract.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
   scripts/data/audit/canonical-source-contract-registry.test.mjs \
   scripts/data/audit/build-npc-bridge-retirement-report.test.mjs \

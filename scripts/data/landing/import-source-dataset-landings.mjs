@@ -396,7 +396,7 @@ function validateLandingArtifactContract(row) {
   }
 }
 
-async function prepareLandingRows(entries) {
+export async function prepareLandingRows(entries) {
   const rows = [];
   for (const entry of entries) {
     const payload = await resolveEntryPayload(entry);
@@ -590,7 +590,7 @@ async function assertBootstrapManifestNotReplayed(connection, row) {
   }
 }
 
-async function upsertLandingRow(connection, row, summary) {
+export async function upsertLandingRow(connection, row, summary) {
   const datasetCurrentRows = SINGLE_CURRENT_DATASET_TYPES.has(row.datasetType)
     ? await loadCurrentDatasetRows(connection, row)
     : [];

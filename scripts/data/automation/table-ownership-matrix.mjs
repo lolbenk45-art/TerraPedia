@@ -16,7 +16,11 @@ const EXCLUSIVE_PARTITIONS = Object.freeze({
   item_group_source_layer: Object.freeze({
     resolver: 'resolveItemGroupSourceLayer',
     partitions: new Set(['source_derived', 'central_override'])
-  })
+  }),
+  landing_dataset: Object.freeze({
+    resolver: 'resolveLandingDataset',
+    partitions: new Set(['npcs_base', 'npc_crawler_facts', 'other']),
+  }),
 });
 
 const SERIALIZED_SINGLETONS = Object.freeze({
@@ -193,8 +197,19 @@ const LOCAL_EXCLUSIVE_TABLES = Object.freeze([
 ]);
 
 const localRows = [
-  ...LOCAL_EXCLUSIVE_TABLES.map(([table, capability]) => row({
+  ...LOCAL_EXCLUSIVE_TABLES.filter(([table]) => table !== 'source_dataset_landings').map(([table, capability]) => row({
     key: `local.${table}`, capability, databaseRole: 'local', table
+  })),
+  ...[
+    ['npcs_base', 'npcs_base'],
+    ['npc_crawler_facts', 'npc_crawler_facts'],
+    ['other', 'other'],
+  ].map(([keySuffix, partition]) => row({
+    key: `local.source_dataset_landings.${keySuffix}`,
+    capability: 'landing',
+    databaseRole: 'local',
+    table: 'source_dataset_landings',
+    logicalPredicate: predicatePartition('landing_dataset', partition),
   })),
   row({ key: 'local.items.base', capability: 'items', databaseRole: 'local', table: 'items',
     fieldGroup: 'base_excluding_category_id', columnMode: 'columns',
@@ -394,7 +409,13 @@ export function matchesOwnershipPredicate(entry, candidate) {
       if (layer === 'recipe_reference' || layer === 'source_group') return 'source_derived';
       if (layer === 'central_override') return 'central_override';
       return null;
-    }
+    },
+    resolveLandingDataset: (value) => {
+      const datasetType = value.datasetType ?? value.dataset_type;
+      if (datasetType === 'npcs_base_raw') return 'npcs_base';
+      if (datasetType === 'npc_crawler_facts_raw') return 'npc_crawler_facts';
+      return datasetType ? 'other' : null;
+    },
   }[predicate.resolver];
   if (!resolver) return false;
   return resolver(candidate) === predicate.partition;

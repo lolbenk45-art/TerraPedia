@@ -12,6 +12,7 @@ test('quality gate includes domain acceptance workflow tests', () => {
     'scripts/data/npc-canonical/npc-canonical-readiness.test.mjs',
     'scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs',
     'scripts/data/npc-canonical/npc-apply-ownership-preparation.test.mjs',
+    'scripts/data/npc-canonical/npc-owner-phase-contract.test.mjs',
     'scripts/data/automation/build-canonical-cutover-authorization.test.mjs',
     'scripts/data/audit/domain-readiness-audit.test.mjs',
     'scripts/data/workflow/domain-acceptance-report-manifest.test.mjs',
@@ -21,6 +22,13 @@ test('quality gate includes domain acceptance workflow tests', () => {
     'scripts/data/workflow/domain-acceptance-generate-reports.test.mjs',
   ]) {
     assert.match(source, new RegExp(escapeRegExp(testPath)), `${testPath} should be included in quality gate`);
+  }
+});
+
+test('local and CI gates include canonical NPC owner-phase execution contracts', () => {
+  for (const gatePath of ['scripts/dev/quality-gate.sh', 'scripts/dev/quality-gate-ci.sh']) {
+    const source = fs.readFileSync(gatePath, 'utf8');
+    assert.match(source, /scripts\/data\/npc-canonical\/npc-owner-phase-contract\.test\.mjs/);
   }
 });
 

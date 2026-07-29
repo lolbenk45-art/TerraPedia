@@ -80,6 +80,24 @@
   separately authorized crawler artifact exists; missing import/backfill reports
   remain operation checkpoints rather than code defects; backend registry and
   Task 6-11 file ownership now use exact repository paths.
+- Step 3B continuation audit found that seven independent executors alone could
+  still allow partial NPC publication to be mistaken for completion. The plan
+  now requires a strict seven-phase dependency chain, one shared frozen apply
+  input hash, exact upstream result binding, single-owner transactions, private
+  per-phase result evidence, and a read-only all-seven completion aggregator.
+  A failed phase rolls back only itself; prior committed phases remain evidence,
+  but every downstream phase, NPC T1/readiness, source flip, and later
+  automation gate stays fail-closed until all seven results match one input.
+  The legacy cross-owner `canonical-npc-apply` operation remains non-executable.
+- A second Step 3B audit checked the real formal database and found zero current
+  `npcs_base_raw` / `npc_crawler_facts_raw` landings and zero maint crawler
+  facts. Because `maint_npc_crawler_facts` requires exact landing lineage, the
+  seven downstream phases cannot safely start from filesystem evidence alone.
+  The repaired chain adds one independently authorized `landing` prerequisite
+  that owns only the two NPC logical partitions of
+  `local.source_dataset_landings`; the seven single-owner phases remain intact
+  and phase 1 now binds that landing result. The final aggregator/readiness must
+  verify the prerequisite plus all seven phases for the same input hash.
 - Task 2 implementation audit repaired two Important ownership/model defects:
   local group rows retain `(canonical_key, source_layer)` so consumer-specific
   winner selection remains possible, and the two projection-state writers share
@@ -116,7 +134,7 @@
 - Backend: canonical group repositories, transactional admin writer, crawler automation registry, acceptance APIs, and runtime smoke.
 - Data: group and NPC landing/maint/relation/local chains, compatibility exporters, readiness evidence, warning closure, T0/T1/T2 gates.
 - Docs/process: plan, current facts after they become true, audit records, devlog, and final acceptance.
-- Authorization execution: 17 request contracts plus a formal packet-consuming
+- Authorization execution: independent request contracts plus a formal packet-consuming
   runner; direct producer invocation is not accepted as an authorized result.
 - Out of scope: unrelated product features, redesigning recipe/shimmer/NPC semantics, destructive cleanup, push, or merge.
 
@@ -642,9 +660,38 @@
   seven single-capability phases. The read-only report is `T1_PREPARED` at
   `dbd184b8...2575`, with 9 Buff, 239 shop, and 175 loot facts (172 boss / 3
   non-boss). Every physical ownership key resolves to exactly one current write
-  owner. `formalApplyReady` remains false until seven governed executors and
-  seven independent exact authorization packets exist; no database connection,
-  crawler, or formal apply ran. See git for code-level diff details.
+  owner. `formalApplyReady` remains false until the landing prerequisite and
+  seven owner phases have independent exact authorization packets and formal
+  results; no database connection, crawler, or formal apply ran. See git for
+  code-level diff details.
+- Step 3B implementation now registers the landing prerequisite plus all seven
+  owner-phase operations, binds each manifest to exact table/partition ownership
+  and every predecessor result, executes one transaction per operation, performs
+  transaction-local write/readback count verification, publishes private atomic
+  results, and requires the landing-plus-seven completion artifact for NPC T1/T2
+  readiness. The operation catalog contains 25 stable IDs: 24 have governed
+  manifests and only the retired `canonical-npc-apply` umbrella remains null.
+  The regenerated landing request is technically complete with 53 exact data
+  entries at request hash
+  `sha256:5d37276a373b3d0e32c52a3ed0db5c6248fff927bb4619b5a7f713de7bc64887`;
+  the seven downstream requests intentionally have no `dataBundleSha256` until
+  their exact predecessor result files exist.
+  Focused dependency validation passed 86/86 after the readback regression was
+  reproduced RED and repaired GREEN. See git for code-level diff details.
+- Fresh full-gate validation passed data workflow 303/303 and automation
+  contracts 177/177, then stopped at the expected read-only domain result of 40
+  pass / 4 warning / 1 blocked / 0 written. Exit 1 is the preserved project
+  fail-close, not a failure in the Step 3B contract suite. Fresh formal-database
+  readback remains zero NPC base landings, zero crawler-fact landings, zero
+  active maint crawler facts, and zero active transactions. Main backend
+  `/api/actuator/health` remains `UP` on PID 654976.
+- Inline self-review by Codex covered the complete Step 3B code, tests, gates,
+  manifests, plan, and devlog diff; no subagent was used per user direction. Two
+  Important findings were resolved: the production adapter now performs a real
+  transaction-local readback instead of echoing planned counts, and preparation
+  no longer reports already-registered executors as missing. RED/GREEN evidence
+  and the fresh focused/full validation above satisfy re-review; no Critical or
+  Important finding remains open for this commit scope.
 - Batch 05 pre-commit validation reproduced the partial-publication readiness
   gap as RED at 3/4, then passed publisher/readiness GREEN at 7/7 and the full
   focused chain at 64/64. The complete local gate again passed data workflow
@@ -741,6 +788,11 @@
 - Completed in Batch 05 for NPC preparation: the cross-capability write set is
   decomposed into seven exact single-owner phases and real frozen evidence is
   `T1_PREPARED`; formal execution remains intentionally unavailable.
+- Completed in Task 12A Step 3B: one `landing` prerequisite and seven strict
+  owner phases now have packet-consuming executors, current-byte manifests,
+  exact predecessor/result binding, transaction-local write/readback checks,
+  private result evidence, and an all-eight completion gate. The legacy umbrella
+  remains non-executable, and partial completion cannot unlock downstream gates.
 - Completed in code-only repair after Batch 03: both remaining recipe stages
   use the repository mysql loader; managed entity uploads accept validated GIF
   while avatar restrictions remain unchanged; the boss manifest binds the
@@ -750,8 +802,8 @@
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
-- Not completed: the seven NPC owner-specific executors/authorizations and real
-  T1/apply, Task 10's four
+- Not completed: the landing-plus-seven NPC formal authorizations/executions and
+  real T1/apply, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
   Task 12 Owner authorization for the remaining independent operations, Task 13
   Steps 5-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
@@ -761,8 +813,10 @@
 
 - Every remaining formal operation still depends on its own exact System Owner
   reason/reference/decision identity; the consumed bootstrap identity cannot be reused.
-- Deferred NPC facts now have real paired crawler evidence; the ownership-valid
-  executor remains blocking rather than falling back to the retired bridge.
+- Deferred NPC facts now have real paired crawler evidence and ownership-valid
+  executors. Formal progress is blocked only on the exact landing authorization,
+  then seven requests regenerated from committed predecessor results; no phase
+  may fall back to the retired bridge.
 - The first NPC crawler output is not reusable as apply evidence because its
   audit files predate the paired-identity repair. Batch 02 repaired that evidence
   and produced a complete frozen data bundle, but apply/T1 still require an
@@ -797,11 +851,13 @@
 - Full backend `mvn test` is not green because six observed failures remain in
   unrelated pre-existing test areas; the task-owned focused backend suite is
   green after repairing its four queue contract failures.
-- Sixteen formal operations have governed executors. Only
+- Twenty-four formal operations have governed executors. Only
   `canonical-npc-apply` lacks a manifest, by design, because its write set crosses
-  capability owners. Recipe apply now has complete technical input. Boss-loot,
-  shimmer, NPC apply, and biomes apply lanes still lack producer, ownership, or
-  preview-bundle inputs. Group bootstrap is applied; biomes L1 promotion has a
+  capability owners. Its landing request is the only immediately complete NPC
+  formal request; each later owner-phase request intentionally lacks its data
+  bundle until the exact predecessor result exists. Recipe apply now has complete
+  technical input. Boss-loot, shimmer, and biomes apply lanes still lack producer
+  or preview-bundle inputs. Group bootstrap is applied; biomes L1 promotion has a
   technically complete frozen request but remains independently Owner-gated.
   These are data/governance blockers rather than missing entrypoint code.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
@@ -822,10 +878,11 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- Capability owners: Batch 05 prepared the recommended seven-operation split
-  and exact ownership keys. Each phase still needs its governed executor and
-  independent authorization contract. Until then, `canonical-npc-apply`
-  remains `executor: null` even after crawler evidence exists.
+- System Owner: authorize only the current exact
+  `canonical-npc-landing-apply` request first. After it commits, regenerate and
+  authorize each of the seven downstream requests serially; every request must
+  bind all exact predecessor result bytes. The legacy `canonical-npc-apply`
+  remains `executor: null` throughout and cannot substitute for these packets.
 
 ## Commits
 

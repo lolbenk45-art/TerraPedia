@@ -235,7 +235,7 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes all 17 independent stable IDs', () => {
+test('operation request builder exposes the legacy umbrella plus 24 independent stable IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-image-sync',
@@ -249,6 +249,14 @@ test('operation request builder exposes all 17 independent stable IDs', () => {
     'canonical-item-group-bootstrap',
     'canonical-npc-crawler',
     'canonical-npc-apply',
+    'canonical-npc-landing-apply',
+    'canonical-npc-facts-maint-apply',
+    'canonical-npc-item-relations-apply',
+    'canonical-npc-buff-relations-apply',
+    'canonical-npc-town-shop-projection-apply',
+    'canonical-npc-buff-projection-apply',
+    'canonical-npc-nonboss-loot-projection-apply',
+    'canonical-npc-boss-loot-projection-apply',
     'automation-biomes-l1-policy-promotion',
     'automation-biomes-first-l1',
     'automation-biomes-second-l1',
@@ -367,6 +375,7 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
       expiresAt: EXPIRES_AT,
     });
     const expectedPaths = operationId === 'canonical-npc-apply'
+      || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
       ? undefined
       : CANONICAL_OPERATION_DATA_PATHS[operationId];
     assert.deepEqual(

@@ -5,8 +5,15 @@ import { fileURLToPath } from 'node:url';
 
 import {
   CANONICAL_CUTOVER_OPERATION_IDS,
+  CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './canonical-operation-catalog.mjs';
+import { NPC_APPLY_OWNER_PHASES } from '../npc-canonical/npc-apply-ownership-preparation.mjs';
+
+const NPC_OWNER_OPERATION_IDS = Object.freeze([
+  'canonical-npc-landing-apply',
+  ...NPC_APPLY_OWNER_PHASES.map((phase) => phase.operationId),
+]);
 
 const AUTHORIZED_CONTEXT_CODE_PATHS = Object.freeze([
   'scripts/data/automation/authorized-operation-context.mjs',
@@ -143,6 +150,12 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/lib/mysql-module.mjs',
     'scripts/data/lib/project-root.mjs',
   ]),
+  ...Object.fromEntries(NPC_OWNER_OPERATION_IDS.map((operationId) => [operationId, Object.freeze([
+    'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
+    'scripts/data/npc-canonical/npc-apply-ownership-preparation.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/lib/mysql-module.mjs',
+  ])])),
 });
 
 export const CANONICAL_EXECUTABLE_OPERATION_IDS = Object.freeze(
@@ -506,8 +519,41 @@ function buildDefinition(operationId, artifactDate, npcLimit, backendApiBase) {
     'automation-biomes-second-l1': biomesApplyDefinition({ operationId }),
     'automation-biomes-l2-promotion': policyDecisionDefinition({ operationId }),
     'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
+    ...Object.fromEntries(NPC_OWNER_OPERATION_IDS.map((npcOperationId) => [
+      npcOperationId,
+      npcOwnerDefinition({ operationId: npcOperationId }),
+    ])),
   };
   return definitions[operationId];
+}
+
+function npcOwnerDefinition({ operationId }) {
+  const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+  const phase = NPC_APPLY_OWNER_PHASES.find((candidate) => candidate.operationId === operationId);
+  const landing = operationId === 'canonical-npc-landing-apply';
+  return {
+    executionClass: landing ? 'formal_npc_landing_apply' : 'formal_npc_owner_phase_apply',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      '--input=reports/authorization/canonical/canonical-npc-apply.input.json',
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: landing
+      ? [
+          'local.source_dataset_landings.npcs_base',
+          'local.source_dataset_landings.npc_crawler_facts',
+        ]
+      : [...phase.ownershipKeys],
+    requiredOperationIds: landing ? [] : [...phase.requiredOperationIds],
+    databaseWrites: true,
+    networkAccess: false,
+  };
 }
 
 function requireBackendApiBase(operationId, value) {

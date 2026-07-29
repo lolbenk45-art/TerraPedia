@@ -9,40 +9,47 @@ import { TABLE_OWNERSHIP_MATRIX } from '../automation/table-ownership-matrix.mjs
 
 export const NPC_APPLY_OWNERSHIP_PREPARATION_SCHEMA_VERSION = 1;
 
-function phase(operationId, capability, ownershipKeys) {
+const NPC_LANDING_OPERATION_ID = 'canonical-npc-landing-apply';
+
+function phase(phaseIndex, operationId, capability, ownershipKeys, previousPhases) {
   return Object.freeze({
+    phaseIndex,
     operationId,
     capability,
     ownershipKeys: Object.freeze([...ownershipKeys]),
+    requiredOperationIds: Object.freeze([
+      NPC_LANDING_OPERATION_ID,
+      ...previousPhases,
+    ]),
   });
 }
 
 export const NPC_APPLY_OWNER_PHASES = Object.freeze([
-  phase('canonical-npc-facts-maint-apply', 'npc_crawler_facts', [
+  phase(1, 'canonical-npc-facts-maint-apply', 'npc_crawler_facts', [
     'maint.maint_npc_crawler_facts.canonical',
-  ]),
-  phase('canonical-npc-item-relations-apply', 'items', [
+  ], []),
+  phase(2, 'canonical-npc-item-relations-apply', 'items', [
     'relation.item_source_facts.items',
     'relation.item_source_details.items',
     'relation.item_npc_shop_relations.items',
     'relation.item_npc_loot_relations.items',
-  ]),
-  phase('canonical-npc-buff-relations-apply', 'buffs', [
+  ], ['canonical-npc-facts-maint-apply']),
+  phase(3, 'canonical-npc-buff-relations-apply', 'buffs', [
     'relation.npc_buff_relations.buffs',
-  ]),
-  phase('canonical-npc-town-shop-projection-apply', 'town_npc_maintenance', [
+  ], ['canonical-npc-facts-maint-apply', 'canonical-npc-item-relations-apply']),
+  phase(4, 'canonical-npc-town-shop-projection-apply', 'town_npc_maintenance', [
     'local.npc_shop_entries',
     'local.npc_shop_conditions',
-  ]),
-  phase('canonical-npc-buff-projection-apply', 'buffs', [
+  ], ['canonical-npc-facts-maint-apply', 'canonical-npc-item-relations-apply', 'canonical-npc-buff-relations-apply']),
+  phase(5, 'canonical-npc-buff-projection-apply', 'buffs', [
     'local.npc_buff_relations.buffs',
-  ]),
-  phase('canonical-npc-nonboss-loot-projection-apply', 'npc_loot', [
+  ], ['canonical-npc-facts-maint-apply', 'canonical-npc-item-relations-apply', 'canonical-npc-buff-relations-apply', 'canonical-npc-town-shop-projection-apply']),
+  phase(6, 'canonical-npc-nonboss-loot-projection-apply', 'npc_loot', [
     'local.npc_loot_entries.non_boss',
-  ]),
-  phase('canonical-npc-boss-loot-projection-apply', 'boss_loot', [
+  ], ['canonical-npc-facts-maint-apply', 'canonical-npc-item-relations-apply', 'canonical-npc-buff-relations-apply', 'canonical-npc-town-shop-projection-apply', 'canonical-npc-buff-projection-apply']),
+  phase(7, 'canonical-npc-boss-loot-projection-apply', 'boss_loot', [
     'local.npc_loot_entries.boss',
-  ]),
+  ], ['canonical-npc-facts-maint-apply', 'canonical-npc-item-relations-apply', 'canonical-npc-buff-relations-apply', 'canonical-npc-town-shop-projection-apply', 'canonical-npc-buff-projection-apply', 'canonical-npc-nonboss-loot-projection-apply']),
 ]);
 
 function stableValue(value) {
@@ -115,13 +122,15 @@ function validatePhases(phases, ownershipRows) {
       throw new Error(`${operationId} must have a single capability owner`);
     }
     return {
+      phaseIndex: Number(candidate.phaseIndex),
       operationId,
       capability,
       ownershipKeys: [...candidate.ownershipKeys],
+      requiredOperationIds: [...candidate.requiredOperationIds],
       targets,
       ownerValid: true,
       authorizationRequiredForFormal: true,
-      formalExecutorRegistered: false,
+      formalExecutorRegistered: true,
     };
   });
 }
@@ -216,7 +225,7 @@ export async function buildNpcApplyOwnershipPreparation({
     sourceOperationId: input.operationId,
     state: 'T1_PREPARED',
     formalApplyReady: false,
-    formalBlocker: 'seven owner-specific executors and seven independent exact authorizations are still required',
+    formalBlocker: 'the landing prerequisite and seven owner-specific phases still require independent exact authorizations and formal execution',
     evidence: {
       inputHash: sha256(input),
       targetManifestHash: input.targetManifest.contentHash,

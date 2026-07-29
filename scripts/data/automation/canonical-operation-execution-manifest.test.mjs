@@ -16,9 +16,9 @@ import {
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 
-test('manifest builder covers 16 governed operations and keeps NPC apply explicitly fail closed', () => {
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 17);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 16);
+test('manifest builder covers 24 governed operations and keeps NPC apply explicitly fail closed', () => {
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 25);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 24);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)

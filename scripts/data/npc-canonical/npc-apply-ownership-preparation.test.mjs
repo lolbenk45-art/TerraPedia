@@ -27,6 +27,14 @@ test('NPC apply is split into seven single-owner phases with exact physical owne
     ['canonical-npc-nonboss-loot-projection-apply', 'npc_loot'],
     ['canonical-npc-boss-loot-projection-apply', 'boss_loot'],
   ]);
+  assert.deepEqual(NPC_APPLY_OWNER_PHASES.map((phase) => phase.phaseIndex), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(NPC_APPLY_OWNER_PHASES[0].requiredOperationIds, [
+    'canonical-npc-landing-apply',
+  ]);
+  assert.deepEqual(NPC_APPLY_OWNER_PHASES[6].requiredOperationIds, [
+    'canonical-npc-landing-apply',
+    ...NPC_APPLY_OWNER_PHASES.slice(0, 6).map((phase) => phase.operationId),
+  ]);
   const ownershipByKey = new Map(TABLE_OWNERSHIP_MATRIX.map((row) => [row.key, row]));
   const allKeys = new Set();
   for (const phase of NPC_APPLY_OWNER_PHASES) {
@@ -60,7 +68,9 @@ test('real 25-pair evidence becomes a read-only owner-valid T1 preparation', asy
   assert.equal(report.phases.length, 7);
   assert.equal(report.phases.every((phase) => phase.ownerValid === true), true);
   assert.equal(report.phases.every((phase) => phase.authorizationRequiredForFormal === true), true);
-  assert.match(report.formalBlocker, /seven owner-specific executors.*authorizations/i);
+  assert.equal(report.phases.every((phase) => phase.formalExecutorRegistered === true), true);
+  assert.match(report.formalBlocker, /landing prerequisite.*seven owner-specific phases.*exact authorizations/i);
+  assert.doesNotMatch(report.formalBlocker, /executors.*required/i);
 });
 
 test('preparation fails closed on evidence drift or an ownership mismatch', async () => {

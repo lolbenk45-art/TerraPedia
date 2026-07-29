@@ -56,6 +56,7 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
   scripts/data/npc-canonical/npc-canonical-readiness.test.mjs \
   scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs \
+  scripts/data/npc-canonical/npc-owner-phase-contract.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \
   scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs \

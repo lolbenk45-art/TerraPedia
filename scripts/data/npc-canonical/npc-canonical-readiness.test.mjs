@@ -126,6 +126,17 @@ test('NPC T1 requires rollback restore and zero-leak cleanup evidence', () => {
 
   evidence.t1Evidence = { rollbackPassed: true, restorePassed: true, cleanupPassed: true };
   report = buildNpcCanonicalReadinessReport({ evidence });
+  assert.equal(report.summary.status, 'blocked');
+  assert.ok(report.blockingReasons.some((reason) => /owner.phase completion/i.test(reason)));
+
+  evidence.t1Evidence.ownerPhaseCompletion = {
+    status: 'COMPLETED',
+    operationId: 'canonical-npc-apply',
+    inputHash: HASH,
+    landingResultHash: HASH,
+    phaseResultHashes: Array.from({ length: 7 }, () => HASH),
+  };
+  report = buildNpcCanonicalReadinessReport({ evidence });
   assert.equal(report.readinessLevel, 'T1_VERIFIED');
   assert.equal(report.summary.status, 'pass');
 });
@@ -151,6 +162,13 @@ test('NPC T2 requires exact cutover run decision and technical hashes', () => {
     dataBundleSha256: HASH,
     serverFingerprint: HASH,
     policySetHash: HASH,
+    ownerPhaseCompletion: {
+      status: 'COMPLETED',
+      operationId: 'canonical-npc-apply',
+      inputHash: HASH,
+      landingResultHash: HASH,
+      phaseResultHashes: Array.from({ length: 7 }, () => HASH),
+    },
   });
   report = buildNpcCanonicalReadinessReport({ evidence });
   assert.equal(report.readinessLevel, 'T2_CUTOVER_VERIFIED');

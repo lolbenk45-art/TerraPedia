@@ -61,16 +61,28 @@ The stable operation IDs and dependency order are:
 9. `canonical-schema-v56-v58`: formal V56/V57/V58 schema application;
 10. `canonical-item-group-bootstrap`: frozen group bootstrap apply;
 11. `canonical-npc-crawler`: real bounded NPC crawler;
-12. `canonical-npc-apply`: frozen NPC crawler-fact apply;
-13. `automation-biomes-l1-policy-promotion`: exact L1 policy promotion;
-14. `automation-biomes-first-l1`: first frozen L1 apply;
-15. `automation-biomes-second-l1`: second independently frozen L1 apply;
-16. `automation-biomes-l2-promotion`: L2 promotion; and
-17. `automation-biomes-scheduler-activation`: bounded scheduler activation.
+12. `canonical-npc-apply`: retired cross-owner umbrella; permanently
+    non-executable and retained only as the completion identity;
+13. `canonical-npc-landing-apply`: frozen NPC base/crawler landing apply;
+14. `canonical-npc-facts-maint-apply`: maint crawler-fact apply;
+15. `canonical-npc-item-relations-apply`: item relation apply;
+16. `canonical-npc-buff-relations-apply`: Buff relation apply;
+17. `canonical-npc-town-shop-projection-apply`: town/shop projection apply;
+18. `canonical-npc-buff-projection-apply`: Buff projection apply;
+19. `canonical-npc-nonboss-loot-projection-apply`: non-boss loot projection;
+20. `canonical-npc-boss-loot-projection-apply`: boss-loot projection;
+21. `automation-biomes-l1-policy-promotion`: exact L1 policy promotion;
+22. `automation-biomes-first-l1`: first frozen L1 apply;
+23. `automation-biomes-second-l1`: second independently frozen L1 apply;
+24. `automation-biomes-l2-promotion`: L2 promotion; and
+25. `automation-biomes-scheduler-activation`: bounded scheduler activation.
 
-Operations 2-8 are independent after operation 1. Operations 9-12 may continue
-independently where their inputs are complete. A failure in one lane remains
-fail-closed and does not authorize, roll back, or suppress another lane.
+Operations 2-8 are independent after operation 1. Operations 9-11 may continue
+independently where their inputs are complete. Operations 13-20 form one strict
+landing-plus-seven dependency chain after operation 11 has produced the frozen
+input; each still has its own transaction and exact authorization. A failure in
+one lane remains fail-closed and does not authorize, roll back, or suppress an
+unrelated lane. Operation 12 never dispatches.
 
 Before any formal checkpoint, generate an authorization packet containing:
 
@@ -1125,9 +1137,9 @@ the missing actor/reason/reference/decision/exact-hash packet identity.
 
 ## Task 12A: Replace Placeholder Dispatch With Real Governed Executors
 
-The continuation audit found that eight operation IDs had no executable
+The continuation audit found that eight original operation IDs had no executable
 entrypoint. Seven now have packet-consuming formal executors. The remaining
-`canonical-npc-apply` operation cannot legally use one cross-capability writer:
+legacy `canonical-npc-apply` operation cannot legally use one cross-capability writer:
 `npc_crawler_facts` owns only `maint.maint_npc_crawler_facts`, while its
 relation/local consumers are owned by other capabilities. It stays explicitly
 non-executable until the operation is split by owner or a cross-capability
@@ -1149,6 +1161,13 @@ same-transaction/no-independent-connection contract.
 - Create: `scripts/data/automation/run-biomes-automation-operation.mjs`
 - Modify: `scripts/data/automation/canonical-operation-catalog.mjs`
 - Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
+- Create: `scripts/data/npc-canonical/npc-owner-phase-apply.mjs`
+- Modify: `scripts/data/npc-canonical/npc-apply-ownership-preparation.mjs`
+- Modify: `scripts/data/npc-canonical/npc-canonical-readiness.mjs`
+- Modify: `scripts/data/automation/table-ownership-matrix.mjs`
+- Modify: `scripts/data/landing/import-source-dataset-landings.mjs`
+- Modify: `scripts/dev/quality-gate.sh`
+- Modify: `scripts/dev/quality-gate-ci.sh`
 - Modify/add exact same-basename tests for every entrypoint above.
 
 - [x] **Step 1: Add RED contracts for the seven eligible executors and one explicit ownership blocker**
@@ -1173,7 +1192,7 @@ The group path consumes its exact frozen projection, uses one same-server
 three-database transaction, serializes through the projection-state fence,
 publishes backend child progress, and verifies counts and hashes.
 
-- [ ] **Step 3B: Implement an ownership-valid NPC frozen apply entrypoint**
+- [x] **Step 3B: Implement an ownership-valid NPC frozen apply entrypoint**
 
 NPC apply must first resolve the capability-owner split. It then consumes paired
 normalized/audit crawler bytes; it cannot crawl, renormalize, or fall back to
@@ -1185,9 +1204,66 @@ relation and local projection (`buffs`), local shop projection
 (`town_npc_maintenance`), and boss/non-boss local loot partitions
 (`boss_loot` / `npc_loot`) are seven independent owner phases. The read-only
 preparation report proves 25 paired inputs and positive Buff/shop/loot facts.
-Step 3B remains incomplete until all seven phases have governed executors and
-independent exact authorization contracts; the old cross-owner operation stays
-non-executable.
+Step 3B code is complete only when the landing prerequisite and all seven
+phases have governed executors and independent exact authorization contracts;
+the old cross-owner operation stays non-executable. Formal execution remains a
+later Task 13 checkpoint.
+
+Execute the phases as one fail-closed dependency chain, while preserving eight
+independent authorization and transaction boundaries:
+
+0. `canonical-npc-landing-apply` is an independently authorized prerequisite
+   owned by `landing`. It writes only the `npcs_base_raw` and
+   `npc_crawler_facts_raw` logical partitions of
+   `local.source_dataset_landings`, consuming the standardized NPC base plus the
+   same frozen 25 evidence pairs. It must complete before phase 1.
+
+1. `canonical-npc-facts-maint-apply` owns only
+   `maint.maint_npc_crawler_facts.canonical` and requires the exact successful
+   landing-prerequisite result.
+2. `canonical-npc-item-relations-apply` owns only the four `items` relation
+   ownership keys and requires the exact successful phase-1 result.
+3. `canonical-npc-buff-relations-apply` owns only
+   `relation.npc_buff_relations.buffs` and requires phases 1-2.
+4. `canonical-npc-town-shop-projection-apply` owns only the two
+   `town_npc_maintenance` local shop keys and requires phases 1-3.
+5. `canonical-npc-buff-projection-apply` owns only
+   `local.npc_buff_relations.buffs` and requires phases 1-4.
+6. `canonical-npc-nonboss-loot-projection-apply` owns only the non-boss
+   partition of `local.npc_loot_entries` and requires phases 1-5.
+7. `canonical-npc-boss-loot-projection-apply` owns only the boss partition of
+   `local.npc_loot_entries` and requires phases 1-6.
+
+The prerequisite and all seven authorization data bundles must include the same exact raw SHA-256 of
+`reports/authorization/canonical/canonical-npc-apply.input.json`. Each phase
+binds every required upstream result file by path,
+byte length, raw SHA-256, operation ID, ownership keys, committed status, and
+that same input hash. Manifests declare no crawler or network access and expose
+only the phase's exact ownership keys; they must not wrap the broad landing,
+relation, or compatibility sync CLIs.
+
+Each executor revalidates the paired normalized/audit bytes from the frozen
+input without crawling or normalization, starts one transaction, writes only
+its owned rows or partition, verifies exact affected/readback counts, commits,
+and atomically publishes a private schema-v1
+`canonical_npc_owner_phase_result`. A result records the phase index,
+operation/capability, frozen input hash, bound upstream result hashes, exact
+ownership keys, committed status, row counts, deterministic output hash, and
+completion time. On failure it rolls back only the current phase and does not
+publish a successful result. Earlier committed phases remain durable and may be
+referenced by later independently authorized packets; the failed phase needs a
+new exact authorization before retry.
+
+A read-only final aggregator must reject a missing or mismatched landing result,
+or any missing, failed, duplicated,
+out-of-order, stale-input, ownership-drifted, or hash-mismatched phase result.
+Only the landing prerequisite plus all seven successful phase results for one frozen input may produce
+`canonical-npc-apply.completion.json`. NPC T1/readiness must bind that completion
+artifact and independently revalidate all seven results before it can pass.
+Partial completion never unlocks T1, T2, a source flip, L1/L2, or scheduler
+eligibility. `canonical-npc-apply` remains in the catalog with `executor: null`
+as the retired cross-owner umbrella; the landing prerequisite and seven owner
+operations are added as separate governed IDs.
 
 - [x] **Step 4: Implement automation preview, persistence, and apply ownership**
 
@@ -1210,8 +1286,9 @@ an unbounded scheduler run.
 
 - [x] **Step 6: Regenerate manifests and requests from current bytes**
 
-Sixteen operations have real governed manifests; `canonical-npc-apply` has the
-explicit ownership blocker. All 17 request artifacts remain `AWAITING_OWNER`
+Sixteen original operations plus the landing prerequisite and seven NPC owner
+phases have real governed manifests; `canonical-npc-apply` has the explicit
+ownership blocker. The generated request artifacts remain `AWAITING_OWNER`
 and retain their operation-specific input blockers. The packet runner's
 no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
 

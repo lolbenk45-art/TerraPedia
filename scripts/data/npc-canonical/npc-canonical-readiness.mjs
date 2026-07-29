@@ -94,6 +94,7 @@ function evaluate(report, { requiredLevel = null } = {}) {
     check('t1-rollback', report.t1Evidence?.rollbackPassed === true, 'NPC T1 rollback evidence must pass');
     check('t1-restore', report.t1Evidence?.restorePassed === true, 'NPC T1 restore evidence must pass');
     check('t1-cleanup', report.t1Evidence?.cleanupPassed === true, 'NPC T1 zero-leak cleanup evidence must pass');
+    checkOwnerPhaseCompletion(report.t1Evidence?.ownerPhaseCompletion, check);
   } else if (report.evidenceScope === 'formal-t2') {
     check('database-role', report.databaseRole === 't2-readonly', 'NPC T2 readiness databaseRole must be t2-readonly');
     check('cutover-state', report.cutoverIdentity?.state === 'T2_CUTOVER_VERIFIED', 'NPC canonical cutover is not T2_CUTOVER_VERIFIED');
@@ -108,6 +109,7 @@ function evaluate(report, { requiredLevel = null } = {}) {
     ]) {
       check(`cutover-${field}`, isHash(report.cutoverIdentity?.[field]), `NPC canonical ${label} must be SHA-256`);
     }
+    checkOwnerPhaseCompletion(report.cutoverIdentity?.ownerPhaseCompletion, check);
   }
 
   if (requiredLevel) {
@@ -132,6 +134,23 @@ function evaluate(report, { requiredLevel = null } = {}) {
   check('bridge-hash', isHash(report.bridgeRetirement?.snapshotHash), 'NPC bridge retirement snapshot hash must be SHA-256');
 
   return { valid: blockingReasons.length === 0, checks, blockingReasons };
+}
+
+function checkOwnerPhaseCompletion(completion, check) {
+  check(
+    'owner-phase-completion-status',
+    completion?.status === 'COMPLETED' && completion?.operationId === 'canonical-npc-apply',
+    'NPC owner-phase completion must be COMPLETED for canonical-npc-apply',
+  );
+  check('owner-phase-completion-input', isHash(completion?.inputHash), 'NPC owner-phase completion input hash must be SHA-256');
+  check('owner-phase-completion-landing', isHash(completion?.landingResultHash), 'NPC owner-phase completion landing result hash must be SHA-256');
+  check(
+    'owner-phase-completion-results',
+    Array.isArray(completion?.phaseResultHashes)
+      && completion.phaseResultHashes.length === 7
+      && completion.phaseResultHashes.every(isHash),
+    'NPC owner-phase completion must bind exactly seven phase result hashes',
+  );
 }
 
 function checkLanding(report, check) {

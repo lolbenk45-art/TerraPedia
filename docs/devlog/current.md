@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 12:33 CST by Codex
+Last updated: 2026-07-29 13:35 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -10,8 +10,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
-  blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints,
-  plus an ownership-valid `canonical-npc-apply` split/orchestration decision;
+  blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints;
+  next formal dependency is the exact `canonical-npc-landing-apply` request,
+  followed by seven independently regenerated owner-phase requests;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
   identities exactly once and both completed. Recipe applied the frozen 3,663
@@ -23,8 +24,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   backend on `18192` exited, Redis DB 14 is empty, the database has zero active
   transactions, and the original `18191` backend remains on PID 654976.
   Batch 02 NPC outputs are valid and frozen as 25 normalized/audit pairs. NPC
-  apply remains fail-closed only because its cross-capability write set has no
-  ownership-valid executor or execution manifest. Image sync changed exactly
+  apply remains fail-closed at the exact landing-plus-seven authorization and
+  execution chain. Image sync changed exactly
   1,788 item `imageUrl` fields. The latest read-only domain gate is 40 pass /
   4 warning / 1 blocked: recipe is warning rather than blocked, boss source is
   pass, and item image coverage remains the sole blocked panel. Batch 04 and all
@@ -52,15 +53,31 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   hash `8d3fb0b1...fe819`, separate compatibility hash `54130fe0...00d`, and
   `sourceGroupAudit` fresh/non-blocking; readiness now also binds the three live
   export byte hashes so partial publication fails closed. The full gate still
-  fail-closes after 295/295 data-workflow and 177/177 automation tests at the
+  fail-closes after 303/303 data-workflow and 177/177 automation tests at the
   unchanged 40 pass / 4 warning / 1 blocked domain result, so no source contract
   was flipped. NPC
   frozen evidence is now `T1_PREPARED` as seven single-owner phases with 9 Buff,
-  239 shop, and 175 loot facts; formal apply stays unavailable until seven
-  executors and seven independent exact authorizations exist. No database write,
+  239 shop, and 175 loot facts; formal apply stays unavailable until the landing
+  prerequisite and seven owner phases receive independent exact authorizations
+  and produce committed results. Step 3B is now
+  repaired to require one shared frozen input hash, strict upstream result
+  dependencies, seven independent committed phase results, and an all-seven
+  read-only completion aggregator. Its packet-consuming executor, exact table/
+  partition MySQL adapter, manifests, requests, and readiness gate are now code
+  complete. A formal read-only check found zero NPC
+  base/crawler landings and zero maint crawler facts, so one separate
+  `landing`-owned prerequisite is required before phase 1; completion must bind
+  that result plus all seven phase results. Partial completion cannot unlock readiness.
+  The landing request is technically complete at
+  `sha256:5d37276a373b3d0e32c52a3ed0db5c6248fff927bb4619b5a7f713de7bc64887`;
+  all seven downstream requests intentionally lack `dataBundleSha256` until
+  their exact predecessor results exist. Fresh focused validation passes 86/86;
+  the full gate passes 303/303 data-workflow and 177/177 automation tests before
+  the expected 40 pass / 4 warning / 1 blocked / 0 written domain fail-close.
+  No database write,
   crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. Plan
-  progress remains 64/86 because Task 13 Step 6 and NPC Step 3B are combined
-  gates and remain open. The
+  progress is 65/86; Step 3B is complete, while Task 13's formal NPC execution
+  and readiness gates remain open. The
   independent biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
   it remains `AWAITING_OWNER`. Group bootstrap action/acceptance/shadow/readiness/
@@ -105,7 +122,7 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   5 warning / 1 blocked. Task 11 now reaches fixture-only NPC `CODE_READY`: scoped
   T0 `npc_7a854dc3e2150815` proves 13 tables, paired evidence, one matched fact,
   non-empty Buff/shop/loot relation/local lanes, `0/1/0` transaction counts, and
-  zero cleanup leaks. Task 12 produced seven `AWAITING_OWNER` request hashes;
+  zero cleanup leaks. Task 12 produced the original `AWAITING_OWNER` request hashes;
   those hashes are superseded by the Task 15 V58 authorization-contract repair.
   The exact bootstrap packet has now been consumed once: formal governance holds
   one ACTIVE Owner (`admin`), one `biomes` L0/DISABLED policy, and one immutable
