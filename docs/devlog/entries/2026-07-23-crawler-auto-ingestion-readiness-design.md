@@ -150,6 +150,8 @@
 
 - 2026-07-29 Batch 02 continuation: the repaired bounded NPC crawler and item image sync completed; schema stopped before dispatch on stale manifest identity, recipe stopped before DB connection, and boss import rolled back. Recipe mysql resolution and boss managed-URL-prefix propagation now pass focused and dependent tests. The 25 NPC evidence pairs are frozen but apply remains ownership/executor-blocked. Image sync changed 1,788 item URLs while leaving a truthful 4,012-source / 331-upload gap, so the current read-only domain result is 39 pass / 5 warning / 1 blocked. Fresh schema/recipe/boss proposal `canonical-downstream-batch-03-20260729` is pending exact authorization. Details and hashes live in the child entry.
 
+- 2026-07-29 Wave 2 formal execution: biomes policy-promotion retry completed at policy v1 `L1/ACTIVE` under its one-time packet and preserves the separate L1-apply/L2/scheduler boundaries. NPC phase 1 consumed its first identity but rolled back before a maint row write because row-contract metadata reached the generic SQL column mapper. The owner-module fix has a failing-then-passing production-adapter regression (focused Node 67 pass / 1 existing skip); the newly generated retry request is `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52` and remains `AWAITING_OWNER`. Landing remains 1 base / 25 crawler facts and maint remains 0. See the child entry for packet and readback evidence.
+
 ## Follow-up
 
 - Implementer: continue from the child entry. V56-V58 are registered on formal
@@ -157,8 +159,8 @@
   expired or superseded request and execute only its exact operation after the
   System Owner authorizes the replacement hash.
 - Project/data owner: after the full group chain reaches its separately defined milestone, close or explicitly re-govern the remaining B1 canonical-migration contracts and rerun `bash ./scripts/dev/quality-gate.sh` from the beginning.
-- System Owner: the singleton Owner and `biomes` L0/DISABLED policy now exist.
-  Authorize only exact current requests for the remaining formal retries,
+- System Owner: the singleton Owner is ACTIVE and the exact `biomes` v1 policy
+  is `L1/ACTIVE`. Authorize only exact current requests for the remaining formal retries,
   group/NPC T2, L1/L2, or scheduler checkpoints. Push and merge remain outside
   this task.
 

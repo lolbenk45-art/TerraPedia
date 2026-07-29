@@ -851,21 +851,34 @@
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
+- Wave 2 formal execution: biomes policy-promotion retry decision
+  `automation-biomes-l1-policy-promotion-20260729-02` consumed packet
+  `sha256:c9104874389c553617ff24c7a7c5be9ac0d0fd2b9a19c7d0d1a7208a7b43ca5c`
+  and completed v1 `L0/DISABLED` -> `L1/ACTIVE`; formal readback confirms the
+  ACTIVE Owner, exact policy hash, one policy version, and zero external active
+  transactions. The independent NPC maint phase-1 identity consumed once but
+  rolled back before rows were written on a `scope`/`table_name` SQL-column
+  mismatch. A RED-to-GREEN production-adapter regression now strips only those
+  row-contract metadata fields; focused Node suites pass 67 with one existing
+  skip. New retry request
+  `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`
+  is `AWAITING_OWNER`; the landing remains 1 base / 25 crawler facts and maint
+  remains 0.
 - Not completed: the landing-plus-seven NPC formal authorizations/executions and
   real T1/apply, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
   Task 12 Owner authorization for the remaining independent operations, Task 13
-  Steps 5-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
+  Steps 5-7, Task 14 Steps 3-9, Task 15 Steps 3-5, Task 16, and every
   formal apply or activation checkpoint after bootstrap.
 
 ## Residual Risks
 
 - Every remaining formal operation still depends on its own exact System Owner
   reason/reference/decision identity; the consumed bootstrap identity cannot be reused.
-- Deferred NPC facts now have real paired crawler evidence and ownership-valid
-  executors. Formal progress is blocked only on the exact landing authorization,
-  then seven requests regenerated from committed predecessor results; no phase
-  may fall back to the retired bridge.
+- Deferred NPC facts now have real paired crawler evidence, a committed landing,
+  and ownership-valid executors. Formal progress is blocked on the repaired
+  phase-1 retry request, then on seven requests regenerated from committed
+  predecessor results; no phase may fall back to the retired bridge.
 - The first NPC crawler output is not reusable as apply evidence because its
   audit files predate the paired-identity repair. Batch 02 repaired that evidence
   and produced a complete frozen data bundle, but apply/T1 still require an
@@ -906,8 +919,9 @@
   formal request; each later owner-phase request intentionally lacks its data
   bundle until the exact predecessor result exists. Recipe apply now has complete
   technical input. Boss-loot, shimmer, and biomes apply lanes still lack producer
-  or preview-bundle inputs. Group bootstrap is applied; biomes L1 promotion has a
-  technically complete frozen request but remains independently Owner-gated.
+  or preview-bundle inputs. Group bootstrap is applied; biomes policy promotion
+  is now `L1/ACTIVE`, but both L1 applies remain independently bundle- and
+  Owner-gated.
   These are data/governance blockers rather than missing entrypoint code.
 - Landing decision `canonical-npc-landing-apply-20260729-01` is consumed and
   failed before write; it cannot be reused. Only retry request
@@ -917,9 +931,10 @@
   landing regression from that shared-stack availability gap, and do not restart
   it from this worktree without a separately scoped stack-operation request.
 - The first biomes L1 policy-promotion identity is unused but bound to its
-  superseded request; it cannot authorize the regenerated retry bytes. NPC
-  landing is complete, but every remaining owner phase still requires its own
-  result-bound request and decision identity.
+  superseded request; retry identity `...-02` is consumed and completed. NPC
+  landing is complete, but the first maint identity is consumed after rollback;
+  every remaining owner phase still requires its own result-bound request and
+  decision identity.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
   by the exact packet-consuming Node executor; enabling the backend bean without
@@ -938,10 +953,10 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- System Owner: authorize only the current exact NPC phase-1 request and the
-  current exact biomes policy-promotion retry independently. After phase 1
-  commits, regenerate and authorize each later NPC owner phase serially; every
-  request must bind all exact predecessor result bytes. The legacy
+- System Owner: authorize only the repaired exact NPC phase-1 retry request
+  `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`.
+  After phase 1 commits, regenerate and authorize each later NPC owner phase
+  serially; every request must bind all exact predecessor result bytes. The legacy
   `canonical-npc-apply` remains `executor: null` throughout and cannot
   substitute for these packets.
 

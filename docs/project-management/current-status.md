@@ -22,10 +22,15 @@ plus 25 crawler-fact landing rows now provide the lineage required for phase 1.
 Batch 02 completed the repaired 25-target NPC crawler and localized 1,788 item
 images. Group runtime reads now have zero production JSON readers and no JSON
 fallback; fresh compatibility exports and source-contract flips remain later
-gates. NPC phase 1/T1, four warning panels, one blocked item-image panel, the
-first two L1 applies, L2, and scheduler activation remain approval- or
-evidence-gated. The initial biomes L1 policy request was rejected before write
-on stale manifest bytes; only its regenerated exact retry may proceed.
+gates. The regenerated biomes policy-promotion retry completed under its
+one-time packet, so exact policy v1 is now `L1/ACTIVE`; the first L1 apply still
+needs a separately frozen bundle and Owner decision. NPC phase 1 consumed its
+first decision but rolled back before writing on a repaired SQL metadata-column
+mismatch. Landing remains 1 base / 25 crawler facts, maint remains 0, and retry
+request `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`
+is the only current phase-1 authorization candidate. NPC T1, four warning
+panels, one blocked item-image panel, both L1 applies, L2, and scheduler
+activation remain approval- or evidence-gated.
 
 ## Current Gate Boundary
 
@@ -93,9 +98,10 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 - `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
 - Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
 - Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
-- Automated ingestion remains fail-closed: Batch 03 schema/recipe/boss retries
-  require exact request-hash authorization; NPC apply has no ownership-valid
-  executor; item image readiness blocks on missing/unresolved source uploads.
+- Automated ingestion remains fail-closed: the repaired NPC maint retry needs
+  a new exact request-hash authorization before any phase-2 request can exist;
+  the first biomes L1 apply needs its own frozen preview bundle and decision;
+  item image readiness blocks on missing/unresolved source uploads.
 
 ## Next Actions
 
@@ -106,5 +112,8 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
   baseline migrations before adding read-only style checks to the full gate.
 - Keep `docs/project-governance/00_CURRENT_SPEC.md`, `docs/devlog/current.md`, and project-management records synchronized when project facts or risks change.
 - Continue crawler monitor/resume stabilization from the current July plans before broad public feature expansion.
+- Authorize only the repaired NPC phase-1 request after reviewing its hash; then
+  regenerate downstream NPC requests from committed predecessor bytes. Keep
+  biomes L1 apply, L2, and scheduler as separate later decisions.
 - Decide whether to push or PR the local governance/status branches when the operator is ready.
 - Rerun runtime/backend/frontend/data gates before making any release, staging, or public-readiness claim.

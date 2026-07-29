@@ -587,7 +587,8 @@ async function countRecordKeys(connection, database, table, recordKeys) {
 
 async function upsertRows(connection, database, table, rows) {
   for (const row of rows) {
-    const mapped = Object.fromEntries(Object.entries(row)
+    const { scope: _scope, tableName: _tableName, ...persistenceRow } = row;
+    const mapped = Object.fromEntries(Object.entries(persistenceRow)
       .filter(([, value]) => value !== undefined)
       .map(([key, value]) => [key.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`), value]));
     const columns = Object.keys(mapped);

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 14:58 CST by Codex
+Last updated: 2026-07-29 15:18 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,8 +11,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
   blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints;
-  next formal dependencies are the exact `canonical-npc-facts-maint-apply`
-  request and the independently regenerated biomes L1 policy-promotion retry;
+  next formal dependency is the repaired `canonical-npc-facts-maint-apply`
+  retry request; the first frozen biomes L1 apply remains a separate later
+  preview-bundle and Owner-authorization checkpoint;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
   identities exactly once and both completed. Recipe applied the frozen 3,663
@@ -82,7 +83,7 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   the expected 40 pass / 4 warning / 1 blocked / 0 written domain fail-close.
   No database write,
   crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. Plan
-  progress is 65/86; Step 3B is complete, while Task 13's formal NPC execution
+  progress is 66/87; Step 3B is complete, while Task 13's formal NPC execution
   and readiness gates remain open. The
   independent biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
@@ -107,8 +108,19 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   The initial biomes policy decision was rejected before packet output because
   its old shared code-bundle hash drifted; identity
   `automation-biomes-l1-policy-promotion-20260729-01` is unused and cannot
-  authorize replacement bytes. Fresh phase-1 and biomes retry requests are
-  technically complete and separately await exact Owner decisions.
+  authorize replacement bytes. Wave 2 consumed its retry identity
+  `automation-biomes-l1-policy-promotion-20260729-02` once and promoted the
+  exact `biomes` v1 policy to `L1/ACTIVE` with result packet
+  `sha256:c9104874389c553617ff24c7a7c5be9ac0d0fd2b9a19c7d0d1a7208a7b43ca5c`.
+  The first NPC maint-phase identity
+  `canonical-npc-facts-maint-apply-20260729-01` was also consumed once, but its
+  transaction rolled back before a row write when generic persistence attempted
+  to insert contract metadata columns `scope` and `table_name`. A RED-to-GREEN
+  adapter regression now excludes those metadata fields; focused Node validation
+  passes 67 with one existing skip. Fresh retry request
+  `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`
+  is `AWAITING_OWNER`; maint facts remain 0, the governed 1/25 landing remains
+  current, and no phase-2 request exists until this retry commits.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the

@@ -290,6 +290,85 @@ test('production landing adapter supplies governed source-evidence metadata', as
   assert.equal(inserts.every((params) => Number.isSafeInteger(params[18]) && params[18] > 0), true);
 });
 
+test('production maint adapter persists only physical maint crawler-fact columns', async () => {
+  const normalized = {
+    entityId: 'medusa',
+    source: { pageTitle: 'Medusa' },
+    sourceMetadata: { revisionTimestamp: '2026-07-29T00:00:00Z' },
+    display: { name: 'Medusa' },
+    buffInflictions: [],
+    shop: { normalizedRows: [] },
+    loot: [],
+  };
+  const audit = { status: 'pass' };
+  const normalizedContentHash = createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
+  const phase = operationDefinition('canonical-npc-facts-maint-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      sizeBytes: 1,
+      payload: {
+        databases: {
+          local: 'terria_v1_local',
+          maint: 'terria_v1_maint',
+          relation: 'terria_v1_relation',
+        },
+        pairCount: 1,
+        evidencePairs: [{ normalizedContentHash }],
+      },
+    },
+  };
+  const landingRows = [{
+    id: 1,
+    source_key: 'wiki.npc.crawler_fact:medusa',
+    source_page: 'Medusa',
+    content_hash: 'landing-1',
+    payload_json: JSON.stringify({ normalized, audit }),
+  }];
+  const inserts = [];
+  const connection = {
+    beginTransaction: async () => {},
+    query: async (sql) => {
+      if (sql.includes('source_dataset_landings')) return [landingRows];
+      if (sql.includes('maint_npcs')) {
+        return [[{ source_id: 477, internal_name: 'Medusa', english_name: 'Medusa' }]];
+      }
+      throw new Error(`unexpected maint query: ${sql.trim().split('\n')[0]}`);
+    },
+    execute: async (sql, params = []) => {
+      if (sql.startsWith('INSERT INTO')) {
+        inserts.push(sql);
+        return [{}];
+      }
+      if (sql.startsWith('SELECT COUNT(*)')) return [[{ total: params.length }]];
+      throw new Error(`unexpected maint execute: ${sql.trim().split('\n')[0]}`);
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+
+  const result = await executeNpcOwnerOperation({
+    plan,
+    adapter: createCanonicalNpcOwnerMysqlAdapter({
+      plan,
+      connectionFactory: async () => connection,
+    }),
+    completedAt: COMPLETED_AT,
+  });
+
+  assert.equal(result.rowCounts['maint.maint_npc_crawler_facts.canonical'], 1);
+  assert.equal(inserts.length, 1);
+  assert.equal(inserts.every((sql) => !sql.includes('`scope`')), true);
+  assert.equal(inserts.every((sql) => !sql.includes('`table_name`')), true);
+});
+
 test('operation executor commits one exact ownership set and rolls back without success evidence on failure', async () => {
   const input = inputEnvelope();
   const plan = await buildNpcOwnerOperationPlan({

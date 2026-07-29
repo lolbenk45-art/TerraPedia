@@ -1363,6 +1363,19 @@ replacement request. The new independent requests are NPC phase 1
 and biomes retry
 `sha256:70be837132b37c1b3f1c22c9728e83de110ccf42a95ffef329bb3e92bce4a47b`.
 
+Wave 2 outcome: the biomes retry consumed packet
+`sha256:c9104874389c553617ff24c7a7c5be9ac0d0fd2b9a19c7d0d1a7208a7b43ca5c`
+and completed `biomes` v1 `L0/DISABLED` -> `L1/ACTIVE`. The first NPC phase-1
+packet consumed its one-time identity, then rolled back before writing because
+the generic SQL mapper attempted to persist the row-contract metadata fields
+`scope` and `table_name`. The smallest owner-module repair excludes those two
+non-column fields; its focused adapter regression and related Node suites pass
+67 with one existing skip. The failed identity cannot be reused. Current retry
+request `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`
+is `AWAITING_OWNER`; it remains limited to
+`maint.maint_npc_crawler_facts.canonical`, and phase 2 stays unavailable until
+its committed result bytes exist.
+
 Any failure keeps pre-cutover readers active or triggers the existing
 latest-writer rollback/circuit-breaker. Never silently re-enable JSON after a
 successful canonical cutover.
@@ -1381,12 +1394,16 @@ RED-to-GREEN tests and keep the unused backend path fail-closed. After that
 prerequisite is green, no further code changes are allowed unless the run
 exposes a reproducible defect with a RED regression test.
 
-- [ ] **Step 1: Request the L1 policy-promotion decision for the fixed `biomes` candidate**
+- [x] **Step 1: Request and execute the L1 policy-promotion decision for the fixed `biomes` candidate**
 
 `biomes` is the request candidate because the existing bootstrap contract and
 preview/apply pair already exercise it. The Owner must still approve its exact
 policy, actor, reason, reference, and hash. If the Owner selects another domain,
 patch and re-audit this plan before executing; do not substitute dynamically.
+
+The independent retry decision `automation-biomes-l1-policy-promotion-20260729-02`
+completed on 2026-07-29 with policy v1 at `L1/ACTIVE`. It does not authorize a
+preview, apply, L2 promotion, scheduler activation, or network activity.
 
 - [x] **Step 2: Bootstrap exact `biomes` policy under that separately authorized decision**
 - [ ] **Step 3: Run full repository quality gate from the beginning**

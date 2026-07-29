@@ -129,3 +129,16 @@ Decision: `docs/project-management/risk-register.md` records current July risk t
 Reason: The May rows were tied to May gate and release evidence. Current governance treats that evidence as historical until fresh Bash gates, route checks, and data-readiness checks are rerun.
 Evidence: `docs/project-governance/current/PROJECT_CONTROL.md`, `docs/project-management/current-status.md`, and the 2026-07-09 governance reset commits.
 Expected follow-up: Revalidate any May risk before promoting it back into the current risk table or closing it as resolved.
+
+## D-2026-07-29-01: Biomes policy promotion is not an L1 apply approval
+
+Decision: Treat the completed exact `biomes` v1 `L1/ACTIVE` policy-promotion as
+its own governance checkpoint; it authorizes neither a preview bundle nor an L1
+apply, L2 promotion, scheduler activation, or network activity.
+Reason: The policy decision and a frozen data apply have independent evidence,
+rollback, and one-time-authorization requirements.
+Evidence: Formal retry packet `sha256:c9104874389c553617ff24c7a7c5be9ac0d0fd2b9a19c7d0d1a7208a7b43ca5c`
+completed on 2026-07-29; readback shows policy v1 `L1/ACTIVE`, one policy
+version, and zero external active transactions.
+Expected follow-up: Freeze the first exact preview bundle, then request a new
+operation-level decision before any L1 apply.
