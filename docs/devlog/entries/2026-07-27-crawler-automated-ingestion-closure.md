@@ -722,6 +722,22 @@
   refuses connections and no Java listener exists; this isolated worktree did
   not restart it, so shared-stack health is a validation availability gap rather
   than evidence of a landing-side mutation.
+- Authorized Wave 1 then constructed landing packet
+  `sha256:9f8bee4fde0374deae2d666b76460beba895dafce7fff2eb4dd9f9441e51922d`
+  and consumed `canonical-npc-landing-apply-20260729-02` exactly once through
+  the packet runner. The transaction committed 1 current `npcs_base_raw` and
+  25 current `npc_crawler_facts_raw` rows; all 26 read back as
+  `source_evidence` from `canonical-npc-landing-bundle`, one frozen-input run
+  key, non-empty full-file identities, zero active maint facts, and zero active
+  transactions. Result output hash is
+  `sha256:ec850fa40e2247091369c0211fbf8d32b277e60b63aa9e602761ee1f8e937b4d`.
+  The same Wave 1 biomes request stopped during packet construction before any
+  identity consumption or database write because its stored code bundle bound
+  an older `build-canonical-cutover-authorization.mjs` hash. The repaired
+  current-byte biomes retry request is
+  `sha256:70be837132b37c1b3f1c22c9728e83de110ccf42a95ffef329bb3e92bce4a47b`;
+  the now-complete NPC phase-1 request is
+  `sha256:120f0eb65cfb77ebd4133999a8d8e828ba1b1fd99ae9c27dd033140f64cd7f57`.
 - Batch 05 pre-commit validation reproduced the partial-publication readiness
   gap as RED at 3/4, then passed publisher/readiness GREEN at 7/7 and the full
   focused chain at 64/64. The complete local gate again passed data workflow
@@ -900,6 +916,10 @@
 - The shared backend process is currently absent at `18191`; do not infer a
   landing regression from that shared-stack availability gap, and do not restart
   it from this worktree without a separately scoped stack-operation request.
+- The first biomes L1 policy-promotion identity is unused but bound to its
+  superseded request; it cannot authorize the regenerated retry bytes. NPC
+  landing is complete, but every remaining owner phase still requires its own
+  result-bound request and decision identity.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
   by the exact packet-consuming Node executor; enabling the backend bean without
@@ -918,11 +938,12 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- System Owner: authorize only the current exact landing retry request first.
-  After it commits, regenerate and
-  authorize each of the seven downstream requests serially; every request must
-  bind all exact predecessor result bytes. The legacy `canonical-npc-apply`
-  remains `executor: null` throughout and cannot substitute for these packets.
+- System Owner: authorize only the current exact NPC phase-1 request and the
+  current exact biomes policy-promotion retry independently. After phase 1
+  commits, regenerate and authorize each later NPC owner phase serially; every
+  request must bind all exact predecessor result bytes. The legacy
+  `canonical-npc-apply` remains `executor: null` throughout and cannot
+  substitute for these packets.
 
 ## Commits
 

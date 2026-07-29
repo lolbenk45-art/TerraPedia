@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 14:07 CST by Codex
+Last updated: 2026-07-29 14:58 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,8 +11,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
   blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints;
-  next formal dependency is the exact `canonical-npc-landing-apply` request,
-  followed by seven independently regenerated owner-phase requests;
+  next formal dependencies are the exact `canonical-npc-facts-maint-apply`
+  request and the independently regenerated biomes L1 policy-promotion retry;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
   identities exactly once and both completed. Recipe applied the frozen 3,663
@@ -98,6 +98,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   at `18191` is currently not running (connection refused; no Java listener),
   so its health cannot be re-confirmed; it was not restarted from this isolated
   worktree.
+  Authorized Wave 1 consumed
+  `canonical-npc-landing-apply-20260729-02` once and committed the governed
+  1-base/25-crawler NPC landing result
+  `sha256:ec850fa40e2247091369c0211fbf8d32b277e60b63aa9e602761ee1f8e937b4d`.
+  Fresh readback confirms the two landing partitions are current with governed
+  source-evidence metadata, maint facts remain 0, and no transaction remains.
+  The initial biomes policy decision was rejected before packet output because
+  its old shared code-bundle hash drifted; identity
+  `automation-biomes-l1-policy-promotion-20260729-01` is unused and cannot
+  authorize replacement bytes. Fresh phase-1 and biomes retry requests are
+  technically complete and separately await exact Owner decisions.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the

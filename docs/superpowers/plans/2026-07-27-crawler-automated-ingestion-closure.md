@@ -1329,6 +1329,40 @@ transaction rolled back. The repaired executor binds all 26 selected descriptors
 to the frozen input hash and governed full-file identity; formal retry requires
 the replacement exact request rather than reusing the consumed decision.
 
+### Authorized Wave 1: independent landing retry and biomes policy promotion
+
+The System Owner approved a single serialized execution window on 2026-07-29
+for exactly two current-byte packets: landing retry decision
+`canonical-npc-landing-apply-20260729-02` binds request
+`sha256:6395b6031dc5bc4e8c0b08357a855163fe09ad93ec5e90aa367c0a4e5ce8ff19`,
+and biomes L1 policy-promotion decision
+`automation-biomes-l1-policy-promotion-20260729-01` binds request
+`sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`.
+Both use actor `admin`, separate one-time packets, current-code verification,
+and transaction-local readback. Execute landing first, then execute the biomes
+policy lane independently even if landing fails; no shared transaction or
+identity exists between them.
+
+This window writes only (1) the `npcs_base_raw` and
+`npc_crawler_facts_raw` logical partitions of `local.source_dataset_landings`,
+and (2) the current `biomes` policy from L0/DISABLED to L1/ACTIVE. It does not
+authorize any NPC owner phase, crawler/network access, L1 apply, L2 promotion,
+scheduler activation, source-contract flip, or stack restart. The seven NPC
+owner-phase requests must be regenerated after their exact predecessor result
+files exist; their future hashes and decision identities cannot be authorized in
+advance.
+
+Wave 1 outcome: landing packet
+`sha256:9f8bee4fde0374deae2d666b76460beba895dafce7fff2eb4dd9f9441e51922d`
+completed and its committed result proves 1 base plus 25 crawler landing rows.
+The biomes packet was rejected before identity consumption because its original
+manifest bound an older shared authorization-builder code hash. The unused
+`automation-biomes-l1-policy-promotion-20260729-01` identity cannot cover its
+replacement request. The new independent requests are NPC phase 1
+`sha256:120f0eb65cfb77ebd4133999a8d8e828ba1b1fd99ae9c27dd033140f64cd7f57`
+and biomes retry
+`sha256:70be837132b37c1b3f1c22c9728e83de110ccf42a95ffef329bb3e92bce4a47b`.
+
 Any failure keeps pre-cutover readers active or triggers the existing
 latest-writer rollback/circuit-breaker. Never silently re-enable JSON after a
 successful canonical cutover.
