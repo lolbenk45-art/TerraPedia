@@ -62,6 +62,14 @@
   had changed the shared execution-manifest module after request generation.
   The authorization stays bound to the superseded request and is not reused for
   replacement bytes.
+- System Owner authorized exact proposal
+  `canonical-item-group-bootstrap-retry-02-20260729` on 2026-07-29. It binds
+  actor `admin`, request
+  `sha256:de0528244a2c53a6a5850b03b7bd3f0917d7826980fdbfe05fa93e8654738ee7`,
+  packet `sha256:dddef0127ccb1fe02e05f9045e06a2dec04af4fbd5a0db937bfa8ff6c7bb51f5`,
+  and one-time identity `canonical-item-group-bootstrap-20260729-02`. The
+  authorization covers only the frozen bootstrap and readback, not fallback
+  disablement, service restart, NPC, Biomes, or later automation operations.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -577,6 +585,17 @@
   and execution manifest
   `sha256:9c03990880eecc552f2df801c160fb87cdc801773dab6883199ff289cffa9fe6`.
   Authorization/manifest/runner contracts pass 29/29.
+- The authorized retry consumed `canonical-item-group-bootstrap-20260729-02`
+  exactly once and completed the frozen three-database transaction. Independent
+  readback proves 4 current landing sources; maint groups/members/aliases/
+  exclusions `35/163/72/2`; relation groups/members/aliases `35/163/72`; local
+  groups/members/aliases `34/161/70`; and one `PUBLISHED` projection state with
+  snapshot `8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819`.
+  The result exactly matches frozen counts plus runtime and compatibility hashes,
+  progress reached completed 3/3, and post-run active transactions are zero.
+  Focused group action, sync, T1, readiness, shadow, and runner tests pass 35/35.
+  A read-only domain rerun remains 40 pass / 4 warning / 1 blocked because
+  compatibility fallback and final readiness evidence belong to later steps.
 
 ## Result
 
@@ -651,6 +670,11 @@
   consumed once and both completed. Recipe now has its import, consolidation,
   and summary evidence; boss strict import localized all 29 governed images
   through the isolated backend and left no unresolved image/import rows.
+- Completed in Task 13 Step 3: the authorized frozen canonical group bootstrap
+  consumed `canonical-item-group-bootstrap-20260729-02` once, committed all
+  expected landing/maint/relation/local rows in one transaction, published the
+  exact frozen runtime snapshot, and left zero active transactions. Compatibility
+  readers and the running service remain unchanged for Step 4.
 - Completed in code-only repair after Batch 03: both remaining recipe stages
   use the repository mysql loader; managed entity uploads accept validated GIF
   while avatar restrictions remain unchanged; the boss manifest binds the
@@ -663,7 +687,7 @@
 - Not completed: NPC ownership-valid apply orchestration, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
   Task 12 Owner authorization for the remaining independent operations, Task 13
-  Steps 3-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
+  Steps 4-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
   formal apply or activation checkpoint after bootstrap.
 
 ## Residual Risks
@@ -681,11 +705,13 @@
   dry-run artifacts now fail closed; armor and projectile are no longer warnings.
   The fresh post-Batch-04 read-only domain rerun reports exactly 40 pass / 4
   warning / 1 blocked.
-- Local V56/V57/V58 plus maint and relation role schemas are applied. The group
-  bootstrap remains unapplied; isolated T1 evidence does not authorize T2.
+- Local V56/V57/V58 plus maint and relation role schemas and the frozen group
+  bootstrap are applied. Compatibility readers remain active; bootstrap success
+  alone does not authorize fallback disablement or complete Task 13 Step 4.
 - Group bootstrap identity `canonical-item-group-bootstrap-20260729-01` was not
   consumed, but its authorization is bound to a superseded request and must not
-  be reused. The current-byte retry requires the independent `-02` proposal.
+  be reused. Retry identity `canonical-item-group-bootstrap-20260729-02` is
+  consumed and also cannot be reused.
 - Batches 03 and 04 are fully accounted for and all of their dispatched
   identities are consumed. No conversational continuation or prior proposal
   authorizes another retry.
@@ -699,8 +725,8 @@
   `canonical-npc-apply` lacks a manifest, by design, because its write set crosses
   capability owners. Recipe apply now has complete technical input. Boss-loot,
   shimmer, NPC apply, and biomes apply lanes still lack producer, ownership, or
-  preview-bundle inputs. Group bootstrap and biomes L1 promotion now have
-  technically complete frozen requests but remain independently Owner-gated.
+  preview-bundle inputs. Group bootstrap is applied; biomes L1 promotion has a
+  technically complete frozen request but remains independently Owner-gated.
   These are data/governance blockers rather than missing entrypoint code.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
@@ -713,11 +739,11 @@
   repair and any retry require a separate future request. Task 10 Steps 5-6,
   NPC apply/T1, group T2, both L1 applies, L2, and scheduler activation remain
   separate packets or decisions.
-- Immediate authorization checkpoint: authorize exact proposal
-  `canonical-item-group-bootstrap-retry-02-20260729` before converting request
-  `sha256:de0528244a2c53a6a5850b03b7bd3f0917d7826980fdbfe05fa93e8654738ee7`
-  to a packet. The independent biomes L1 policy-promotion request remains a
-  later checkpoint; the two must not be folded together. Item image and
+- Group bootstrap needs no further apply authorization. Task 13 Step 4 must
+  separately prove live shadow/API parity, disable the JSON fallback, restart
+  through the standard service lifecycle, and run read-only runtime smoke. The
+  independent biomes L1 policy-promotion request remains a later checkpoint and
+  must not be folded into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
 - Capability owners: decide whether NPC canonical apply is split into separately

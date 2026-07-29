@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 10:09 CST by Codex
+Last updated: 2026-07-29 10:23 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -21,8 +21,7 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   updated 33 groups, mapped 51 NPC members, and localized all 29 candidates
   (21 GIF / 8 PNG) with zero unresolved or failed images. The isolated worktree
   backend on `18192` exited, Redis DB 14 is empty, the database has zero active
-  transactions, and the original `18191` backend remains on PID 654976. Plan
-  progress remains 62/86 because no remaining whole plan step was completed.
+  transactions, and the original `18191` backend remains on PID 654976.
   Batch 02 NPC outputs are valid and frozen as 25 normalized/audit pairs. NPC
   apply remains fail-closed only because its cross-capability write set has no
   ownership-valid executor or execution manifest. Image sync changed exactly
@@ -30,21 +29,25 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   4 warning / 1 blocked: recipe is warning rather than blocked, boss source is
   pass, and item image coverage remains the sole blocked panel. Batch 04 and all
   earlier consumed identities cannot be reused.
-  The authorized group bootstrap identity
+  The first authorized group bootstrap identity
   `canonical-item-group-bootstrap-20260729-01` stopped before packet creation:
   commit `ac13f0e0` changed the shared manifest module after the frozen request,
   so current-code verification rejected its stale code hash. The identity is
   unused and no database write ran, but it remains bound to the superseded
-  request and cannot authorize replacement bytes. Fresh proposal
-  `canonical-item-group-bootstrap-retry-02-20260729` now binds current code at
-  request `sha256:de0528244a2c53a6a5850b03b7bd3f0917d7826980fdbfe05fa93e8654738ee7`,
-  has zero technical gaps, and awaits exact Owner authorization. The independent
-  biomes L1 policy-promotion request remains
+  request and cannot authorize replacement bytes. The authorized current-byte
+  retry `canonical-item-group-bootstrap-20260729-02` then consumed packet
+  `sha256:dddef0127ccb1fe02e05f9045e06a2dec04af4fbd5a0db937bfa8ff6c7bb51f5`
+  exactly once and completed. Readback proves 4 landing sources; maint
+  `35/163/72/2`; relation `35/163/72`; local `34/161/70`; `PUBLISHED` state at
+  snapshot `8d3fb0b1...fe819`; and zero active transactions. Compatibility readers
+  and the running service were not changed. Plan progress is now 63/86. The
+  independent biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
-  it also remains `AWAITING_OWNER`. Group bootstrap authorization/manifest/
-  runner validation passes 29/29 and policy-decision validation passes 27/27. The
-  group apply must follow the schema retry, and L1 promotion must remain a
-  later independent checkpoint. Boss-loot still lacks its frozen bundle;
+  it remains `AWAITING_OWNER`. Group bootstrap action/acceptance/shadow/readiness/
+  runner validation passes 35/35 and policy-decision validation passes 27/27.
+  Full group cutover still requires Task 13 Step 4 shadow/API evidence, fallback
+  disablement, and an authorized service lifecycle. L1 promotion remains a later
+  independent checkpoint. Boss-loot still lacks its frozen bundle;
   shimmer lacks the raw file and three of five importable data shards in this
   worktree, so neither lane was fabricated or dispatched.
   The detailed task progression below is historical context; this snapshot is
