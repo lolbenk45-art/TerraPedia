@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "reportKind": "canonical_item_group_readiness",
+  "generatedAt": "2026-07-29T04:29:35.891Z",
+  "writesDatabase": false,
+  "databaseRole": "t2-readonly",
+  "cutoverIdentity": {
+    "state": "T2_CUTOVER_VERIFIED",
+    "operationId": "canonical-item-group-cutover",
+    "bootstrapRunKey": "ig_20260728a12639ff"
+  },
+  "counts": {
+    "landing": {
+      "sourceCount": 4,
+      "groupCount": 64
+    },
+    "maint": {
+      "groupCount": 35,
+      "memberCount": 163,
+      "aliasCount": 72,
+      "exclusionCount": 2
+    },
+    "relation": {
+      "groupCount": 35,
+      "memberCount": 163,
+      "aliasCount": 72,
+      "unresolvedCount": 0,
+      "ambiguousCount": 0,
+      "rejectedCount": 2
+    },
+    "local": {
+      "groupCount": 34,
+      "memberCount": 161,
+      "aliasCount": 70
+    }
+  },
+  "hashes": {
+    "landing": "07052ef707ab28b13eaad38b4089366250a78bc75e670bcda2c1839f475b4ea8",
+    "maint": "d8a78ced781ba4b5b6b4fa5a35ed7fac06481e3dac072dc0e1b4a9b39e7a6e5f",
+    "relation": "606ef475eb07f418bd168aa0010e1cd88c2383d674d2ec65183d94a12eca97e8",
+    "local": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+    "compatibility": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d"
+  },
+  "shadows": {
+    "adminItemGroups": {
+      "parity": true,
+      "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819"
+    },
+    "adminRecipeGroups": {
+      "parity": true,
+      "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819"
+    },
+    "recipeTree": {
+      "parity": true,
+      "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819"
+    }
+  },
+  "consumerContract": {
+    "directJsonReaders": 0,
+    "fallbackEnabled": false
+  },
+  "api": {
+    "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+    "adminItemGroupCount": 34,
+    "adminRecipeGroupCount": 33,
+    "recipeTree": {
+      "sampleGroup": "Any Iron Bar"
+    }
+  },
+  "exports": [
+    {
+      "artifact": "recipe-material-reference.json",
+      "fresh": true,
+      "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+      "contentHash": "b21af1447f325dae797d502280894c7593cccb37507bc958c64a73e32b12602d",
+      "exportRunKey": "ig_export_20260729_01"
+    },
+    {
+      "artifact": "recipe-group-overrides.json",
+      "fresh": true,
+      "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+      "contentHash": "64b4663f43c8fcb6212c93f07e39e8b4d7019dd7fc70567526b0fdb50f7133e2",
+      "exportRunKey": "ig_export_20260729_01"
+    },
+    {
+      "artifact": "item-group-overrides.json",
+      "fresh": true,
+      "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+      "contentHash": "fca3c5699819aa463a3e37ea9f3b43c1a5d34467da186b773e09e7c027998d1c",
+      "exportRunKey": "ig_export_20260729_01"
+    }
+  ],
+  "checks": [
+    {
+      "id": "schema-version",
+      "status": "pass",
+      "message": "canonical item-group schemaVersion must be 1"
+    },
+    {
+      "id": "report-kind",
+      "status": "pass",
+      "message": "canonical item-group reportKind is invalid"
+    },
+    {
+      "id": "generated-at",
+      "status": "pass",
+      "message": "canonical item-group generatedAt must be a valid timestamp"
+    },
+    {
+      "id": "read-only",
+      "status": "pass",
+      "message": "canonical readiness must declare writesDatabase=false"
+    },
+    {
+      "id": "database-role",
+      "status": "pass",
+      "message": "canonical readiness databaseRole must be t2-readonly"
+    },
+    {
+      "id": "cutover-state",
+      "status": "pass",
+      "message": "canonical item-group cutover is not T2_CUTOVER_VERIFIED"
+    },
+    {
+      "id": "cutover-operation",
+      "status": "pass",
+      "message": "canonical item-group cutover operationId is missing"
+    },
+    {
+      "id": "count-landing-sourceCount",
+      "status": "pass",
+      "message": "landing.sourceCount must equal 4"
+    },
+    {
+      "id": "count-landing-groupCount",
+      "status": "pass",
+      "message": "landing.groupCount must equal 64"
+    },
+    {
+      "id": "hash-landing",
+      "status": "pass",
+      "message": "landing hash must be SHA-256"
+    },
+    {
+      "id": "count-maint-groupCount",
+      "status": "pass",
+      "message": "maint.groupCount must equal 35"
+    },
+    {
+      "id": "count-maint-memberCount",
+      "status": "pass",
+      "message": "maint.memberCount must equal 163"
+    },
+    {
+      "id": "count-maint-aliasCount",
+      "status": "pass",
+      "message": "maint.aliasCount must equal 72"
+    },
+    {
+      "id": "count-maint-exclusionCount",
+      "status": "pass",
+      "message": "maint.exclusionCount must equal 2"
+    },
+    {
+      "id": "hash-maint",
+      "status": "pass",
+      "message": "maint hash must be SHA-256"
+    },
+    {
+      "id": "count-relation-groupCount",
+      "status": "pass",
+      "message": "relation.groupCount must equal 35"
+    },
+    {
+      "id": "count-relation-memberCount",
+      "status": "pass",
+      "message": "relation.memberCount must equal 163"
+    },
+    {
+      "id": "count-relation-aliasCount",
+      "status": "pass",
+      "message": "relation.aliasCount must equal 72"
+    },
+    {
+      "id": "count-relation-unresolvedCount",
+      "status": "pass",
+      "message": "relation.unresolvedCount must equal 0"
+    },
+    {
+      "id": "count-relation-ambiguousCount",
+      "status": "pass",
+      "message": "relation.ambiguousCount must equal 0"
+    },
+    {
+      "id": "count-relation-rejectedCount",
+      "status": "pass",
+      "message": "relation.rejectedCount must equal 2"
+    },
+    {
+      "id": "hash-relation",
+      "status": "pass",
+      "message": "relation hash must be SHA-256"
+    },
+    {
+      "id": "count-local-groupCount",
+      "status": "pass",
+      "message": "local.groupCount must equal 34"
+    },
+    {
+      "id": "count-local-memberCount",
+      "status": "pass",
+      "message": "local.memberCount must equal 161"
+    },
+    {
+      "id": "count-local-aliasCount",
+      "status": "pass",
+      "message": "local.aliasCount must equal 70"
+    },
+    {
+      "id": "hash-local",
+      "status": "pass",
+      "message": "local hash must be SHA-256"
+    },
+    {
+      "id": "hash-compatibility",
+      "status": "pass",
+      "message": "compatibility hash must be SHA-256"
+    },
+    {
+      "id": "shadow-adminItemGroups",
+      "status": "pass",
+      "message": "adminItemGroups shadow parity must pass"
+    },
+    {
+      "id": "shadow-hash-adminItemGroups",
+      "status": "pass",
+      "message": "adminItemGroups snapshot hash must match local"
+    },
+    {
+      "id": "shadow-adminRecipeGroups",
+      "status": "pass",
+      "message": "adminRecipeGroups shadow parity must pass"
+    },
+    {
+      "id": "shadow-hash-adminRecipeGroups",
+      "status": "pass",
+      "message": "adminRecipeGroups snapshot hash must match local"
+    },
+    {
+      "id": "shadow-recipeTree",
+      "status": "pass",
+      "message": "recipeTree shadow parity must pass"
+    },
+    {
+      "id": "shadow-hash-recipeTree",
+      "status": "pass",
+      "message": "recipeTree snapshot hash must match local"
+    },
+    {
+      "id": "direct-json-readers",
+      "status": "pass",
+      "message": "direct JSON reader count must be zero"
+    },
+    {
+      "id": "fallback-disabled",
+      "status": "pass",
+      "message": "JSON fallback must be disabled"
+    },
+    {
+      "id": "api-snapshot-hash",
+      "status": "pass",
+      "message": "API snapshot hash must match local"
+    },
+    {
+      "id": "export-count",
+      "status": "pass",
+      "message": "all three compatibility exports are required"
+    },
+    {
+      "id": "export-fresh-recipe-material-reference.json",
+      "status": "pass",
+      "message": "recipe-material-reference.json export must be fresh"
+    },
+    {
+      "id": "export-hash-recipe-material-reference.json",
+      "status": "pass",
+      "message": "recipe-material-reference.json snapshot hash must match compatibility"
+    },
+    {
+      "id": "export-fresh-recipe-group-overrides.json",
+      "status": "pass",
+      "message": "recipe-group-overrides.json export must be fresh"
+    },
+    {
+      "id": "export-hash-recipe-group-overrides.json",
+      "status": "pass",
+      "message": "recipe-group-overrides.json snapshot hash must match compatibility"
+    },
+    {
+      "id": "export-fresh-item-group-overrides.json",
+      "status": "pass",
+      "message": "item-group-overrides.json export must be fresh"
+    },
+    {
+      "id": "export-hash-item-group-overrides.json",
+      "status": "pass",
+      "message": "item-group-overrides.json snapshot hash must match compatibility"
+    }
+  ],
+  "blockingReasons": [],
+  "warningReasons": [],
+  "summary": {
+    "status": "pass",
+    "blockingCount": 0,
+    "warningCount": 0
+  }
+}

@@ -51,6 +51,9 @@ function validateArtifact(key, artifact) {
   if (JSON.stringify(parsed) !== JSON.stringify(artifact.payload)) {
     throw new Error(`item group bootstrap artifact ${key} payload does not match its full-file bytes`);
   }
+  if (text(artifact.payload.artifactRole) === 'compat_export') {
+    throw new Error(`compat_export artifact ${key} cannot be bootstrap input`);
+  }
 }
 
 function normalizeMembers(members, canonicalName, { allowEmpty = false } = {}) {

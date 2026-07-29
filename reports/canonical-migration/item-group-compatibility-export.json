@@ -1,0 +1,1942 @@
+{
+  "schemaVersion": 1,
+  "reportKind": "canonical_item_group_compatibility_export",
+  "generatedAt": "2026-07-29T04:07:40.779Z",
+  "writesDatabase": false,
+  "databaseRole": "t2-readonly",
+  "exportRunKey": "ig_export_20260729_01",
+  "operationId": "canonical-item-group-cutover",
+  "bootstrapRunKey": "ig_20260728a12639ff",
+  "runtimeSnapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+  "compatibilitySnapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+  "canonicalSnapshot": {
+    "schemaVersion": "1.0.0",
+    "landingRevision": "d7c185d51c3d4f2619c633f8f6787220e953d7fc0df16546ce4896c2fcee9dcf",
+    "groups": [
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-adamantite-bar",
+        "canonicalName": "Any Adamantite Bar",
+        "displayNameEn": "Any Adamantite Bar",
+        "displayNameZh": "任何精金锭",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "AdamantiteBar",
+            "name": "Adamantite Bar",
+            "nameZh": "精金锭"
+          },
+          {
+            "internalName": "TitaniumBar",
+            "name": "Titanium Bar",
+            "nameZh": "钛金锭"
+          }
+        ],
+        "normalizedAliases": [
+          "any adamantite bar",
+          "任何精金锭"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-balloon",
+        "canonicalName": "Any Balloon",
+        "displayNameEn": "Any Balloon",
+        "displayNameZh": "任何气球",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "SillyBalloonGreen",
+            "name": "Silly Green Balloon",
+            "nameZh": "呆萌绿气球"
+          },
+          {
+            "internalName": "SillyBalloonPink",
+            "name": "Silly Pink Balloon",
+            "nameZh": "呆萌粉气球"
+          },
+          {
+            "internalName": "SillyBalloonPurple",
+            "name": "Silly Purple Balloon",
+            "nameZh": "呆萌紫气球"
+          }
+        ],
+        "normalizedAliases": [
+          "any balloon",
+          "任何气球"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-bird",
+        "canonicalName": "Any Bird",
+        "displayNameEn": "Any Bird",
+        "displayNameZh": "任何鸟",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Bird",
+            "name": "Bird",
+            "nameZh": "鸟"
+          },
+          {
+            "internalName": "BlueJay",
+            "name": "Blue Jay",
+            "nameZh": "冠蓝鸦"
+          },
+          {
+            "internalName": "Cardinal",
+            "name": "Cardinal",
+            "nameZh": "红雀"
+          }
+        ],
+        "normalizedAliases": [
+          "any bird",
+          "任何鸟"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-blizzard-balloon",
+        "canonicalName": "Any Blizzard Balloon",
+        "displayNameEn": "Any Blizzard Balloon",
+        "displayNameZh": "任何暴雪气球",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlizzardinaBalloon",
+            "name": "Blizzard in a Balloon",
+            "nameZh": "暴雪气球"
+          },
+          {
+            "internalName": "WhiteHorseshoeBalloon",
+            "name": "White Horseshoe Balloon",
+            "nameZh": "白马掌气球"
+          }
+        ],
+        "normalizedAliases": [
+          "any blizzard balloon",
+          "任何暴雪气球"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-butterfly",
+        "canonicalName": "Any Butterfly",
+        "displayNameEn": "Any Butterfly",
+        "displayNameZh": "任何蝴蝶",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "JuliaButterfly",
+            "name": "Julia Butterfly",
+            "nameZh": "珠袖蝶"
+          },
+          {
+            "internalName": "MonarchButterfly",
+            "name": "Monarch Butterfly",
+            "nameZh": "帝王蝶"
+          },
+          {
+            "internalName": "PurpleEmperorButterfly",
+            "name": "Purple Emperor Butterfly",
+            "nameZh": "紫蛱蝶"
+          },
+          {
+            "internalName": "RedAdmiralButterfly",
+            "name": "Red Admiral Butterfly",
+            "nameZh": "红蛱蝶"
+          },
+          {
+            "internalName": "SulphurButterfly",
+            "name": "Sulphur Butterfly",
+            "nameZh": "黄粉蝶"
+          },
+          {
+            "internalName": "TreeNymphButterfly",
+            "name": "Tree Nymph Butterfly",
+            "nameZh": "帛斑蝶"
+          },
+          {
+            "internalName": "UlyssesButterfly",
+            "name": "Ulysses Butterfly",
+            "nameZh": "翠凤蝶"
+          },
+          {
+            "internalName": "ZebraSwallowtailButterfly",
+            "name": "Zebra Swallowtail Butterfly",
+            "nameZh": "带凤蝶"
+          }
+        ],
+        "normalizedAliases": [
+          "any butterfly",
+          "任何蝴蝶"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-cloud-balloon",
+        "canonicalName": "Any Cloud Balloon",
+        "displayNameEn": "Any Cloud Balloon",
+        "displayNameZh": "任何云气球",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlueHorseshoeBalloon",
+            "name": "Blue Horseshoe Balloon",
+            "nameZh": "蓝马掌气球"
+          },
+          {
+            "internalName": "CloudinaBalloon",
+            "name": "Cloud in a Balloon",
+            "nameZh": "云朵气球"
+          }
+        ],
+        "normalizedAliases": [
+          "any cloud balloon",
+          "任何云气球"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-cobalt-bar",
+        "canonicalName": "Any Cobalt Bar",
+        "displayNameEn": "Any Cobalt Bar",
+        "displayNameZh": "任何钴锭",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "CobaltBar",
+            "name": "Cobalt Bar",
+            "nameZh": "钴锭"
+          },
+          {
+            "internalName": "PalladiumBar",
+            "name": "Palladium Bar",
+            "nameZh": "钯金锭"
+          }
+        ],
+        "normalizedAliases": [
+          "any cobalt bar",
+          "任何钴锭"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-cockatiel",
+        "canonicalName": "Any Cockatiel",
+        "displayNameEn": "Any Cockatiel",
+        "displayNameZh": "任何玄凤鹦鹉",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "GrayCockatiel",
+            "name": "Gray Cockatiel",
+            "nameZh": "灰玄凤鹦鹉"
+          },
+          {
+            "internalName": "YellowCockatiel",
+            "name": "Yellow Cockatiel",
+            "nameZh": "黄玄凤鹦鹉"
+          }
+        ],
+        "normalizedAliases": [
+          "any cockatiel",
+          "任何玄凤鹦鹉"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-dragonfly",
+        "canonicalName": "Any Dragonfly",
+        "displayNameEn": "Any Dragonfly",
+        "displayNameZh": "任何蜻蜓",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlackDragonfly",
+            "name": "Black Dragonfly",
+            "nameZh": "黑蜻蜓"
+          },
+          {
+            "internalName": "BlueDragonfly",
+            "name": "Blue Dragonfly",
+            "nameZh": "蓝蜻蜓"
+          },
+          {
+            "internalName": "GreenDragonfly",
+            "name": "Green Dragonfly",
+            "nameZh": "绿蜻蜓"
+          },
+          {
+            "internalName": "OrangeDragonfly",
+            "name": "Orange Dragonfly",
+            "nameZh": "橙蜻蜓"
+          },
+          {
+            "internalName": "RedDragonfly",
+            "name": "Red Dragonfly",
+            "nameZh": "红蜻蜓"
+          },
+          {
+            "internalName": "YellowDragonfly",
+            "name": "Yellow Dragonfly",
+            "nameZh": "黄蜻蜓"
+          }
+        ],
+        "normalizedAliases": [
+          "any dragonfly",
+          "任何蜻蜓"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-duck",
+        "canonicalName": "Any Duck",
+        "displayNameEn": "Any Duck",
+        "displayNameZh": "任何鸭",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Duck",
+            "name": "Duck",
+            "nameZh": "鸭"
+          },
+          {
+            "internalName": "MallardDuck",
+            "name": "Mallard Duck",
+            "nameZh": "野鸭"
+          }
+        ],
+        "normalizedAliases": [
+          "any duck",
+          "任何鸭"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-firefly",
+        "canonicalName": "Any Firefly",
+        "displayNameEn": "Any Firefly",
+        "displayNameZh": "任何萤火虫",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Firefly",
+            "name": "Firefly",
+            "nameZh": "萤火虫"
+          },
+          {
+            "internalName": "LightningBug",
+            "name": "Lightning Bug",
+            "nameZh": "荧光虫"
+          }
+        ],
+        "normalizedAliases": [
+          "any firefly",
+          "任何萤火虫"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-fragment",
+        "canonicalName": "Any Fragment",
+        "displayNameEn": "Any Fragment",
+        "displayNameZh": "任何碎片",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "FragmentNebula",
+            "name": "Nebula Fragment",
+            "nameZh": "星云碎片"
+          },
+          {
+            "internalName": "FragmentSolar",
+            "name": "Solar Fragment",
+            "nameZh": "日耀碎片"
+          },
+          {
+            "internalName": "FragmentStardust",
+            "name": "Stardust Fragment",
+            "nameZh": "星尘碎片"
+          },
+          {
+            "internalName": "FragmentVortex",
+            "name": "Vortex Fragment",
+            "nameZh": "星旋碎片"
+          }
+        ],
+        "normalizedAliases": [
+          "any fragment",
+          "任何碎片"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-fruit",
+        "canonicalName": "Any Fruit",
+        "displayNameEn": "Any Fruit",
+        "displayNameZh": "任何水果",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Apple",
+            "name": "Apple",
+            "nameZh": "苹果"
+          },
+          {
+            "internalName": "Apricot",
+            "name": "Apricot",
+            "nameZh": "杏"
+          },
+          {
+            "internalName": "Banana",
+            "name": "Banana",
+            "nameZh": "香蕉"
+          },
+          {
+            "internalName": "BlackCurrant",
+            "name": "Blackcurrant",
+            "nameZh": "黑醋栗"
+          },
+          {
+            "internalName": "BloodOrange",
+            "name": "Blood Orange",
+            "nameZh": "血橙"
+          },
+          {
+            "internalName": "Cherry",
+            "name": "Cherry",
+            "nameZh": "樱桃"
+          },
+          {
+            "internalName": "Coconut",
+            "name": "Coconut",
+            "nameZh": "椰子"
+          },
+          {
+            "internalName": "Dragonfruit",
+            "name": "Dragon Fruit",
+            "nameZh": "火龙果"
+          },
+          {
+            "internalName": "Elderberry",
+            "name": "Elderberry",
+            "nameZh": "接骨木果"
+          },
+          {
+            "internalName": "Grapefruit",
+            "name": "Grapefruit",
+            "nameZh": "葡萄柚"
+          },
+          {
+            "internalName": "Lemon",
+            "name": "Lemon",
+            "nameZh": "柠檬"
+          },
+          {
+            "internalName": "Mango",
+            "name": "Mango",
+            "nameZh": "芒果"
+          },
+          {
+            "internalName": "Peach",
+            "name": "Peach",
+            "nameZh": "桃子"
+          },
+          {
+            "internalName": "Pineapple",
+            "name": "Pineapple",
+            "nameZh": "菠萝"
+          },
+          {
+            "internalName": "Plum",
+            "name": "Plum",
+            "nameZh": "李子"
+          },
+          {
+            "internalName": "Pomegranate",
+            "name": "Pomegranate",
+            "nameZh": "石榴"
+          },
+          {
+            "internalName": "Rambutan",
+            "name": "Rambutan",
+            "nameZh": "红毛丹"
+          },
+          {
+            "internalName": "SpicyPepper",
+            "name": "Spicy Pepper",
+            "nameZh": "辣椒"
+          },
+          {
+            "internalName": "Starfruit",
+            "name": "Star Fruit",
+            "nameZh": "杨桃"
+          }
+        ],
+        "normalizedAliases": [
+          "any fruit",
+          "任何水果"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-gem-critter",
+        "canonicalName": "Any Gem Critter",
+        "displayNameEn": "Any Gem Critter",
+        "displayNameZh": "任何宝石小动物",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "GemBunnyAmber",
+            "name": "Amber Bunny",
+            "nameZh": "琥珀兔兔"
+          },
+          {
+            "internalName": "GemBunnyAmethyst",
+            "name": "Amethyst Bunny",
+            "nameZh": "紫晶兔兔"
+          },
+          {
+            "internalName": "GemBunnyDiamond",
+            "name": "Diamond Bunny",
+            "nameZh": "钻石兔兔"
+          },
+          {
+            "internalName": "GemBunnyEmerald",
+            "name": "Emerald Bunny",
+            "nameZh": "翡翠兔兔"
+          },
+          {
+            "internalName": "GemBunnyRuby",
+            "name": "Ruby Bunny",
+            "nameZh": "红玉兔兔"
+          },
+          {
+            "internalName": "GemBunnySapphire",
+            "name": "Sapphire Bunny",
+            "nameZh": "蓝玉兔兔"
+          },
+          {
+            "internalName": "GemBunnyTopaz",
+            "name": "Topaz Bunny",
+            "nameZh": "黄玉兔兔"
+          },
+          {
+            "internalName": "GemSquirrelAmber",
+            "name": "Amber Squirrel",
+            "nameZh": "琥珀松鼠"
+          },
+          {
+            "internalName": "GemSquirrelAmethyst",
+            "name": "Amethyst Squirrel",
+            "nameZh": "紫晶松鼠"
+          },
+          {
+            "internalName": "GemSquirrelDiamond",
+            "name": "Diamond Squirrel",
+            "nameZh": "钻石松鼠"
+          },
+          {
+            "internalName": "GemSquirrelEmerald",
+            "name": "Emerald Squirrel",
+            "nameZh": "翡翠松鼠"
+          },
+          {
+            "internalName": "GemSquirrelRuby",
+            "name": "Ruby Squirrel",
+            "nameZh": "红玉松鼠"
+          },
+          {
+            "internalName": "GemSquirrelSapphire",
+            "name": "Sapphire Squirrel",
+            "nameZh": "蓝玉松鼠"
+          },
+          {
+            "internalName": "GemSquirrelTopaz",
+            "name": "Topaz Squirrel",
+            "nameZh": "黄玉松鼠"
+          }
+        ],
+        "normalizedAliases": [
+          "any gem critter",
+          "任何宝石小动物"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-guide-to-critter-companionship",
+        "canonicalName": "Any Guide to Critter Companionship",
+        "displayNameEn": "Any Guide to Critter Companionship",
+        "displayNameZh": "任何小动物友谊指南",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "DontHurtCrittersBook",
+            "name": "Guide to Critter Companionship",
+            "nameZh": "小动物友谊指南"
+          },
+          {
+            "internalName": "DontHurtCrittersBookInactive",
+            "name": "Guide to Critter Companionship (Inactive)",
+            "nameZh": "小动物友谊指南（停用）"
+          }
+        ],
+        "normalizedAliases": [
+          "any guide to critter companionship",
+          "任何小动物友谊指南"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-guide-to-environmental-preservation",
+        "canonicalName": "Any Guide to Environmental Preservation",
+        "displayNameEn": "Any Guide to Environmental Preservation",
+        "displayNameZh": "任何环境保护指南",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "DontHurtNatureBook",
+            "name": "Guide to Environmental Preservation",
+            "nameZh": "环境保护指南"
+          },
+          {
+            "internalName": "DontHurtNatureBookInactive",
+            "name": "Guide to Environmental Preservation (Inactive)",
+            "nameZh": "环境保护指南（停用）"
+          }
+        ],
+        "normalizedAliases": [
+          "any guide to environmental preservation",
+          "任何环境保护指南"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-iron-bar",
+        "canonicalName": "Any Iron Bar",
+        "displayNameEn": "Any Iron Bar",
+        "displayNameZh": "任何铁锭",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "IronBar",
+            "name": "Iron Bar",
+            "nameZh": "铁锭"
+          },
+          {
+            "internalName": "LeadBar",
+            "name": "Lead Bar",
+            "nameZh": "铅锭"
+          }
+        ],
+        "normalizedAliases": [
+          "any iron bar",
+          "任何铁锭"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-jellyfish",
+        "canonicalName": "Any Jellyfish",
+        "displayNameEn": "Any Jellyfish",
+        "displayNameZh": "任何水母",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlueJellyfish",
+            "name": "Blue Jellyfish",
+            "nameZh": "蓝水母"
+          },
+          {
+            "internalName": "GreenJellyfish",
+            "name": "Green Jellyfish",
+            "nameZh": "绿水母"
+          },
+          {
+            "internalName": "PinkJellyfish",
+            "name": "Pink Jellyfish",
+            "nameZh": "粉水母"
+          }
+        ],
+        "normalizedAliases": [
+          "any jellyfish",
+          "任何水母"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-jungle-bug",
+        "canonicalName": "Any Jungle Bug",
+        "displayNameEn": "Any Jungle Bug",
+        "displayNameZh": "任何丛林虫子",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Buggy",
+            "name": "Buggy",
+            "nameZh": "蚜虫"
+          },
+          {
+            "internalName": "Grubby",
+            "name": "Grubby",
+            "nameZh": "蛆虫"
+          },
+          {
+            "internalName": "Sluggy",
+            "name": "Sluggy",
+            "nameZh": "鼻涕虫"
+          }
+        ],
+        "normalizedAliases": [
+          "any jungle bug",
+          "任何丛林虫子"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-macaw",
+        "canonicalName": "Any Macaw",
+        "displayNameEn": "Any Macaw",
+        "displayNameZh": "任何金刚鹦鹉",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlueMacaw",
+            "name": "Blue Macaw",
+            "nameZh": "蓝金刚鹦鹉"
+          },
+          {
+            "internalName": "ScarletMacaw",
+            "name": "Scarlet Macaw",
+            "nameZh": "绯红金刚鹦鹉"
+          }
+        ],
+        "normalizedAliases": [
+          "any macaw",
+          "任何金刚鹦鹉"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-magic-mirror",
+        "canonicalName": "Any Magic Mirror",
+        "displayNameEn": "Any Magic Mirror",
+        "displayNameZh": "任何魔镜",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "IceMirror",
+            "name": "Ice Mirror",
+            "nameZh": "冰雪镜"
+          },
+          {
+            "internalName": "MagicMirror",
+            "name": "Magic Mirror",
+            "nameZh": "魔镜"
+          }
+        ],
+        "normalizedAliases": [
+          "any magic mirror",
+          "任何魔镜"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-mythril-bar",
+        "canonicalName": "Any Mythril Bar",
+        "displayNameEn": "Any Mythril Bar",
+        "displayNameZh": "任何秘银锭",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "MythrilBar",
+            "name": "Mythril Bar",
+            "nameZh": "秘银锭"
+          },
+          {
+            "internalName": "OrichalcumBar",
+            "name": "Orichalcum Bar",
+            "nameZh": "山铜锭"
+          }
+        ],
+        "normalizedAliases": [
+          "any mythril bar",
+          "任何秘银锭"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-pressure-plate",
+        "canonicalName": "Any Pressure Plate",
+        "displayNameEn": "Any Pressure Plate",
+        "displayNameZh": "任何压力板",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BluePressurePlate",
+            "name": "Blue Pressure Plate",
+            "nameZh": "蓝压力板"
+          },
+          {
+            "internalName": "BrownPressurePlate",
+            "name": "Brown Pressure Plate",
+            "nameZh": "棕压力板"
+          },
+          {
+            "internalName": "GrayPressurePlate",
+            "name": "Gray Pressure Plate",
+            "nameZh": "灰压力板"
+          },
+          {
+            "internalName": "GreenPressurePlate",
+            "name": "Green Pressure Plate",
+            "nameZh": "绿压力板"
+          },
+          {
+            "internalName": "LihzahrdPressurePlate",
+            "name": "Lihzahrd Pressure Plate",
+            "nameZh": "丛林蜥蜴压力板"
+          },
+          {
+            "internalName": "OrangePressurePlate",
+            "name": "Orange Pressure Plate",
+            "nameZh": "橙压力板"
+          },
+          {
+            "internalName": "RedPressurePlate",
+            "name": "Red Pressure Plate",
+            "nameZh": "红压力板"
+          },
+          {
+            "internalName": "YellowPressurePlate",
+            "name": "Yellow Pressure Plate",
+            "nameZh": "黄压力板"
+          }
+        ],
+        "normalizedAliases": [
+          "any pressure plate",
+          "任何压力板"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [
+          "Any Teleportation Pylon",
+          "任意晶塔"
+        ],
+        "blockReason": null,
+        "canonicalKey": "any-pylon",
+        "canonicalName": "Any Pylon",
+        "displayNameEn": "Any Pylon",
+        "displayNameZh": "任何晶塔",
+        "domains": [
+          "shimmer"
+        ],
+        "members": [
+          {
+            "internalName": "TeleportationPylonDesert",
+            "itemId": 4919,
+            "name": "Desert Pylon",
+            "nameZh": "沙漠晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonHallow",
+            "itemId": 4916,
+            "name": "Hallow Pylon",
+            "nameZh": "神圣晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonJungle",
+            "itemId": 4875,
+            "name": "Jungle Pylon",
+            "nameZh": "丛林晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonMushroom",
+            "itemId": 4921,
+            "name": "Mushroom Pylon",
+            "nameZh": "蘑菇晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonOcean",
+            "itemId": 4918,
+            "name": "Ocean Pylon",
+            "nameZh": "海洋晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonPurity",
+            "itemId": 4876,
+            "name": "Forest Pylon",
+            "nameZh": "森林晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonSnow",
+            "itemId": 4920,
+            "name": "Snow Pylon",
+            "nameZh": "雪原晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonUnderground",
+            "itemId": 4917,
+            "name": "Cavern Pylon",
+            "nameZh": "洞穴晶塔"
+          },
+          {
+            "internalName": "TeleportationPylonUnderworld",
+            "itemId": 5652,
+            "name": "Underworld Pylon",
+            "nameZh": "地狱晶塔"
+          },
+          {
+            "image": "http://localhost:9000/terrapedia-images/items/2026/04/08/208b06c8086a4e9ab6eb47a6f5100227.png",
+            "internalName": "TeleportationPylonVictory",
+            "itemId": 4951,
+            "name": "Universal Pylon",
+            "nameZh": "万能晶塔"
+          }
+        ],
+        "normalizedAliases": [
+          "any pylon",
+          "任何晶塔",
+          "任意晶塔",
+          "any teleportation pylon"
+        ],
+        "sourceKind": "curated_wiki_item_group",
+        "sourceLayer": "source_group",
+        "sourceMetadata": {
+          "sourceFile": "data/generated/item-group-overrides.json",
+          "sourceLabel": "Any Pylon members are parsed from the Shimmer raw wikitext ID list and verified against standardized wiki item data.",
+          "sourceUrls": [
+            "https://terraria.wiki.gg/wiki/Pylons",
+            "https://terraria.wiki.gg/wiki/Shimmer"
+          ]
+        },
+        "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+        "sourcePriority": 300,
+        "sourceProvider": "wiki_gg",
+        "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-sand-block",
+        "canonicalName": "Any Sand Block",
+        "displayNameEn": "Any Sand Block",
+        "displayNameZh": "任何沙",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "CorruptHardenedSand",
+            "name": "Hardened Ebonsand Block",
+            "nameZh": "硬化黑檀沙块"
+          },
+          {
+            "internalName": "CrimsandBlock",
+            "name": "Crimsand Block",
+            "nameZh": "猩红沙块"
+          },
+          {
+            "internalName": "CrimsonHardenedSand",
+            "name": "Hardened Crimsand Block",
+            "nameZh": "硬化猩红沙块"
+          },
+          {
+            "internalName": "EbonsandBlock",
+            "name": "Ebonsand Block",
+            "nameZh": "黑檀沙块"
+          },
+          {
+            "internalName": "HallowHardenedSand",
+            "name": "Hardened Pearlsand Block",
+            "nameZh": "硬化珍珠沙块"
+          },
+          {
+            "internalName": "HardenedSand",
+            "name": "Hardened Sand Block",
+            "nameZh": "硬化沙块"
+          },
+          {
+            "internalName": "PearlsandBlock",
+            "name": "Pearlsand Block",
+            "nameZh": "珍珠沙块"
+          },
+          {
+            "internalName": "SandBlock",
+            "name": "Sand Block",
+            "nameZh": "沙块"
+          }
+        ],
+        "normalizedAliases": [
+          "any sand block",
+          "任何沙"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-sandstorm-balloon",
+        "canonicalName": "Any Sandstorm Balloon",
+        "displayNameEn": "Any Sandstorm Balloon",
+        "displayNameZh": "任何沙尘暴气球",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "SandstorminaBalloon",
+            "name": "Sandstorm in a Balloon",
+            "nameZh": "沙暴气球"
+          },
+          {
+            "internalName": "YellowHorseshoeBalloon",
+            "name": "Yellow Horseshoe Balloon",
+            "nameZh": "黄马掌气球"
+          }
+        ],
+        "normalizedAliases": [
+          "any sandstorm balloon",
+          "任何沙尘暴气球"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-scorpion",
+        "canonicalName": "Any Scorpion",
+        "displayNameEn": "Any Scorpion",
+        "displayNameZh": "任何蝎子",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlackScorpion",
+            "name": "Black Scorpion",
+            "nameZh": "黑蝎子"
+          },
+          {
+            "internalName": "Scorpion",
+            "name": "Scorpion",
+            "nameZh": "蝎子"
+          }
+        ],
+        "normalizedAliases": [
+          "any scorpion",
+          "任何蝎子"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-seashell-or-starfish",
+        "canonicalName": "Any Seashell or Starfish",
+        "displayNameEn": "Any Seashell or Starfish",
+        "displayNameZh": "任何贝壳",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Seashell",
+            "name": "Seashell",
+            "nameZh": "贝壳"
+          },
+          {
+            "internalName": "Starfish",
+            "name": "Starfish",
+            "nameZh": "海星"
+          }
+        ],
+        "normalizedAliases": [
+          "any seashell or starfish",
+          "任何贝壳"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-snail",
+        "canonicalName": "Any Snail",
+        "displayNameEn": "Any Snail",
+        "displayNameZh": "任何蜗牛",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "GlowingSnail",
+            "name": "Glowing Snail",
+            "nameZh": "发光蜗牛"
+          },
+          {
+            "internalName": "Snail",
+            "name": "Snail",
+            "nameZh": "蜗牛"
+          }
+        ],
+        "normalizedAliases": [
+          "any snail",
+          "任何蜗牛"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-squirrel",
+        "canonicalName": "Any Squirrel",
+        "displayNameEn": "Any Squirrel",
+        "displayNameZh": "任何松鼠",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Squirrel",
+            "name": "Squirrel",
+            "nameZh": "松鼠"
+          },
+          {
+            "internalName": "SquirrelRed",
+            "name": "Red Squirrel",
+            "nameZh": "红松鼠"
+          }
+        ],
+        "normalizedAliases": [
+          "any squirrel",
+          "任何松鼠"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-stone-block",
+        "canonicalName": "Any Stone Block",
+        "displayNameEn": "Any Stone Block",
+        "displayNameZh": "任何石",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "CrimstoneBlock",
+            "name": "Crimstone Block",
+            "nameZh": "猩红石块"
+          },
+          {
+            "internalName": "EbonstoneBlock",
+            "name": "Ebonstone Block",
+            "nameZh": "黑檀石块"
+          },
+          {
+            "internalName": "PearlstoneBlock",
+            "name": "Pearlstone Block",
+            "nameZh": "珍珠石块"
+          },
+          {
+            "internalName": "StoneBlock",
+            "name": "Stone Block",
+            "nameZh": "石块"
+          }
+        ],
+        "normalizedAliases": [
+          "any stone block",
+          "任何石"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-torch",
+        "canonicalName": "Any Torch",
+        "displayNameEn": "Any Torch",
+        "displayNameZh": "任何火把",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "BlueTorch",
+            "name": "Blue Torch",
+            "nameZh": "蓝火把"
+          },
+          {
+            "internalName": "BoneTorch",
+            "name": "Bone Torch",
+            "nameZh": "骨头火把"
+          },
+          {
+            "internalName": "CoralTorch",
+            "name": "Coral Torch",
+            "nameZh": "珊瑚火把"
+          },
+          {
+            "internalName": "CorruptTorch",
+            "name": "Corrupt Torch",
+            "nameZh": "腐化火把"
+          },
+          {
+            "internalName": "CrimsonTorch",
+            "name": "Crimson Torch",
+            "nameZh": "猩红火把"
+          },
+          {
+            "internalName": "CursedTorch",
+            "name": "Cursed Torch",
+            "nameZh": "诅咒火把"
+          },
+          {
+            "internalName": "DemonTorch",
+            "name": "Demon Torch",
+            "nameZh": "恶魔火把"
+          },
+          {
+            "internalName": "DesertTorch",
+            "name": "Desert Torch",
+            "nameZh": "沙漠火把"
+          },
+          {
+            "internalName": "GreenTorch",
+            "name": "Green Torch",
+            "nameZh": "绿火把"
+          },
+          {
+            "internalName": "HallowedTorch",
+            "name": "Hallowed Torch",
+            "nameZh": "神圣火把"
+          },
+          {
+            "internalName": "IceTorch",
+            "name": "Ice Torch",
+            "nameZh": "冰雪火把"
+          },
+          {
+            "internalName": "IchorTorch",
+            "name": "Ichor Torch",
+            "nameZh": "灵液火把"
+          },
+          {
+            "internalName": "JungleTorch",
+            "name": "Jungle Torch",
+            "nameZh": "丛林火把"
+          },
+          {
+            "internalName": "MushroomTorch",
+            "name": "Mushroom Torch",
+            "nameZh": "蘑菇火把"
+          },
+          {
+            "internalName": "OrangeTorch",
+            "name": "Orange Torch",
+            "nameZh": "橙火把"
+          },
+          {
+            "internalName": "PinkTorch",
+            "name": "Pink Torch",
+            "nameZh": "粉火把"
+          },
+          {
+            "internalName": "PurpleTorch",
+            "name": "Purple Torch",
+            "nameZh": "紫火把"
+          },
+          {
+            "internalName": "RainbowTorch",
+            "name": "Rainbow Torch",
+            "nameZh": "彩虹火把"
+          },
+          {
+            "internalName": "RedTorch",
+            "name": "Red Torch",
+            "nameZh": "红火把"
+          },
+          {
+            "internalName": "Torch",
+            "name": "Torch",
+            "nameZh": "火把"
+          },
+          {
+            "internalName": "UltrabrightTorch",
+            "name": "Ultrabright Torch",
+            "nameZh": "超亮火把"
+          },
+          {
+            "internalName": "WhiteTorch",
+            "name": "White Torch",
+            "nameZh": "白火把"
+          },
+          {
+            "internalName": "YellowTorch",
+            "name": "Yellow Torch",
+            "nameZh": "黄火把"
+          }
+        ],
+        "normalizedAliases": [
+          "any torch",
+          "任何火把"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-turtle",
+        "canonicalName": "Any Turtle",
+        "displayNameEn": "Any Turtle",
+        "displayNameZh": "任何龟",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "Turtle",
+            "name": "Turtle",
+            "nameZh": "龟"
+          },
+          {
+            "internalName": "TurtleJungle",
+            "name": "Jungle Turtle",
+            "nameZh": "丛林龟"
+          }
+        ],
+        "normalizedAliases": [
+          "any turtle",
+          "任何龟"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": null,
+        "canonicalKey": "any-wood",
+        "canonicalName": "Any Wood",
+        "displayNameEn": "Any Wood",
+        "displayNameZh": "任何木材",
+        "domains": [],
+        "members": [
+          {
+            "internalName": "AshWood",
+            "name": "Ash Wood",
+            "nameZh": "灰烬木"
+          },
+          {
+            "internalName": "BorealWood",
+            "name": "Boreal Wood",
+            "nameZh": "针叶木"
+          },
+          {
+            "internalName": "Ebonwood",
+            "name": "Ebonwood",
+            "nameZh": "乌木"
+          },
+          {
+            "internalName": "PalmWood",
+            "name": "Palm Wood",
+            "nameZh": "棕榈木"
+          },
+          {
+            "internalName": "Pearlwood",
+            "name": "Pearlwood",
+            "nameZh": "珍珠木"
+          },
+          {
+            "internalName": "RichMahogany",
+            "name": "Rich Mahogany",
+            "nameZh": "红木"
+          },
+          {
+            "internalName": "Shadewood",
+            "name": "Shadewood",
+            "nameZh": "暗影木"
+          },
+          {
+            "internalName": "SpookyWood",
+            "name": "Spooky Wood",
+            "nameZh": "阴森木"
+          },
+          {
+            "internalName": "Wood",
+            "name": "Wood",
+            "nameZh": "木材"
+          }
+        ],
+        "normalizedAliases": [
+          "any wood",
+          "任何木材"
+        ],
+        "sourceKind": "generated_recipe_reference",
+        "sourceLayer": "recipe_reference",
+        "sourceMetadata": {
+          "sourceFile": null,
+          "sourceLabel": null,
+          "sourceUrls": []
+        },
+        "sourcePage": null,
+        "sourcePriority": 100,
+        "sourceProvider": null,
+        "sourceRevisionTimestamp": null,
+        "status": "ACTIVE"
+      },
+      {
+        "aliases": [],
+        "blockReason": "Local artifacts prove the shimmer item_group reference but do not provide an explicit source-backed member list.",
+        "canonicalKey": "recorded-music-boxes",
+        "canonicalName": "Recorded Music Boxes",
+        "displayNameEn": "Recorded Music Boxes",
+        "displayNameZh": "录音后的八音盒",
+        "domains": [
+          "shimmer"
+        ],
+        "members": [],
+        "normalizedAliases": [
+          "recorded music boxes",
+          "录音后的八音盒"
+        ],
+        "sourceKind": "blocked_consumer_reference",
+        "sourceLayer": "source_group",
+        "sourceMetadata": {
+          "sourceFile": "data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json",
+          "sourceLabel": null,
+          "sourceUrls": [
+            "https://terraria.wiki.gg/wiki/Shimmer"
+          ]
+        },
+        "sourcePage": "https://terraria.wiki.gg/wiki/Shimmer",
+        "sourcePriority": 300,
+        "sourceProvider": "wiki_gg",
+        "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+        "status": "BLOCKED"
+      }
+    ],
+    "exclusions": [
+      {
+        "actor": "bootstrap.recipe_group_overrides",
+        "canonicalKey": "any-guide-to-critter-companionship",
+        "canonicalName": "Any Guide to Critter Companionship",
+        "evidenceReference": "/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness/data/generated/recipe-group-overrides.json",
+        "memberKey": "DontHurtCrittersBookInactive",
+        "reason": "frozen recipe-group-overrides omission"
+      },
+      {
+        "actor": "bootstrap.recipe_group_overrides",
+        "canonicalKey": "any-guide-to-environmental-preservation",
+        "canonicalName": "Any Guide to Environmental Preservation",
+        "evidenceReference": "/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness/data/generated/recipe-group-overrides.json",
+        "memberKey": "DontHurtNatureBookInactive",
+        "reason": "frozen recipe-group-overrides omission"
+      }
+    ],
+    "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d"
+  },
+  "exports": [
+    {
+      "artifact": "recipe-material-reference.json",
+      "path": "data/generated/recipe-material-reference.json",
+      "fresh": true,
+      "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+      "contentHash": "b21af1447f325dae797d502280894c7593cccb37507bc958c64a73e32b12602d",
+      "exportRunKey": "ig_export_20260729_01"
+    },
+    {
+      "artifact": "recipe-group-overrides.json",
+      "path": "data/generated/recipe-group-overrides.json",
+      "fresh": true,
+      "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+      "contentHash": "64b4663f43c8fcb6212c93f07e39e8b4d7019dd7fc70567526b0fdb50f7133e2",
+      "exportRunKey": "ig_export_20260729_01"
+    },
+    {
+      "artifact": "item-group-overrides.json",
+      "path": "data/generated/item-group-overrides.json",
+      "fresh": true,
+      "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+      "contentHash": "fca3c5699819aa463a3e37ea9f3b43c1a5d34467da186b773e09e7c027998d1c",
+      "exportRunKey": "ig_export_20260729_01"
+    }
+  ],
+  "readinessEvidence": {
+    "writesDatabase": false,
+    "databaseRole": "t2-readonly",
+    "cutoverIdentity": {
+      "state": "T2_CUTOVER_VERIFIED",
+      "operationId": "canonical-item-group-cutover",
+      "bootstrapRunKey": "ig_20260728a12639ff"
+    },
+    "counts": {
+      "landing": {
+        "sourceCount": 4,
+        "groupCount": 64
+      },
+      "maint": {
+        "groupCount": 35,
+        "memberCount": 163,
+        "aliasCount": 72,
+        "exclusionCount": 2
+      },
+      "relation": {
+        "groupCount": 35,
+        "memberCount": 163,
+        "aliasCount": 72,
+        "unresolvedCount": 0,
+        "ambiguousCount": 0,
+        "rejectedCount": 2
+      },
+      "local": {
+        "groupCount": 34,
+        "memberCount": 161,
+        "aliasCount": 70
+      }
+    },
+    "hashes": {
+      "landing": "07052ef707ab28b13eaad38b4089366250a78bc75e670bcda2c1839f475b4ea8",
+      "maint": "d8a78ced781ba4b5b6b4fa5a35ed7fac06481e3dac072dc0e1b4a9b39e7a6e5f",
+      "relation": "606ef475eb07f418bd168aa0010e1cd88c2383d674d2ec65183d94a12eca97e8",
+      "local": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+      "compatibility": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d"
+    },
+    "shadows": {
+      "adminItemGroups": {
+        "parity": true,
+        "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819"
+      },
+      "adminRecipeGroups": {
+        "parity": true,
+        "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819"
+      },
+      "recipeTree": {
+        "parity": true,
+        "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819"
+      }
+    },
+    "consumerContract": {
+      "directJsonReaders": 0,
+      "fallbackEnabled": false
+    },
+    "api": {
+      "snapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+      "adminItemGroupCount": 34,
+      "adminRecipeGroupCount": 33,
+      "recipeTree": {
+        "sampleGroup": "Any Iron Bar"
+      }
+    },
+    "exports": [
+      {
+        "artifact": "recipe-material-reference.json",
+        "fresh": true,
+        "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+        "contentHash": "b21af1447f325dae797d502280894c7593cccb37507bc958c64a73e32b12602d",
+        "exportRunKey": "ig_export_20260729_01"
+      },
+      {
+        "artifact": "recipe-group-overrides.json",
+        "fresh": true,
+        "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+        "contentHash": "64b4663f43c8fcb6212c93f07e39e8b4d7019dd7fc70567526b0fdb50f7133e2",
+        "exportRunKey": "ig_export_20260729_01"
+      },
+      {
+        "artifact": "item-group-overrides.json",
+        "fresh": true,
+        "snapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+        "contentHash": "fca3c5699819aa463a3e37ea9f3b43c1a5d34467da186b773e09e7c027998d1c",
+        "exportRunKey": "ig_export_20260729_01"
+      }
+    ]
+  },
+  "summary": {
+    "status": "pass",
+    "blockingCount": 0,
+    "warningCount": 0
+  }
+}

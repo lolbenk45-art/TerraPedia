@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 11:16 CST by Codex
+Last updated: 2026-07-29 12:33 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -47,7 +47,20 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `18201/15187/13014` started and stopped cleanly; Redis DB 13 was restored to
   zero, no item-group admin write occurred, and original backend `18191` remains
   on PID 654976. Evidence hash is `sha256:0c642da1f5619432118c9e4ffcb9466df957fa960002b99038f7dbf6ba7995fa`.
-  Plan progress is now 64/86. The
+  Batch 05 then published all three one-way compatibility exports under
+  `ig_export_20260729_01`; fresh canonical group readiness passes with runtime
+  hash `8d3fb0b1...fe819`, separate compatibility hash `54130fe0...00d`, and
+  `sourceGroupAudit` fresh/non-blocking; readiness now also binds the three live
+  export byte hashes so partial publication fails closed. The full gate still
+  fail-closes after 295/295 data-workflow and 177/177 automation tests at the
+  unchanged 40 pass / 4 warning / 1 blocked domain result, so no source contract
+  was flipped. NPC
+  frozen evidence is now `T1_PREPARED` as seven single-owner phases with 9 Buff,
+  239 shop, and 175 loot facts; formal apply stays unavailable until seven
+  executors and seven independent exact authorizations exist. No database write,
+  crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. Plan
+  progress remains 64/86 because Task 13 Step 6 and NPC Step 3B are combined
+  gates and remain open. The
   independent biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
   it remains `AWAITING_OWNER`. Group bootstrap action/acceptance/shadow/readiness/

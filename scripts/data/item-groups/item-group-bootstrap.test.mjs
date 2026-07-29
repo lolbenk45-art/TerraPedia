@@ -19,14 +19,87 @@ async function loadFrozenArtifacts() {
   return artifacts;
 }
 
+function syntheticFrozenArtifacts() {
+  const recipeGroups = Array.from({ length: 33 }, (_, index) => {
+    const canonicalName = index === 0
+      ? 'Any Guide to Critter Companionship'
+      : index === 1
+        ? 'Any Guide to Environmental Preservation'
+        : `Synthetic Recipe Group ${index + 1}`;
+    const memberNames = index === 0
+      ? ['Bunny', 'DontHurtCrittersBookInactive']
+      : index === 1
+        ? ['Daybloom', 'DontHurtNatureBookInactive']
+        : [`SyntheticMember${index + 1}`];
+    return {
+      canonicalName,
+      displayNameZh: `合成组 ${index + 1}`,
+      domains: ['recipe'],
+      members: memberNames.flatMap((internalName) => [
+        { internalName, name: internalName, nameZh: null },
+        { internalName, name: internalName, nameZh: `中文 ${internalName}` },
+      ]),
+    };
+  });
+  const overrideGroups = recipeGroups.slice(0, 29).map((group, index) => ({
+    canonicalName: group.canonicalName,
+    members: group.members
+      .filter((member) => member.nameZh)
+      .filter((member) => !(index < 2 && /Inactive$/.test(member.internalName))),
+  }));
+  const payloads = {
+    recipeReference: {
+      schemaVersion: 1,
+      generatedAt: '2026-07-27T00:00:00.000Z',
+      sourceType: 'synthetic',
+      sourceUrls: [],
+      recipeSourcePages: [],
+      sourcePageSnapshots: [],
+      supplementalRecipes: [],
+      groups: recipeGroups,
+    },
+    recipeOverrides: {
+      schemaVersion: 1,
+      updatedAt: '2026-07-27T00:00:00.000Z',
+      groups: overrideGroups,
+    },
+    itemOverrides: {
+      schemaVersion: 1,
+      generatedAt: '2026-07-27T00:00:00.000Z',
+      groups: [{
+        canonicalName: 'Any Pylon',
+        displayNameZh: '任意晶塔',
+        aliases: ['Pylons'],
+        domains: ['shimmer'],
+        sourceKind: 'curated_wiki_item_group',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Pylon',
+        members: [{ internalName: 'ForestPylon', name: 'Forest Pylon', nameZh: '森林晶塔' }],
+      }],
+      blockedGroups: [{
+        canonicalName: 'Recorded Music Boxes',
+        displayNameZh: '录制音乐盒',
+        sourceKind: 'blocked_consumer_reference',
+        blockReason: 'synthetic blocked fixture',
+        members: [],
+      }],
+    },
+  };
+  return Object.fromEntries(Object.entries(payloads).map(([key, payload]) => [key, {
+    raw: JSON.stringify(payload),
+    payload,
+    sourceLocator: `fixture://${key}`,
+  }]));
+}
+
 function clone(value) {
   return structuredClone(value);
 }
 
-test('frozen bootstrap deduplicates 33 recipe groups and reconciles 27 redundant rows plus 2 exclusions', async () => {
+test('frozen bootstrap deduplicates 33 recipe groups and reconciles 27 redundant rows plus 2 exclusions', () => {
   assert.equal(typeof bootstrap.buildItemGroupBootstrap, 'function');
   const result = bootstrap.buildItemGroupBootstrap({
-    artifacts: await loadFrozenArtifacts(),
+    artifacts: syntheticFrozenArtifacts(),
     producerRunKey: 'task-3-frozen-baseline',
   });
 
@@ -60,8 +133,8 @@ test('frozen bootstrap deduplicates 33 recipe groups and reconciles 27 redundant
   assert.equal(musicBoxes.members.length, 0);
 });
 
-test('recipe override reconciliation blocks added members and orphan groups', async () => {
-  const baseline = await loadFrozenArtifacts();
+test('recipe override reconciliation blocks added members and orphan groups', () => {
+  const baseline = syntheticFrozenArtifacts();
   const added = clone(baseline);
   added.recipeOverrides.payload.groups[0].members.push({
     internalName: 'InventedMember',
@@ -86,8 +159,8 @@ test('recipe override reconciliation blocks added members and orphan groups', as
   );
 });
 
-test('bootstrap rejects unknown source kinds, duplicate aliases, and empty active groups', async () => {
-  const baseline = await loadFrozenArtifacts();
+test('bootstrap rejects unknown source kinds, duplicate aliases, and empty active groups', () => {
+  const baseline = syntheticFrozenArtifacts();
 
   const unknownKind = clone(baseline);
   unknownKind.itemOverrides.payload.groups[0].sourceKind = 'unreviewed_group_kind';
@@ -114,8 +187,8 @@ test('bootstrap rejects unknown source kinds, duplicate aliases, and empty activ
   );
 });
 
-test('landing descriptors retain full-file lineage but only expose group payloads', async () => {
-  const artifacts = await loadFrozenArtifacts();
+test('landing descriptors retain full-file lineage but only expose group payloads', () => {
+  const artifacts = syntheticFrozenArtifacts();
   const result = bootstrap.buildItemGroupBootstrap({
     artifacts,
     producerRunKey: 'group-only-payloads',
@@ -147,6 +220,17 @@ test('landing descriptors retain full-file lineage but only expose group payload
   assert.throws(
     () => bootstrap.validateItemGroupLandingPayload(artifacts.recipeReference.payload),
     /non-group section.*supplementalRecipes/i,
+  );
+});
+
+test('bootstrap rejects published compatibility exports as a feedback source', async () => {
+  const artifacts = await loadFrozenArtifacts();
+  assert.equal(artifacts.recipeReference.payload.artifactRole, 'compat_export');
+  assert.equal(artifacts.recipeOverrides.payload.artifactRole, 'compat_export');
+  assert.equal(artifacts.itemOverrides.payload.artifactRole, 'compat_export');
+  assert.throws(
+    () => bootstrap.buildItemGroupBootstrap({ artifacts, producerRunKey: 'feedback-loop' }),
+    /compat_export.*cannot be bootstrap input/i,
   );
 });
 

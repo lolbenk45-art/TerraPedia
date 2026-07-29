@@ -614,6 +614,45 @@
   Fresh focused validation passes Node 30/30 and backend 34/34; standard
   preflight also passed backend compile plus both frontend checks. See git for
   code-level diff details.
+- Batch 05 readiness preparation completed four independent, non-formal lanes.
+  The full repository gate started from the beginning: data workflow passed
+  295/295 and automation contracts passed 177/177, then the read-only domain
+  gate exited 1 at 40 pass / 4 warning / 1 blocked. The independent post-export
+  domain rerun reproduced the same five non-pass panels with zero reports
+  written: item image blocked; boss relation/image, recipe blocking, and shimmer
+  blocking warning.
+- The first canonical compatibility publication uses export run
+  `ig_export_20260729_01`. It stages all outputs before publishing each path by
+  atomic rename from a durable canonical snapshot and refuses `compat_export`
+  feedback as bootstrap input. A second same-run publication reproduced content
+  hashes
+  `b21af144...602d`, `64b4663f...33e2`, and `fca3c569...8d1c`. Recipe non-group
+  domain evidence is semantically identical before/after publication at
+  `87a4c392...10ef`; only export metadata, canonical groups, deterministic
+  ordering, and formatting changed. The fresh readiness report passes with
+  runtime hash `8d3fb0b1...fe819` and separate compatibility hash
+  `54130fe0...00d`; data-source freshness marks `sourceGroupAudit` fresh and
+  non-blocking. Report hashes are compatibility export `7089a63c...650f0` and
+  readiness `1d5f8234...34aa`. A pre-commit review found that staging all four
+  files before per-file rename cannot provide a cross-directory atomic
+  transaction. Readiness generation now re-reads all three live export paths
+  and verifies their run key, compatibility snapshot, content hash, and payload
+  identity before publishing evidence; a partial rename therefore fails closed.
+- NPC ownership preparation now maps the frozen 25 normalized/audit pairs into
+  seven single-capability phases. The read-only report is `T1_PREPARED` at
+  `dbd184b8...2575`, with 9 Buff, 239 shop, and 175 loot facts (172 boss / 3
+  non-boss). Every physical ownership key resolves to exactly one current write
+  owner. `formalApplyReady` remains false until seven governed executors and
+  seven independent exact authorization packets exist; no database connection,
+  crawler, or formal apply ran. See git for code-level diff details.
+- Batch 05 pre-commit validation reproduced the partial-publication readiness
+  gap as RED at 3/4, then passed publisher/readiness GREEN at 7/7 and the full
+  focused chain at 64/64. The complete local gate again passed data workflow
+  295/295 and automation contracts 177/177 before the expected read-only domain
+  fail-close at 40 pass / 4 warning / 1 blocked / 0 written. `git diff --check`
+  passes, no progress/output `.tmp` file remains, and the original backend is
+  still UP on PID 654976. Recipe non-group semantic evidence remains byte-order
+  independent at `87a4c392...10ef` before and after publication.
 
 ## Result
 
@@ -696,6 +735,12 @@
   reached group `T2_CUTOVER_VERIFIED`, disabled JSON fallback, preserved the
   compatibility artifacts as non-runtime inputs, and proved the standard
   isolated lifecycle without affecting the main stack.
+- Completed in Batch 05 for the group slice: one-way compatibility publication,
+  feedback-loop rejection, idempotent same-run content hashes, distinct runtime/
+  compatibility identities, and fresh passing canonical group readiness.
+- Completed in Batch 05 for NPC preparation: the cross-capability write set is
+  decomposed into seven exact single-owner phases and real frozen evidence is
+  `T1_PREPARED`; formal execution remains intentionally unavailable.
 - Completed in code-only repair after Batch 03: both remaining recipe stages
   use the repository mysql loader; managed entity uploads accept validated GIF
   while avatar restrictions remain unchanged; the boss manifest binds the
@@ -705,7 +750,8 @@
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
-- Not completed: NPC ownership-valid apply orchestration, Task 10's four
+- Not completed: the seven NPC owner-specific executors/authorizations and real
+  T1/apply, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
   Task 12 Owner authorization for the remaining independent operations, Task 13
   Steps 5-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
@@ -726,6 +772,14 @@
   dry-run artifacts now fail closed; armor and projectile are no longer warnings.
   The fresh post-Batch-04 read-only domain rerun reports exactly 40 pass / 4
   warning / 1 blocked.
+- Group compatibility readiness is now fresh and passing, but its three source
+  contracts cannot flip while the complete repository gate is non-green. The
+  readiness contract keeps runtime and compatibility identities distinct.
+- The frozen compatibility snapshot retains two non-secret absolute
+  `evidenceReference` values for recipe-group exclusions. They are covered by
+  compatibility hash `54130fe0...00d`; rewriting them in Batch 05 would falsify
+  the already-consumed bootstrap identity. Normalize them only through a future
+  separately authorized snapshot/bootstrap rotation.
 - Local V56/V57/V58 plus maint and relation role schemas and the frozen group
   bootstrap are applied. Runtime JSON fallback is disabled and Step 4 is
   verified; the three compatibility files remain bounded non-runtime inputs
@@ -768,9 +822,9 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- Capability owners: decide whether NPC canonical apply is split into separately
-  owned maint/relation/local operation IDs or approved as an explicit
-  cross-capability orchestration contract. Until then, `canonical-npc-apply`
+- Capability owners: Batch 05 prepared the recommended seven-operation split
+  and exact ownership keys. Each phase still needs its governed executor and
+  independent authorization contract. Until then, `canonical-npc-apply`
   remains `executor: null` even after crawler evidence exists.
 
 ## Commits

@@ -1179,6 +1179,16 @@ NPC apply must first resolve the capability-owner split. It then consumes paired
 normalized/audit crawler bytes; it cannot crawl, renormalize, or fall back to
 the retired bridge. Missing real crawler evidence is a separate input blocker.
 
+Batch 05 readiness preparation resolves the split without claiming an executor:
+maint facts (`npc_crawler_facts`), item relation facts/shop/loot (`items`), Buff
+relation and local projection (`buffs`), local shop projection
+(`town_npc_maintenance`), and boss/non-boss local loot partitions
+(`boss_loot` / `npc_loot`) are seven independent owner phases. The read-only
+preparation report proves 25 paired inputs and positive Buff/shop/loot facts.
+Step 3B remains incomplete until all seven phases have governed executors and
+independent exact authorization contracts; the old cross-owner operation stays
+non-executable.
+
 - [x] **Step 4: Implement automation preview, persistence, and apply ownership**
 
 The `biomes` preview must create an immutable bundle and persist the exact
@@ -1228,6 +1238,12 @@ no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
 - [ ] **Step 6: Generate fresh canonical group, canonical NPC, and bridge-retirement reports**
 - [ ] **Step 7: Flip each source contract only after its exact report passes**
 
+Batch 05 completed only the group slice of Step 6: the three deterministic
+compatibility exports and `canonical-item-group-readiness.json` pass under export
+run `ig_export_20260729_01`. The combined step remains open because canonical NPC
+readiness is not yet available. No source contract flips while the complete
+repository gate is non-green.
+
 Any failure keeps pre-cutover readers active or triggers the existing
 latest-writer rollback/circuit-breaker. Never silently re-enable JSON after a
 successful canonical cutover.
@@ -1261,6 +1277,11 @@ patch and re-audit this plan before executing; do not substitute dynamically.
 - [ ] **Step 7: Re-run full gate and record `AUTOMATION_PROVEN`**
 - [ ] **Step 8: Freeze a later independent preview and execute the second L1 apply only under a new request, decision identity, and packet**
 - [ ] **Step 9: Verify both committed L1 applies remain independently hash-bound before any L2 request is authorized**
+
+Batch 05 reran Step 3 from the beginning. Data workflow passed 295/295 and
+automation contracts passed 177/177, but the gate stopped at the read-only
+domain stage with 40 pass / 4 warning / 1 blocked. The Step 3 checkbox remains
+open because an expected fail-close is not a passing full repository gate.
 
 ## Task 15: Gate L2 And Scheduler Availability
 

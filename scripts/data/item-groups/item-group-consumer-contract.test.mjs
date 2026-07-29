@@ -21,6 +21,7 @@ const expectedPostCutoverInventory = [
   entry('scripts/data/generate/generate-item-group-overrides.mjs', 'compat_export'),
   entry('scripts/data/generate/generate-recipe-material-reference.mjs', 'compat_export'),
   entry('scripts/data/item-groups/item-group-bootstrap.mjs', 'bootstrap'),
+  entry('scripts/data/item-groups/item-group-compatibility-publish.mjs', 'compat_export'),
   entry('scripts/data/item-groups/item-group-live-acceptance.mjs', 'bootstrap'),
   entry('scripts/data/item-groups/item-group-readiness.mjs', 'governance'),
   entry('scripts/data/landing/source-dataset-locator.mjs', 'bootstrap'),
@@ -75,6 +76,9 @@ function classifyRole(relativePath) {
     return 'runtime_reader';
   }
   if (relativePath.startsWith('scripts/data/generate/')) {
+    return 'compat_export';
+  }
+  if (relativePath === 'scripts/data/item-groups/item-group-compatibility-publish.mjs') {
     return 'compat_export';
   }
   if (

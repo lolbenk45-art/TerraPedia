@@ -54,10 +54,12 @@ cutover, first-mutation, reset, and restart procedure.
 Canonical item-group runtime reads use the published formal
 `terria_v1_local` projection backed by maint and relation lineage. The admin
 item-group, admin recipe-group, and recipe-tree consumers have no production
-JSON reader or JSON fallback. The three JSON artifacts remain bounded
-bootstrap, compatibility-export, and governance inputs until their independent
-fresh readiness report passes and the source-contract registry is explicitly
-flipped.
+JSON reader or JSON fallback. The three JSON artifacts were regenerated as the
+one-way compatibility export `ig_export_20260729_01`; fresh canonical readiness
+passes with distinct runtime and compatibility snapshot identities. They remain
+bounded compatibility-export and governance inputs until the source-contract
+registry is explicitly flipped. That flip stays fail-closed while the complete
+repository gate still reports domain warnings or blockers.
 
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis

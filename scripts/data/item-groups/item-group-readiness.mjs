@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,6 +80,11 @@ function evaluate(report) {
     }
     check(`hash-${stage}`, HASH_PATTERN.test(String(report.hashes?.[stage] ?? '')), `${stage} hash must be SHA-256`);
   }
+  check(
+    'hash-compatibility',
+    HASH_PATTERN.test(String(report.hashes?.compatibility ?? '')),
+    'compatibility hash must be SHA-256',
+  );
   for (const consumer of EXPECTED_SHADOWS) {
     check(`shadow-${consumer}`, report.shadows?.[consumer]?.parity === true, `${consumer} shadow parity must pass`);
     check(`shadow-hash-${consumer}`, report.shadows?.[consumer]?.snapshotHash === report.hashes?.local, `${consumer} snapshot hash must match local`);
@@ -98,7 +104,11 @@ function evaluate(report) {
   for (const artifact of EXPECTED_EXPORTS) {
     const entry = exportsByArtifact.get(artifact);
     check(`export-fresh-${artifact}`, entry?.fresh === true, `${artifact} export must be fresh`);
-    check(`export-hash-${artifact}`, entry?.snapshotHash === report.hashes?.local, `${artifact} snapshot hash must match local`);
+    check(
+      `export-hash-${artifact}`,
+      entry?.snapshotHash === report.hashes?.compatibility,
+      `${artifact} snapshot hash must match compatibility`,
+    );
   }
   return { valid: blockingReasons.length === 0, checks, blockingReasons };
 }
@@ -114,10 +124,106 @@ function parseArgs(argv) {
   }));
 }
 
-function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const evidence = args.input ? JSON.parse(fs.readFileSync(path.resolve(args.input), 'utf8')) : {};
-  process.stdout.write(`${JSON.stringify(buildItemGroupReadinessReport({ evidence }), null, 2)}\n`);
+function resolveWithinCanonicalReports(repoRoot, value, fallback, label) {
+  const root = path.resolve(repoRoot);
+  const reportsRoot = path.join(root, 'reports/canonical-migration');
+  const resolved = path.resolve(root, value || fallback);
+  if (resolved !== reportsRoot && !resolved.startsWith(`${reportsRoot}${path.sep}`)) {
+    throw new Error(`${label} must stay under reports/canonical-migration`);
+  }
+  return resolved;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+async function verifyCompatibilityPublicationArtifacts(repoRoot, publication) {
+  const exportsByArtifact = new Map((Array.isArray(publication.exports) ? publication.exports : [])
+    .map((entry) => [entry?.artifact, entry]));
+  if (publication.exports?.length !== EXPECTED_EXPORTS.size
+      || exportsByArtifact.size !== EXPECTED_EXPORTS.size) {
+    throw new Error('compatibility publication must describe all three exports');
+  }
+  for (const artifact of EXPECTED_EXPORTS) {
+    const entry = exportsByArtifact.get(artifact);
+    const expectedPath = `data/generated/${artifact}`;
+    if (entry?.path !== expectedPath
+        || entry?.exportRunKey !== publication.exportRunKey
+        || entry?.snapshotHash !== publication.compatibilitySnapshotHash) {
+      throw new Error(`compatibility export ${artifact} identity mismatch`);
+    }
+    const raw = await fs.promises.readFile(path.join(repoRoot, expectedPath), 'utf8');
+    const contentHash = crypto.createHash('sha256').update(raw).digest('hex');
+    if (contentHash !== String(entry.contentHash ?? '').replace(/^sha256:/, '')) {
+      throw new Error(`compatibility export ${artifact} hash mismatch`);
+    }
+    const payload = JSON.parse(raw);
+    if (payload?.artifactRole !== 'compat_export'
+        || payload?.exportRunKey !== publication.exportRunKey
+        || payload?.canonicalSnapshotHash !== publication.compatibilitySnapshotHash) {
+      throw new Error(`compatibility export ${artifact} payload identity mismatch`);
+    }
+  }
+}
+
+export async function writeItemGroupReadinessReport({
+  repoRoot = process.cwd(),
+  inputPath = null,
+  outputPath = null,
+  generatedAt = new Date().toISOString(),
+} = {}) {
+  const root = path.resolve(repoRoot);
+  const resolvedInput = resolveWithinCanonicalReports(
+    root,
+    inputPath,
+    'reports/canonical-migration/item-group-compatibility-export.json',
+    'readiness input',
+  );
+  const publication = JSON.parse(await fs.promises.readFile(resolvedInput, 'utf8'));
+  if (publication?.schemaVersion !== 1
+      || publication?.reportKind !== 'canonical_item_group_compatibility_export'
+      || publication?.writesDatabase !== false
+      || publication?.summary?.status !== 'pass'
+      || !publication?.readinessEvidence) {
+    throw new Error('passing read-only compatibility publication is required');
+  }
+  await verifyCompatibilityPublicationArtifacts(root, publication);
+  const report = buildItemGroupReadinessReport({
+    evidence: publication.readinessEvidence,
+    generatedAt,
+  });
+  const resolvedOutput = resolveWithinCanonicalReports(
+    root,
+    outputPath,
+    'reports/canonical-migration/canonical-item-group-readiness.json',
+    'readiness output',
+  );
+  await fs.promises.mkdir(path.dirname(resolvedOutput), { recursive: true });
+  const temporaryPath = `${resolvedOutput}.${process.pid}.tmp`;
+  try {
+    await fs.promises.writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: 'utf8',
+      mode: 0o600,
+    });
+    await fs.promises.rename(temporaryPath, resolvedOutput);
+  } catch (error) {
+    await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
+    throw error;
+  }
+  return report;
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const repoRoot = path.resolve(args['repo-root'] || process.cwd());
+  const report = await writeItemGroupReadinessReport({
+    repoRoot,
+    inputPath: args.input || null,
+    outputPath: args.output || null,
+  });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}
