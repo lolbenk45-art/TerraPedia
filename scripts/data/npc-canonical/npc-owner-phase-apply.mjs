@@ -27,6 +27,12 @@ import {
 const INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
 const LANDING_OPERATION_ID = 'canonical-npc-landing-apply';
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const MYSQL_DATETIME_COLUMNS = new Set([
+  'source_revision_timestamp',
+  'fetched_at',
+  'parsed_at',
+]);
+const ISO_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 const LANDING_DEFINITION = Object.freeze({
   phaseIndex: 0,
   operationId: LANDING_OPERATION_ID,
@@ -598,9 +604,21 @@ async function upsertRows(connection, database, table, rows) {
       `INSERT INTO \`${database}\`.\`${table}\` (${columns.map((column) => `\`${column}\``).join(', ')})
        VALUES (${columns.map(() => '?').join(', ')})
        ON DUPLICATE KEY UPDATE ${updates || '`record_key` = VALUES(`record_key`)'}`,
-      columns.map((column) => mapped[column]),
+      columns.map((column) => mysqlPersistenceValue(column, mapped[column])),
     );
   }
+}
+
+function mysqlPersistenceValue(column, value) {
+  if (!MYSQL_DATETIME_COLUMNS.has(column) || typeof value !== 'string') return value;
+  if (!ISO_DATETIME_PATTERN.test(value)) return value;
+  const parsed = new Date(normalizeIsoDatetimeInput(value));
+  if (!Number.isFinite(parsed.getTime())) return value;
+  return parsed.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function normalizeIsoDatetimeInput(value) {
+  return /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
 }
 
 function buildLookupIndex(rows) {

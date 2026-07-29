@@ -180,17 +180,24 @@ function toMysqlDateTime(value) {
   if (!value) {
     return null;
   }
-  const date = value instanceof Date ? value : new Date(value);
+  const date = value instanceof Date ? value : new Date(normalizeIsoDatetimeInput(value));
   if (!Number.isFinite(date.getTime())) {
     return null;
   }
-  const year = String(date.getFullYear());
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const year = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+function normalizeIsoDatetimeInput(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)) {
+    return value;
+  }
+  return `${value}Z`;
 }
 
 async function resolveEntryPayload(entry) {

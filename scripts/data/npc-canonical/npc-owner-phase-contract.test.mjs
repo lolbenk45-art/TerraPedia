@@ -294,7 +294,11 @@ test('production maint adapter persists only physical maint crawler-fact columns
   const normalized = {
     entityId: 'medusa',
     source: { pageTitle: 'Medusa' },
-    sourceMetadata: { revisionTimestamp: '2026-07-29T00:00:00Z' },
+    sourceMetadata: {
+      revisionTimestamp: '2026-07-29T00:00:00Z',
+      fetchedAt: '2026-07-29T00:01:02Z',
+      parsedAt: '2026-07-29T00:03:04',
+    },
     display: { name: 'Medusa' },
     buffInflictions: [],
     shop: { normalizedRows: [] },
@@ -343,7 +347,7 @@ test('production maint adapter persists only physical maint crawler-fact columns
     },
     execute: async (sql, params = []) => {
       if (sql.startsWith('INSERT INTO')) {
-        inserts.push(sql);
+        inserts.push({ sql, params });
         return [{}];
       }
       if (sql.startsWith('SELECT COUNT(*)')) return [[{ total: params.length }]];
@@ -365,8 +369,13 @@ test('production maint adapter persists only physical maint crawler-fact columns
 
   assert.equal(result.rowCounts['maint.maint_npc_crawler_facts.canonical'], 1);
   assert.equal(inserts.length, 1);
-  assert.equal(inserts.every((sql) => !sql.includes('`scope`')), true);
-  assert.equal(inserts.every((sql) => !sql.includes('`table_name`')), true);
+  assert.equal(inserts.every(({ sql }) => !sql.includes('`scope`')), true);
+  assert.equal(inserts.every(({ sql }) => !sql.includes('`table_name`')), true);
+  assert.deepEqual(inserts[0].params.filter((value) => typeof value === 'string' && value.startsWith('2026-07-29')), [
+    '2026-07-29 00:00:00',
+    '2026-07-29 00:01:02',
+    '2026-07-29 00:03:04',
+  ]);
 });
 
 test('operation executor commits one exact ownership set and rolls back without success evidence on failure', async () => {

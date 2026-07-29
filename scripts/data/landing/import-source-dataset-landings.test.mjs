@@ -269,6 +269,11 @@ test('runLandingImport executes schema sql and upserts landing rows in apply mod
     null,
     null,
   ]);
+  assert.deepEqual(executeCalls[1].params.filter((_, index) => [6, 9, 10].includes(index)), [
+    '2026-04-22 11:00:00',
+    '2026-04-23 01:00:00',
+    '2026-04-23 01:00:00',
+  ]);
   assert.equal(ended, true);
   assert.equal(summary.schema.applied, true);
   assert.equal(summary.datasets.located, 1);

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 15:18 CST by Codex
+Last updated: 2026-07-29 15:52 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,9 +11,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
   blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints;
-  next formal dependency is the repaired `canonical-npc-facts-maint-apply`
-  retry request; the first frozen biomes L1 apply remains a separate later
-  preview-bundle and Owner-authorization checkpoint;
+  next formal dependency is a new current-byte `canonical-npc-facts-maint-apply`
+  retry request after the DATETIME persistence fix is committed; the first
+  frozen biomes L1 apply remains a separate later preview-bundle and
+  Owner-authorization checkpoint;
   contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
   identities exactly once and both completed. Recipe applied the frozen 3,663
@@ -113,14 +114,18 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   exact `biomes` v1 policy to `L1/ACTIVE` with result packet
   `sha256:c9104874389c553617ff24c7a7c5be9ac0d0fd2b9a19c7d0d1a7208a7b43ca5c`.
   The first NPC maint-phase identity
-  `canonical-npc-facts-maint-apply-20260729-01` was also consumed once, but its
-  transaction rolled back before a row write when generic persistence attempted
-  to insert contract metadata columns `scope` and `table_name`. A RED-to-GREEN
-  adapter regression now excludes those metadata fields; focused Node validation
-  passes 67 with one existing skip. Fresh retry request
-  `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`
-  is `AWAITING_OWNER`; maint facts remain 0, the governed 1/25 landing remains
-  current, and no phase-2 request exists until this retry commits.
+  `canonical-npc-facts-maint-apply-20260729-01` was consumed and rolled back
+  before a row write when generic persistence attempted to insert contract
+  metadata columns `scope` and `table_name`. Retry-02 then consumed
+  `canonical-npc-facts-maint-apply-retry-02-20260729` under packet
+  `sha256:9b6d29e8b95599557cd933d9cd2ce2226ecdef7da63e851c69fc55c1b13f7131`,
+  but its transaction again rolled back before a row write because strict MySQL
+  rejected ISO-8601 values for `DATETIME` fields. A RED-to-GREEN adapter
+  regression now normalizes `source_revision_timestamp`, `fetched_at`, and
+  `parsed_at` as UTC at the persistence boundary; 80 focused contracts pass.
+  Maint
+  facts remain 0, the governed 1/25 landing remains current, and a new request
+  must bind the committed current code before any phase-2 request can exist.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the

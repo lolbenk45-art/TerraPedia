@@ -864,6 +864,19 @@
   `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`
   is `AWAITING_OWNER`; the landing remains 1 base / 25 crawler facts and maint
   remains 0.
+- Retry-02 formal execution consumed
+  `canonical-npc-facts-maint-apply-retry-02-20260729` once through packet
+  `sha256:9b6d29e8b95599557cd933d9cd2ce2226ecdef7da63e851c69fc55c1b13f7131`.
+  It rolled back before a maint row or successful result was published because
+  strict MySQL rejected ISO-8601 `source_revision_timestamp` input for its
+  `DATETIME` column. Readback remains 1 base landing / 25 crawler-fact landings
+  / 0 active maint facts / 0 active transactions. The production adapter is
+  repaired RED-to-GREEN to normalize the three owned `DATETIME` persistence
+  fields (`source_revision_timestamp`, `fetched_at`, `parsed_at`) as UTC;
+  80 focused authorization, manifest, ownership, landing, and adapter contracts
+  pass. Independent code review found no remaining Critical or Important issue.
+  Both consumed phase-1 identities remain non-reusable; the next retry requires a new
+  current-byte manifest, request, and exact Owner decision.
 - Not completed: the landing-plus-seven NPC formal authorizations/executions and
   real T1/apply, Task 10's four
   warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
@@ -876,9 +889,10 @@
 - Every remaining formal operation still depends on its own exact System Owner
   reason/reference/decision identity; the consumed bootstrap identity cannot be reused.
 - Deferred NPC facts now have real paired crawler evidence, a committed landing,
-  and ownership-valid executors. Formal progress is blocked on the repaired
-  phase-1 retry request, then on seven requests regenerated from committed
-  predecessor results; no phase may fall back to the retired bridge.
+  and ownership-valid executors. Formal progress is blocked on a new phase-1
+  retry request after the committed DATETIME adapter repair, then on seven
+  requests regenerated from committed predecessor results; no phase may fall
+  back to the retired bridge.
 - The first NPC crawler output is not reusable as apply evidence because its
   audit files predate the paired-identity repair. Batch 02 repaired that evidence
   and produced a complete frozen data bundle, but apply/T1 still require an
@@ -932,9 +946,9 @@
   it from this worktree without a separately scoped stack-operation request.
 - The first biomes L1 policy-promotion identity is unused but bound to its
   superseded request; retry identity `...-02` is consumed and completed. NPC
-  landing is complete, but the first maint identity is consumed after rollback;
-  every remaining owner phase still requires its own result-bound request and
-  decision identity.
+  landing is complete, but both issued maint identities are consumed after
+  rollback; every remaining owner phase still requires its own result-bound
+  request and decision identity.
 - `FailClosedCrawlerAutomationApplyContextProvider` remains the intentional
   backend default and has no production apply caller. Formal execution is owned
   by the exact packet-consuming Node executor; enabling the backend bean without
@@ -953,12 +967,12 @@
   into group cutover. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
-- System Owner: authorize only the repaired exact NPC phase-1 retry request
-  `sha256:86a2650dce0c145e430414ff830dd7e1ddbf49516b9e4e1fbe5a81260f8add52`.
-  After phase 1 commits, regenerate and authorize each later NPC owner phase
-  serially; every request must bind all exact predecessor result bytes. The legacy
-  `canonical-npc-apply` remains `executor: null` throughout and cannot
-  substitute for these packets.
+- System Owner: do not reuse either consumed NPC phase-1 decision. After the
+  committed DATETIME repair generates a new exact request, authorize only that
+  request. After phase 1 commits, regenerate and authorize each later NPC owner
+  phase serially; every request must bind all exact predecessor result bytes.
+  The legacy `canonical-npc-apply` remains `executor: null` throughout and
+  cannot substitute for these packets.
 
 ## Commits
 
