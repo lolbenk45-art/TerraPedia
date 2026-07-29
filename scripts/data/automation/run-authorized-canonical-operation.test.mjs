@@ -170,11 +170,38 @@ test('durable decision ledger atomically records one-time use and rejects reuse'
   );
 });
 
+test('durable decision ledger binds a wrapper dispatch permit to one consumed identity', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-decision-ledger-'));
+  const ledgerPath = path.join(dir, 'used-decisions.json');
+  const dispatchPermitHash = `sha256:${'d'.repeat(64)}`;
+  consumeDecisionIdentityFile({
+    ledgerPath,
+    decisionIdentity: 'decision-with-dispatch-permit',
+    dispatchPermitHash,
+  });
+  assert.deepEqual(JSON.parse(fs.readFileSync(ledgerPath, 'utf8')), [{
+    decisionIdentity: 'decision-with-dispatch-permit',
+    dispatchPermitHash,
+  }]);
+  assert.throws(
+    () => consumeDecisionIdentityFile({
+      ledgerPath,
+      decisionIdentity: 'decision-with-dispatch-permit',
+      dispatchPermitHash,
+    }),
+    /already used/i,
+  );
+});
+
 test('manifest command dispatch uses no shell and rejects credential-shaped arguments', async () => {
   let observed;
   const result = await runExecutionManifestCommand({
     cwd: '/tmp/worktree',
     authorizationPacketPath: '/tmp/private/packet.json',
+    authorizationDispatchPermit: {
+      path: '/tmp/private/dispatch-permit.json',
+      nonce: 'dispatch-nonce',
+    },
     manifest: {
       command: ['node', 'scripts/data/fetch/example.mjs', '--limit=10'],
     },
@@ -189,6 +216,8 @@ test('manifest command dispatch uses no shell and rejects credential-shaped argu
   assert.equal(observed.options.cwd, '/tmp/worktree');
   assert.equal(observed.options.shell, false);
   assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_PACKET_PATH, '/tmp/private/packet.json');
+  assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH, '/tmp/private/dispatch-permit.json');
+  assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_DISPATCH_NONCE, 'dispatch-nonce');
   await assert.rejects(() => runExecutionManifestCommand({
     cwd: '/tmp/worktree',
     manifest: { command: ['node', 'script.mjs', '--password=secret'] },

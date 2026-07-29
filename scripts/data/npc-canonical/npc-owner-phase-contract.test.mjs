@@ -14,6 +14,7 @@ import {
   executeNpcOwnerOperation,
   writeCanonicalNpcApplyResult,
 } from './npc-owner-phase-apply.mjs';
+import { buildRelationCompatSyncSql } from '../relation/sync-relation-to-local-compat-tables.mjs';
 
 const INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
 const COMPLETED_AT = '2026-07-29T05:30:00.000Z';
@@ -246,6 +247,124 @@ test('production adapter re-reads the owned partition before commit', async () =
     /readback counts do not match writes/i,
   );
   assert.equal(countReads, 2);
+});
+
+test('canonical town shop projection selects and verifies only the town NPC partition', async () => {
+  const townSql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation',
+    npcShopScope: 'town',
+  });
+  for (const statement of [
+    townSql.npc_shop_entries.deleteSql,
+    townSql.npc_shop_entries.countSql,
+    townSql.npc_shop_entries.insertSql,
+    townSql.npc_shop_conditions.deleteSql,
+    townSql.npc_shop_conditions.countSql,
+    townSql.npc_shop_conditions.insertSql,
+  ]) {
+    assert.match(statement, /COALESCE\(n\.is_town_npc, 0\) = 1/);
+    assert.doesNotMatch(statement, /COALESCE\(n\.is_town_npc, 0\) <> 1/);
+  }
+  assert.match(
+    buildRelationCompatSyncSql().npc_shop_entries.countSql,
+    /COALESCE\(n\.is_town_npc, 0\) <> 1/,
+  );
+
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const phase = operationDefinition('canonical-npc-town-shop-projection-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const calls = [];
+  const connection = {
+    beginTransaction: async () => calls.push('begin'),
+    query: async (sql) => {
+      calls.push(sql);
+      return /^SELECT COUNT\(\*\)/.test(sql.trim()) ? [[{ total: 9 }]] : [[]];
+    },
+    commit: async () => calls.push('commit'),
+    rollback: async () => calls.push('rollback'),
+    end: async () => calls.push('end'),
+  };
+  const adapter = createCanonicalNpcOwnerMysqlAdapter({
+    plan,
+    connectionFactory: async () => connection,
+  });
+  const result = await executeNpcOwnerOperation({ plan, adapter, completedAt: COMPLETED_AT });
+  assert.deepEqual(result.rowCounts, {
+    'local.npc_shop_entries': 9,
+    'local.npc_shop_conditions': 9,
+  });
+  const sql = calls.filter((call) => typeof call === 'string').join('\n');
+  assert.match(sql, /SELECT COUNT\(\*\) AS total\s+FROM `terria_v1_local`\.`npc_shop_entries` se\s+INNER JOIN `terria_v1_local`\.`npcs` n\s+ON n\.id = se\.npc_id\s+WHERE COALESCE\(n\.is_town_npc, 0\) = 1/);
+  assert.match(sql, /SELECT COUNT\(\*\) AS total\s+FROM `terria_v1_local`\.`npc_shop_conditions` sc\s+INNER JOIN `terria_v1_local`\.`npc_shop_entries` se\s+ON se\.id = sc\.shop_entry_id\s+INNER JOIN `terria_v1_local`\.`npcs` n\s+ON n\.id = se\.npc_id\s+WHERE COALESCE\(n\.is_town_npc, 0\) = 1/);
+  assert.deepEqual(calls.slice(-2), ['commit', 'end']);
+});
+
+test('canonical town shop projection counts condition rows after duplicate entry projection joins', async () => {
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const phase = operationDefinition('canonical-npc-town-shop-projection-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const connection = {
+    beginTransaction: async () => {},
+    query: async (sql) => {
+      if (/FROM `terria_v1_local`\.`npc_shop_conditions` sc/.test(sql)) return [[{ total: 257 }]];
+      if (/FROM `terria_v1_local`\.`npc_shop_entries` se/.test(sql)) return [[{ total: 936 }]];
+      if (/projected_shop_entries/.test(sql)) return [[{ total: 257 }]];
+      if (/condition_events_json IS NOT NULL/.test(sql)) return [[{ total: 129 }]];
+      if (/^SELECT COUNT\(\*\)/.test(sql.trim())) return [[{ total: 936 }]];
+      return [[]];
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+  const adapter = createCanonicalNpcOwnerMysqlAdapter({
+    plan,
+    connectionFactory: async () => connection,
+  });
+
+  const result = await executeNpcOwnerOperation({ plan, adapter, completedAt: COMPLETED_AT });
+
+  assert.deepEqual(result.rowCounts, {
+    'local.npc_shop_entries': 936,
+    'local.npc_shop_conditions': 257,
+  });
 });
 
 test('production landing adapter supplies governed source-evidence metadata', async () => {

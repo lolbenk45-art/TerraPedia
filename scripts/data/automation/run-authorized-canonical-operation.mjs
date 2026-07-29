@@ -8,9 +8,16 @@ import {
   resolveCanonicalOperationTechnicalInput,
   verifyCanonicalAuthorizationPacketAgainstCurrent,
 } from './build-canonical-cutover-authorization.mjs';
+import {
+  createAuthorizedOperationDispatchPermit,
+  revokeAuthorizedOperationDispatchPermit,
+} from './authorized-operation-context.mjs';
 
-export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity } = {}) {
+export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity, dispatchPermitHash = null } = {}) {
   const identity = requireText(decisionIdentity, 'decision identity');
+  const permitHash = dispatchPermitHash == null
+    ? null
+    : requireText(dispatchPermitHash, 'dispatch permit hash');
   const output = path.resolve(requireText(ledgerPath, 'decision ledger path'));
   fs.mkdirSync(path.dirname(output), { recursive: true });
   const lockPath = `${output}.lock`;
@@ -23,13 +30,18 @@ export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity } = {
   }
   try {
     const used = fs.existsSync(output) ? JSON.parse(fs.readFileSync(output, 'utf8')) : [];
-    if (!Array.isArray(used) || used.some((entry) => typeof entry !== 'string' || !entry.trim())) {
-      throw new Error('decision ledger must be a JSON array of non-empty strings');
+    if (!Array.isArray(used) || used.some((entry) => !isDecisionLedgerEntry(entry))) {
+      throw new Error('decision ledger must contain non-empty identities or dispatch-permit records');
     }
-    if (used.includes(identity)) throw new Error(`decision identity is already used: ${identity}`);
+    if (used.some((entry) => decisionIdentityOf(entry) === identity)) {
+      throw new Error(`decision identity is already used: ${identity}`);
+    }
+    const nextEntry = permitHash == null
+      ? identity
+      : { decisionIdentity: identity, dispatchPermitHash: permitHash };
     const temporary = `${output}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
     try {
-      fs.writeFileSync(temporary, `${JSON.stringify([...used, identity], null, 2)}\n`, {
+      fs.writeFileSync(temporary, `${JSON.stringify([...used, nextEntry], null, 2)}\n`, {
         mode: 0o600,
         flag: 'wx',
       });
@@ -47,6 +59,7 @@ export async function runExecutionManifestCommand({
   manifest,
   cwd = process.cwd(),
   authorizationPacketPath = null,
+  authorizationDispatchPermit = null,
   env = process.env,
   spawnImpl = spawnCommand,
 } = {}) {
@@ -62,6 +75,12 @@ export async function runExecutionManifestCommand({
     throw new Error('execution manifest command contains a credential-shaped argument');
   }
   if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
+  const permit = authorizationDispatchPermit == null
+    ? null
+    : {
+        path: path.resolve(requireText(authorizationDispatchPermit.path, 'authorization dispatch permit path')),
+        nonce: requireText(authorizationDispatchPermit.nonce, 'authorization dispatch permit nonce'),
+      };
   const childEnv = authorizationPacketPath == null
     ? env
     : {
@@ -69,6 +88,10 @@ export async function runExecutionManifestCommand({
         TERRAPEDIA_AUTHORIZED_PACKET_PATH: path.resolve(
           requireText(authorizationPacketPath, 'authorization packet path'),
         ),
+        ...(permit == null ? {} : {
+          TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH: permit.path,
+          TERRAPEDIA_AUTHORIZED_DISPATCH_NONCE: permit.nonce,
+        }),
       };
   const result = await spawnImpl(commandParts[0], commandParts.slice(1), {
     cwd: path.resolve(cwd),
@@ -176,10 +199,25 @@ function readUsedDecisionIdentities(ledgerPath) {
   const resolved = path.resolve(ledgerPath);
   if (!fs.existsSync(resolved)) return new Set();
   const values = JSON.parse(fs.readFileSync(resolved, 'utf8'));
-  if (!Array.isArray(values) || values.some((value) => typeof value !== 'string' || !value.trim())) {
-    throw new Error('decision ledger must be a JSON array of non-empty strings');
+  if (!Array.isArray(values) || values.some((value) => !isDecisionLedgerEntry(value))) {
+    throw new Error('decision ledger must contain non-empty identities or dispatch-permit records');
   }
-  return new Set(values);
+  return new Set(values.map(decisionIdentityOf));
+}
+
+function isDecisionLedgerEntry(entry) {
+  return (typeof entry === 'string' && entry.trim())
+    || (entry != null
+      && typeof entry === 'object'
+      && !Array.isArray(entry)
+      && typeof entry.decisionIdentity === 'string'
+      && entry.decisionIdentity.trim()
+      && typeof entry.dispatchPermitHash === 'string'
+      && entry.dispatchPermitHash.trim());
+}
+
+function decisionIdentityOf(entry) {
+  return typeof entry === 'string' ? entry : entry.decisionIdentity;
 }
 
 async function main() {
@@ -189,10 +227,11 @@ async function main() {
   const serverFingerprint = readJson(args['server-fingerprint'], 'server fingerprint');
   const policyRows = readJson(args['policy-rows'], 'policy rows');
   if (!Array.isArray(policyRows)) throw new Error('policy rows must be a JSON array');
-  const ledgerPath = path.resolve(
-    args['used-decisions']
-      ?? path.join(repoRoot, 'reports/authorization/canonical/used-decisions.json'),
-  );
+  const canonicalLedgerPath = path.join(repoRoot, 'reports/authorization/canonical/used-decisions.json');
+  const ledgerPath = path.resolve(args['used-decisions'] ?? canonicalLedgerPath);
+  if (ledgerPath !== canonicalLedgerPath) {
+    throw new Error('authorized canonical operation must use the canonical durable decision ledger');
+  }
   const currentTechnicalInput = {
     ...resolveCanonicalOperationTechnicalInput({
       repoRoot,
@@ -202,20 +241,42 @@ async function main() {
     serverFingerprint,
     policyRows,
   };
+  let dispatchPermit = null;
   const result = await runAuthorizedCanonicalOperation({
     packet,
     currentTechnicalInput,
     usedDecisionIdentities: readUsedDecisionIdentities(ledgerPath),
-    consumeDecisionIdentity: (decisionIdentity) => consumeDecisionIdentityFile({
-      ledgerPath,
-      decisionIdentity,
-    }),
+    consumeDecisionIdentity: (decisionIdentity) => {
+      dispatchPermit = createAuthorizedOperationDispatchPermit({
+        directory: path.join(repoRoot, 'reports/authorization/canonical'),
+        packet,
+      });
+      try {
+        consumeDecisionIdentityFile({
+          ledgerPath,
+          decisionIdentity,
+          dispatchPermitHash: dispatchPermit.dispatchPermitHash,
+        });
+      } catch (error) {
+        revokeAuthorizedOperationDispatchPermit({ permit: dispatchPermit });
+        dispatchPermit = null;
+        throw error;
+      }
+    },
     dispatchers: {
-      [packet.operationId]: () => runExecutionManifestCommand({
-        manifest: packet.executionManifest,
-        cwd: repoRoot,
-        authorizationPacketPath: args.packet,
-      }),
+      [packet.operationId]: () => {
+        if (dispatchPermit == null) throw new Error('authorized dispatch permit is missing after decision consumption');
+        const permit = dispatchPermit;
+        return runExecutionManifestCommand({
+          manifest: packet.executionManifest,
+          cwd: repoRoot,
+          authorizationPacketPath: args.packet,
+          authorizationDispatchPermit: permit,
+        }).finally(() => {
+          revokeAuthorizedOperationDispatchPermit({ permit });
+          dispatchPermit = null;
+        });
+      },
     },
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);

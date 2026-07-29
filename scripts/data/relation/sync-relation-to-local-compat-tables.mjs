@@ -63,8 +63,12 @@ function firstTotal(result) {
 
 export function buildRelationCompatSyncSql({
   localDatabase = 'terria_v1_local',
-  relationDatabase = 'terria_v1_relation'
+  relationDatabase = 'terria_v1_relation',
+  npcShopScope = 'non_town',
 } = {}) {
+  if (!['non_town', 'town'].includes(npcShopScope)) {
+    throw new Error('npcShopScope must be non_town or town');
+  }
   const localItemSources = qualified(localDatabase, 'item_acquisition_sources');
   const localLoot = qualified(localDatabase, 'npc_loot_entries');
   const localShop = qualified(localDatabase, 'npc_shop_entries');
@@ -95,6 +99,9 @@ export function buildRelationCompatSyncSql({
   const publishableRelationWhere = `r.deleted = 0
   AND r.status = 1
   AND r.review_status IN ${acceptedReviewStatuses}`;
+  const npcShopScopeWhere = npcShopScope === 'town'
+    ? 'COALESCE(n.is_town_npc, 0) = 1'
+    : 'COALESCE(n.is_town_npc, 0) <> 1';
 
   return {
     item_acquisition_sources: {
@@ -269,7 +276,7 @@ WHERE ${publishableRelationWhere}
 FROM ${localShop} se
 INNER JOIN ${localNpcs} n
   ON n.id = se.npc_id
-WHERE COALESCE(n.is_town_npc, 0) <> 1`,
+WHERE ${npcShopScopeWhere}`,
       countSql: `SELECT COUNT(*) AS total
 FROM ${shopRelations} r
 INNER JOIN ${sourceFacts} f
@@ -284,7 +291,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
-  AND COALESCE(n.is_town_npc, 0) <> 1`,
+  AND ${npcShopScopeWhere}`,
       sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.price_text
 FROM ${shopRelations} r
 INNER JOIN ${sourceFacts} f
@@ -299,7 +306,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
-  AND COALESCE(n.is_town_npc, 0) <> 1
+  AND ${npcShopScopeWhere}
 LIMIT 5`,
       insertSql: `
 INSERT INTO ${localShop}
@@ -326,7 +333,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
-  AND COALESCE(n.is_town_npc, 0) <> 1`.trim()
+  AND ${npcShopScopeWhere}`.trim()
     },
     npc_shop_conditions: {
       deleteSql: `DELETE sc
@@ -335,7 +342,7 @@ INNER JOIN ${localShop} se
   ON se.id = sc.shop_entry_id
 INNER JOIN ${localNpcs} n
   ON n.id = se.npc_id
-WHERE COALESCE(n.is_town_npc, 0) <> 1`,
+WHERE ${npcShopScopeWhere}`,
       countSql: `SELECT COUNT(*) AS total
 FROM ${shopRelations} r
 INNER JOIN ${sourceFacts} f
@@ -350,7 +357,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
-  AND COALESCE(n.is_town_npc, 0) <> 1
+  AND ${npcShopScopeWhere}
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`,
       sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.condition_source_text
 FROM ${shopRelations} r
@@ -366,7 +373,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
-  AND COALESCE(n.is_town_npc, 0) <> 1
+  AND ${npcShopScopeWhere}
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
 LIMIT 5`,
       insertSql: `
@@ -396,7 +403,7 @@ INNER JOIN ${localShop} se
  AND (se.price_text COLLATE utf8mb4_unicode_ci <=> r.price_text COLLATE utf8mb4_unicode_ci)
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
-  AND COALESCE(n.is_town_npc, 0) <> 1
+  AND ${npcShopScopeWhere}
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`.trim()
     },
     npc_buff_relations: {

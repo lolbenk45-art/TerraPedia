@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 15:54 CST by Codex
+Last updated: 2026-07-29 18:31 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -10,12 +10,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
-  blocked-by: exact operation-level authorization at formal write/crawler/L1/L2/scheduler checkpoints;
-  next formal dependency is `canonical-npc-facts-maint-apply` retry-03 request
-  `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`;
-  the first frozen biomes L1 apply remains a separate later preview-bundle and
-  Owner-authorization checkpoint;
-  contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`.
+  blocked-by: separate operation-level authorization and evidence at later formal crawler/L1/L2/scheduler checkpoints;
+  NPC landing plus all seven owner phases are complete and aggregated; the next
+  non-NPC formal dependency is a frozen `automation-biomes-first-l1` preview bundle
+  followed by its own exact Owner authorization;
+  contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`
+  plus `../superpowers/plans/2026-07-29-npc-owner-phase-authorization-runway.md`.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
   identities exactly once and both completed. Recipe applied the frozen 3,663
   input, backfilled 124 group ingredients and 239 station names, consolidated
@@ -83,9 +83,10 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   the full gate passes 304/304 data-workflow and 177/177 automation tests before
   the expected 40 pass / 4 warning / 1 blocked / 0 written domain fail-close.
   No database write,
-  crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. Plan
-  progress is 66/87; Step 3B is complete, while Task 13's formal NPC execution
-  and readiness gates remain open. The
+  crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. The parent
+  closure checklist is 66/86, while the dedicated NPC owner-runway subplan is
+  now 19/19; Step 3B and the serial NPC owner execution are complete, while
+  broader readiness gates remain open. The
   independent biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
   it remains `AWAITING_OWNER`. Group bootstrap action/acceptance/shadow/readiness/
@@ -123,9 +124,58 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   rejected ISO-8601 values for `DATETIME` fields. A RED-to-GREEN adapter
   regression now normalizes `source_revision_timestamp`, `fetched_at`, and
   `parsed_at` as UTC at the persistence boundary; 80 focused contracts pass.
-  Maint facts remain 0, the governed 1/25 landing remains current, and retry-03
-  request `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`
-  is `AWAITING_OWNER`; no phase-2 request can exist until it commits.
+  Retry-03 then consumed packet
+  `sha256:324edc3c61b2fca5fe5f3fa4a7401aed3e107cfdde3a2231e3a1b073d2fbdc05`
+  and committed 25 active canonical maint facts with 25 distinct frozen hashes;
+  transaction-local readback and the post-run database both report zero active
+  transactions and no ISO `DATETIME` literals. Its result binds the exact
+  landing result and frozen input. The authorized phase-2 item-relations packet
+  `sha256:e2e983cfcfd9c40ccea93a9532ec8f66e3dbe6bc0fc6645a19391b38594b9fad`
+  then completed and bound both predecessors. Its four owned relation partitions
+  contain 329 source facts, 329 details, 178 shop relations, and 2 loot
+  relations; a separate read-only recomputation of the frozen input reproduced
+  every record-key count, and no transaction remains. The authorized phase-3
+  Buff-relation packet `sha256:de0f439d41d244b3d1df5b1a97f8df81aa2984e5231bd72e11f08cc619ebd349`
+  then completed, binding all three predecessors and 1,270 Buff relation keys;
+  a separate recomputation from the frozen maint facts matched every stored key
+  and no transaction remains. The first phase-4 town/shop packet consumed
+  `canonical-npc-town-shop-projection-apply-20260729-01`, then rolled back when
+  its legacy non-town source count was compared to a whole-table local readback;
+  no result exists and the local baseline remains 762 entries / 306 conditions.
+  The repaired retry then consumed
+  `canonical-npc-town-shop-projection-apply-retry-02-20260729` under packet
+  `sha256:0da85ade4429aeab74acf247455bd16e913c64c5b5cb473d774c8e30c4ec9041`
+  and rolled back with no result: 129 source conditions join to 257 projected
+  duplicate shop entries, while the old adapter compared the source count to the
+  written count. The repair preserves the legacy non-town generic sync, explicitly
+  selects the town partition, derives actual post-write town counts in the same
+  transaction, and has an independent verifier re-read that partition. Fresh
+  authorization/owner-phase validation is 45/45 with no Critical, Important, or
+  Minor review finding. Fresh
+  preflight confirms the four committed predecessors share one frozen input, the
+  server/policy fingerprints remain current, the baseline is 582 town entries /
+  306 town conditions plus 180 non-town entries, and active transactions are 0.
+  The authorized retry-03 then consumed packet
+  `sha256:516d4ead90efaf6d176f6bf2a8709e8a60a43174f55581863d3f52dd01a50591`
+  exactly once and committed phase 4. Its private result binds all four
+  predecessors and records 936 town entries plus 257 conditions. Independent
+  direct readback confirms 1,116 total entries = 936 town + 180 non-town,
+  257 total/town conditions, and zero active transactions; the result is `0600`.
+  Fresh authorization/owner-phase validation is 45/45. The authorized Phase 5
+  packet `sha256:462e7175fa837350da211763ea11cfb9503081ccbc5aee9554c46fd854b918c6`
+  consumed its identity once and committed 1,270 local Buff relations. Independent
+  source and local counts both equal 1,270, and no transaction remains. The
+  authorized Phase 6 packet `sha256:6f4b1077b00a96dbfb9d4d5f53857b2926777f28a152edd06723d4bb1ec3d661`
+  consumed its identity once and committed 1,544 non-boss NPC loot entries.
+  Independent source and local non-boss counts both equal 1,544; boss rows remained
+  zero and no transaction remained. Authorized Phase 7 consumed
+  `canonical-npc-boss-loot-projection-apply-20260729-01` once under private packet
+  `sha256:8170c16a6460534cc53b63d4e01a558d3bc0bad2cda78f07ebf0f5286e3fb07a`.
+  It committed only the boss `local.npc_loot_entries` partition with 0 rows, matching
+  the 0-row source predicate and preserving the 1,544 non-boss rows. The private
+  `canonical-npc-apply` completion binds landing plus all seven ordered phase-result
+  bytes; independent byte reconstruction, ledger readback, and transaction checks pass.
+  No crawler, source-contract, L1/L2, scheduler, or shared-backend action ran.
   The detailed task progression below is historical context; this snapshot is
   the current execution authority.
   Task 1 locked 13 initial pre-cutover group JSON production references; the
@@ -193,10 +243,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   backend upload contracts 10/10; earlier broader focused validation passes
   Node 88/88 and backend 227/227. The packet-consuming Node runner is the single
   formal write path; the unused backend apply bean remains fail-closed. Only
-  `canonical-npc-apply` has no executor because its proposed write set crosses
-  capability owners. Its valid 25-target manifest and real crawler outputs are
-  present, but the apply evidence contract is not satisfied. Local V56-V58 and
-  maint/relation role schemas are applied; no group or NPC T2 apply has run.
+  `canonical-npc-apply` has no broad executor because its proposed write set crosses
+  capability owners; it is now a read-only completion artifact binding the individually
+  committed landing and seven owner-phase results. Its valid 25-target manifest and
+  real crawler outputs are present, but this completion is not NPC T2 evidence. Local
+  V56-V58 and maint/relation role schemas are applied; no group or NPC T2 apply has run.
+  Post-run review also repaired the direct-executor bypass: during durable ledger
+  consumption the wrapper binds a private random dispatch-permit hash to the decision,
+  and the NPC executor atomically consumes and recomputes that permit before it can
+  read input or connect to MySQL. Direct CLI reuse with only a packet or forged permit
+  fails closed; all currently retained NPC owner inputs, packets, results, and completion
+  artifacts are `0600`.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:

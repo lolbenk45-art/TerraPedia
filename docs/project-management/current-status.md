@@ -26,10 +26,42 @@ gates. The regenerated biomes policy-promotion retry completed under its
 one-time packet, so exact policy v1 is now `L1/ACTIVE`; the first L1 apply still
 needs a separately frozen bundle and Owner decision. NPC phase 1 consumed two
 independent decisions and rolled back before writing: first on row-contract
-metadata columns, then on strict MySQL `DATETIME` input. Landing remains 1 base
-/ 25 crawler facts and maint remains 0. The tested persistence repair is bound
-into retry-03 request `sha256:d4bbf59809fb918a75396f9f92c473ff1c9a169056587712213bef99a3670427`,
-which awaits an exact Owner decision before any further write.
+metadata columns, then on strict MySQL `DATETIME` input. Its authorized retry-03
+now completed: landing remains 1 base / 25 crawler facts, and maint has 25
+active facts with 25 distinct frozen hashes, MySQL-native `DATETIME` values,
+and zero active transactions. The exact phase-2 item-relations packet then
+committed its four `items` relation partitions as `329/329/178/2`, independently
+recomputed from the 25 frozen facts and read back by record key. The exact
+phase-3 Buff-relation packet then committed 1,270 rows, independently
+recomputed and read back by record key. The first exact phase-4 town/shop packet
+consumed its identity but rolled back on a local whole-table versus non-town
+partition readback mismatch, leaving both tables unchanged and phase 5 closed.
+That repaired retry also consumed its identity and rolled back with no result:
+129 source conditions expand across duplicate `(npc,item,price)` shop entries to
+257 written conditions, so its old source-count expectation was invalid. The
+current repair derives transaction-local actual town counts and independently
+re-reads them while preserving the generic non-town sync. Fresh authorization/
+owner-phase validation is 45/45 and independent review has no Critical,
+Important, or Minor finding. Fresh
+preflight retained the 762-entry / 306-condition baseline (582/306 town and 180
+non-town entries), the same server/policy fingerprints, four committed
+predecessors, and zero active transactions. Authorized retry-03 then committed
+the town partition under its one-time packet: result and independent readback
+agree at 936 town entries and 257 town conditions, preserving 180 non-town
+entries (1,116 entries and 257 conditions total) with zero active transactions.
+The fresh 45/45 authorization/owner-phase suite passes. Authorized Phase 5 then
+committed 1,270 `local.npc_buff_relations.buffs`; direct source/local readback
+matches at 1,270 and active transactions remain zero. Authorized Phase 6 then
+committed 1,544 non-boss `local.npc_loot_entries`; independent source/local
+counts agree at 1,544, boss rows remain zero, and active transactions remain zero.
+Authorized Phase 7 consumed its one-time identity under packet
+`sha256:8170c16a6460534cc53b63d4e01a558d3bc0bad2cda78f07ebf0f5286e3fb07a`
+and committed only the boss `local.npc_loot_entries` partition. The frozen boss
+source predicate and the local boss partition both contain 0 rows; the 1,544
+non-boss rows remain intact, the decision ledger contains one use, and active
+transactions are zero. The private `canonical-npc-apply` completion now binds
+the landing plus all seven ordered owner-phase result bytes. This closes the NPC
+owner runway only; it is not a source-contract flip or NPC T1/T2 readiness.
 NPC T1, four warning
 panels, one blocked item-image panel, both L1 applies, L2, and scheduler
 activation remain approval- or evidence-gated.
@@ -100,9 +132,9 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 - `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
 - Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
 - Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
-- Automated ingestion remains fail-closed: NPC maint retry-03 needs exact
-  request-hash authorization before any phase-2 request can exist;
-  the first biomes L1 apply needs its own frozen preview bundle and decision;
+- Automated ingestion remains fail-closed: the completed NPC owner runway does not
+  authorize a source-contract flip, NPC T1/T2, L1/L2, or scheduling; the first
+  biomes L1 apply still needs its own frozen preview bundle and decision;
   item image readiness blocks on missing/unresolved source uploads.
 
 ## Next Actions
@@ -114,8 +146,8 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
   baseline migrations before adding read-only style checks to the full gate.
 - Keep `docs/project-governance/00_CURRENT_SPEC.md`, `docs/devlog/current.md`, and project-management records synchronized when project facts or risks change.
 - Continue crawler monitor/resume stabilization from the current July plans before broad public feature expansion.
-- Authorize only retry-03 NPC phase-1 request after reviewing its hash; then
-  regenerate downstream NPC requests from committed predecessor bytes. Keep
-  biomes L1 apply, L2, and scheduler as separate later decisions.
+- Preserve the completed NPC owner-phase evidence as read-only completion only;
+  prepare and review a frozen biomes L1 preview bundle before requesting its
+  separate exact authorization. Keep L2 and scheduler as later decisions.
 - Decide whether to push or PR the local governance/status branches when the operator is ready.
 - Rerun runtime/backend/frontend/data gates before making any release, staging, or public-readiness claim.

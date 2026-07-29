@@ -6,7 +6,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
-import { loadAuthorizedOperationContext } from '../automation/authorized-operation-context.mjs';
+import {
+  consumeAuthorizedOperationDispatchPermit,
+  loadAuthorizedOperationContext,
+} from '../automation/authorized-operation-context.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { listSourceDatasetLandingInputs } from '../landing/source-dataset-locator.mjs';
 import {
@@ -25,6 +28,7 @@ import {
 } from './npc-apply-ownership-preparation.mjs';
 
 const INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
+const REPO_ROOT = path.resolve(import.meta.dirname, '../../..');
 const LANDING_OPERATION_ID = 'canonical-npc-landing-apply';
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const MYSQL_DATETIME_COLUMNS = new Set([
@@ -472,16 +476,21 @@ async function applyLocalProjectionOperation({ connection, operationId, ownershi
   const sql = buildRelationCompatSyncSql({
     localDatabase: databases.local,
     relationDatabase: databases.relation,
+    npcShopScope: operationId === 'canonical-npc-town-shop-projection-apply' ? 'town' : 'non_town',
   });
   if (operationId === 'canonical-npc-town-shop-projection-apply') {
-    const conditions = await firstCount(connection, sql.npc_shop_conditions.countSql);
-    const shops = await firstCount(connection, sql.npc_shop_entries.countSql);
     await connection.query(sql.npc_shop_conditions.deleteSql);
     await connection.query(sql.npc_shop_entries.deleteSql);
     await connection.query(sql.npc_shop_entries.insertSql);
     await connection.query(sql.npc_shop_conditions.insertSql);
     return {
-      rowCounts: { [ownershipKeys[0]]: shops, [ownershipKeys[1]]: conditions },
+      rowCounts: await readOwnedOperationCounts({
+        connection,
+        operationId,
+        ownershipKeys,
+        databases,
+        recordKeysByOwnershipKey: { [ownershipKeys[0]]: [], [ownershipKeys[1]]: [] },
+      }),
       recordKeysByOwnershipKey: { [ownershipKeys[0]]: [], [ownershipKeys[1]]: [] },
     };
   }
@@ -562,8 +571,15 @@ async function readOwnedOperationCounts({
   }
   if (operationId === 'canonical-npc-town-shop-projection-apply') {
     return {
-      [ownershipKeys[0]]: await firstCount(connection, `SELECT COUNT(*) AS total FROM \`${databases.local}\`.\`npc_shop_entries\``),
-      [ownershipKeys[1]]: await firstCount(connection, `SELECT COUNT(*) AS total FROM \`${databases.local}\`.\`npc_shop_conditions\``),
+      [ownershipKeys[0]]: await firstCount(connection, `SELECT COUNT(*) AS total
+FROM \`${databases.local}\`.\`npc_shop_entries\` se
+INNER JOIN \`${databases.local}\`.\`npcs\` n ON n.id = se.npc_id
+WHERE COALESCE(n.is_town_npc, 0) = 1`),
+      [ownershipKeys[1]]: await firstCount(connection, `SELECT COUNT(*) AS total
+FROM \`${databases.local}\`.\`npc_shop_conditions\` sc
+INNER JOIN \`${databases.local}\`.\`npc_shop_entries\` se ON se.id = sc.shop_entry_id
+INNER JOIN \`${databases.local}\`.\`npcs\` n ON n.id = se.npc_id
+WHERE COALESCE(n.is_town_npc, 0) = 1`),
     };
   }
   if (operationId === 'canonical-npc-buff-projection-apply') {
@@ -661,7 +677,12 @@ async function main() {
   const operationId = String(args['operation-id'] ?? '');
   if (args.apply !== 'true') throw new Error('canonical NPC owner operation requires --apply=true');
   const repoRoot = path.resolve(args['repo-root'] ?? process.cwd());
-  loadAuthorizedOperationContext({ operationId });
+  if (repoRoot !== REPO_ROOT) throw new Error('canonical NPC owner CLI requires the repository-root execution context');
+  const authorizedContext = loadAuthorizedOperationContext({ operationId });
+  consumeAuthorizedOperationDispatchPermit({
+    authorizedContext,
+    decisionLedgerPath: path.join(REPO_ROOT, 'reports/authorization/canonical/used-decisions.json'),
+  });
   const inputPath = args.input ?? INPUT_PATH;
   const plan = await buildNpcOwnerOperationPlan({ repoRoot, operationId, inputPath });
   const result = await executeNpcOwnerOperation({
