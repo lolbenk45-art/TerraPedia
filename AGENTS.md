@@ -45,6 +45,35 @@ The old `project-plan/` root is retired. Use `docs/project-governance/`.
 - Do not use destructive git commands such as `git reset --hard`, `git checkout -- <path>`, or broad cleanup unless the user explicitly asks.
 - Do not use `git add .`; stage explicit paths only.
 
+## Public UI Design Baseline
+
+For any public frontend visual work (new page, high-fidelity mockup, layout,
+theme, component styling, or visual review), agents **must read and follow**
+`docs/design/terrapedia-public-ui-design-system-v1.md` before proposing or
+editing UI. The document is the public design baseline and applies equally to
+brainstorming previews and production `front-nuxt/` work.
+
+- Use only the established runtime themes: `dark` / Forest Archive,
+  `morning-paper` / Linen Paper, and `warm-slate` / Mist Workbench. Reuse the
+  semantic token flow in `front-nuxt/assets/css/hifi-preview.css` and
+  `front-nuxt/assets/css/tokens.css`; do not create a local palette or a new
+  theme key without explicit user approval.
+- Select the required page archetype before visual work: homepage is a public
+  index; item/NPC pages are data-rich entity archives; articles are editorial
+  discovery plus a dense archive. Homepage palette and material may be reused,
+  but its hero structure must not be copied into detail or article pages.
+- Preserve the design system's depth, density, control, image, accessibility,
+  and forbidden-pattern rules. In particular, do not introduce oversized empty
+  hero blocks, single-hue/heavy palettes, nested cards, decorative blobs, fake
+  art, token-bypassing raw colors, or sparse long pages.
+- Before showing or handing off visual work, run the design-system review
+  checklist and validate the relevant desktop and mobile views for image
+  failures, console/request errors, horizontal overflow, readable text, focus
+  visibility, and 44px interactive targets.
+- The visual specimen at
+  `.superpowers/brainstorm/3542442-1785229764/content/public-ui-design-system-v1.html`
+  is a comparison aid; the Markdown baseline is the normative source.
+
 ## Validation Defaults
 
 Use the narrowest validation that proves the change.
