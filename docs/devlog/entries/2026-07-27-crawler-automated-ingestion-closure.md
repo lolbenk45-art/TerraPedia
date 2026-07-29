@@ -56,6 +56,12 @@
   consumed and completed; neither can be reused. The boss lane used only the
   isolated worktree backend on `18192` and Redis DB 14, then removed both
   temporary runtime states without affecting the original `18191` backend.
+- System Owner authorized `canonical-item-group-bootstrap-20260729-01` on
+  2026-07-29 for the then-current exact group request. Packet construction
+  rejected that request before identity consumption because commit `ac13f0e0`
+  had changed the shared execution-manifest module after request generation.
+  The authorization stays bound to the superseded request and is not reused for
+  replacement bytes.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -558,6 +564,19 @@
   passes 10/10 across `MinioObjectStorageServiceImplTest` and
   `FileStorageControllerTest`. `git diff --check` passes for the Batch 04
   devlog update.
+- Group bootstrap preflight confirmed every governed landing, maint, relation,
+  and local source-owned table plus projection state at zero, with zero active
+  transactions and no concurrent canonical writer. Packet construction failed
+  closed on the stale hash before dispatch; no packet/result/progress artifact,
+  ledger entry, or database mutation was created. A current-byte manifest and
+  request were regenerated without database access. Proposal
+  `canonical-item-group-bootstrap-retry-02-20260729` binds request
+  `sha256:de0528244a2c53a6a5850b03b7bd3f0917d7826980fdbfe05fa93e8654738ee7`,
+  unchanged data bundle
+  `sha256:c2360a3eaf26e4d0be8ec8e31d8e310809d0dcb21ed5df00c520fd0b378868f5`,
+  and execution manifest
+  `sha256:9c03990880eecc552f2df801c160fb87cdc801773dab6883199ff289cffa9fe6`.
+  Authorization/manifest/runner contracts pass 29/29.
 
 ## Result
 
@@ -664,6 +683,9 @@
   warning / 1 blocked.
 - Local V56/V57/V58 plus maint and relation role schemas are applied. The group
   bootstrap remains unapplied; isolated T1 evidence does not authorize T2.
+- Group bootstrap identity `canonical-item-group-bootstrap-20260729-01` was not
+  consumed, but its authorization is bound to a superseded request and must not
+  be reused. The current-byte retry requires the independent `-02` proposal.
 - Batches 03 and 04 are fully accounted for and all of their dispatched
   identities are consumed. No conversational continuation or prior proposal
   authorizes another retry.
@@ -691,9 +713,11 @@
   repair and any retry require a separate future request. Task 10 Steps 5-6,
   NPC apply/T1, group T2, both L1 applies, L2, and scheduler activation remain
   separate packets or decisions.
-- Immediate authorization checkpoints remain the technically complete canonical
-  group bootstrap request and the independent biomes L1 policy-promotion
-  request recorded above. They must not be folded together. Item image and
+- Immediate authorization checkpoint: authorize exact proposal
+  `canonical-item-group-bootstrap-retry-02-20260729` before converting request
+  `sha256:de0528244a2c53a6a5850b03b7bd3f0917d7826980fdbfe05fa93e8654738ee7`
+  to a packet. The independent biomes L1 policy-promotion request remains a
+  later checkpoint; the two must not be folded together. Item image and
   shimmer lanes first require complete source/producer inputs rather than a
   conversational authorization alone.
 - Capability owners: decide whether NPC canonical apply is split into separately

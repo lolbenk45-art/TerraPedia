@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 10:00 CST by Codex
+Last updated: 2026-07-29 10:09 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -30,13 +30,19 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   4 warning / 1 blocked: recipe is warning rather than blocked, boss source is
   pass, and item image coverage remains the sole blocked panel. Batch 04 and all
   earlier consumed identities cannot be reused.
-  Offline preparation has now regenerated the technically complete canonical
-  group bootstrap request after the item-image byte change:
-  `sha256:9461520c1788e5aa84d8eb45e7be3580ecb31a206de737b6505479e343b69096`
-  and an exact biomes L1 policy-promotion request
+  The authorized group bootstrap identity
+  `canonical-item-group-bootstrap-20260729-01` stopped before packet creation:
+  commit `ac13f0e0` changed the shared manifest module after the frozen request,
+  so current-code verification rejected its stale code hash. The identity is
+  unused and no database write ran, but it remains bound to the superseded
+  request and cannot authorize replacement bytes. Fresh proposal
+  `canonical-item-group-bootstrap-retry-02-20260729` now binds current code at
+  request `sha256:de0528244a2c53a6a5850b03b7bd3f0917d7826980fdbfe05fa93e8654738ee7`,
+  has zero technical gaps, and awaits exact Owner authorization. The independent
+  biomes L1 policy-promotion request remains
   `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
-  both have zero technical gaps and remain `AWAITING_OWNER`. Group bootstrap
-  validation passes 29/29 and policy-decision validation passes 27/27. The
+  it also remains `AWAITING_OWNER`. Group bootstrap authorization/manifest/
+  runner validation passes 29/29 and policy-decision validation passes 27/27. The
   group apply must follow the schema retry, and L1 promotion must remain a
   later independent checkpoint. Boss-loot still lacks its frozen bundle;
   shimmer lacks the raw file and three of five importable data shards in this
