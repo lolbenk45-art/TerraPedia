@@ -50,6 +50,12 @@
   identities are consumed. Schema completed; recipe stopped after its importer
   stage on a second direct mysql loader; boss rolled back after the backend
   rejected all 21 valid GIF uploads. Neither failed identity is reusable.
+- System Owner authorization received on 2026-07-29 for exact proposal
+  `canonical-downstream-batch-04-20260729`. Recipe and boss retries were
+  executed serially against their exact packets. Both one-time identities are
+  consumed and completed; neither can be reused. The boss lane used only the
+  isolated worktree backend on `18192` and Redis DB 14, then removed both
+  temporary runtime states without affecting the original `18191` backend.
 - Continuation architecture resolution on 2026-07-28: the packet-consuming Node
   runner is the single formal apply path. Seven missing executors now have real
   implementations; the unused backend apply bean remains deliberately
@@ -525,6 +531,33 @@
   blocked. Relation schema readiness is restored. Items image readiness and
   recipe blocking gate are blocked; boss source/relation/image and shimmer
   blocking remain warnings. No report was written and no gate was weakened.
+- Batch 04 recipe consumed `canonical-recipe-apply-20260729-03` exactly once and
+  completed all three reports. The frozen 3,663-recipe import left formal totals
+  at 11,658 recipes / 19,601 ingredients / 15,195 stations, backfilled 124 group
+  ingredients and 239 station display names, and consolidated providers at 45
+  activated / 3,429 deactivated. Active recipes changed from 7,159 to 3,775;
+  formal readback reports zero group/crafting/ingredient/station gaps and zero
+  active transactions.
+- Batch 04 boss consumed `canonical-boss-import-20260729-04` exactly once and
+  completed strict import against the isolated current-worktree backend. It
+  updated all 33 groups, retained 51 NPC member assignments, localized all 29
+  candidates (21 GIF / 8 PNG), and reported zero unresolved bosses, pending or
+  failed images, missing member mappings, and remaining wiki image URLs. The
+  database readback shows 33 groups, 51 assigned NPC rows, complete source-page
+  coverage, and zero active transactions. The temporary `18192` process group
+  exited, Redis DB 14 remained empty, no runner/importer process remains, and
+  the original `18191` backend remained on PID 654976.
+- The fresh post-Batch-04 read-only domain result is 40 pass / 4 warning / 1
+  blocked. Recipe blocking is reduced to warning and boss source readiness is
+  pass. Boss relation/image, recipe, and shimmer remain warnings; item image
+  coverage remains the only blocked panel. No report was written and no gate
+  threshold was weakened. Plan progress remains 62/86 because these results do
+  not complete Task 10 Step 5's all-producer requirement.
+- Fresh post-execution focused validation passes 42/42 Node recipe, boss,
+  manifest, authorization, and formal-runner contracts. Backend validation
+  passes 10/10 across `MinioObjectStorageServiceImplTest` and
+  `FileStorageControllerTest`. `git diff --check` passes for the Batch 04
+  devlog update.
 
 ## Result
 
@@ -595,20 +628,24 @@
   one-time identity, preserved Flyway V58, and created/verified all missing
   relation role tables and indexes. Recipe and boss consumed their independent
   identities and stopped at the recorded partial-import and rollback boundaries.
+- Completed in formal Batch 04: the exact recipe and boss retry identities were
+  consumed once and both completed. Recipe now has its import, consolidation,
+  and summary evidence; boss strict import localized all 29 governed images
+  through the isolated backend and left no unresolved image/import rows.
 - Completed in code-only repair after Batch 03: both remaining recipe stages
   use the repository mysql loader; managed entity uploads accept validated GIF
   while avatar restrictions remain unchanged; the boss manifest binds the
-  backend upload contract. Replacement Batch 04 requests are technically
-  complete but not authorized.
+  backend upload contract. Batch 04 proved both repairs through their authorized
+  formal paths.
 - Completed in code-only repair: NPC paired audit identity and redirected
   standardized-ID evidence binding, with no data rewrite or second crawler run.
 - Completed in code-only repair: image/boss manifests freeze the active backend
   API base instead of resolving a stale task-worktree port at execution time.
 - Not completed: NPC ownership-valid apply orchestration, Task 10's four
-  warning panels plus the blocked item-image and recipe panels, Task 11 isolated NPC T1, Task 12 Owner
-  authorization for the remaining independent operations, Task 13 Steps 3-7, Task 14
-  Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every formal apply or
-  activation checkpoint after bootstrap.
+  warning panels plus the blocked item-image panel, Task 11 isolated NPC T1,
+  Task 12 Owner authorization for the remaining independent operations, Task 13
+  Steps 3-7, Task 14 Steps 1 and 3-9, Task 15 Steps 3-5, Task 16, and every
+  formal apply or activation checkpoint after bootstrap.
 
 ## Residual Risks
 
@@ -620,16 +657,16 @@
   audit files predate the paired-identity repair. Batch 02 repaired that evidence
   and produced a complete frozen data bundle, but apply/T1 still require an
   ownership-valid executor and separate exact authorization.
-- Four warning panels and two blocked panels depend on real
-  import/image/source evidence and cannot pass before their independently
-  authorized operations or source repair. Empty-shell and
+- Four warning panels and one blocked panel depend on remaining relation,
+  image/source, recipe, and shimmer evidence. Empty-shell and
   dry-run artifacts now fail closed; armor and projectile are no longer warnings.
-  The fresh post-Batch-03 read-only domain rerun reports exactly 39 pass / 4 warning / 2 blocked.
+  The fresh post-Batch-04 read-only domain rerun reports exactly 40 pass / 4
+  warning / 1 blocked.
 - Local V56/V57/V58 plus maint and relation role schemas are applied. The group
   bootstrap remains unapplied; isolated T1 evidence does not authorize T2.
-- Batch 03 is fully accounted for and all three identities are consumed. Recipe
-  and boss retries require the exact replacement Batch 04 hashes; conversational
-  continuation or the old Batch 03 authorization cannot authorize changed bytes.
+- Batches 03 and 04 are fully accounted for and all of their dispatched
+  identities are consumed. No conversational continuation or prior proposal
+  authorizes another retry.
 - Batch 02 is fully accounted for; four of its decision identities are consumed
   and the schema identity was never consumed but is bound to superseded bytes.
   None authorizes Batch 03.
@@ -650,16 +687,15 @@
 
 ## Follow-up
 
-- System Owner: authorize exact proposal
-  `canonical-downstream-batch-04-20260729` for the recipe apply retry and boss
-  import retry against the isolated worktree backend. The item image source repair and
-  any retry require a separate future request. Task 10 Steps 5-6, NPC apply/T1, T2, both L1
-  applies, L2, and scheduler activation remain separate packets.
-- Immediate authorization checkpoint: authorize exact proposal
-  `canonical-downstream-batch-04-20260729` before its two request hashes are
-  converted to packets or dispatched. Group bootstrap and biomes L1
-  promotion retain their own later requests and must not be folded into that
-  authorization.
+- System Owner: Batch 04 needs no further authorization. The item image source
+  repair and any retry require a separate future request. Task 10 Steps 5-6,
+  NPC apply/T1, group T2, both L1 applies, L2, and scheduler activation remain
+  separate packets or decisions.
+- Immediate authorization checkpoints remain the technically complete canonical
+  group bootstrap request and the independent biomes L1 policy-promotion
+  request recorded above. They must not be folded together. Item image and
+  shimmer lanes first require complete source/producer inputs rather than a
+  conversational authorization alone.
 - Capability owners: decide whether NPC canonical apply is split into separately
   owned maint/relation/local operation IDs or approved as an explicit
   cross-capability orchestration contract. Until then, `canonical-npc-apply`
