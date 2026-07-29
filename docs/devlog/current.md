@@ -1,13 +1,12 @@
 # Current Devlog
 
-Last updated: 2026-07-29 12:12 CST by Codex
+Last updated: 2026-07-30 04:49 CST by Codex
 
 Active branch: `ux/detail-pages-redesign`
 
 ## Open Work
 
-- Public UI design baseline and its three-theme visual specimen are drafted and awaiting user review. owner: Codex; status: active; branch: `ux/detail-pages-redesign`; worktree: `/home/lolben/TerraPedia`; parent: none; dependencies: user design-spec review; contract handoff: all future public-page high-fidelity work must use `docs/design/terrapedia-public-ui-design-system-v1.md`; specimen source is `.superpowers/brainstorm/3542442-1785229764/content/public-ui-design-system-v1.html`. See `entries/2026-07-29-public-ui-design-system.md`.
-- 已确认的物品、NPC 与文章高保真稿进入保真重建：禁止继续在旧详情骨架上补样式，按逐区截图验收重排物品合成层级、NPC 条件商店与文章 v22 fold/archive。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 用户验收；contract handoff: 保持三主题令牌与数据边界，旅商只展示当前可用商店资料。见 `entries/2026-07-29-approved-public-pages-production.md` 与 `docs/superpowers/plans/2026-07-29-public-pages-fidelity-rebuild.md`。
+- 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 暗色全页 ground、资料完整度与 Hero 真实字段细节已获用户授权作为阶段检查点提交，任务随后串行继续 NPC 四份定稿与 Articles v22。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: NPC 与 Articles 逐页视觉验收；contract handoff: 只复刻正文，保留生产导航/面包屑/容器比例与全部现有功能，动态区域只消费真实 DTO 或明确标注的展示派生值。见 `entries/2026-07-29-approved-public-pages-production.md` 与 `docs/superpowers/plans/2026-07-29-public-pages-fidelity-rebuild.md`。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
 - Uncommitted work pending user acceptance: triage-board layout fixes,
@@ -38,6 +37,8 @@ Active branch: `ux/detail-pages-redesign`
   boundary audit recorded in the entry above.
 
 ## Current State
+
+- Public-page fidelity rebuild remains active. Item is the authorized checkpoint: its approved dark page ground lives on the Item full-screen archetype, and the Hero exposes live internal/English identity plus data-derived metric detail. The next owners are NPC fidelity first, then Articles v22; no API/data repair is part of either slice.
 
 - Front P2 merged-result validation passes the full public frontend gate and
   the focused public armor/recipe backend suite (16/16). The source integration
@@ -121,6 +122,11 @@ Active branch: `ux/detail-pages-redesign`
 
 ## Next Agent Should Start Here
 
+- Continue `entries/2026-07-29-approved-public-pages-production.md` after the
+  Item checkpoint commit. Compare the four approved NPC samples first, then
+  `articles-story-led-v22.html`; preserve production navigation, live data,
+  interactions, three themes, and the contract ratchet.
+
 - Front P2 and the light-theme button adaptation require no further merge
   action. Read `entries/2026-07-22-front-p2-local-integration.md` for the
   curated-history boundary and excluded data-audit work, and
@@ -161,6 +167,11 @@ Active branch: `ux/detail-pages-redesign`
   data; their route and fail-closed contracts remain the acceptance boundary.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-29-public-ui-design-system.md`
+  - branch: `ux/detail-pages-redesign`
+  - status: `closed`
+  - commit: `52a83c59`; mandatory public UI baseline and three-theme specimen
 
 - `docs/devlog/entries/2026-07-29-articles-hifi.md`
   - branch: `ux/detail-pages-redesign`

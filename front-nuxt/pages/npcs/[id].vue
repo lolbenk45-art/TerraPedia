@@ -6,15 +6,14 @@ import type {
   PublicNpcLivingPreference,
   PublicNpcLootEntry,
   PublicNpcMoneyDrop,
-  PublicNpcShopCondition,
   PublicNpcShopEntry,
   PublicNpcShopPriceToken,
   PublicNpcTraceableItemSummary,
 } from '~/types/public-api'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
+import { buildNpcShopBands, filterNpcShopBands, resolveNpcArchiveModules } from '~/utils/npcShopBands'
 import { createSafeDisplayText } from '~/utils/publicCopy'
 import { moneyCoinClass, normalizeTerrariaMoneyToken } from '~/utils/terrariaMoney'
-import { resolveNpcArchiveModules } from '~/utils/detailPagePresentation'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -365,87 +364,10 @@ const npcMoneyDrops = computed(() => (Array.isArray(npc.value?.moneyDrops) ? npc
   })
   .filter((drop) => drop.tokens.length > 0))
 
-const conditionLabel = (condition: PublicNpcShopCondition) => safeNpcDisplayText(
-  condition.label,
-  condition.contextNameZh,
-  condition.contextNameEn,
-  condition.gamePeriodNameZh,
-  condition.gamePeriodNameEn,
-  condition.refNpcNameZh,
-  condition.refNpcName,
-  condition.refItemNameZh,
-  condition.refItemName,
-  condition.biomeNameZh,
-  condition.biomeNameEn,
-  condition.notes,
-)
-const conditionHasResolvedLabel = (condition: PublicNpcShopCondition) => Boolean(conditionLabel(condition))
-
-const shopConditionsLabel = (entry: PublicNpcShopEntry) => {
-  if (Array.isArray(entry.conditions)) {
-    const labels = entry.conditions.map(conditionLabel).filter(Boolean)
-    const safeNotes = safeNpcDisplayText(entry.notes)
-    return labels.join(' / ') || safeNotes || (entry.conditions.length > 0 || safeNotes ? '特殊条件' : '')
-  }
-
-  return safeNpcDisplayText(entry.conditions, entry.notes)
-}
-
-const shopConditionSummary = (entry: PublicNpcShopEntry) => {
-  if (!Array.isArray(entry.conditions)) return shopConditionsLabel(entry)
-  const labels = entry.conditions.map(conditionLabel).filter(Boolean)
-  if (labels.length === 0) {
-    const safeNotes = safeNpcDisplayText(entry.notes)
-    return safeNotes || (entry.conditions.length > 0 || safeNotes ? '特殊条件' : '')
-  }
-  if (labels.length <= 2) return labels.join(' / ')
-  return `${labels.slice(0, 2).join(' / ')} / 另有 ${labels.length - 2} 个条件`
-}
-
-const shopGroupKey = (entry: PublicNpcShopEntry) => {
-  if (!Array.isArray(entry.conditions)) {
-    return shopConditionsLabel(entry) ? 'other' : 'always'
-  }
-  if (entry.conditions.length === 0) return safeNpcDisplayText(entry.notes) ? 'other' : 'always'
-  const conditions = entry.conditions
-  if (conditions.some((condition) => safeNpcDisplayText(condition.gamePeriodNameZh, condition.gamePeriodNameEn))) return 'period'
-  if (conditions.some((condition) => safeNpcDisplayText(condition.biomeNameZh, condition.biomeNameEn))) return 'biome'
-  if (conditions.some((condition) => safeNpcDisplayText(condition.refNpcNameZh, condition.refNpcName, condition.refItemNameZh, condition.refItemName))) return 'unlock'
-  if (!conditions.some(conditionHasResolvedLabel)) return 'other'
-  return shopConditionSummary(entry) ? 'other' : 'always'
-}
-
-const shopGroupMeta = {
-  always: { title: '常驻出售', meta: '无额外条件' },
-  period: { title: '阶段出售', meta: '随进度解锁' },
-  biome: { title: '地点出售', meta: '与环境或地点相关' },
-  unlock: { title: '解锁出售', meta: '需要 NPC、物品或事件前置' },
-  other: { title: '其他条件', meta: '包含特殊条件' },
-} as const
-
-const shopEntryGroups = computed(() => {
-  const buckets = new Map<keyof typeof shopGroupMeta, PublicNpcShopEntry[]>()
-
-  for (const entry of shopEntries.value) {
-    const key = shopGroupKey(entry) as keyof typeof shopGroupMeta
-    buckets.set(key, [...(buckets.get(key) ?? []), entry])
-  }
-
-  return (Object.keys(shopGroupMeta) as Array<keyof typeof shopGroupMeta>)
-    .map((key) => ({
-      key,
-      title: shopGroupMeta[key].title,
-      meta: shopGroupMeta[key].meta,
-      entries: buckets.get(key) ?? [],
-    }))
-    .filter((group) => group.entries.length > 0)
-})
+const shopEntryKey = (entry: PublicNpcShopEntry) => String(entry.id ?? entry.itemId ?? entry.itemInternalName)
+const shopEntryGroups = computed(() => buildNpcShopBands(shopEntries.value, safeNpcDisplayText))
 const selectedShopGroup = ref('all')
-const visibleShopEntryGroups = computed(() => (
-  selectedShopGroup.value === 'all'
-    ? shopEntryGroups.value
-    : shopEntryGroups.value.filter((group) => group.key === selectedShopGroup.value)
-))
+const visibleShopEntryGroups = computed(() => filterNpcShopBands(shopEntryGroups.value, selectedShopGroup.value))
 
 const buffDurationLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(
   entry.durationText,
@@ -708,72 +630,21 @@ const npcArchiveModules = computed(() => resolveNpcArchiveModules({
             </article>
 
           <article v-if="npcArchiveModules.includes('shop')" :class="['detail-module dark-card npc-shop-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>出售物品</h2>
-              <span class="tag gold">{{ shopEntries.length }} 项</span>
-            </div>
-            <div v-if="shopEntryGroups.length" class="npc-shop-toolbar" aria-label="商店条件筛选">
-              <button type="button" :class="{ active: selectedShopGroup === 'all' }" @click="selectedShopGroup = 'all'">全部 {{ shopEntries.length }}</button>
-              <button v-for="group in shopEntryGroups" :key="group.key" type="button" :class="{ active: selectedShopGroup === group.key }" @click="selectedShopGroup = group.key">{{ group.title }} {{ group.entries.length }}</button>
-            </div>
-            <div v-if="visibleShopEntryGroups.length" class="grouped-source-list">
-              <section v-for="group in visibleShopEntryGroups" :key="group.key" class="detail-subgroup">
-                <div class="detail-subgroup-title">
-                  <b>{{ group.title }}</b>
-                  <span>{{ group.entries.length }} 项 · {{ group.meta }}<template v-if="npcArchiveModules.includes('arrival')"> · 当前可用商店资料</template></span>
-                </div>
-                <div class="source-table dark-table tp-detail-relation-grid npc-shop-grid">
-                  <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row npc-shop-row', detailLayout.detailRelationRowClass]">
-                    <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                    </span>
-                    <div class="detail-relation-copy">
-                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                      <b v-else>{{ entryTitle(entry) }}</b>
-                      <span class="npc-shop-meta">
-                        <span v-if="shopPriceTokens(entry).length" class="npc-shop-price" :aria-label="shopPriceLabel(entry)">
-                          <span v-for="token in shopPriceTokens(entry)" :key="`${entry.id ?? entry.itemId}-${token.unit}`" class="npc-shop-price-token">
-                            <span class="npc-shop-price-icon">
-                              <CommonPreviewImage :src="token.iconUrl" :alt="token.label" :fallback="token.label" fallback-icon="icon-items" decorative />
-                            </span>
-                            <span class="npc-shop-price-text">{{ token.amount }}{{ token.label }}</span>
-                          </span>
-                        </span>
-                        <span v-if="shopConditionSummary(entry)" class="npc-shop-condition">{{ shopConditionSummary(entry) }}</span>
-                        <span v-if="!shopPriceTokens(entry).length && !shopConditionSummary(entry)">商店资料</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <details v-if="group.entries.length > 8" class="detail-group-remainder">
-                  <summary>展开其余 {{ group.entries.length - 8 }} 项</summary>
-                  <div class="source-table dark-table tp-detail-relation-grid npc-shop-grid">
-                    <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row npc-shop-row', detailLayout.detailRelationRowClass]">
-                      <span class="sprite-frame detail-relation-icon">
-                        <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                      </span>
-                      <div class="detail-relation-copy">
-                        <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                        <b v-else>{{ entryTitle(entry) }}</b>
-                        <span class="npc-shop-meta">
-                          <span v-if="shopPriceTokens(entry).length" class="npc-shop-price" :aria-label="shopPriceLabel(entry)">
-                            <span v-for="token in shopPriceTokens(entry)" :key="`${entry.id ?? entry.itemId}-${token.unit}`" class="npc-shop-price-token">
-                              <span class="npc-shop-price-icon">
-                                <CommonPreviewImage :src="token.iconUrl" :alt="token.label" :fallback="token.label" fallback-icon="icon-items" decorative />
-                              </span>
-                              <span class="npc-shop-price-text">{{ token.amount }}{{ token.label }}</span>
-                            </span>
-                          </span>
-                          <span v-if="shopConditionSummary(entry)" class="npc-shop-condition">{{ shopConditionSummary(entry) }}</span>
-                          <span v-if="!shopPriceTokens(entry).length && !shopConditionSummary(entry)">商店资料</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </details>
-              </section>
-            </div>
-            <p v-else class="tp-detail-empty">暂时没有整理到出售物品。</p>
+            <DetailNpcShopBands
+              :total="shopEntries.length"
+              :groups="shopEntryGroups"
+              :visible-groups="visibleShopEntryGroups"
+              :selected-group="selectedShopGroup"
+              :current-stock-only="npcArchiveModules.includes('arrival')"
+              :entry-key="shopEntryKey"
+              :entry-image="entryImage"
+              :entry-title="entryTitle"
+              :entry-icon="entryFallbackIcon"
+              :item-path="itemPath"
+              :price-tokens="shopPriceTokens"
+              :price-label="shopPriceLabel"
+              @update:selected-group="selectedShopGroup = $event"
+            />
           </article>
 
           <article :class="['detail-module dark-card npc-buff-module', detailLayout.detailModuleClass]">
@@ -1013,37 +884,6 @@ const npcArchiveModules = computed(() => resolveNpcArchiveModules({
   color: var(--text-subtle);
   font-size: 12px;
   line-height: 1.6;
-}
-
-.npc-shop-toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.npc-shop-toolbar button {
-  min-height: 44px;
-  border: 1px solid var(--index-line);
-  border-radius: 6px;
-  background: var(--index-surface);
-  padding: 0 10px;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.npc-shop-toolbar button.active {
-  border-color: var(--button-control-active-border);
-  background: var(--button-control-active-bg);
-  color: var(--button-control-active-fg);
-}
-
-.npc-shop-module .npc-shop-grid {
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
 .npc-archive-page .npc-detail-facts {

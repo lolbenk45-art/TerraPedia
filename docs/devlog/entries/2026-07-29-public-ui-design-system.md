@@ -2,7 +2,7 @@
 
 ## Status
 
-`ready-for-commit`
+`closed`
 
 ## Goal
 
@@ -40,3 +40,13 @@ into unrelated palette, hierarchy, or layout systems.
 - No production Vue/CSS implementation is authorized by this entry.
 - The baseline is mandatory for future visual work. No production Vue/CSS page
   implementation is included in this documentation-only change.
+
+## Closeout
+
+- Commit: `52a83c59` (`docs(front): establish public UI design baseline`).
+- Validation: the committed specimen passed the recorded three-theme desktop
+  and mobile browser checks; the Markdown baseline and root `AGENTS.md` are in
+  the same commit.
+- Residual risk: none for the documentation baseline; production fidelity is
+  tracked separately by `2026-07-29-approved-public-pages-production.md`.
+- Follow-up: none in this entry.

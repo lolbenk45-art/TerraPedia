@@ -9,7 +9,18 @@ const BASE = process.env.AUDIT_BASE || 'http://localhost:15177'
 const OUT = path.resolve(process.env.AUDIT_OUT || 'tmp/audit-shots')
 mkdirSync(OUT, { recursive: true })
 
-const ROUTES = [
+const parseJsonEnv = (name, fallback) => {
+  const value = process.env[name]
+  if (!value) return fallback
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    throw new Error(`${name} must be valid JSON`)
+  }
+}
+
+const DEFAULT_ROUTES = [
   ['home', '/'],
   ['items-index', '/items'],
   ['items-detail', '/items/1'],
@@ -38,10 +49,13 @@ const ROUTES = [
   ['not-found-item', '/items/99999999'],
 ]
 
-const VIEWPORTS = [
+const DEFAULT_VIEWPORTS = [
   ['desktop', { width: 1440, height: 900 }],
   ['mobile', { width: 375, height: 812 }],
 ]
+
+const ROUTES = parseJsonEnv('AUDIT_ROUTES', DEFAULT_ROUTES)
+const VIEWPORTS = parseJsonEnv('AUDIT_VIEWPORTS', DEFAULT_VIEWPORTS)
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM
   || process.env.HOME + '/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome'
@@ -53,6 +67,13 @@ for (const [vpName, viewport] of VIEWPORTS) {
   const page = await ctx.newPage()
   for (const [name, route] of ROUTES) {
     const url = BASE + route
+    const errors = []
+    const onConsole = (message) => {
+      if (message.type() === 'error') errors.push(`console:${message.text()}`)
+    }
+    const onRequestFailed = (request) => errors.push(`requestfailed:${request.url()}`)
+    page.on('console', onConsole)
+    page.on('requestfailed', onRequestFailed)
     try {
       const resp = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() =>
         page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }))
@@ -66,12 +87,18 @@ for (const [vpName, viewport] of VIEWPORTS) {
       if (height < 20000) {
         await page.screenshot({ path: `${OUT}/${name}--${vpName}-full.png`, fullPage: true })
       }
-      results.push({ name, vp: vpName, status, height, hasHScroll })
+      const result = { name, vp: vpName, status, height, hasHScroll }
+      if (errors.length) result.errors = errors
+      results.push(result)
       console.log(`${name} ${vpName} status=${status} h=${height}${hasHScroll ? ' HSCROLL!' : ''}`)
     } catch (e) {
-      results.push({ name, vp: vpName, error: String(e).slice(0, 120) })
+      const result = { name, vp: vpName, error: String(e).slice(0, 120) }
+      if (errors.length) result.errors = errors
+      results.push(result)
       console.log(`${name} ${vpName} ERROR ${String(e).slice(0, 120)}`)
     }
+    page.off('console', onConsole)
+    page.off('requestfailed', onRequestFailed)
   }
   await ctx.close()
 }

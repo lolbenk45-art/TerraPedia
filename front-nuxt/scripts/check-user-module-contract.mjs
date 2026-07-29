@@ -380,16 +380,10 @@ const pageContracts = [
       'articlePagination',
       'articleError',
       'articleLoading',
-      '`/articles/${article.slug}`',
-      'article.title',
-      'article.summary',
       'resolvePreviewImageUrl',
       'articleCoverUrl',
       'articleCoverFallback',
       'article.coverImage',
-      'public-article-cover',
-      'public-article-cover-fallback',
-      'loading="lazy"',
       'articleAuthorAvatarUrl',
       'CommonPaginationDock',
       '@page-change="goToPage"',
@@ -425,7 +419,7 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/index.vue',
-    required: ['usePublicApiFetch<UserArticle[]>', "'/articles'", 'articlePagination', 'articleError', 'articleLoading', '`/articles/${article.slug}`', 'article.title', 'article.summary'],
+    required: ['usePublicApiFetch<UserArticle[]>', "'/articles'", 'articlePagination', 'articleError', 'articleLoading'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '后续接入真实内容', '等公开文章来源和发布状态接入后'],
   },
 ]
@@ -447,6 +441,38 @@ for (const contract of pageContracts) {
   }
   for (const marker of contract.forbidden) {
     assertNotIncludes(contract.path, content, marker, `page must not remain preview-only with ${marker}`)
+  }
+}
+
+const articleIndexPresentationContracts = [
+  {
+    path: 'components/article/ArticleFeatureMeta.vue',
+    required: [
+      '`/articles/${article.slug}`',
+      'article.title',
+      'article.summary',
+      'public-article-cover',
+      'public-article-cover-fallback',
+      'loading="lazy"',
+    ],
+  },
+  {
+    path: 'components/article/ArticleArchiveRail.vue',
+    required: [
+      '`/articles/${article.slug}`',
+      'article.title',
+      'article.summary',
+      'public-article-cover',
+      'public-article-cover-fallback',
+      'loading="lazy"',
+    ],
+  },
+]
+
+for (const contract of articleIndexPresentationContracts) {
+  const content = assertFile(contract.path)
+  for (const marker of contract.required) {
+    assertIncludes(contract.path, content, marker, `article index presentation contract must include ${marker}`)
   }
 }
 

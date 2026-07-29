@@ -4,7 +4,7 @@ definePageMeta({ publicScreenClass: 'article-screen' })
 import type { ApiResponse, Pagination, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { usePublicApiFetch } from '~/composables/usePublicApi'
-import { splitFeaturedArticleList } from '~/utils/detailPagePresentation'
+import { buildArticleArchive } from '~/utils/articleArchive'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +14,7 @@ const currentPage = computed(() => {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1
 })
 const keyword = computed(() => String(route.query.keyword ?? '').trim())
-const articleLimit = 10
+const articleLimit = 12
 const articleError = ref('')
 const articleDataKey = computed(() => `public-articles:${currentPage.value}:${keyword.value}`)
 
@@ -47,16 +47,14 @@ const articlePagination = computed<Pagination>(() => (
 const articleLoading = computed(() => articlePending.value)
 const articleLoadingSlotCount = 4
 const totalPages = computed(() => Math.max(1, Number(articlePagination.value.totalPages ?? 1)))
-const articlePresentation = computed(() => splitFeaturedArticleList(articles.value))
+const articlePresentation = computed(() => buildArticleArchive(articles.value, { keyword: keyword.value }))
 const featuredArticle = computed(() => articlePresentation.value.featured)
+const foldArticles = computed(() => articlePresentation.value.readingList)
 const archiveArticles = computed(() => articlePresentation.value.archive)
-const foldArticles = computed(() => archiveArticles.value.slice(0, 5))
-const articleArchiveTopics = ['装备推进', 'Boss 准备', '探索路线', '建筑与机制', '多人联机', '资料补充']
 const articleMastStats = computed(() => [
   { label: '已发布', value: String(articlePagination.value.total ?? articles.value.length) },
-  { label: '主题', value: String(articleArchiveTopics.length) },
   { label: '作者', value: String(new Set(articles.value.map((article) => article.authorId || article.authorDisplayName).filter(Boolean)).size) },
-  { label: '总浏览', value: new Intl.NumberFormat('zh-CN', { notation: 'compact', maximumFractionDigits: 1 }).format(articles.value.reduce((total, article) => total + articleViewCount(article), 0)) },
+  { label: '本页浏览', value: new Intl.NumberFormat('zh-CN', { notation: 'compact', maximumFractionDigits: 1 }).format(articles.value.reduce((total, article) => total + articleViewCount(article), 0)) },
 ])
 
 const articleCoverUrl = (article: UserArticle) => resolvePreviewImageUrl(article.coverImage || '')
@@ -77,6 +75,12 @@ const articleAuthorAvatarUrl = (article: UserArticle) => resolvePreviewImageUrl(
 const articleViewCount = (article: UserArticle) => Math.max(0, Number(article.viewCount ?? 0))
 
 const articleFavoriteCount = (article: UserArticle) => Math.max(0, Number(article.favoriteCount ?? 0))
+
+const popularArticles = computed(() => [...articles.value]
+  .sort((left, right) => articleViewCount(right) - articleViewCount(left)
+    || articleFavoriteCount(right) - articleFavoriteCount(left)
+    || Number(right.id) - Number(left.id))
+  .slice(0, 4))
 
 const articlePublishedLabel = (article: UserArticle) => {
   const raw = article.publishedAt || article.updatedAt || article.createdAt
@@ -120,19 +124,20 @@ useSeoMeta({
 
 <template>
   <main class="tp-public-page-shell article-layout discovery-articles-page article-route-shell tp-page-shell" :aria-busy="articleLoading">
-      <section class="article-mast" aria-label="资料手札概览">
-        <div>
-          <TerraBreadcrumb />
-          <h1>资料手札</h1>
-          <p>玩家整理的攻略、路线与实战经验。先读内容，再决定下一篇。</p>
-        </div>
-        <div class="article-mast-actions">
-          <dl class="article-mast-stats">
-            <div v-for="stat in articleMastStats" :key="stat.label"><dt>{{ stat.value }}</dt><dd>{{ stat.label }}</dd></div>
-          </dl>
-          <a class="article-mast-all" href="#article-library">浏览全部</a>
-        </div>
-      </section>
+    <ArticleFeatureMeta
+      :mast-stats="articleMastStats"
+      :featured="featuredArticle"
+      :reading-list="foldArticles"
+      :cover-url="articleCoverUrl"
+      :cover-fallback="articleCoverFallback"
+      :author-label="articleAuthorLabel"
+      :author-path="articleAuthorPath"
+      :author-fallback="articleAuthorFallback"
+      :author-avatar-url="articleAuthorAvatarUrl"
+      :published-label="articlePublishedLabel"
+      :view-count="articleViewCount"
+      :favorite-count="articleFavoriteCount"
+    />
       <section class="article-panel article-route-system">
         <div v-if="articleLoading" class="public-article-list article-list-layout-balanced" aria-live="polite" aria-label="文章列表加载中">
           <article
@@ -176,104 +181,18 @@ useSeoMeta({
           </div>
         </article>
 
-        <div v-else class="article-route-content">
-          <section v-if="featuredArticle" class="article-fold">
-          <article class="article-featured-story">
-            <span class="article-featured-story__index" aria-hidden="true">01</span>
-            <div class="article-featured-story__copy">
-              <div class="public-article-kicker">
-                <span>精选文章 · #{{ featuredArticle.id }}</span>
-                <span>{{ articlePublishedLabel(featuredArticle) }}</span>
-              </div>
-              <h2>
-                <NuxtLink :to="`/articles/${featuredArticle.slug}`">{{ featuredArticle.title }}</NuxtLink>
-              </h2>
-              <p>{{ featuredArticle.summary || '这篇文章暂无摘要。' }}</p>
-              <div class="public-article-meta">
-                <NuxtLink
-                  v-if="articleAuthorPath(featuredArticle)"
-                  class="public-article-author"
-                  :to="articleAuthorPath(featuredArticle)"
-                  :aria-label="`查看 ${articleAuthorLabel(featuredArticle)} 的主页`"
-                >
-                  <span class="public-article-author-avatar">
-                    <img v-if="articleAuthorAvatarUrl(featuredArticle)" :src="articleAuthorAvatarUrl(featuredArticle)" :alt="`${articleAuthorLabel(featuredArticle)} 的头像`" loading="lazy" />
-                    <b v-else>{{ articleAuthorFallback(featuredArticle) }}</b>
-                  </span>
-                  <span>{{ articleAuthorLabel(featuredArticle) }}</span>
-                </NuxtLink>
-                <span v-else class="public-article-author">
-                  <span class="public-article-author-avatar">
-                    <img v-if="articleAuthorAvatarUrl(featuredArticle)" :src="articleAuthorAvatarUrl(featuredArticle)" :alt="`${articleAuthorLabel(featuredArticle)} 的头像`" loading="lazy" />
-                    <b v-else>{{ articleAuthorFallback(featuredArticle) }}</b>
-                  </span>
-                  <span>{{ articleAuthorLabel(featuredArticle) }}</span>
-                </span>
-                <span>{{ articleViewCount(featuredArticle) }} 浏览</span>
-                <span>{{ articleFavoriteCount(featuredArticle) }} 收藏</span>
-                <NuxtLink class="public-article-read-link" :to="`/articles/${featuredArticle.slug}`">阅读全文</NuxtLink>
-              </div>
-            </div>
-            <NuxtLink class="article-featured-story__tail" :to="`/articles/${featuredArticle.slug}`" :aria-label="`阅读精选文章 ${featuredArticle.title}`">
-              <img
-                v-if="articleCoverUrl(featuredArticle)"
-                :src="articleCoverUrl(featuredArticle)"
-                :alt="featuredArticle.title"
-                loading="eager"
-              />
-              <span v-else class="public-article-cover-fallback" aria-hidden="true">
-                <b>{{ articleCoverFallback(featuredArticle) }}</b>
-                <em>TerraPedia</em>
-              </span>
-              <span>阅读文章</span>
-            </NuxtLink>
-          </article>
-
-          <section v-if="foldArticles.length" class="article-fold-stack" aria-label="更多精选文章">
-            <article v-for="(article, index) in foldArticles" :key="article.id" class="article-fold-row">
-              <span class="article-fold-row__index" aria-hidden="true">{{ String(index + 2).padStart(2, '0') }}</span>
-              <div>
-                <div class="public-article-kicker"><span>文章 #{{ article.id }}</span><span>{{ articlePublishedLabel(article) }}</span></div>
-                <h3><NuxtLink :to="`/articles/${article.slug}`">{{ article.title }}</NuxtLink></h3>
-                <p>{{ article.summary || '这篇文章暂无摘要。' }}</p>
-              </div>
-              <NuxtLink class="article-fold-row__cover" :to="`/articles/${article.slug}`" :aria-label="`阅读 ${article.title}`">
-                <img v-if="articleCoverUrl(article)" :src="articleCoverUrl(article)" :alt="article.title" loading="lazy" />
-                <span v-else class="public-article-cover-fallback" aria-hidden="true"><b>{{ articleCoverFallback(article) }}</b></span>
-              </NuxtLink>
-            </article>
-          </section>
-          </section>
-
-          <section id="article-library" class="article-library-shell public-article-list article-list-layout-balanced">
-            <div class="article-library-heading">
-              <div>
-                <span class="eyebrow">archive · published articles</span>
-                <h2>文章资料库</h2>
-                <p>收录当前公开文章；主题索引将在分类资料更完整后接入筛选。</p>
-              </div>
-              <span class="tag paper">第 {{ currentPage }} 页</span>
-            </div>
-            <div class="article-topic-index" aria-label="文章主题索引">
-              <span v-for="topic in articleArchiveTopics" :key="topic">{{ topic }}</span>
-            </div>
-            <article v-for="article in articles" :key="article.id" class="article-archive-row">
-              <NuxtLink class="article-archive-row__cover" :to="`/articles/${article.slug}`" :aria-label="`阅读 ${article.title}`">
-                <img v-if="articleCoverUrl(article)" :src="articleCoverUrl(article)" :alt="article.title" loading="lazy" />
-                <span v-else class="public-article-cover-fallback" aria-hidden="true"><b>{{ articleCoverFallback(article) }}</b><em>TerraPedia</em></span>
-              </NuxtLink>
-              <div class="article-archive-row__copy">
-                <div class="public-article-kicker"><span>文章 #{{ article.id }}</span><span>{{ articlePublishedLabel(article) }}</span></div>
-                <h3><NuxtLink :to="`/articles/${article.slug}`">{{ article.title }}</NuxtLink></h3>
-                <p>{{ article.summary || '这篇文章暂无摘要。' }}</p>
-              </div>
-              <div class="article-archive-row__meta">
-                <span>{{ articleAuthorLabel(article) }}</span>
-                <span>{{ articleViewCount(article) }} 浏览 · {{ articleFavoriteCount(article) }} 收藏</span>
-              </div>
-            </article>
-          </section>
-        </div>
+        <ArticleArchiveRail
+          v-else
+          :archive-entries="archiveArticles"
+          :popular-entries="popularArticles"
+          :current-page="currentPage"
+          :cover-url="articleCoverUrl"
+          :cover-fallback="articleCoverFallback"
+          :author-label="articleAuthorLabel"
+          :published-label="articlePublishedLabel"
+          :view-count="articleViewCount"
+          :favorite-count="articleFavoriteCount"
+        />
 
         <CommonPaginationDock
           v-if="totalPages > 1"

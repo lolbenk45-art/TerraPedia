@@ -9,13 +9,13 @@ const read = (path) => readFileSync(file(path), 'utf8')
 const violations = []
 const detailPages = {
   'pages/items/[id].vue': [
-    String.raw`<div v-else :class="\['detail-layout', detailLayout\.detailShellClass(?:, '[^']+')?\]"`,
-    String.raw`:class="\['detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass(?:, '[^']+')?\]"`,
-    String.raw`:class="\['detail-module dark-card item-recipe-summary-module', detailLayout\.detailModuleClass\]"`,
+    String.raw`<div v-else :class="\['detail-layout', detailLayout\.detailShellClass, 'item-archive-page'\]"`,
+    String.raw`:class="\['detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass, 'item-archive-content'\]"`,
+    String.raw`:class="\['card primary item-approved-card detail-module dark-card item-recipe-summary-module item-recipe-hierarchy-module', detailLayout\.detailModuleClass\]"`,
     String.raw`:class="\['detail-module dark-card item-source-module', detailLayout\.detailModuleClass\]"`,
     String.raw`class="source-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
-    String.raw`:class="\['evidence-panel dark-card(?: [^']+)* item-coverage-panel(?: [^']+)*', detailLayout\.detailModuleClass\]"`,
+    String.raw`:class="\['evidence-panel dark-card item-coverage-panel tp-archive-rail item-archive-rail', detailLayout\.detailModuleClass\]"`,
   ],
   'pages/npcs/[id].vue': [
     String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass(?:, '[^']+')?\]"`,
@@ -195,8 +195,261 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 }
 
 {
+  const path = 'pages/items/[id].vue'
+  const content = read(path)
+  assertPattern(
+    path,
+    content,
+    String.raw`definePageMeta\(\{ publicScreenClass: 'detail-screen item-detail-approved-screen' \}\)`,
+    'approved Item route must expose its full-screen archetype without painting the shared detail shell',
+  )
+  const approvedItemBodyMarkers = [
+    "'item-approved-body'",
+    'class="hero item-approved-hero"',
+    'class="plinth item-approved-plinth"',
+    'class="ident item-approved-ident"',
+    'class="metrics item-approved-metrics"',
+    "'item-approved-layout'",
+    'class="col item-approved-column"',
+    'item-approved-card',
+    'class="rail item-approved-rail"',
+    'item-approved-anchors',
+    'item-approved-related',
+  ]
+
+  for (const marker of approvedItemBodyMarkers) {
+    if (!content.includes(marker)) {
+      violations.push(`${path}: missing approved direct-transplant body marker ${marker}`)
+    }
+  }
+
+  assertPattern(
+    path,
+    content,
+    String.raw`:data-item-rarity="itemRarity"`,
+    'approved Item body must expose the live rarity label to its semantic material layer',
+  )
+
+  assertPattern(
+    path,
+    content,
+    String.raw`item-approved-anchors[\s\S]*class="rail-card item-coverage-card"[\s\S]*item-approved-related`,
+    'approved Item coverage card must sit between page anchors and related entries',
+  )
+
+  assertPattern(
+    path,
+    content,
+    String.raw`资料完整度[\s\S]*\{\{ itemCoverageAvailableCount \}\} / \{\{ itemCoverageRows\.length \}\} 模块[\s\S]*class="ring coverage-ring"[\s\S]*--item-coverage-progress[\s\S]*v-for="group in itemCoverageGroups"`,
+    'approved Item coverage card must bind the live count, ring progress, and four summary groups',
+  )
+
+  if (content.includes(`:class="['detail-module dark-card item-recipe-summary-module item-recipe-hierarchy-module', detailLayout.detailModuleClass]"`)) {
+    violations.push(`${path}: approved Item primary card must not remain nested inside a legacy compatibility card wrapper`)
+  }
+}
+
+{
+  const path = 'assets/css/domains/detail-pages-redesign.css'
+  const content = read(path)
+  const approvedItemRarityMappings = [
+    String.raw`\.item-approved-body\[data-item-rarity="浅红色"\]\s*\{[^}]*--item-rarity-color:\s*#ff8f8f;`,
+    String.raw`\.item-approved-body\[data-item-rarity="蓝色"\]\s*\{[^}]*--item-rarity-color:\s*#78a9ff;`,
+    String.raw`\.item-approved-body\[data-item-rarity="绿色"\]\s*\{[^}]*--item-rarity-color:\s*#8fd878;`,
+    String.raw`\.item-approved-body\[data-item-rarity="橙色"\]\s*\{[^}]*--item-rarity-color:\s*#ffad5d;`,
+  ]
+  if (!approvedItemRarityMappings.every((pattern) => new RegExp(pattern, 'm').test(content))) {
+    violations.push(`${path}: approved Item sample rarities must map by live label rather than item id`)
+  }
+  for (const [pattern, message] of [
+    [
+      String.raw`\[data-theme="dark"\] \.item-detail-approved-screen\s*\{[^}]*background:[^}]*var\(--index-grid-x\),[^}]*var\(--index-grid-y\),[^}]*linear-gradient\(\s*125deg,[^}]*var\(--tp-color-page-raised\)`,
+      'approved Item dark route ground must use the shared grid and page tokens on the full-screen archetype',
+    ],
+    [
+      String.raw`\[data-theme="dark"\] \.item-detail-approved-screen\s*\{[^}]*background-attachment:\s*fixed;`,
+      'approved Item dark route ground must retain the reference fixed depth while scrolling',
+    ],
+    [
+      String.raw`\.item-approved-body \.metric \.v small\s*\{[^}]*color:\s*var\(--tp-color-text-faint\);[^}]*font-family:\s*var\(--tp-font-sans\);[\s\S]*\.item-approved-body \.meter\s*\{[^}]*height:\s*4px;[^}]*background:\s*var\(--item-divider-border\);[\s\S]*\.item-approved-body \.meter i\s*\{[^}]*background:\s*linear-gradient\(90deg,\s*var\(--tp-color-positive\),\s*var\(--tp-color-accent-strong\)\);`,
+      'approved Item hero metrics must retain the compact scale suffix and semantic knockback meter',
+    ],
+    [
+      String.raw`\.item-approved-body\s*\{[^}]*--item-rarity-color:\s*var\(--tp-color-accent-strong\);[^}]*--item-hero-surface:\s*linear-gradient\(125deg,`,
+      'approved Item material tokens must retain a rarity fallback and the green 125-degree hero surface',
+    ],
+    [
+      String.raw`:where\(\[data-theme="morning-paper"\], \[data-theme="warm-slate"\]\) \.item-approved-body\s*\{[^}]*--item-hero-surface:[^}]*--item-rarity-shadow:[^}]*--item-metric-bg:[^}]*--item-price-bg:`,
+      'approved Item light themes must flatten hero, rarity, metric, and price materials through existing theme tokens',
+    ],
+    [
+      String.raw`\.item-approved-body \.hero\s*\{[^}]*radial-gradient\(520px 210px at 8% 0%,\s*var\(--item-rarity-hero-tint\),\s*transparent 68%\)[^}]*var\(--item-hero-surface\);[^}]*box-shadow:\s*var\(--item-hero-shadow\);`,
+      'approved Item hero must consume its rarity tint, green semantic surface, and compact reference shadow',
+    ],
+    [
+      String.raw`\.item-archive-page \.item-approved-body \.plinth \.plinth-frame\.detail-icon-stage\s*\{[^}]*border-color:\s*var\(--item-rarity-border\);[^}]*background:\s*var\(--item-rarity-frame-bg\);[^}]*box-shadow:\s*var\(--item-rarity-shadow\);`,
+      'approved Item plinth must use the live rarity material above the legacy detail-icon-stage shadow',
+    ],
+    [
+      String.raw`\.item-approved-body \.plinth-rarity\s*\{[^}]*border-color:\s*var\(--item-rarity-border\);[^}]*background:\s*var\(--item-rarity-label-bg\);[^}]*color:\s*var\(--item-rarity-label-fg\);`,
+      'approved Item rarity label must use the live rarity semantic instead of the global gold accent',
+    ],
+    [
+      String.raw`\.item-approved-body \.plinth-actions \.item-favorite-button\s*\{[^}]*min-height:\s*var\(--tp-touch-target\);[^}]*border-radius:\s*var\(--tp-radius-control\);[^}]*background:\s*var\(--button-primary-bg\);[^}]*box-shadow:\s*var\(--button-primary-shadow\);[^}]*color:\s*var\(--button-primary-fg\);`,
+      'approved Item favorite control must keep the reference primary material without losing its 44px target',
+    ],
+    [
+      String.raw`\.item-approved-body \.metric\s*\{[^}]*border:\s*1px solid var\(--item-metric-border\);[^}]*background:\s*var\(--item-metric-bg\);[^}]*box-shadow:\s*var\(--item-metric-shadow\);`,
+      'approved Item metrics must use the raised object surface rather than the shared price surface',
+    ],
+    [
+      String.raw`\.item-approved-body \.price\s*\{[^}]*border:\s*1px solid var\(--item-price-border\);[^}]*background:\s*var\(--item-price-bg\);[^}]*box-shadow:\s*var\(--item-price-shadow\);`,
+      'approved Item prices must use the sunken surface rather than the raised metric surface',
+    ],
+    [
+      String.raw`\.item-approved-body\s*\{[^}]*--item-card-border:[^;]+;[^}]*--item-card-shadow:[^;]+;[^}]*--item-card-secondary-border:[^;]+;[^}]*--item-card-secondary-shadow:[^;]+;[^}]*--item-rail-card-bg:[^;]+;[^}]*--item-sunken-border:[^;]+;[^}]*--item-sunken-shadow:[^;]+;[^}]*--item-object-border:[^;]+;[^}]*--item-well-bg:[^;]+;[^}]*--item-anchor-active-shadow:[^;]+;`,
+      'approved Item body must define separate primary, secondary, sunken, object, well, and anchor material tokens',
+    ],
+    [
+      String.raw`:where\(\[data-theme="morning-paper"\], \[data-theme="warm-slate"\]\) \.item-approved-body\s*\{[^}]*--item-card-border:\s*var\(--tp-color-border\);[^}]*--item-card-shadow:\s*var\(--theme-surface-shadow\);[^}]*--item-card-secondary-shadow:\s*var\(--theme-surface-shadow\);[^}]*--item-sunken-shadow:\s*none;[^}]*--item-object-shadow:\s*none;[^}]*--item-well-bg:\s*var\(--tp-color-page\);[^}]*--item-anchor-active-bg:\s*var\(--button-control-active-bg\);`,
+      'approved Item light themes must flatten every body material level through existing theme tokens',
+    ],
+    [
+      String.raw`\.item-approved-body \.card\.primary\s*\{[^}]*border-color:\s*var\(--item-card-border\);[^}]*background:\s*var\(--item-card-bg\);[^}]*box-shadow:\s*var\(--item-card-shadow\);`,
+      'approved Item primary card must consume the restrained main-surface material',
+    ],
+    [
+      String.raw`\.item-approved-body \.card:not\(\.primary\)\s*\{[^}]*border-color:\s*var\(--item-card-secondary-border\);[^}]*background:\s*var\(--item-card-secondary-bg\);[^}]*box-shadow:\s*var\(--item-card-secondary-shadow\);`,
+      'approved Item secondary cards must stay one level below the primary card',
+    ],
+    [
+      String.raw`\.item-approved-body \.rail-card\s*\{[^}]*border-color:\s*var\(--item-rail-card-border\);[^}]*background:\s*var\(--item-rail-card-bg\);[^}]*box-shadow:\s*var\(--item-rail-card-shadow\);`,
+      'approved Item rail cards must use the compact archive surface instead of the global page shadow',
+    ],
+    [
+      String.raw`\.item-approved-body \.band-body,\s*\.item-approved-body \.fact\s*\{[^}]*border:\s*1px solid var\(--item-sunken-border\);[^}]*background:\s*var\(--item-sunken-bg\);[^}]*box-shadow:\s*var\(--item-sunken-shadow\);`,
+      'approved Item bands and fact rows must read as one shared sunken material level',
+    ],
+    [
+      String.raw`\.item-approved-body \.node\s*\{[^}]*border:\s*1px solid var\(--item-object-border\);[^}]*background:\s*var\(--item-object-bg\);[^}]*box-shadow:\s*var\(--item-object-shadow\);`,
+      'approved Item recipe nodes must rise above their sunken band with the object material',
+    ],
+    [
+      String.raw`\.item-approved-body \.stat-list\s*\{[^}]*border:\s*1px solid var\(--item-well-border\);[^}]*background:\s*var\(--item-well-bg\);[^}]*box-shadow:\s*var\(--item-sunken-shadow\);`,
+      'approved Item stat list must use the compact inset well rather than a gold-framed card',
+    ],
+    [
+      String.raw`\.item-approved-body \.stat-row \.v\.rarity\s*\{[^}]*color:\s*var\(--item-rarity-color\);`,
+      'approved Item stat rail must repeat the live rarity semantic instead of the global accent',
+    ],
+    [
+      String.raw`\.item-approved-body \.anchor\.on\s*\{[^}]*min-height:\s*var\(--tp-touch-target\);[^}]*background:\s*var\(--item-anchor-active-bg\);[^}]*box-shadow:\s*var\(--item-anchor-active-shadow\);`,
+      'approved Item selected anchor must keep its inset marker and accessible target',
+    ],
+    [
+      String.raw`\.item-approved-body \.cover\s*\{[^}]*grid-template-columns:\s*62px minmax\(0,\s*1fr\);[^}]*align-items:\s*center;`,
+      'approved Item coverage card must retain the compact ring-and-summary layout',
+    ],
+    [
+      String.raw`\.item-approved-body \.coverage-ring\s*\{[^}]*background:\s*conic-gradient\(\s*var\(--tp-color-positive\) 0 var\(--item-coverage-progress\),[^}]*\}[\s\S]*\.item-approved-body \.coverage-ring::after\s*\{[^}]*background:\s*var\(--item-well-bg\);[\s\S]*\.item-approved-body \.cover-list > span\.partial i\s*\{[^}]*background:\s*var\(--tp-color-accent\);`,
+      'approved Item coverage ring and list states must use live progress and semantic theme tokens',
+    ],
+    [
+      String.raw`\.item-approved-body \.hero\s*\{[^}]*min-height:\s*0;`,
+      'approved item hero must neutralize the homepage hero minimum height',
+    ],
+    [
+      String.raw`\.item-approved-body \.card\s*\{[^}]*display:\s*block;[^}]*gap:\s*0;[^}]*min-height:\s*0;`,
+      'approved item cards must keep the retained detail-module class layout-inert',
+    ],
+    [
+      String.raw`\.item-approved-body \.node-meta\s*\{[^}]*display:\s*block;[^}]*margin:\s*0;[^}]*border:\s*0;[^}]*padding:\s*0;`,
+      'approved crafting metadata must neutralize the homepage node metadata divider',
+    ],
+    [
+      String.raw`\.item-approved-body \.hero::before\s*\{[^}]*content:\s*none;`,
+      'approved item hero must suppress the homepage terrain pseudo-element',
+    ],
+    [
+      String.raw`\.item-archive-page \.item-approved-body \.plinth \.plinth-frame\.detail-icon-stage\s*\{[^}]*min-height:\s*0;[^}]*height:\s*auto;[^}]*max-height:\s*none;[^}]*aspect-ratio:\s*1;`,
+      'approved item plinth must keep the reference intrinsic square instead of the legacy fixed stage',
+    ],
+    [
+      String.raw`\.item-approved-body \.plinth-actions \.item-favorite-button\s*\{[^}]*min-height:\s*var\(--tp-touch-target\);`,
+      'approved item favorite control must retain the shared accessible touch target',
+    ],
+    [
+      String.raw`\.item-approved-body \.price \.item-price-token\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;[^}]*padding:\s*0;`,
+      'approved item price cells must neutralize the legacy nested coin pill',
+    ],
+    [
+      String.raw`\.item-approved-body \.hero\s*\{[^}]*grid-template-rows:\s*auto;`,
+      'approved item hero must neutralize the homepage two-row grid',
+    ],
+    [
+      String.raw`\.item-archive-page \.item-approved-body \.plinth \.plinth-frame\.detail-icon-stage \.item-detail-primary-preview\.item-art\.tp-preview-image img\s*\{[^}]*width:\s*108px !important;[^}]*height:\s*108px !important;`,
+      'approved item sprite must override the legacy full-frame preview sizing',
+    ],
+    [
+      String.raw`\.item-approved-body \.band\[data-stage="L2"\] > \.band-body > \.nodes > \.node\s*\{[^}]*max-width:\s*136px;`,
+      'approved Item L2 direct intermediates must fit the single dense reference row without constraining fork nodes or other stages',
+    ],
+    [
+      String.raw`\.item-approved-body \.item-source-module \.source-grid > \.source-table\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);`,
+      'approved Item source table must pin the three-column desktop reference grid above legacy scoped relation styles',
+    ],
+    [
+      String.raw`\.item-approved-body \.item-approved-card \.item-source-module \.source-table \.source-row \.rate\s*\{[^}]*grid-column:\s*auto;[^}]*justify-self:\s*end;`,
+      'approved Item source values must stay in the third card track instead of inflating a second row',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+
+  const mobileCss = content.slice(content.indexOf('@media (max-width: 640px)'))
+  const mobileSingleColumnGroup = mobileCss.match(
+    /\.item-approved-body \.price-row,[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);\s*\}/,
+  )?.[0] ?? ''
+  if (mobileSingleColumnGroup.includes('.item-approved-body .tally-grid')) {
+    violations.push(`${path}: approved Item mobile tally must inherit the two-column 900px grid instead of collapsing to one column`)
+  }
+  const mobileSourceRateStacked = [
+    /\.item-approved-body \.item-approved-card \.item-source-module \.source-table \.source-row\s*\{[^}]*grid-template-columns:\s*42px minmax\(0,\s*1fr\);/,
+    /\.item-approved-body \.source-row \.rate\s*\{[^}]*grid-column:\s*2;/,
+  ].some((pattern) => pattern.test(mobileCss))
+  if (mobileSourceRateStacked) {
+    violations.push(`${path}: approved Item mobile source values must retain the compact third track instead of stacking below copy`)
+  }
+  for (const [pattern, message] of [
+    [
+      /\.item-approved-body \.band\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\);/,
+      'approved Item mobile crafting bands must retain the left stage track',
+    ],
+    [
+      /\.item-approved-body \.band-label\s*\{[^}]*display:\s*grid;/,
+      'approved Item mobile stage labels must stay in the left track instead of becoming a top row',
+    ],
+    [
+      /\.item-approved-body \.band-flow\s*\{[^}]*margin-left:\s*0;/,
+      'approved Item mobile crafting flow must remain aligned with the band body',
+    ],
+    [
+      /\.item-approved-body \.nodes,\s*\.item-approved-body \.fork\s*\{[^}]*display:\s*grid;/,
+      'approved Item mobile crafting nodes and forks must retain the dense flex layout',
+    ],
+    [
+      /\.item-approved-body \.node\s*\{[^}]*width:\s*100%;/,
+      'approved Item mobile crafting nodes must not be forced into one full-width card per row',
+    ],
+  ]) {
+    if (pattern.test(mobileCss)) violations.push(`${path}: ${message}`)
+  }
+}
+
+{
   const path = 'pages/npcs/[id].vue'
   const content = read(path)
+  const npcShopBands = read('components/detail/NpcShopBands.vue')
   assertPattern(
     path,
     content,
@@ -214,12 +467,16 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       violations.push(`${path}: capability-driven NPC archive must render ${marker}`)
     }
   }
-  for (const marker of ['npc-hero-assets', 'npc-shop-toolbar', 'visibleShopEntryGroups']) {
+  for (const marker of ['npc-hero-assets', 'visibleShopEntryGroups']) {
     if (!content.includes(marker)) {
       violations.push(`${path}: approved NPC archive must include ${marker}`)
     }
   }
+  if (!npcShopBands.includes('npc-shop-toolbar')) {
+    violations.push('components/detail/NpcShopBands.vue: approved NPC archive must include npc-shop-toolbar')
+  }
   const gridCount = countStaticClassAttributesWith(content, ['source-table', 'dark-table', 'tp-detail-relation-grid'])
+    + countStaticClassAttributesWith(npcShopBands, ['source-table', 'dark-table', 'tp-detail-relation-grid'])
 
   if (gridCount < 5) {
     violations.push(`${path}: NPC loot/shop visible and remainder lists must all use compact relation grids, found ${gridCount}`)

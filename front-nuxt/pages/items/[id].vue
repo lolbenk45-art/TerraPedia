@@ -1,8 +1,12 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'detail-screen' })
+definePageMeta({ publicScreenClass: 'detail-screen item-detail-approved-screen' })
 
+import { NuxtLink } from '#components'
 import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
+import DetailItemRecipeHierarchy from '~/components/detail/ItemRecipeHierarchy.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
+import { buildCraftingRecipeModel } from '~/composables/useCraftingRecipeModel'
+import { buildItemRecipeHierarchy } from '~/utils/itemRecipeHierarchy'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, toPriceNumber, type TerrariaPriceToken } from '~/utils/price'
 import { createSafeDisplayText } from '~/utils/publicCopy'
 import type {
@@ -53,6 +57,16 @@ const firstText = (...values: unknown[]) => {
 const firstNumberText = (...values: unknown[]) => {
   const text = firstText(...values)
   return text || ''
+}
+
+const firstFiniteNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    if (value == null || String(value).trim() === '') continue
+    const numericValue = Number(value)
+    if (Number.isFinite(numericValue)) return numericValue
+  }
+
+  return null
 }
 
 const firstImageUrl = (...values: unknown[]) => resolvePreviewImageUrl(firstText(...values))
@@ -140,7 +154,15 @@ useHead({
   link: [{ rel: 'canonical', href: () => toAbsoluteSeoUrl(route.path) }],
 })
 
-const itemEnglishName = computed(() => safeItemDisplayText(detailItem.value?.nameEn))
+const itemInternalName = computed(() => safeItemDisplayText(detailItem.value?.internalName))
+const itemEnglishName = computed(() => {
+  const explicitEnglishName = safeItemDisplayText(detailItem.value?.nameEn)
+  if (explicitEnglishName) return explicitEnglishName
+
+  const sourceEnglishName = safeItemDisplayText(detailItem.value?.name)
+  const localizedName = safeItemDisplayText(detailItem.value?.nameZh)
+  return sourceEnglishName && sourceEnglishName !== localizedName ? sourceEnglishName : ''
+})
 const itemCategory = computed(() => safeItemDisplayText(
   detailItem.value?.categoryName,
   detailItem.value?.category,
@@ -692,6 +714,12 @@ watch(
 
 const activeRecipeRoots = computed(() => activeRecipeVariant.value?.roots ?? [])
 
+const craftingRecipeModel = computed(() => buildCraftingRecipeModel(
+  rawBundle.value.recipeTree,
+  selectedRecipeVariantKey.value,
+))
+const itemRecipeHierarchy = computed(() => buildItemRecipeHierarchy(craftingRecipeModel.value))
+
 const recipeTreeSummary = computed(() => {
   const tree: PublicItemRecipeTree | null = rawBundle.value.recipeTree
   if (!tree || !activeRecipeVariant.value) return null
@@ -799,6 +827,17 @@ const itemHasPrice = computed(() => (
   (buyPriceValue.value != null && buyPriceValue.value > 0)
   || (sellPriceValue.value != null && sellPriceValue.value > 0)
 ))
+const itemStackLabel = computed(() => {
+  const stackSizeText = firstNumberText(detailItem.value?.stackSize, detailItem.value?.maxStack)
+  const stackSize = firstFiniteNumber(detailItem.value?.stackSize, detailItem.value?.maxStack)
+  const stackableFlag = detailItem.value?.isStackable
+  const explicitlyNonStackable = stackableFlag === false
+    || stackableFlag === 0
+    || ['0', 'false'].includes(String(stackableFlag ?? '').trim().toLowerCase())
+
+  if (explicitlyNonStackable || (stackSize != null && stackSize <= 1)) return '不可堆叠'
+  return stackSizeText ? `最大堆叠 ${stackSizeText}` : ''
+})
 
 const statRows = computed(() => [
   { label: '伤害', value: firstNumberText(detailItem.value?.damage, detailItem.value?.baseDamage) },
@@ -812,29 +851,102 @@ const statRows = computed(() => [
   { label: '稀有度', value: itemRarity.value },
 ].filter((row) => row.value))
 
-const heroMetricRows = computed(() => statRows.value
-  .filter((row) => ['伤害', '击退', '使用时间', '防御'].includes(row.label))
-  .slice(0, 4))
+type ItemHeroMetricRow = {
+  label: string
+  value: string
+  hint: string
+  suffix?: string
+  meterPercent?: number | null
+}
 
-const itemStageRows = computed(() => [
-  { label: '开荒', current: itemPeriod.value === '开荒阶段' },
-  { label: '困难模式前', current: itemPeriod.value === '困难模式前' },
-  { label: '困难模式', current: itemPeriod.value === '困难模式' },
-  { label: '后期', current: ['世纪之花后', '月亮领主后'].includes(itemPeriod.value) },
-])
+const itemKnockbackScale = 20
+const terrariaTicksPerSecond = 60
+const heroMetricRows = computed<ItemHeroMetricRow[]>(() => {
+  const knockback = firstFiniteNumber(detailItem.value?.knockback, detailItem.value?.knockBack)
+  const useTime = firstFiniteNumber(detailItem.value?.useTime, detailItem.value?.useAnimation)
+  const defense = firstFiniteNumber(armorAttributeEntries.value[0]?.defense, detailItem.value?.defense)
+  const usesPerSecond = useTime != null && useTime > 0 ? terrariaTicksPerSecond / useTime : null
+  const combatRows: ItemHeroMetricRow[] = [
+    { label: '伤害', value: firstNumberText(detailItem.value?.damage, detailItem.value?.baseDamage), hint: '基础伤害' },
+    {
+      label: '击退',
+      value: firstNumberText(detailItem.value?.knockback, detailItem.value?.knockBack),
+      hint: '',
+      suffix: knockback == null ? '' : `/ ${itemKnockbackScale}`,
+      meterPercent: knockback == null ? null : Math.min(100, Math.max(0, (knockback / itemKnockbackScale) * 100)),
+    },
+    {
+      label: '使用时间',
+      value: firstNumberText(detailItem.value?.useTime, detailItem.value?.useAnimation),
+      hint: usesPerSecond == null ? '游戏刻' : `≈ ${usesPerSecond.toFixed(1)} 次 / 秒`,
+    },
+    {
+      label: '防御',
+      value: firstNumberText(armorAttributeEntries.value[0]?.defense, detailItem.value?.defense),
+      hint: defense === 0 ? '非防具类' : '防御数值',
+    },
+  ]
+
+  if (Number(detailItem.value?.damage ?? detailItem.value?.baseDamage ?? 0) > 0 || itemCategory.value.includes('武器')) {
+    return combatRows
+  }
+
+  return [
+    { label: '制作配方', value: recipeTreeSummary.value ? String(recipeTreeSummary.value.recipeCount) : '0', hint: '条路线' },
+    { label: '直接来源', value: String(sourceEntries.value.length), hint: '条记录' },
+    { label: '用途配方', value: String(recipeUsageEntries.value.length), hint: '条记录' },
+    { label: '最大堆叠', value: firstNumberText(detailItem.value?.stackSize, detailItem.value?.maxStack) || '—', hint: '个' },
+  ]
+})
+
+const itemStageRows = computed(() => {
+  const currentIndex = itemPeriod.value === '开荒阶段'
+    ? 0
+    : itemPeriod.value === '困难模式前'
+      ? 1
+      : 2
+
+  return [
+    { label: '前期', detail: '木石铜铁', current: currentIndex === 0, complete: currentIndex > 0 },
+    { label: '困难模式前', detail: '探索 · 地狱', current: currentIndex === 1, complete: currentIndex > 1 },
+    { label: '困难模式后', detail: '机械 Boss 之后', current: currentIndex === 2, complete: false },
+  ]
+})
 
 const itemCoverageRows = computed(() => [
-  { label: '基础资料', value: detailItem.value ? sourceLabel.value : '暂无记录' },
-  { label: '描述', value: itemDescriptionSourceText.value ? '可查看' : '暂无说明' },
-  { label: '游戏内提示', value: itemTooltipText.value ? '可查看' : '暂无提示' },
-  { label: '价格', value: itemHasPrice.value ? '可查看' : '暂无价格' },
-  { label: '来源', value: sourceEntries.value.length ? `${sourceEntries.value.length} 条来源记录` : '暂无来源' },
-  { label: '状态效果', value: buffEffectEntries.value.length ? `${buffEffectEntries.value.length} 条状态效果` : '暂无状态效果' },
-  { label: '装备属性', value: itemEquipmentAttributeCount.value ? `${itemEquipmentAttributeCount.value} 条装备属性` : '暂无装备属性' },
-  { label: '制作', value: recipeTreeSummary.value ? '可查看制作此物品路线' : '暂无制作此物品资料' },
-  { label: '用途', value: recipeUsageEntries.value.length ? `${recipeUsageEntries.value.length} 条可用于制作` : '暂无制作用途' },
-  { label: '图片', value: imageEntries.value.length ? `${imageEntries.value.length} 张图片` : '暂无图片' },
+  { key: 'foundation', label: '基础属性 · 分类', available: Boolean(detailItem.value && itemCategory.value !== '未分类') },
+  { key: 'price', label: '价格', available: itemHasPrice.value },
+  { key: 'crafting', label: '合成链', available: itemRecipeHierarchy.value.hasData },
+  { key: 'usage', label: '制作用途', available: recipeUsageEntries.value.length > 0 },
+  { key: 'image', label: '图片', available: Boolean(itemImage.value || imageEntries.value.length) },
+  { key: 'copy', label: '说明文案 · 游戏内提示', available: Boolean(itemDescriptionSourceText.value || itemTooltipText.value) },
+  { key: 'effects', label: '状态效果 · 装备属性', available: Boolean(buffEffectEntries.value.length || itemEquipmentAttributeCount.value) },
+  { key: 'sources', label: '来源记录', available: sourceEntries.value.length > 0 },
 ])
+
+const itemCoverageAvailableCount = computed(() => itemCoverageRows.value.filter((entry) => entry.available).length)
+const itemCoveragePercent = computed(() => itemCoverageRows.value.length
+  ? Math.round((itemCoverageAvailableCount.value / itemCoverageRows.value.length) * 100)
+  : 0)
+const itemCoverageGroups = computed(() => [
+  { key: 'foundation', label: '基础属性 · 价格 · 分类', entries: itemCoverageRows.value.slice(0, 2) },
+  { key: 'crafting', label: '合成链 · 用途 · 图片', entries: itemCoverageRows.value.slice(2, 5) },
+  { key: 'copy', label: '说明文案 · 游戏内提示', entries: itemCoverageRows.value.slice(5, 6) },
+  { key: 'relations', label: '状态效果 · 来源记录', entries: itemCoverageRows.value.slice(6, 8) },
+].map((group) => {
+  const availableCount = group.entries.filter((entry) => entry.available).length
+  const state = availableCount === group.entries.length
+    ? 'ok'
+    : availableCount > 0
+      ? 'partial'
+      : ''
+
+  return {
+    ...group,
+    state,
+    status: `${availableCount} / ${group.entries.length} 项已覆盖`,
+  }
+}))
 
 const loadItemFavoriteStatus = async () => {
   if (!itemFavoriteId.value) return
@@ -910,38 +1022,27 @@ onMounted(() => {
     </div>
 
   <div v-else :class="['detail-layout', detailLayout.detailShellClass, 'item-archive-page']" :aria-busy="detailLoadingState">
-      <section class="detail-hero dark-card tp-archive-hero item-archive-hero">
-        <div class="detail-icon-stage">
-          <CommonPreviewImage
-            class="item-detail-primary-preview"
-            :src="itemImage"
-            :alt="itemName"
-            :fallback="itemFallbackGlyph"
-            fallback-icon="icon-items"
-            loading="eager"
-            :auto-center-visible="false"
-          />
-        </div>
-        <div class="detail-main">
-          <span class="eyebrow">物品 #{{ itemId }} · {{ itemEnglishName || sourceLabel }}</span>
-          <h1>{{ itemName }}</h1>
-          <p>{{ itemDescriptionText }}</p>
-          <p v-if="itemTooltipText" class="item-tooltip-copy">{{ itemTooltipText }}</p>
-          <div class="tag-row">
-            <span class="tag gold">{{ itemCategory }}</span>
-            <span class="tag moss">{{ itemPeriod }}</span>
-            <span class="tag paper">{{ itemRarity }}</span>
-            <span v-if="detailPending" class="tag paper">同步中</span>
+    <div :class="['item-approved-body']" :data-item-rarity="itemRarity">
+      <section class="hero item-approved-hero">
+        <div class="plinth item-approved-plinth">
+          <div class="plinth-frame detail-icon-stage">
+            <span class="plinth-rarity"><i></i>{{ itemRarity }}</span>
+            <CommonPreviewImage
+              class="item-detail-primary-preview"
+              :src="itemImage"
+              :alt="itemName"
+              :fallback="itemFallbackGlyph"
+              fallback-icon="icon-items"
+              loading="eager"
+              :auto-center-visible="false"
+            />
+            <span v-if="imageDimensionLabel(detailItem?.width, detailItem?.height)" class="plinth-zoom">
+              {{ imageDimensionLabel(detailItem?.width, detailItem?.height) }} px
+            </span>
           </div>
-          <div class="item-hero-stage-rail" aria-label="游戏阶段">
-            <span>游戏阶段</span>
-            <div>
-              <b v-for="stage in itemStageRows" :key="stage.label" :class="{ current: stage.current }">{{ stage.label }}</b>
-            </div>
-          </div>
-          <div class="item-favorite-actions">
+          <div class="plinth-actions">
             <button
-              class="item-favorite-button"
+              class="btn primary item-favorite-button"
               :class="{ active: itemIsFavorite }"
               type="button"
               :disabled="favoritesStore.mutating || !itemFavoriteId"
@@ -951,24 +1052,94 @@ onMounted(() => {
               <span class="sprite-icon icon-favorites compact" aria-hidden="true"></span>
               <span>{{ itemIsFavorite ? '已收藏' : '收藏物品' }}</span>
             </button>
-            <span v-if="favoriteError" class="item-favorite-error">{{ favoriteError }}</span>
           </div>
+          <span v-if="favoriteError" class="item-favorite-error">{{ favoriteError }}</span>
         </div>
-        <aside class="detail-side item-hero-metrics">
-          <p class="section-label">核心数值</p>
-          <div class="item-hero-metric-grid">
-            <div v-for="row in heroMetricRows" :key="row.label" class="item-hero-metric">
-              <span>{{ row.label }}</span>
-              <b>{{ row.value }}</b>
+
+        <div class="ident item-approved-ident">
+          <div class="eyebrow">
+            <span class="bar"></span>
+            <span>物品 #{{ itemId }}</span>
+            <code v-if="itemInternalName">{{ itemInternalName }}</code>
+            <span>· {{ sourceLabel }}</span>
+          </div>
+          <div class="title-row">
+            <h1>{{ itemName }}</h1>
+            <span v-if="itemEnglishName" class="title-en">{{ itemEnglishName }}</span>
+          </div>
+
+          <div v-if="itemRecipeHierarchy.activeRecipe?.materials.length" class="derived">
+            <span class="k">合成自</span>
+            <template v-for="(material, index) in itemRecipeHierarchy.activeRecipe.materials.slice(0, 3)" :key="material.key">
+              <span v-if="index" class="plus">+</span>
+              <NuxtLink v-if="material.href" class="item" :to="material.href">{{ material.title }}</NuxtLink>
+              <span v-else class="item">{{ material.title }}</span>
+            </template>
+            <span v-if="itemRecipeHierarchy.activeRecipe.materials.length > 3" class="k">
+              · 另有 {{ itemRecipeHierarchy.activeRecipe.materials.length - 3 }} 项直接材料
+            </span>
+          </div>
+          <div v-else-if="sourceEntries.length" class="derived">
+            <span class="k">主要获取</span>
+            <template v-for="(source, index) in sourceEntries.slice(0, 3)" :key="String(source.id)">
+              <span v-if="index" class="plus">·</span>
+              <NuxtLink v-if="source.href" class="item" :to="source.href">{{ source.name }}</NuxtLink>
+              <span v-else class="item">{{ source.name }}</span>
+            </template>
+            <span v-if="sourceEntries.length > 3" class="k">· 共 {{ sourceEntries.length }} 条来源记录</span>
+          </div>
+          <div v-else class="derived">
+            <span class="k">资料摘要</span>
+            <span>{{ itemDescriptionText }}</span>
+          </div>
+
+          <div class="chips">
+            <span class="chip paper">{{ itemCategory }}</span>
+            <span class="chip moss"><i class="dot"></i>{{ itemPeriod }}</span>
+            <span v-if="itemStackLabel" class="chip gold">{{ itemStackLabel }}</span>
+            <span v-if="recipeUsageEntries.length" class="chip paper">被 {{ recipeUsageEntries.length }} 个配方引用</span>
+            <span v-if="detailPending" class="chip">同步中</span>
+          </div>
+
+          <div class="stage-rail" aria-label="游戏阶段">
+            <div class="stage-rail-label">游戏阶段</div>
+            <div class="stages">
+              <div
+                v-for="stage in itemStageRows"
+                :key="stage.label"
+                class="stage"
+                :class="{ on: stage.current, done: stage.complete }"
+              >
+                {{ stage.label }}
+                <small>{{ stage.current ? '当前条目所属阶段' : stage.detail }}</small>
+              </div>
             </div>
           </div>
-          <div class="item-hero-price-list">
-            <div v-for="row in statRows.filter((entry) => entry.priceTokens?.length)" :key="row.label">
+          <p v-if="itemTooltipText" class="item-tooltip-copy">{{ itemTooltipText }}</p>
+        </div>
+
+        <aside class="metrics item-approved-metrics">
+          <div class="metrics-head"><span>核心数值</span><span>{{ itemCategory }}</span></div>
+          <div class="metric-grid">
+            <div v-for="row in heroMetricRows" :key="row.label" class="metric">
+              <div class="k">{{ row.label }}</div>
+              <div class="v">
+                {{ row.value || '—' }}<small v-if="row.suffix">{{ row.suffix }}</small>
+              </div>
+              <div v-if="row.meterPercent != null" class="meter" aria-hidden="true">
+                <i :style="{ width: `${row.meterPercent}%` }"></i>
+              </div>
+              <div v-if="row.hint" class="hint">{{ row.hint }}</div>
+            </div>
+          </div>
+          <div v-if="statRows.some((entry) => entry.priceTokens?.length)" class="price-row">
+            <div v-for="row in statRows.filter((entry) => entry.priceTokens?.length)" :key="row.label" class="price">
               <span>{{ row.label }}</span>
-              <span class="item-price-token-row" :aria-label="row.value">
-                <span v-for="token in row.priceTokens" :key="`${row.label}-${token.unit}`" class="item-price-token">
+              <span class="coins item-price-token-row" :aria-label="row.value">
+                <span v-for="token in row.priceTokens" :key="`${row.label}-${token.unit}`" class="coin-segment item-price-token">
                   <span class="item-price-token-icon" :data-coin-item-id="itemPriceTokenImage(token.unit)?.itemId">
                     <CommonPreviewImage
+                      class="coin-img"
                       :src="itemPriceTokenImage(token.unit)?.image"
                       :alt="itemPriceTokenImage(token.unit)?.label || token.label"
                       :fallback="itemPriceTokenImage(token.unit)?.label || token.label"
@@ -976,7 +1147,8 @@ onMounted(() => {
                       decorative
                     />
                   </span>
-                  <span class="item-price-token-copy">{{ token.amount }}{{ token.label }}</span>
+                  <span class="n">{{ token.amount }}</span>
+                  <span class="u">{{ token.label }}</span>
                 </span>
               </span>
             </div>
@@ -985,242 +1157,403 @@ onMounted(() => {
       </section>
 
       <div :class="['detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass, 'item-archive-content']">
-        <div class="module-stack">
-          <section :class="['detail-module dark-card item-recipe-summary-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <div>
-                <h2>制作此物品</h2>
-                <span>{{ recipeTreeSummary ? `${recipeTreeSummary.variant} · ${recipeTreeSummary.count} 个直接材料` : '当前物品暂无制作路线' }}</span>
-              </div>
-              <span class="tag gold">{{ recipeTreeSummary ? `${recipeTreeSummary.recipeCount} 个配方` : '暂无配方' }}</span>
-            </div>
-            <div v-if="recipeTreeSummary && recipeTreeVariants.length > 1" class="recipe-variant-tabs" aria-label="配方版本">
-              <button
-                v-for="(variant, index) in recipeTreeVariants"
-                :key="firstText(variant.variantKey, variant.variantLabel)"
-                class="recipe-variant-tab"
-                :class="{ active: activeRecipeVariant === variant }"
-                type="button"
-                @click="selectedRecipeVariantKey = firstText(variant.variantKey)"
-              >
-                {{ recipeVariantDisplayLabel(variant, index) }}
-              </button>
-            </div>
-            <RecipeSummaryCard v-if="recipeTreeSummary" :roots="activeRecipeRoots" compact title-id="item-recipe-summary-title" />
-            <p v-else class="tp-detail-empty">还没有可展示的配方、材料或制作站记录。</p>
-            <p v-if="recipeTreeSummary?.note">{{ recipeTreeSummary.note }}</p>
-            <a v-if="recipeTreeSummary" class="primary-button item-recipe-summary-link" :href="`/crafting?itemId=${itemId}&maxDepth=3`">查看完整制作树</a>
-          </section>
+        <div :class="['item-approved-layout']">
+          <main class="col item-approved-column">
+            <section id="primary" :class="['card primary item-approved-card detail-module dark-card item-recipe-summary-module item-recipe-hierarchy-module', detailLayout.detailModuleClass]">
+                <DetailItemRecipeHierarchy
+                  v-if="itemRecipeHierarchy.hasData"
+                  :hierarchy="itemRecipeHierarchy"
+                  :item-id="itemId"
+                  @update:variant="selectedRecipeVariantKey = $event"
+                />
 
-          <section :class="['detail-module dark-card item-recipe-usage-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <div>
-                <h2>可用于制作</h2>
-                <span>{{ recipeUsageEntries.length ? `${recipeUsageEntries.length} 个产物使用此物品` : '当前物品暂无制作用途' }}</span>
-              </div>
-              <span class="tag moss">{{ recipeUsageEntries.length ? `${recipeUsageEntries.length} 条` : '暂无用途' }}</span>
-            </div>
-            <div v-if="recipeUsageEntries.length" class="recipe-usage-summary">
-              <span>{{ recipeUsageExpanded ? '已显示全部用途' : `先显示 ${visibleRecipeUsageEntries.length} 条重点用途` }}</span>
-              <button
-                v-if="hasRecipeUsageOverflow"
-                class="recipe-usage-toggle"
-                type="button"
-                :aria-expanded="recipeUsageExpanded ? 'true' : 'false'"
-                @click="recipeUsageExpanded = !recipeUsageExpanded"
-              >
-                {{ recipeUsageExpanded ? '收起' : `展开其余 ${hiddenRecipeUsageCount} 条` }}
-              </button>
-            </div>
-            <div v-if="recipeUsageEntries.length" class="recipe-usage-grid tp-detail-relation-grid">
-              <div
-                v-for="usage in visibleRecipeUsageEntries"
-                :key="String(usage.id)"
-                :class="['recipe-usage-row detail-relation-row', detailLayout.detailRelationRowClass]"
-              >
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage
-                    :src="usage.image"
-                    :alt="usage.name"
-                    :fallback="usage.fallback"
-                    fallback-icon="icon-crafting"
-                  />
-                </span>
-                <div class="detail-relation-copy">
-                  <NuxtLink v-if="usage.href" class="item-source-link" :to="usage.href">{{ usage.name }}</NuxtLink>
-                  <b v-else>{{ usage.name }}</b>
-                  <span>{{ usage.detail }}</span>
-                  <small>{{ usage.station }}</small>
+                <div v-else class="card-head">
+                  <div>
+                    <h2>{{ sourceEntryGroups.some((group) => group.key === 'shop') ? '商店来源' : '如何获得' }}</h2>
+                    <div class="sub">{{ sourceEntries.length ? `${sourceEntries.length} 条实时来源记录` : '资料整理中：当前没有可展示的获取记录' }}</div>
+                  </div>
+                  <span class="badge moss">{{ sourceEntries.length ? `${sourceEntries.length} 条` : '整理中' }}</span>
                 </div>
-                <strong class="detail-relation-meta">{{ usage.meta }}</strong>
-              </div>
-            </div>
-            <p v-else class="tp-detail-empty">还没有可展示的上级合成或制作用途。</p>
-          </section>
 
-          <section :class="['detail-module dark-card item-equipment-attribute-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>装备属性</h2>
-              <span class="tag gold">{{ itemEquipmentAttributeCount }} 条</span>
-            </div>
-            <div v-if="armorAttributeEntries.length" class="armor-attribute-summary">
-              <div v-for="row in armorAttributeEntries" :key="String(row.id)" class="armor-attribute-row">
-                <span>{{ row.slot }}</span>
-                <b>{{ row.defense || '0' }}</b>
-                <small>{{ row.name }}</small>
-              </div>
-            </div>
-            <div v-if="equipmentEffectEntries.length" class="equipment-effect-grid">
-              <div v-for="effect in equipmentEffectEntries" :key="String(effect.id)" class="equipment-effect-chip">
-                <span>{{ effect.scope }}</span>
-                <b>{{ effect.value }}</b>
-                <small>{{ effect.label }}</small>
-              </div>
-            </div>
-            <p v-if="!itemEquipmentAttributeCount" class="tp-detail-empty">暂无装备属性。</p>
-          </section>
+                <details v-if="recipeTreeSummary" class="item-recipe-summary-compat">
+                  <summary>查看简要配方清单</summary>
+                  <RecipeSummaryCard :roots="activeRecipeRoots" compact title-id="item-recipe-summary-title" />
+                  <p v-if="recipeTreeSummary.note">{{ recipeTreeSummary.note }}</p>
+                </details>
 
-          <section :class="['detail-module dark-card item-source-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>来源分组</h2>
-              <span class="tag moss">{{ sourceEntries.length }} 条</span>
-            </div>
-            <div v-if="sourceEntryGroups.length" class="grouped-source-list">
-              <section v-for="group in sourceEntryGroups" :key="group.key" class="detail-subgroup item-source-group">
-                <div class="detail-subgroup-title">
-                  <b>{{ group.title }}</b>
-                  <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
-                </div>
-                <div class="source-table tp-detail-relation-grid">
-                  <div v-for="source in group.entries" :key="String(source.id)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                    <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage
-                        :src="source.image"
-                        :alt="source.name"
-                        :fallback="source.fallback"
-                        :fallback-icon="source.icon"
-                      />
-                    </span>
-                    <div class="detail-relation-copy">
-                      <NuxtLink v-if="source.href" class="item-source-link" :to="source.href">{{ source.name }}</NuxtLink>
-                      <b v-else>{{ source.name }}</b>
-                      <span>{{ source.detail }}</span>
-                      <small v-if="source.note">{{ source.note }}</small>
+                <div
+                  v-if="sourceEntryGroups.length"
+                  :class="['detail-module dark-card item-source-module', detailLayout.detailModuleClass]"
+                  aria-label="来源分组"
+                >
+                  <div v-if="itemRecipeHierarchy.hasData" class="subsection-head">
+                    <h3>来源分组</h3>
+                    <span>{{ sourceEntries.length }} 条实时记录</span>
+                  </div>
+
+                  <section v-for="group in sourceEntryGroups" :key="group.key" class="detail-subgroup item-source-group">
+                    <div class="detail-subgroup-title">
+                      <b>{{ group.title }}</b>
+                      <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
                     </div>
-                    <strong class="detail-relation-meta">{{ source.value || group.title }}</strong>
+
+                    <div v-if="group.key === 'shop'" class="merchant-list">
+                      <div v-for="source in group.entries" :key="String(source.id)" class="merchant">
+                        <div class="merchant-person">
+                          <span class="merchant-image">
+                            <CommonPreviewImage
+                              :src="source.image"
+                              :alt="source.name"
+                              :fallback="source.fallback"
+                              :fallback-icon="source.icon"
+                            />
+                          </span>
+                          <span><b>{{ source.name }}</b><small>{{ group.title }}</small></span>
+                        </div>
+                        <div class="merchant-fact">
+                          <small>解锁与供应</small>
+                          <b>{{ source.detail }}</b>
+                          <span v-if="source.note">{{ source.note }}</span>
+                        </div>
+                        <div class="merchant-price">
+                          <small>来源数值</small>
+                          <b>{{ source.value || '资料整理中' }}</b>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-else class="source-grid">
+                      <div class="source-table tp-detail-relation-grid">
+                        <div
+                          v-for="source in group.entries"
+                          :key="String(source.id)"
+                          :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                        >
+                          <span class="source-card-image">
+                            <CommonPreviewImage
+                              :src="source.image"
+                              :alt="source.name"
+                              :fallback="source.fallback"
+                              :fallback-icon="source.icon"
+                            />
+                          </span>
+                          <span class="copy detail-relation-copy">
+                            <small>{{ group.title }}</small>
+                            <NuxtLink v-if="source.href" class="item-source-link" :to="source.href">{{ source.name }}</NuxtLink>
+                            <b v-else>{{ source.name }}</b>
+                            <span>{{ source.detail }}</span>
+                            <small v-if="source.note">{{ source.note }}</small>
+                          </span>
+                          <span class="rate detail-relation-meta">
+                            <b>{{ source.value || '记录' }}</b>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <p v-if="!itemRecipeHierarchy.hasData && !sourceEntryGroups.length" class="tp-detail-empty">
+                  资料整理中：暂时没有可展示的配方、商店、掉落或探索来源。
+                </p>
+            </section>
+
+            <section v-if="recipeUsageEntries.length" id="usage" :class="['card item-approved-card item-recipe-usage-module', detailLayout.detailModuleClass]">
+              <div class="card-head">
+                <div>
+                  <h2>可用于制作</h2>
+                  <div class="sub">{{ recipeUsageEntries.length }} 个产物使用此物品，保持真实配方与制作站信息</div>
+                </div>
+                <span class="badge moss">{{ recipeUsageEntries.length }} 条</span>
+              </div>
+
+              <div v-if="hasRecipeUsageOverflow" class="recipe-usage-summary">
+                <span>{{ recipeUsageExpanded ? '已显示全部用途' : `先显示 ${visibleRecipeUsageEntries.length} 条重点用途` }}</span>
+                <button
+                  v-if="hasRecipeUsageOverflow"
+                  class="recipe-usage-toggle"
+                  type="button"
+                  :aria-expanded="recipeUsageExpanded ? 'true' : 'false'"
+                  @click="recipeUsageExpanded = !recipeUsageExpanded"
+                >
+                  {{ recipeUsageExpanded ? '收起' : `展开其余 ${hiddenRecipeUsageCount} 条` }}
+                </button>
+              </div>
+
+              <div v-if="visibleRecipeUsageEntries.length === 1" class="flowline">
+                <span class="node current-item-node">
+                  <span class="node-img">
+                    <CommonPreviewImage
+                      :src="itemImage"
+                      :alt="itemName"
+                      :fallback="itemFallbackGlyph"
+                      fallback-icon="icon-items"
+                    />
+                  </span>
+                  <span class="node-text"><span class="node-name">{{ itemName }}</span><span class="node-meta">当前条目</span></span>
+                </span>
+                <span class="flow-arrow"><span class="l"></span><span>{{ visibleRecipeUsageEntries[0]?.station }}</span></span>
+                <component
+                  :is="usage.href ? NuxtLink : 'span'"
+                  v-for="usage in visibleRecipeUsageEntries"
+                  :key="String(usage.id)"
+                  class="usage-end"
+                  :to="usage.href || undefined"
+                >
+                  <span class="usage-end-image">
+                    <CommonPreviewImage
+                      :src="usage.image"
+                      :alt="usage.name"
+                      :fallback="usage.fallback"
+                      fallback-icon="icon-crafting"
+                    />
+                  </span>
+                  <span><span class="t">{{ usage.name }}</span><span class="m">{{ usage.detail }} · {{ usage.meta }}</span></span>
+                </component>
+              </div>
+
+              <div v-else class="usage-grid recipe-usage-grid tp-detail-relation-grid">
+                <div
+                  v-for="usage in visibleRecipeUsageEntries"
+                  :key="String(usage.id)"
+                  :class="['recipe-usage-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                >
+                  <span class="sprite-frame detail-relation-icon">
+                    <CommonPreviewImage
+                      :src="usage.image"
+                      :alt="usage.name"
+                      :fallback="usage.fallback"
+                      fallback-icon="icon-crafting"
+                    />
+                  </span>
+                  <div class="detail-relation-copy">
+                    <NuxtLink v-if="usage.href" class="item-source-link" :to="usage.href">{{ usage.name }}</NuxtLink>
+                    <b v-else>{{ usage.name }}</b>
+                    <span>{{ usage.detail }}</span>
+                    <small>{{ usage.station }}</small>
+                  </div>
+                  <strong class="detail-relation-meta">{{ usage.meta }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section id="facts" :class="['card item-approved-card item-approved-facts-card', detailLayout.detailModuleClass]">
+              <div class="card-head">
+                <div>
+                  <h2>其他资料</h2>
+                  <div class="sub">仅展示当前资料已有的来源、效果、装备、掉落与图片记录</div>
+                </div>
+                <span class="badge">实时资料</span>
+              </div>
+
+              <div class="facts">
+                <div v-if="itemRecipeHierarchy.hasData" class="fact ok">
+                  <span class="k"><i></i>配方</span>
+                  <span class="v">当前有 <b>{{ recipeTreeSummary?.recipeCount || 1 }}</b> 条制作路线</span>
+                  <a class="a" href="#primary">查看合成链 →</a>
+                </div>
+                <div v-if="sourceEntries.length" class="fact ok">
+                  <span class="k"><i></i>来源</span>
+                  <span class="v">当前有 <b>{{ sourceEntries.length }}</b> 条来源记录</span>
+                  <a class="a" href="#primary">查看来源组 →</a>
+                </div>
+                <div v-if="buffEffectEntries.length" class="fact ok">
+                  <span class="k"><i></i>状态效果</span>
+                  <span class="v">关联 <b>{{ buffEffectEntries.length }}</b> 条增益或减益资料</span>
+                  <a class="a" href="#buff-effects">查看效果 →</a>
+                </div>
+                <div v-if="itemEquipmentAttributeCount" class="fact ok">
+                  <span class="k"><i></i>装备属性</span>
+                  <span class="v">关联 <b>{{ itemEquipmentAttributeCount }}</b> 条装备或属性资料</span>
+                  <a class="a" href="#equipment">查看属性 →</a>
+                </div>
+                <div v-if="treasureBagLootEntries.length" class="fact ok">
+                  <span class="k"><i></i>宝藏袋</span>
+                  <span class="v">包含 <b>{{ treasureBagLootEntries.length }}</b> 条袋内物品记录</span>
+                  <a class="a" href="#treasure-bag">查看内容 →</a>
+                </div>
+                <div v-if="imageEntries.length" class="fact ok">
+                  <span class="k"><i></i>图片</span>
+                  <span class="v"><b>{{ imageEntries.length }} 张</b>可用图片</span>
+                  <a class="a" href="#gallery">展开画廊 →</a>
+                </div>
+              </div>
+
+              <section v-if="buffEffectEntries.length" id="buff-effects" class="item-approved-data-section item-buff-effect-module">
+                <div class="subsection-head"><h3>状态效果</h3><span>{{ buffEffectEntries.length }} 条</span></div>
+                <div class="item-approved-data-grid tp-detail-relation-grid">
+                  <div v-for="effect in buffEffectEntries" :key="String(effect.id)" :class="['detail-relation-row item-buff-effect-row', detailLayout.detailRelationRowClass]">
+                    <span class="sprite-frame detail-relation-icon">
+                      <CommonPreviewImage :src="effect.image" :alt="effect.name" :fallback="effect.fallback" fallback-icon="icon-buff" />
+                    </span>
+                    <div class="detail-relation-copy"><b>{{ effect.name }}</b><span>{{ effect.relation }}</span><small v-if="effect.notes">{{ effect.notes }}</small></div>
+                    <strong class="detail-relation-meta">{{ effect.meta }}</strong>
                   </div>
                 </div>
               </section>
-            </div>
-            <p v-else class="tp-detail-empty">还没有可展示的掉落、购买、制作或探索来源记录。</p>
-          </section>
 
-          <section v-if="treasureBagLootEntries.length" :class="['detail-module dark-card treasure-bag-loot-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <div>
-                <h2>宝藏袋内物品</h2>
-                <span>打开该宝藏袋可能获得的具体物品</span>
-              </div>
-              <span class="tag gold">{{ treasureBagLootEntries.length }} 件</span>
-            </div>
-            <div class="treasure-bag-loot-grid tp-detail-relation-grid">
-              <div
-                v-for="loot in treasureBagLootEntries"
-                :key="String(loot.id)"
-                :class="['treasure-bag-loot-row detail-relation-row', detailLayout.detailRelationRowClass]"
-              >
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage
-                    :src="loot.image"
-                    :alt="loot.name"
-                    :fallback="loot.fallback"
-                    fallback-icon="icon-items"
-                  />
-                </span>
-                <div class="detail-relation-copy">
-                  <NuxtLink v-if="loot.itemHref" class="item-source-link" :to="loot.itemHref">{{ loot.name }}</NuxtLink>
-                  <b v-else>{{ loot.name }}</b>
-                  <span>{{ loot.detail }}</span>
-                  <small>
-                    <span class="treasure-bag-source-chip">
-                      <span class="treasure-bag-source-icon">
-                        <CommonPreviewImage
-                          :src="loot.sourceImage"
-                          :alt="loot.sourceName"
-                          :fallback="loot.sourceFallback"
-                          fallback-icon="icon-boss"
-                        />
-                      </span>
-                      <NuxtLink v-if="loot.sourceHref" class="item-source-link" :to="loot.sourceHref">{{ loot.sourceName }}</NuxtLink>
-                      <b v-else>{{ loot.sourceName }}</b>
-                      <span>掉落此宝藏袋</span>
+              <section v-if="itemEquipmentAttributeCount" id="equipment" class="item-approved-data-section item-equipment-attribute-module">
+                <div class="subsection-head"><h3>装备属性</h3><span>{{ itemEquipmentAttributeCount }} 条</span></div>
+                <div v-if="armorAttributeEntries.length" class="armor-attribute-summary">
+                  <div v-for="row in armorAttributeEntries" :key="String(row.id)" class="armor-attribute-row">
+                    <span>{{ row.slot }}</span><b>{{ row.defense || '0' }}</b><small>{{ row.name }}</small>
+                  </div>
+                </div>
+                <div v-if="equipmentEffectEntries.length" class="equipment-effect-grid">
+                  <div v-for="effect in equipmentEffectEntries" :key="String(effect.id)" class="equipment-effect-chip">
+                    <span>{{ effect.scope }}</span><b>{{ effect.value }}</b><small>{{ effect.label }}</small>
+                  </div>
+                </div>
+              </section>
+
+              <section v-if="treasureBagLootEntries.length" id="treasure-bag" class="item-approved-data-section treasure-bag-loot-module">
+                <div class="subsection-head"><h3>宝藏袋内物品</h3><span>{{ treasureBagLootEntries.length }} 件</span></div>
+                <div class="treasure-bag-loot-grid tp-detail-relation-grid">
+                  <div
+                    v-for="loot in treasureBagLootEntries"
+                    :key="String(loot.id)"
+                    :class="['treasure-bag-loot-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                  >
+                    <span class="sprite-frame detail-relation-icon">
+                      <CommonPreviewImage :src="loot.image" :alt="loot.name" :fallback="loot.fallback" fallback-icon="icon-items" />
                     </span>
-                  </small>
+                    <div class="detail-relation-copy">
+                      <NuxtLink v-if="loot.itemHref" class="item-source-link" :to="loot.itemHref">{{ loot.name }}</NuxtLink>
+                      <b v-else>{{ loot.name }}</b>
+                      <span>{{ loot.detail }}</span>
+                      <small>
+                        <span class="treasure-bag-source-chip">
+                          <span class="treasure-bag-source-icon">
+                            <CommonPreviewImage :src="loot.sourceImage" :alt="loot.sourceName" :fallback="loot.sourceFallback" fallback-icon="icon-boss" />
+                          </span>
+                          <NuxtLink v-if="loot.sourceHref" class="item-source-link" :to="loot.sourceHref">{{ loot.sourceName }}</NuxtLink>
+                          <b v-else>{{ loot.sourceName }}</b><span>掉落此宝藏袋</span>
+                        </span>
+                      </small>
+                    </div>
+                    <strong class="detail-relation-meta">{{ loot.meta }}</strong>
+                  </div>
                 </div>
-                <strong class="detail-relation-meta">{{ loot.meta }}</strong>
-              </div>
-            </div>
-          </section>
+              </section>
 
-          <section :class="['detail-module dark-card item-buff-effect-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>状态效果</h2>
-              <span class="tag moss">{{ buffEffectEntries.length }} 条</span>
-            </div>
-            <div v-if="buffEffectEntries.length" class="tp-detail-relation-grid">
-              <div v-for="effect in buffEffectEntries" :key="String(effect.id)" :class="['detail-relation-row item-buff-effect-row', detailLayout.detailRelationRowClass]">
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage
-                    :src="effect.image"
-                    :alt="effect.name"
-                    :fallback="effect.fallback"
-                    fallback-icon="icon-buff"
-                  />
-                </span>
-                <div class="detail-relation-copy">
-                  <b>{{ effect.name }}</b>
-                  <span>{{ effect.relation }}</span>
-                  <small v-if="effect.notes">{{ effect.notes }}</small>
+              <section v-if="imageEntries.length" id="gallery" class="item-approved-data-section item-approved-gallery">
+                <div class="subsection-head"><h3>图片画廊</h3><span>{{ imageEntries.length }} 张</span></div>
+                <div class="item-image-gallery">
+                  <figure v-for="image in imageEntries" :key="String(image.id)" class="item-image-tile">
+                    <span class="sprite-frame item-image-preview">
+                      <CommonPreviewImage :src="image.url" :alt="image.label" :fallback="itemFallbackGlyph" fallback-icon="icon-items" />
+                    </span>
+                    <figcaption><b>{{ image.label }}</b><span>{{ image.meta }}</span><small v-if="image.note">{{ image.note }}</small></figcaption>
+                  </figure>
                 </div>
-                <strong class="detail-relation-meta">{{ effect.meta }}</strong>
-              </div>
-            </div>
-            <p v-else class="tp-detail-empty">暂无状态效果。</p>
-          </section>
+              </section>
+            </section>
+          </main>
 
-          <section v-if="imageEntries.length" :class="['detail-module dark-card', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>图片画廊</h2>
-              <span class="tag gold">{{ imageEntries.length }} 张</span>
+          <aside :class="['evidence-panel dark-card item-coverage-panel tp-archive-rail item-archive-rail', detailLayout.detailModuleClass]">
+            <div class="rail item-approved-rail" aria-label="资料概览">
+              <section class="rail-card">
+                <div class="rail-title"><span class="bar"></span>核心属性<span class="tail">物品 #{{ itemId }}</span></div>
+                <div class="stat-list">
+                  <div v-for="row in statRows" :key="row.label" class="stat-row">
+                    <span class="k">{{ row.label }}</span>
+                    <span v-if="row.priceTokens?.length" class="v coins" :aria-label="row.value">
+                      <span v-for="token in row.priceTokens" :key="`rail-${row.label}-${token.unit}`" class="coin-segment">
+                        <span class="item-price-token-icon" :data-coin-item-id="itemPriceTokenImage(token.unit)?.itemId">
+                          <CommonPreviewImage
+                            class="coin-img"
+                            :src="itemPriceTokenImage(token.unit)?.image"
+                            :alt="itemPriceTokenImage(token.unit)?.label || token.label"
+                            :fallback="itemPriceTokenImage(token.unit)?.label || token.label"
+                            fallback-icon="icon-items"
+                            decorative
+                          />
+                        </span>
+                        <span class="n">{{ token.amount }}</span><span class="u">{{ token.label }}</span>
+                      </span>
+                    </span>
+                    <span v-else class="v" :class="{ rarity: row.label === '稀有度' }">{{ row.value }}</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="rail-card">
+                <div class="rail-title"><span class="bar"></span>页面锚点</div>
+                <nav class="anchors item-approved-anchors" aria-label="物品详情页内导航">
+                  <a class="anchor on" href="#primary">
+                    <i></i>{{ itemRecipeHierarchy.hasData ? '合成链' : sourceEntryGroups.some((group) => group.key === 'shop') ? '商店来源' : '获取方式' }}
+                    <span class="c">01</span>
+                  </a>
+                  <a v-if="recipeUsageEntries.length" class="anchor" href="#usage"><i></i>可用于制作<span class="c">02</span></a>
+                  <a class="anchor" href="#facts"><i></i>其他资料<span class="c">{{ recipeUsageEntries.length ? '03' : '02' }}</span></a>
+                  <a v-if="imageEntries.length" class="anchor" href="#gallery"><i></i>图片画廊<span class="c">{{ imageEntries.length }}</span></a>
+                </nav>
+              </section>
+
+              <section class="rail-card item-coverage-card">
+                <div class="rail-title">
+                  <span class="bar"></span>资料完整度
+                  <span class="tail">{{ itemCoverageAvailableCount }} / {{ itemCoverageRows.length }} 模块</span>
+                </div>
+                <div class="cover">
+                  <div
+                    class="ring coverage-ring"
+                    :style="{ '--item-coverage-progress': `${itemCoveragePercent}%` }"
+                    role="img"
+                    :aria-label="`资料完整度 ${itemCoveragePercent}%`"
+                  >
+                    <b>{{ itemCoveragePercent }}%</b>
+                  </div>
+                  <div class="cover-list">
+                    <span
+                      v-for="group in itemCoverageGroups"
+                      :key="group.key"
+                      :class="group.state"
+                      :aria-label="`${group.label}：${group.status}`"
+                    >
+                      <i aria-hidden="true"></i>{{ group.label }}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                v-if="itemRecipeHierarchy.stages.some((stage) => stage.entries.some((entry) => entry.href && !entry.isOutput)) || recipeUsageEntries.some((entry) => entry.href) || sourceEntries.some((entry) => entry.href)"
+                class="rail-card"
+              >
+                <div class="rail-title"><span class="bar"></span>相关条目<span class="tail">来自当前关系</span></div>
+                <div class="rel-list item-approved-related">
+                  <template v-if="itemRecipeHierarchy.stages.some((stage) => stage.entries.some((entry) => entry.href && !entry.isOutput))">
+                    <NuxtLink
+                      v-for="entry in itemRecipeHierarchy.stages.flatMap((stage) => stage.entries).filter((entry) => entry.href && !entry.isOutput).slice(0, 4)"
+                      :key="`related-recipe-${entry.id}`"
+                      class="rel"
+                      :to="entry.href"
+                    >
+                      <span class="rel-image"><CommonPreviewImage :src="entry.image" :alt="entry.title" :fallback="entry.fallback" :fallback-icon="entry.fallbackIcon" /></span>
+                      <span class="n">{{ entry.title }}</span><span class="t">前置</span>
+                    </NuxtLink>
+                  </template>
+                  <template v-else-if="recipeUsageEntries.some((entry) => entry.href)">
+                    <NuxtLink v-for="entry in recipeUsageEntries.filter((entry) => entry.href).slice(0, 4)" :key="`related-usage-${entry.id}`" class="rel" :to="entry.href">
+                      <span class="rel-image"><CommonPreviewImage :src="entry.image" :alt="entry.name" :fallback="entry.fallback" fallback-icon="icon-crafting" /></span>
+                      <span class="n">{{ entry.name }}</span><span class="t">下游</span>
+                    </NuxtLink>
+                  </template>
+                  <template v-else>
+                    <NuxtLink v-for="entry in sourceEntries.filter((entry) => entry.href).slice(0, 4)" :key="`related-source-${entry.id}`" class="rel" :to="entry.href">
+                      <span class="rel-image"><CommonPreviewImage :src="entry.image" :alt="entry.name" :fallback="entry.fallback" :fallback-icon="entry.icon" /></span>
+                      <span class="n">{{ entry.name }}</span><span class="t">来源</span>
+                    </NuxtLink>
+                  </template>
+                </div>
+              </section>
             </div>
-            <div class="item-image-gallery">
-              <figure v-for="image in imageEntries" :key="String(image.id)" class="item-image-tile">
-                <span class="sprite-frame item-image-preview">
-                  <CommonPreviewImage
-                    :src="image.url"
-                    :alt="image.label"
-                    :fallback="itemFallbackGlyph"
-                    fallback-icon="icon-items"
-                  />
-                </span>
-                <figcaption>
-                  <b>{{ image.label }}</b>
-                  <span>{{ image.meta }}</span>
-                  <small v-if="image.note">{{ image.note }}</small>
-                </figcaption>
-              </figure>
-            </div>
-          </section>
+          </aside>
         </div>
-
-        <aside :class="['evidence-panel dark-card item-coverage-panel tp-archive-rail item-archive-rail', detailLayout.detailModuleClass]">
-          <span class="eyebrow">资料概览</span>
-          <div v-for="row in itemCoverageRows" :key="row.label" class="evidence-step">
-            <div><b>{{ row.label }}</b><span>{{ row.value }}</span></div>
-          </div>
-        </aside>
       </div>
     </div>
+  </div>
 </template>
 
 <style scoped>
@@ -1298,10 +1631,10 @@ onMounted(() => {
 .item-hero-metric {
   display: grid;
   gap: 4px;
-  min-height: 76px;
+  min-height: 56px;
   border-right: 1px solid var(--index-line);
   border-bottom: 1px solid var(--index-line);
-  padding: 10px;
+  padding: 8px;
 }
 
 .item-hero-metric span,

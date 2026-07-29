@@ -238,7 +238,7 @@ const publicShellClasses = new Map([
   ['pages/articles/index.vue', 'article-screen'],
   ['pages/articles/[slug].vue', 'article-screen'],
   ['pages/items/index.vue', 'catalog-screen'],
-  ['pages/items/[id].vue', 'detail-screen'],
+  ['pages/items/[id].vue', 'detail-screen item-detail-approved-screen'],
   ['pages/crafting/index.vue', 'entity-screen crafting-screen'],
   ...[
     ...publicPageFiles,
@@ -1318,7 +1318,14 @@ for (const path of scanFiles) {
     }
   }
 
-    const semanticContent = path === 'pages/index.vue' ? homeTemplateContent : content
+    const articlePresentationContent = path === 'pages/articles/index.vue'
+      ? [
+          content,
+          existsSync(file('components/article/ArticleFeatureMeta.vue')) ? readFileSync(file('components/article/ArticleFeatureMeta.vue'), 'utf8') : '',
+          existsSync(file('components/article/ArticleArchiveRail.vue')) ? readFileSync(file('components/article/ArticleArchiveRail.vue'), 'utf8') : '',
+        ].join('\n')
+      : content
+    const semanticContent = path === 'pages/index.vue' ? homeTemplateContent : articlePresentationContent
 
     if (publicPageFiles.includes(path) && !semanticContent.includes('<h1')) {
       violations.push(`${path}: public page must expose one semantic h1 for the primary page title`)
@@ -1339,7 +1346,7 @@ for (const path of scanFiles) {
       }
     }
 
-    if (publicPageFiles.includes(path) && path !== 'pages/index.vue' && path !== 'pages/search-tool.vue' && !content.includes('<TerraBreadcrumb')) {
+    if (publicPageFiles.includes(path) && path !== 'pages/index.vue' && path !== 'pages/search-tool.vue' && !articlePresentationContent.includes('<TerraBreadcrumb')) {
       violations.push(`${path}: public page must render the shared TerraBreadcrumb`)
     }
 
@@ -1645,15 +1652,22 @@ for (const path of scanFiles) {
     for (const marker of [
       'tp-public-page-shell article-layout discovery-articles-page article-route-shell',
       'article-list-layout-balanced',
-      'article-mast',
       'grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-      'article-featured-story',
-      'article-featured-story__index',
-      'article-library-shell',
-      'article-archive-row',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: public article list must use the shared public page shell and responsive compact article grid via marker ${marker}`)
+      }
+    }
+
+    for (const [componentPath, markers] of [
+      ['components/article/ArticleFeatureMeta.vue', ['article-mast', 'article-featured-story', 'article-featured-story__index', '<TerraBreadcrumb', '<h1>']],
+      ['components/article/ArticleArchiveRail.vue', ['article-library-shell', 'article-archive-row']],
+    ]) {
+      const componentContent = existsSync(file(componentPath)) ? readFileSync(file(componentPath), 'utf8') : ''
+      for (const marker of markers) {
+        if (!componentContent.includes(marker)) {
+          violations.push(`${componentPath}: missing approved article region marker ${marker}`)
+        }
       }
     }
   }
@@ -1884,6 +1898,13 @@ for (const path of scanFiles) {
   }
 
   if (path === 'pages/npcs/[id].vue') {
+    const npcShopBands = existsSync(file('utils/npcShopBands.ts'))
+      ? readFileSync(file('utils/npcShopBands.ts'), 'utf8')
+      : ''
+    const npcShopBandsComponent = existsSync(file('components/detail/NpcShopBands.vue'))
+      ? readFileSync(file('components/detail/NpcShopBands.vue'), 'utf8')
+      : ''
+    const detailPageRedesignCss = readFileSync(file('assets/css/domains/detail-pages-redesign.css'), 'utf8')
     for (const marker of [
       'usePublicNpcAggregate',
       'route.params.id',
@@ -1902,7 +1923,6 @@ for (const path of scanFiles) {
       '资料图像',
       'lootConditionLabel(entry)',
       'buffConditionLabel(entry)',
-      'shopConditionSummary(entry)',
       'dialoguePortraitImage',
       '生活偏好',
       'preferenceLabel',
@@ -1920,7 +1940,6 @@ for (const path of scanFiles) {
       'preferenceMissingLinkLabel',
       '偏好对象',
       '未关联资料',
-      '特殊条件',
       'npcWikiAssets.value?.spriteImage',
       'npcWikiAssets.value?.mapIconImage',
       'npcBehaviorSummary',
@@ -1935,6 +1954,44 @@ for (const path of scanFiles) {
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC detail page must use the public aggregate API data layer via marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      'npc-shop-bands',
+      'npc-shop-toolbar',
+      'group.conditionSummary(entry)',
+      'npc-shop-grid',
+      'npc-shop-row',
+      'npc-shop-price-token',
+      'npc-shop-price-icon',
+      ':fallback-icon="entryIcon(entry)"',
+      'group.entries.slice(0, 8)',
+      'group.entries.slice(8)',
+      'v-for="group in visibleGroups"',
+      'PUBLIC_COPY_CURRENT_AVAILABLE_SHOP_DATA',
+    ]) {
+      if (!npcShopBandsComponent.includes(marker)) {
+        violations.push(`components/detail/NpcShopBands.vue: NPC shop presentation must retain approved condition-band marker ${marker}`)
+      }
+    }
+
+    for (const marker of ['.npc-shop-bands .npc-shop-grid', 'minmax(172px, 1fr)', '.npc-shop-bands .npc-shop-price-icon', '24px']) {
+      if (!detailPageRedesignCss.includes(marker)) {
+        violations.push(`assets/css/domains/detail-pages-redesign.css: NPC shop component styling must retain compact tokenized marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      '特殊条件',
+      'resolveNpcShopBandKey',
+      '常驻出售',
+      '阶段出售',
+      '地点出售',
+      '解锁出售',
+    ]) {
+      if (!npcShopBands.includes(marker)) {
+        violations.push(`utils/npcShopBands.ts: NPC shop band utility must retain player-safe condition semantics via marker ${marker}`)
       }
     }
 
@@ -1988,16 +2045,16 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC shop prices must not trust backend token.label for visible coin labels`)
     }
 
-    if (!content.includes('class="npc-shop-price-token"') || !content.includes('class="npc-shop-price-icon"') || !content.includes('decorative')) {
-      violations.push(`${path}: NPC shop price tokens must include fixed-size decorative coin images`)
+    if (!npcShopBandsComponent.includes('class="npc-shop-price-token"') || !npcShopBandsComponent.includes('class="npc-shop-price-icon"') || !npcShopBandsComponent.includes('decorative')) {
+      violations.push(`components/detail/NpcShopBands.vue: NPC shop price tokens must include fixed-size decorative coin images`)
     }
 
-    if (!content.includes('npc-shop-grid') || !content.includes('npc-shop-row')) {
-      violations.push(`${path}: NPC shop rows must use a dedicated compact shop grid instead of the generic relation row density`)
+    if (!npcShopBandsComponent.includes('npc-shop-grid') || !npcShopBandsComponent.includes('npc-shop-row')) {
+      violations.push(`components/detail/NpcShopBands.vue: NPC shop rows must use a dedicated compact shop grid instead of the generic relation row density`)
     }
 
-    if (!content.includes('minmax(172px, 1fr)') || !content.includes('24px')) {
-      violations.push(`${path}: NPC shop layout must increase row density and render larger coin icons`)
+    if (!detailPageRedesignCss.includes('minmax(172px, 1fr)') || !detailPageRedesignCss.includes('24px')) {
+      violations.push(`assets/css/domains/detail-pages-redesign.css: NPC shop layout must increase row density and render larger coin icons`)
     }
 
     if (content.includes('[shopPriceLabel(entry), shopConditionSummary(entry)]')) {
@@ -2152,18 +2209,21 @@ for (const path of scanFiles) {
 
     for (const marker of [
       'shopEntryGroups',
-      'shopGroupKey(entry)',
-      '常驻出售',
-      '阶段出售',
-      '地点出售',
-      '解锁出售',
-      'v-for="group in shopEntryGroups"',
+      'visibleShopEntryGroups',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC shop page binding must retain player-facing sale condition groups via marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      'v-for="group in visibleGroups"',
       'detail-group-remainder',
       'group.entries.slice(0, 8)',
       'group.entries.slice(8)',
     ]) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: NPC shop entries must be grouped by player-facing sale conditions via marker ${marker}`)
+      if (!npcShopBandsComponent.includes(marker)) {
+        violations.push(`components/detail/NpcShopBands.vue: NPC shop entries must be grouped by player-facing sale conditions via marker ${marker}`)
       }
     }
 
@@ -2181,6 +2241,12 @@ for (const path of scanFiles) {
   }
 
   if (path === 'pages/items/[id].vue') {
+    const itemRecipeHierarchyComponent = existsSync(file('components/detail/ItemRecipeHierarchy.vue'))
+      ? readFileSync(file('components/detail/ItemRecipeHierarchy.vue'), 'utf8')
+      : ''
+    const itemRecipeHierarchyUtility = existsSync(file('utils/itemRecipeHierarchy.ts'))
+      ? readFileSync(file('utils/itemRecipeHierarchy.ts'), 'utf8')
+      : ''
     for (const marker of [
       'usePublicItemDetail',
       'route.params.id',
@@ -2203,7 +2269,6 @@ for (const path of scanFiles) {
       'itemTooltipText',
       'sourceGroupKey(source)',
       'safeItemDisplayText(tree.note, tree.summary, tree.description)',
-      '制作路线',
       '来源分组',
       '状态效果',
       '宝藏袋内物品',
@@ -2221,6 +2286,94 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: item detail page must render live public item detail data via marker ${marker}`)
       }
+    }
+
+    const itemCoverageStart = content.indexOf('const itemCoverageRows = computed(() => [')
+    const itemCoverageEnd = content.indexOf('])', itemCoverageStart)
+    const itemCoverageBlock = itemCoverageStart === -1 || itemCoverageEnd === -1
+      ? ''
+      : content.slice(itemCoverageStart, itemCoverageEnd)
+    const requiredItemCoverageCapabilities = [
+      "key: 'foundation'",
+      "key: 'price'",
+      "key: 'crafting'",
+      "key: 'usage'",
+      "key: 'image'",
+      "key: 'copy'",
+      "key: 'effects'",
+      "key: 'sources'",
+    ]
+    if (
+      !requiredItemCoverageCapabilities.every((marker) => itemCoverageBlock.includes(marker))
+      || (itemCoverageBlock.match(/\bkey:/g) || []).length !== 8
+    ) {
+      violations.push(`${path}: Item coverage must use exactly eight fixed live capability predicates`)
+    }
+
+    if (
+      !content.includes('const itemCoverageAvailableCount = computed(() => itemCoverageRows.value.filter((entry) => entry.available).length)')
+      || !content.includes('Math.round((itemCoverageAvailableCount.value / itemCoverageRows.value.length) * 100)')
+    ) {
+      violations.push(`${path}: Item coverage count and percentage must derive from live capability availability`)
+    }
+
+    for (const marker of [
+      'buildCraftingRecipeModel',
+      'buildItemRecipeHierarchy',
+      '<DetailItemRecipeHierarchy',
+      'itemRecipeHierarchy',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: item detail hierarchy must adapt the shared crafting model via marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      '制作路线',
+      'item-recipe-level',
+      'entry.quantity',
+      'entry.alternatives',
+      'showStageQuantity(stage.key, alternative.quantity)',
+      'showStageQuantity(stage.key, entry.quantity)',
+      'station.title',
+      '资料整理中',
+    ]) {
+      if (!itemRecipeHierarchyComponent.includes(marker)) {
+        violations.push(`components/detail/ItemRecipeHierarchy.vue: item detail hierarchy must retain approved crafting marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      'class="chain"',
+      'class="band"',
+      'class="band-body"',
+      'class="nodes"',
+      'class="tally"',
+      'class="tally-grid"',
+    ]) {
+      if (!itemRecipeHierarchyComponent.includes(marker)) {
+        violations.push(`components/detail/ItemRecipeHierarchy.vue: missing approved direct-transplant hierarchy marker ${marker}`)
+      }
+    }
+
+    for (const marker of ['L3', 'L2', 'L1', 'OUT', 'buildItemRecipeHierarchy', 'stageDefinitions']) {
+      if (!itemRecipeHierarchyUtility.includes(marker)) {
+        violations.push(`utils/itemRecipeHierarchy.ts: item detail hierarchy must retain approved crafting projection marker ${marker}`)
+      }
+    }
+
+    if (
+      !content.includes("import { NuxtLink } from '#components'")
+      || !content.includes(`:is="usage.href ? NuxtLink : 'span'"`)
+      || !content.includes(':to="usage.href || undefined"')
+      || content.includes(`:is="usage.href ? 'NuxtLink' : 'span'"`)
+      || content.includes(':to="usage.href || route.path"')
+    ) {
+      violations.push(`${path}: single item usage must render a real destination or inert content without a self-link fallback`)
+    }
+
+    if (!content.includes('v-if="hasRecipeUsageOverflow" class="recipe-usage-summary"')) {
+      violations.push(`${path}: item usage expansion summary must render only when the six-row preview has overflow`)
     }
 
     if (content.includes('Terra Blade') || content.includes('泰拉刃是一把困难模式后期近战武器')) {
@@ -2269,8 +2422,53 @@ for (const path of scanFiles) {
       violations.push(`${path}: item recipe copy must not fall back to raw recipe variant keys`)
     }
 
-    if (content.includes('detailItem.value?.internalName') || content.includes('detailItem.value?.categoryPath')) {
-      violations.push(`${path}: item detail header/category must not fall back to internal names or category paths`)
+    const approvedInternalNameProjection = 'const itemInternalName = computed(() => safeItemDisplayText(detailItem.value?.internalName))'
+    if (
+      !content.includes(approvedInternalNameProjection)
+      || !content.includes('<code v-if="itemInternalName">{{ itemInternalName }}</code>')
+    ) {
+      violations.push(`${path}: approved Item identity must bind the safely displayed live internal name as a code accent`)
+    }
+
+    const contentWithoutApprovedInternalName = content.replace(approvedInternalNameProjection, '')
+    if (contentWithoutApprovedInternalName.includes('detailItem.value?.internalName') || content.includes('detailItem.value?.categoryPath')) {
+      violations.push(`${path}: item detail title/category must not fall back to internal names or category paths outside the exact identity accent`)
+    }
+
+    for (const marker of [
+      'const itemEnglishName = computed(() => {',
+      'const explicitEnglishName = safeItemDisplayText(detailItem.value?.nameEn)',
+      'const sourceEnglishName = safeItemDisplayText(detailItem.value?.name)',
+      'const localizedName = safeItemDisplayText(detailItem.value?.nameZh)',
+      "return sourceEnglishName && sourceEnglishName !== localizedName ? sourceEnglishName : ''",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: approved Item identity must recover the distinct live English name via marker ${marker}`)
+        break
+      }
+    }
+
+    for (const marker of [
+      'const itemKnockbackScale = 20',
+      'const terrariaTicksPerSecond = 60',
+      'meterPercent:',
+      "suffix: knockback == null ? '' : `/ ${itemKnockbackScale}`",
+      'terrariaTicksPerSecond / useTime',
+      '≈ ${usesPerSecond.toFixed(1)} 次 / 秒',
+      'v-if="row.suffix"',
+      'v-if="row.meterPercent != null" class="meter"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: approved Item metrics must derive knockback scale and approximate use rate from live values via marker ${marker}`)
+        break
+      }
+    }
+
+    if (
+      !content.includes('const itemStackLabel = computed(() =>')
+      || !content.includes('<span v-if="itemStackLabel" class="chip gold">{{ itemStackLabel }}</span>')
+    ) {
+      violations.push(`${path}: approved Item hero must distinguish live non-stackable items from stack-size records`)
     }
 
     if (!content.includes('buildTerrariaPriceTokens') || !content.includes('formatTerrariaPriceTokens') || !content.includes('itemPriceTokenImage')) {
