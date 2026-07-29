@@ -1,0 +1,86 @@
+# Approved Public Pages Fidelity Rebuild Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `executing-plans` serially. All slices share existing contracts, CSS, and one devlog owner.
+
+**Goal:** Reproduce the approved item/NPC/article information architecture in live Nuxt routes without weakening existing public-page safety contracts or fabricating data.
+
+**Architecture:** Preserve `useDetailLayout`, loading skeletons, preview-image fallback paths, and `RecipeSummaryCard` as compatibility infrastructure. New named approved regions are page-specific components in `components/detail/`; contract migration is a ratchet: assertions move/add but never become wider or fewer. Every slice ends with the full and supplemental gates.
+
+**Tech Stack:** Nuxt 4, Vue 3, TypeScript, existing public DTOs/crafting models, semantic token CSS, Node tests, tracked `scripts/audit-shoot.mjs`.
+
+---
+
+## Non-negotiable boundaries
+
+- Baselines stay in gitignored `.superpowers/`. The active entry records each confirmed absolute source path, SHA-256, byte size, and mtime; copying mockups into `docs/` needs separate user approval.
+- Probe targets are `/items/757` (**泰拉刃**), `/npcs/17` (**商人**), `/npcs/368` (旅商), and `/articles`. Viewports are 1440×1000 and 390×844; CSS uses only frozen whitelist breakpoints, including `max-width: 430px`, never `390px`.
+- No API/database/crawler/report work, no fixture content, no unapproved design HTML changes. Missing live information uses a compact explicit state.
+- `useDetailLayout.ts`, `usePublicApi.ts`, and `usePublicItemDetail.ts` are read-only protections. The async-boundary regression test **does not exist yet**: Task 0 creates `tests/unit/publicApiFetcher.test.mjs` importing only the injectable `createPublicApiFetcher(config, fetchImplementation, server)` factory (never the `useRuntimeConfig`-bound wrapper), and it runs before and after Item work.
+- Pre-existing gate failures on routes outside this plan are **not** repaired here. Task 0 records them; a slice is judged on "no new violation versus that record", and touching an unrelated page to turn a gate green is out of scope.
+- `RecipeSummaryCard.vue` is read-only; only a separately approved future task may add an optional prop whose default output stays unchanged.
+- `docs/devlog/entries/2026-07-29-approved-public-pages-production.md` is the sole checklist/evidence owner; `current.md` only links to it.
+
+## Task 0: Preflight, storage, and existing-work disposition
+
+- [ ] Record `git status --short` in the active entry and make a **存量裁定表** for every dirty path: pages, both contract scripts, domain CSS, `detailPagePresentation.ts`, its test, `index.css`, API/item-detail composables, old plan/devlog artifacts, and `.shot.mjs`. Exactly one disposition per path: rebuild-on-top / migrate-then-delete / freeze-read-only / user-owned-untouched.
+- [ ] Required initial dispositions: pages/contracts/domain CSS rebuild-on-top; `detailPagePresentation.ts` and its test migrate-then-delete after imports move; `usePublicApi.ts` and `usePublicItemDetail.ts` freeze-read-only; unapproved HTML, `reports/`, and the closed `entries/2026-07-29-articles-hifi.md` user-owned-untouched; `front-nuxt/.shot.mjs` delete-after-record — it is **untracked, not gitignored**, and hard-codes machine-specific absolute paths, so leaving it in place permanently dirties `git status`.
+- [ ] Rule on the widenings the previous attempt already left in `check-detail-layout-contract.mjs` — "rebuild-on-top" must not silently inherit them. Two assertions were relaxed rather than retargeted: `detailLayout\.detailShellClass` / `detailGridClass` gained an optional `(?:, '[^']+')?` tail on both item and NPC, and `evidence-panel dark-card item-coverage-panel` became `dark-card(?: [^']+)* item-coverage-panel(?: [^']+)*`. Task 0 only records the decision and the pre-widening text; the exact class list can only be pinned once the owning slice's markup is final, so the actual restoration happens at that slice's green step. From Task 1 onward the ratchet is measured against the recorded pre-widening text, never against the widened text.
+- [ ] Record the measured gate baseline in the entry so later reds are attributable: `pnpm run check` **passes** on the current dirty tree (exit 0); `check:visual-blocked-source` passes; `check:loading-skeleton` fails with exactly eight pre-existing `pages/armor-sets/[id].vue` markers and no failure on `items`/`npcs`/`articles`; `check:light-theme`, `check:typography-spacing`, and `check:crafting-wiki-structure` are **runtime probes that require the dev server on `localhost:5176`** and throw a timeout without it.
+- [ ] Create `tests/unit/publicApiFetcher.test.mjs` covering `createPublicApiFetcher` server/browser base resolution and the pre-`await` capture ordering, and record it green as the Item-slice tripwire.
+- [ ] Request user authorization before creating a WIP commit, stash, or tag. If declined, the mandatory fallback anchor before each slice is `git diff HEAD > front-nuxt/tmp/rollback/<slice>.patch` plus a copy of the untracked files under the same directory; a slice may not start with no anchor of either kind.
+- [ ] Mark `2026-07-29-approved-public-pages-production.md` as **SUPERSEDED** by this plan and remove it as an active execution source from `current.md`.
+- [ ] Reuse tracked `front-nuxt/scripts/audit-shoot.mjs`, but note what it actually has: only `AUDIT_BASE`/`AUDIT_OUT`/`PLAYWRIGHT_CHROMIUM` env inputs, a hard-coded 22-route table, hard-coded 1440×900 and 375×812 viewports, and **no console-error or requestfailed capture** — which this plan's acceptance criteria require. Extend it minimally: env-driven route and viewport overrides plus console/`requestfailed` collection in the emitted JSON, with defaults byte-compatible with the existing R2 baseline invocation so `audit-shoot` keeps its old behavior when the new env vars are unset. Write images only to ignored `front-nuxt/tmp/shots/2026-07-29-public-pages/`; devlog records filename + SHA-256, never binaries.
+- [ ] **Extract the named-region inventory from the three pinned baselines before any code.** Task 4 judges "missing / reordered named region", so that list must exist as data, not as a reading of the HTML at acceptance time. For each of item v2, NPC merchant v1, and article v22, record in the entry: ordered region name, its one-line purpose, the live DTO fields that feed it, and its degradation path when those fields are absent. A region whose fields do not exist in the live DTO is marked degradation-only **here**, not discovered mid-slice. This table is the sole comparison target in Task 4; the HTML is only its provenance.
+- [ ] Measure and record the live `/articles` published count. The Task 1 acceptance of 1 feature + 5 reading-list + 6 archive rows needs ≥12 published records; today only `<6` and `≥12` have rulings. Add the missing 6–11 ruling now: feature + up to 5 reading-list, archive rail shows the remainder and is omitted entirely at zero remainder, with no padding and no fabricated rows. If the live count is under 12, the 12-row acceptance is recorded as unreachable-by-data rather than failed.
+- [ ] Inspect and record reuse mapping for `useCraftingRecipeModel.ts`, `craftingRecipeCompact.ts`, `recipeHierarchyGraphRenderer.ts`, and current NPC condition helpers. New helpers adapt these models; they cannot duplicate their parsing/grouping semantics.
+- [ ] Centralize the public boundary strings `资料整理中`, `本页阅读数据`, and `当前可用商店资料` as named exports in the existing `utils/publicCopy.ts` — do **not** create an unnamed new "display utility". That file already owns public-facing copy safety (`rawPublicCopyPattern`, `createSafeDisplayText`, from which `safeNpcDisplayText` derives), so the constants inherit its established ownership. Contracts assert the exact promise at each route usage.
+- [ ] Article decision: set limit to 12 after checking SSR key/page clamp/keyword reset. Backend capacity is already verified — `ArticleController` uses `PaginationParams.resolveLimit(limit, size, 10)` with **no `maxLimit`**, so 12 is honored without any backend change. Page numbers remain deep-linked but boundary drift is accepted (a shared `?page=3` link resolves to different rows at 12/page than at 10/page). `<6` records or a keyword query uses archive-only fold; no topic aggregate means no topic counts and a compact `资料整理中` grid; popular rail derived from current page is labelled `本页阅读数据`.
+
+## Contract-ratchet protocol (before every implementation change)
+
+1. In the active entry, list every affected assertion: file, marker, before-count, destination, and **expected-red reason** (`migration` or `missing implementation`). A red outside this whitelist stops work.
+2. Add the destination assertion before removing an old-location assertion. Marker/semantic assertion count may only increase.
+3. Regex widening (optional classes, `.*`, wildcard class order) is forbidden. A marker may move page→component/CSS file only with an exact new assertion.
+4. Run affected contracts red, then green, and record before/after counts plus retained data/safety markers.
+5. Each slice runs `pnpm run check` **and** the static gates it excludes: `check:loading-skeleton` and `check:visual-blocked-source`. `check:loading-skeleton` is judged against the Task 0 record — the eight pre-existing `armor-sets/[id].vue` markers stay red and are not repaired here; any new marker, or any marker on `items`/`npcs`/`articles`, fails the slice.
+6. `check:light-theme`, `check:typography-spacing`, and `check:crafting-wiki-structure` are runtime probes needing the dev server on `localhost:5176`; they run in Task 4 with the server up, against a Task 0 baseline captured under the same server. Do not put them in the per-slice loop — without a server they throw a timeout, not a verdict.
+
+## Task 1: Articles first — validate the contract process on the least coupled route
+
+**Production:** `pages/articles/index.vue`, `components/article/ArticleFeatureMeta.vue`, `components/article/ArticleArchiveRail.vue`, `utils/articleArchive.ts`, `utils/publicCopy.ts`. These are list-page regions, so they belong in the existing `components/article/` directory (home of `ArticleComments.vue` et al.), not in `components/detail/`, which holds shared entity-detail parts.
+
+**Contracts:** `check-public-pages.mjs`, `check-front-layout-layering-contract.mjs`.
+
+- [ ] Apply the ratchet protocol. Retain the required loading skeleton and canonical shell semantics. **Do not "de-duplicate" the shell classes**: `primitives.css:1` gives `.tp-page-shell` its grid/gap/typography behavior (plus a `max-width: 720px` gap step), while `.tp-public-page-shell` shares one width/margin rule with `.article-layout` at `primitives.css:30` and is therefore already inert on this route. Dropping either class buys no visual change and would force a literal contract marker to be weakened, which the ratchet forbids. Keep the current class set, add none.
+- [ ] Name the inherited article markers up front, the way the NPC slice does: `article-mast`, `article-featured-story`, `article-featured-story__index`, `article-library-shell`, and `article-archive-row` are already asserted as literals in `check-public-pages.mjs`. Moving that markup into the two components removes those strings from the page file, so each needs an exact destination assertion added **before** the move — expected-red reason `migration`.
+- [ ] Write red unit tests for 12 rows, six rows, the 6–11 range, `<6`, and keyword-filtered archive partitioning; implement live feature/list/archive/degradation projection.
+- [ ] Build v22 metadata and rail components with live fields only; use boundary utility for unavailable topic/popular data. Change limit to 12 only after query/SSR/deep-link check.
+- [ ] Run all gates and `audit-shoot` at desktop, existing 375, and approved 390 probes. Completion record: expected-red list, assertion counts, route screenshot hashes, 1 feature + 5 reading-list + 6 archive rows on unfiltered page one.
+
+## Task 2: NPC second — migrate existing condition semantics, do not reinvent them
+
+**Production:** `pages/npcs/[id].vue`, `components/detail/NpcShopBands.vue`, `utils/npcShopBands.ts`, `utils/publicCopy.ts`.
+
+**Contracts:** `check-detail-layout-contract.mjs`, NPC section of `check-public-pages.mjs`, `check-preview-image-fallback-contract.mjs`.
+
+- [ ] Apply protocol and retain exact `entryFallbackIcon` safety marker.
+- [ ] Move existing `shopConditionsLabel`, `shopConditionSummary`, and `shopConditionGroupKey` semantics into the utility while preserving `safeNpcDisplayText` and stable entry IDs; red-test always/conditional/other ordering. The traveler live-stock wording is route/DOM contract, not a pure test.
+- [ ] Render approved condition bands through `NpcShopBands.vue` inside retained compatible grid/shell wrappers. Merchant receives residence capability; traveler receives arrival plus `当前可用商店资料`, never complete-pool copy.
+- [ ] Run all gates and audit `/npcs/17` and `/npcs/368` at all probes; record expected red, assertion counts, hashes, fallback/no-overflow/no-error results.
+
+## Task 3: Item last — reuse crafting model and protect SSR relation loading
+
+**Production:** `pages/items/[id].vue`, `components/detail/ItemRecipeHierarchy.vue`, `utils/itemRecipeHierarchy.ts`, `utils/publicCopy.ts`.
+
+**Contracts:** item sections of `check-detail-layout-contract.mjs`, `check-public-pages.mjs`, `check-loading-skeleton-contract.mjs`, `check-preview-image-fallback-contract.mjs`.
+
+- [ ] Run the Task 0 `tests/unit/publicApiFetcher.test.mjs` regression before work and again after recomposition; freeze its composables. Apply protocol preserving exact primary-preview, skeleton, source/image, coin, and `RecipeSummaryCard` markers. If item preview CSS migrates, relocate its exact CSS assertion—do not loosen it.
+- [ ] Red-test a projection built from the existing crafting-model output for stable IDs, quantities, stations, alternatives, L3/L2/L1/OUT, and empty data. Implement by adapting existing crafting helpers, never raw-tree duplicate traversal.
+- [ ] Add `ItemRecipeHierarchy.vue` beside the unchanged compact summary; recompose approved hierarchy/procurement/other-data regions inside retained detail wrappers with all current source/image/coverage behavior preserved.
+- [ ] Run all gates and audit `/items/757` at all probes. Completion record includes expected-red whitelist, assertion counts, screenshot hashes, actual hierarchy and procurement, no request/error/overflow.
+
+## Task 4: Final acceptance and stop rule
+
+- [ ] Fresh-restart the front server on `localhost:5176`, then run the full audit, the approved targeted probes, and the three server-dependent gates deferred from the slices (`check:light-theme`, `check:typography-spacing`, `check:crafting-wiki-structure`) against their Task 0 same-server baseline. Compare named sections against the SHA-pinned local approved references.
+- [ ] A missing/reordered named region, generic-card substitute, lost safety marker, broken image, console/request failure, overflow, unreadable text, invisible focus, or sub-44px primary control returns to its owner task.
+- [ ] Run `pnpm run check`, both static supplemental gates, the three server-dependent gates, `git diff --check`, `git status --short`, and a path-only scope review. `git status --short` must differ from the Task 0 baseline only by this plan's owned paths plus the deleted `.shot.mjs`; anything else is scope leakage and returns to its owner task. Keep the entry active and the work uncommitted until user acceptance.

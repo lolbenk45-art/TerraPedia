@@ -9,21 +9,21 @@ const read = (path) => readFileSync(file(path), 'utf8')
 const violations = []
 const detailPages = {
   'pages/items/[id].vue': [
-    String.raw`<div v-else :class="\['detail-layout', detailLayout\.detailShellClass\]"`,
-    String.raw`:class="\['detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass\]"`,
+    String.raw`<div v-else :class="\['detail-layout', detailLayout\.detailShellClass(?:, '[^']+')?\]"`,
+    String.raw`:class="\['detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass(?:, '[^']+')?\]"`,
     String.raw`:class="\['detail-module dark-card item-recipe-summary-module', detailLayout\.detailModuleClass\]"`,
     String.raw`:class="\['detail-module dark-card item-source-module', detailLayout\.detailModuleClass\]"`,
     String.raw`class="source-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
-    String.raw`:class="\['evidence-panel dark-card item-coverage-panel', detailLayout\.detailModuleClass\]"`,
+    String.raw`:class="\['evidence-panel dark-card(?: [^']+)* item-coverage-panel(?: [^']+)*', detailLayout\.detailModuleClass\]"`,
   ],
   'pages/npcs/[id].vue': [
-    String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass\]"`,
-    String.raw`:class="\['detail-grid npc-detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass\]"`,
+    String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass(?:, '[^']+')?\]"`,
+    String.raw`:class="\['detail-grid npc-detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass(?:, '[^']+')?\]"`,
     String.raw`:class="\['detail-module dark-card', detailLayout\.detailModuleClass\]"`,
     String.raw`class="source-table dark-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
-    String.raw`:class="\['evidence-panel dark-card', detailLayout\.detailModuleClass\]"`,
+    String.raw`:class="\['evidence-panel dark-card(?: [^']+)*', detailLayout\.detailModuleClass\]"`,
   ],
   'pages/bosses/[id].vue': [
     String.raw`<main :class="\['boss-detail-shell', detailLayout\.detailShellClass\]"`,
@@ -79,6 +79,20 @@ try {
   }
 } catch {
   violations.push(`${cssPath}: shared detail layout stylesheet is required`)
+}
+
+{
+  const redesignPath = 'assets/css/domains/detail-pages-redesign.css'
+  try {
+    const css = read(redesignPath)
+    for (const marker of ['.tp-archive-hero', '.tp-archive-rail', '.article-library-shell']) {
+      if (!css.includes(marker)) {
+        violations.push(`${redesignPath}: missing approved archive presentation marker ${marker}`)
+      }
+    }
+  } catch {
+    violations.push(`${redesignPath}: approved archive presentation stylesheet is required`)
+  }
 }
 
 const config = read('nuxt.config.ts')
@@ -183,6 +197,28 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 {
   const path = 'pages/npcs/[id].vue'
   const content = read(path)
+  assertPattern(
+    path,
+    content,
+    String.raw`<div class="npc-archive-layout">`,
+    'NPC archive must expose the capability-first layout marker',
+  )
+  assertPattern(
+    path,
+    content,
+    String.raw`const npcHeroStatRows = computed\(\(\) => npcStatRows\.value\.filter`,
+    'NPC archive hero must restrict its primary metrics to decisive combat facts',
+  )
+  for (const marker of ['npc-residence-module', 'npc-arrival-module']) {
+    if (!content.includes(marker)) {
+      violations.push(`${path}: capability-driven NPC archive must render ${marker}`)
+    }
+  }
+  for (const marker of ['npc-hero-assets', 'npc-shop-toolbar', 'visibleShopEntryGroups']) {
+    if (!content.includes(marker)) {
+      violations.push(`${path}: approved NPC archive must include ${marker}`)
+    }
+  }
   const gridCount = countStaticClassAttributesWith(content, ['source-table', 'dark-table', 'tp-detail-relation-grid'])
 
   if (gridCount < 5) {
@@ -233,6 +269,12 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 {
   const path = 'pages/items/[id].vue'
   const content = read(path)
+  assertPattern(
+    path,
+    content,
+    String.raw`\.item-archive-page \.detail-icon-stage \.item-detail-primary-preview\s*\{[\s\S]*width:\s*100%;[\s\S]*height:\s*100%;[\s\S]*max-width:\s*100%;[\s\S]*max-height:\s*100%;`,
+    'item archive mobile stage must scale the primary preview with its compact frame',
+  )
   for (const [pattern, message] of [
     [
       String.raw`\.item-source-module\s+\.source-table\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*360px\),\s*1fr\)\);`,

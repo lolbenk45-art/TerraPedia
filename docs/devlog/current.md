@@ -1,14 +1,13 @@
 # Current Devlog
 
-Last updated: 2026-07-23 00:08 CST by Codex
+Last updated: 2026-07-29 12:12 CST by Codex
 
-Active branch: `main`
+Active branch: `ux/detail-pages-redesign`
 
 ## Open Work
 
-- 详情页重做（物品 / NPC）高保真稿已定，等待用户确认后写实现计划；分支
-  `ux/detail-pages-redesign`，见
-  `entries/2026-07-27-detail-pages-redesign-hifi.md`（含 4 条待立项的顺带发现）。
+- Public UI design baseline and its three-theme visual specimen are drafted and awaiting user review. owner: Codex; status: active; branch: `ux/detail-pages-redesign`; worktree: `/home/lolben/TerraPedia`; parent: none; dependencies: user design-spec review; contract handoff: all future public-page high-fidelity work must use `docs/design/terrapedia-public-ui-design-system-v1.md`; specimen source is `.superpowers/brainstorm/3542442-1785229764/content/public-ui-design-system-v1.html`. See `entries/2026-07-29-public-ui-design-system.md`.
+- 已确认的物品、NPC 与文章高保真稿进入保真重建：禁止继续在旧详情骨架上补样式，按逐区截图验收重排物品合成层级、NPC 条件商店与文章 v22 fold/archive。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 用户验收；contract handoff: 保持三主题令牌与数据边界，旅商只展示当前可用商店资料。见 `entries/2026-07-29-approved-public-pages-production.md` 与 `docs/superpowers/plans/2026-07-29-public-pages-fidelity-rebuild.md`。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
 - Uncommitted work pending user acceptance: triage-board layout fixes,
@@ -162,6 +161,10 @@ Active branch: `main`
   data; their route and fail-closed contracts remain the acceptance boundary.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-29-articles-hifi.md`
+  - branch: `ux/detail-pages-redesign`
+  - status: `closed`; user-approved high fidelity; production implementation is tracked by `entries/2026-07-29-approved-public-pages-production.md`
 
 - `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
   - branch: `main` from `feat/front-p2-integration`

@@ -1,4 +1,5 @@
 import type {
+  ApiResponse,
   PublicItemArmorAttribute,
   PublicItemBuffEffect,
   PublicItemDetail,
@@ -10,6 +11,9 @@ import type {
   PublicItemSource,
   PublicItemTreasureBagLoot,
 } from '~/types/public-api'
+import { unwrapApiResponse, usePublicApiFetcher } from '~/composables/usePublicApi'
+
+type PublicItemRelationFetcher = <T>(path: string, options?: Record<string, unknown>) => Promise<ApiResponse<T>>
 
 const missingPublicItemDetailBundle = (): PublicItemDetailBundle => ({
   item: null,
@@ -28,9 +32,13 @@ const normalizeItemId = (itemId: string | number) => String(itemId ?? '').trim()
 
 const isSuccessfulResponse = (response: { success?: boolean } | null | undefined) => response?.success !== false
 
-const fetchOptionalPublicItemRelation = async <T>(path: string, fallback: T): Promise<T> => {
+const fetchOptionalPublicItemRelation = async <T>(
+  fetchPublicApi: PublicItemRelationFetcher,
+  path: string,
+  fallback: T,
+): Promise<T> => {
   try {
-    const response = await usePublicApiFetch<T>(path)
+    const response = await fetchPublicApi<T>(path)
 
     if (!isSuccessfulResponse(response)) {
       return fallback
@@ -60,8 +68,10 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
     return missingPublicItemDetailBundle()
   }
 
+  const fetchPublicApi = usePublicApiFetcher()
+
   try {
-    const response = await usePublicApiFetch<PublicItemDetail>(`/public/items/${normalizedItemId}`)
+    const response = await fetchPublicApi<PublicItemDetail>(`/public/items/${normalizedItemId}`)
 
     if (!isSuccessfulResponse(response)) {
       return missingPublicItemDetailBundle()
@@ -74,14 +84,14 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
     }
 
     const [rawImages, rawSources, rawTreasureBagLoot, rawBuffEffects, rawArmorAttributes, rawEquipmentEffects, recipeTree, rawRecipeUsages] = await Promise.all([
-      fetchOptionalPublicItemRelation<PublicItemImage[]>(`/public/items/${normalizedItemId}/images`, []),
-      fetchOptionalPublicItemRelation<PublicItemSource[]>(`/public/items/${normalizedItemId}/sources`, []),
-      fetchOptionalPublicItemRelation<PublicItemTreasureBagLoot[]>(`/public/items/${normalizedItemId}/treasure-bag-loot`, []),
-      fetchOptionalPublicItemRelation<PublicItemBuffEffect[]>(`/public/items/${normalizedItemId}/buff-effects`, []),
-      fetchOptionalPublicItemRelation<PublicItemArmorAttribute[]>(`/public/items/${normalizedItemId}/armor-attributes`, []),
-      fetchOptionalPublicItemRelation<PublicItemEquipmentEffect[]>(`/public/items/${normalizedItemId}/equipment-effects`, []),
-      fetchOptionalPublicItemRelation<PublicItemRecipeTree | null>(`/public/items/${normalizedItemId}/recipe-tree`, null),
-      fetchOptionalPublicItemRelation<PublicItemRecipe[]>(`/public/items/${normalizedItemId}/recipe-usages`, []),
+      fetchOptionalPublicItemRelation<PublicItemImage[]>(fetchPublicApi, `/public/items/${normalizedItemId}/images`, []),
+      fetchOptionalPublicItemRelation<PublicItemSource[]>(fetchPublicApi, `/public/items/${normalizedItemId}/sources`, []),
+      fetchOptionalPublicItemRelation<PublicItemTreasureBagLoot[]>(fetchPublicApi, `/public/items/${normalizedItemId}/treasure-bag-loot`, []),
+      fetchOptionalPublicItemRelation<PublicItemBuffEffect[]>(fetchPublicApi, `/public/items/${normalizedItemId}/buff-effects`, []),
+      fetchOptionalPublicItemRelation<PublicItemArmorAttribute[]>(fetchPublicApi, `/public/items/${normalizedItemId}/armor-attributes`, []),
+      fetchOptionalPublicItemRelation<PublicItemEquipmentEffect[]>(fetchPublicApi, `/public/items/${normalizedItemId}/equipment-effects`, []),
+      fetchOptionalPublicItemRelation<PublicItemRecipeTree | null>(fetchPublicApi, `/public/items/${normalizedItemId}/recipe-tree`, null),
+      fetchOptionalPublicItemRelation<PublicItemRecipe[]>(fetchPublicApi, `/public/items/${normalizedItemId}/recipe-usages`, []),
     ])
 
     return {

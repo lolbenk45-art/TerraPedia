@@ -812,6 +812,17 @@ const statRows = computed(() => [
   { label: '稀有度', value: itemRarity.value },
 ].filter((row) => row.value))
 
+const heroMetricRows = computed(() => statRows.value
+  .filter((row) => ['伤害', '击退', '使用时间', '防御'].includes(row.label))
+  .slice(0, 4))
+
+const itemStageRows = computed(() => [
+  { label: '开荒', current: itemPeriod.value === '开荒阶段' },
+  { label: '困难模式前', current: itemPeriod.value === '困难模式前' },
+  { label: '困难模式', current: itemPeriod.value === '困难模式' },
+  { label: '后期', current: ['世纪之花后', '月亮领主后'].includes(itemPeriod.value) },
+])
+
 const itemCoverageRows = computed(() => [
   { label: '基础资料', value: detailItem.value ? sourceLabel.value : '暂无记录' },
   { label: '描述', value: itemDescriptionSourceText.value ? '可查看' : '暂无说明' },
@@ -898,8 +909,8 @@ onMounted(() => {
       </section>
     </div>
 
-  <div v-else :class="['detail-layout', detailLayout.detailShellClass]" :aria-busy="detailLoadingState">
-      <section class="detail-hero dark-card">
+  <div v-else :class="['detail-layout', detailLayout.detailShellClass, 'item-archive-page']" :aria-busy="detailLoadingState">
+      <section class="detail-hero dark-card tp-archive-hero item-archive-hero">
         <div class="detail-icon-stage">
           <CommonPreviewImage
             class="item-detail-primary-preview"
@@ -922,6 +933,12 @@ onMounted(() => {
             <span class="tag paper">{{ itemRarity }}</span>
             <span v-if="detailPending" class="tag paper">同步中</span>
           </div>
+          <div class="item-hero-stage-rail" aria-label="游戏阶段">
+            <span>游戏阶段</span>
+            <div>
+              <b v-for="stage in itemStageRows" :key="stage.label" :class="{ current: stage.current }">{{ stage.label }}</b>
+            </div>
+          </div>
           <div class="item-favorite-actions">
             <button
               class="item-favorite-button"
@@ -937,34 +954,37 @@ onMounted(() => {
             <span v-if="favoriteError" class="item-favorite-error">{{ favoriteError }}</span>
           </div>
         </div>
-        <aside class="detail-side">
-          <p class="section-label">核心属性</p>
-          <dl>
-            <template v-for="row in statRows" :key="row.label">
-              <dt>{{ row.label }}</dt>
-              <dd>
-                <span v-if="row.priceTokens?.length" class="item-price-token-row" :aria-label="row.value">
-                  <span v-for="token in row.priceTokens" :key="`${row.label}-${token.unit}`" class="item-price-token">
-                    <span class="item-price-token-icon" :data-coin-item-id="itemPriceTokenImage(token.unit)?.itemId">
-                      <CommonPreviewImage
-                        :src="itemPriceTokenImage(token.unit)?.image"
-                        :alt="itemPriceTokenImage(token.unit)?.label || token.label"
-                        :fallback="itemPriceTokenImage(token.unit)?.label || token.label"
-                        fallback-icon="icon-items"
-                        decorative
-                      />
-                    </span>
-                    <span class="item-price-token-copy">{{ token.amount }}{{ token.label }}</span>
+        <aside class="detail-side item-hero-metrics">
+          <p class="section-label">核心数值</p>
+          <div class="item-hero-metric-grid">
+            <div v-for="row in heroMetricRows" :key="row.label" class="item-hero-metric">
+              <span>{{ row.label }}</span>
+              <b>{{ row.value }}</b>
+            </div>
+          </div>
+          <div class="item-hero-price-list">
+            <div v-for="row in statRows.filter((entry) => entry.priceTokens?.length)" :key="row.label">
+              <span>{{ row.label }}</span>
+              <span class="item-price-token-row" :aria-label="row.value">
+                <span v-for="token in row.priceTokens" :key="`${row.label}-${token.unit}`" class="item-price-token">
+                  <span class="item-price-token-icon" :data-coin-item-id="itemPriceTokenImage(token.unit)?.itemId">
+                    <CommonPreviewImage
+                      :src="itemPriceTokenImage(token.unit)?.image"
+                      :alt="itemPriceTokenImage(token.unit)?.label || token.label"
+                      :fallback="itemPriceTokenImage(token.unit)?.label || token.label"
+                      fallback-icon="icon-items"
+                      decorative
+                    />
                   </span>
+                  <span class="item-price-token-copy">{{ token.amount }}{{ token.label }}</span>
                 </span>
-                <span v-else>{{ row.value }}</span>
-              </dd>
-            </template>
-          </dl>
+              </span>
+            </div>
+          </div>
         </aside>
       </section>
 
-      <div :class="['detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass]">
+      <div :class="['detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass, 'item-archive-content']">
         <div class="module-stack">
           <section :class="['detail-module dark-card item-recipe-summary-module', detailLayout.detailModuleClass]">
             <div class="module-title">
@@ -1193,7 +1213,7 @@ onMounted(() => {
           </section>
         </div>
 
-        <aside :class="['evidence-panel dark-card item-coverage-panel', detailLayout.detailModuleClass]">
+        <aside :class="['evidence-panel dark-card item-coverage-panel tp-archive-rail item-archive-rail', detailLayout.detailModuleClass]">
           <span class="eyebrow">资料概览</span>
           <div v-for="row in itemCoverageRows" :key="row.label" class="evidence-step">
             <div><b>{{ row.label }}</b><span>{{ row.value }}</span></div>
@@ -1207,6 +1227,143 @@ onMounted(() => {
 .detail-missing-title {
   display: block;
   margin: 10px 0 0;
+}
+
+.item-archive-page .detail-hero {
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(280px, 340px);
+  min-height: 0;
+  padding: 22px;
+}
+
+.item-archive-page .detail-icon-stage {
+  min-height: 184px;
+  height: 184px;
+  border-width: 1px;
+  box-shadow: inset 0 0 0 8px color-mix(in srgb, var(--accent-gold) 4%, transparent);
+}
+
+.item-archive-page .detail-main {
+  gap: 12px;
+}
+
+.item-hero-stage-rail {
+  display: grid;
+  gap: 7px;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.item-hero-stage-rail > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.item-hero-stage-rail b {
+  min-height: 34px;
+  border-right: 1px solid var(--index-line);
+  padding: 8px 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.item-hero-stage-rail b:last-child {
+  border-right: 0;
+}
+
+.item-hero-stage-rail b.current {
+  background: color-mix(in srgb, var(--accent-gold) 16%, var(--index-surface));
+  color: var(--text-strong);
+}
+
+.item-hero-metrics {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.item-hero-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--index-line);
+  border-left: 1px solid var(--index-line);
+}
+
+.item-hero-metric {
+  display: grid;
+  gap: 4px;
+  min-height: 76px;
+  border-right: 1px solid var(--index-line);
+  border-bottom: 1px solid var(--index-line);
+  padding: 10px;
+}
+
+.item-hero-metric span,
+.item-hero-price-list > div > span:first-child {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.item-hero-metric b {
+  color: var(--text-strong);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.item-hero-price-list {
+  display: grid;
+  gap: 8px;
+}
+
+.item-hero-price-list > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .item-archive-page .detail-hero {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .item-archive-page .detail-icon-stage {
+    width: 112px;
+    min-height: 112px;
+    height: 112px;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .item-archive-page .detail-icon-stage .item-detail-primary-preview {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .item-archive-page .detail-main {
+    min-width: 0;
+  }
+
+  .item-hero-stage-rail b {
+    padding-inline: 3px;
+    font-size: 10px;
+  }
+
+  .item-hero-metrics {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
 }
 
 .detail-relation-row {

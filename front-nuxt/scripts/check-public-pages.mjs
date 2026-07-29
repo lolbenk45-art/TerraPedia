@@ -1645,7 +1645,12 @@ for (const path of scanFiles) {
     for (const marker of [
       'tp-public-page-shell article-layout discovery-articles-page article-route-shell',
       'article-list-layout-balanced',
+      'article-mast',
       'grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+      'article-featured-story',
+      'article-featured-story__index',
+      'article-library-shell',
+      'article-archive-row',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: public article list must use the shared public page shell and responsive compact article grid via marker ${marker}`)

@@ -14,6 +14,7 @@ import type {
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
 import { createSafeDisplayText } from '~/utils/publicCopy'
 import { moneyCoinClass, normalizeTerrariaMoneyToken } from '~/utils/terrariaMoney'
+import { resolveNpcArchiveModules } from '~/utils/detailPagePresentation'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -187,6 +188,10 @@ const npcStatRows = computed(() => [
   { label: '类型', value: npcKindLabel.value },
   { label: '资料更新', value: detailUpdatedAt.value },
 ].filter((row) => row.value))
+
+const npcHeroStatRows = computed(() => npcStatRows.value.filter((row) => (
+  ['生命值', '防御', '伤害', '击退抗性'].includes(row.label)
+)))
 
 const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => safeNpcDisplayText(
   'buffNameZh' in entry ? entry.buffNameZh : undefined,
@@ -435,6 +440,12 @@ const shopEntryGroups = computed(() => {
     }))
     .filter((group) => group.entries.length > 0)
 })
+const selectedShopGroup = ref('all')
+const visibleShopEntryGroups = computed(() => (
+  selectedShopGroup.value === 'all'
+    ? shopEntryGroups.value
+    : shopEntryGroups.value.filter((group) => group.key === selectedShopGroup.value)
+))
 
 const buffDurationLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(
   entry.durationText,
@@ -492,6 +503,12 @@ const materialStatus = computed(() => ({
   buffs: buffRelations.value.length ? '已整理' : '暂无资料',
 }))
 const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '详情资料' : '资料整理中')
+const npcArchiveModules = computed(() => resolveNpcArchiveModules({
+  isTownNpc: Boolean(npc.value?.isTownNpc),
+  name: displayName.value,
+  shopCount: shopEntries.value.length,
+  lootCount: trustedLoot.value.length + additionalLoot.value.length,
+}))
 </script>
 
 <template>
@@ -527,14 +544,29 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
       </section>
 
       <template v-else>
-        <section class="npc-detail-hero">
-          <div class="npc-detail-portrait">
-            <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" fallback-icon="icon-npc" loading="eager" />
+        <div class="npc-archive-layout">
+        <section class="npc-detail-hero tp-archive-hero npc-archive-hero npc-archive-page">
+          <div class="npc-hero-portrait">
+            <div class="npc-detail-portrait">
+              <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" fallback-icon="icon-npc" loading="eager" />
+            </div>
+            <div v-if="npcAssetCards.length" class="npc-hero-assets" aria-label="角色资料图像">
+              <span v-for="asset in npcAssetCards" :key="asset.key">
+                <CommonPreviewImage
+                  :src="asset.image"
+                  :source-image="asset.sourceImage"
+                  :alt="`${displayName} ${asset.label}`"
+                  :fallback="portraitFallback"
+                  :fallback-icon="asset.fallbackIcon"
+                  decorative
+                />
+                <small>{{ asset.label }}</small>
+              </span>
+            </div>
           </div>
           <div class="npc-detail-copy">
             <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} · {{ secondaryName || '详情资料' }}</span>
             <h1>{{ displayName }}</h1>
-            <p>{{ npcBehaviorSummary }}</p>
             <div class="tag-row">
               <span v-if="npc?.isTownNpc" class="tag gold">城镇 NPC</span>
               <span v-if="npc?.isFriendly" class="tag moss">友好</span>
@@ -543,44 +575,52 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               <span class="tag paper">{{ shopEntries.length }} 项出售</span>
               <span class="tag paper">{{ npcSourceTag }}</span>
             </div>
+            <div class="npc-hero-context">
+              <b>{{ npcArchiveModules.includes('arrival') ? '到访说明' : '角色说明' }}</b>
+              <p>{{ npcBehaviorSummary }}</p>
+            </div>
           </div>
           <aside class="npc-detail-facts">
             <p class="section-label">基础数值</p>
             <dl>
-              <template v-for="row in npcStatRows" :key="row.label">
+              <div v-for="row in npcHeroStatRows" :key="row.label">
                 <dt>{{ row.label }}</dt><dd>{{ row.value }}</dd>
-              </template>
+              </div>
             </dl>
           </aside>
         </section>
 
-        <section v-if="npcAssetCards.length" class="npc-media-section">
-          <div class="module-title">
-            <h2>资料图像</h2>
-            <span class="tag paper">{{ npcAssetCards.length }} 张</span>
-          </div>
-          <div class="npc-media-band">
-            <article v-for="asset in npcAssetCards" :key="asset.key" class="npc-media-card">
-              <span class="npc-media-frame">
-                <CommonPreviewImage
-                  :src="asset.image"
-                  :source-image="asset.sourceImage"
-                  :alt="`${displayName} ${asset.label}`"
-                  :fallback="portraitFallback"
-                  :fallback-icon="asset.fallbackIcon"
-                />
-              </span>
-              <span class="npc-media-copy">
-                <b>{{ asset.label }}</b>
-                <em>{{ asset.meta }}</em>
-              </span>
-            </article>
-          </div>
-        </section>
-
-        <section :class="['detail-grid npc-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass]">
+        <section :class="['detail-grid npc-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass, 'npc-archive-content']">
           <div class="module-stack">
-            <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
+            <article v-if="npcArchiveModules.includes('residence')" :class="['detail-module dark-card npc-residence-module', detailLayout.detailModuleClass]">
+              <div class="module-title">
+                <div>
+                  <h2>入住与偏好</h2>
+                  <span>该角色属于城镇 NPC；生活偏好按现有资料显示。</span>
+                </div>
+                <span class="tag gold">城镇角色</span>
+              </div>
+              <div v-if="preferenceGroups.length" class="npc-capability-summary">
+                <span v-for="group in preferenceGroups" :key="group.key"><b>{{ group.label }}</b> {{ group.rows.length }} 项</span>
+              </div>
+              <p v-else class="tp-detail-empty">当前资料已确认城镇身份，生活偏好仍在补充。</p>
+            </article>
+
+            <article v-if="npcArchiveModules.includes('arrival')" :class="['detail-module dark-card npc-arrival-module', detailLayout.detailModuleClass]">
+              <div class="module-title">
+                <div>
+                  <h2>到访与离开</h2>
+                  <span>旅商会临时到访；当前资料只提供可用商店记录。</span>
+                </div>
+                <span class="tag paper">临时商人</span>
+              </div>
+              <div class="npc-capability-summary">
+                <span><b>可用商店资料</b> {{ shopEntries.length }} 项</span>
+                <span><b>出现 / 离开条件</b> 当前未提供</span>
+              </div>
+            </article>
+
+            <article v-if="npcArchiveModules.includes('loot')" :class="['detail-module dark-card npc-loot-module', detailLayout.detailModuleClass]">
               <div class="module-title">
                 <h2>掉落物</h2>
                 <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
@@ -667,16 +707,20 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               <p v-if="!trustedLoot.length && !additionalLoot.length" class="tp-detail-empty">暂时没有整理到掉落物。</p>
             </article>
 
-          <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
+          <article v-if="npcArchiveModules.includes('shop')" :class="['detail-module dark-card npc-shop-module', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>出售物品</h2>
               <span class="tag gold">{{ shopEntries.length }} 项</span>
             </div>
-            <div v-if="shopEntryGroups.length" class="grouped-source-list">
-              <section v-for="group in shopEntryGroups" :key="group.key" class="detail-subgroup">
+            <div v-if="shopEntryGroups.length" class="npc-shop-toolbar" aria-label="商店条件筛选">
+              <button type="button" :class="{ active: selectedShopGroup === 'all' }" @click="selectedShopGroup = 'all'">全部 {{ shopEntries.length }}</button>
+              <button v-for="group in shopEntryGroups" :key="group.key" type="button" :class="{ active: selectedShopGroup === group.key }" @click="selectedShopGroup = group.key">{{ group.title }} {{ group.entries.length }}</button>
+            </div>
+            <div v-if="visibleShopEntryGroups.length" class="grouped-source-list">
+              <section v-for="group in visibleShopEntryGroups" :key="group.key" class="detail-subgroup">
                 <div class="detail-subgroup-title">
                   <b>{{ group.title }}</b>
-                  <span>{{ group.entries.length }} 项 · {{ group.meta }}</span>
+                  <span>{{ group.entries.length }} 项 · {{ group.meta }}<template v-if="npcArchiveModules.includes('arrival')"> · 当前可用商店资料</template></span>
                 </div>
                 <div class="source-table dark-table tp-detail-relation-grid npc-shop-grid">
                   <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row npc-shop-row', detailLayout.detailRelationRowClass]">
@@ -732,7 +776,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
             <p v-else class="tp-detail-empty">暂时没有整理到出售物品。</p>
           </article>
 
-          <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
+          <article :class="['detail-module dark-card npc-buff-module', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>状态效果</h2>
               <span class="tag paper">{{ buffRelations.length }} 条</span>
@@ -768,7 +812,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
           </article>
           </div>
 
-          <aside :class="['evidence-panel dark-card', detailLayout.detailModuleClass]">
+          <aside :class="['evidence-panel dark-card tp-archive-rail npc-archive-rail', detailLayout.detailModuleClass]">
             <span class="eyebrow">关联资料</span>
             <div class="evidence-step"><div><b>掉落物</b><span>{{ materialStatus.loot }}</span></div></div>
             <div class="evidence-step"><div><b>出售物品</b><span>{{ materialStatus.shop }}</span></div></div>
@@ -832,6 +876,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
             </div>
           </article>
         </section>
+        </div>
       </template>
     </main>
 </template>
@@ -840,6 +885,243 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .detail-relation-row {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   padding: 10px;
+}
+
+.npc-capability-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.npc-capability-summary span {
+  min-height: 36px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.npc-capability-summary b {
+  color: var(--text-strong);
+}
+
+.npc-archive-page.npc-detail-hero {
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(280px, 340px);
+  min-height: 0;
+  padding: 22px;
+}
+
+.npc-archive-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.npc-archive-layout .npc-detail-hero {
+  order: 1;
+}
+
+.npc-archive-layout .npc-archive-content {
+  order: 2;
+}
+
+.npc-archive-layout .npc-media-section {
+  order: 3;
+}
+
+.npc-archive-layout .npc-preference-section {
+  order: 4;
+}
+
+.npc-archive-layout .npc-related-grid:not(.npc-preference-section) {
+  order: 5;
+}
+
+.npc-hero-portrait {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.npc-archive-page .npc-detail-portrait {
+  min-height: 184px;
+}
+
+.npc-hero-assets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.npc-hero-assets > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 6px;
+  background: var(--index-surface);
+  padding: 4px;
+}
+
+.npc-hero-assets :deep(.item-art) {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 34px;
+  --tp-preview-image-size: 90%;
+}
+
+.npc-hero-assets small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-archive-page .npc-detail-copy {
+  align-content: start;
+}
+
+.npc-archive-page .npc-detail-copy h1 {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1.15;
+}
+
+.npc-hero-context {
+  display: grid;
+  gap: 4px;
+  border: 1px dashed var(--index-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.npc-hero-context b {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.npc-hero-context p {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.npc-shop-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.npc-shop-toolbar button {
+  min-height: 44px;
+  border: 1px solid var(--index-line);
+  border-radius: 6px;
+  background: var(--index-surface);
+  padding: 0 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.npc-shop-toolbar button.active {
+  border-color: var(--button-control-active-border);
+  background: var(--button-control-active-bg);
+  color: var(--button-control-active-fg);
+}
+
+.npc-shop-module .npc-shop-grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.npc-archive-page .npc-detail-facts {
+  padding: 16px;
+}
+
+.npc-archive-page .npc-detail-facts dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.npc-archive-page .npc-detail-facts dl > div {
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  border: 1px solid var(--index-line);
+  margin: 0;
+  padding: 8px;
+}
+
+.npc-archive-page .npc-detail-facts dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.npc-archive-page .npc-detail-facts dd {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 17px;
+}
+
+@media (max-width: 640px) {
+  .npc-archive-page.npc-detail-hero {
+    grid-template-columns: 132px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .npc-archive-page .npc-detail-portrait {
+    width: 132px;
+    min-height: 142px;
+    height: 142px;
+    margin: 0;
+  }
+
+  .npc-hero-portrait {
+    width: 132px;
+  }
+
+  .npc-hero-assets {
+    gap: 3px;
+  }
+
+  .npc-hero-assets > span {
+    padding: 2px;
+  }
+
+  .npc-hero-assets :deep(.item-art) {
+    height: 24px;
+  }
+
+  .npc-hero-assets small {
+    font-size: 7px;
+  }
+
+  .npc-archive-page .npc-detail-copy h1 {
+    font-size: 32px;
+  }
+
+  .npc-archive-page .npc-detail-facts {
+    grid-column: 1 / -1;
+    padding: 12px;
+  }
+
+  .npc-archive-page .npc-detail-facts dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* 掉落行内部结构与样式已随 DetailRelationRow 组件内聚;
