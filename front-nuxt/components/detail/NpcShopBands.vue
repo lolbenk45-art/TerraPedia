@@ -4,6 +4,7 @@ import type { NpcShopBand } from '~/utils/npcShopBands'
 import { PUBLIC_COPY_CURRENT_AVAILABLE_SHOP_DATA } from '~/utils/publicCopy'
 
 const props = defineProps<{
+  title: string
   total: number
   groups: NpcShopBand[]
   visibleGroups: NpcShopBand[]
@@ -29,12 +30,15 @@ const hasPriceOrCondition = (group: NpcShopBand, entry: PublicNpcShopEntry) => (
 
 <template>
   <div class="npc-shop-bands">
-    <div class="module-title">
+    <div class="card-head">
       <div>
-        <h2>出售物品</h2>
-        <span v-if="currentStockOnly">{{ PUBLIC_COPY_CURRENT_AVAILABLE_SHOP_DATA }}</span>
+        <h2>{{ title }}</h2>
+        <p class="sub">
+          <template v-if="currentStockOnly">{{ PUBLIC_COPY_CURRENT_AVAILABLE_SHOP_DATA }} · </template>
+          {{ total }} 项出售 · 按现有条件资料分组
+        </p>
       </div>
-      <span class="tag gold">{{ total }} 项</span>
+      <span class="badge">{{ total }} 项</span>
     </div>
 
     <div v-if="groups.length" class="npc-shop-toolbar" aria-label="商店条件筛选">
@@ -52,9 +56,12 @@ const hasPriceOrCondition = (group: NpcShopBand, entry: PublicNpcShopEntry) => (
 
     <div v-if="visibleGroups.length" class="grouped-source-list">
       <section v-for="group in visibleGroups" :key="group.key" class="detail-subgroup npc-shop-band">
-        <div class="detail-subgroup-title">
+        <div class="detail-subgroup-title npc-shop-group-head">
+          <i class="npc-shop-group-dot"></i>
           <b>{{ group.title }}</b>
-          <span>{{ group.entries.length }} 项 · {{ group.meta }}<template v-if="currentStockOnly"> · {{ PUBLIC_COPY_CURRENT_AVAILABLE_SHOP_DATA }}</template></span>
+          <span class="npc-shop-group-count">{{ group.entries.length }}</span>
+          <span class="npc-shop-group-meta">· {{ group.meta }}</span>
+          <span class="npc-shop-group-rule"></span>
         </div>
         <div class="source-table dark-table tp-detail-relation-grid npc-shop-grid">
           <div v-for="entry in group.entries.slice(0, 8)" :key="entryKey(entry)" class="source-row detail-relation-row npc-shop-row">

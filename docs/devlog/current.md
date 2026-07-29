@@ -1,12 +1,12 @@
 # Current Devlog
 
-Last updated: 2026-07-30 04:49 CST by Codex
+Last updated: 2026-07-30 06:28 CST by Codex
 
 Active branch: `ux/detail-pages-redesign`
 
 ## Open Work
 
-- 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 暗色全页 ground、资料完整度与 Hero 真实字段细节已获用户授权作为阶段检查点提交，任务随后串行继续 NPC 四份定稿与 Articles v22。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: NPC 与 Articles 逐页视觉验收；contract handoff: 只复刻正文，保留生产导航/面包屑/容器比例与全部现有功能，动态区域只消费真实 DTO 或明确标注的展示派生值。见 `entries/2026-07-29-approved-public-pages-production.md` 与 `docs/superpowers/plans/2026-07-29-public-pages-fidelity-rebuild.md`。
+- 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，四份 NPC 定稿正文已完成技术验收并进入独立检查点提交，下一 slice 串行继续 Articles v22。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: Articles v22 视觉验收；contract handoff: 只复刻正文，保留生产导航/面包屑/容器比例与全部现有功能，动态区域只消费真实 DTO 或明确标注的展示派生值。见 `entries/2026-07-29-approved-public-pages-production.md` 与 `docs/superpowers/plans/2026-07-29-public-pages-fidelity-rebuild.md`。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
 - Uncommitted work pending user acceptance: triage-board layout fixes,
@@ -38,7 +38,7 @@ Active branch: `ux/detail-pages-redesign`
 
 ## Current State
 
-- Public-page fidelity rebuild remains active. Item is the authorized checkpoint: its approved dark page ground lives on the Item full-screen archetype, and the Hero exposes live internal/English identity plus data-derived metric detail. The next owners are NPC fidelity first, then Articles v22; no API/data repair is part of either slice.
+- Public-page fidelity rebuild remains active. Item is committed at `8d459fe1`; NPC technical acceptance is complete for merchant, guide, pirate, and traveling merchant across all three themes and both approved viewports. Articles v22 is the remaining fidelity slice; no API/data repair is part of it.
 
 - Front P2 merged-result validation passes the full public frontend gate and
   the focused public armor/recipe backend suite (16/16). The source integration
@@ -122,10 +122,10 @@ Active branch: `ux/detail-pages-redesign`
 
 ## Next Agent Should Start Here
 
-- Continue `entries/2026-07-29-approved-public-pages-production.md` after the
-  Item checkpoint commit. Compare the four approved NPC samples first, then
+- Continue `entries/2026-07-29-approved-public-pages-production.md` with
   `articles-story-led-v22.html`; preserve production navigation, live data,
-  interactions, three themes, and the contract ratchet.
+  query/pagination behavior, three themes, and the contract ratchet. The four
+  approved NPC samples have completed their focused technical checkpoint.
 
 - Front P2 and the light-theme button adaptation require no further merge
   action. Read `entries/2026-07-22-front-p2-local-integration.md` for the

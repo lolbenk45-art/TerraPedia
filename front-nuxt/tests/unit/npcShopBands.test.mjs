@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import {
-  buildNpcShopBands,
-  filterNpcShopBands,
-  resolveNpcArchiveModules,
-} from '../../utils/npcShopBands.ts'
+import * as npcPresentation from '../../utils/npcShopBands.ts'
 import { createSafeDisplayText } from '../../utils/publicCopy.ts'
 
 const safeText = createSafeDisplayText()
+const {
+  buildNpcShopBands,
+  filterNpcShopBands,
+  resolveNpcArchiveModules,
+} = npcPresentation
 
 const entry = (id, conditions = [], notes = '') => ({ id, conditions, notes })
 
@@ -58,4 +59,44 @@ test('keeps temporary merchants scoped to arrival and current shop data', () => 
   assert.deepEqual(resolveNpcArchiveModules({ name: '旅商', shopCount: 3 }), ['arrival', 'shop'])
   assert.deepEqual(resolveNpcArchiveModules({ isTownNpc: true, name: '旅商', shopCount: 3 }), ['arrival', 'shop'])
   assert.deepEqual(resolveNpcArchiveModules({ lootCount: 1 }), ['loot'])
+})
+
+test('derives NPC completeness from eight live data capabilities', () => {
+  assert.equal(typeof npcPresentation.buildNpcCoverage, 'function')
+
+  const coverage = npcPresentation.buildNpcCoverage({
+    hasIdentity: true,
+    combatStatCount: 4,
+    assetCount: 3,
+    hasBehavior: true,
+    shopCount: 31,
+    lootCount: 0,
+    preferenceCount: 7,
+    buffCount: 0,
+  })
+
+  assert.deepEqual(
+    { available: coverage.availableCount, total: coverage.totalCount, percentage: coverage.percentage },
+    { available: 6, total: 8, percentage: 75 },
+  )
+  assert.deepEqual(coverage.summaryRows.map((row) => row.state), ['complete', 'complete', 'partial', 'partial'])
+})
+
+test('keeps zero-count NPC capabilities visibly missing instead of padding completeness', () => {
+  assert.equal(typeof npcPresentation.buildNpcCoverage, 'function')
+
+  const coverage = npcPresentation.buildNpcCoverage({
+    hasIdentity: true,
+    combatStatCount: 0,
+    assetCount: 0,
+    hasBehavior: false,
+    shopCount: 0,
+    lootCount: 0,
+    preferenceCount: 0,
+    buffCount: 0,
+  })
+
+  assert.equal(coverage.percentage, 13)
+  assert.deepEqual(coverage.summaryRows.map((row) => row.state), ['partial', 'missing', 'missing', 'missing'])
+  assert.equal(coverage.summaryRows[2].detail, '商店 0 项 · 掉落 0 条')
 })

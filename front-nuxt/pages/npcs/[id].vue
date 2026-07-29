@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen' })
+definePageMeta({ publicScreenClass: 'entity-screen npc-detail-approved-screen' })
 
 import type {
   PublicNpcBuffRelation,
@@ -11,7 +11,7 @@ import type {
   PublicNpcTraceableItemSummary,
 } from '~/types/public-api'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
-import { buildNpcShopBands, filterNpcShopBands, resolveNpcArchiveModules } from '~/utils/npcShopBands'
+import { buildNpcCoverage, buildNpcShopBands, filterNpcShopBands, resolveNpcArchiveModules } from '~/utils/npcShopBands'
 import { createSafeDisplayText } from '~/utils/publicCopy'
 import { moneyCoinClass, normalizeTerrariaMoneyToken } from '~/utils/terrariaMoney'
 
@@ -76,6 +76,7 @@ const secondaryName = computed(() => {
   const name = safeNpcDisplayText(npc.value?.name)
   return zhName && name && name !== zhName ? name : ''
 })
+const npcIdentityCode = computed(() => safeNpcDisplayText(npc.value?.internalName))
 
 const npcWikiAssets = computed(() => npc.value?.wikiAssets ?? npc.value?.wiki_assets ?? null)
 const dialoguePortraitImage = computed(() => resolvePreviewImageUrl(firstText(
@@ -188,9 +189,11 @@ const npcStatRows = computed(() => [
   { label: '资料更新', value: detailUpdatedAt.value },
 ].filter((row) => row.value))
 
-const npcHeroStatRows = computed(() => npcStatRows.value.filter((row) => (
-  ['生命值', '防御', '伤害', '击退抗性'].includes(row.label)
-)))
+const npcHeroStatLabels = ['生命值', '防御', '伤害', '击退抗性'] as const
+const npcHeroStatRows = computed(() => npcHeroStatLabels.flatMap((label) => {
+  const row = npcStatRows.value.find((entry) => entry.label === label)
+  return row ? [row] : []
+}))
 
 const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => safeNpcDisplayText(
   'buffNameZh' in entry ? entry.buffNameZh : undefined,
@@ -306,6 +309,7 @@ const preferenceGroups = computed(() => preferenceOrder
   }))
   .filter((group) => group.rows.length > 0))
 
+const hasNpcBehavior = computed(() => Boolean(safeNpcDisplayText(npc.value?.behaviorNotes)))
 const npcBehaviorSummary = computed(() => safeNpcDisplayText(
   npc.value?.behaviorNotes,
   `${displayName.value} 的资料包含基础数值、出售物品、掉落物和状态效果。`,
@@ -431,171 +435,317 @@ const npcArchiveModules = computed(() => resolveNpcArchiveModules({
   shopCount: shopEntries.value.length,
   lootCount: trustedLoot.value.length + additionalLoot.value.length,
 }))
+const isTemporaryMerchant = computed(() => npcArchiveModules.value.includes('arrival'))
+const npcDisplayKindLabel = computed(() => isTemporaryMerchant.value ? '临时商人' : npcKindLabel.value)
+const npcAlignmentLabel = computed(() => npc.value?.isFriendly ? '友好' : npc.value?.isBoss ? '敌对 Boss' : '中立 / 敌对')
+const npcPrimaryModule = computed(() => {
+  if (isTemporaryMerchant.value) return 'arrival'
+  if (shopEntries.value.length) return 'shop'
+  return 'profile'
+})
+const npcShopHeading = computed(() => isTemporaryMerchant.value ? '当前可用商店资料' : `${displayName.value}商店`)
+const preferenceToneClass = (key: string) => {
+  if (key === 'love' || key === 'like') return 'like'
+  if (key === 'dislike') return 'dislike'
+  if (key === 'hate') return 'hate'
+  return 'unknown'
+}
+const preferredBiomeRow = computed(() => livingPreferenceRows.value.find((row) => (
+  firstText(row.targetType ?? row.target_type).toLowerCase() === 'biome'
+  && ['love', 'like'].includes(normalizedPreferenceValue(row.preference))
+)) ?? null)
+const preferredNpcRows = computed(() => livingPreferenceRows.value.filter((row) => (
+  firstText(row.targetType ?? row.target_type).toLowerCase() === 'npc'
+  && ['love', 'like'].includes(normalizedPreferenceValue(row.preference))
+)).slice(0, 3))
+const discouragedPreferenceRows = computed(() => livingPreferenceRows.value.filter((row) => (
+  ['dislike', 'hate'].includes(normalizedPreferenceValue(row.preference))
+)).slice(0, 2))
+const npcRelatedPreferences = computed(() => livingPreferenceRows.value.filter((row) => (
+  firstText(row.targetType ?? row.target_type).toLowerCase() === 'npc'
+  && Boolean(preferenceTargetPath(row))
+)).slice(0, 5))
+const npcLootCount = computed(() => trustedLoot.value.length + additionalLoot.value.length)
+const npcCoverage = computed(() => buildNpcCoverage({
+  hasIdentity: Boolean(npc.value && firstText(npc.value.gameId, npc.value.id) && displayName.value),
+  combatStatCount: npcHeroStatRows.value.length,
+  assetCount: npcAssetCards.value.length,
+  hasBehavior: hasNpcBehavior.value,
+  shopCount: shopEntries.value.length,
+  lootCount: npcLootCount.value,
+  preferenceCount: livingPreferenceRows.value.length,
+  buffCount: buffRelations.value.length,
+}))
+const npcApprovedAnchors = computed(() => {
+  const anchors: Array<{ id: string, label: string, count: number | string }> = []
+  if (isTemporaryMerchant.value) anchors.push({ id: 'arrival', label: '出现与离开', count: '说明' })
+  if (npcPrimaryModule.value === 'profile') anchors.push({ id: 'profile', label: `${displayName.value}功能`, count: '说明' })
+  if (shopEntries.value.length) anchors.push({ id: 'shop', label: isTemporaryMerchant.value ? '当前商店资料' : '商店', count: shopEntries.value.length })
+  if (npcLootCount.value) anchors.push({ id: 'loot', label: '掉落物', count: npcLootCount.value })
+  if (livingPreferenceRows.value.length) anchors.push({ id: 'preferences', label: '幸福度与居住', count: livingPreferenceRows.value.length })
+  if (buffRelations.value.length) anchors.push({ id: 'effects', label: '状态效果', count: buffRelations.value.length })
+  if (relatedItemSections.value.length) anchors.push({ id: 'related-items', label: '关联物品', count: relatedItemSections.value.length })
+  anchors.push({ id: 'other', label: '其他资料', count: 4 })
+  return anchors
+})
 </script>
 
 <template>
-    <TerraBreadcrumb />
+  <TerraBreadcrumb />
 
-  <main :class="['entity-detail-layout', detailLayout.detailShellClass]" :aria-busy="loadingState">
-      <section v-if="loadingState" class="npc-detail-hero">
-        <div class="npc-detail-portrait">
-          <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
-        </div>
-        <div class="npc-detail-copy">
-          <span class="eyebrow">加载 NPC 详情</span>
-          <component :is="'h1'" class="detail-missing-title">加载 NPC 详情</component>
-          <p>正在读取数值、掉落、商店和状态效果资料。</p>
-        </div>
-      </section>
+  <main :class="['entity-detail-layout', detailLayout.detailShellClass, 'npc-approved-shell']" :aria-busy="loadingState">
+    <section v-if="loadingState" class="npc-detail-hero">
+      <div class="npc-detail-portrait">
+        <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
+      </div>
+      <div class="npc-detail-copy">
+        <span class="eyebrow">加载 NPC 详情</span>
+        <component :is="'h1'" class="detail-missing-title">加载 NPC 详情</component>
+        <p>正在读取数值、掉落、商店和状态效果资料。</p>
+      </div>
+    </section>
 
-      <section v-else-if="missingState" class="npc-detail-hero">
-        <div class="npc-detail-portrait">
-          <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
+    <section v-else-if="missingState" class="npc-detail-hero">
+      <div class="npc-detail-portrait">
+        <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
+      </div>
+      <div class="npc-detail-copy">
+        <span class="eyebrow">NPC #{{ routeNpcId || '未知' }} · {{ aggregateError ? '加载失败' : '未找到' }}</span>
+        <component :is="'h1'" class="detail-missing-title">{{ aggregateError ? 'NPC 资料加载失败' : '没有找到这个 NPC' }}</component>
+        <p>{{ aggregateError ? '加载 NPC 资料时出现异常，可以重试或稍后再来。' : invalidNpcId ? '请从 NPC 图鉴进入对应详情页。' : '暂时没有可显示的 NPC 资料。' }}</p>
+        <div class="tag-row">
+          <span class="tag paper">详情缺失</span>
+          <span v-if="aggregateError" class="tag moss">载入异常</span>
         </div>
-        <div class="npc-detail-copy">
-          <span class="eyebrow">NPC #{{ routeNpcId || '未知' }} · {{ aggregateError ? '加载失败' : '未找到' }}</span>
-          <component :is="'h1'" class="detail-missing-title">{{ aggregateError ? 'NPC 资料加载失败' : '没有找到这个 NPC' }}</component>
-          <p>{{ aggregateError ? '加载 NPC 资料时出现异常，可以重试或稍后再来。' : invalidNpcId ? '请从 NPC 图鉴进入对应详情页。' : '暂时没有可显示的 NPC 资料。' }}</p>
-          <div class="tag-row">
-            <span class="tag paper">详情缺失</span>
-            <span v-if="aggregateError" class="tag moss">载入异常</span>
-          </div>
-          <button v-if="aggregateError" class="primary-button" type="button" @click="refreshNpcAggregate()">重试加载</button>
-          <a class="primary-button" href="/npcs">返回 NPC 图鉴</a>
-        </div>
-      </section>
+        <button v-if="aggregateError" class="primary-button" type="button" @click="refreshNpcAggregate()">重试加载</button>
+        <a class="primary-button" href="/npcs">返回 NPC 图鉴</a>
+      </div>
+    </section>
 
       <template v-else>
-        <div class="npc-archive-layout">
-        <section class="npc-detail-hero tp-archive-hero npc-archive-hero npc-archive-page">
-          <div class="npc-hero-portrait">
-            <div class="npc-detail-portrait">
-              <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" fallback-icon="icon-npc" loading="eager" />
-            </div>
-            <div v-if="npcAssetCards.length" class="npc-hero-assets" aria-label="角色资料图像">
-              <span v-for="asset in npcAssetCards" :key="asset.key">
+        <div class="npc-approved-body">
+          <section class="hero npc-approved-hero">
+            <div class="portrait npc-approved-portrait">
+              <div class="portrait-frame">
                 <CommonPreviewImage
-                  :src="asset.image"
-                  :source-image="asset.sourceImage"
-                  :alt="`${displayName} ${asset.label}`"
+                  class="npc-approved-main-image"
+                  :src="portraitImage"
+                  :alt="displayName"
                   :fallback="portraitFallback"
-                  :fallback-icon="asset.fallbackIcon"
-                  decorative
+                  fallback-icon="icon-npc"
+                  loading="eager"
                 />
-                <small>{{ asset.label }}</small>
-              </span>
+                <span class="portrait-tag"><i></i>{{ npcDisplayKindLabel }}</span>
+              </div>
+              <div v-if="npcAssetCards.length" class="asset-switch npc-hero-assets" aria-label="角色资料图像">
+                <span
+                  v-for="asset in npcAssetCards"
+                  :key="asset.key"
+                  :class="['asset', { on: asset.key === 'dialogPortrait' }]"
+                >
+                  <CommonPreviewImage
+                    :src="asset.image"
+                    :source-image="asset.sourceImage"
+                    :alt="displayName + ' ' + asset.label"
+                    :fallback="portraitFallback"
+                    :fallback-icon="asset.fallbackIcon"
+                    decorative
+                  />
+                  <small>{{ asset.label }}</small>
+                </span>
+              </div>
             </div>
-          </div>
-          <div class="npc-detail-copy">
-            <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} · {{ secondaryName || '详情资料' }}</span>
-            <h1>{{ displayName }}</h1>
-            <div class="tag-row">
-              <span v-if="npc?.isTownNpc" class="tag gold">城镇 NPC</span>
-              <span v-if="npc?.isFriendly" class="tag moss">友好</span>
-              <span class="tag paper">{{ safeNpcDisplayText(npc?.categoryName) || '未分类' }}</span>
-              <span class="tag paper">{{ trustedLoot.length + additionalLoot.length }} 条掉落</span>
-              <span class="tag paper">{{ shopEntries.length }} 项出售</span>
-              <span class="tag paper">{{ npcSourceTag }}</span>
+
+            <div class="ident">
+              <div class="eyebrow">
+                <span class="bar"></span>
+                <span>NPC #{{ npc?.gameId ?? npc?.id }}</span>
+                <code v-if="npcIdentityCode || secondaryName">{{ npcIdentityCode || secondaryName }}</code>
+                <span>资料更新 {{ detailUpdatedAt }}</span>
+              </div>
+              <div class="title-row">
+                <h1>{{ displayName }}</h1>
+                <span v-if="secondaryName" class="title-en">{{ secondaryName }}</span>
+              </div>
+              <div class="chips">
+                <span class="chip moss"><i class="dot"></i>{{ npcDisplayKindLabel }}</span>
+                <span class="chip">{{ npcAlignmentLabel }}</span>
+                <span class="chip">{{ safeNpcDisplayText(npc?.categoryName) || '未分类' }}</span>
+                <span v-if="shopEntries.length" class="chip">{{ shopEntries.length }} 项出售</span>
+                <span v-if="npcLootCount" class="chip">{{ npcLootCount }} 条掉落</span>
+              </div>
+              <div class="spawn">
+                <div class="spawn-head">
+                  <span>{{ isTemporaryMerchant ? '到访说明' : npc?.isTownNpc ? '入住与角色说明' : '角色说明' }}</span>
+                  <span class="tail">{{ npcSourceTag }}</span>
+                </div>
+                <div class="cond">
+                  <span class="box" aria-hidden="true">✓</span>
+                  <span>{{ npcBehaviorSummary }}</span>
+                </div>
+              </div>
             </div>
-            <div class="npc-hero-context">
-              <b>{{ npcArchiveModules.includes('arrival') ? '到访说明' : '角色说明' }}</b>
-              <p>{{ npcBehaviorSummary }}</p>
+
+            <div class="metrics">
+              <div class="metrics-head">
+                <span>基础数值</span>
+                <span>{{ npc?.isFriendly ? '非战斗单位' : npcDisplayKindLabel }}</span>
+              </div>
+              <div class="metric-grid">
+                <div v-for="row in npcHeroStatRows" :key="row.label" class="metric">
+                  <span class="k">{{ row.label }}</span>
+                  <span class="v">{{ row.value }}</span>
+                  <div v-if="row.label === '击退抗性'" class="meter"><i :style="{ width: row.value }"></i></div>
+                  <span class="hint">{{ row.label === '生命值' ? '基础生命上限' : row.label === '伤害' ? '近战接触伤害' : row.label === '防御' ? '基础防御值' : '击退抗性比例' }}</span>
+                </div>
+              </div>
+              <div class="friendly-note"><i></i>{{ npc?.isFriendly ? '友好单位 · 当前资料未把它列为敌怪' : '战斗单位 · 数值以当前公开资料为准' }}</div>
             </div>
-          </div>
-          <aside class="npc-detail-facts">
-            <p class="section-label">基础数值</p>
-            <dl>
-              <div v-for="row in npcHeroStatRows" :key="row.label">
-                <dt>{{ row.label }}</dt><dd>{{ row.value }}</dd>
-              </div>
-            </dl>
-          </aside>
-        </section>
+          </section>
 
-        <section :class="['detail-grid npc-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass, 'npc-archive-content']">
-          <div class="module-stack">
-            <article v-if="npcArchiveModules.includes('residence')" :class="['detail-module dark-card npc-residence-module', detailLayout.detailModuleClass]">
-              <div class="module-title">
-                <div>
-                  <h2>入住与偏好</h2>
-                  <span>该角色属于城镇 NPC；生活偏好按现有资料显示。</span>
+          <section :class="['detail-grid npc-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass, 'npc-approved-layout']">
+            <div class="col">
+              <article
+                v-if="isTemporaryMerchant"
+                id="arrival"
+                :class="['card primary npc-approved-card detail-module dark-card npc-arrival-module', detailLayout.detailModuleClass]"
+              >
+                <div class="card-head">
+                  <div>
+                    <h2>出现与离开</h2>
+                    <p class="sub">临时商人 · 只展示当前公开资料可核对的到访说明</p>
+                  </div>
+                  <span class="badge">主线模块</span>
                 </div>
-                <span class="tag gold">城镇角色</span>
-              </div>
-              <div v-if="preferenceGroups.length" class="npc-capability-summary">
-                <span v-for="group in preferenceGroups" :key="group.key"><b>{{ group.label }}</b> {{ group.rows.length }} 项</span>
-              </div>
-              <p v-else class="tp-detail-empty">当前资料已确认城镇身份，生活偏好仍在补充。</p>
-            </article>
+                <div class="facts">
+                  <div class="fact ok">
+                    <span class="k"><i></i>到访方式</span>
+                    <span class="v">{{ npcBehaviorSummary }}</span>
+                    <span class="a">行为资料</span>
+                  </div>
+                  <div class="fact ok">
+                    <span class="k"><i></i>当前商店</span>
+                    <span class="v"><b>{{ shopEntries.length }} 项</b>可用出售资料，不声明为单次来访完整货单</span>
+                    <a class="a" href="#shop">查看商店</a>
+                  </div>
+                  <div class="fact">
+                    <span class="k"><i></i>居住偏好</span>
+                    <span class="v">当前资料未提供固定住房与生活偏好资料</span>
+                    <span class="a mute">未收录</span>
+                  </div>
+                </div>
+              </article>
 
-            <article v-if="npcArchiveModules.includes('arrival')" :class="['detail-module dark-card npc-arrival-module', detailLayout.detailModuleClass]">
-              <div class="module-title">
-                <div>
-                  <h2>到访与离开</h2>
-                  <span>旅商会临时到访；当前资料只提供可用商店记录。</span>
+              <article
+                v-if="npcPrimaryModule === 'profile'"
+                id="profile"
+                :class="['card primary npc-approved-card detail-module dark-card npc-profile-module', detailLayout.detailModuleClass]"
+              >
+                <div class="card-head">
+                  <div>
+                    <h2>{{ displayName }}功能</h2>
+                    <p class="sub">角色行为与公开能力说明 · 不补造未提供的服务条目</p>
+                  </div>
+                  <span class="badge">主线模块</span>
                 </div>
-                <span class="tag paper">临时商人</span>
-              </div>
-              <div class="npc-capability-summary">
-                <span><b>可用商店资料</b> {{ shopEntries.length }} 项</span>
-                <span><b>出现 / 离开条件</b> 当前未提供</span>
-              </div>
-            </article>
+                <div class="npc-role-focus">
+                  <span class="npc-role-focus__label">{{ npcDisplayKindLabel }}</span>
+                  <p>{{ npcBehaviorSummary }}</p>
+                </div>
+              </article>
 
-            <article v-if="npcArchiveModules.includes('loot')" :class="['detail-module dark-card npc-loot-module', detailLayout.detailModuleClass]">
-              <div class="module-title">
-                <h2>掉落物</h2>
-                <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
-              </div>
-              <div v-if="npcMoneyDrops.length" class="npc-money-drops" aria-label="钱币掉落">
-                <div class="npc-money-drops-heading">
-                  <b>钱币掉落</b>
-                  <span>模式掉落</span>
+              <article
+                v-if="npcArchiveModules.includes('shop')"
+                id="shop"
+                :class="['card npc-approved-card detail-module dark-card npc-shop-module', { primary: npcPrimaryModule === 'shop' }, detailLayout.detailModuleClass]"
+              >
+                <DetailNpcShopBands
+                  :title="npcShopHeading"
+                  :total="shopEntries.length"
+                  :groups="shopEntryGroups"
+                  :visible-groups="visibleShopEntryGroups"
+                  :selected-group="selectedShopGroup"
+                  :current-stock-only="isTemporaryMerchant"
+                  :entry-key="shopEntryKey"
+                  :entry-image="entryImage"
+                  :entry-title="entryTitle"
+                  :entry-icon="entryFallbackIcon"
+                  :item-path="itemPath"
+                  :price-tokens="shopPriceTokens"
+                  :price-label="shopPriceLabel"
+                  @update:selected-group="selectedShopGroup = $event"
+                />
+              </article>
+
+              <article
+                v-if="npcArchiveModules.includes('loot')"
+                id="loot"
+                :class="['card npc-approved-card detail-module dark-card npc-loot-module', detailLayout.detailModuleClass]"
+              >
+                <div class="card-head">
+                  <div>
+                    <h2>掉落与特殊资料</h2>
+                    <p class="sub">{{ npcLootCount }} 条真实掉落记录 · 条件与概率按公开资料展示</p>
+                  </div>
+                  <span class="badge moss">{{ npcLootCount }} 条</span>
                 </div>
-                <div class="npc-money-drop-grid">
-                  <div v-for="drop in npcMoneyDrops" :key="drop.key" class="npc-money-drop-row">
-                    <span class="npc-money-mode-badge">
-                      <b>{{ drop.label }}</b>
-                      <em>{{ npcMoneyModeMeta(drop.mode) }}</em>
-                    </span>
-                    <div class="npc-money-token-row" :aria-label="formatTerrariaPriceTokens(drop.tokens)">
-                      <span v-for="token in drop.tokens" :key="`${drop.key}-${token.unit}`" class="npc-money-token">
-                        <CommonPreviewImage
-                          v-if="token.iconUrl"
-                          class="npc-money-token-icon"
-                          :src="token.iconUrl"
-                          :alt="resolveTerrariaPriceUnitLabel(token.unit)"
-                          :fallback="firstGlyph(resolveTerrariaPriceUnitLabel(token.unit))"
-                          fallback-icon="icon-items"
-                          width="32"
-                          height="32"
-                          decorative
-                        />
-                        <span v-else :class="['npc-money-coin-mark', `is-${npcMoneyCoinClass(token.unit)}`]" aria-hidden="true"></span>
-                        <span class="npc-money-token-copy">{{ token.amount }}{{ resolveTerrariaPriceUnitLabel(token.unit) }}</span>
+
+                <div v-if="npcMoneyDrops.length" class="npc-money-drops" aria-label="钱币掉落">
+                  <div class="npc-money-drops-heading">
+                    <b>钱币掉落</b>
+                    <span>模式掉落</span>
+                  </div>
+                  <div class="npc-money-drop-grid">
+                    <div v-for="drop in npcMoneyDrops" :key="drop.key" class="npc-money-drop-row">
+                      <span class="npc-money-mode-badge">
+                        <b>{{ drop.label }}</b>
+                        <em>{{ npcMoneyModeMeta(drop.mode) }}</em>
                       </span>
+                      <div class="npc-money-token-row" :aria-label="formatTerrariaPriceTokens(drop.tokens)">
+                        <span v-for="token in drop.tokens" :key="drop.key + '-' + token.unit" class="npc-money-token">
+                          <CommonPreviewImage
+                            v-if="token.iconUrl"
+                            class="npc-money-token-icon"
+                            :src="token.iconUrl"
+                            :alt="resolveTerrariaPriceUnitLabel(token.unit)"
+                            :fallback="firstGlyph(resolveTerrariaPriceUnitLabel(token.unit))"
+                            fallback-icon="icon-items"
+                            width="32"
+                            height="32"
+                            decorative
+                          />
+                          <span v-else :class="['npc-money-coin-mark', 'is-' + npcMoneyCoinClass(token.unit)]" aria-hidden="true"></span>
+                          <span class="npc-money-token-copy">{{ token.amount }}{{ resolveTerrariaPriceUnitLabel(token.unit) }}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
-                <DetailRelationRow
-                  v-for="entry in trustedLootVisibleEntries"
-                  :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
-                  :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
-                  :image="entryImage(entry)"
-                  :title="entryTitle(entry)"
-                  :fallback-icon="entryFallbackIcon(entry)"
-                  :href="itemPath(entry)"
-                  :meta="lootEntryMetaLabel(entry)"
-                  badge="掉落"
-                />
-              </div>
-              <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
-                <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
-                <div class="source-table dark-table tp-detail-relation-grid">
+
+                <component
+                  :is="itemPath(trustedLootVisibleEntries[0]) ? 'NuxtLink' : 'div'"
+                  v-if="trustedLootVisibleEntries[0]"
+                  :to="itemPath(trustedLootVisibleEntries[0]) || undefined"
+                  class="npc-drop-focus"
+                >
+                  <span class="npc-drop-focus__image">
+                    <CommonPreviewImage
+                      :src="entryImage(trustedLootVisibleEntries[0])"
+                      :alt="entryTitle(trustedLootVisibleEntries[0])"
+                      :fallback="firstGlyph(entryTitle(trustedLootVisibleEntries[0]))"
+                      :fallback-icon="entryFallbackIcon(trustedLootVisibleEntries[0])"
+                    />
+                  </span>
+                  <span class="npc-drop-focus__copy">
+                    <b>{{ entryTitle(trustedLootVisibleEntries[0]) }}</b>
+                    <span>{{ lootEntryMetaLabel(trustedLootVisibleEntries[0]) }}</span>
+                  </span>
+                  <span class="npc-drop-focus__rate">{{ chanceLabel(trustedLootVisibleEntries[0]) || '已收录' }}</span>
+                </component>
+
+                <div v-if="trustedLootVisibleEntries.length > 1" class="source-table dark-table tp-detail-relation-grid">
                   <DetailRelationRow
-                    v-for="entry in trustedLootRemainderEntries"
+                    v-for="entry in trustedLootVisibleEntries.slice(1)"
                     :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
                     :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
                     :image="entryImage(entry)"
@@ -606,112 +756,280 @@ const npcArchiveModules = computed(() => resolveNpcArchiveModules({
                     badge="掉落"
                   />
                 </div>
-              </details>
-              <div v-if="additionalLoot.length" class="detail-subgroup npc-additional-loot">
-                <div class="detail-subgroup-title">
-                  <b>其他掉落记录</b>
-                  <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
+                <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
+                  <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
+                  <div class="source-table dark-table tp-detail-relation-grid">
+                    <DetailRelationRow
+                      v-for="entry in trustedLootRemainderEntries"
+                      :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                      :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                      :image="entryImage(entry)"
+                      :title="entryTitle(entry)"
+                      :fallback-icon="entryFallbackIcon(entry)"
+                      :href="itemPath(entry)"
+                      :meta="lootEntryMetaLabel(entry)"
+                      badge="掉落"
+                    />
+                  </div>
+                </details>
+                <div v-if="additionalLoot.length" class="detail-subgroup npc-additional-loot">
+                  <div class="detail-subgroup-title">
+                    <b>其他掉落记录</b>
+                    <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
+                  </div>
+                  <div class="source-table dark-table tp-detail-relation-grid">
+                    <DetailRelationRow
+                      v-for="entry in additionalLoot.slice(0, 6)"
+                      :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                      :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                      :image="entryImage(entry)"
+                      :title="entryTitle(entry)"
+                      :fallback-icon="entryFallbackIcon(entry)"
+                      :href="itemPath(entry)"
+                      :meta="lootEntryMetaLabel(entry)"
+                      badge="补充"
+                    />
+                  </div>
                 </div>
-                <div class="source-table dark-table tp-detail-relation-grid">
-                  <DetailRelationRow
-                    v-for="entry in additionalLoot.slice(0, 6)"
-                    :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
-                    :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
-                    :image="entryImage(entry)"
-                    :title="entryTitle(entry)"
-                    :fallback-icon="entryFallbackIcon(entry)"
-                    :href="itemPath(entry)"
-                    :meta="lootEntryMetaLabel(entry)"
-                    badge="补充"
-                  />
+              </article>
+
+              <article
+                v-if="preferenceGroups.length"
+                id="preferences"
+                :class="['card npc-approved-card detail-module dark-card npc-residence-module', detailLayout.detailModuleClass]"
+              >
+                <div class="card-head">
+                  <div>
+                    <h2>幸福度与居住</h2>
+                    <p class="sub">{{ livingPreferenceRows.length }} 条生活偏好 · 只按现有关系资料归组</p>
+                  </div>
+                  <span class="badge moss">{{ livingPreferenceRows.length }} 条</span>
                 </div>
-              </div>
-              <p v-if="!trustedLoot.length && !additionalLoot.length" class="tp-detail-empty">暂时没有整理到掉落物。</p>
-            </article>
+                <div class="happy">
+                  <div v-if="preferredBiomeRow || preferredNpcRows.length" class="best-setup">
+                    <span class="t">偏好居住参考</span>
+                    <span class="biome">{{ preferredBiomeRow ? preferenceTargetTitle(preferredBiomeRow) : '生物群系未收录' }}</span>
+                    <div v-if="preferredNpcRows.length" class="roomies">
+                      <NuxtLink
+                        v-for="row in preferredNpcRows"
+                        :key="String(row.targetId ?? row.target_id)"
+                        :to="preferenceTargetPath(row)"
+                        :aria-label="preferenceTargetTitle(row)"
+                      >
+                        <CommonPreviewImage
+                          :src="preferenceTargetImage(row)"
+                          :alt="preferenceTargetTitle(row)"
+                          :fallback="firstGlyph(preferenceTargetTitle(row))"
+                          :fallback-icon="preferenceFallbackIcon(row)"
+                        />
+                      </NuxtLink>
+                    </div>
+                    <p class="effect">
+                      正向偏好来自当前生活关系资料。
+                      <template v-if="discouragedPreferenceRows.length">
+                        需留意 {{ discouragedPreferenceRows.map(preferenceTargetTitle).join('、') }}。
+                      </template>
+                    </p>
+                  </div>
+                  <div class="pref-cols preference-group-grid">
+                    <section
+                      v-for="group in preferenceGroups"
+                      :key="group.key"
+                      class="pref-col preference-group-card"
+                    >
+                      <div :class="['pref-head preference-group-head', preferenceToneClass(group.key)]">
+                        <i></i>{{ group.label }}<span class="c">{{ group.rows.length }}</span>
+                      </div>
+                      <div class="preference-card-list">
+                        <component
+                          :is="preferenceTargetPath(row) ? 'NuxtLink' : 'div'"
+                          v-for="row in group.rows"
+                          :key="String(row.targetType ?? row.target_type ?? row.targetId ?? row.target_id ?? row.targetName ?? row.target_name)"
+                          :to="preferenceTargetPath(row) || undefined"
+                          :class="['pref preference-target-card', preferenceToneClass(group.key)]"
+                        >
+                          <span class="preference-target-media">
+                            <CommonPreviewImage
+                              :src="preferenceTargetImage(row)"
+                              :alt="preferenceTargetTitle(row)"
+                              :fallback="firstGlyph(preferenceTargetTitle(row))"
+                              :fallback-icon="preferenceFallbackIcon(row)"
+                            />
+                          </span>
+                          <span class="n preference-target-copy">
+                            <b>{{ preferenceTargetTitle(row) }}</b>
+                            <span>{{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }}</span>
+                            <em v-if="preferenceMissingLinkLabel(row)">{{ preferenceMissingLinkLabel(row) }}</em>
+                          </span>
+                        </component>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </article>
 
-          <article v-if="npcArchiveModules.includes('shop')" :class="['detail-module dark-card npc-shop-module', detailLayout.detailModuleClass]">
-            <DetailNpcShopBands
-              :total="shopEntries.length"
-              :groups="shopEntryGroups"
-              :visible-groups="visibleShopEntryGroups"
-              :selected-group="selectedShopGroup"
-              :current-stock-only="npcArchiveModules.includes('arrival')"
-              :entry-key="shopEntryKey"
-              :entry-image="entryImage"
-              :entry-title="entryTitle"
-              :entry-icon="entryFallbackIcon"
-              :item-path="itemPath"
-              :price-tokens="shopPriceTokens"
-              :price-label="shopPriceLabel"
-              @update:selected-group="selectedShopGroup = $event"
-            />
-          </article>
+              <article
+                v-if="buffRelationSections.length"
+                id="effects"
+                :class="['card npc-approved-card detail-module dark-card npc-buff-module', detailLayout.detailModuleClass]"
+              >
+                <div class="card-head">
+                  <div>
+                    <h2>状态效果</h2>
+                    <p class="sub">按施加、免疫与其他关系分组</p>
+                  </div>
+                  <span class="badge moss">{{ buffRelations.length }} 条</span>
+                </div>
+                <div class="npc-buff-section-stack">
+                  <section v-for="section in buffRelationSections" :key="section.key" class="detail-subgroup npc-buff-section">
+                    <div class="detail-subgroup-title">
+                      <b>{{ section.title }}</b>
+                      <span>{{ section.entries.length }} 条</span>
+                    </div>
+                    <div class="npc-buff-card-grid">
+                      <article v-for="(entry, index) in section.entries" :key="buffRelationCardKey(section.key, entry, index)" class="npc-buff-card">
+                        <span class="npc-buff-media">
+                          <CommonPreviewImage
+                            :src="entryImage(entry)"
+                            :alt="entryTitle(entry)"
+                            :fallback="firstGlyph(entryTitle(entry))"
+                            :fallback-icon="entryFallbackIcon(entry)"
+                          />
+                        </span>
+                        <span class="npc-buff-copy">
+                          <span class="npc-buff-title-line">
+                            <b>{{ entryTitle(entry) }}</b>
+                            <em class="npc-buff-relation-badge">{{ buffRelationMeaningLabel(entry) }}</em>
+                          </span>
+                          <span class="npc-buff-meta">{{ [buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '效果关系已确认' }}</span>
+                        </span>
+                      </article>
+                    </div>
+                  </section>
+                </div>
+              </article>
 
-          <article :class="['detail-module dark-card npc-buff-module', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>状态效果</h2>
-              <span class="tag paper">{{ buffRelations.length }} 条</span>
+              <section v-if="relatedItemSections.length" id="related-items" class="npc-approved-related">
+                <article
+                  v-for="section in relatedItemSections"
+                  :key="section.title"
+                  :class="['detail-module dark-card', detailLayout.detailModuleClass]"
+                >
+                  <div class="card-head">
+                    <div>
+                      <h2>{{ section.title }}</h2>
+                      <p class="sub">可追踪到现有物品详情的关系资料</p>
+                    </div>
+                    <span class="badge moss">{{ section.entries.length }} 条</span>
+                  </div>
+                  <div class="signal-list">
+                    <div v-for="entry in section.entries" :key="entry.id">
+                      <b>关联</b>
+                      <NuxtLink v-if="entry.href" :to="entry.href">{{ entry.title }}</NuxtLink>
+                      <span v-else>{{ entry.title }}</span>
+                      <em>{{ entry.meta || '相关资料' }}</em>
+                    </div>
+                  </div>
+                </article>
+              </section>
+
+              <article
+                id="other"
+                :class="['card npc-approved-card detail-module dark-card npc-other-module', detailLayout.detailModuleClass]"
+              >
+                <div class="card-head">
+                  <div>
+                    <h2>其他资料</h2>
+                    <p class="sub">空能力不再占独立大卡，当前状态集中说明</p>
+                  </div>
+                  <span class="badge">4 项</span>
+                </div>
+                <div class="facts">
+                  <div :class="['fact', { ok: shopEntries.length }]">
+                    <span class="k"><i></i>出售物品</span>
+                    <span class="v">{{ shopEntries.length ? '当前整理 ' + shopEntries.length + ' 项出售资料' : '当前资料未收录商店资料' }}</span>
+                    <a v-if="shopEntries.length" class="a" href="#shop">查看商店</a>
+                    <span v-else class="a mute">{{ materialStatus.shop }}</span>
+                  </div>
+                  <div :class="['fact', { ok: npcLootCount }]">
+                    <span class="k"><i></i>掉落物</span>
+                    <span class="v">{{ npcLootCount ? '当前整理 ' + npcLootCount + ' 条掉落记录' : '当前资料未收录掉落记录' }}</span>
+                    <a v-if="npcLootCount" class="a" href="#loot">查看掉落</a>
+                    <span v-else class="a mute">{{ materialStatus.loot }}</span>
+                  </div>
+                  <div :class="['fact', { ok: buffRelations.length }]">
+                    <span class="k"><i></i>状态效果</span>
+                    <span class="v">{{ buffRelations.length ? '当前整理 ' + buffRelations.length + ' 条状态关系' : '当前资料未收录状态关系' }}</span>
+                    <a v-if="buffRelations.length" class="a" href="#effects">查看关系</a>
+                    <span v-else class="a mute">{{ materialStatus.buffs }}</span>
+                  </div>
+                  <div :class="['fact', { ok: npcAssetCards.length }]">
+                    <span class="k"><i></i>资料图像</span>
+                    <span class="v"><b>{{ npcAssetCards.length }} 张</b>可用立绘、对话像或地图图标</span>
+                    <span class="a">{{ npcAssetCards.length ? 'Hero 展示' : '未收录' }}</span>
+                  </div>
+                </div>
+              </article>
             </div>
-            <div v-if="buffRelationSections.length" class="npc-buff-section-stack">
-              <section v-for="section in buffRelationSections" :key="section.key" class="detail-subgroup npc-buff-section">
-                <div class="detail-subgroup-title">
-                  <b>{{ section.title }}</b>
-                  <span>{{ section.entries.length }} 条</span>
-                </div>
-                <div class="npc-buff-card-grid">
-                  <article v-for="(entry, index) in section.entries" :key="buffRelationCardKey(section.key, entry, index)" class="npc-buff-card">
-                    <span class="npc-buff-media">
-                      <CommonPreviewImage
-                        :src="entryImage(entry)"
-                        :alt="entryTitle(entry)"
-                        :fallback="firstGlyph(entryTitle(entry))"
-                        :fallback-icon="entryFallbackIcon(entry)"
-                      />
-                    </span>
-                    <span class="npc-buff-copy">
-                      <span class="npc-buff-title-line">
-                        <b>{{ entryTitle(entry) }}</b>
-                        <em class="npc-buff-relation-badge">{{ buffRelationMeaningLabel(entry) }}</em>
-                      </span>
-                      <span class="npc-buff-meta">{{ [buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '效果关系已确认' }}</span>
-                    </span>
-                  </article>
+
+            <aside :class="['evidence-panel dark-card tp-archive-rail npc-archive-rail npc-approved-rail', detailLayout.detailModuleClass]">
+              <section class="rail-card">
+                <div class="rail-title"><span class="bar"></span>基础数值<span class="tail">NPC #{{ npc?.gameId ?? npc?.id }}</span></div>
+                <div class="stat-list">
+                  <div v-for="row in npcStatRows" :key="row.label" class="stat-row">
+                    <span class="k">{{ row.label }}</span>
+                    <span :class="['v', { txt: row.label === '类型' }]">{{ row.label === '类型' ? npcDisplayKindLabel : row.value }}</span>
+                  </div>
+                  <div class="stat-row"><span class="k">阵营</span><span class="v txt">{{ npcAlignmentLabel }}</span></div>
+                  <div v-if="shopEntries.length" class="stat-row"><span class="k">出售项</span><span class="v">{{ shopEntries.length }}</span></div>
+                  <div v-if="npcLootCount" class="stat-row"><span class="k">掉落项</span><span class="v">{{ npcLootCount }}</span></div>
                 </div>
               </section>
-            </div>
-            <p v-else class="tp-detail-empty">暂时没有整理到状态效果。</p>
-          </article>
-          </div>
 
-          <aside :class="['evidence-panel dark-card tp-archive-rail npc-archive-rail', detailLayout.detailModuleClass]">
-            <span class="eyebrow">关联资料</span>
-            <div class="evidence-step"><div><b>掉落物</b><span>{{ materialStatus.loot }}</span></div></div>
-            <div class="evidence-step"><div><b>出售物品</b><span>{{ materialStatus.shop }}</span></div></div>
-            <div class="evidence-step"><div><b>状态效果</b><span>{{ materialStatus.buffs }}</span></div></div>
-          </aside>
-        </section>
-
-        <section v-if="preferenceGroups.length" class="npc-related-grid npc-preference-section">
-          <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>生活偏好</h2>
-              <span class="tag paper">{{ livingPreferenceRows.length }} 条</span>
-            </div>
-            <div class="preference-group-grid">
-              <section v-for="group in preferenceGroups" :key="group.key" class="preference-group-card">
-                <div class="preference-group-head">
-                  <b>{{ group.label }}</b>
-                  <span>{{ group.rows.length }} 项</span>
-                </div>
-                <div class="preference-card-list">
-                  <component
-                    :is="preferenceTargetPath(row) ? 'NuxtLink' : 'div'"
-                    v-for="row in group.rows"
-                    :key="String(row.targetType ?? row.target_type ?? row.targetId ?? row.target_id ?? row.targetName ?? row.target_name)"
-                    :to="preferenceTargetPath(row) || undefined"
-                    class="preference-target-card"
+              <section class="rail-card npc-approved-anchors">
+                <div class="rail-title"><span class="bar"></span>页面锚点</div>
+                <nav class="anchors" aria-label="NPC 页面章节">
+                  <a
+                    v-for="(anchor, index) in npcApprovedAnchors"
+                    :key="anchor.id"
+                    :class="['anchor', { on: index === 0 }]"
+                    :href="'#' + anchor.id"
                   >
-                    <span class="preference-target-media">
+                    <i></i>{{ anchor.label }}<span class="c">{{ anchor.count }}</span>
+                  </a>
+                </nav>
+              </section>
+
+              <section class="rail-card npc-approved-coverage">
+                <div class="rail-title">
+                  <span class="bar"></span>资料完整度
+                  <span class="tail">{{ npcCoverage.availableCount }} / {{ npcCoverage.totalCount }} 模块</span>
+                </div>
+                <div class="cover">
+                  <div class="ring" :style="{ '--npc-coverage-progress': npcCoverage.percentage + '%' }"><b>{{ npcCoverage.percentage }}%</b></div>
+                  <div class="cover-list">
+                    <span
+                      v-for="row in npcCoverage.summaryRows"
+                      :key="row.key"
+                      :class="{ ok: row.state === 'complete', partial: row.state === 'partial' }"
+                      :title="row.detail"
+                    >
+                      <i></i>{{ row.label }}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <section v-if="npcRelatedPreferences.length" class="rail-card npc-approved-related-rail">
+                <div class="rail-title"><span class="bar"></span>相关 NPC<span class="tail">来自生活偏好</span></div>
+                <div class="rel-list">
+                  <NuxtLink
+                    v-for="row in npcRelatedPreferences"
+                    :key="String(row.targetId ?? row.target_id)"
+                    :to="preferenceTargetPath(row)"
+                    class="rel"
+                  >
+                    <span class="rel-image">
                       <CommonPreviewImage
                         :src="preferenceTargetImage(row)"
                         :alt="preferenceTargetTitle(row)"
@@ -719,34 +1037,13 @@ const npcArchiveModules = computed(() => resolveNpcArchiveModules({
                         :fallback-icon="preferenceFallbackIcon(row)"
                       />
                     </span>
-                    <span class="preference-target-copy">
-                      <b>{{ preferenceTargetTitle(row) }}</b>
-                      <span>{{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }}</span>
-                      <em v-if="preferenceMissingLinkLabel(row)">{{ preferenceMissingLinkLabel(row) }}</em>
-                    </span>
-                  </component>
+                    <span class="n">{{ preferenceTargetTitle(row) }}</span>
+                    <span class="t">{{ preferenceLabel(row.preference) }}</span>
+                  </NuxtLink>
                 </div>
               </section>
-            </div>
-          </article>
-        </section>
-
-        <section v-if="relatedItemSections.length" class="npc-related-grid">
-          <article v-for="section in relatedItemSections" :key="section.title" :class="['detail-module dark-card', detailLayout.detailModuleClass]">
-            <div class="module-title">
-              <h2>{{ section.title }}</h2>
-              <span class="tag paper">{{ section.entries.length }} 条</span>
-            </div>
-            <div class="signal-list">
-              <div v-for="entry in section.entries" :key="entry.id">
-                <b>关联</b>
-                <NuxtLink v-if="entry.href" :to="entry.href">{{ entry.title }}</NuxtLink>
-                <span v-else>{{ entry.title }}</span>
-                <em>{{ entry.meta || '相关资料' }}</em>
-              </div>
-            </div>
-          </article>
-        </section>
+            </aside>
+          </section>
         </div>
       </template>
     </main>

@@ -21,6 +21,33 @@ export type NpcShopBand = {
   conditionSummary: (entry: PublicNpcShopEntry | undefined) => string
 }
 
+export type NpcCoverageInput = {
+  hasIdentity?: boolean
+  combatStatCount?: number
+  assetCount?: number
+  hasBehavior?: boolean
+  shopCount?: number
+  lootCount?: number
+  preferenceCount?: number
+  buffCount?: number
+}
+
+export type NpcCoverageSummaryState = 'complete' | 'partial' | 'missing'
+
+export type NpcCoverageSummaryRow = {
+  key: string
+  label: string
+  detail: string
+  state: NpcCoverageSummaryState
+}
+
+export type NpcCoverageProjection = {
+  availableCount: number
+  totalCount: number
+  percentage: number
+  summaryRows: NpcCoverageSummaryRow[]
+}
+
 const shopBandMeta: Record<NpcShopBandKey, Pick<NpcShopBand, 'title' | 'meta'>> = {
   always: { title: '常驻出售', meta: '无额外条件' },
   period: { title: '阶段出售', meta: '随进度解锁' },
@@ -101,6 +128,75 @@ export const buildNpcShopBands = (entries: readonly PublicNpcShopEntry[], safeTe
 export const filterNpcShopBands = (bands: readonly NpcShopBand[], selectedKey: string) => (
   selectedKey === 'all' ? [...bands] : bands.filter((band) => band.key === selectedKey)
 )
+
+const nonNegativeCount = (value: unknown) => {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) && numberValue > 0 ? Math.trunc(numberValue) : 0
+}
+
+const pairedCoverageState = (left: boolean, right: boolean): NpcCoverageSummaryState => {
+  if (left && right) return 'complete'
+  if (left || right) return 'partial'
+  return 'missing'
+}
+
+export const buildNpcCoverage = (input: NpcCoverageInput): NpcCoverageProjection => {
+  const combatStatCount = nonNegativeCount(input.combatStatCount)
+  const assetCount = nonNegativeCount(input.assetCount)
+  const shopCount = nonNegativeCount(input.shopCount)
+  const lootCount = nonNegativeCount(input.lootCount)
+  const preferenceCount = nonNegativeCount(input.preferenceCount)
+  const buffCount = nonNegativeCount(input.buffCount)
+  const hasIdentity = Boolean(input.hasIdentity)
+  const hasCombatStats = combatStatCount > 0
+  const hasAssets = assetCount > 0
+  const hasBehavior = Boolean(input.hasBehavior)
+  const hasShop = shopCount > 0
+  const hasLoot = lootCount > 0
+  const hasPreferences = preferenceCount > 0
+  const hasBuffs = buffCount > 0
+  const capabilities = [
+    hasIdentity,
+    hasCombatStats,
+    hasAssets,
+    hasBehavior,
+    hasShop,
+    hasLoot,
+    hasPreferences,
+    hasBuffs,
+  ]
+  const availableCount = capabilities.filter(Boolean).length
+  const totalCount = capabilities.length
+  const percentage = Math.round((availableCount / totalCount) * 100)
+  const summaryRows = [
+    {
+      key: 'identity-combat',
+      label: '身份与数值',
+      detail: `身份${hasIdentity ? '已整理' : '未收录'} · 数值 ${combatStatCount} 项`,
+      state: pairedCoverageState(hasIdentity, hasCombatStats),
+    },
+    {
+      key: 'assets-behavior',
+      label: '图像与说明',
+      detail: `图像 ${assetCount} 张 · 角色说明${hasBehavior ? '已整理' : '未收录'}`,
+      state: pairedCoverageState(hasAssets, hasBehavior),
+    },
+    {
+      key: 'shop-loot',
+      label: '商店与掉落',
+      detail: `商店 ${shopCount} 项 · 掉落 ${lootCount} 条`,
+      state: pairedCoverageState(hasShop, hasLoot),
+    },
+    {
+      key: 'preference-buff',
+      label: '偏好与状态',
+      detail: `偏好 ${preferenceCount} 条 · 状态 ${buffCount} 条`,
+      state: pairedCoverageState(hasPreferences, hasBuffs),
+    },
+  ]
+
+  return { availableCount, totalCount, percentage, summaryRows }
+}
 
 export const resolveNpcArchiveModules = (input: NpcArchiveModuleInput): NpcArchiveModule[] => {
   const modules: NpcArchiveModule[] = []

@@ -93,10 +93,10 @@ The initial three-route technical acceptance is complete. The user authorized th
 
 ## Task 5: NPC approved-sample fidelity continuation
 
-- [ ] Recompare the live NPC body against merchant, guide, pirate, and traveling-merchant v1 in that order. Preserve the production navigation, breadcrumb, outer container, existing capability logic, and all current interactions.
-- [ ] Before production edits, record exact contract reds for approved hero/material/rail/module destinations. Add or retarget exact assertions only; do not widen regexes or remove safety markers.
-- [ ] Adapt the approved body by live capability: residence/service/shop/arrival/drop regions render only when supported, and traveler stock remains labelled `当前可用商店资料`.
-- [ ] Verify representative NPC routes under all three themes at 1440x1000 and 390x844 with no console/request/image/overflow regression, then run the full and supplemental gates.
+- [x] Recompare the live NPC body against merchant, guide, pirate, and traveling-merchant v1 in that order. Preserve the production navigation, breadcrumb, outer container, existing capability logic, and all current interactions.
+- [x] Before production edits, record exact contract reds for approved hero/material/rail/module destinations. Add or retarget exact assertions only; do not widen regexes or remove safety markers.
+- [x] Adapt the approved body by live capability: residence/service/shop/arrival/drop regions render only when supported, and traveler stock remains labelled `当前可用商店资料`.
+- [x] Verify representative NPC routes under all three themes at 1440x1000 and 390x844 with no console/request/image/overflow regression, then run the full and supplemental gates.
 
 ## Task 6: Articles v22 fidelity continuation
 

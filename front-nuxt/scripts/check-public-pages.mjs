@@ -239,6 +239,7 @@ const publicShellClasses = new Map([
   ['pages/articles/[slug].vue', 'article-screen'],
   ['pages/items/index.vue', 'catalog-screen'],
   ['pages/items/[id].vue', 'detail-screen item-detail-approved-screen'],
+  ['pages/npcs/[id].vue', 'entity-screen npc-detail-approved-screen'],
   ['pages/crafting/index.vue', 'entity-screen crafting-screen'],
   ...[
     ...publicPageFiles,
@@ -250,7 +251,7 @@ const publicShellClasses = new Map([
   ].filter((path) => ![
     'pages/index.vue', 'pages/search-tool.vue', 'pages/articles/index.vue',
     'pages/articles/[slug].vue', 'pages/items/index.vue', 'pages/items/[id].vue',
-    'pages/crafting/index.vue',
+    'pages/npcs/[id].vue', 'pages/crafting/index.vue',
   ].includes(path)).map((path) => [path, 'entity-screen']),
 ])
 
@@ -1166,7 +1167,7 @@ const pageBusyMarkers = new Map([
     '<main v-else-if="notFoundState" class="article-detail-layout" :aria-busy="articleLoading">',
     '<main v-else-if="article" class="article-detail-layout" :aria-busy="articleLoading">',
   ]],
-  ['pages/npcs/[id].vue', ['<main :class="[\'entity-detail-layout\', detailLayout.detailShellClass]" :aria-busy="loadingState">']],
+  ['pages/npcs/[id].vue', ['<main :class="[\'entity-detail-layout\', detailLayout.detailShellClass, \'npc-approved-shell\']" :aria-busy="loadingState">']],
   ['pages/users/[id].vue', [
     '<main v-if="loading" class="user-layout" :aria-busy="loading">',
     '<main v-else-if="notFound" class="user-layout" :aria-busy="loading">',
@@ -1943,6 +1944,10 @@ for (const path of scanFiles) {
       'npcWikiAssets.value?.spriteImage',
       'npcWikiAssets.value?.mapIconImage',
       'npcBehaviorSummary',
+      'buildNpcCoverage',
+      'npcCoverage',
+      'npcApprovedAnchors',
+      'npcRelatedPreferences',
       '基础数值',
       '出售物品',
       '掉落物',
@@ -1955,6 +1960,11 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC detail page must use the public aggregate API data layer via marker ${marker}`)
       }
+    }
+
+    if (!/const npcHeroStatLabels = \['生命值', '防御', '伤害', '击退抗性'\] as const/.test(content)
+      || !/npcHeroStatLabels\.flatMap\(\(label\) =>/.test(content)) {
+      violations.push(`${path}: approved NPC Hero metrics must keep life, defense, damage, and knockback resistance in reference order without reordering the rail`)
     }
 
     for (const marker of [
@@ -1976,9 +1986,12 @@ for (const path of scanFiles) {
       }
     }
 
-    for (const marker of ['.npc-shop-bands .npc-shop-grid', 'minmax(172px, 1fr)', '.npc-shop-bands .npc-shop-price-icon', '24px']) {
-      if (!detailPageRedesignCss.includes(marker)) {
-        violations.push(`assets/css/domains/detail-pages-redesign.css: NPC shop component styling must retain compact tokenized marker ${marker}`)
+    for (const [pattern, marker] of [
+      [/\.npc-shop-bands \.npc-shop-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/m, 'approved four-column npc-shop-grid'],
+      [/\.npc-shop-bands \.npc-shop-price-icon,\s*\.npc-shop-bands \.npc-shop-price-icon \.item-art\s*\{[^}]*width:\s*15px;[^}]*height:\s*15px;/m, 'approved 15px structured coin image'],
+    ]) {
+      if (!pattern.test(detailPageRedesignCss)) {
+        violations.push(`assets/css/domains/detail-pages-redesign.css: NPC shop component styling must retain ${marker}`)
       }
     }
 
@@ -1989,6 +2002,10 @@ for (const path of scanFiles) {
       '阶段出售',
       '地点出售',
       '解锁出售',
+      'buildNpcCoverage',
+      'availableCount',
+      'percentage',
+      'summaryRows',
     ]) {
       if (!npcShopBands.includes(marker)) {
         violations.push(`utils/npcShopBands.ts: NPC shop band utility must retain player-safe condition semantics via marker ${marker}`)
@@ -2053,8 +2070,9 @@ for (const path of scanFiles) {
       violations.push(`components/detail/NpcShopBands.vue: NPC shop rows must use a dedicated compact shop grid instead of the generic relation row density`)
     }
 
-    if (!detailPageRedesignCss.includes('minmax(172px, 1fr)') || !detailPageRedesignCss.includes('24px')) {
-      violations.push(`assets/css/domains/detail-pages-redesign.css: NPC shop layout must increase row density and render larger coin icons`)
+    if (!/\.npc-shop-bands \.npc-shop-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/m.test(detailPageRedesignCss)
+      || !/\.npc-shop-bands \.npc-shop-price-icon,\s*\.npc-shop-bands \.npc-shop-price-icon \.item-art\s*\{[^}]*width:\s*15px;[^}]*height:\s*15px;/m.test(detailPageRedesignCss)) {
+      violations.push(`assets/css/domains/detail-pages-redesign.css: NPC shop layout must retain the approved four-column density and compact structured coin images`)
     }
 
     if (content.includes('[shopPriceLabel(entry), shopConditionSummary(entry)]')) {

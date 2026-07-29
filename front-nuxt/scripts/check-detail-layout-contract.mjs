@@ -18,12 +18,12 @@ const detailPages = {
     String.raw`:class="\['evidence-panel dark-card item-coverage-panel tp-archive-rail item-archive-rail', detailLayout\.detailModuleClass\]"`,
   ],
   'pages/npcs/[id].vue': [
-    String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass(?:, '[^']+')?\]"`,
-    String.raw`:class="\['detail-grid npc-detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass(?:, '[^']+')?\]"`,
+    String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass, 'npc-approved-shell'\]"`,
+    String.raw`:class="\['detail-grid npc-detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass, 'npc-approved-layout'\]"`,
     String.raw`:class="\['detail-module dark-card', detailLayout\.detailModuleClass\]"`,
     String.raw`class="source-table dark-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
-    String.raw`:class="\['evidence-panel dark-card(?: [^']+)*', detailLayout\.detailModuleClass\]"`,
+    String.raw`:class="\['evidence-panel dark-card tp-archive-rail npc-archive-rail npc-approved-rail', detailLayout\.detailModuleClass\]"`,
   ],
   'pages/bosses/[id].vue': [
     String.raw`<main :class="\['boss-detail-shell', detailLayout\.detailShellClass\]"`,
@@ -453,13 +453,19 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   assertPattern(
     path,
     content,
-    String.raw`<div class="npc-archive-layout">`,
+    String.raw`definePageMeta\(\{ publicScreenClass: 'entity-screen npc-detail-approved-screen' \}\)`,
+    'approved NPC route must expose its full-screen archetype without painting the shared detail shell',
+  )
+  assertPattern(
+    path,
+    content,
+    String.raw`<div class="npc-approved-body">`,
     'NPC archive must expose the capability-first layout marker',
   )
   assertPattern(
     path,
     content,
-    String.raw`const npcHeroStatRows = computed\(\(\) => npcStatRows\.value\.filter`,
+    String.raw`const npcHeroStatLabels = \['生命值', '防御', '伤害', '击退抗性'\] as const[\s\S]*?const npcHeroStatRows = computed\(\(\) => npcHeroStatLabels\.flatMap`,
     'NPC archive hero must restrict its primary metrics to decisive combat facts',
   )
   for (const marker of ['npc-residence-module', 'npc-arrival-module']) {
@@ -467,7 +473,15 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       violations.push(`${path}: capability-driven NPC archive must render ${marker}`)
     }
   }
-  for (const marker of ['npc-hero-assets', 'visibleShopEntryGroups']) {
+  for (const marker of [
+    'npc-hero-assets',
+    'visibleShopEntryGroups',
+    'class="hero npc-approved-hero"',
+    'npc-approved-card',
+    'npc-approved-anchors',
+    'npc-approved-coverage',
+    'npc-approved-related',
+  ]) {
     if (!content.includes(marker)) {
       violations.push(`${path}: approved NPC archive must include ${marker}`)
     }
@@ -480,6 +494,39 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 
   if (gridCount < 5) {
     violations.push(`${path}: NPC loot/shop visible and remainder lists must all use compact relation grids, found ${gridCount}`)
+  }
+}
+
+{
+  const path = 'assets/css/domains/detail-pages-redesign.css'
+  const content = read(path)
+  for (const [pattern, message] of [
+    [
+      String.raw`\[data-theme="dark"\] \.npc-detail-approved-screen\s*\{[^}]*background:[^}]*var\(--index-grid-x\),[^}]*var\(--index-grid-y\),[^}]*linear-gradient\(\s*125deg,[^}]*var\(--tp-color-page-raised\)[^}]*background-attachment:\s*fixed;`,
+      'approved NPC dark route ground must use the shared fixed grid and page-token depth',
+    ],
+    [
+      String.raw`\.npc-approved-body \.npc-approved-hero\s*\{[^}]*grid-template-columns:\s*280px minmax\(0,\s*1fr\) 286px;`,
+      'approved NPC Hero must retain the final 280px / fluid / 286px desktop composition',
+    ],
+    [
+      String.raw`\.npc-approved-body \.npc-approved-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) 300px;`,
+      'approved NPC body must retain the dense main-column and 300px tool rail',
+    ],
+    [
+      String.raw`@media \(max-width:\s*640px\)[\s\S]*?\.npc-approved-body \.npc-approved-hero\s*\{[^}]*grid-template-columns:\s*144px minmax\(0,\s*1fr\);[\s\S]*?\.npc-approved-body \.npc-approved-rail\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);`,
+      'approved NPC mobile composition must keep portrait and identity paired before stacking the rail',
+    ],
+    [
+      String.raw`\.npc-approved-body \.detail-group-remainder > summary\s*\{[^}]*min-height:\s*44px;`,
+      'approved NPC disclosure controls must retain a 44px interaction target',
+    ],
+    [
+      String.raw`\.npc-approved-body :where\(a, button, summary\):focus-visible\s*\{[^}]*outline:\s*3px solid var\(--button-focus-ring\);`,
+      'approved NPC controls must use the owned three-theme focus-ring token',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
   }
 }
 
