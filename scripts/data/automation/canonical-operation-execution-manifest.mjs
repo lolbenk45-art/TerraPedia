@@ -38,6 +38,10 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/lib/minio-image-upload.mjs',
     'scripts/data/lib/project-root.mjs',
     'scripts/lib/local-runtime-config.mjs',
+    'back/src/main/java/com/terraria/skills/controller/FileStorageController.java',
+    'back/src/main/java/com/terraria/skills/service/ObjectStorageService.java',
+    'back/src/main/java/com/terraria/skills/service/UserAvatarValidator.java',
+    'back/src/main/java/com/terraria/skills/service/impl/MinioObjectStorageServiceImpl.java',
   ]),
   'canonical-boss-loot-import': Object.freeze([
     'scripts/data/import/import-boss-loot-to-db.mjs',

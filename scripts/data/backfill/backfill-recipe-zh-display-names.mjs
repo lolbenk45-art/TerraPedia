@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { createRequire } from 'node:module';
 import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
+const mysql = loadMysqlModule();
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';

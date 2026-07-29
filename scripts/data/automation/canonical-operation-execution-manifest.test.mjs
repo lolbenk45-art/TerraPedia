@@ -133,6 +133,24 @@ test('schema manifest binds every role schema module executed after Flyway', () 
   assert.ok(paths.includes('scripts/data/relation/relation-schema.mjs'));
 });
 
+test('boss manifest binds the backend managed-image upload contract it executes', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-boss-import',
+    artifactDate: '2026-07-29',
+    backendApiBase: 'http://127.0.0.1:18192/api',
+  });
+  const paths = manifest.codeBundleEntries.map((entry) => entry.path);
+  for (const expectedPath of [
+    'back/src/main/java/com/terraria/skills/controller/FileStorageController.java',
+    'back/src/main/java/com/terraria/skills/service/ObjectStorageService.java',
+    'back/src/main/java/com/terraria/skills/service/UserAvatarValidator.java',
+    'back/src/main/java/com/terraria/skills/service/impl/MinioObjectStorageServiceImpl.java',
+  ]) {
+    assert.ok(paths.includes(expectedPath), expectedPath);
+  }
+});
+
 test('every manifest binds all repository-local static imports of its code bundle', () => {
   for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
     const manifest = buildCanonicalOperationExecutionManifest({
