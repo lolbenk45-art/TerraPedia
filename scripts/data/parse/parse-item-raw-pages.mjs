@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { extractItemSellStat } from '../maint/item-page-statistics-parser.mjs';
+import { extractItemImageMemberEvidence } from '../lib/item-image-member-evidence.mjs';
 import { extractItemInfoboxImages } from '../lib/wiki-page-utils.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 
@@ -85,6 +86,12 @@ export function parseItemRawPagePayload(payload, sourceFile = null) {
   };
   const images = isGroupPage ? [] : rawImages;
   const safeSell = isGroupPage ? { sellText: null, sellValue: null } : sell;
+  const memberImageEvidence = isGroupPage
+    ? extractItemImageMemberEvidence({
+        html,
+        identityTargets: [itemInternalName, itemName, requestedPageTitle]
+      })
+    : null;
   const safetyWarnings = [];
   if (isGroupPage) {
     safetyWarnings.push('page_title_differs_from_requested_title');
@@ -126,6 +133,7 @@ export function parseItemRawPagePayload(payload, sourceFile = null) {
     groupPageEvidence: isGroupPage ? {
       images: rawImages,
       sell,
+      memberImageEvidence,
       note: 'Requested item resolved to a group/set page; images and sell value are evidence only and must not be imported as item-specific fields.'
     } : null,
     safeDescription: isGroupPage ? null : null,
