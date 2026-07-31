@@ -605,7 +605,7 @@ test('runImageSync reuses a local managed object instead of re-downloading it', 
   assert.equal(
     JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'))
       .records.find((record) => record.internalName === 'CopperCoin').imageUrl,
-    'http://127.0.0.1:19100/terrapedia-images/items/wiki/item-images/37/coin.png'
+    '/terrapedia-images/items/wiki/item-images/37/coin.png'
   );
   const evidence = result.managedImages.find((entry) => entry.key === 'CopperCoin');
   assert.equal(evidence.originalUrl, 'https://terraria.wiki.gg/images/Copper_Coin.png');
@@ -635,4 +635,38 @@ test('runImageSync uploads when a local object cannot be reached', async () => {
   assert.deepEqual(result.reusedKeys, []);
   assert.deepEqual(result.reuseProbeFailedKeys, ['CopperCoin']);
   assert.ok(result.uploadedKeys.includes('CopperCoin'));
+});
+
+test('runImageSync stores a reused object as a relative managed path', async () => {
+  const workspace = createImageSyncWorkspace();
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    localEvidence: {
+      CopperCoin: {
+        sourceFileTitle: 'Copper_Coin.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/item-images/37/coin.png'
+      }
+    },
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/', 'http://127.0.0.1:19100/terrapedia-images/']
+  }, workspace.dependencies({ probeObject: async () => true }));
+
+  assert.deepEqual(result.reusedKeys, ['CopperCoin']);
+  // The origin belongs to the probe, never to the stored value: an absolute
+  // host:port in standardized data is what left 331 rows pointing at a dead
+  // endpoint, and the backend itself returns relative paths.
+  assert.equal(
+    JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'))
+      .records.find((record) => record.internalName === 'CopperCoin').imageUrl,
+    '/terrapedia-images/items/wiki/item-images/37/coin.png'
+  );
+  const evidence = result.managedImages.find((entry) => entry.key === 'CopperCoin');
+  assert.equal(evidence.managedUrl, '/terrapedia-images/items/wiki/item-images/37/coin.png');
+  assert.equal(evidence.probedUrl, 'http://127.0.0.1:19100/terrapedia-images/items/wiki/item-images/37/coin.png');
 });

@@ -431,7 +431,7 @@ async function syncRecordImages({
     // Reuse it only when the stored file title is the one verification selected
     // and the object actually answers, so a stale or wrong-variant record can
     // never silently become the item's image.
-    const reusableUrl = await resolveReusableManagedUrl({
+    const reusable = await resolveReusableManagedUrl({
       key,
       localEvidence,
       localFileTitle: localFileTitleAccessor ? localFileTitleAccessor(record) : null,
@@ -440,15 +440,16 @@ async function syncRecordImages({
       probeObject,
       onProbeFailure: () => reuseProbeFailedKeys.push(key)
     });
-    if (reusableUrl) {
-      targetUrlWriter(record, reusableUrl);
+    if (reusable) {
+      targetUrlWriter(record, reusable.storedUrl);
       changed += 1;
       reusedKeys.push(key);
       managedImages.push({
         key,
         originalUrl: sourceUrl,
-        managedUrl: reusableUrl,
-        contentHash: sha256Bytes(reusableUrl),
+        managedUrl: reusable.storedUrl,
+        probedUrl: reusable.probedUrl,
+        contentHash: sha256Bytes(reusable.storedUrl),
         reused: true
       });
       progress(index + 1);
@@ -533,14 +534,25 @@ async function resolveReusableManagedUrl({
   if (comparableFileTitle(evidence.sourceFileTitle) !== comparableFileTitle(localFileTitle)) {
     return null;
   }
-  const candidateUrl = reoriginManagedUrl(evidence.cachedUrl, managedObjectOrigin);
-  if (!candidateUrl || !isManagedUrl(candidateUrl, managedUrlPrefixes)) return null;
-  const reachable = await probeObject(candidateUrl);
+  const probedUrl = reoriginManagedUrl(evidence.cachedUrl, managedObjectOrigin);
+  if (!probedUrl || !isManagedUrl(probedUrl, managedUrlPrefixes)) return null;
+  const reachable = await probeObject(probedUrl);
   if (!reachable) {
     onProbeFailure?.();
     return null;
   }
-  return candidateUrl;
+  // Store the path, not the origin. The origin is a probe-time detail; baking a
+  // host:port into standardized data is what stranded 331 rows on a dead port.
+  return { storedUrl: managedPathOf(probedUrl), probedUrl };
+}
+
+function managedPathOf(value) {
+  try {
+    const parsed = new URL(value);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return value;
+  }
 }
 
 // Local reuse evidence comes from the promotion bundle's comparison block, which
