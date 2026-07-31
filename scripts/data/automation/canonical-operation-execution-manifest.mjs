@@ -208,6 +208,8 @@ export function buildCanonicalOperationExecutionManifest({
   npcT1ConfigPath = null,
   npcT1RedisDb = null,
   npcT1RunId = null,
+  itemImagePromotionBundlePath = null,
+  managedObjectOrigin = null,
 } = {}) {
   const contract = buildCanonicalOperationExecutionContract({
     operationId,
@@ -215,6 +217,8 @@ export function buildCanonicalOperationExecutionManifest({
     npcLimit,
     backendApiBase,
     resultLabel,
+    itemImagePromotionBundlePath,
+    managedObjectOrigin,
     npcT1ConfigPath,
     npcT1RedisDb,
     npcT1RunId,
@@ -242,6 +246,8 @@ export function buildCanonicalOperationExecutionContract({
   npcT1ConfigPath = null,
   npcT1RedisDb = null,
   npcT1RunId = null,
+  itemImagePromotionBundlePath = null,
+  managedObjectOrigin = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -273,6 +279,8 @@ export function buildCanonicalOperationExecutionContract({
     backendApiBase,
     npcT1Acceptance,
     normalizedResultLabel,
+    itemImagePromotionBundlePath,
+    managedObjectOrigin,
   );
   return {
     schemaVersion: 1,
@@ -295,6 +303,9 @@ export function assertCanonicalOperationExecutionManifestContract({
     typeof argument === 'string' && argument.startsWith('--apiBase=')
   ))?.slice('--apiBase='.length) ?? null;
   const npcT1Acceptance = manifest?.isolatedAcceptance ?? null;
+  const commandArgument = (prefix) => manifest?.command?.find((argument) => (
+    typeof argument === 'string' && argument.startsWith(prefix)
+  ))?.slice(prefix.length) ?? null;
   const expected = buildCanonicalOperationExecutionContract({
     operationId,
     artifactDate: manifest?.artifactDate,
@@ -304,6 +315,8 @@ export function assertCanonicalOperationExecutionManifestContract({
     npcT1ConfigPath: npcT1Acceptance?.configPath ?? null,
     npcT1RedisDb: npcT1Acceptance?.redisLogicalDb ?? null,
     npcT1RunId: npcT1Acceptance?.runId ?? null,
+    itemImagePromotionBundlePath: commandArgument('--local-evidence='),
+    managedObjectOrigin: commandArgument('--managed-object-origin='),
   });
   if (operationId === 'canonical-npc-t1-acceptance'
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -391,6 +404,8 @@ function buildDefinition(
   backendApiBase,
   npcT1Acceptance,
   resultLabel,
+  itemImagePromotionBundlePath,
+  managedObjectOrigin,
 ) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
@@ -466,12 +481,15 @@ function buildDefinition(
       command: [
         'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--apply=true', '--scopes=items',
         `--apiBase=${requireBackendApiBase(operationId, backendApiBase)}`,
+        `--local-evidence=${requireItemImagePromotionBundlePath(operationId, itemImagePromotionBundlePath)}`,
+        `--managed-object-origin=${requireManagedObjectOrigin(operationId, managedObjectOrigin)}`,
         `--output=reports/workflow-image-sync-${artifactDate}.json`,
         '--progress-path=reports/backend-refresh/history/canonical-image-sync.runtime/child-status.json',
       ],
       inputPaths: [
         'data/standardized/items.standardized.json',
         'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+        requireItemImagePromotionBundlePath(operationId, itemImagePromotionBundlePath),
       ],
       outputPaths: ['data/standardized/items.standardized.json'],
       reportPaths: [`reports/workflow-image-sync-${artifactDate}.json`],
@@ -802,6 +820,34 @@ function npcBaseMaintDefinition({ operationId }) {
   };
 }
 
+// The reuse evidence bundle is content addressed by its generation id, so the
+// manifest freezes the exact bundle rather than following a mutable pointer.
+function requireItemImagePromotionBundlePath(operationId, value) {
+  if (operationId !== 'canonical-image-sync') return '';
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${operationId} itemImagePromotionBundlePath is required`);
+  if (path.isAbsolute(text) || text.includes('..') || text.includes('latest')) {
+    throw new Error(`${operationId} itemImagePromotionBundlePath must be a content-addressed repository path`);
+  }
+  return text;
+}
+
+function requireManagedObjectOrigin(operationId, value) {
+  if (operationId !== 'canonical-image-sync') return '';
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${operationId} managedObjectOrigin is required`);
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new Error(`${operationId} managedObjectOrigin must be an absolute URL`);
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error(`${operationId} managedObjectOrigin must use http or https`);
+  }
+  return text.replace(/\/$/, '');
+}
+
 function requireBackendApiBase(operationId, value) {
   if (!['canonical-image-sync', 'canonical-boss-import'].includes(operationId)) return '';
   const text = String(value ?? '').trim();
@@ -903,6 +949,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       npcT1ConfigPath: args['npc-t1-config-path'] ?? null,
       npcT1RedisDb: args['npc-t1-redis-db'] == null ? null : Number(args['npc-t1-redis-db']),
       npcT1RunId: args['npc-t1-run-id'] ?? null,
+      itemImagePromotionBundlePath: args['item-image-promotion-bundle-path'] ?? null,
+      managedObjectOrigin: args['managed-object-origin'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

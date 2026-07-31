@@ -3,19 +3,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
 
 import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
-
-const require = createRequire(import.meta.url);
-
-// Loaded only when the CLI actually opens a connection, so the pure row builder
-// and its contract tests stay runnable without a database driver present.
-function loadMysql() {
-  return require('mysql2/promise');
-}
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 
 const repoRoot = getProjectRoot();
 
@@ -182,7 +174,7 @@ async function run() {
   const managedResult = args['managed-result']
     ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), args['managed-result']), 'utf8'))
     : null;
-  const connection = await loadMysql().createConnection({
+  const connection = await loadMysqlModule({ repoRoot }).createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
     port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? 3306),
     user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? 'root',

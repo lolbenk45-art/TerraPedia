@@ -35,14 +35,20 @@ const npcT1ConfigHash = `sha256:${createHash('sha256').update(fs.readFileSync(np
 
 after(() => fs.rmSync(npcT1ConfigDirectory, { recursive: true, force: true }));
 
+const IMAGE_SYNC_OPTIONS = Object.freeze({
+  itemImagePromotionBundlePath: 'reports/audit/item-image-source-promotion-abc.bundle.json',
+  managedObjectOrigin: 'http://127.0.0.1:19100',
+});
+
 function manifestOptions(operationId) {
-  return operationId === 'canonical-npc-t1-acceptance'
-    ? {
+  if (operationId === 'canonical-npc-t1-acceptance') {
+    return {
       npcT1ConfigPath,
       npcT1RedisDb: 9,
       npcT1RunId: 'npc-t1-20260730-01',
-    }
-    : {};
+    };
+  }
+  return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
 test('manifest builder covers 30 governed operations and keeps NPC apply explicitly fail closed', () => {
@@ -90,17 +96,51 @@ test('manifest builder covers 30 governed operations and keeps NPC apply explici
   }
 });
 
+test('image sync manifest freezes the local reuse evidence bundle and managed origin', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot: process.cwd(),
+    operationId: 'canonical-image-sync',
+    artifactDate: '2026-08-01',
+    backendApiBase: 'http://127.0.0.1:18191',
+    itemImagePromotionBundlePath: 'reports/audit/item-image-source-promotion-abc.bundle.json',
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+  });
+
+  assert.ok(manifest.command.includes(
+    '--local-evidence=reports/audit/item-image-source-promotion-abc.bundle.json'
+  ));
+  assert.ok(manifest.command.includes('--managed-object-origin=http://127.0.0.1:19100'));
+  assert.ok(manifest.inputPaths.includes('reports/audit/item-image-source-promotion-abc.bundle.json'));
+  // The frozen evidence path is content addressed, never a mutable pointer.
+  assert.ok(manifest.command.every((token) => !String(token).includes('latest')));
+});
+
+test('image sync manifest refuses a missing local reuse evidence bundle', () => {
+  assert.throws(
+    () => buildCanonicalOperationExecutionManifest({
+      repoRoot: process.cwd(),
+      operationId: 'canonical-image-sync',
+      artifactDate: '2026-08-01',
+      backendApiBase: 'http://127.0.0.1:18191',
+      managedObjectOrigin: 'http://127.0.0.1:19100',
+    }),
+    /itemImagePromotionBundlePath is required/i
+  );
+});
+
 test('image sync manifest binds the item image promotion result as an input', () => {
   const manifest = buildCanonicalOperationExecutionManifest({
     repoRoot: process.cwd(),
     operationId: 'canonical-image-sync',
     artifactDate: '2026-08-01',
     backendApiBase: 'http://127.0.0.1:18191',
+    ...IMAGE_SYNC_OPTIONS,
   });
 
   assert.deepEqual(manifest.inputPaths, [
     'data/standardized/items.standardized.json',
     'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+    'reports/audit/item-image-source-promotion-abc.bundle.json',
   ]);
   assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS['canonical-image-sync'], [
     'data/standardized/items.standardized.json',
@@ -546,6 +586,7 @@ test('image and boss manifests require and freeze the active backend API base', 
       operationId,
       artifactDate: '2026-07-28',
       backendApiBase: 'http://127.0.0.1:18191/api',
+      ...manifestOptions(operationId),
     });
     assert.ok(manifest.command.includes('--apiBase=http://127.0.0.1:18191/api'));
   }

@@ -508,10 +508,11 @@ function createImageSyncWorkspace() {
     promotionResultPath,
     progressEvents,
     uploadedUrls,
-    dependencies({ failUploadFor = null, loadAuthorizedContext = null } = {}) {
+    dependencies({ failUploadFor = null, loadAuthorizedContext = null, probeObject = null } = {}) {
       return {
         writeProgress: (_filePath, payload) => progressEvents.push(payload),
         ...(loadAuthorizedContext ? { loadAuthorizedContext } : {}),
+        ...(probeObject ? { probeObject } : {}),
         createUploader: async () => ({
           uploadImageUrl: async (sourceUrl, context) => {
             if (failUploadFor && context?.nameHint === failUploadFor) return null;
@@ -560,4 +561,78 @@ test('runImageSync treats historical MinIO endpoints as already managed', async 
   assert.deepEqual(result.alreadyManagedKeys, ['Torch', 'Wood']);
   assert.deepEqual(result.uploadKeys, ['CopperCoin']);
   assert.deepEqual(workspace.uploadedUrls, ['https://terraria.wiki.gg/images/Copper_Coin.png']);
+});
+
+test('runImageSync reuses a local managed object instead of re-downloading it', async () => {
+  const workspace = createImageSyncWorkspace();
+  const probed = [];
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    localEvidence: {
+      // The earlier crawl already stored this exact file under managed storage.
+      CopperCoin: {
+        sourceFileTitle: 'Copper_Coin.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/item-images/37/coin.png'
+      },
+      // The earlier crawl stored a different file than verification selected.
+      Wood: {
+        sourceFileTitle: 'Wood_(placed).png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/item-images/21/wood-placed.png'
+      }
+    },
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/', 'http://127.0.0.1:19100/terrapedia-images/']
+  }, workspace.dependencies({
+    probeObject: async (url) => {
+      probed.push(url);
+      return true;
+    }
+  }));
+
+  assert.deepEqual(result.reusedKeys, ['CopperCoin']);
+  assert.deepEqual(result.uploadedKeys, ['Wood']);
+  assert.deepEqual(probed, ['http://127.0.0.1:19100/terrapedia-images/items/wiki/item-images/37/coin.png']);
+  assert.deepEqual(
+    result.completedKeys,
+    [...result.uploadedKeys, ...result.reusedKeys, ...result.alreadyManagedKeys].sort()
+  );
+  assert.equal(
+    JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'))
+      .records.find((record) => record.internalName === 'CopperCoin').imageUrl,
+    'http://127.0.0.1:19100/terrapedia-images/items/wiki/item-images/37/coin.png'
+  );
+  const evidence = result.managedImages.find((entry) => entry.key === 'CopperCoin');
+  assert.equal(evidence.originalUrl, 'https://terraria.wiki.gg/images/Copper_Coin.png');
+  assert.equal(evidence.reused, true);
+});
+
+test('runImageSync uploads when a local object cannot be reached', async () => {
+  const workspace = createImageSyncWorkspace();
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    localEvidence: {
+      CopperCoin: {
+        sourceFileTitle: 'Copper_Coin.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/item-images/37/coin.png'
+      }
+    },
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/', 'http://127.0.0.1:19100/terrapedia-images/']
+  }, workspace.dependencies({ probeObject: async () => false }));
+
+  assert.deepEqual(result.reusedKeys, []);
+  assert.deepEqual(result.reuseProbeFailedKeys, ['CopperCoin']);
+  assert.ok(result.uploadedKeys.includes('CopperCoin'));
 });

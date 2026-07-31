@@ -136,6 +136,9 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
 
   const context = {
     apply,
+    localEvidence: normalizeLocalEvidence(rawOptions.localEvidence),
+    managedObjectOrigin: text(rawOptions.managedObjectOrigin),
+    probeObject: dependencies.probeObject ?? defaultProbeObject,
     managedUrlPrefixes,
     publish,
     readJson,
@@ -228,7 +231,8 @@ async function syncScope(scope, context) {
         record.imageUrl = url;
       },
       fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'item')}${guessExtension(url)}`,
-      nameHint: (record) => record?.internalName || record?.name || 'item'
+      nameHint: (record) => record?.internalName || record?.name || 'item',
+      localFileTitleAccessor: (record) => record?.imageFileTitle
     });
   }
   if (scope === 'npcs') {
@@ -361,9 +365,13 @@ async function syncRecordImages({
   fallbackSourceUrlResolver,
   fileNameHint,
   filePath,
+  localEvidence,
+  localFileTitleAccessor,
+  managedObjectOrigin,
   managedUrlPrefixes,
   nameHint,
   payload,
+  probeObject,
   publish,
   records,
   sourceUrlAccessor,
@@ -378,6 +386,8 @@ async function syncRecordImages({
   const missingSourceKeys = [];
   const uploadKeys = [];
   const uploadedKeys = [];
+  const reusedKeys = [];
+  const reuseProbeFailedKeys = [];
   const managedImages = [];
   let changed = 0;
 
@@ -417,6 +427,34 @@ async function syncRecordImages({
       continue;
     }
 
+    // An earlier crawl may already hold this exact file in managed storage.
+    // Reuse it only when the stored file title is the one verification selected
+    // and the object actually answers, so a stale or wrong-variant record can
+    // never silently become the item's image.
+    const reusableUrl = await resolveReusableManagedUrl({
+      key,
+      localEvidence,
+      localFileTitle: localFileTitleAccessor ? localFileTitleAccessor(record) : null,
+      managedObjectOrigin,
+      managedUrlPrefixes,
+      probeObject,
+      onProbeFailure: () => reuseProbeFailedKeys.push(key)
+    });
+    if (reusableUrl) {
+      targetUrlWriter(record, reusableUrl);
+      changed += 1;
+      reusedKeys.push(key);
+      managedImages.push({
+        key,
+        originalUrl: sourceUrl,
+        managedUrl: reusableUrl,
+        contentHash: sha256Bytes(reusableUrl),
+        reused: true
+      });
+      progress(index + 1);
+      continue;
+    }
+
     let managedUrl = await uploader.uploadImageUrl(sourceUrl, {
       entityDomain,
       fileName: fileNameHint(record, sourceUrl),
@@ -450,7 +488,7 @@ async function syncRecordImages({
     progress(index + 1);
   }
 
-  if (apply && uploadedKeys.length > 0) {
+  if (apply && (uploadedKeys.length > 0 || reusedKeys.length > 0)) {
     writeJson(filePath, payload);
   }
 
@@ -461,17 +499,103 @@ async function syncRecordImages({
     candidates: candidateKeys.length,
     candidateKeys: [...candidateKeys].sort(),
     changed,
-    completedKeys: [...uploadedKeys, ...alreadyManagedKeys].sort(),
+    completedKeys: [...uploadedKeys, ...reusedKeys, ...alreadyManagedKeys].sort(),
     failedKeys: [...failedKeys].sort(),
     filePath,
     managedImages,
     missingSource: missingSourceKeys.length,
     missingSourceKeys: [...missingSourceKeys].sort(),
     total: records.length,
+    reused: reusedKeys.length,
+    reusedKeys: [...reusedKeys].sort(),
+    reuseProbeFailedKeys: [...reuseProbeFailedKeys].sort(),
     uploadKeys: [...uploadKeys].sort(),
     uploaded: uploadedKeys.length,
     uploadedKeys: [...uploadedKeys].sort()
   };
+}
+
+// Reuse gate. Three independent conditions, all required: the earlier crawl
+// recorded a local object for this identity, the file title it stored is the one
+// verification selected, and the object answers at the configured managed
+// origin. Anything less falls through to a real upload.
+async function resolveReusableManagedUrl({
+  key,
+  localEvidence,
+  localFileTitle,
+  managedObjectOrigin,
+  managedUrlPrefixes,
+  probeObject,
+  onProbeFailure
+}) {
+  const evidence = localEvidence?.get?.(key);
+  if (!evidence || !localFileTitle) return null;
+  if (comparableFileTitle(evidence.sourceFileTitle) !== comparableFileTitle(localFileTitle)) {
+    return null;
+  }
+  const candidateUrl = reoriginManagedUrl(evidence.cachedUrl, managedObjectOrigin);
+  if (!candidateUrl || !isManagedUrl(candidateUrl, managedUrlPrefixes)) return null;
+  const reachable = await probeObject(candidateUrl);
+  if (!reachable) {
+    onProbeFailure?.();
+    return null;
+  }
+  return candidateUrl;
+}
+
+// Local reuse evidence comes from the promotion bundle's comparison block, which
+// records what an earlier crawl stored for each identity.
+export function buildLocalImageEvidenceFromPromotionBundle(bundle) {
+  const evidence = new Map();
+  for (const row of Array.isArray(bundle?.rows) ? bundle.rows : []) {
+    const local = row?.comparison?.local;
+    const key = text(row?.itemInternalName);
+    const cachedUrl = text(local?.cachedUrl);
+    const sourceFileTitle = text(local?.sourceFileTitle);
+    if (!key || !cachedUrl || !sourceFileTitle) continue;
+    evidence.set(key, { sourceFileTitle, cachedUrl });
+  }
+  return evidence;
+}
+
+function normalizeLocalEvidence(value) {
+  if (value instanceof Map) return value;
+  if (!value || typeof value !== 'object') return new Map();
+  return new Map(Object.entries(value));
+}
+
+function comparableFileTitle(value) {
+  return String(value ?? '').trim().replace(/^File:/i, '').replaceAll('_', ' ').toLowerCase();
+}
+
+function reoriginManagedUrl(cachedUrl, managedObjectOrigin) {
+  const value = text(cachedUrl);
+  if (!value) return null;
+  const origin = text(managedObjectOrigin);
+  if (!origin) return value;
+  try {
+    const parsed = new URL(value);
+    const target = new URL(origin);
+    parsed.protocol = target.protocol;
+    parsed.host = target.host;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function defaultProbeObject(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+function text(value) {
+  const normalized = String(value ?? '').trim();
+  return normalized || null;
 }
 
 function aggregate(modules) {
@@ -483,6 +607,9 @@ function aggregate(modules) {
     uploaded: entries.reduce((sum, entry) => sum + Number(entry?.uploaded ?? 0), 0),
     alreadyManaged: entries.reduce((sum, entry) => sum + Number(entry?.alreadyManaged ?? 0), 0),
     missingSource: entries.reduce((sum, entry) => sum + Number(entry?.missingSource ?? 0), 0),
+    reused: entries.reduce((sum, entry) => sum + Number(entry?.reused ?? 0), 0),
+    reusedKeys: concat('reusedKeys'),
+    reuseProbeFailedKeys: concat('reuseProbeFailedKeys'),
     candidateKeys: concat('candidateKeys'),
     alreadyManagedKeys: concat('alreadyManagedKeys'),
     uploadKeys: concat('uploadKeys'),
@@ -604,6 +731,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     adminPassword: options.adminPassword,
     inputPath: options.input,
     outputPath: options.output,
+    ...(options['local-evidence']
+      ? {
+          localEvidence: buildLocalImageEvidenceFromPromotionBundle(
+            JSON.parse(fs.readFileSync(path.resolve(process.cwd(), options['local-evidence']), 'utf8'))
+          )
+        }
+      : {}),
+    ...(options['managed-object-origin'] ? { managedObjectOrigin: options['managed-object-origin'] } : {}),
     progressPath: options.progressPath ?? options['progress-path'],
     // Only the items scope is the governed canonical-image-sync operation, whose
     // manifest freezes `--scopes=items`. The other scopes are separate lanes and
