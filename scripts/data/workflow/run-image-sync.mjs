@@ -104,6 +104,7 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
     assertPromotionLineage({
       repoRoot,
       readJson,
+      managedUrlPrefixes: resolveEntityManagedUrlPrefixes('items', managedUrlPrefixes),
       itemsPath: path.join(standardizedRoot, 'items.standardized.json'),
       promotionResultPath: rawOptions.promotionResultPath
         ?? path.join(repoRoot, DEFAULT_PROMOTION_RESULT_PATH)
@@ -199,19 +200,44 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
   return summary;
 }
 
-function assertPromotionLineage({ readJson, itemsPath, promotionResultPath }) {
+// Lineage, not immutability. Byte equality would make sync single-shot: the
+// first run rewrites imageUrl by design, so a second run could never pass its
+// own gate. What must hold is that the promoted fields are still exactly what
+// promotion wrote, and that imageUrl is either promotion's value or a managed
+// URL this lane produced.
+function assertPromotionLineage({ readJson, itemsPath, promotionResultPath, managedUrlPrefixes }) {
   const result = readJson(promotionResultPath);
   if (result?.resultKind !== 'canonical_item_image_source_promotion_result'
       || result?.status !== 'COMPLETED') {
     throw new Error('a completed item image source promotion result is required before image sync');
   }
   const actual = sha256Bytes(fs.readFileSync(itemsPath));
-  if (result?.after?.sha256 !== actual) {
-    throw new Error(
-      'standardized bytes do not match the item image promotion result: '
-      + `expected ${result?.after?.sha256}, found ${actual}`
-    );
+  if (result?.after?.sha256 === actual) return;
+
+  const records = new Map(
+    (readJson(itemsPath)?.records ?? []).map((record) => [text(record?.internalName), record])
+  );
+  for (const change of Array.isArray(result?.changes) ? result.changes : []) {
+    const key = text(change?.itemInternalName);
+    const record = records.get(key);
+    if (!record) {
+      throw new Error(`promoted identity ${key} is missing from the standardized records`);
+    }
+    for (const [field, values] of Object.entries(change?.fields ?? {})) {
+      const expected = values?.after ?? null;
+      const found = record[field] ?? null;
+      if (canonicalJson(expected) === canonicalJson(found)) continue;
+      if (field === 'imageUrl' && isManagedUrl(String(found), managedUrlPrefixes)) continue;
+      throw new Error(
+        `promoted field ${field} drifted for ${key}: expected ${JSON.stringify(expected)}, `
+        + `found ${JSON.stringify(found)}`
+      );
+    }
   }
+}
+
+function canonicalJson(value) {
+  return JSON.stringify(value ?? null);
 }
 
 async function syncScope(scope, context) {

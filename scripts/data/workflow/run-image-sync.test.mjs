@@ -407,13 +407,36 @@ test('runImageSync fails closed when an upload returns null', async () => {
   assert.ok(!workspace.progressEvents.some((event) => event.status === 'completed'));
 });
 
-test('runImageSync apply refuses standardized bytes the promotion result did not produce', async () => {
+test('runImageSync accepts standardized bytes an earlier sync already rewrote', async () => {
   const workspace = createImageSyncWorkspace();
-  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
-    resultKind: 'canonical_item_image_source_promotion_result',
-    status: 'COMPLETED',
-    after: { sha256: `sha256:${'b'.repeat(64)}` }
-  }, null, 2)}\n`);
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  // An earlier sync moved this item onto managed storage. That is what sync is
+  // for, so a later round must still be allowed to run.
+  payload.records.find((r) => r.internalName === 'Wood').imageUrl =
+    '/terrapedia-images/items/wood.png';
+  fs.writeFileSync(workspace.itemsPath, `${JSON.stringify(payload, null, 2)}\n`);
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    managedUrlPrefixes: ['http://127.0.0.1:19100/terrapedia-images/items/']
+  }, workspace.dependencies());
+
+  assert.equal(result.status, 'completed');
+  assert.ok(result.alreadyManagedKeys.includes('Wood'));
+});
+
+test('runImageSync refuses standardized bytes whose promoted fields drifted', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  // A promoted file title must stay exactly what promotion wrote.
+  payload.records.find((r) => r.internalName === 'CopperCoin').imageFileTitle = 'Something Else.png';
+  fs.writeFileSync(workspace.itemsPath, `${JSON.stringify(payload, null, 2)}\n`);
 
   await assert.rejects(
     () => runImageSync({
@@ -423,9 +446,31 @@ test('runImageSync apply refuses standardized bytes the promotion result did not
       outputPath: workspace.reportPath,
       progressPath: workspace.progressPath,
       promotionResultPath: workspace.promotionResultPath,
-      managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/']
+      managedUrlPrefixes: ['http://127.0.0.1:19100/terrapedia-images/items/']
     }, workspace.dependencies()),
-    /standardized bytes do not match the item image promotion result/i
+    /promoted field imageFileTitle drifted for CopperCoin/i
+  );
+});
+
+test('runImageSync apply refuses standardized records the promotion result did not produce', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  // A promoted identity that is simply gone means these are not the bytes the
+  // promotion produced, however plausible the rest looks.
+  payload.records = payload.records.filter((r) => r.internalName !== 'CopperCoin');
+  fs.writeFileSync(workspace.itemsPath, `${JSON.stringify(payload, null, 2)}\n`);
+
+  await assert.rejects(
+    () => runImageSync({
+      repoRoot: workspace.root,
+      scopes: ['items'],
+      apply: true,
+      outputPath: workspace.reportPath,
+      progressPath: workspace.progressPath,
+      promotionResultPath: workspace.promotionResultPath,
+      managedUrlPrefixes: ['http://127.0.0.1:19100/terrapedia-images/items/']
+    }, workspace.dependencies()),
+    /promoted identity CopperCoin is missing/i
   );
 
   assert.equal(workspace.uploadedUrls.length, 0);
@@ -495,7 +540,29 @@ function createImageSyncWorkspace() {
   fs.writeFileSync(promotionResultPath, `${JSON.stringify({
     resultKind: 'canonical_item_image_source_promotion_result',
     status: 'COMPLETED',
-    after: { sha256: sha256Hex(serialized) }
+    after: { sha256: sha256Hex(serialized) },
+    changes: [
+      {
+        itemInternalName: 'CopperCoin',
+        fields: {
+          imageFileTitle: { before: null, after: 'Copper Coin.png' },
+          imageUrl: { before: null, after: 'https://terraria.wiki.gg/images/Copper_Coin.png' },
+          imageWidth: { before: null, after: null },
+          imageHeight: { before: null, after: null },
+          imageContentType: { before: null, after: null }
+        }
+      },
+      {
+        itemInternalName: 'Wood',
+        fields: {
+          imageFileTitle: { before: null, after: 'Wood.png' },
+          imageUrl: { before: null, after: 'https://terraria.wiki.gg/images/Wood.png' },
+          imageWidth: { before: null, after: null },
+          imageHeight: { before: null, after: null },
+          imageContentType: { before: null, after: null }
+        }
+      }
+    ]
   }, null, 2)}\n`);
 
   const progressEvents = [];
