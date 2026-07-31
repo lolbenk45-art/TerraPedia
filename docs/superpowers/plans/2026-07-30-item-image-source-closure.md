@@ -723,17 +723,17 @@ missingSource 0, alreadyManaged 2119, uploadKeys 4012, failedKeys 0`.
 - Modify: `scripts/data/audit/domain-readiness-audit.test.mjs`
 - Modify: canonical operation catalog/manifest/authorization tests
 
-- [ ] **Step 1: Write RED owned-scope and rollback tests**
+- [x] **Step 1: Write RED owned-scope and rollback tests**
 
 Assert preview requires 6,131 landing/maint/relation target keys, produces an owned-scope snapshot before mutation, rejects delete candidates outside the exact key set, and preserves unrelated local image roles. Simulate a relation/local post-verify mismatch and assert the operation is failed with the rollback/snapshot next step rather than completed.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/relation/apply-item-image-lineage.test.mjs scripts/data/relation/sync-relation-item-images-to-local.test.mjs scripts/data/audit/image-source-lineage-report.test.mjs scripts/data/audit/domain-readiness-audit.test.mjs`
 
 Expected: FAIL on missing orchestrator and exact parity fields.
 
-- [ ] **Step 3: Implement the staged governed apply**
+- [x] **Step 3: Implement the staged governed apply**
 
 Register `canonical-item-image-lineage-apply`. Its input contract binds the lineage bundle, landing preview, maint preview, relation preview, local preview, server fingerprint, and owned-scope snapshot. Apply stages are serialized:
 
@@ -763,6 +763,27 @@ Expected before formal apply: tests PASS; previews are exact; live audit remains
 git add scripts/data/relation/apply-item-image-lineage.mjs scripts/data/relation/apply-item-image-lineage.test.mjs scripts/data/relation/sync-maint-to-relation.mjs scripts/data/relation/sync-relation-item-images-to-local.mjs scripts/data/relation/sync-relation-item-images-to-local.test.mjs scripts/data/audit/image-source-lineage-report.mjs scripts/data/audit/image-source-lineage-report.test.mjs scripts/data/audit/domain-readiness-audit.mjs scripts/data/audit/domain-readiness-audit.test.mjs scripts/data/automation/canonical-operation-catalog.mjs scripts/data/automation/canonical-operation-execution-manifest.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs
 git commit -m "feat(data): govern item image lineage apply"
 ```
+
+
+Execution checkpoint (2026-08-01): Steps 1-3 are complete as code.
+`apply-item-image-lineage.mjs` validates the contract against the lineage bundle by hash,
+requires all four layer previews to carry the identical identity set, and refuses any delete
+candidate outside that set. Execution takes one owned-scope snapshot before the first mutation,
+runs landing then maint then relation then local with each stage separately applied, stops the
+chain on the first stage error leaving later stages `skipped`, and verifies per-layer parity
+before reporting anything. A parity mismatch or a stage failure returns `FAILED` with the
+snapshot id and a restore-then-re-authorize next step; `COMPLETED` is unreachable unless every
+layer matches. Preserved local roles outside the owned scope are carried into the result.
+
+`canonical-item-image-lineage-apply` is registered as governed operation 31 of 32, with
+`databaseWrites: true` and `networkAccess: false`.
+
+The database adapter is deliberately not wired yet: `--apply=true` throws rather than pretending
+to project. Steps 4-5 need the four real previews, which require the database and the lineage
+bundle, which in turn requires a completed image sync.
+
+Focused validation: 8/8 for the orchestrator, 42/42 across the orchestrator plus the operation
+catalog and authorization contracts.
 
 ### Task 8: Execute The Image Lane At Explicit Authorization Checkpoints
 

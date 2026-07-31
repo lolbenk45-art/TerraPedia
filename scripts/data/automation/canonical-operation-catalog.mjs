@@ -2,6 +2,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-l0-bootstrap',
   'canonical-item-image-source-verification',
   'canonical-item-image-source-promotion',
+  'canonical-item-image-lineage-apply',
   'canonical-image-sync',
   'canonical-boss-import',
   'canonical-boss-loot-import',
@@ -41,6 +42,9 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   ]),
   'canonical-item-image-source-promotion': Object.freeze([
     'reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
+  ]),
+  'canonical-item-image-lineage-apply': Object.freeze([
+    'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
   ]),
   'canonical-image-sync': Object.freeze([
     'data/standardized/items.standardized.json',
@@ -176,6 +180,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-biomes-l0-bootstrap': 'scripts/data/automation/bootstrap-automation-policy.mjs',
   'canonical-item-image-source-verification': 'scripts/data/workflow/run-backend-data-refresh.mjs',
   'canonical-item-image-source-promotion': 'scripts/data/transform/promote-item-image-sources.mjs',
+  'canonical-item-image-lineage-apply': 'scripts/data/relation/apply-item-image-lineage.mjs',
   'canonical-image-sync': 'scripts/data/workflow/run-image-sync.mjs',
   'canonical-boss-import': 'scripts/data/import/import-wiki-bosses-to-db.mjs',
   'canonical-boss-loot-import': 'scripts/data/import/import-boss-loot-to-db.mjs',

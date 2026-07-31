@@ -49,6 +49,10 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/transform/promote-item-image-sources.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
+  'canonical-item-image-lineage-apply': Object.freeze([
+    'scripts/data/relation/apply-item-image-lineage.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
   'canonical-image-sync': Object.freeze([
     'scripts/data/workflow/run-image-sync.mjs',
     'scripts/data/lib/wiki-item-utils.mjs',
@@ -453,6 +457,27 @@ function buildDefinition(
       },
       databaseWrites: false,
       networkAccess: true,
+    },
+    'canonical-item-image-lineage-apply': {
+      executionClass: 'formal_database_projection',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--input-contract=reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
+        '--apply=true',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
+      ],
+      outputPaths: [
+        'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
+      ],
+      reportPaths: [
+        'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
+      ],
+      progressPaths: [],
+      databaseWrites: true,
+      networkAccess: false,
     },
     'canonical-item-image-source-promotion': {
       executionClass: 'formal_standardized_apply',

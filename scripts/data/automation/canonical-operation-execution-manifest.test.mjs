@@ -52,8 +52,8 @@ function manifestOptions(operationId) {
 }
 
 test('manifest builder covers 30 governed operations and keeps NPC apply explicitly fail closed', () => {
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 31);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 30);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 32);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 31);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)

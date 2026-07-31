@@ -240,6 +240,7 @@ test('operation request builder exposes the legacy umbrella plus 30 independent 
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
     'canonical-item-image-source-promotion',
+    'canonical-item-image-lineage-apply',
     'canonical-image-sync',
     'canonical-boss-import',
     'canonical-boss-loot-import',
