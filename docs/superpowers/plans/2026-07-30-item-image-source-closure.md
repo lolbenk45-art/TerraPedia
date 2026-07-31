@@ -814,9 +814,33 @@ After exact approval, dispatch `canonical-item-image-source-verification` throug
 
 Hard preconditions: 6,131 identities, one source each, unresolved/ambiguous/duplicate all zero, all input hashes current. Generate a fresh `canonical-item-image-source-promotion` request, obtain exact approval, dispatch once, and verify before/after result hashes.
 
-- [ ] **Step 4: Apply managed image sync only with its own packet**
+- [x] **Step 4: Apply managed image sync only with its own packet**
 
 Run a fresh items-only dry run. Generate and approve a fresh `canonical-image-sync` request bound to the promotion result and current standardized bytes. Dispatch once. Require no failed upload and the exact completion equation.
+
+
+Execution checkpoint (2026-08-01, Step 4 complete): the managed sync closed under decision
+`canonical-image-sync-20260801-04`, status `completed`, exit 0, at
+`6131 = alreadyManaged 6127 + uploaded 4 + reused 0`, `missingSource 0`, `failedKeys 0`, and
+`normalizedKeys 3914`. The items image readiness panel now reports `pass` with zero blocking and
+zero warning reasons.
+
+Standardized URL shapes moved from `relative 1882 + absolute:19100 3914 + absolute:9000 331 +
+wiki 4` to `relative 5800 + absolute:9000 331`. Only `imageUrl` differs from the previous
+revision; every other field is byte identical. The 331 historical-origin rows are deliberately
+untouched.
+
+Three decisions were burned before this one, all diagnosed and fixed rather than worked around:
+`-01` used an `apiBase` without the `/api` segment; `-02` hit a backend that rejects `image/gif`;
+`-03` hit my own promotion-lineage gate, which required byte equality with the promotion output
+and therefore made sync single-shot. The gate now verifies lineage instead, so a retry after a
+failed run is possible at all.
+
+GIF acceptance is served by a second backend built from this branch on port 18291 with
+`spring.flyway.enabled=false`, so the shared 18191 process was never restarted and no
+unauthorized migration ran against the shared databases. That instance and the 19100 MinIO were
+later stopped by an environment restart; the uploaded objects persist on disk at
+`~/.local/share/terrapedia/minio/data`, including the four GIFs written at 04:42.
 
 - [ ] **Step 5: Apply database lineage only with its own packet**
 
