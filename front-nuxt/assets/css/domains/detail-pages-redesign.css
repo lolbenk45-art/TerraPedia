@@ -5525,6 +5525,15 @@
   padding-bottom: var(--tp-space-4);
 }
 
+/* .page-trail 全站默认是 width:fit-content + margin:auto 的页级居中容器；
+   放进 mast 的整宽网格单元后会自己居中，这里收回它的居中与自带页边距，
+   让面包屑与 h1 左边缘对齐。 */
+.article-archive-page-heading .page-trail {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .article-archive-page-titles {
   display: flex;
   flex-wrap: wrap;
