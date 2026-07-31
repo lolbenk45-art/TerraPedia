@@ -40,7 +40,7 @@
 | 光强 | **`.08`** | 用户选定，即首页原值 |
 | 光的射程 | `circle … 28rem` | 采自首页 |
 | 锚定方式 | **元素锚定**，非坐标锚定 | 见下 |
-| 落地范围 | **仅试点两页**：`/items`、`/articles/archive`，仅深色 | 用户选定，零风险可回退 |
+| 落地范围 | **仅试点两页**：`/articles/archive`、`/npcs`，仅深色 | 用户选定，零风险可回退；第二页由 `/items` 换为 `/npcs`，见下 |
 | 令牌提升 | 试点期**不动** `:root` | 同上 |
 
 ### 为什么是元素锚定
@@ -61,7 +61,10 @@
 **背景层**
 
 ```css
-.tp-ground {
+/* 整条规则只在深色下存在；浅色主题里 .tp-ground 不声明任何东西 */
+[data-theme="dark"] .tp-ground {
+  --tp-ground-base: #0b120c;
+  --tp-color-page: var(--tp-ground-base);
   position: relative;
   isolation: isolate;
   background:
@@ -70,19 +73,11 @@
     linear-gradient(var(--tp-ground-base), var(--tp-ground-base));
   background-size: 40px 40px, 40px 40px, auto;
 }
-
-[data-theme="dark"] .tp-ground {
-  --tp-ground-base: #0b120c;
-  --tp-color-page: var(--tp-ground-base);
-}
-
-/* 浅色主题整体压平：不上栅格、不改底，保持改动前逐像素一致 */
-:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tp-ground {
-  background: var(--tp-color-page);
-}
 ```
 
-**层叠顺序**：`ground-gloss.css` 必须在 `assets/css/domains/index.css` 里**最后**导入。`.tp-ground` 的特指度是 `(0,1,0)`，与 `.screen`、`:where(…) .article-archive-approved-screen` 相同（`:where()` 特指度为 0），只能靠源序取胜。
+**浅色为纯空操作，而不是"压平"。** 初稿写的是浅色下压平成 `background: var(--tp-color-page)`，那会抹掉 `/npcs` 浅色现有的栅格（`.entity-screen` 没有浅色覆盖，浅色下本来就带栅格）。改成整条规则只在深色下存在后，浅色主题里各页保持各自原样，"浅色逐像素无差异"才真正成立。
+
+**层叠**：`[data-theme="dark"] .tp-ground` 特指度 `(0,2,0)`，稳赢 `.entity-screen`、`.screen`、`:where(…) .article-archive-approved-screen`（均为 `(0,1,0)`），不依赖源序。`ground-gloss.css` 仍在 `assets/css/domains/index.css` 最后导入以保持一致，但正确性不建立在源序上。
 
 那行 `--tp-color-page` 重定义是整套方案能被试点的关键：卡面公式一个字不改，底一提亮，子树内所有由底推导的面自动跟上，层次不会反。
 
@@ -125,10 +120,16 @@
 
 | 页面 | screenClass 改动 | 焦点容器 | 需一并清理 |
 |---|---|---|---|
-| `pages/items/index.vue` | `catalog-screen` → `catalog-screen tp-ground` | `.catalog-wall-shell` | 删除该元素自带的两个 radial 与私有栅格 |
 | `pages/articles/archive.vue` | 追加 ` tp-ground` | `.article-archive-page-shell`（Board 根元素，卡片与列表两种视图共用） | 删除 screen 上的绿色 radial 与 `background-attachment: fixed` |
+| `pages/npcs/index.vue` | `entity-screen` → `entity-screen tp-ground` | `.entity-main-panel` | 无——该页现在零光，无旧包裹需要拆 |
 
-焦点容器选的都是**稳定存在**的外层，不是条件渲染的网格本身（`.catalog-wall-grid` 在加载态/空态下不存在，光会跟着消失）。
+焦点容器选的都是**稳定存在且自身无背景**的布局外层，不是条件渲染的网格本身（网格在加载态/空态下不存在，光会跟着消失），也不是自带不透明面的对象（光绘制在其身后会被盖住，见边界九）。
+
+`.entity-screen` 的 `color: var(--paper)` 保留不动——`.tp-ground` 只覆盖 `background`，不碰文字色。
+
+### 为什么第二页不是 `/items`
+
+`/items` 实测有 **9 个 radial-gradient** 与 **7 处私有 34px 栅格**（站点标准 40px），分布在卡墙、卡墙 `::after` 光晕、多个子对象上，另有浅色镜像。统一它是独立项目而非试点；只清一部分会让该页与自身不一致，试点反而证明不了任何事。`/npcs` 用的 `entity-screen` 现在**完全没有光**、域 CSS 零个 radial，正好演示「一个本来没光的页面得到统一的光」，且不牵扯任何旧包裹。`/items` 另行立项。
 
 ### 晋级路径
 
@@ -142,7 +143,7 @@
 
 ## 边界与越界分析
 
-以下十条逐条核过。**第六至第十条是 spec 初稿写完后 review 挖出来的**，初稿有实质缺陷，已修正。
+以下十一条逐条核过。**第六至第十一条是 spec 初稿写完后 review 挖出来的**，初稿有实质缺陷，已修正。
 
 **一、绘制顺序：`isolation` 必须在背景层，不能在焦点元素上。**
 若把 `isolation: isolate` 建在 `.tp-gloss-focus` 上，`z-index: -1` 的 `::before` 会绘制在该元素**自身背景之上**、内容之下——光会给焦点元素本身染色，而不是洒在它背后的页面上。正确顺序要求焦点元素**不建立层叠上下文**，由 `.tp-ground` 建立：此时绘制顺序为「底与栅格 → 负层级的光 → 内容」，光落在栅格之上、卡片之下，与首页现有观感一致。
@@ -155,7 +156,7 @@
 **三、`--tp-color-page` 重定义的涟漪已实测封闭。**
 全站有 60 处消费该令牌，其中一部分（`--npc-sunken-bg: color-mix(page 62%, transparent)` 等）是把它当**暗端**用的——底提亮会让这些"下沉面"反而变亮，层次倒置。逐文件核查试点两页的子树：
 
-- `assets/css/domains/catalog.css`（物品列表）：**0 处**
+- `hifi-preview.css` 中所有 `.entity-*` / `.npc-*` 选择器块（NPC 列表）：**0 处**
 - `assets/css/domains/public-layout.css`、`assets/css/primitives.css`（导航与页脚）：**0 处**
 - 资料库段落：**4 处**，方向全部符合预期——`--article-archive-plate` 跟着提亮；卡面由 `color-mix(surface 72%, transparent)` 半透明合成，底一亮自动跟上；角标 scrim `color-mix(page 72%, transparent)` 略微提亮，可接受。
 
@@ -173,22 +174,27 @@
 **七、【review 修正】层叠顺序原本未定义。**
 `.tp-ground`、`.screen`、`:where(…) .article-archive-approved-screen` 特指度全是 `(0,1,0)`，胜负只由源序决定，而初稿没写导入位置。已明确：`ground-gloss.css` 在 `domains/index.css` 中最后导入。实施时需实测确认，不能只靠推理。
 
-**八、【review 披露】`/items` 会新增栅格纹，这超出「提亮 + 加光」的字面范围。**
-`.catalog-screen` 自身没有任何背景规则，该页现在吃的是通用 `.screen { background: #050806 }`——**平的，没有栅格**。套上 `.tp-ground` 后该页会首次出现栅格纹。这是统一的应有之义（首页配方含栅格，多数页面也有），但属于可见变化，必须事先声明而不是夹带。
+**八、【review 修正】`/npcs` 会失去顶部那条向下压暗。**
+`.entity-screen` 现有背景的第一层是 `linear-gradient(180deg, rgba(5,8,6,0), rgba(5,8,6,.82) 420px)`——一条从透明渐暗到 82% 的压暗带，用来把首屏 420px 压下去。`.tp-ground` 接管后这条消失，该页顶部会变亮。这与本项目的目标一致（页面太黑），但属于可见变化，须声明并在截图里确认没有把顶部区域搞得过亮。
 
-**九、【review 修正】初稿低估了 `/items` 的工作量。**
-初稿把试点描述成"每页加两个 class"。实际 `.catalog-wall-shell` 自带两个 radial 与一套私有栅格：若不清理，卡墙自己的背景会盖住身后的统一光（该元素 `position: relative` 且 `z-index: auto`，不建立层叠上下文，`::before` 会逃逸到 `.tp-ground` 层绘制在卡墙**之后**），最终只在卡墙四周露出一圈边缘光——既不是批准的观感，又是三套光叠在一起，正是要消灭的"太过"。因此 `/items` 的清理工作已写入落地表。
+**九、【review 修正】焦点元素不得自带不透明面。**
+光以 `z-index: -1` 绘制在 `.tp-ground` 的层叠上下文里，位于该焦点元素**身后**。若焦点元素自身有不透明背景，光会被它整个盖住，只在 `inset` 外溢的一圈露出边缘光——既不是批准的观感，又等于白做。因此焦点必须选**自身无背景的布局容器**：资料库取 `.article-archive-page-shell`，NPC 取 `.entity-main-panel`，两者均已核实无背景、无 transform/filter/opacity。这条要写进合同（见下）。
 
-**十、【review 披露】光泽几何与你批准的台上版本不同。**
+初稿曾把 `/items` 的 `.catalog-wall-shell` 选作焦点，正是踩了这一条——该元素自带不透明的斜向渐变面。
+
+**十、【review 修正】浅色"压平"会破坏 `/npcs`。**
+初稿让 `.tp-ground` 在浅色下压平成 `background: var(--tp-color-page)`。但 `.entity-screen` 没有任何浅色覆盖——`/npcs` 浅色下本来就带栅格，压平会把它抹掉，直接违反"浅色逐像素无差异"。已改为整条 `.tp-ground` 规则只在 `[data-theme="dark"]` 下存在，浅色里它是纯空操作，各页保持原样。副作用是特指度升到 `(0,2,0)`，正确性不再依赖源序（见边界七）。
+
+**十一、【review 披露】光泽几何与你批准的台上版本不同。**
 台上「统一后」用的是 `inset: -52% -22%`（含水平外扩），spec 为规避横向滚动风险改成了 `inset: -140px 0`。发光盒子变窄会改变观感——同样 `.08` 在更小的盒子里读起来更集中。实施后必须与台上版本对照；若明显偏强或偏弱，调 `--tp-gloss-reach`（射程），**不调 `--tp-gloss-alpha`**，因为 `.08` 是你定的。调整结果需回报，不自行拍板。
 
 ## 合同改动
 
 | 脚本 | 改动 |
 |---|---|
-| `check-public-pages.mjs` | `publicShellClasses` 中 `pages/items/index.vue` 与 `pages/articles/archive.vue` 两条追加 `tp-ground` |
+| `check-public-pages.mjs` | `publicShellClasses` 中 `pages/articles/archive.vue` 与 `pages/npcs/index.vue` 两条追加 `tp-ground`（后者若不在表中则新增） |
 | `check-front-layout-layering-contract.mjs` | 「archive dark route 必须使用 token-owned grid、radial field 与 fixed page ground」这条断言要求页面自写 radial 背景，与新系统直接冲突，须**改写而非删除**——替换为等价强度的新断言：该路由的深色底必须由 `.tp-ground` 提供。覆盖面只可平移，不可净减 |
-| 新增断言 | ① 每个路由 `tp-gloss-focus` 至多出现 1 次；② 带 `tp-ground` 的页面不得在其 screen 选择器里自写 `radial-gradient`；③ `ground-gloss.css` 中 `isolation: isolate` 必须在 `.tp-ground` 上而非 `.tp-gloss-focus` 上 |
+| 新增断言 | ① 每个路由 `tp-gloss-focus` 至多出现 1 次；② 带 `tp-ground` 的页面不得在其 screen 选择器里自写 `radial-gradient`；③ `ground-gloss.css` 中 `isolation: isolate` 必须在 `.tp-ground` 上而非 `.tp-gloss-focus` 上；④ `.tp-gloss-focus` 规则块内不得出现 `background`、`transform`、`filter`、`opacity`、`will-change`（边界九与边界一：自带面会盖住光，建层叠上下文会让光失效） |
 
 前两条断言把「不要太过」和「不再长出第七套背景」变成机器可查的规则；第三条锁住上面「边界一」那个一旦写错就静默失效的绘制顺序。
 
@@ -205,6 +211,7 @@
 ## 明确不做
 
 - **不动 `:root` 令牌**：底色提亮在试点期只作用于 `.tp-ground` 子树。
-- **不碰详情页、首页、制作页、错误页**：它们各自的背景保持现状，本轮不统一。
+- **不碰 `/items`、详情页、首页、制作页、错误页**：它们各自的背景保持现状，本轮不统一。`/items` 的 9 个 radial 与 7 处私有栅格另行立项。
+- **不碰其余 `entity-screen` 页面**（`/bosses`、`/buffs`、`/armor-sets`、`/biomes`）：`tp-ground` 按页挂在 `publicScreenClass` 上，只影响 `/npcs`。
 - **不加元素级光泽**（描边高光、表面渐变、外发光晕）：本轮只做背景层的光。这些是另一个议题，需要时单独立项。
 - **不改浅色主题的任何观感**。
