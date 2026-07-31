@@ -86,6 +86,34 @@
 
 这次运行创建了 `data/generated/resume/`（爬虫检查点）。仓库里**没有任何 resume 状态被跟踪**，但也没有对应忽略规则——只是这个 checkout 之前从没跑过 boss 抓取所以没暴露。已补 `data/generated/resume/`。
 
+## 全库中文覆盖率实测（留给后续爬虫优化）
+
+本次范围内已齐，但那只是全库一小部分。活表逐列实测（`*_backup_*` 历史表已排除）：
+
+**已 100%**：`biomes.description`/`name_zh` 47、`boss_groups.notes`/`name_zh` 33（本次）、`world_contexts.description` 37、`crafting_stations.name_zh` 73、`item_groups.name_zh` 34、`condition_terms.name_zh` 7。
+
+**真正的空缺**：
+
+| 字段 | 空缺 | 有英文源可翻 |
+| --- | --- | --- |
+| `npcs.behavior_notes` | **723 / 762**（覆盖率 5%） | **没有，英文也是空的** |
+| `projectiles.name_zh` | 105 | — |
+| `buffs.name_zh` / `tooltip_zh` | 各 48 | — |
+| `items.name_zh` | 20 | — |
+| `npcs.name_zh` | 4 | — |
+
+`npcs.behavior_notes` 是最大的洞，且**与本次不是同一类问题**：本次是「有英文、换成中文」，它是中英文皆空——没有东西可翻，只能新抓中文 wiki 的 NPC 页。属于爬虫侧工作，回填脚本调参数解决不了。
+
+### 坑一：判据会误报，别照着「英文残留」盲修
+
+全库「含拉丁字母且不含汉字」只命中 **9 条**，逐条点名：`R.E.K. 3000`、`r/Terraria`、`r/Terraria 2023`、`UFO`、`Hoardagron`、`Spiffo`、`piu piu`。
+
+抽查中文 wiki：`R.E.K. 3000` 的**中文页标题就是** `R.E.K. 3000`；`Spiffo` 的中文页是「毛绒Spiffo」，同样保留拉丁。**这些是中文站本身就不译的专有名词，不是待补项。** 驱动本次回填的那条判据（`isEnglishOnlyText`）会把它们全部标成候选——后续若对 name 类字段跑同样的判据，必须先过一遍白名单，否则会把正确的专有名词「翻译」坏。（`UFO`/`Hoardagron` 未查实，存疑。）
+
+### 坑二：看着 6145 空，其实字段没被使用
+
+`items.description_zh` 空 6145/6159、`items.tooltip_zh` 空 6153/6159，但英文 `items.description` 只有 **8** 条非空（那 8 条的中文都有），英文 `items.tooltip` **0** 条非空。**这两个字段本身基本未使用，不是缺口。** 这也解释了脚本的审计指标 `items_description_en_visible_missing_zh` 为何一直报 0——它只统计「英文可见但中文缺失」，是正确的口径。评估覆盖率时别直接数 NULL。
+
 ## 没做的事
 
 - **`npcs.behavior_notes` 不在本次射程内。** 交接表里那 762 行（39 中文 / 723 空）不属于这个脚本覆盖的四个 scope。
