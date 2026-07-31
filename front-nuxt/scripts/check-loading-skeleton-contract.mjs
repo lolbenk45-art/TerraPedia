@@ -166,13 +166,21 @@ assertMarkers('pages/items/[id].vue', [
 assertMarkers('pages/articles/archive.vue', [
   ':loading="articleLoading"',
   ':error-message="articleError"',
-  '<ArticleArchiveCardGrid',
+  '<ArticleArchiveBoard',
 ])
 
 assertMarkers('components/article/ArticleArchiveCardGrid.vue', [
   'const archiveLoadingSlotCount = 12',
   'v-for="slot in archiveLoadingSlotCount"',
   'article-archive-card article-archive-card--loading',
+  '<CommonTpSkeleton type="icon"',
+  '<CommonTpSkeleton type="line"',
+])
+
+assertMarkers('components/article/ArticleArchiveList.vue', [
+  'const listLoadingSlotCount = 12',
+  'v-for="slot in listLoadingSlotCount"',
+  'article-archive-list-row article-archive-list-row--loading',
   '<CommonTpSkeleton type="icon"',
   '<CommonTpSkeleton type="line"',
 ])

@@ -1874,9 +1874,18 @@ for (const path of scanFiles) {
     const archiveCardComponent = existsSync(file(archiveCardComponentPath))
       ? readFileSync(file(archiveCardComponentPath), 'utf8')
       : ''
+    const archiveBoardComponentPath = 'components/article/ArticleArchiveBoard.vue'
+    const archiveBoardComponent = existsSync(file(archiveBoardComponentPath))
+      ? readFileSync(file(archiveBoardComponentPath), 'utf8')
+      : ''
+    const archiveListComponentPath = 'components/article/ArticleArchiveList.vue'
+    const archiveListComponent = existsSync(file(archiveListComponentPath))
+      ? readFileSync(file(archiveListComponentPath), 'utf8')
+      : ''
 
     // 产品决定：文章库卡片同样不展示阅读时长，与首页发现卡片、首屏舞台保持一致。
-    if (archiveCardComponent.includes('readingMinutes') || content.includes('estimateArticleReadingMinutes')) {
+    if ([archiveCardComponent, archiveBoardComponent, archiveListComponent].some((source) => source.includes('readingMinutes'))
+      || content.includes('estimateArticleReadingMinutes')) {
       violations.push(`${path}: archive cards must not surface a reading-duration estimate`)
     }
 
@@ -1913,12 +1922,34 @@ for (const path of scanFiles) {
       '@click="emit(\'clear\')"',
       '@click="emit(\'retry\')"',
       'role="alert"',
+    ].some((marker) => !archiveBoardComponent.includes(marker))) {
+      violations.push(`${archiveBoardComponentPath}: archive board must keep labelled search, clear, and error recovery for both views`)
+    }
+
+    if (!archiveCardComponent.includes(':to="`/articles/${article.slug}`"')) {
+      violations.push(`${archiveCardComponentPath}: archive cards must remain whole-card links`)
+    }
+
+    if ([
       ':to="`/articles/${article.slug}`"',
       'v-if="likeCount(article) > 0"',
       'v-if="commentCount(article) > 0"',
       'v-if="favoriteCount(article) > 0"',
-    ].some((marker) => !archiveCardComponent.includes(marker))) {
-      violations.push(`${archiveCardComponentPath}: archive cards must keep labelled search/recovery, whole-card links, and positive-only live engagement`)
+    ].some((marker) => !archiveListComponent.includes(marker))) {
+      violations.push(`${archiveListComponentPath}: archive list rows must be whole-row links carrying positive-only live engagement`)
+    }
+
+    // 视图偏好必须由 cookie 拥有，SSR 首屏直出正确正文，不允许回落 localStorage 造成水合闪烁。
+    if ([
+      'const { viewMode, setViewMode } = useArchiveViewMode()',
+      ':view-mode="viewMode"',
+      '@update:view-mode="setViewMode"',
+    ].some((marker) => !content.includes(marker))) {
+      violations.push(`${path}: archive view preference must be cookie-owned page state shared by both views`)
+    }
+
+    if (content.includes('localStorage') || archiveBoardComponent.includes('localStorage')) {
+      violations.push(`${path}: archive view preference must not fall back to localStorage`)
     }
 
     if ([
@@ -1926,7 +1957,7 @@ for (const path of scanFiles) {
       'article-reading-stack',
       'article-popular-list',
       'article-topic-empty',
-    ].some((marker) => content.includes(marker) || archiveCardComponent.includes(marker))) {
+    ].some((marker) => [content, archiveBoardComponent, archiveCardComponent, archiveListComponent].some((source) => source.includes(marker)))) {
       violations.push(`${path}: complete archive route must not duplicate the discovery feature, reading stack, popular rail, or topic state`)
     }
   }

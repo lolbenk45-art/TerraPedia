@@ -207,20 +207,37 @@ for (const [path, markers] of Object.entries({
 }
 
 {
+  const coverPath = 'components/article/ArticleArchiveCover.vue'
+  const coverContent = read(coverPath)
+  assertContains(coverPath, coverContent, [
+    'const coverFailed = ref(false)',
+    '@error="markCoverFailed"',
+    '@load="measureCover"',
+    'v-if="hasLiveCover"',
+    '{{ fallbackText }}',
+  ])
+
   const cardPath = 'components/article/ArticleArchiveCardGrid.vue'
   const cardContent = read(cardPath)
   assertContains(cardPath, cardContent, [
-    'failedCoverKeys',
-    '@error="markCoverFailed(article)"',
-    'v-if="hasLiveCover(article)"',
-    '{{ coverFallback(article) }}',
     'class="article-archive-card__cover"',
+    '<ArticleArchiveCover',
+    ':fallback-text="coverFallback(article)"',
+  ])
+
+  const listPath = 'components/article/ArticleArchiveList.vue'
+  const listContent = read(listPath)
+  assertContains(listPath, listContent, [
+    'class="article-archive-list-row__cover"',
+    '<ArticleArchiveCover',
+    ':fallback-text="coverFallback(article)"',
   ])
 
   const cssPath = 'assets/css/domains/detail-pages-redesign.css'
   const cssContent = read(cssPath)
   assertContains(cssPath, cssContent, [
     '.article-archive-card__cover img {',
+    '.article-archive-list-row__cover img {',
     'object-fit: contain;',
   ])
 }

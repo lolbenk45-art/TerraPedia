@@ -1,9 +1,11 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (path) => readFileSync(join(root, path), 'utf8')
+// 缺文件应该报成一条条断言违规，而不是让整个脚本 ENOENT 崩掉——崩掉会把其余违规一起吞了。
+const readOptional = (path) => existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : ''
 const violations = []
 
 const requireIncludes = (path, source, marker, message) => {
@@ -72,6 +74,8 @@ const articlePage = read('pages/articles/index.vue')
 const articleArchivePage = read('pages/articles/archive.vue')
 const articleFeatureMeta = read('components/article/ArticleFeatureMeta.vue')
 const articleArchiveCardGrid = read('components/article/ArticleArchiveCardGrid.vue')
+const articleArchiveBoard = readOptional('components/article/ArticleArchiveBoard.vue')
+const articleArchiveList = readOptional('components/article/ArticleArchiveList.vue')
 const articleDetailPage = read('pages/articles/[slug].vue')
 const userArticleListPage = read('pages/user/articles/index.vue')
 const userArticleNewPage = read('pages/user/articles/new.vue')
@@ -331,7 +335,10 @@ requireRegex(
 for (const marker of [
   '<main class="tp-public-page-shell article-layout article-archive-page tp-page-shell" :aria-busy="articleLoading">',
   'class="article-archive-page-heading"',
-  '<ArticleArchiveCardGrid',
+  'class="article-archive-page-count"',
+  '<ArticleArchiveBoard',
+  ':view-mode="viewMode"',
+  '@update:view-mode="setViewMode"',
 ]) {
   requireIncludes('pages/articles/archive.vue', articleArchivePage, marker, `article archive route must expose ${marker}`)
 }
@@ -346,11 +353,31 @@ for (const marker of [
 for (const marker of [
   'class="article-archive-page-toolbar"',
   'class="article-archive-page-search"',
+  'class="article-archive-view-switch"',
+  'role="group"',
+  ':aria-pressed="viewMode === option.value"',
+]) {
+  requireIncludes('components/article/ArticleArchiveBoard.vue', articleArchiveBoard, marker, `article archive board must expose ${marker}`)
+}
+
+for (const marker of [
   'class="article-archive-card-grid"',
   'class="article-archive-card"',
   'class="article-archive-card__cover"',
+  'class="article-archive-card__tag"',
+  'class="article-archive-card__summary"',
 ]) {
   requireIncludes('components/article/ArticleArchiveCardGrid.vue', articleArchiveCardGrid, marker, `article archive card grid must expose ${marker}`)
+}
+
+for (const marker of [
+  'class="article-archive-list"',
+  'class="article-archive-list__head"',
+  'class="article-archive-list-row"',
+  'class="article-archive-list-row__cover"',
+  'class="article-archive-list-row__mobile-meta"',
+]) {
+  requireIncludes('components/article/ArticleArchiveList.vue', articleArchiveList, marker, `article archive list must expose ${marker}`)
 }
 
 requireRegex(
@@ -370,56 +397,62 @@ requireRegex(
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   detailPageRedesignCss,
-  /\.article-archive-approved-screen\s*\{[^}]*--article-archive-card-bg:\s*color-mix\(in srgb,\s*var\(--tp-color-surface\)[^;]*;[^}]*--article-archive-card-hover:\s*color-mix\(in srgb,\s*var\(--tp-color-positive\)[^;]*;/m,
-  'article archive card colors must derive from the shared theme surface and positive tokens',
+  /\.article-archive-approved-screen\s*\{[^}]*--article-archive-card-bg:\s*color-mix\(in srgb,\s*var\(--tp-color-surface\)[^;]*;[^}]*--article-archive-card-hover:\s*color-mix\(in srgb,\s*var\(--tp-color-positive\)[^;]*;[^}]*--article-archive-plate:\s*color-mix\(in srgb,\s*var\(--tp-color-positive\)[^;]*;/m,
+  'article archive card, hover, and plate colors must derive from the shared theme surface and positive tokens',
 )
 
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   detailPageRedesignCss,
-  /\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);[^}]*gap:\s*10px;/m,
-  'article archive desktop grid must use four compact columns with a 10px gap',
+  /\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);[^}]*gap:\s*var\(--tp-space-4\);/m,
+  'article archive desktop card grid must use three information cards with the shared space-4 gutter',
 )
 
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   articleArchive1180Css,
-  /\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/m,
-  'article archive grid must recompose to three columns at the frozen 1180px breakpoint',
+  /\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);[\s\S]*?\.article-archive-list-row__engagement\s*\{[^}]*display:\s*none;/m,
+  'article archive must drop to two cards and shed the engagement column at the frozen 1180px breakpoint',
 )
 
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   articleArchive900Css,
-  /\.article-archive-page-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*?\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/m,
-  'article archive toolbar and grid must recompose to one toolbar track and two cards at 900px',
+  /\.article-archive-page-toolbar\s*\{[^}]*align-items:\s*stretch;[\s\S]*?\.article-archive-view-switch\s*\{[^}]*margin-left:\s*0;/m,
+  'article archive toolbar must stack its search and view switch without floating the switch at 900px',
 )
 
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   articleArchive640Css,
-  /\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*?\.article-archive-card\s*\{[^}]*grid-template-columns:\s*88px minmax\(0,\s*1fr\);[\s\S]*?\.article-archive-card__meta\s*\{[^}]*grid-column:\s*2;/m,
-  'article archive mobile grid must become one horizontal card column without a sidebar',
+  /\.article-archive-card-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*?\.article-archive-list__head\s*\{[^}]*display:\s*none;[\s\S]*?\.article-archive-list-row\s*\{[^}]*grid-template-columns:\s*44px minmax\(0,\s*1fr\);[\s\S]*?\.article-archive-list-row__mobile-meta\s*\{[^}]*display:\s*flex;/m,
+  'article archive mobile must stack one card column and fold list columns into an inline meta line',
 )
 
-const articleArchiveCoverDesktopPattern = /\.article-archive-card__cover\s*\{[^}]*width:\s*74px;[^}]*height:\s*74px;[\s\S]*?\.article-archive-card__cover img\s*\{[^}]*object-fit:\s*contain;/m
-const articleArchiveCoverMobilePattern = /\.article-archive-card__cover\s*\{[^}]*width:\s*88px;[^}]*height:\s*72px;/m
-if (!articleArchiveCoverDesktopPattern.test(detailPageRedesignCss) || !articleArchiveCoverMobilePattern.test(articleArchive640Css)) {
-  violations.push('assets/css/domains/detail-pages-redesign.css: article archive covers must use 74x74 desktop and 88x72 mobile contained image wells')
+const articleArchiveCardBandPattern = /\.article-archive-card\s*\{[^}]*grid-template-rows:\s*150px auto auto;[\s\S]*?\.article-archive-card__cover img\s*\{[^}]*object-fit:\s*contain;/m
+const articleArchiveListWellPattern = /\.article-archive-list-row__cover\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;[\s\S]*?\.article-archive-list-row__cover img\s*\{[^}]*object-fit:\s*contain;/m
+if (!articleArchiveCardBandPattern.test(detailPageRedesignCss) || !articleArchiveListWellPattern.test(detailPageRedesignCss)) {
+  violations.push('assets/css/domains/detail-pages-redesign.css: article archive must use a 150px card cover band and a 44px list well, both contained by default')
+}
+
+// 封面按原生尺寸分流：小于 400px 的游戏精灵图 pixelated 不平滑放大，真照片才 cover 裁切。
+const articleArchiveCoverModePattern = /\.article-archive-cover-art\.is-photo\s*\{[^}]*object-fit:\s*cover;[\s\S]*?\.article-archive-cover-art\.is-sprite\s*\{[^}]*image-rendering:\s*pixelated;/m
+if (!articleArchiveCoverModePattern.test(detailPageRedesignCss)) {
+  violations.push('assets/css/domains/detail-pages-redesign.css: article archive covers must crop photographs and pixel-preserve game sprites')
 }
 
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   detailPageRedesignCss,
-  /\.article-archive-card\s*\{[^}]*min-height:\s*138px;[^}]*border-radius:\s*var\(--tp-radius-card\);[\s\S]*?\.article-archive-card__copy > strong\s*\{[^}]*font-size:\s*14px;[^}]*-webkit-line-clamp:\s*2;[\s\S]*?\.article-archive-card__meta\s*\{[^}]*font-size:\s*12px;[\s\S]*?\.article-archive-approved-screen :where\(a, button, input\):focus-visible\s*\{[^}]*outline:\s*3px solid var\(--button-focus-ring\);/m,
-  'article archive cards must keep readable metadata, two-line titles, shared radius, touch size, and visible focus',
+  /\.article-archive-card\s*\{[^}]*border-radius:\s*var\(--tp-radius-card\);[\s\S]*?\.article-archive-card__copy > strong\s*\{[^}]*font-size:\s*16px;[^}]*-webkit-line-clamp:\s*2;[\s\S]*?\.article-archive-card__summary\s*\{[^}]*font-size:\s*13px;[^}]*-webkit-line-clamp:\s*2;[\s\S]*?\.article-archive-card__meta\s*\{[^}]*font-size:\s*12px;[\s\S]*?\.article-archive-approved-screen :where\(a, button, input\):focus-visible\s*\{[^}]*outline:\s*3px solid var\(--button-focus-ring\);/m,
+  'article archive cards must keep readable metadata, two-line titles and summaries, shared radius, and visible focus',
 )
 
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   detailPageRedesignCss,
-  /\.article-archive-card \.public-article-kicker\s*\{[^}]*display:\s*flex;[^}]*gap:\s*var\(--tp-space-2\);[^}]*font-size:\s*var\(--tp-font-size-caption\);[\s\S]*?\.article-archive-card \.public-article-kicker span \+ span\s*\{[^}]*color:\s*var\(--tp-color-text-muted\);[\s\S]*?\.article-archive-card \.public-article-kicker span \+ span::before\s*\{[^}]*content:\s*"·";/m,
-  'article archive card kicker must own a separated token-scaled eyebrow that keeps its date readable rather than inheriting the discovery page scoped styles',
+  /\.article-archive-card__tag\s*\{[^}]*position:\s*absolute;[^}]*color:\s*var\(--tp-color-accent\);[^}]*font-size:\s*10px;/m,
+  'article archive card tag must own its token-scaled cover badge here rather than inheriting the discovery page scoped styles',
 )
 
 requireRegex(
@@ -429,9 +462,31 @@ requireRegex(
   'article archive fallback covers must scale their monogram and wordmark to the compact well',
 )
 
-for (const source of [articleArchivePage, articleArchiveCardGrid]) {
+requireRegex(
+  'assets/css/domains/detail-pages-redesign.css',
+  detailPageRedesignCss,
+  /\.article-archive-list-row__cover \.public-article-cover-fallback\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;[\s\S]*?\.article-archive-list-row__cover \.public-article-cover-fallback b\s*\{[^}]*font-size:\s*13px;[\s\S]*?\.article-archive-list-row__cover \.public-article-cover-fallback em\s*\{[^}]*display:\s*none;/m,
+  'article archive list fallback covers must shrink to the 44px well and drop the wordmark',
+)
+
+for (const source of [articleArchivePage, articleArchiveBoard, articleArchiveCardGrid, articleArchiveList]) {
   if (source.includes('article-popular-list') || source.includes('article-archive-rail') || source.includes('<aside')) {
     violations.push('article archive route must remain a full-width card grid without discovery sidebars')
+  }
+}
+
+// 后端 /articles 只收 page/limit/size/keyword，没有 sort 参数。
+// 在后端补上白名单排序字段之前，任何排序控件都是假控件，禁止渲染。
+for (const [label, source] of [
+  ['pages/articles/archive.vue', articleArchivePage],
+  ['components/article/ArticleArchiveBoard.vue', articleArchiveBoard],
+  ['components/article/ArticleArchiveCardGrid.vue', articleArchiveCardGrid],
+  ['components/article/ArticleArchiveList.vue', articleArchiveList],
+]) {
+  for (const sortMarker of ['排序', 'sortBy', 'sortOrder', 'orderBy', 'article-archive-sort']) {
+    if (source.includes(sortMarker)) {
+      violations.push(`${label}: archive must not render a sort control while the articles API exposes no sort parameter (${sortMarker})`)
+    }
   }
 }
 
