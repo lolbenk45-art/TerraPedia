@@ -631,3 +631,24 @@ function staticRelativeImports(source) {
   }
   return imports;
 }
+
+test('the item image lineage code bundle pins every module the apply loads', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-item-image-lineage-apply',
+    artifactDate: '2026-08-01',
+  });
+
+  const pinned = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+  // The bundle is resolved through the import graph, so the staged writers and
+  // the runtime-config resolver are pinned without being listed by hand. This
+  // locks that in: the approval has to cover the code that touches the tables,
+  // not just the orchestrator named in the catalog.
+  for (const required of [
+    'scripts/data/relation/apply-item-image-lineage.mjs',
+    'scripts/data/relation/item-image-lineage-adapter.mjs',
+    'scripts/data/relation/item-image-lineage-db.mjs',
+  ]) {
+    assert.ok(pinned.has(required), `${required} must be pinned by the code bundle`);
+  }
+});
