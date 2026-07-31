@@ -217,6 +217,81 @@ test('boss fetch leaves the Chinese intro null when the page has no zh langlink'
   assert.equal(record.notesZh, null);
 });
 
+test('boss fetch resolves celestial pillars through the shared zh page', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-boss-pillar-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const outputPath = path.join(tempDir, 'bosses.json');
+  const reportPath = path.join(tempDir, 'bosses-report.json');
+  const resumeStatePath = path.join(tempDir, 'bosses.resume.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.writeFileSync(mockApiPath, JSON.stringify({
+    __byRequest: {
+      'parse:sections:Bosses': {
+        parse: {
+          title: 'Bosses',
+          pageid: 1,
+          sections: [
+            { level: '2', line: 'Event bosses' },
+            { level: '3', line: 'Solar Pillar' }
+          ]
+        }
+      },
+      // The English pillar pages carry no zh langlink, which is exactly why the
+      // shared-page mapping has to cover them.
+      'query:revisions|langlinks:Solar Pillar': {
+        query: {
+          pages: [{
+            pageid: 2,
+            title: 'Solar Pillar',
+            revisions: [{ revid: 3, timestamp: '2026-07-16T00:00:00Z' }]
+          }]
+        }
+      },
+      'parse:text:Solar Pillar': {
+        parse: { text: '<p>The Solar Pillar is one of the four Celestial Pillars with enough text for a stable record.</p>' }
+      },
+      'parse:text:天界柱': {
+        parse: {
+          title: '天界柱',
+          text: '<p><b>天界柱</b>（又称为月亮柱、月亮塔、或天界塔）是在月亮事件中当拜月教邪教徒被打败后出现的四个 Boss。</p>'
+        }
+      }
+    }
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--output-json=${outputPath}`,
+    `--report-json=${reportPath}`,
+    `--progress-path=${progressPath}`,
+    `--resume-state=${resumeStatePath}`,
+    '--resume-mode=fresh',
+    '--max-records=1'
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const record = JSON.parse(fs.readFileSync(outputPath, 'utf8')).records[0];
+
+  assert.equal(record.titleZh, '日耀柱');
+  assert.equal(record.pageTitleZh, '天界柱');
+  assert.equal(record.sourceUrlZh, `https://terraria.wiki.gg/zh/wiki/${encodeURIComponent('日耀柱')}`);
+  assert.equal(
+    record.notesZh,
+    '天界柱（又称为月亮柱、月亮塔、或天界塔）是在月亮事件中当拜月教邪教徒被打败后出现的四个 Boss。'
+  );
+});
+
 test('boss discovery failure keeps the unknown plan null', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-boss-discovery-progress-'));
   const worktreeRoot = path.join(tempDir, 'worktree');

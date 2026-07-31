@@ -5,6 +5,10 @@ import path from 'node:path';
 
 import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
 import { extractFirstChineseParagraph } from '../lib/wiki-page-utils.mjs';
+import {
+  CELESTIAL_PILLAR_SHARED_ZH_PAGE,
+  resolveCelestialPillarNameZhByEnglishTitle,
+} from '../lib/celestial-pillar-zh.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
@@ -485,17 +489,18 @@ async function hydrateBossEntry(entry) {
     const html = await fetchBossRenderedHtml(meta.pageTitleEn);
     const intro = extractIntro(html);
     const imageUrl = extractBossImageUrl(html);
-    const introZh = await fetchBossIntroZh(meta.titleZh);
+    const zh = resolveZhTarget(entry.titleEn, meta.titleZh);
+    const introZh = await fetchBossIntroZh(zh.pageTitleZh);
     return {
       ...entry,
       status: 'ok',
       pageId: meta.pageId,
       revisionId: meta.revisionId,
       revisionTimestamp: meta.revisionTimestamp,
-      titleZh: meta.titleZh,
-      pageTitleZh: meta.titleZh,
+      titleZh: zh.titleZh,
+      pageTitleZh: zh.pageTitleZh,
       sourceUrl: buildWikiUrl(meta.pageTitleEn),
-      sourceUrlZh: meta.titleZh ? `https://terraria.wiki.gg/zh/wiki/${encodeURIComponent(meta.titleZh.replaceAll(' ', '_'))}` : null,
+      sourceUrlZh: zh.titleZh ? `https://terraria.wiki.gg/zh/wiki/${encodeURIComponent(zh.titleZh.replaceAll(' ', '_'))}` : null,
       imageUrl,
       notes: intro,
       notesZh: introZh,
@@ -542,6 +547,17 @@ async function fetchBossPageMeta(title) {
     revisionTimestamp: revision?.timestamp ?? null,
     titleZh: zhTitle ? String(zhTitle) : null,
   };
+}
+
+// Celestial Pillars have no zh langlink because the Chinese wiki merges the four
+// into one page. Their entity name (日耀柱) is a real redirect into that page, so
+// it stays the linkable titleZh while pageTitleZh names the page actually parsed.
+function resolveZhTarget(titleEn, langlinkTitleZh) {
+  const pillarNameZh = resolveCelestialPillarNameZhByEnglishTitle(titleEn);
+  if (!langlinkTitleZh && pillarNameZh) {
+    return { titleZh: pillarNameZh, pageTitleZh: CELESTIAL_PILLAR_SHARED_ZH_PAGE };
+  }
+  return { titleZh: langlinkTitleZh, pageTitleZh: langlinkTitleZh };
 }
 
 // The zh page is a separate wiki, so a boss without a zh langlink -- or whose zh

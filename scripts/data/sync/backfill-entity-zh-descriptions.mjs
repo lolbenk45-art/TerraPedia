@@ -17,6 +17,11 @@ import {
   extractFirstChineseParagraph,
   extractSectionParagraphByAnchor,
 } from '../lib/wiki-page-utils.mjs';
+import {
+  CELESTIAL_PILLAR_CODES,
+  CELESTIAL_PILLAR_SHARED_ZH_PAGE,
+  resolveCelestialPillarNameZhByCode,
+} from '../lib/celestial-pillar-zh.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
@@ -28,13 +33,6 @@ const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
 export const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 export const DEFAULT_ACTION_ID = 'entity-zh-descriptions-backfill';
-const CELESTIAL_PILLAR_NAME_ZH = new Map([
-  ['SOLAR_PILLAR', '日耀柱'],
-  ['NEBULA_PILLAR', '星云柱'],
-  ['VORTEX_PILLAR', '星旋柱'],
-  ['STARDUST_PILLAR', '星尘柱'],
-]);
-const CELESTIAL_PILLAR_CODES = new Set([...CELESTIAL_PILLAR_NAME_ZH.keys()]);
 const BIOME_OVERVIEW_ANCHOR_BY_CODE = new Map([
   ['flower_patch', '小片花地'],
   ['stone_patch', '石嵌块'],
@@ -179,7 +177,7 @@ async function buildBossCandidate(row, { getZhPage, getZhTitle, minDescriptionLe
   let titleSource = zhTitle ? 'db:name_zh' : null;
 
   if (!zhTitle && CELESTIAL_PILLAR_CODES.has(code)) {
-    zhTitle = '天界柱';
+    zhTitle = CELESTIAL_PILLAR_SHARED_ZH_PAGE;
     titleSource = 'zh-wiki:celestial-pillars-shared-page';
   }
   if (!zhTitle) {
@@ -200,7 +198,7 @@ async function buildBossCandidate(row, { getZhPage, getZhTitle, minDescriptionLe
     return { skipped: skippedRow(row, 'bosses', 'missing_zh_intro', { zhTitle, sourcePageZh: page.pageTitle }) };
   }
 
-  const nameZhAfter = normalizeText(row.name_zh) || CELESTIAL_PILLAR_NAME_ZH.get(code) || null;
+  const nameZhAfter = normalizeText(row.name_zh) || resolveCelestialPillarNameZhByCode(code) || null;
   return {
     update: {
       id: Number(row.id),

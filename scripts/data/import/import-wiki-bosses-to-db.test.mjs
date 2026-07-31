@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { reconcileBossNotes, reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+import { reconcileBossNameZh, reconcileBossNotes, reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+
+test('reconcileBossNameZh keeps the stored Chinese name when the source carries none', () => {
+  assert.equal(reconcileBossNameZh({ titleZh: null }, '日耀柱'), '日耀柱');
+  assert.equal(reconcileBossNameZh({ titleZh: '   ' }, '日耀柱'), '日耀柱');
+});
+
+test('reconcileBossNameZh takes the source name when it has one', () => {
+  assert.equal(reconcileBossNameZh({ titleZh: '史莱姆王' }, null), '史莱姆王');
+  assert.equal(reconcileBossNameZh({ titleZh: '史莱姆王' }, '旧名'), '史莱姆王');
+  assert.equal(reconcileBossNameZh({ titleZh: null }, null), null);
+});
 
 test('reconcileBossNotes prefers the Chinese intro the source carries', () => {
   assert.equal(

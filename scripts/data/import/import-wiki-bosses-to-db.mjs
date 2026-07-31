@@ -571,6 +571,13 @@ function resolveBossImageUrl(record, members) {
 // boss_groups has no notes_zh column, so the zh backfill made `notes` itself the
 // Chinese-facing field. A sync that only resolved an English intro must therefore
 // leave Chinese already in the row alone, or every refresh would undo the backfill.
+// Celestial Pillars have no zh langlink, so a snapshot can legitimately carry a
+// null titleZh for a row whose Chinese name the backfill already filled in.
+// Writing that null straight through would erase it, so absence never overwrites.
+export function reconcileBossNameZh(record, existingNameZh) {
+  return toText(record?.titleZh) ?? toText(existingNameZh);
+}
+
 export function reconcileBossNotes(record, existingNotes) {
   const incoming = truncateText(toText(record?.notesZh) ?? toText(record?.notes), 2000);
   const existing = toText(existingNotes);
@@ -581,12 +588,12 @@ export function reconcileBossNotes(record, existingNotes) {
 
 async function upsertBossGroup(conn, record, imageUrl) {
   const code = buildBossCode(record.titleEn);
-  const [existingRows] = await conn.execute('SELECT id, image_url, notes FROM boss_groups WHERE code = ? LIMIT 1', [code]);
+  const [existingRows] = await conn.execute('SELECT id, image_url, name_zh, notes FROM boss_groups WHERE code = ? LIMIT 1', [code]);
   const existing = existingRows[0] ?? null;
   const payload = [
     code,
     toText(record.titleEn),
-    toText(record.titleZh),
+    reconcileBossNameZh(record, existing?.name_zh ?? null),
     toText(record.groupType),
     imageUrl ?? null,
     Number(record.progressionOrder ?? 0),
