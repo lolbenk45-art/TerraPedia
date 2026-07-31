@@ -59,6 +59,13 @@ const articleViewCount = (article: UserArticle) => Math.max(0, Number(article.vi
 const articleLikeCount = (article: UserArticle) => Math.max(0, Number(article.likeCount ?? 0))
 const articleCommentCount = (article: UserArticle) => Math.max(0, Number(article.commentCount ?? 0))
 const articleFavoriteCount = (article: UserArticle) => Math.max(0, Number(article.favoriteCount ?? 0))
+const articleRowSummary = (article: UserArticle) => String(article.summary || '').trim()
+const articleCardSummary = (article: UserArticle) => articleRowSummary(article) || '这篇文章还没有摘要。'
+const totalArticles = computed(() => Math.max(0, Number(articlePagination.value.total ?? articles.value.length)))
+const rangeStart = computed(() => articles.value.length ? (currentPage.value - 1) * articleLimit + 1 : 0)
+const rangeEnd = computed(() => articles.value.length ? rangeStart.value + articles.value.length - 1 : 0)
+const { viewMode, setViewMode } = useArchiveViewMode()
+
 const articlePublishedLabel = (article: UserArticle) => {
   const raw = article.publishedAt || article.updatedAt || article.createdAt
   if (!raw) return '发布时间未记录'
@@ -114,27 +121,27 @@ useSeoMeta({
 <template>
   <main class="tp-public-page-shell article-layout article-archive-page tp-page-shell" :aria-busy="articleLoading">
     <header class="article-archive-page-heading">
-      <div>
-        <TerraBreadcrumb />
-        <span class="eyebrow">archive · published articles</span>
+      <TerraBreadcrumb />
+      <div class="article-archive-page-titles">
         <h1 id="article-archive-page-title">文章资料库</h1>
-        <p>搜索并连续浏览全部已发布文章。</p>
+        <span v-if="!articleError" class="article-archive-page-count">
+          共 <b>{{ totalArticles }}</b> 篇<template v-if="articles.length"> · 当前 <b>{{ rangeStart }}–{{ rangeEnd }}</b> · 第 <b>{{ currentPage }}/{{ totalPages }}</b> 页</template>
+        </span>
+        <NuxtLink class="article-archive-back" to="/articles">返回精选文章 →</NuxtLink>
       </div>
-      <NuxtLink class="article-archive-back" to="/articles">返回精选文章</NuxtLink>
     </header>
 
-    <ArticleArchiveCardGrid
+    <ArticleArchiveBoard
       v-model:search-keyword="articleSearchQuery"
       :entries="articles"
       :loading="articleLoading"
       :error-message="articleError"
       :keyword="keyword"
-      :current-page="currentPage"
-      :total-pages="totalPages"
-      :total-articles="Number(articlePagination.total ?? articles.length)"
-      :page-size="articleLimit"
+      :view-mode="viewMode"
       :cover-url="articleCoverUrl"
       :cover-fallback="articleCoverFallback"
+      :card-summary="articleCardSummary"
+      :row-summary="articleRowSummary"
       :author-label="articleAuthorLabel"
       :published-label="articlePublishedLabel"
       :view-count="articleViewCount"
@@ -144,6 +151,7 @@ useSeoMeta({
       @search="submitArticleSearch"
       @clear="clearArticleSearch"
       @retry="retryLoad"
+      @update:view-mode="setViewMode"
     />
 
     <CommonPaginationDock
