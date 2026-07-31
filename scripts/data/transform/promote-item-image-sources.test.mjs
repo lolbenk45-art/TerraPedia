@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
 import {
   buildPromotedItemsPayload,
   runItemImageSourcePromotion
@@ -272,7 +273,12 @@ function createWorkspace() {
     contractPath,
     resultPath: path.join(root, 'reports/authorization/canonical/promotion.result.json'),
     beforeSha256: sha256(fixture.standardizedBytes),
-    dataBundleSha256: fixture.contract.bundle.sha256
+    // The packet binds the contract file bytes through the canonical data-path
+    // bundle, not the promotion bundle's own hash.
+    dataBundleSha256: hashOrderedBundleBytes([{
+      path: 'reports/authorization/canonical/contract.json',
+      bytes: fs.readFileSync(contractPath)
+    }], 'item image promotion data bundle')
   };
 }
 

@@ -18,6 +18,7 @@ import {
   consumeAuthorizedOperationDispatchPermit,
   loadAuthorizedOperationContext
 } from '../automation/authorized-operation-context.mjs';
+import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
 
 const OPERATION_ID = 'canonical-item-image-source-promotion';
 const DEFAULT_CONTRACT_PATH = 'reports/authorization/canonical/canonical-item-image-source-promotion.input.json';
@@ -159,7 +160,8 @@ export async function runItemImageSourcePromotion(rawOptions = {}, dependencies 
     })
   ));
 
-  const contract = parseJsonBytes(readFile(contractPath), 'contract');
+  const contractBytes = readFile(contractPath);
+  const contract = parseJsonBytes(contractBytes, 'contract');
   if (contract?.operationId !== OPERATION_ID) {
     throw new Error(`contract operationId must be ${OPERATION_ID}`);
   }
@@ -179,10 +181,17 @@ export async function runItemImageSourcePromotion(rawOptions = {}, dependencies 
     return { applied: false, ...payload, serializedAfter: undefined };
   }
 
-  // The packet must be bound to these exact bundle bytes before the one-time
-  // permit is spent, so a mismatch costs nothing.
+  // The packet binds this contract file through the canonical data-path bundle,
+  // and the contract binds the promotion bundle by hash, which
+  // buildPromotedItemsPayload has already re-verified against the real bytes.
+  // Check the chain before the one-time permit is spent, so a mismatch costs
+  // nothing.
   const authorizedContext = loadAuthorizedContext();
-  if (authorizedContext?.dataBundleSha256 !== contract.bundle.sha256) {
+  const dataBundleSha256 = hashOrderedBundleBytes([{
+    path: path.relative(repoRoot, contractPath).split(path.sep).join('/'),
+    bytes: Buffer.isBuffer(contractBytes) ? contractBytes : Buffer.from(String(contractBytes))
+  }], 'item image promotion data bundle');
+  if (authorizedContext?.dataBundleSha256 !== dataBundleSha256) {
     throw new Error('authorized data bundle SHA-256 mismatch');
   }
   consumePermit(authorizedContext);
