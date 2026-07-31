@@ -745,7 +745,7 @@ Register `canonical-item-image-lineage-apply`. Its input contract binds the line
 
 Each database stage uses its own transaction; the pre-apply snapshot and stage marker remain available if a later stage fails. No stage may report global completion until all post-verifiers pass.
 
-- [ ] **Step 4: Strengthen readiness evidence**
+- [x] **Step 4: Strengthen readiness evidence**
 
 Require distinct count 6,131 at standardized source, managed result, landing, maint, relation, and local layers. Require traceability of source title/original URL/cached URL/landing ID, zero unresolved/conflict-after-apply, and the image-sync equation. Keep the existing domain threshold; add no exemption.
 
@@ -784,6 +784,16 @@ bundle, which in turn requires a completed image sync.
 
 Focused validation: 8/8 for the orchestrator, 42/42 across the orchestrator plus the operation
 catalog and authorization contracts.
+
+
+Step 4 amendment (2026-08-01): the items image readiness equation counted only
+`uploaded + alreadyManaged`, so a run that reuses local objects instead of re-downloading them
+read as broken. It now counts `uploaded + reused + alreadyManaged`, and additionally blocks on a
+non-`completed` report status and on any failed image key, at both module and report level.
+
+Against the real 2026-08-01 sync the panel reports `blocked` with four reasons, all naming the
+four GIF identities the running backend refuses. That is the correct outcome: the lane is not
+green and the panel does not pretend it is.
 
 ### Task 8: Execute The Image Lane At Explicit Authorization Checkpoints
 

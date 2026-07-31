@@ -1174,11 +1174,28 @@ function imageSyncReportSemantics(payload, reportPath, scope) {
     if (isNonNegativeNumber(module.missingSource) && module.missingSource > 0) {
       blocking.push(`image sync module ${scope}.missingSource=${module.missingSource}`);
     }
+    // A reused object is a completed candidate too: it was already in managed
+    // storage under the verified file title, so the equation must count it or a
+    // run that reused most of its images reads as broken.
+    const reused = isNonNegativeNumber(module.reused) ? module.reused : 0;
     if (isNonNegativeNumber(module.candidates)
       && isNonNegativeNumber(module.uploaded)
-      && module.candidates !== module.uploaded) {
-      blocking.push(`image sync module ${scope}.candidates=${module.candidates} does not match uploaded=${module.uploaded}`);
+      && isNonNegativeNumber(module.alreadyManaged)
+      && module.candidates !== module.uploaded + reused + module.alreadyManaged) {
+      blocking.push(
+        `image sync module ${scope}.candidates=${module.candidates} does not match `
+        + `uploaded+reused+alreadyManaged=${module.uploaded + reused + module.alreadyManaged}`
+      );
     }
+    if (Array.isArray(module.failedKeys) && module.failedKeys.length > 0) {
+      blocking.push(`image sync module ${scope} has ${module.failedKeys.length} failed image(s)`);
+    }
+  }
+  if (payload?.status != null && payload.status !== 'completed') {
+    blocking.push(`image sync report status is ${payload.status}`);
+  }
+  if (Array.isArray(payload?.failedKeys) && payload.failedKeys.length > 0) {
+    blocking.push(`image sync reports ${payload.failedKeys.length} failed image(s)`);
   }
   return semanticResult({
     reportPath,

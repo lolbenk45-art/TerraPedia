@@ -1644,6 +1644,16 @@ test('items image readiness accepts only a completed applied image-sync report',
     },
   });
   assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', {
+    apply: true,
+    generatedAt: '2026-07-27T00:00:00Z',
+    scopes: ['items'],
+    modules: {
+      items: { apply: true, total: 1, candidates: 1, alreadyManaged: 1, uploaded: 0, changed: 0, missingSource: 0 },
+    },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
 });
 
 test('boss source readiness accepts only a completed formal boss import report', () => {
@@ -1982,3 +1992,70 @@ function writeText(repoRoot, relativePath, text) {
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, text, 'utf8');
 }
+
+
+test('items image readiness accounts for reused objects and refuses a failed sync', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/items.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'CopperShortsword', imageUrl: '/terrapedia-images/items/copper.png' }],
+  });
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java', 'class C {}');
+
+  const applied = (items) => {
+    writeJson(repoRoot, 'reports/workflow-image-sync-2026-08-01.json', {
+      apply: true,
+      status: 'completed',
+      generatedAt: '2026-08-01T00:00:00Z',
+      scopes: ['items'],
+      modules: { items: { apply: true, ...items } },
+    });
+    return buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  };
+
+  // A run that reused most objects must still satisfy the completion equation.
+  assert.equal(applied({
+    total: 6131,
+    candidates: 6131,
+    alreadyManaged: 2119,
+    reused: 3914,
+    uploaded: 98,
+    changed: 4012,
+    missingSource: 0,
+    failedKeys: [],
+  }).status, 'pass');
+
+  // Dropping reuse from the accounting must break the equation, not pass silently.
+  assert.notEqual(applied({
+    total: 6131,
+    candidates: 6131,
+    alreadyManaged: 2119,
+    reused: 0,
+    uploaded: 98,
+    changed: 4012,
+    missingSource: 0,
+    failedKeys: [],
+  }).status, 'pass');
+
+  // A partially applied run must never satisfy the panel.
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-08-01.json', {
+    apply: true,
+    status: 'failed',
+    generatedAt: '2026-08-01T00:00:00Z',
+    scopes: ['items'],
+    modules: {
+      items: {
+        apply: true,
+        total: 6131,
+        candidates: 6131,
+        alreadyManaged: 2119,
+        reused: 3914,
+        uploaded: 94,
+        changed: 4008,
+        missingSource: 0,
+        failedKeys: ['RainbowMoss'],
+      },
+    },
+  });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+});
