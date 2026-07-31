@@ -1,7 +1,7 @@
 {
   "entity": "wiki_bosses",
-  "generatedAt": "2026-05-24T00:37:36.455Z",
-  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-07-31T23:03:32.926Z",
+  "schemaVersion": "1.1.0",
   "sourceApi": "https://terraria.wiki.gg/api.php",
   "overview": {
     "title": "Bosses",
@@ -21,14 +21,15 @@
       "pageTitleEn": "King Slime",
       "status": "ok",
       "pageId": 12967,
-      "revisionId": 996447,
-      "revisionTimestamp": "2026-05-07T12:44:58Z",
+      "revisionId": 1014610,
+      "revisionTimestamp": "2026-07-31T11:57:21Z",
       "titleZh": "史莱姆王",
       "pageTitleZh": "史莱姆王",
       "sourceUrl": "https://terraria.wiki.gg/wiki/King_Slime",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%8F%B2%E8%8E%B1%E5%A7%86%E7%8E%8B",
       "imageUrl": "https://terraria.wiki.gg/images/King_Slime.gif?1becd1",
-      "notes": "King Slime is a pre-Hardmode boss . Fighting King Slime is not required for game progression, but his defeat may reward the player with useful items. Defeating him for the first time also causes the Nerdy Slime town pet to spawn from the boss."
+      "notes": "King Slime is a pre-Hardmode boss . Fighting King Slime is not required for game progression, but his defeat may reward the player with useful items. Defeating him for the first time also causes the Nerdy Slime town pet to spawn from the boss.",
+      "notesZh": "史莱姆王是个困难模式之前的 Boss。其外观是戴着珠宝金冠的巨大蓝史莱姆，内部似乎还有个忍者。在游戏的前代主机版和任天堂 3DS 版中他没有王冠。史莱姆王受伤害时会额外生成普通的蓝史莱姆（在专家模式和大师模式中还有尖刺史莱姆 (电脑版、主机版、和移动版)）并且尺寸也会缩小。"
     },
     {
       "progressionOrder": 2,
@@ -40,14 +41,15 @@
       "pageTitleEn": "Eye of Cthulhu",
       "status": "ok",
       "pageId": 13236,
-      "revisionId": 996749,
-      "revisionTimestamp": "2026-05-10T13:12:56Z",
+      "revisionId": 1003550,
+      "revisionTimestamp": "2026-07-15T17:36:01Z",
       "titleZh": "克苏鲁之眼",
       "pageTitleZh": "克苏鲁之眼",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Eye_of_Cthulhu",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%85%8B%E8%8B%8F%E9%B2%81%E4%B9%8B%E7%9C%BC",
       "imageUrl": "https://terraria.wiki.gg/images/Eye_of_Cthulhu_%28Phase_1%29.gif?a440df",
-      "notes": "The Eye of Cthulhu is a pre-Hardmode boss . It is typically one of the first bosses a player may encounter, as it spawns automatically when a relatively early level of game advancement is achieved. It can also be summoned manually with the Suspicious Looking Eye at night (see Summoning and spawning below) ."
+      "notes": "The Eye of Cthulhu is a pre-Hardmode boss . It is typically one of the first bosses a player may encounter, as it spawns automatically when a relatively early level of game advancement is achieved. It can also be summoned manually with the Suspicious Looking Eye at night (see Summoning and spawning below) .",
+      "notesZh": "克苏鲁之眼是一个困难模式之前的 Boss。它通常是玩家在游戏中会遇到的第一个 Boss 之一，因为它会在到达相对较早的游戏进度水平时自动生成。它也可以用可疑眼球在夜晚手动召唤（参见下方召唤和生成）。"
     },
     {
       "progressionOrder": 3,
@@ -59,14 +61,15 @@
       "pageTitleEn": "Eater of Worlds",
       "status": "ok",
       "pageId": 7361,
-      "revisionId": 995319,
-      "revisionTimestamp": "2026-04-21T08:01:43Z",
+      "revisionId": 1003533,
+      "revisionTimestamp": "2026-07-15T16:10:24Z",
       "titleZh": "世界吞噬怪",
       "pageTitleZh": "世界吞噬怪",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Eater_of_Worlds",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E4%B8%96%E7%95%8C%E5%90%9E%E5%99%AC%E6%80%AA",
       "imageUrl": "https://terraria.wiki.gg/images/Eater_of_Worlds.png?d5f895",
-      "notes": "The Eater of Worlds is a pre-Hardmode Corruption -themed worm boss . It is not a single target, but a string of segments with individual health. It has a total of 67 / 72 segments. &#91; 1 &#93; When any inner body segment is destroyed, it splits into multiple smaller worms, each with their own head and tail. Each section of the Eater of Worlds must be killed in order to defeat the entire boss. The Eater of Worlds, like all worms, is immune to lava ."
+      "notes": "The Eater of Worlds is a pre-Hardmode Corruption -themed worm boss . It is not a single target, but a string of segments with individual health. It has a total of 67 / 72 segments. &#91; 1 &#93; When any inner body segment is destroyed, it splits into multiple smaller worms, each with their own head and tail. Each section of the Eater of Worlds must be killed in order to defeat the entire boss. The Eater of Worlds, like all worms, is immune to lava .",
+      "notesZh": "世界吞噬怪是一个困难模式之前的腐化主题的蠕虫 Boss。它不是单体目标，而是由许多有独立生命的体节组成。它总共有 67 / 72 个体节。当任何身体体节被击杀时，它会分裂成多条更短的蠕虫，每只都有其头部和尾部。击败所有独立的蠕虫才算作击败此Boss。和所有蠕虫一样，世界吞噬怪免疫熔岩。"
     },
     {
       "progressionOrder": 4,
@@ -78,14 +81,15 @@
       "pageTitleEn": "Brain of Cthulhu",
       "status": "ok",
       "pageId": 10805,
-      "revisionId": 995886,
-      "revisionTimestamp": "2026-04-30T17:11:42Z",
+      "revisionId": 1003548,
+      "revisionTimestamp": "2026-07-15T17:34:42Z",
       "titleZh": "克苏鲁之脑",
       "pageTitleZh": "克苏鲁之脑",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Brain_of_Cthulhu",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%85%8B%E8%8B%8F%E9%B2%81%E4%B9%8B%E8%84%91",
       "imageUrl": "https://terraria.wiki.gg/images/Brain_of_Cthulhu_%28First_Phase%29.gif?9674d1",
-      "notes": "The Brain of Cthulhu is a pre-Hardmode , Crimson -themed boss . Fighting the boss and its attendant Creepers is the only way to obtain Tissue Samples , and is one of the ways to obtain usable quantities of Crimtane Ore . Defeating the Brain of Cthulhu for the first time also allows the Tavernkeep NPC to spawn as the Unconscious Man, and allows meteorites to land."
+      "notes": "The Brain of Cthulhu is a pre-Hardmode , Crimson -themed boss . Fighting the boss and its attendant Creepers is the only way to obtain Tissue Samples , and is one of the ways to obtain usable quantities of Crimtane Ore . Defeating the Brain of Cthulhu for the first time also allows the Tavernkeep NPC to spawn as the Unconscious Man, and allows meteorites to land.",
+      "notesZh": "克苏鲁之脑是困难模式之前的猩红主题的 Boss，像是一个巨大的飞行大脑。可以通过在猩红世界中摧毁 3 个猩红之心、或者在猩红之地或地下猩红之地生物群系中任意位置使用血腥脊椎来召唤它。"
     },
     {
       "progressionOrder": 5,
@@ -97,14 +101,15 @@
       "pageTitleEn": "Queen Bee",
       "status": "ok",
       "pageId": 5246,
-      "revisionId": 994038,
-      "revisionTimestamp": "2026-04-08T10:52:40Z",
+      "revisionId": 1003545,
+      "revisionTimestamp": "2026-07-15T17:32:49Z",
       "titleZh": "蜂王",
       "pageTitleZh": "蜂王",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Queen_Bee",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E8%9C%82%E7%8E%8B",
       "imageUrl": "https://terraria.wiki.gg/images/Queen_Bee.gif?15e29d",
-      "notes": "The Queen Bee is a pre-Hardmode boss . Fighting her is not required for game progression , but defeating her rewards the player with useful items and weapons and allows the Witch Doctor NPC to move into an available vacant house ."
+      "notes": "The Queen Bee is a pre-Hardmode boss . Fighting her is not required for game progression , but defeating her rewards the player with useful items and weapons and allows the Witch Doctor NPC to move into an available vacant house .",
+      "notesZh": "蜂王是一个困难模式之前的 Boss。推进游戏进程并不需要与她战斗，但击败她会奖励玩家有用的物品和武器，并允许巫医 NPC 入住有效的空房屋。"
     },
     {
       "progressionOrder": 6,
@@ -116,14 +121,15 @@
       "pageTitleEn": "Deerclops",
       "status": "ok",
       "pageId": 8619,
-      "revisionId": 994050,
-      "revisionTimestamp": "2026-04-08T11:32:44Z",
+      "revisionId": 1002928,
+      "revisionTimestamp": "2026-07-13T03:43:39Z",
       "titleZh": "独眼巨鹿",
       "pageTitleZh": "独眼巨鹿",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Deerclops",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E7%8B%AC%E7%9C%BC%E5%B7%A8%E9%B9%BF",
       "imageUrl": "https://terraria.wiki.gg/images/Deerclops.png?7a1c35",
-      "notes": "Deerclops is a pre-Hardmode boss encountered in the Snow biome . Fighting Deerclops is not required for game progression, but defeating it rewards the player with coins and other useful items."
+      "notes": "Deerclops is a pre-Hardmode boss encountered in the Snow biome . Fighting Deerclops is not required for game progression, but defeating it rewards the player with coins and other useful items.",
+      "notesZh": "独眼巨鹿是一个困难模式之前的 Boss，可以在雪原生物群系中遇到。与独眼巨鹿战斗不是推进游戏进程所必须的，但击败它会奖励玩家钱币和其他有用的物品。"
     },
     {
       "progressionOrder": 7,
@@ -135,14 +141,15 @@
       "pageTitleEn": "Skeletron",
       "status": "ok",
       "pageId": 14487,
-      "revisionId": 995374,
-      "revisionTimestamp": "2026-04-22T09:22:47Z",
+      "revisionId": 1003552,
+      "revisionTimestamp": "2026-07-15T17:36:54Z",
       "titleZh": "骷髅王",
       "pageTitleZh": "骷髅王",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Skeletron",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E9%AA%B7%E9%AB%85%E7%8E%8B",
       "imageUrl": "https://terraria.wiki.gg/images/Skeletron_Head.png?8ab1ce",
-      "notes": "Skeletron is a pre-Hardmode boss . Defeating Skeletron for the first time grants unlimited access to all Dungeon areas for players within the current world and allows the Clothier NPC to move into an available vacant house ."
+      "notes": "Skeletron is a pre-Hardmode boss . Defeating Skeletron for the first time grants unlimited access to all Dungeon areas for players within the current world and allows the Clothier NPC to move into an available vacant house .",
+      "notesZh": "骷髅王是一个困难模式之前的 Boss。首次击败骷髅王可以让所有玩家在该世界获得任意进出地牢区域的权限，并使服装商 NPC 在有空余房屋的时候入住。"
     },
     {
       "progressionOrder": 8,
@@ -154,14 +161,15 @@
       "pageTitleEn": "Wall of Flesh",
       "status": "ok",
       "pageId": 10220,
-      "revisionId": 995829,
-      "revisionTimestamp": "2026-04-29T20:29:11Z",
+      "revisionId": 1008634,
+      "revisionTimestamp": "2026-07-20T16:17:17Z",
       "titleZh": "血肉墙",
       "pageTitleZh": "血肉墙",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Wall_of_Flesh",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E8%A1%80%E8%82%89%E5%A2%99",
       "imageUrl": "https://terraria.wiki.gg/images/Wall_of_Flesh.gif?b39287",
-      "notes": "The Wall of Flesh is the final pre-Hardmode boss . Once it is defeated, the world permanently converts to Hardmode , which brings new content and challenges."
+      "notes": "The Wall of Flesh is the final pre-Hardmode boss . Once it is defeated, the world permanently converts to Hardmode , which brings new content and challenges.",
+      "notesZh": "血肉墙是困难模式之前的最终 Boss。一旦它被打败，世界永久性转化为困难模式，带来新的内容和挑战。"
     },
     {
       "progressionOrder": 9,
@@ -173,14 +181,15 @@
       "pageTitleEn": "Queen Slime",
       "status": "ok",
       "pageId": 5589,
-      "revisionId": 997031,
-      "revisionTimestamp": "2026-05-13T09:23:51Z",
+      "revisionId": 998880,
+      "revisionTimestamp": "2026-06-19T01:57:41Z",
       "titleZh": "史莱姆皇后",
       "pageTitleZh": "史莱姆皇后",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Queen_Slime",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%8F%B2%E8%8E%B1%E5%A7%86%E7%9A%87%E5%90%8E",
       "imageUrl": "https://terraria.wiki.gg/images/Queen_Slime.png?95c9f0",
-      "notes": "Queen Slime is an early- Hardmode , Hallow -themed boss . Fighting Queen Slime is not required for game progression – much like her pre-Hardmode counterpart, King Slime – but her defeat may reward the player with useful items."
+      "notes": "Queen Slime is an early- Hardmode , Hallow -themed boss . Fighting Queen Slime is not required for game progression – much like her pre-Hardmode counterpart, King Slime – but her defeat may reward the player with useful items.",
+      "notesZh": "史莱姆皇后是一个困难模式早期的、神圣主题 Boss，是史莱姆王在困难模式中的对应物。她的外观是一个巨大的戴着王冠的紫罗兰色史莱姆，体内有一个巨大的彩色水晶。对战史莱姆皇后完全是可选的，并非游戏进程所需（和她的困难模式之前对应物史莱姆王非常相似），不过打败她可能会回报给玩家有用的物品。"
     },
     {
       "progressionOrder": 10,
@@ -192,14 +201,15 @@
       "pageTitleEn": "The Twins",
       "status": "ok",
       "pageId": 12908,
-      "revisionId": 997291,
-      "revisionTimestamp": "2026-05-17T20:39:37Z",
+      "revisionId": 998882,
+      "revisionTimestamp": "2026-06-19T02:04:27Z",
       "titleZh": "双子魔眼",
       "pageTitleZh": "双子魔眼",
       "sourceUrl": "https://terraria.wiki.gg/wiki/The_Twins",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%8F%8C%E5%AD%90%E9%AD%94%E7%9C%BC",
       "imageUrl": "https://terraria.wiki.gg/images/thumb/Twins_%28first_form%29.gif/150px-Twins_%28first_form%29.gif?86a302",
-      "notes": "The Twins are a Hardmode mechanical boss which are essentially a more difficult version of the Eye of Cthulhu . The Twins are two separate flying entities, Retinazer and Spazmatism , connected by a tendril, each with its own attack pattern and health. Both must be killed in order to defeat the boss."
+      "notes": "The Twins are a Hardmode mechanical boss which are essentially a more difficult version of the Eye of Cthulhu . The Twins are two separate flying entities, Retinazer and Spazmatism , connected by a tendril, each with its own attack pattern and health. Both must be killed in order to defeat the boss.",
+      "notesZh": "\" 这将是一个可怕的夜晚…… \""
     },
     {
       "progressionOrder": 11,
@@ -211,14 +221,15 @@
       "pageTitleEn": "The Destroyer",
       "status": "ok",
       "pageId": 10320,
-      "revisionId": 996471,
-      "revisionTimestamp": "2026-05-07T20:25:58Z",
+      "revisionId": 1003547,
+      "revisionTimestamp": "2026-07-15T17:34:13Z",
       "titleZh": "毁灭者",
       "pageTitleZh": "毁灭者",
       "sourceUrl": "https://terraria.wiki.gg/wiki/The_Destroyer",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%AF%81%E7%81%AD%E8%80%85",
       "imageUrl": "https://terraria.wiki.gg/images/The_Destroyer.png?587d63",
-      "notes": "The Destroyer is a Hardmode mechanical boss that is essentially a more difficult version of the Eater of Worlds . Its segments share a single health pool, meaning individual segments cannot die. Each of The Destroyer's segments fires lasers at the player, and as they take damage, they launch Probes , independent flying enemies that fire lasers and can be killed individually."
+      "notes": "The Destroyer is a Hardmode mechanical boss that is essentially a more difficult version of the Eater of Worlds . Its segments share a single health pool, meaning individual segments cannot die. Each of The Destroyer's segments fires lasers at the player, and as they take damage, they launch Probes , independent flying enemies that fire lasers and can be killed individually.",
+      "notesZh": "毁灭者是个困难模式机械 Boss，基本上就是更困难版本的世界吞噬怪。就像世界吞噬怪那样，它是只非常大型的蠕虫。虽然它看起来是有很多体节所组成的，但体节不会单独死亡，毁灭者也不会分裂为多个实体；其所有体节共享单一的生命值池。和其他蠕虫一样，同时伤害多个体节的攻击会对毁灭者造成更大伤害。"
     },
     {
       "progressionOrder": 12,
@@ -230,14 +241,15 @@
       "pageTitleEn": "Skeletron Prime",
       "status": "ok",
       "pageId": 13408,
-      "revisionId": 996615,
-      "revisionTimestamp": "2026-05-10T03:42:43Z",
+      "revisionId": 998883,
+      "revisionTimestamp": "2026-06-19T02:04:38Z",
       "titleZh": "机械骷髅王",
       "pageTitleZh": "机械骷髅王",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Skeletron_Prime",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%9C%BA%E6%A2%B0%E9%AA%B7%E9%AB%85%E7%8E%8B",
       "imageUrl": "https://terraria.wiki.gg/images/Skeletron_Prime_head.gif?8385ef",
-      "notes": "Skeletron Prime is a Hardmode mechanical boss which is essentially a more difficult version of Skeletron . It consists of a head and four limbs, but, similarly to Skeletron, only the head needs to be defeated to defeat the boss."
+      "notes": "Skeletron Prime is a Hardmode mechanical boss which is essentially a more difficult version of Skeletron . It consists of a head and four limbs, but, similarly to Skeletron, only the head needs to be defeated to defeat the boss.",
+      "notesZh": "机械骷髅王是困难模式的机械 Boss，基本上是更困难版本的骷髅王。它由一个头部和四个肢体组成，但是，与骷髅王类似，只要干掉头部即可打败此 Boss。"
     },
     {
       "progressionOrder": 13,
@@ -249,14 +261,15 @@
       "pageTitleEn": "Plantera",
       "status": "ok",
       "pageId": 15899,
-      "revisionId": 997420,
-      "revisionTimestamp": "2026-05-21T15:57:54Z",
+      "revisionId": 998106,
+      "revisionTimestamp": "2026-06-01T13:02:50Z",
       "titleZh": "世纪之花",
       "pageTitleZh": "世纪之花",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Plantera",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E4%B8%96%E7%BA%AA%E4%B9%8B%E8%8A%B1",
       "imageUrl": "https://terraria.wiki.gg/images/Plantera_%28First_form%29.gif?caf932",
-      "notes": "Plantera is a Hardmode boss that can be fought in the Underground Jungle after all three mechanical bosses ( The Twins , The Destroyer , and Skeletron Prime ) have been defeated. Plantera drops a Temple Key upon being defeated, allowing access to the Jungle Temple ."
+      "notes": "Plantera is a Hardmode boss that can be fought in the Underground Jungle after all three mechanical bosses ( The Twins , The Destroyer , and Skeletron Prime ) have been defeated. Plantera drops a Temple Key upon being defeated, allowing access to the Jungle Temple .",
+      "notesZh": "世纪之花是一个困难模式 Boss，在三个机械 Boss（双子魔眼、毁灭者、和机械骷髅王）全部被打败后可以在地下丛林中与之战斗。世纪之花被打败时会掉落一把神庙钥匙，允许进入丛林神庙。"
     },
     {
       "progressionOrder": 14,
@@ -268,14 +281,15 @@
       "pageTitleEn": "Golem",
       "status": "ok",
       "pageId": 14022,
-      "revisionId": 997055,
-      "revisionTimestamp": "2026-05-13T15:35:06Z",
+      "revisionId": 1003551,
+      "revisionTimestamp": "2026-07-15T17:36:34Z",
       "titleZh": "石巨人",
       "pageTitleZh": "石巨人",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Golem",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E7%9F%B3%E5%B7%A8%E4%BA%BA",
       "imageUrl": "https://terraria.wiki.gg/images/Golem.png?bdcdae",
-      "notes": "Golem is a Hardmode , post- Plantera boss fought in the Jungle Temple . It attacks the player by stomping on them, launching its fists, and firing barrages of projectiles. Defeating Golem is a prerequisite for unlocking the Lunar Events , the Martian Madness , and Tier 3 of the Old One's Army ."
+      "notes": "Golem is a Hardmode , post- Plantera boss fought in the Jungle Temple . It attacks the player by stomping on them, launching its fists, and firing barrages of projectiles. Defeating Golem is a prerequisite for unlocking the Lunar Events , the Martian Madness , and Tier 3 of the Old One's Army .",
+      "notesZh": "石巨人是困难模式、世纪之花后的 Boss，出现在丛林神庙中。它通过猛踩玩家、发射拳头、发射射弹弹幕的方式攻击。击败石巨人是月亮事件、火星暴乱、和 3 级的撒旦军队的前置条件。"
     },
     {
       "progressionOrder": 15,
@@ -287,14 +301,15 @@
       "pageTitleEn": "Duke Fishron",
       "status": "ok",
       "pageId": 13225,
-      "revisionId": 997129,
-      "revisionTimestamp": "2026-05-14T16:07:46Z",
+      "revisionId": 998923,
+      "revisionTimestamp": "2026-06-19T14:38:33Z",
       "titleZh": "猪龙鱼公爵",
       "pageTitleZh": "猪龙鱼公爵",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Duke_Fishron",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E7%8C%AA%E9%BE%99%E9%B1%BC%E5%85%AC%E7%88%B5",
       "imageUrl": "https://terraria.wiki.gg/images/Duke_Fishron_%28First_Form%29.gif?939e1c",
-      "notes": "Duke Fishron is a Hardmode boss . While he can be summoned as soon as Hardmode is initiated, his difficulty is on par with that of a post-Golem boss, making him a serious threat to unprepared players. Fighting Duke Fishron is not required for game progression , but his defeat rewards the player with powerful weapons and equipment."
+      "notes": "Duke Fishron is a Hardmode boss . While he can be summoned as soon as Hardmode is initiated, his difficulty is on par with that of a post-Golem boss, making him a serious threat to unprepared players. Fighting Duke Fishron is not required for game progression , but his defeat rewards the player with powerful weapons and equipment.",
+      "notesZh": "猪龙鱼公爵是一个困难模式 Boss。虽然在困难模式一开始就可以召唤他，但其难度可与石巨人后的 Boss 相当，因此他会对未做好准备的玩家构成严重威胁。是否对战猪龙鱼公爵完全是可选的，并非游戏进程所需，而打败他会奖励给玩家强大的武器和游戏中最好的翅膀之一。"
     },
     {
       "progressionOrder": 16,
@@ -306,14 +321,15 @@
       "pageTitleEn": "Empress of Light",
       "status": "ok",
       "pageId": 8892,
-      "revisionId": 996320,
-      "revisionTimestamp": "2026-05-04T19:55:15Z",
+      "revisionId": 1014395,
+      "revisionTimestamp": "2026-07-30T12:00:20Z",
       "titleZh": "光之女皇",
       "pageTitleZh": "光之女皇",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Empress_of_Light",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%85%89%E4%B9%8B%E5%A5%B3%E7%9A%87",
       "imageUrl": "https://terraria.wiki.gg/images/Empress_of_Light.gif?7a7f09",
-      "notes": "The Empress of Light is a Hardmode , post- Plantera boss . She is generally fought at night , and becomes \" enraged \" with greatly increased damage during the day. While she can be fought as soon as Plantera is defeated, she is significantly more difficult than most Hardmode bosses and will typically require post- Golem gear. The Empress of Light fight is optional and is not required for game progression, but her weapons can be greatly beneficial to players, provided they are skilled enough to take her on."
+      "notes": "The Empress of Light is a Hardmode , post- Plantera boss . She is generally fought at night , and becomes \" enraged \" with greatly increased damage during the day. While she can be fought as soon as Plantera is defeated, she is significantly more difficult than most Hardmode bosses and will typically require post- Golem gear. The Empress of Light fight is optional and is not required for game progression, but her weapons can be greatly beneficial to players, provided they are skilled enough to take her on.",
+      "notesZh": "光之女皇是一个困难模式、世纪之花后的 Boss。通常在夜晚与她战斗，因为她在白天期间会暴怒，使得伤害极大提升。虽然击败了世纪之花后就可以与她战斗，她比大部分困难模式 Boss 都显著更难，且通常需要石巨人后的装备。和光之女皇的战斗是可选的，并非游戏进程所需，但只要玩家的技术足够击败她，她的武器就会给玩家带来极大帮助。"
     },
     {
       "progressionOrder": 17,
@@ -332,7 +348,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Lunatic_Cultist",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%8B%9C%E6%9C%88%E6%95%99%E9%82%AA%E6%95%99%E5%BE%92",
       "imageUrl": "https://terraria.wiki.gg/images/Lunatic_Cultist.gif?7d4054",
-      "notes": "The Lunatic Cultist is a Hardmode , post- Golem boss . Defeating it initiates the Lunar Events , and also causes the Clothier to begin selling the Solar and Lunar Cultist sets depending on the time of day."
+      "notes": "The Lunatic Cultist is a Hardmode , post- Golem boss . Defeating it initiates the Lunar Events , and also causes the Clothier to begin selling the Solar and Lunar Cultist sets depending on the time of day.",
+      "notesZh": "拜月教邪教徒是一个困难模式、石巨人后的 Boss。击败它会开始月亮事件，还会让服装商按照时间来售卖日耀和月亮邪教徒套装。"
     },
     {
       "progressionOrder": 18,
@@ -344,14 +361,15 @@
       "pageTitleEn": "Moon Lord",
       "status": "ok",
       "pageId": 7426,
-      "revisionId": 996778,
-      "revisionTimestamp": "2026-05-10T16:49:03Z",
+      "revisionId": 1009527,
+      "revisionTimestamp": "2026-07-22T06:00:06Z",
       "titleZh": "月亮领主",
       "pageTitleZh": "月亮领主",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Moon_Lord",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%9C%88%E4%BA%AE%E9%A2%86%E4%B8%BB",
       "imageUrl": "https://terraria.wiki.gg/images/Moon_Lord.gif?86e6ae",
-      "notes": "The Moon Lord is a Hardmode , post- Lunatic Cultist boss . He is the final boss of the Desktop ,&#32; Console , and&#32; Mobile versions of Terraria ."
+      "notes": "The Moon Lord is a Hardmode , post- Lunatic Cultist boss . He is the final boss of the Desktop ,&#32; Console , and&#32; Mobile versions of Terraria .",
+      "notesZh": "月亮领主是一个困难模式、拜月教邪教徒后的 Boss。它是电脑版、主机版、和移动版的 《泰拉瑞亚》 的最终 Boss。"
     },
     {
       "progressionOrder": 19,
@@ -370,7 +388,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Dark_Mage",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E9%BB%91%E6%9A%97%E9%AD%94%E6%B3%95%E5%B8%88",
       "imageUrl": "https://terraria.wiki.gg/images/Dark_Mage.gif?343a5d",
-      "notes": "The Dark Mage is a mini-boss that spawns during the Old One's Army event , during wave 5 in Tier 1, and waves 4 and 6 in Tier 3."
+      "notes": "The Dark Mage is a mini-boss that spawns during the Old One's Army event , during wave 5 in Tier 1, and waves 4 and 6 in Tier 3.",
+      "notesZh": "黑暗魔法师是撒旦军队事件中的小 Boss，生成在1 级的第 5 波和3 级的第 4 到第 6 波中。"
     },
     {
       "progressionOrder": 20,
@@ -389,7 +408,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Ogre",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E9%A3%9F%E4%BA%BA%E9%AD%94",
       "imageUrl": "https://terraria.wiki.gg/images/Ogre.gif?e739de",
-      "notes": "The Ogre is a Hardmode , post-one mechanical boss mini-boss that spawns in the Old One's Army event during wave 7 in Tier 2, and waves 5 and 6 in Tier 3."
+      "notes": "The Ogre is a Hardmode , post-one mechanical boss mini-boss that spawns in the Old One's Army event during wave 7 in Tier 2, and waves 5 and 6 in Tier 3.",
+      "notesZh": "食人魔是一个困难模式的小 Boss，在撒旦军队事件中生成于 2 级的第 7 波和 3 级的第 5 和 6 波中。他速度缓慢但却强大。"
     },
     {
       "progressionOrder": 21,
@@ -408,7 +428,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Betsy",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%8F%8C%E8%B6%B3%E7%BF%BC%E9%BE%99",
       "imageUrl": "https://terraria.wiki.gg/images/Betsy.gif?99d548",
-      "notes": "Betsy is a Hardmode , post- Golem mini-boss that spawns once during the seventh and final wave of Tier 3 of the Old One's Army event . Like all enemies in the Old One's Army, she will despawn upon completion or failure of the event. Defeating Betsy is the only way to complete the final wave of the event successfully."
+      "notes": "Betsy is a Hardmode , post- Golem mini-boss that spawns once during the seventh and final wave of Tier 3 of the Old One's Army event . Like all enemies in the Old One's Army, she will despawn upon completion or failure of the event. Defeating Betsy is the only way to complete the final wave of the event successfully.",
+      "notesZh": "双足翼龙是个困难模式、石巨人后的小 Boss，在 3 级的撒旦军队事件的第七波，也是最后一波中生成。和所有撒旦军队的敌怪一样，她会在事件完成或失败后消失。击败双足翼龙是仅有的完成事件最后一波的方法。"
     },
     {
       "progressionOrder": 22,
@@ -427,7 +448,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Flying_Dutchman",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E8%8D%B7%E5%85%B0%E9%A3%9E%E7%9B%97%E8%88%B9",
       "imageUrl": "https://terraria.wiki.gg/images/Flying_Dutchman.gif?61b435",
-      "notes": "The Flying Dutchman is a Hardmode mini-boss that spawns during the Pirate Invasion event . The Flying Dutchman emits golden particles while hovering approximately 26 tiles above the player, and is armed with four cannons that fire explosive cannonballs toward the nearest player while occasionally spawning standard Pirate Invasion enemies that fall from the deck and onto solid ground. The boss will be defeated and drop loot upon depleting the health of all four cannons."
+      "notes": "The Flying Dutchman is a Hardmode mini-boss that spawns during the Pirate Invasion event . The Flying Dutchman emits golden particles while hovering approximately 26 tiles above the player, and is armed with four cannons that fire explosive cannonballs toward the nearest player while occasionally spawning standard Pirate Invasion enemies that fall from the deck and onto solid ground. The boss will be defeated and drop loot upon depleting the health of all four cannons.",
+      "notesZh": "荷兰飞盗船是困难模式小 Boss，在海盗入侵事件期间生成。荷兰飞盗船会散发金色微粒同时在玩家上方 26 图格盘旋，它配备了四门大炮，会朝最近的玩家发射爆炸性的炮弹，同时会偶尔生成普通的海盗入侵敌怪从甲板上落到地面上。此 Boss 会在四门大炮的生命值耗尽后被打败并掉落战利品。"
     },
     {
       "progressionOrder": 23,
@@ -439,14 +461,15 @@
       "pageTitleEn": "Mourning Wood",
       "status": "ok",
       "pageId": 14963,
-      "revisionId": 992796,
-      "revisionTimestamp": "2026-04-01T07:27:12Z",
+      "revisionId": 1013820,
+      "revisionTimestamp": "2026-07-28T13:30:07Z",
       "titleZh": "哀木",
       "pageTitleZh": "哀木",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Mourning_Wood",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%93%80%E6%9C%A8",
       "imageUrl": "https://terraria.wiki.gg/images/Mourning_Wood.gif?f69799",
-      "notes": "The Mourning Wood is a Hardmode , post- Plantera mini-boss that spawns during the Pumpkin Moon event . It is the Pumpkin Moon equivalent of the Everscream , which behaves in an almost identical way to the Mourning Wood."
+      "notes": "The Mourning Wood is a Hardmode , post- Plantera mini-boss that spawns during the Pumpkin Moon event . It is the Pumpkin Moon equivalent of the Everscream , which behaves in an almost identical way to the Mourning Wood.",
+      "notesZh": "哀木是个困难模式、世纪之花后的小 Boss，在南瓜月事件中生成。它是常绿尖叫怪的南瓜月等价物，常绿尖叫怪的行为方式与哀木几乎相同。"
     },
     {
       "progressionOrder": 24,
@@ -458,14 +481,15 @@
       "pageTitleEn": "Pumpking",
       "status": "ok",
       "pageId": 6507,
-      "revisionId": 992795,
-      "revisionTimestamp": "2026-04-01T07:25:17Z",
+      "revisionId": 997626,
+      "revisionTimestamp": "2026-05-27T05:11:21Z",
       "titleZh": "南瓜王",
       "pageTitleZh": "南瓜王",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Pumpking",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%8D%97%E7%93%9C%E7%8E%8B",
       "imageUrl": "https://terraria.wiki.gg/images/Pumpking_head.gif?acbe43",
-      "notes": "The Pumpking is a Hardmode , post- Plantera mini-boss that spawns during the Pumpkin Moon event . He is the event's final enemy and can move freely through blocks . He is the equivalent to the Ice Queen from the Frost Moon , being the Pumpkin Moon's most powerful enemy, coming in at the last waves of the event, and being the event's only flying boss."
+      "notes": "The Pumpking is a Hardmode , post- Plantera mini-boss that spawns during the Pumpkin Moon event . He is the event's final enemy and can move freely through blocks . He is the equivalent to the Ice Queen from the Frost Moon , being the Pumpkin Moon's most powerful enemy, coming in at the last waves of the event, and being the event's only flying boss.",
+      "notesZh": "南瓜王是一个困难模式、世纪之花后的小 Boss，在南瓜月事件期间生成。他是此事件中最终的敌怪，其可自由穿透物块。他相当于霜月的冰雪女王，是南瓜月最强的敌怪，在事件的末尾波数中出现，且是此事件中唯一的飞行Boss。"
     },
     {
       "progressionOrder": 25,
@@ -484,7 +508,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Everscream",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%B8%B8%E7%BB%BF%E5%B0%96%E5%8F%AB%E6%80%AA",
       "imageUrl": "https://terraria.wiki.gg/images/Everscream.gif?a52a99",
-      "notes": "The Everscream is a Hardmode , post- Plantera mini-boss that spawns during the Frost Moon event . It is the Frost Moon equivalent of the Mourning Wood , which behaves in an almost identical way to the Everscream."
+      "notes": "The Everscream is a Hardmode , post- Plantera mini-boss that spawns during the Frost Moon event . It is the Frost Moon equivalent of the Mourning Wood , which behaves in an almost identical way to the Everscream.",
+      "notesZh": "常绿尖叫怪是个困难模式、世纪之花后的小 Boss，在霜月事件期间生成。霜月打败常绿尖叫怪会加上 50 / 100 / 125 点。它是哀木的霜月等价物，后者的行为方式和常绿尖叫怪几乎完全相同。"
     },
     {
       "progressionOrder": 26,
@@ -503,7 +528,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Santa-NK1",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%9C%A3%E8%AF%9E%E5%9D%A6%E5%85%8B",
       "imageUrl": "https://terraria.wiki.gg/images/Santa-NK1_phase_1.gif?bc8685",
-      "notes": "Santa-NK1 is a Hardmode , post- Plantera mini-boss that spawns during the Frost Moon event . When below half health, the face and beard of the Santa mask are torn apart to reveal a rather morbid mechanical skull underneath."
+      "notes": "Santa-NK1 is a Hardmode , post- Plantera mini-boss that spawns during the Frost Moon event . When below half health, the face and beard of the Santa mask are torn apart to reveal a rather morbid mechanical skull underneath.",
+      "notesZh": "圣诞坦克是一个困难模式世纪之花后的小 Boss，会在霜月事件期间生成。在低于一半生命时，其面部和胡须会脱落，并露出下方骇人的机械骷髅头。"
     },
     {
       "progressionOrder": 27,
@@ -515,14 +541,15 @@
       "pageTitleEn": "Ice Queen",
       "status": "ok",
       "pageId": 4410,
-      "revisionId": 945988,
-      "revisionTimestamp": "2025-08-24T20:38:24Z",
+      "revisionId": 997633,
+      "revisionTimestamp": "2026-05-27T06:25:50Z",
       "titleZh": "冰雪女王",
       "pageTitleZh": "冰雪女王",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Ice_Queen",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E5%86%B0%E9%9B%AA%E5%A5%B3%E7%8E%8B",
       "imageUrl": "https://terraria.wiki.gg/images/Ice_Queen.png?4398de",
-      "notes": "The Ice Queen is a Hardmode , post- Plantera mini-boss that spawns during the Frost Moon event . She is the event's final enemy and can move freely through blocks . She is the equivalent to the Pumpking from the Pumpkin Moon , being the Frost Moon's most powerful enemy, coming in at the last waves of the event, and being the event's only flying boss."
+      "notes": "The Ice Queen is a Hardmode , post- Plantera mini-boss that spawns during the Frost Moon event . She is the event's final enemy and can move freely through blocks . She is the equivalent to the Pumpking from the Pumpkin Moon , being the Frost Moon's most powerful enemy, coming in at the last waves of the event, and being the event's only flying boss.",
+      "notesZh": "冰雪女王是一个困难模式世纪之花后的小 Boss，在霜月事件中生成。她是事件的终极敌怪，可以自由地穿越物块。霜月期间，打败冰雪女王会加 150 / 300 / 375 点分数。她是南瓜月中的南瓜王的等价物，是霜月中最强大的敌怪，在事件的最后几波中到来，是事件中唯一的飞行 Boss。"
     },
     {
       "progressionOrder": 28,
@@ -541,7 +568,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Martian_Saucer",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E7%81%AB%E6%98%9F%E9%A3%9E%E7%A2%9F",
       "imageUrl": "https://terraria.wiki.gg/images/Martian_Saucer.gif?507e72",
-      "notes": "The Martian Saucer is a Hardmode , post- Golem mini-boss that spawns during the Martian Madness event after it is at least 30% completed. The Martian Saucer hovers in the air and can pass through blocks . It has four turrets that must be destroyed individually: two rocket launchers and two laser machine guns. In addition, the Martian Saucer itself fires a \" Martian Deathray \", a large yellow beam that can only be fired directly downwards and cannot be destroyed independently."
+      "notes": "The Martian Saucer is a Hardmode , post- Golem mini-boss that spawns during the Martian Madness event after it is at least 30% completed. The Martian Saucer hovers in the air and can pass through blocks . It has four turrets that must be destroyed individually: two rocket launchers and two laser machine guns. In addition, the Martian Saucer itself fires a \" Martian Deathray \", a large yellow beam that can only be fired directly downwards and cannot be destroyed independently.",
+      "notesZh": "火星飞碟是个大型的困难模式、石巨人后的飞行小 Boss，在火星暴乱事件期间生成。它只在火星暴乱事件完成了 30% 或更高时才会生成。它可以穿过物块。它有四个必须全部摧毁的有独立生命条的炮塔，包括两座火箭发射器和两座激光机枪。另外，火星飞碟自身会发射巨大的黄色光束（“ 火星死亡射线 ”），但只能向正下方发射，且（死亡射线的发射器）不能被独立摧毁。"
     },
     {
       "progressionOrder": 29,
@@ -555,12 +583,13 @@
       "pageId": 9262,
       "revisionId": 984794,
       "revisionTimestamp": "2026-03-06T18:12:26Z",
-      "titleZh": null,
-      "pageTitleZh": null,
+      "titleZh": "日耀柱",
+      "pageTitleZh": "天界柱",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Solar_Pillar",
-      "sourceUrlZh": null,
+      "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%97%A5%E8%80%80%E6%9F%B1",
       "imageUrl": null,
-      "notes": null
+      "notes": null,
+      "notesZh": "天界柱（又称为月亮柱、月亮塔、或天界塔）是在月亮事件中当拜月教邪教徒被打败后出现的四个 Boss。它们出现在地图各处四个等间距的位置上（参见下文的天柱生成机制），并且除了会在原地缓慢上下飘动外，它们不会移动。每个天柱都会控制周围半径 250 格（或者说 500 英尺）的圆形地图区域。当玩家在受影响的区域中时，背景会变为天柱特定的那种，并且只有天柱的专属敌怪会大量地生成。"
     },
     {
       "progressionOrder": 30,
@@ -574,12 +603,13 @@
       "pageId": 10158,
       "revisionId": 984796,
       "revisionTimestamp": "2026-03-06T18:12:41Z",
-      "titleZh": null,
-      "pageTitleZh": null,
+      "titleZh": "星云柱",
+      "pageTitleZh": "天界柱",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Nebula_Pillar",
-      "sourceUrlZh": null,
+      "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%98%9F%E4%BA%91%E6%9F%B1",
       "imageUrl": null,
-      "notes": null
+      "notes": null,
+      "notesZh": "天界柱（又称为月亮柱、月亮塔、或天界塔）是在月亮事件中当拜月教邪教徒被打败后出现的四个 Boss。它们出现在地图各处四个等间距的位置上（参见下文的天柱生成机制），并且除了会在原地缓慢上下飘动外，它们不会移动。每个天柱都会控制周围半径 250 格（或者说 500 英尺）的圆形地图区域。当玩家在受影响的区域中时，背景会变为天柱特定的那种，并且只有天柱的专属敌怪会大量地生成。"
     },
     {
       "progressionOrder": 31,
@@ -593,12 +623,13 @@
       "pageId": 10427,
       "revisionId": 984795,
       "revisionTimestamp": "2026-03-06T18:12:35Z",
-      "titleZh": null,
-      "pageTitleZh": null,
+      "titleZh": "星旋柱",
+      "pageTitleZh": "天界柱",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Vortex_Pillar",
-      "sourceUrlZh": null,
+      "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%98%9F%E6%97%8B%E6%9F%B1",
       "imageUrl": null,
-      "notes": null
+      "notes": null,
+      "notesZh": "天界柱（又称为月亮柱、月亮塔、或天界塔）是在月亮事件中当拜月教邪教徒被打败后出现的四个 Boss。它们出现在地图各处四个等间距的位置上（参见下文的天柱生成机制），并且除了会在原地缓慢上下飘动外，它们不会移动。每个天柱都会控制周围半径 250 格（或者说 500 英尺）的圆形地图区域。当玩家在受影响的区域中时，背景会变为天柱特定的那种，并且只有天柱的专属敌怪会大量地生成。"
     },
     {
       "progressionOrder": 32,
@@ -612,12 +643,13 @@
       "pageId": 9976,
       "revisionId": 984797,
       "revisionTimestamp": "2026-03-06T18:12:48Z",
-      "titleZh": null,
-      "pageTitleZh": null,
+      "titleZh": "星尘柱",
+      "pageTitleZh": "天界柱",
       "sourceUrl": "https://terraria.wiki.gg/wiki/Stardust_Pillar",
-      "sourceUrlZh": null,
+      "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%98%9F%E5%B0%98%E6%9F%B1",
       "imageUrl": null,
-      "notes": null
+      "notes": null,
+      "notesZh": "天界柱（又称为月亮柱、月亮塔、或天界塔）是在月亮事件中当拜月教邪教徒被打败后出现的四个 Boss。它们出现在地图各处四个等间距的位置上（参见下文的天柱生成机制），并且除了会在原地缓慢上下飘动外，它们不会移动。每个天柱都会控制周围半径 250 格（或者说 500 英尺）的圆形地图区域。当玩家在受影响的区域中时，背景会变为天柱特定的那种，并且只有天柱的专属敌怪会大量地生成。"
     },
     {
       "progressionOrder": 33,
@@ -636,7 +668,8 @@
       "sourceUrl": "https://terraria.wiki.gg/wiki/Mechdusa",
       "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/%E6%9C%BA%E6%A2%B0%E7%BE%8E%E6%9D%9C%E8%8E%8E",
       "imageUrl": "https://terraria.wiki.gg/images/Mechdusa.png?33263a",
-      "notes": "Mechdusa is a Hardmode boss exclusive to worlds that combine the For the Worthy and Remix seeds. Technically, it is not considered a separate boss, but is merely a combination of all three mechanical bosses . It resembles a large serpentine-like creature composed of the three bosses: The Destroyer 's head is attached to Skeletron Prime 's head, and The Twins are individually connected via tendrils to Skeletron Prime's eye sockets instead of to each other. There are also two extra Probes attached to The Destroyer's head."
+      "notes": "Mechdusa is a Hardmode boss exclusive to worlds that combine the For the Worthy and Remix seeds. Technically, it is not considered a separate boss, but is merely a combination of all three mechanical bosses . It resembles a large serpentine-like creature composed of the three bosses: The Destroyer 's head is attached to Skeletron Prime 's head, and The Twins are individually connected via tendrils to Skeletron Prime's eye sockets instead of to each other. There are also two extra Probes attached to The Destroyer's head.",
+      "notesZh": "机械美杜莎是一个组合了 For the Worthy 和 Remix 的世界独有的困难模式 Boss。严格来说，它不被视为一个单独的 Boss，而只是全部三个机械 Boss 的结合。它很像一条由三个 Boss 共同组成的长蛇状生物：毁灭者的头部被附着到机械骷髅王的头部，双子魔眼则分别通过触须连接到机械骷髅王的眼窝上（而非彼此相连）。还有两个额外的探测怪附着在毁灭者的头部。"
     }
   ]
 }
