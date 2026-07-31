@@ -89,6 +89,15 @@ test('the local stage replaces only the owned role and leaves the others alone',
   assert.ok(del, 'the local stage must scope its delete to this lane');
   assert.match(del, /`role` = \?/);
   assert.ok(db.paramsFor(/^DELETE\b.*`terria_v1_local`\.`item_images`/s).includes('icon'));
+  // A multi-table DELETE resolves the alias in its delete list against the
+  // default database, not against the qualified name in the FROM clause. This
+  // connection selects no default database, so that form dies with
+  // "No database selected". Scope by the item ids already resolved instead.
+  assert.ok(!/\bJOIN\b/i.test(del), 'the local delete must not be a multi-table delete');
+  assert.match(del, /^DELETE FROM `terria_v1_local`\.`item_images`/);
+  const deleteParams = db.paramsFor(/^DELETE FROM `terria_v1_local`\.`item_images`/);
+  assert.ok(deleteParams.includes(8) && deleteParams.includes(71), 'the delete must name the resolved item ids');
+  assert.ok(!deleteParams.includes('Torch'), 'the delete must not go through internal names');
   assert.ok(db.statements.some((sql) => /UPDATE `terria_v1_local`\.`items`/.test(sql)));
 });
 

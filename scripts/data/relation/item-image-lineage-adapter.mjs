@@ -302,12 +302,17 @@ export function createItemImageLineageAdapter({
 
     // Only this lane's role is replaced; a detail or banner image for the same
     // item is somebody else's row and must survive untouched.
+    //
+    // Single-table DELETE on the item ids resolved above, deliberately. A
+    // multi-table `DELETE ii FROM db.item_images ii JOIN db.items i` resolves
+    // `ii` against the default database rather than the qualified name in the
+    // FROM clause, and this connection selects no default database, so that form
+    // fails with "No database selected".
     await deleteByKeys(
       connection,
-      (placeholders) => `DELETE ii FROM \`${local}\`.\`item_images\` ii
-         INNER JOIN \`${local}\`.\`items\` i ON i.\`id\` = ii.\`item_id\`
-         WHERE ii.\`role\` = ? AND i.\`internal_name\` IN (${placeholders})`,
-      plan.targetKeys,
+      (placeholders) => `DELETE FROM \`${local}\`.\`item_images\`
+         WHERE \`role\` = ? AND \`item_id\` IN (${placeholders})`,
+      [...itemIdByKey.values()],
       [OWNED_LOCAL_IMAGE_ROLE]
     );
 
