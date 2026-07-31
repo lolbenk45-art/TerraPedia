@@ -481,7 +481,25 @@ The real preview over bundle generation `79159314...fd0d3f34` reports
 `total 6131 = existing 2119 + promoted 4012`, `unchanged 2119`, an unchanged identity set
 `sha256:85b9fc4e...c9da7ea0`, before `sha256:4e06da09...d6ef2520` and after
 `sha256:986fc39b...d1a5f1b3`. The standardized file and its hash are untouched by the preview
-and no result artifact was written. Apply awaits its own Owner authorization.
+and no result artifact was written.
+
+Apply is executed. The Owner authorized request `sha256:60f01ed8...1bc43571a` with decision
+`canonical-item-image-source-promotion-20260801-01` and expiry `2026-08-02T12:00:00Z`, producing
+packet `sha256:971b06f1...ca19b91c0` over the `0600` frozen contract
+`sha256:e61f7e7d...91e4f7b0`. The run was detached via `setsid`, exit 0, and the standardized file
+now hashes to the contract's bound `standardizedAfter` value `sha256:986fc39b...d1a5f1b3` with an
+unchanged identity set. All 6,131 records now carry an `imageFileTitle`.
+
+Independent readback against `HEAD`: with the five image fields stripped, the before and after
+payloads are byte-identical as canonical JSON; 20,060 image values were filled from empty
+(4,012 x 5) and zero pre-existing values were overwritten. The `tooltip` lines in the textual
+diff are trailing-comma churn only, because the promoted records did not previously carry the
+image keys at all.
+
+One defect was found and fixed before authorization: the apply gate compared the packet's
+`dataBundleSha256` against the promotion bundle's own hash, but a packet binds the operation's
+canonical data paths through `hashOrderedBundleBytes`. As written no real packet could have
+matched. Repaired at `60567e0c`.
 
 ### Task 5: Harden Exact Managed Image Sync
 

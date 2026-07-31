@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-01 00:40 CST by Claude
+Last updated: 2026-08-01 01:30 CST by Claude
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -529,6 +529,26 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   consumed and before any request. The 877-identity input of rounds 1-3 is
   retained at `canonical-item-image-source-verification.round-01-03.input.json`,
   moved rather than deleted, and re-hashes to its pinned `sha256:9ee3daf4...2bd5b`.
+  Item image Task 4 is executed (2026-08-01). `promote-item-image-sources.mjs` is
+  registered as governed operation 30 of 31 and applies the content-addressed
+  bundle to `items.standardized.json` under packet
+  `sha256:971b06f1...ca19b91c0`, decision
+  `canonical-item-image-source-promotion-20260801-01`, over the `0600` frozen
+  contract `sha256:e61f7e7d...91e4f7b0`. Run detached via `setsid`, exit 0.
+  Result: `6131 = 2119 existing + 4012 promoted`, before
+  `sha256:4e06da09...d6ef2520`, after `sha256:986fc39b...d1a5f1b3` matching the
+  contract's bound `standardizedAfter`, identity set unchanged. All 6,131 records
+  now carry an `imageFileTitle`. Independent readback against `HEAD` with the five
+  image fields stripped shows byte-identical canonical JSON, 20,060 values filled
+  from empty and zero pre-existing values overwritten; the `tooltip` churn in the
+  textual diff is a trailing comma, because promoted records did not previously
+  carry the image keys.
+  A defect was caught before authorization rather than after: the apply gate
+  compared the packet's `dataBundleSha256` against the promotion bundle's own
+  hash, but a packet binds the operation's canonical data paths through
+  `hashOrderedBundleBytes`, so no real packet could ever have matched. Repaired at
+  `60567e0c`; the chain is now packet to contract bytes, contract to bundle hash,
+  build to real bundle bytes.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
