@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-31 20:12 CST by Claude
+Last updated: 2026-08-01 00:40 CST by Claude
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -481,6 +481,54 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   read input or connect to MySQL. Direct CLI reuse with only a packet or forged permit
   fails closed; all currently retained NPC owner inputs, packets, results, and completion
   artifacts are `0600`.
+  Item image retry-04 (2026-08-01) closed the lane. `D-2026-08-01-01` supersedes
+  `D-2026-07-31-01`: the latter's two disambiguation rules were recorded with
+  inverted outcomes because they read `itemInternalName` where the deciding field
+  is `itemName`. Item 2611 is named `Flairoon` and item 5358 is named
+  `Shellphone (Home)`, while `Flairon.png` and `Shellphone.png` already belong to
+  items 5526 and 5437; the literal rules would have given both items a sibling's
+  sprite, and `item_images` has no unique key to reject it. The implemented rules
+  are display-name precedence then format precedence, both fail-closed. The
+  frozen-input builder also stopped demanding that the candidate classification
+  equal the review status, which had blocked freezing a follow-up input for the
+  three jellyfish that a completed round refined from unresolved to ambiguous.
+  The Owner authorized request
+  `sha256:3e4c6a91...1ec81f64` with decision
+  `canonical-item-image-source-verification-20260801-01`, expiry
+  `2026-08-02T00:00:00Z`, packet `sha256:1e94a381...f59c15ad`, over a 9-identity
+  frozen input `sha256:df5eac15...72244c75` at bounds `8/9`. The round ran
+  detached via `setsid`: exit 0, `9 = 9 verified + 0 ambiguous` at exactly 9
+  requests, every outcome matching the readiness review's per-identity
+  prediction. Lane state is now `total 6131 = existing 2119 + promoted 4012 +
+  unresolved 0 + ambiguous 0 + duplicate 0 + conflict 0`, and the bundle
+  published for the first time at generation `79159314...fd0d3f34`, payload
+  `sha256:54b1e247...423f8a52`. Seven items carry a retained `.gif` secondary
+  row; 2611 and 5358 carry a single source each. Tasks 4-7 and Task 8 Steps 3-6
+  are unblocked. Ledger is 41 entries; the mixed-shape defect noted for retry-03
+  is worse than recorded — it is 31 strings and 9 objects, not 6, and the three
+  retry decisions of 2026-07-31 are among the invisible ones.
+  Two operator failures of mine on this lane, both recorded rather than smoothed
+  over. Regenerating the promotion review overwrote
+  `item-image-source-promotion-review-2026-07-31.json`, because that output path
+  is date-derived and I did not look at the target first; nothing pinned it by
+  hash, the pinned `-2026-07-30` artifact re-verified intact, and only
+  `producerCodeSha256` differed. Worse, the retry-04 round destroyed the
+  retry-03 report: the verifier's frozen output path was a fixed
+  `item-image-source-verification.latest.json` and I did not archive before
+  running. A full-filesystem search found no copy. `D-2026-08-01-02` records the
+  rebuild — all 868 verification-derived sources survived verbatim inside the
+  promotion review, identified by `evidenceKind: mediawiki_exact_file` plus a
+  per-record `verificationResponseSha256`, and
+  `scripts/data/audit/rebuild-item-image-source-verification-report.mjs` replays
+  exactly those rows, failing closed on a duplicate identity or a conflicting raw
+  evidence hash. All 877 replayed and fresh sources then passed
+  `verifyEvidenceSource` against real raw bytes before the bundle published. Two
+  guards now make the clobber impossible: the frozen output path is round-tagged
+  in both the refresh plan and the execution manifest, and the verifier refuses
+  to start when its output already exists, checked before the dispatch permit is
+  consumed and before any request. The 877-identity input of rounds 1-3 is
+  retained at `canonical-item-image-source-verification.round-01-03.input.json`,
+  moved rather than deleted, and re-hashes to its pinned `sha256:9ee3daf4...2bd5b`.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
