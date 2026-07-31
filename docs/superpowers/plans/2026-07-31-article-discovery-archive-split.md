@@ -44,7 +44,7 @@ No backend, database, crawler, moderation, publishing, ordering, tag/topic aggre
 
 ## Current-worktree decision and ownership
 
-This plan deliberately uses `/home/lolben/TerraPedia` on `ux/detail-pages-redesign`. A new worktree would lose or duplicate the already reviewed, uncommitted Article implementation. At plan creation, HEAD is `bf213fcd` and the pinned visual reference matches its approved hash and size.
+This plan deliberately uses `/home/lolben/TerraPedia` on `ux/detail-pages-redesign`. A new worktree would lose or duplicate the already reviewed, uncommitted Article implementation. The approved specification baseline is `bf213fcd`; implementation starts from a descendant containing only the separately committed plan and any plan-only repair commits after that baseline. No product file changes in those commits, and the pinned visual reference matches its approved hash and size.
 
 Create:
 
@@ -158,7 +158,7 @@ sha256sum \
   front-nuxt/scripts/audit-shoot.mjs
 ```
 
-Expected: branch `ux/detail-pages-redesign`; HEAD `bf213fcd`; reference hash and size match the authority block. If any owned-file hash differs from the table before this plan's implementation begins, stop and classify the new writer/change before continuing. User-owned dirty files may differ but must not be staged or edited.
+Expected: branch `ux/detail-pages-redesign`; `git merge-base --is-ancestor bf213fcd HEAD` succeeds; `git diff --name-only bf213fcd..HEAD` contains only this plan document; reference hash and size match the authority block. If any owned-file hash differs from the table before this plan's implementation begins, stop and classify the new writer/change before continuing. User-owned dirty files may differ but must not be staged or edited.
 
 - [ ] **Step 2: Save a non-destructive rollback patch with explicit paths**
 
