@@ -51,7 +51,7 @@
 - Modify: `scripts/data/parse/parse-item-raw-pages.mjs`
 - Modify: `scripts/data/parse/parse-item-raw-pages.test.mjs`
 
-- [ ] **Step 1: Write failing structural-evidence tests**
+- [x] **Step 1: Write failing structural-evidence tests**
 
 Add fixtures inline for a matching table row, an image in a neighboring row, a list item, two same-block candidates, and a decorative placed/demo image. Assert this public contract:
 
@@ -80,13 +80,13 @@ assert.deepEqual(evidence.candidates[0], {
 
 Assert cross-row and decorative images produce `status: 'unresolved'`; two valid files in one block produce `status: 'ambiguous'`.
 
-- [ ] **Step 2: Run the RED tests**
+- [x] **Step 2: Run the RED tests**
 
 Run: `node --test scripts/data/lib/item-image-member-evidence.test.mjs scripts/data/parse/parse-item-raw-pages.test.mjs`
 
 Expected: FAIL because `extractItemImageMemberEvidence` and `memberImageEvidence` do not exist.
 
-- [ ] **Step 3: Implement the bounded structural extractor**
+- [x] **Step 3: Implement the bounded structural extractor**
 
 Implement an HTML helper that scans complete `<tr>`, `<li>`, and explicit item-block fragments; accepts a block only when an anchor/title in that same fragment exactly normalizes to one identity target; and extracts images only from that fragment. Reuse `decodeHtmlEntities` and the existing file-title/MIME conventions. Return deterministic ordinals and sorted candidates.
 
@@ -111,7 +111,7 @@ export function extractItemImageMemberEvidence({ html, identityTargets } = {}) {
 
 Reject file titles or alt/title text containing placed, map, demo, inventory-slot, banner, or `Auto_icon` markers unless the exact member anchor and image are in the same accepted block.
 
-- [ ] **Step 4: Integrate without weakening group-page quarantine**
+- [x] **Step 4: Integrate without weakening group-page quarantine**
 
 In `parseItemRawPagePayload`, keep `images=[]`, `sell=null`, and `safeDescription=null` for group pages. Add `groupPageEvidence.memberImageEvidence` and preserve the existing page-level images as non-promotable evidence.
 
@@ -124,7 +124,7 @@ const memberImageEvidence = isGroupPage
   : null;
 ```
 
-- [ ] **Step 5: Run GREEN and commit**
+- [x] **Step 5: Run GREEN and commit**
 
 Run: `node --test scripts/data/lib/item-image-member-evidence.test.mjs scripts/data/parse/parse-item-raw-pages.test.mjs`
 
@@ -143,7 +143,7 @@ git commit -m "feat(data): extract member item image evidence"
 - Create: `scripts/data/generate/generate-item-image-source-promotion.mjs`
 - Create: `scripts/data/generate/generate-item-image-source-promotion.test.mjs`
 
-- [ ] **Step 1: Write RED tests for authority and classifications**
+- [x] **Step 1: Write RED tests for authority and classifications**
 
 Assert candidates carry raw file SHA-256, page ID/revision, evidence kind/block ordinal/anchor, and exact original image metadata. Pass a conflicting local comparison row and assert it appears only under `comparison.local`, never under `source`.
 
@@ -156,13 +156,13 @@ assert.equal(candidate.source.fileTitle, 'Torch.png');
 
 Add promotion tests for duplicate item identity, changed standardized hash, changed raw hash, ambiguous evidence, missing source, and a valid two-item miniature closure.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/audit/item-image-source-candidate-audit.test.mjs scripts/data/generate/generate-item-image-source-promotion.test.mjs`
 
 Expected: FAIL on missing schema-v2 fields and missing generator.
 
-- [ ] **Step 3: Upgrade the candidate report**
+- [x] **Step 3: Upgrade the candidate report**
 
 Use `schemaVersion: '2.0.0'`. Classify each missing-source identity as `raw_verified`, `ambiguous`, or `unresolved`. Keep counters for `localAgreement`, `localConflict`, `existingLineage`, and `localOnly`; do not combine them into candidate approval.
 
@@ -184,7 +184,7 @@ source: {
 }
 ```
 
-- [ ] **Step 4: Implement the promotion generator**
+- [x] **Step 4: Implement the promotion generator**
 
 Export `buildItemImageSourcePromotionArtifacts`. It combines validated existing standardized sources, schema-v2 raw candidates, and an optional bounded verification report. Canonically sort all rows by numeric item ID then internal name.
 
@@ -213,7 +213,7 @@ export function buildItemImageSourcePromotionArtifacts(input) {
 
 Require the identity-set hash and exact standardized/item-page/candidate/verification/raw evidence hashes. A review artifact may be written while unresolved; an apply bundle may not.
 
-- [ ] **Step 5: Run GREEN and a read-only real-data audit**
+- [x] **Step 5: Run GREEN and a read-only real-data audit**
 
 Run: `node --test scripts/data/audit/item-image-source-candidate-audit.test.mjs scripts/data/generate/generate-item-image-source-promotion.test.mjs`
 
@@ -223,7 +223,7 @@ Run: `node scripts/data/generate/generate-item-image-source-promotion.mjs --cand
 
 Expected: tests PASS; the real generator writes review evidence and exits non-zero or reports `bundleWritten=false` while any identity remains unresolved. Standardized bytes remain unchanged.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/data/audit/item-image-source-candidate-audit.mjs scripts/data/audit/item-image-source-candidate-audit.test.mjs scripts/data/generate/generate-item-image-source-promotion.mjs scripts/data/generate/generate-item-image-source-promotion.test.mjs
@@ -243,7 +243,7 @@ git commit -m "feat(data): bind item image source promotion"
 - Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
 - Modify: corresponding automation tests
 
-- [ ] **Step 1: Write RED progress and scope tests**
+- [x] **Step 1: Write RED progress and scope tests**
 
 Use injected `fetchJson` and `writeProgress`. Assert the first progress write occurs before the first network call, every request identity is in the frozen unresolved set, total requests never exceed `maxRequests`, batches never exceed `batchSize`, and success/failure ends in `completed`/`failed`.
 
@@ -259,19 +259,21 @@ assert.equal(events[0].kind, 'progress');
 assert.equal(events.at(-1).payload.status, 'completed');
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/fetch/fetch-item-image-source-verification.test.mjs scripts/data/workflow/backend-data-refresh-plan.test.mjs`
 
 Expected: FAIL because the verifier and backend step are absent.
 
-- [ ] **Step 3: Implement the unresolved-only verifier**
+- [x] **Step 3: Implement the unresolved-only verifier**
 
-The script must require a private or ordinary immutable unresolved input file with its declared SHA-256, reject duplicate identities, and query only exact page/revision/file identities. Output one record per requested identity with `verified`, `ambiguous`, `unresolved`, or `failed` and preserve response hashes.
+The script must require a private or ordinary immutable unresolved input file with its declared SHA-256, reject duplicate identities, and query only exact page/file identities. Output one record per requested identity with `verified`, `ambiguous`, `unresolved`, or `failed` and preserve response hashes.
+
+Revision semantics (amended 2026-07-31 after the first real run): page scope is enforced on `pageId`, not on revision equality. A response whose `pageId` does not match the frozen identity fails closed as `page_identity_mismatch`. A response whose article revision has moved on since the frozen raw cache does **not** fail; the verifier resolves image evidence from the live response and records `sourceRevisionTimestamp` (live), `frozenSourceRevisionTimestamp`, and `revisionDrifted`. Rationale: the file candidates come from the `File:` pages in the same response and are already bounded by the frozen `fileTitles` and identity keys, so revision equality added no scope safety while making the operation rot as soon as any host page was edited. The first real run failed 531 of 877 identities purely on this check across only 48 host pages.
 
 Use action ID `item-image-source-verification`; resolve progress from `--progress-path` or `TERRAPEDIA_CRAWLER_PROGRESS_PATH`; publish `running` before any API call; heartbeat during each batch; and terminal progress in `finally`/`catch`. The direct CLI requires `loadAuthorizedOperationContext({ operationId: 'canonical-item-image-source-verification' })`, matches the frozen input hash/request cap to `dataBundleSha256`, and consumes the dispatch permit before its first network request. Tests call the exported runner with injected authorization dependencies and no live packet.
 
-- [ ] **Step 4: Register the child action and monitor contract**
+- [x] **Step 4: Register the child action and monitor contract**
 
 Add a manual-only backend refresh plan step whose command includes explicit frozen input, request cap, and `<progressPath>` through the wrapper environment. Register an `items` action with the stable action ID, fresh-only restart behavior, network access true, and no database access.
 
@@ -288,7 +290,7 @@ backend(
 
 Register `canonical-item-image-source-verification` in the canonical catalog. Its static data input is `reports/authorization/canonical/canonical-item-image-source-verification.input.json`; the execution manifest command runs `run-backend-data-refresh.mjs --mode=apply --steps=item-image-source-verification`, so the wrapper supplies the attempt child progress path and the verifier child consumes the packet-bound permit. A monitor dispatch without canonical packet/permit must fail before network access.
 
-- [ ] **Step 5: Run GREEN**
+- [x] **Step 5: Run GREEN**
 
 Run: `node --test scripts/data/fetch/fetch-item-image-source-verification.test.mjs scripts/data/workflow/backend-data-refresh-plan.test.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs`
 
@@ -296,7 +298,7 @@ Run from `back/`: `mvn -Dtest=CrawlerMonitorActionRegistryTest test`
 
 Expected: PASS; no real network request runs in tests.
 
-- [ ] **Step 6: Authorization checkpoint and commit**
+- [x] **Step 6: Authorization checkpoint and commit**
 
 Generate a frozen verification request only after the read-only review artifact names the exact unresolved set, request cap, and input hash. Do not dispatch the real crawler until the user confirms that exact request hash with Owner actor, reason, authorization reference, expiry, and a new one-time decision identity.
 
@@ -304,6 +306,74 @@ Generate a frozen verification request only after the read-only review artifact 
 git add scripts/data/fetch/fetch-item-image-source-verification.mjs scripts/data/fetch/fetch-item-image-source-verification.test.mjs scripts/data/workflow/backend-data-refresh-plan.mjs scripts/data/workflow/backend-data-refresh-plan.test.mjs scripts/data/automation/canonical-operation-catalog.mjs scripts/data/automation/canonical-operation-execution-manifest.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java
 git commit -m "feat(crawler): verify bounded item image sources"
 ```
+
+Execution checkpoint (2026-07-31): Task 1 is committed at `cce1aafe`, Task 2 at
+`dbf433fc`, and the Task 3 code is now committed at `8f9be88d`. It freezes 877
+identities at batch/request bounds `8/877`, registers monitor action 24 and
+canonical operation 29, and uses a dedicated single-attempt Wiki request profile
+so one identity can cause at most one real HTTP attempt. Fresh focused validation
+passes `node --check` 8/8, Node 51/51, and Maven 11/11 in the worktree, and the
+same Node suite passes 51/51 against a detached checkout of the commit's content
+alone.
+
+That commit is deliberately wider than this task's `git add` list. The canonical
+operation modules could not be split into a Task-3-only revision: the execution
+manifest now imports `canonicalServerFingerprint` and
+`NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION`, neither of which existed at
+`dbf433fc`, and the shared operation-count contracts cover all five new operation
+IDs in one assertion. `8f9be88d` therefore also lands the already-implemented NPC
+T1 acceptance, base-maint non-town/town apply, and item-relation lineage-repair
+operation registrations, plus `npc-base-maint-apply.mjs`, which the base-maint
+code bundles require on disk. Its sibling `npc-base-maint-apply.test.mjs` is
+intentionally still untracked. Fourteen paths were staged by explicit name; the
+other 52 modified tracked files were left out of the commit.
+
+The private `0600` request `requestHash`
+`sha256:1b180787790b11b8f9f7440561f141290667e1b870c3fd67e2a0aa0ddf4eb164`
+was re-derived as fully current after the commit: all eight technical identity
+fields recompute to the request's own values from the preflight server
+fingerprint and policy rows, and its frozen input `sha256:9ee3daf4...2bd5b` and
+execution manifest `sha256:68550ea6...c73a0437` re-verify byte-for-byte.
+
+Task 3 Step 6's authorization checkpoint is now met. The Owner authorized that
+exact request hash on `2026-07-31T10:56:00Z`, producing private `0600` packet
+`sha256:a66e97ea1133ecf7a5f88eba0748548a38a475f7a8a49d68e4ce774ab9169c45`
+with actor `admin`, a one-time decision identity
+`canonical-item-image-source-verification-20260731-01`, and expiry
+`2026-08-01T09:45:00Z`. The packet re-verifies against current repository state
+with zero missing Owner or technical fields and carries the `8/877` bounds over
+877 identities. Its owner input is retained at
+`canonical-item-image-source-verification.owner-input.json` (`0600`).
+
+Task 8 Step 2 is now satisfied by retry-03 after two repairs and one lost
+decision. Retry-01 consumed `...-20260731-01` and terminated `failed` at
+`877 = 346 verified + 531 failed`, every failure `page_revision_mismatch` and
+none `request_failed`; the drift contract, not the network, was at fault, and
+the 531 collapsed onto only 48 host pages. Commit `be8a9272` repaired that
+contract. Retry-02 consumed `...-20260731-02` but was killed by session
+interruption at 488/877 with no report; that decision is burned for nothing and
+its stale `running` progress was fail-closed by hand. Retry-03 consumed
+`...-20260731-03` under packet `sha256:90ce69f9...dc0ee800`, run detached via
+`setsid`, and completed: runner exit 0, progress `completed 877/877`, result
+`sha256:f66b1afd...88d1b308` recording `877 = 868 verified + 9 ambiguous +
+0 unresolved + 0 failed` at exactly 877 requests, 877/877 in-scope records, zero
+duplicates, no cap overrun. 868 resolved to `.png` and 522 of those had drifted
+revisions.
+
+Rebuilding the promotion review then hit a second defect — `duplicate 877`,
+because candidate and verification evidence were concatenated rather than
+superseded, on a merge path no fixture covered. Repaired at commit `e11e2bc5`.
+
+Current lane state is `total 6131 = existing 2119 + promoted 4003 +
+unresolved 0 + ambiguous 9 + duplicate 0 + conflict 0`, so the bundle is still
+`null` and Steps 3-6 stay blocked. The 9 are the collected fail-closed
+remainder: four coins and three jellyfish genuinely host both a `.gif` and a
+`.png`; `Flairon` collides with the misspelled wiki duplicate `Flairoon.png`;
+`Shellphone` collides with the variant `Shellphone (Home).png`. Clearing them
+requires a promotion preference rule that does not exist yet — a product
+decision, not a defect. Tasks 4-7 remain unimplemented and their downstream
+operations remain unregistered, so no downstream authorization can be
+pre-generated.
 
 ### Task 4: Apply Standardized Sources Atomically
 
@@ -535,7 +605,7 @@ git commit -m "feat(data): govern item image lineage apply"
 
 Run focused tests, regenerate candidate v2 and the promotion review, and verify all referenced input hashes. If unresolved remains, generate the bounded crawler request and stop that operation at `AWAITING_OWNER` until its exact hash is approved.
 
-- [ ] **Step 2: Dispatch only an approved verification packet**
+- [x] **Step 2: Dispatch only an approved verification packet**
 
 After exact approval, dispatch `canonical-item-image-source-verification` through `run-authorized-canonical-operation.mjs`; its execution manifest enters the backend-refresh child step and uses the registered monitor progress contract. Verify terminal progress, output hash, request cap, zero out-of-scope identity, and no task process or progress `.tmp` residue. Rebuild the promotion artifacts from the exact verification result.
 

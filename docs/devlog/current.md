@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-29 18:31 CST by Codex
+Last updated: 2026-07-31 20:12 CST by Claude
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -10,12 +10,227 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
-  blocked-by: separate operation-level authorization and evidence at later formal crawler/L1/L2/scheduler checkpoints;
-  NPC landing plus all seven owner phases are complete and aggregated; the next
-  non-NPC formal dependency is a frozen `automation-biomes-first-l1` preview bundle
-  followed by its own exact Owner authorization;
-  contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`
-  plus `../superpowers/plans/2026-07-29-npc-owner-phase-authorization-runway.md`.
+  blocked-by: remaining item-image source coverage and missing coherent shimmer
+  source evidence, then T2/source-flip and later L1/L2/scheduler checkpoints;
+  NPC landing, seven owner phases, isolated T1, and both base-maint partitions
+  are complete. Task 10's two non-green domain panels are the current
+  dependency before any source-contract flip or L1 preview;
+  contract handoff: `../superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md`,
+  `../superpowers/plans/2026-07-30-item-image-source-closure.md`, and
+  `../superpowers/plans/2026-07-30-shimmer-generation-closure.md`; the NPC
+  owner-phase runway remains completed historical context.
+  T1 request-path checkpoint: `canonical-npc-t1-acceptance` now freezes a
+  private config/server fingerprint, Redis DB, run ID, NPC data bundle, and
+  code bundle. Before it consumes a one-time permit, the child revalidates the
+  packet-bound config/data/manifest identity, reconstructs the matching owner
+  completion, and performs only the future run's bounded read-only UUID check.
+  Focused validation passes 57/57 and final read-only re-review has no Critical
+  or Important findings. With explicit permission to read the main-worktree
+  private config, a new ordinary `0600` config was created only in this
+  worktree and bound to the fresh preflight server fingerprint. Its private
+  `0600` execution manifest freezes Redis DB 14, run ID
+  `npc-t1-20260730-01`, config/data/code bytes, and no formal DB writes. Private
+  request `sha256:4c8c760c78e8feeaa93c3028d11b08bfd390eb39a0d99a986ad5c2183752d1f5`
+  was explicitly confirmed and produced private authorized packet
+  `sha256:2ac59552d8b9346c92623c072596063f71a2b6ff12ff721491f4d9b9f27aacd3`.
+  Its current technical identity and Owner fields were independently verified.
+  The explicitly authorized runner consumed the one-time decision and completed
+  isolated run `npc-t1-20260730-01`; private evidence is `passed`, binds the
+  required 13-table snapshot, proves rollback/commit/restore `0/1/0`, and has
+  cleanup proof. Independent readback confirms zero isolated databases,
+  temporary accounts, Redis DB 14 keys, and active transactions. No formal data
+  write, crawler, shared-service action, or commit ran. Task 11 Step 5 is
+  complete.
+  Current coordinator update: the user-directed full gate passed its data
+  workflow and automation stages, then correctly stopped at domain `43/1/1`
+  (pass/warning/blocked). Item image readiness is the only blocker and shimmer
+  is the only warning. Cross-DB quick is 10 pass; full is 8 pass / 2 warnings
+  for one relation-loot row without local output plus 4,316 legacy acquisition
+  rows. Relation health remains 21 pass / 6 info / 0 blocked / 1 warning for
+  287 unresolved NPC audits.
+  Item-image closure Tasks 1 and 2 are committed at `cce1aafe` and `dbf433fc`.
+  The structural member extractor/parser suite passes 10/10 while retaining
+  group-page image/sell/description quarantine; candidate/promotion contracts
+  also pass 10/10. Fresh schema-v2 evidence finds
+  3,135 raw-verified, 142 ambiguous, and 735 unresolved identities among the
+  4,012 missing standardized sources. Read-only formal comparison classifies
+  3,129 local agreements, 6 local conflicts, 787 existing-lineage rows, and
+  3,225 local-only rows without ever promoting comparison data to source. The
+  current promotion review binds report `sha256:e57e7e11...effb`, remains
+  review-only at `2119 existing + 3135 promoted + 735 unresolved + 142
+  ambiguous`, and writes no bundle. Task 3 now adds the bounded monitor-visible
+  verifier, monitor action 24, and canonical operation 29, and its code is
+  committed at `8f9be88d`. Its fresh focused
+  gates pass `node --check` 8/8, Node 51/51, and Maven 11/11; the same Node suite
+  also passes 51/51 against a detached checkout of that commit's content alone,
+  proving the revision is self-consistent. The dedicated request gate permits at
+  most one actual HTTP attempt per frozen identity. Private input/manifest/
+  request artifacts are `0600`, freeze 877 identities at `8/877`, and rebuild
+  byte-for-byte. Request `requestHash`
+  `sha256:1b180787790b11b8f9f7440561f141290667e1b870c3fd67e2a0aa0ddf4eb164`
+  was independently re-derived as fully current: all eight technical identity
+  fields (`operationId`, `targetDatabases`, `serverFingerprint`,
+  `schemaBundleSha256`, `dataBundleSha256`, `policySetHash`,
+  `executionManifestHash`, `requiredTechnicalFields`) recompute to the request's
+  own values from the preflight fingerprint and policy rows. The Owner then
+  authorized that exact request hash, producing private `0600` packet
+  `sha256:a66e97ea1133ecf7a5f88eba0748548a38a475f7a8a49d68e4ce774ab9169c45`
+  at `2026-07-31T10:56:00Z` under decision identity
+  `canonical-item-image-source-verification-20260731-01`, actor `admin`,
+  expiring `2026-08-01T09:45:00Z`. The packet re-verifies against current
+  repository state with zero missing Owner or technical fields and carries the
+  `8/877` bounds over 877 identities.
+  That packet was then dispatched through
+  `run-authorized-canonical-operation.mjs`, consuming decision
+  `canonical-item-image-source-verification-20260731-01` exactly once under
+  dispatch permit
+  `sha256:381ebba077618121091705dd469cf330def26bd70f47a9e6643839e72fb0d8ac`.
+  **The operation terminated `failed` and did not close the item image
+  blocker.** Its result
+  `reports/audit/item-image-source-verification.latest.json` hashes to
+  `sha256:e241b9e12c13fe58f204fbd916fa56936c98a0151d9e79ceca4e4fa9e45b3a4f`
+  and records `877 total = 346 verified + 0 ambiguous + 0 unresolved + 531
+  failed` at exactly 877 requests. Scope and bounds held: 877/877 report
+  records, zero out-of-scope identities, request count exactly at the 877 cap,
+  no overrun.
+  All 531 failures carry error code `page_revision_mismatch`; **zero** carry
+  `request_failed`. The root cause is not the network — an independent probe
+  returned HTTP 200 for `AngelStatue` (pageId 12944) with live revision
+  `2026-07-29T12:18:22Z` against the frozen `2026-04-20T13:16:42Z`. The frozen
+  identity set takes its `sourceRevisionTimestamp` from a local raw cache built
+  around 2026-04 while terraria.wiki.gg has kept being edited, and
+  `buildVerificationRecord` fail-closes on revision drift before it ever
+  inspects image evidence. Roughly 57% of the frozen set therefore cannot match
+  without refreshing the raw cache first.
+  Lane arithmetic after this run: `2119 existing + 3135 promoted + 346 newly
+  verified = 5600` of 6131, leaving 531 unresolved, so the promotion bundle
+  stays `null` and Task 8 Step 2 is **not** satisfied. The decision identity is
+  consumed and cannot be reused; any retry needs a fresh request, fresh Owner
+  authorization, and a new decision identity.
+  Post-run readback is clean: no verifier or dispatch process, zero retained
+  dispatch permits, and no `.tmp`/`.part` residue.
+  A read-only characterization of the 531 (no new requests) shows they are not
+  531 independent drifts. Every one of the 877 frozen identities is a
+  `group_page` identity, and the 531 failures collapse onto just **48 distinct
+  source pages**, with extreme concentration: `Banners (enemy)` 291,
+  `Statues` 83, `Trophies` 33, `Music Boxes` 32 — four pages covering 439 of 531
+  (83%), 22 pages covering 94%, and all 48 covering 100%. Frozen revisions for
+  the failures cluster hard in `2026-04` (434) and `2026-05` (62), whereas the
+  346 verified identities spread across `2022-03` through `2026-06` on pages
+  that simply have not been edited lately. Prior classification also differs:
+  the failures are 394 unresolved + 137 ambiguous, while the verified are 341
+  unresolved + 5 ambiguous, so the ambiguous cases concentrate in the drifted
+  large index pages.
+  The practical consequence is that refreshing 48 wiki pages — not 531 — would
+  re-bind every blocked identity. Whether the underlying images actually changed
+  is still unknown, because failed records retain only `responseSha256` and no
+  live imageinfo; answering that needs a bounded live check of those 48 pages.
+  The drift contract was then repaired RED-to-GREEN at commit `be8a9272`:
+  page scope is still enforced on `pageId` and fails closed as
+  `page_identity_mismatch`, while revision drift no longer aborts and the
+  record keeps `sourceRevisionTimestamp` (live), `frozenSourceRevisionTimestamp`,
+  and `revisionDrifted`. Focused suite 53/53.
+  Retry-02 consumed decision `...-20260731-02` under packet
+  `sha256:092738f0...c11d63e7` but was killed by session interruption at
+  488/877 with `failedCount 0` and **no report written**; the decision is burned
+  for nothing. Its stale non-terminal `running` progress was explicitly
+  fail-closed by hand, and no permit leaked (the child had already consumed it).
+  Retry-03 then consumed `...-20260731-03` under packet
+  `sha256:90ce69f9...dc0ee800`, run detached with `setsid` so a session
+  interrupt could not kill it again, and **completed**: runner exit 0, child
+  progress `completed 877/877`, result
+  `sha256:f66b1afd72aa6b82d3a2ab61d580003610018c3cc96e264b788cbeb288d1b308`
+  recording `877 = 868 verified + 9 ambiguous + 0 unresolved + 0 failed` at
+  exactly 877 requests. All 868 resolved to `.png`, and **522 of them had
+  drifted revisions** — precisely the population the old contract hard-failed
+  (531 = 522 verified + 9 ambiguous). The earlier worry that statues and banners
+  host real animated `.gif` files held for only 9 identities; the rest of the
+  `.gif` candidates were phantoms.
+  Rebuilding the promotion review then exposed a second defect: it reported
+  `duplicate 877` because `buildItemImageSourcePromotionArtifacts` concatenated
+  candidate and verification evidence for the same identity instead of letting
+  verification supersede. Every existing fixture passed
+  `verificationReportBytes: null`, so the merge path had zero coverage. Repaired
+  RED-to-GREEN at commit `e11e2bc5`; promotion and candidate-audit suites 11/11
+  with the within-report duplicate contract intact.
+  Current lane state is `total 6131 = existing 2119 + promoted 4003 +
+  unresolved 0 + ambiguous 9 + duplicate 0 + conflict 0`. The bundle is still
+  `null` because `ambiguous` must be zero, so the 9 are the collected
+  fail-closed remainder: `CopperCoin`, `SilverCoin`, `GoldCoin`,
+  `PlatinumCoin`, `BlueJellyfish`, `GreenJellyfish`, `PinkJellyfish` all have a
+  genuinely existing `.gif` plus `.png` pair; `Flairon` collides with a
+  misspelled wiki duplicate `Flairoon.png`; `Shellphone` collides with the
+  variant `Shellphone (Home).png`. Resolving them needs a promotion preference
+  rule that does not exist yet, which is a product decision rather than a defect.
+  Post-run readback is clean: no process, no leaked dispatch permit, no
+  `.tmp`/`.part`, terminal progress, and three consumed item-image decisions in
+  the 40-entry ledger.
+  Tasks 4-7 of the item-image subplan remain entirely unimplemented, and the
+  downstream operations `canonical-item-image-source-promotion` and
+  `canonical-item-image-lineage-apply` are unregistered with missing
+  entrypoints, so no downstream authorization can be pre-generated. Each
+  downstream request binds its predecessor's real result bytes by design.
+  Ledger defect observed while checking reuse (independent of this lane):
+  `used-decisions.json` mixes 31 plain-string entries with 6 objects shaped
+  `{decisionIdentity, dispatchPermitHash}`, while
+  `authorizeCanonicalCutoverRequest` tests reuse via
+  `new Set(used).has(decisionIdentity)`. Those 6 object-form identities are
+  therefore invisible to the reuse guard and could be re-authorized. The
+  item-image identity is absent in both forms, so this run is unaffected.
+  Commit `8f9be88d` is deliberately wider than the plan's Task 3 `git add` list.
+  The canonical operation modules cannot form a Task-3-only revision: the
+  execution manifest now imports `canonicalServerFingerprint` and
+  `NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION`, neither present at `dbf433fc`,
+  and the shared operation-count contracts assert all five new operation IDs at
+  once. The commit therefore also lands the already-implemented NPC T1
+  acceptance, base-maint non-town/town apply, and item-relation lineage-repair
+  registrations plus `npc-base-maint-apply.mjs`; `npc-base-maint-apply.test.mjs`
+  stays untracked. Fourteen paths were staged by explicit name and the other 52
+  modified tracked files were left out of the commit. No crawler, packet,
+  database write, or shared-service action accompanied this commit.
+  The private NPC report was atomically refreshed at 17:54 CST with mode `0600`:
+  it hashes to `sha256:6d1596d388c5659945d35c27ec7dff8ccd27bc4e1f5eb6607f1869b6879ede45`,
+  its native `T1_VERIFIED` contract passes 65/65, and admin/public GET parity
+  for sample `-65` matches local snapshot `sha256:58545f6c...db37` through the
+  shared backend at `18191`. The freshness audit marks the report fresh at age
+  zero but keeps the acceptance panel blocked because it requires
+  `T2_CUTOVER_VERIFIED`. Runtime readback is zero isolated databases, temporary
+  accounts, external transactions, Redis DB 13/14 keys or reservations, task
+  processes, progress `.tmp` files, and worktree listeners. Shared backend PID
+  `561518` and Redis PID `551685` remain listening; no lifecycle action ran.
+  Both base-maint operations completed at 723 non-town + 39 town rows and their
+  completion hash is `sha256:4cafccbb...aa831`. The lineage database repair
+  cleared its blockers. Retry-01's zero-byte result remains historical, while
+  retry-02 consumed decision
+  `canonical-npc-item-relation-lineage-repair-20260730-02` exactly once under
+  packet `sha256:f429552a...5b662`. Its private 1,684-byte result hashes to
+  `sha256:09930216...a7fc`, is `COMPLETED`, and records committed `329 + 329`
+  relation rows with output `sha256:e6debec3...4f84`.
+  The approved item-image review produced 702 candidates at report hash
+  `sha256:a19aa346...f0b85`, changed neither standardized input, and leaves 3,310
+  group pages quarantined. A read-only raw/database cross-check further proves
+  all 6,131 standardized identities have local image rows, only 2,906 have
+  maint/relation lineage, and just 613 of 3,225 local-only titles satisfy the
+  exact parsed title, identity, page, and URL checks. Boss decision
+  `canonical-boss-loot-import-20260730-01` also consumed packet
+  `sha256:ae0bc6de...dc1f` exactly once; report `sha256:96c23c7a...449`
+  processes the 33-boss/347-drop bundle with no unresolved boss or item.
+  Both decision identities are in the used ledger and cannot be reused.
+  Shimmer remains source-blocked because the only local raw is a
+  non-byte-equivalent July refetch. Formal state is `biomes L1/ACTIVE`, zero
+  runs/applies, no circuit, and zero L2/scheduler decisions. No additional
+  source flip, L1/L2, scheduler, image sync, boss/shimmer import, commit, or
+  push ran during this evidence refresh.
+  Final continuation hygiene passes 47/47 changed/untracked MJS syntax checks,
+  the 121/121 focused producer/readiness/authorization suite, `git diff
+  --check`, and the targeted fact scan. Readback remains zero isolated
+  databases, temporary accounts, active transactions, Redis DB 14 keys or
+  reservation, task processes, progress `.tmp` files, and temporary worktree
+  service listeners. Thirteen task-owned `/tmp` diagnostics were removed; the
+  shared backend/Redis lifecycle and all other temporary files were untouched.
+  The prior private `canonical-remaining-batch-01-20260730` proposal is fully
+  consumed historical authorization context: both contained identities ran
+  once and completed. It is not a current checkpoint and must never be reused.
   Current execution snapshot: authorized Batch 04 consumed its recipe and boss
   identities exactly once and both completed. Recipe applied the frozen 3,663
   input, backfilled 124 group ingredients and 239 station names, consolidated
@@ -30,7 +245,16 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   execution chain. Image sync changed exactly
   1,788 item `imageUrl` fields. The latest read-only domain gate is 40 pass /
   4 warning / 1 blocked: recipe is warning rather than blocked, boss source is
-  pass, and item image coverage remains the sole blocked panel. Batch 04 and all
+  pass, and item image coverage remains the sole blocked panel. A focused
+  RED-to-GREEN repair makes the image-sync producer recognize its own relative
+  managed URL output and lets readiness count `uploaded + alreadyManaged` as
+  completed candidates. The current real report remains correctly blocked:
+  4,012 of 6,131 standardized items have no image source, and 331 legacy-endpoint
+  candidates were not completed by the prior run. The local raw cache has all
+  6,131 pages, but its parser safely quarantines 4,005 source-less group pages;
+  695 have one exact filename match and 7 non-group pages have a safe image,
+  which remain a separate source-mapping decision. No image sync retry, crawler,
+  data write, or service action ran. Batch 04 and all
   earlier consumed identities cannot be reused.
   The first authorized group bootstrap identity
   `canonical-item-group-bootstrap-20260729-01` stopped before packet creation:
@@ -84,16 +308,19 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   the expected 40 pass / 4 warning / 1 blocked / 0 written domain fail-close.
   No database write,
   crawler, formal apply, L1/L2, or scheduler action ran in Batch 05. The parent
-  closure checklist is 66/86, while the dedicated NPC owner-runway subplan is
-  now 19/19; Step 3B and the serial NPC owner execution are complete, while
+  closure checklist is 69/86: Task 11 isolated T1 and Task 13 Steps 5-6 are
+  complete. The dedicated NPC owner-runway subplan is now 19/19; Step 3B and the
+  serial NPC owner execution are complete, while
   broader readiness gates remain open. The
-  independent biomes L1 policy-promotion request remains
-  `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`;
-  it remains `AWAITING_OWNER`. Group bootstrap action/acceptance/shadow/readiness/
+  At that earlier checkpoint, independent biomes L1 policy-promotion request
+  `sha256:df50664e72b2ff475c7e839c7e1129a7a77b8ed953353d6b98547f109431282a`
+  was `AWAITING_OWNER`; its current-byte retry later completed policy v1 as
+  `L1/ACTIVE`. Group bootstrap action/acceptance/shadow/readiness/
   runner validation passes 35/35 and policy-decision validation passes 27/27.
   Fresh group compatibility exports/readiness and the three source-contract
   flips remain later gates; Step 4 does not authorize them. L1 promotion remains
-  a later independent checkpoint. Boss-loot still lacks its frozen bundle;
+  a later independent checkpoint. At that earlier checkpoint boss-loot still
+  lacked its frozen bundle;
   shimmer lacks the raw file and three of five importable data shards in this
   worktree, so neither lane was fabricated or dispatched.
   Retry preparation revalidation confirms formal NPC base landing 0, crawler
@@ -425,11 +652,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
 - For automated-ingestion closure, read
-  `entries/2026-07-27-crawler-automated-ingestion-closure.md` and resume Task 15.
-  Group CODE_READY/T1 and Task 10's authorized scope are complete. Do not execute V56/V57/V58, formal bootstrap,
-  crawler/import/backfill/image-sync/apply, Owner/policy bootstrap, L1/L2/T2,
-  or scheduler activation without the separate operation-level authorization
-  named by the plan.
+  `entries/2026-07-27-crawler-automated-ingestion-closure.md`; the complete
+  result matrix is already fresh. Do not rerun the full chain until a source or
+  authorization input changes. Start from the 702-row candidate-only image
+  report, the 613/3,225 raw-backed local-only verification boundary, and the
+  missing coherent shimmer generation. Boss import and lineage retry-02 are
+  complete; keep both identities consumed and preserve retry-01's zero-byte
+  result as historical evidence only. Keep unverified image rows fail-closed.
+  Do not reuse consumed identities or execute a formal
+  crawler/import/backfill/image-sync/apply, L1/L2 promotion, source flip, or
+  scheduler activation without the exact operation-level packet required by
+  the plan; do not mutate the shared stack.
 
 ## Current Risks
 

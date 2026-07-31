@@ -142,3 +142,67 @@ completed on 2026-07-29; readback shows policy v1 `L1/ACTIVE`, one policy
 version, and zero external active transactions.
 Expected follow-up: Freeze the first exact preview bundle, then request a new
 operation-level decision before any L1 apply.
+
+## D-2026-07-30-01: Item image group-page evidence stays candidate-only
+
+Decision: Generate a separately reviewable artifact only for the 695 group
+pages with one exact normalized item-identity filename plus 7 safe non-group
+pages. Keep the other 3,310 group pages fail-closed. Do not write standardized
+item data or rerun image sync from this decision.
+Reason: Group-page images are intentionally quarantined because a shared page
+can contain set, variant, or unrelated images. Exact unique filename identity
+is sufficient for review candidacy, not automatic source ownership.
+Evidence: `reports/audit/item-image-source-candidates-2026-07-30.json` records
+702 candidates and 3,310 quarantined group pages; pre/post standardized input
+hashes are identical and focused tests pass 2/2.
+Expected follow-up: Review the 702 candidate rows, define a separately governed
+write operation if accepted, and require stronger provenance or manual review
+before any of the remaining 3,310 rows can leave quarantine.
+
+## D-2026-07-31-01: Item image dual-format retention is designed but deferred
+
+Decision: Keep the current single-image behaviour. Do not implement dual-format
+retention now. The design is settled and approved but parked as a follow-up the
+user asked to be reminded about.
+
+Approved design, ready to implement when resumed:
+- When more than one candidate file survives identity filtering, stop returning
+  `ambiguous`. Take `.png` as the primary image (`is_primary=1`, `sort_order=0`)
+  and keep every other format as a secondary row (`is_primary=0`, ascending
+  `sort_order`). When no `.png` sibling exists, leave the existing primary alone.
+- Add two non-format disambiguation rules: a filename exactly equal to the item
+  name wins, and a parenthesised variant suffix is demoted. These resolve
+  `Flairon` against the misspelled wiki duplicate `Flairoon.png`, and
+  `Shellphone` against the `Shellphone (Home).png` variant.
+- Scope is 29 items: the 9 currently ambiguous (4 coins, 3 jellyfish, Flairon,
+  Shellphone) plus 20 of the 24 legacy `.gif`-primary items.
+- `StrangePlant1..4` are a known exception: all four share one
+  `Strange Plants.gif` and the wiki has no `.png` sibling, so they cannot be
+  flipped and keep their current primary.
+
+Reason: The user chose to hold the change and move on to the next crawler
+automated-ingestion stage. Deferring costs nothing structurally because the
+verification evidence is already frozen and reproducible.
+
+Evidence: The two formats are genuinely different assets, not containers of the
+same image. Measured frame counts are 8 for each coin and 4 for each jellyfish
+against a single-frame `.png`, and the jellyfish differ in size as well
+(`.gif` 26x30 vs `.png` 26x28), so the `.png` is not a crop of frame one.
+No schema work is required: `item_images` has been multi-row since V13 with
+`role`, `is_primary`, `sort_order` and an `idx_item_images_primary` index, and
+`imageFileTitle` has zero references in `back/`, `front-nuxt/`, `admin-vue`, and
+`data-query-app`, confirming it is a pipeline-internal field. A bounded read-only
+check of the 24 legacy `.gif` items found `.png` siblings for exactly 20.
+
+Consequences of continuing to defer: the promotion review stays at
+`existing 2119 + promoted 4003 + ambiguous 9`, so `ambiguous` never reaches zero,
+no promotion bundle can be written, and item-image subplan Tasks 4-7 plus Task 8
+Steps 3-6 stay blocked. The item image domain panel therefore remains the one
+blocked panel in the domain gate.
+
+Expected follow-up: Remind the user to schedule this. Implementing it needs a
+change to `buildVerificationRecord` in
+`scripts/data/fetch/fetch-item-image-source-verification.mjs`, multi-row support
+in the Task 6 lineage bundle, and — for the 20 legacy items, which sit outside
+the authorized 877 frozen set — its own frozen input and a fresh Owner
+authorization.

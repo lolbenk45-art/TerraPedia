@@ -45,7 +45,7 @@
 - Modify: `scripts/data/transform/transform-wiki-shimmer-to-importable.mjs`
 - Modify: `scripts/data/transform/transform-wiki-shimmer-to-importable.test.mjs`
 
-- [ ] **Step 1: Write RED deterministic transform tests**
+- [x] **Step 1: Write RED deterministic transform tests**
 
 Use a frozen 13-table raw fixture, standardized item/NPC fixtures, and a normalized langlink map. Build twice with different wall-clock time providers but the same explicit `generatedAt`; assert byte-identical canonical shard payloads and hashes.
 
@@ -69,17 +69,17 @@ assert.deepEqual(second, first);
 
 Assert missing langlink evidence, duplicate normalized titles, ambiguous item/NPC identity, and changed table-role order are explicit errors or unresolved entries; no row may disappear silently.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/maint/shimmer-structured-parser.test.mjs scripts/data/transform/shimmer-generation-builder.test.mjs scripts/data/transform/transform-wiki-shimmer-to-importable.test.mjs`
 
 Expected: FAIL because the builder does not exist and the CLI still performs network/DB work.
 
-- [ ] **Step 3: Consolidate table-role parsing**
+- [x] **Step 3: Consolidate table-role parsing**
 
 Export the stable role sequence and structured table output from `shimmer-structured-parser.mjs`. Preserve all 13 roles and add a table-role version string. The parser must return rows plus source ordinals; it must not resolve entity identity or access network/DB state.
 
-- [ ] **Step 4: Implement the offline builder**
+- [x] **Step 4: Implement the offline builder**
 
 Move title overrides and entity resolution into `shimmer-generation-builder.mjs`. Inputs are raw bytes/payload, exact standardized records, and normalized langlink evidence only.
 
@@ -103,11 +103,11 @@ export function buildShimmerGeneration(input) {
 }
 ```
 
-- [ ] **Step 5: Turn the old transform into an offline wrapper**
+- [x] **Step 5: Turn the old transform into an offline wrapper**
 
 Require `--langlinks=<frozen-evidence>` and explicit standardized inputs. Remove `createRequire`, `loadLocalStackConfig`, `enrichLookupsFromDb`, and live langlink calls. Reject `--use-db-lookup=true` with a clear contract error.
 
-- [ ] **Step 6: Run GREEN and commit**
+- [x] **Step 6: Run GREEN and commit**
 
 Run the RED command again.
 
@@ -126,17 +126,17 @@ git commit -m "refactor(data): make shimmer transform deterministic"
 - Create: `scripts/data/fetch/fetch-wiki-shimmer-langlinks.mjs`
 - Create: `scripts/data/fetch/fetch-wiki-shimmer-langlinks.test.mjs`
 
-- [ ] **Step 1: Write RED callback-order tests**
+- [x] **Step 1: Write RED callback-order tests**
 
 Assert `fetchWikiShimmerRaw` reports `fetch_revision`, `fetch_sections`, and `fetch_html` through an injected callback but never writes a terminal action state itself. Assert `fetchShimmerLanglinks` receives a frozen sorted title list, batches by 8, and reports before each network batch.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/fetch/fetch-wiki-shimmer-page-progress.test.mjs scripts/data/fetch/fetch-wiki-shimmer-langlinks.test.mjs`
 
 Expected: FAIL because fetch is top-level-only and langlinks remain embedded in transform.
 
-- [ ] **Step 3: Export injected fetch functions**
+- [x] **Step 3: Export injected fetch functions**
 
 ```js
 export async function fetchWikiShimmerRaw({ pageTitle, apiUrl, onPhase }, { fetchJson = fetchWikiApiJson } = {}) {
@@ -152,11 +152,11 @@ export async function fetchWikiShimmerRaw({ pageTitle, apiUrl, onPhase }, { fetc
 
 The standalone raw CLI may own progress only when explicitly invoked alone; when called by the extraction pipeline, parent progress is the only canonical action state.
 
-- [ ] **Step 4: Implement normalized langlink evidence**
+- [x] **Step 4: Implement normalized langlink evidence**
 
 Output exact requested title, resolved page title, redirect source, English title, response page/revision identity when available, and canonical response SHA-256. Preserve unresolved titles as records.
 
-- [ ] **Step 5: Run GREEN and commit**
+- [x] **Step 5: Run GREEN and commit**
 
 Run the RED command again.
 
