@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen' })
+definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
 
 import { usePublicBiomes } from '~/composables/usePublicBiomes'
 import {
@@ -229,7 +229,7 @@ watch(biomeGroupOptions, (options) => {
     </div>
 
     <main class="support-layout" :aria-busy="biomeVisualLoading">
-      <section class="biome-command">
+      <section class="biome-command tp-gloss-focus">
         <div class="biome-command-copy">
           <span class="eyebrow">公开资料</span>
           <h2>生态图鉴</h2>

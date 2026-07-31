@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen' })
+definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
 
 import { usePublicArmorSets } from '~/composables/usePublicArmorSets'
 import type { PublicArmorSetQuery } from '~/types/public-api'
@@ -119,7 +119,7 @@ watch(armorTotalPages, (pages) => {
     </div>
 
     <main class="armor-layout" :aria-busy="armorVisualLoading" :data-source="publicArmorSetsResult?.source ?? 'fallback'">
-      <section class="armor-command">
+      <section class="armor-command tp-gloss-focus">
         <form class="catalog-search-form" role="search" @submit.prevent>
           <label class="catalog-search-label" for="armor-search">搜索套装</label>
           <input

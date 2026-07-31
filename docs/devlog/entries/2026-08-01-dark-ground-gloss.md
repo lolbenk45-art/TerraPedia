@@ -50,6 +50,28 @@ sticky dock position = sticky
 
 浅色下 `isolation=auto` 证明整条 `.tp-ground` 规则确实没有生效（而不是生效后被覆盖）；`overflow=visible` 与 `position=sticky` 证明分页 dock 未被破坏。`--tp-gloss-reach` 未做调整，`.08` 观感与设计台一致。
 
+## 第二批：entity-screen 全家（同日追加）
+
+用户在试点后指出真正让页面顺眼的是**栅格而非纯黑**，并点名 `/bosses`「隐约看得出有栅格，但只有上面一小部分，下面就是全黑」。
+
+这条观察精确对应 `.entity-screen` 背景的第一层：
+
+```css
+linear-gradient(180deg, rgba(5, 8, 6, 0), rgba(5, 8, 6, 0.82) 420px)
+```
+
+从顶部透明渐变到 420px 处的 82% 不透明黑，**然后一直保持 82% 到页面底**。栅格只在最上面那截透得出来，往下被黑幕盖死。`.tp-ground` 接管背景后这层整个消失，栅格自此上下均匀——这不是"调亮了一点"，是把造成分层的那一层删掉了。
+
+因此把 `entity-screen` 全家一起铺完：`/bosses`、`/buffs`、`/armor-sets`、`/biomes`。
+
+**焦点锚点**取各页 `<main>` 下第一个内容 section（`.boss-command`、`.effect-hero-panel`、`.armor-command`、`.biome-command`），四个均已核实自身无背景。**没有**锚 `<main>` 本身：`radial-gradient` 的 `at 50% 36%` 是相对容器高度算的，锚在整页高的元素上会把光沉到页面中部而不是首屏。
+
+`/crafting` 虽然也用 `entity-screen`，但它自带一整套私有变量与双层栅格，与 `/items` 一样另行处理。
+
+第二批实测（1440×1100）：四页深色 `focus=1 glow=block iso=isolate ovf=visible overflowX=0`，浅色 `glow=none iso=auto`。`pnpm run check` 退出码 0。
+
+**再次踩到同一个坑**：`publicShellClasses` 结尾的展开段会把未排除的公开页按 `'entity-screen'` 覆盖，四条新条目必须同时加进排除列表，否则断言静默失效。
+
 ## 晋级路径（未做）
 
 试点代码即最终代码，不返工：其余页面陆续给 screenClass 追加 `tp-ground` 并各指定一个焦点容器；全站铺完后把 `--tp-color-page: #0b120c` 从 `.tp-ground` 上移到 `:root` 深色块，删掉局部覆盖。令牌定义自始至终只有一处。

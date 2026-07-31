@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen' })
+definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
 
 import { usePublicBuffs } from '~/composables/usePublicBuffs'
 import type { PublicBuffQuery } from '~/types/public-api'
@@ -124,7 +124,7 @@ watch(buffTotalPages, (pages) => {
     </div>
 
     <main class="effect-layout" :aria-busy="buffVisualLoading">
-      <section class="effect-hero-panel">
+      <section class="effect-hero-panel tp-gloss-focus">
         <div>
           <span class="eyebrow">公开资料</span>
           <h2>效果、来源与目标关系</h2>

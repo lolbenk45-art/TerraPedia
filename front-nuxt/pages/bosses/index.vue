@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen' })
+definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
 
 import { usePublicBosses } from '~/composables/usePublicBosses'
 import type { PublicBossQuery } from '~/types/public-api'
@@ -131,7 +131,7 @@ watch(bossTotalPages, (pages) => {
     </div>
 
     <main class="boss-page-shell" :aria-busy="bossVisualLoading">
-      <section class="boss-command">
+      <section class="boss-command tp-gloss-focus">
         <div>
           <span class="eyebrow">公开资料</span>
           <h2>推进节点与掉落入口</h2>
