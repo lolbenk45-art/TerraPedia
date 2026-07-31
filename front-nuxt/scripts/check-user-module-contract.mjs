@@ -483,14 +483,33 @@ const articleIndexPresentationContracts = [
     required: [
       '`/articles/${article.slug}`',
       'article.title',
-      'failedCoverKeys',
-      '@error="markCoverFailed(article)"',
-      'v-if="hasLiveCover(article)"',
-      '{{ coverFallback(article) }}',
-      'loading="lazy"',
+      'coverFallback(article)',
       'authorLabel(article)',
       'publishedLabel(article)',
       'viewCount(article)',
+    ],
+  },
+  {
+    path: 'components/article/ArticleArchiveList.vue',
+    required: [
+      '`/articles/${article.slug}`',
+      'article.title',
+      'coverFallback(article)',
+      'authorLabel(article)',
+      'publishedLabel(article)',
+      'viewCount(article)',
+    ],
+  },
+  // 封面失败降级从两种正文里抽到共用组件，标记随之搬到这里，避免两处重复维护。
+  {
+    path: 'components/article/ArticleArchiveCover.vue',
+    required: [
+      'const coverFailed = ref(false)',
+      '@error="markCoverFailed"',
+      'v-if="hasLiveCover"',
+      '{{ fallbackText }}',
+      'public-article-cover-fallback',
+      'loading="lazy"',
     ],
   },
 ]
