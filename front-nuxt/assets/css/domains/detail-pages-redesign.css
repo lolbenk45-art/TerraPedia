@@ -5501,15 +5501,7 @@
   --article-archive-plate: color-mix(in srgb, var(--tp-color-positive) 8%, var(--tp-color-page));
 }
 
-[data-theme="dark"] .article-archive-approved-screen {
-  background:
-    var(--index-grid-x),
-    var(--index-grid-y),
-    radial-gradient(760px 380px at 74% 8%, color-mix(in srgb, var(--tp-color-positive) 11%, transparent), transparent 70%),
-    linear-gradient(var(--tp-color-page), var(--tp-color-page));
-  background-size: 40px 40px, 40px 40px, auto, auto;
-  background-attachment: fixed;
-}
+/* 深色底已收归共享的 .tp-ground（assets/css/domains/ground-gloss.css）。 */
 
 .article-archive-page {
   grid-template-columns: minmax(0, 1fr);

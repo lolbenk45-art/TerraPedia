@@ -17,3 +17,5 @@
 @import "./biome.css";
 @import "./public-layout.css";
 @import "./detail-pages-redesign.css";
+/* 最后导入：共享层覆盖各页自写的 screen 背景 */
+@import "./ground-gloss.css";

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen' })
+definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
 
 import type { NpcCatalogCard, PublicNpcQuery } from '~/types/public-api'
 
@@ -368,7 +368,7 @@ watch(selectedPageSize, (pageSize) => {
         </div>
       </aside>
 
-      <section class="entity-main-panel">
+      <section class="entity-main-panel tp-gloss-focus">
         <form class="entity-toolbar" role="search" @submit.prevent>
           <label class="catalog-search">
             <span class="search-glyph" aria-hidden="true"></span>

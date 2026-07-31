@@ -1,0 +1,58 @@
+/*
+  深色底与光泽的两个共享层。全站唯一定义处。
+
+  背景层 .tp-ground —— 底色与栅格。整条规则只在深色下存在：
+  浅色主题里它是纯空操作，各页保持各自原样（/npcs 浅色本来就带栅格，
+  一旦在这里"压平"就会被抹掉）。特指度 (0,2,0) 稳赢各页 (0,1,0) 的
+  screen 规则，正确性不依赖导入顺序。
+
+  光泽层 .tp-gloss-focus —— 光由焦点元素自己发出，没有坐标、没有断点。
+  改版式或换视口时光自己跟上；「每屏至多一个焦点」因此可被合同点数。
+
+  两条不可动的约束（改错都是静默失效，不会报错）：
+  1. isolation 必须在 .tp-ground 上。若建在焦点元素上，z-index:-1 的
+     ::before 会绘制在该元素自身背景之上，变成给它染色而不是照亮它身后。
+  2. .tp-ground 不得有 overflow。资料库的分页 dock 是 position:sticky，
+     祖先一旦创建滚动容器就失效。因此光只作垂直外溢，水平不外扩。
+
+  焦点必须选自身无背景的布局容器：光绘制在焦点身后，自带不透明面会把它盖住。
+*/
+
+[data-theme="dark"] .tp-ground {
+  --tp-ground-base: #0b120c;
+  --tp-color-page: var(--tp-ground-base);
+  position: relative;
+  isolation: isolate;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    linear-gradient(var(--tp-ground-base), var(--tp-ground-base));
+  background-size: 40px 40px, 40px 40px, auto;
+}
+
+:root {
+  --tp-gloss-hue: 214, 177, 90;
+  --tp-gloss-alpha: .08;
+  --tp-gloss-reach: 28rem;
+}
+
+.tp-gloss-focus {
+  position: relative;
+}
+
+.tp-gloss-focus::before {
+  content: "";
+  position: absolute;
+  inset: -140px 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 36%,
+    rgba(var(--tp-gloss-hue), var(--tp-gloss-alpha)),
+    transparent var(--tp-gloss-reach)
+  );
+}
+
+:where([data-theme="morning-paper"], [data-theme="warm-slate"]) .tp-gloss-focus::before {
+  display: none;
+}

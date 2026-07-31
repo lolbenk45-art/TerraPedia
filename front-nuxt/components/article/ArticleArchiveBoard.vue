@@ -42,7 +42,7 @@ const updateSearchKeyword = (event: Event) => {
 </script>
 
 <template>
-  <section class="article-archive-page-shell" aria-labelledby="article-archive-page-title">
+  <section class="article-archive-page-shell tp-gloss-focus" aria-labelledby="article-archive-page-title">
     <div class="article-archive-page-toolbar">
       <form
         class="article-archive-page-search"
