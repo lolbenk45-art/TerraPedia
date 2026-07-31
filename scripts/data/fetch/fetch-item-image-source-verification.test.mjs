@@ -609,6 +609,43 @@ test('resolveItemImageSourceVerificationProgressPath honors explicit and wrapper
   );
 });
 
+test('runItemImageSourceVerification refuses to overwrite an existing report before any request', async () => {
+  const progress = [];
+  let requestCount = 0;
+  let authorized = false;
+
+  await assert.rejects(
+    () => runItemImageSourceVerification({
+      repoRoot: '/tmp',
+      input: frozenInput({ limit: 1 }),
+      inputPath: '/tmp/frozen-item-image-input.json',
+      inputSha256: `sha256:${'a'.repeat(64)}`,
+      progressPath: '/tmp/item-image-progress.json',
+      outputPath: '/tmp/item-image-report.json',
+      batchSize: 1,
+      maxRequests: 1
+    }, {
+      authorize: async () => {
+        authorized = true;
+      },
+      fetchJson: async () => {
+        requestCount += 1;
+        return {};
+      },
+      outputExists: () => true,
+      now: clock(),
+      writeProgress: async (_filePath, payload) => progress.push(payload),
+      writeReport: async () => {}
+    }),
+    /verification report already exists/i
+  );
+
+  assert.equal(requestCount, 0);
+  assert.equal(authorized, false);
+  assert.equal(progress[0].status, 'running');
+  assert.equal(progress.at(-1).status, 'failed');
+});
+
 test('runItemImageSourceVerification keeps every format with the png as the primary source', async () => {
   const row = frozenRow({
     itemId: 71,

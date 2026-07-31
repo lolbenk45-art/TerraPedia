@@ -256,3 +256,44 @@ Consequence: the 9 records carry no `source` and no imageinfo, only
 report offline. Clearing `ambiguous` to zero requires one more bounded run over
 exactly those 9 identities — a new frozen input, a new packet, and a new one-time
 decision identity.
+
+## D-2026-08-01-02: A lost verification report is rebuilt from promotion review evidence
+
+Decision: Rebuild the destroyed retry-03 item image verification report by
+replaying the promotion review it produced, rather than re-authorizing and
+re-running all 877 identities.
+
+What was lost: the verifier's frozen output path was
+`reports/audit/item-image-source-verification.latest.json`, a fixed filename. The
+retry-04 round wrote its 9 records over the retry-03 round's 877 records. A
+full-filesystem search found no copy; only the retry-01 failed report had been
+archived by hand.
+
+Why replay is sound: all 868 verification-derived sources survived verbatim
+inside `item-image-source-promotion-review-2026-07-31.json`, each carrying
+`evidenceKind: mediawiki_exact_file` and `verificationResponseSha256` — the
+per-record response hash. Those two fields together distinguish a row that came
+from a verification round from one extracted from candidates, so nothing is
+guessed about provenance, and every replayed field is copied, not derived. The
+reconstruction is performed by
+`scripts/data/audit/rebuild-item-image-source-verification-report.mjs`, which
+fails closed on a duplicate identity or a conflicting raw evidence hash, and
+records its own provenance block naming both source artifacts.
+
+The replay cannot smuggle bad data into the database: every source, replayed or
+fresh, still faces `verifyEvidenceSource` against actual raw bytes before the
+bundle is published. All 877 passed.
+
+Reason: re-running would burn another one-time decision and issue 877 requests to
+reproduce records that already exist, field for field, in a committed artifact.
+
+Prevention: the frozen output path is now round-tagged
+(`item-image-source-verification.round-04-2026-08-01.json`) in both the backend
+refresh plan and the execution manifest, and the verifier refuses to start when
+its output path already exists — checked before the dispatch permit is consumed
+and before any request is issued, so a clobbering round fails closed instead of
+spending the network budget first.
+
+Result: `total 6131 = existing 2119 + promoted 4012 + unresolved 0 + ambiguous 0
++ duplicate 0 + conflict 0`. The promotion bundle published for the first time at
+generation `79159314be3f282b8b117491711f95c7985bd7f189b08ee0c44126bbfd0d3f34`.

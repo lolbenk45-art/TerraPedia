@@ -126,7 +126,7 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals("verify", itemImageVerification.operationId());
         assertEquals("none", itemImageVerification.databaseAccess());
         assertEquals("fresh", itemImageVerification.restartBehavior());
-        assertEquals(877L, itemImageVerification.estimatedRequests());
+        assertEquals(9L, itemImageVerification.estimatedRequests());
 
         CrawlerMonitorActionDefinition itemGroupPreview = registry.require(
             "item_groups", "item-group-canonical-preview"

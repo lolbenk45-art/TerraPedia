@@ -107,16 +107,16 @@ test('item image verification manifest binds the frozen backend child and reques
     'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
   ]);
   assert.deepEqual(manifest.reportPaths, [
-    'reports/audit/item-image-source-verification.latest.json',
+    'reports/audit/item-image-source-verification.round-04-2026-08-01.json',
     'reports/backend-refresh/history/canonical-item-image-source-verification.json',
   ]);
   assert.deepEqual(manifest.progressPaths, [
     'reports/backend-refresh/history/canonical-item-image-source-verification.runtime/item-image-source-verification.child-status.json',
   ]);
   assert.deepEqual(manifest.bounds, {
-    unresolvedIdentityCount: 877,
+    unresolvedIdentityCount: 9,
     batchSize: 8,
-    maxRequests: 877,
+    maxRequests: 9,
     serial: true,
   });
   assert.equal(manifest.databaseWrites, false);

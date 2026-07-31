@@ -417,9 +417,9 @@ function buildDefinition(
       inputPaths: [
         'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
       ],
-      outputPaths: ['reports/audit/item-image-source-verification.latest.json'],
+      outputPaths: ['reports/audit/item-image-source-verification.round-04-2026-08-01.json'],
       reportPaths: [
-        'reports/audit/item-image-source-verification.latest.json',
+        'reports/audit/item-image-source-verification.round-04-2026-08-01.json',
         'reports/backend-refresh/history/canonical-item-image-source-verification.json',
       ],
       progressPaths: [
@@ -427,9 +427,9 @@ function buildDefinition(
       ],
       sources: ['https://terraria.wiki.gg/api.php'],
       bounds: {
-        unresolvedIdentityCount: 877,
+        unresolvedIdentityCount: 9,
         batchSize: 8,
-        maxRequests: 877,
+        maxRequests: 9,
         serial: true,
       },
       databaseWrites: false,

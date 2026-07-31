@@ -285,6 +285,7 @@ export async function runItemImageSourceVerification(rawOptions = {}, dependenci
     ?? (async (filePath, payload) => writeJsonFile(filePath, payload));
   const fetchJson = dependencies.fetchJson ?? fetchVerificationJson;
   const authorize = dependencies.authorize ?? authorizeVerificationDispatch;
+  const outputExists = dependencies.outputExists ?? ((filePath) => fs.existsSync(filePath));
   const startedAt = now();
   const records = Array.isArray(options.input?.records) ? options.input.records : [];
   const total = records.length;
@@ -337,6 +338,14 @@ export async function runItemImageSourceVerification(rawOptions = {}, dependenci
 
   try {
     const frozenRecords = validateFrozenInput(options);
+    // A round's report is evidence. Writing over an earlier round's report
+    // destroys the only copy of records this run does not reproduce, so refuse
+    // before the permit is consumed and before any request is issued.
+    if (outputExists(options.outputPath)) {
+      throw new Error(
+        `item image source verification report already exists: ${options.outputPath}`
+      );
+    }
     await authorize({
       operationId: OPERATION_ID,
       input: options.input,

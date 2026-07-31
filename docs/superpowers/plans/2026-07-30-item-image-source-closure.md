@@ -390,9 +390,26 @@ and bundle rows.
 `D-2026-07-31-01`'s two special rules were recorded with inverted outcomes and
 are superseded; do not implement "parenthesised variant demoted".
 
-This closes the code half only. The 9 ambiguous records hold no imageinfo, so
-Task 8 Step 2 needs a fourth bounded run over exactly those 9 identities before
-`ambiguous` can reach zero and the bundle can be written.
+Execution checkpoint (2026-08-01): Task 8 Step 2 is complete. retry-04 consumed
+decision `canonical-item-image-source-verification-20260801-01` under packet
+`sha256:1e94a381...f59c15ad`, bounds `8/9` over 9 identities, run detached via
+`setsid`: runner exit 0, `9 = 9 verified + 0 ambiguous` at exactly 9 requests.
+Every outcome matched the readiness review's prediction, including the four
+coins and three jellyfish taking a `.png` primary with a `.gif` secondary, and
+items 2611 and 5358 taking `Flairoon.png` and `Shellphone (Home).png` alone.
+
+That round also destroyed the retry-03 report: the frozen output path was the
+fixed `item-image-source-verification.latest.json`, and no copy existed anywhere.
+`D-2026-08-01-02` records the rebuild from the promotion review's preserved
+evidence, and two guards now prevent a repeat — the frozen output path is
+round-tagged, and the verifier refuses to start when its output already exists,
+before the permit is consumed and before any request.
+
+The promotion review now reads `total 6131 = existing 2119 + promoted 4012 +
+unresolved 0 + ambiguous 0 + duplicate 0 + conflict 0`, and the bundle published
+for the first time at generation
+`79159314be3f282b8b117491711f95c7985bd7f189b08ee0c44126bbfd0d3f34`. Tasks 4-7
+and Task 8 Steps 3-6 are unblocked.
 
 ### Task 4: Apply Standardized Sources Atomically
 

@@ -160,7 +160,7 @@ public class CrawlerMonitorActionRegistry {
                 "Frozen unresolved item image identity set",
                 "item-image-source-verification", "verify", "direct_crawl", "fresh",
                 "仅核验冻结列表中的未解析物品图片来源。",
-                "写入图片来源核验证据和进度", "none", 877L, false,
+                "写入图片来源核验证据和进度", "none", 9L, false,
                 "summary", false, true, true
             ),
             backend(

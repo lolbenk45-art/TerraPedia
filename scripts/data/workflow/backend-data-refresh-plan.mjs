@@ -99,9 +99,9 @@ export function buildBackendDataRefreshPlan(options = {}) {
       args: [
         'scripts/data/fetch/fetch-item-image-source-verification.mjs',
         '--input=reports/authorization/canonical/canonical-item-image-source-verification.input.json',
-        '--output=reports/audit/item-image-source-verification.latest.json',
+        '--output=reports/audit/item-image-source-verification.round-04-2026-08-01.json',
         '--batch-size=8',
-        '--max-requests=877'
+        '--max-requests=9'
       ]
     },
     {
