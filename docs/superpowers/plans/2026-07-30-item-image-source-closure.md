@@ -749,7 +749,7 @@ Each database stage uses its own transaction; the pre-apply snapshot and stage m
 
 Require distinct count 6,131 at standardized source, managed result, landing, maint, relation, and local layers. Require traceability of source title/original URL/cached URL/landing ID, zero unresolved/conflict-after-apply, and the image-sync equation. Keep the existing domain threshold; add no exemption.
 
-- [ ] **Step 5: Run GREEN, previews, and commit**
+- [x] **Step 5: Run GREEN, previews, and commit**
 
 Run the RED command again plus:
 
@@ -794,6 +794,44 @@ non-`completed` report status and on any failed image key, at both module and re
 Against the real 2026-08-01 sync the panel reports `blocked` with four reasons, all naming the
 four GIF identities the running backend refuses. That is the correct outcome: the lane is not
 green and the panel does not pretend it is.
+
+Step 5 checkpoint (2026-08-01): complete, after one real defect and one plan amendment.
+
+The defect was mine, from Task 5. Image sync stores the origin-free path the backend returns,
+so 5,800 of the 6,131 managed URLs have no host at all — and every consumer asked
+`isManagedImageUrl`, which only understands an absolute URL. The lineage bundle would not
+generate; had it, `projection-sync` would have blanked all 5,800 images, the maint-to-relation
+SQL predicates would have matched none of them and then let local overwrite the managed
+projection image, the lineage report and the image asset readiness audit would have reported the
+lane unmanaged (the latter as `invalid_url`), and the wiki sync planner would have scheduled a
+full image re-sync on every run. `isManagedImagePath` is now the predicate for a stored value —
+path matched on path, absolute URL keeping the strict origin rule — and `managedImagePathPrefixes`
+supplies the anchored path clauses for SQL. `isManagedImageUrl` is unchanged and remains correct
+wherever the origin itself is the question.
+
+Amendment: the plan's file map has no producer for the four previews and no database adapter,
+and neither fits inside the orchestrator without giving up its driver-free testability. Two files
+were added: `item-image-lineage-db.mjs` (preview builder, layer-state reader, runtime config,
+preview CLI) and `item-image-lineage-adapter.mjs` (the four staged writers, snapshot, parity).
+
+A second environment trap: `loadLocalStackConfig` walks up and prefers the primary worktree's
+config, which carries no `npcT1ServerFingerprint`. A governed write that validated one server's
+identity and connected to another is exactly the class of error this lane exists to prevent, so
+the runtime config is now read from this worktree's own file and the preview refuses if the
+running `@@server_uuid` is not the authorized one.
+
+Real artifacts now on disk:
+`reports/audit/item-image-lineage-2026-08-01.bundle.json` — 6,131 rows, wiki-sourced 4,012,
+`originalUrlNotRecorded` 2,119, deferred secondary 7, cached URL shapes relative 5,800 +
+`localhost:9000` 331 matching standardized exactly, and zero rows where the two URL columns are
+equal. `canonical-item-image-lineage-apply.input.json` — 6,131 identities at every layer, delete
+candidates landing 0 / maint 2,906 / relation 2,906 / local 6,131, out of scope and therefore
+untouched 5 local icons (FestiveTopHat, HeartArrow, TurkeyFeather, ValentineRing, Wiesnbrau),
+`detail` preserved.
+
+`--apply=false` reports the exact plan. `--apply=true` without an approved packet exits 1 having
+written nothing. The live audit still reports the item lane blocked
+(`projection_image_not_managed`), which is correct: the lineage is not applied.
 
 ### Task 8: Execute The Image Lane At Explicit Authorization Checkpoints
 
