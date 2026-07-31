@@ -1,5 +1,6 @@
 export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-l0-bootstrap',
+  'canonical-item-image-source-verification',
   'canonical-image-sync',
   'canonical-boss-import',
   'canonical-boss-loot-import',
@@ -10,6 +11,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-schema-v56-v58',
   'canonical-item-group-bootstrap',
   'canonical-npc-crawler',
+  'canonical-npc-t1-acceptance',
   'canonical-npc-apply',
   'canonical-npc-landing-apply',
   'canonical-npc-facts-maint-apply',
@@ -24,11 +26,17 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-second-l1',
   'automation-biomes-l2-promotion',
   'automation-biomes-scheduler-activation',
+  'canonical-npc-base-maint-nontown-apply',
+  'canonical-npc-base-maint-town-apply',
+  'canonical-npc-item-relation-lineage-repair',
 ]);
 
 export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'automation-biomes-l0-bootstrap': Object.freeze([
     'reports/authorization/canonical/automation-biomes-l0-bootstrap.input.json',
+  ]),
+  'canonical-item-image-source-verification': Object.freeze([
+    'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
   ]),
   'canonical-image-sync': Object.freeze(['data/standardized/items.standardized.json']),
   'canonical-boss-import': Object.freeze([
@@ -62,6 +70,10 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   ]),
   'canonical-npc-crawler': Object.freeze([
     'reports/authorization/canonical/canonical-npc-crawler.targets.json',
+  ]),
+  'canonical-npc-t1-acceptance': Object.freeze([
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-apply.completion.json',
   ]),
   'canonical-npc-apply': Object.freeze([
     'reports/authorization/canonical/canonical-npc-apply.input.json',
@@ -135,10 +147,27 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'automation-biomes-scheduler-activation': Object.freeze([
     'reports/authorization/canonical/automation-biomes-scheduler-activation.input.json',
   ]),
+  'canonical-npc-base-maint-nontown-apply': Object.freeze([
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-landing-apply.result.json',
+    'data/standardized/npcs.standardized.json',
+  ]),
+  'canonical-npc-base-maint-town-apply': Object.freeze([
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-landing-apply.result.json',
+    'data/standardized/npcs.standardized.json',
+  ]),
+  'canonical-npc-item-relation-lineage-repair': Object.freeze([
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-landing-apply.result.json',
+    'reports/authorization/canonical/canonical-npc-facts-maint-apply.result.json',
+    'reports/authorization/canonical/canonical-npc-item-relations-apply.result.json',
+  ]),
 });
 
 export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-biomes-l0-bootstrap': 'scripts/data/automation/bootstrap-automation-policy.mjs',
+  'canonical-item-image-source-verification': 'scripts/data/workflow/run-backend-data-refresh.mjs',
   'canonical-image-sync': 'scripts/data/workflow/run-image-sync.mjs',
   'canonical-boss-import': 'scripts/data/import/import-wiki-bosses-to-db.mjs',
   'canonical-boss-loot-import': 'scripts/data/import/import-boss-loot-to-db.mjs',
@@ -149,6 +178,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-schema-v56-v58': 'scripts/data/automation/run-canonical-schema-migration.mjs',
   'canonical-item-group-bootstrap': 'scripts/data/item-groups/item-group-canonical-action.mjs',
   'canonical-npc-crawler': 'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+  'canonical-npc-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
   'canonical-npc-apply': null,
   'canonical-npc-landing-apply': 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
   'canonical-npc-facts-maint-apply': 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
@@ -163,4 +193,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-biomes-second-l1': 'scripts/data/automation/run-biomes-automation-operation.mjs',
   'automation-biomes-l2-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
   'automation-biomes-scheduler-activation': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'canonical-npc-base-maint-nontown-apply': 'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
+  'canonical-npc-base-maint-town-apply': 'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
+  'canonical-npc-item-relation-lineage-repair': 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
 });

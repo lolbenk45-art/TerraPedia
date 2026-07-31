@@ -11,6 +11,10 @@ import {
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './canonical-operation-catalog.mjs';
 import { assertCanonicalOperationExecutionManifestContract } from './canonical-operation-execution-manifest.mjs';
+import {
+  canonicalServerFingerprint,
+  hashCanonicalServerFingerprint,
+} from './automation-database-contract.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 
 export {
@@ -36,6 +40,11 @@ const EXECUTABLE_REQUIRED_TECHNICAL_FIELDS = Object.freeze([
 const BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS = Object.freeze([
   'serverFingerprint',
   'schemaBundleSha256',
+  'dataBundleSha256',
+  'executionManifestHash',
+]);
+const ISOLATED_T1_REQUIRED_TECHNICAL_FIELDS = Object.freeze([
+  'serverFingerprint',
   'dataBundleSha256',
   'executionManifestHash',
 ]);
@@ -212,7 +221,10 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     ? readMigrationEntries(root)
     : [];
   let dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
-  if (operationId === 'canonical-npc-apply' || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')) {
+  if (operationId === 'canonical-npc-t1-acceptance'
+      || operationId === 'canonical-npc-apply'
+      || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
+      || operationId === 'canonical-npc-item-relation-lineage-repair') {
     const crawlerEntries = readNpcCrawlerEntries(root);
     dataEntries = dataEntries === null || crawlerEntries === null
       ? null
@@ -224,10 +236,18 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     schemaEntries,
     dataEntries,
     executionManifest: verifiedExecutionManifest,
-    requiredTechnicalFields: operationId === 'automation-biomes-l0-bootstrap'
-      ? [...BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS]
-      : [...EXECUTABLE_REQUIRED_TECHNICAL_FIELDS],
+    requiredTechnicalFields: requiredTechnicalFieldsForOperation(operationId),
   };
+}
+
+function requiredTechnicalFieldsForOperation(operationId) {
+  if (operationId === 'automation-biomes-l0-bootstrap') {
+    return [...BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS];
+  }
+  if (operationId === 'canonical-npc-t1-acceptance') {
+    return [...ISOLATED_T1_REQUIRED_TECHNICAL_FIELDS];
+  }
+  return [...EXECUTABLE_REQUIRED_TECHNICAL_FIELDS];
 }
 
 function verifyExecutionManifestCodeBundle(repoRoot, manifest, operationId) {
@@ -283,18 +303,23 @@ function verifyExecutionManifestCodeBundle(repoRoot, manifest, operationId) {
   return normalized;
 }
 
-function deriveTechnicalIdentity(input) {
+export function deriveCanonicalTechnicalIdentity(input) {
   const operationId = requireOperationId(input.operationId);
   const targetDatabases = requireFormalDatabases(input.targetDatabases);
   const requiredTechnicalFields = requireTechnicalFields(
     input.requiredTechnicalFields ?? DEFAULT_REQUIRED_TECHNICAL_FIELDS,
   );
+  assertNpcT1ManifestServerIdentity({
+    operationId,
+    executionManifest: input.executionManifest,
+    serverFingerprint: input.serverFingerprint,
+  });
   return {
     operationId,
     targetDatabases,
     serverFingerprint: input.serverFingerprint == null
       ? null
-      : hashJson(canonicalServerFingerprint(input.serverFingerprint)),
+      : hashCanonicalServerFingerprint(input.serverFingerprint),
     schemaBundleSha256: input.schemaEntries == null
       ? null
       : hashOrderedBundleBytes(input.schemaEntries, 'schema bundle'),
@@ -320,6 +345,21 @@ function deriveTechnicalIdentity(input) {
   };
 }
 
+function deriveTechnicalIdentity(input) {
+  return deriveCanonicalTechnicalIdentity(input);
+}
+
+function assertNpcT1ManifestServerIdentity({ operationId, executionManifest, serverFingerprint } = {}) {
+  if (operationId !== 'canonical-npc-t1-acceptance' || executionManifest == null || serverFingerprint == null) {
+    return;
+  }
+  const frozen = canonicalServerFingerprint(executionManifest?.isolatedAcceptance?.serverFingerprint);
+  const supplied = canonicalServerFingerprint(serverFingerprint);
+  if (JSON.stringify(frozen) !== JSON.stringify(supplied)) {
+    throw new Error('NPC T1 isolated config server identity differs from the authorization fingerprint');
+  }
+}
+
 function summarizeBundleEntries(entries, label) {
   const seen = new Set();
   return entries.map((entry) => {
@@ -335,22 +375,6 @@ function summarizeBundleEntries(entries, label) {
   });
 }
 
-function canonicalServerFingerprint(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('server fingerprint is invalid');
-  }
-  const databases = requireFormalDatabases(value.databases);
-  const port = Number(value.port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('server fingerprint port is invalid');
-  }
-  return {
-    host: requireText(value.host, 'server fingerprint host'),
-    port,
-    serverUuid: requireText(value.serverUuid, 'server fingerprint UUID'),
-    databases,
-  };
-}
 
 function missingTechnicalFields(technical) {
   return technical.requiredTechnicalFields

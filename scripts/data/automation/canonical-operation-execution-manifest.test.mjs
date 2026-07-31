@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import test from 'node:test';
+import test, { after } from 'node:test';
 
 import {
   CANONICAL_EXECUTABLE_OPERATION_IDS,
@@ -15,10 +17,36 @@ import {
 } from './build-canonical-cutover-authorization.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
+const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
+const npcT1ConfigPath = path.join(npcT1ConfigDirectory, 'local-stack.json');
+const NPC_T1_SERVER_FINGERPRINT = Object.freeze({
+  host: '127.0.0.1',
+  port: 13306,
+  serverUuid: 'npc-t1-server-uuid',
+  databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+});
+fs.writeFileSync(npcT1ConfigPath, `${JSON.stringify({
+  database: { host: '127.0.0.1', port: 13306 },
+  redis: { port: 6379 },
+  npcT1ServerFingerprint: NPC_T1_SERVER_FINGERPRINT,
+})}\n`, { mode: 0o600 });
+const npcT1ConfigHash = `sha256:${createHash('sha256').update(fs.readFileSync(npcT1ConfigPath)).digest('hex')}`;
 
-test('manifest builder covers 24 governed operations and keeps NPC apply explicitly fail closed', () => {
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 25);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 24);
+after(() => fs.rmSync(npcT1ConfigDirectory, { recursive: true, force: true }));
+
+function manifestOptions(operationId) {
+  return operationId === 'canonical-npc-t1-acceptance'
+    ? {
+      npcT1ConfigPath,
+      npcT1RedisDb: 9,
+      npcT1RunId: 'npc-t1-20260730-01',
+    }
+    : {};
+}
+
+test('manifest builder covers 29 governed operations and keeps NPC apply explicitly fail closed', () => {
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 30);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 29);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -42,6 +70,7 @@ test('manifest builder covers 24 governed operations and keeps NPC apply explici
       ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
         ? { backendApiBase: 'http://127.0.0.1:18191/api' }
         : {}),
+      ...manifestOptions(operationId),
     });
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.operationId, operationId);
@@ -49,11 +78,206 @@ test('manifest builder covers 24 governed operations and keeps NPC apply explici
     assert.equal(manifest.command[1], CANONICAL_OPERATION_ENTRYPOINTS[operationId]);
     assert.ok(manifest.codeBundleEntries.length >= 2, operationId);
     assert.ok(manifest.codeBundleEntries.some((entry) => entry.path === manifest.command[1]));
+    assert.ok(manifest.codeBundleEntries.some((entry) => (
+      entry.path === 'scripts/data/automation/run-authorized-canonical-operation.mjs'
+    )), `${operationId}: authorized runner`);
     for (const entry of manifest.codeBundleEntries) {
       const bytes = fs.readFileSync(path.join(repoRoot, entry.path));
       const expected = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
       assert.equal(entry.contentHash, expected, `${operationId}:${entry.path}`);
     }
+  }
+});
+
+test('item image verification manifest binds the frozen backend child and request cap', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-item-image-source-verification',
+    artifactDate: '2026-07-31',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'scripts/data/workflow/run-backend-data-refresh.mjs',
+    '--mode=apply',
+    '--steps=item-image-source-verification',
+    '--output=reports/backend-refresh/history/canonical-item-image-source-verification.json',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+  ]);
+  assert.deepEqual(manifest.reportPaths, [
+    'reports/audit/item-image-source-verification.latest.json',
+    'reports/backend-refresh/history/canonical-item-image-source-verification.json',
+  ]);
+  assert.deepEqual(manifest.progressPaths, [
+    'reports/backend-refresh/history/canonical-item-image-source-verification.runtime/item-image-source-verification.child-status.json',
+  ]);
+  assert.deepEqual(manifest.bounds, {
+    unresolvedIdentityCount: 877,
+    batchSize: 8,
+    maxRequests: 877,
+    serial: true,
+  });
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.networkAccess, true);
+  assert.ok(manifest.codeBundleEntries.some((entry) => (
+    entry.path === 'scripts/data/fetch/fetch-item-image-source-verification.mjs'
+  )));
+});
+
+test('NPC item relation lineage repair manifest binds historical predecessors and a distinct result', () => {
+  const operationId = 'canonical-npc-item-relation-lineage-repair';
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    artifactDate: '2026-07-30',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node', 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
+    `--operation-id=${operationId}`,
+    '--input=reports/authorization/canonical/canonical-npc-apply.input.json',
+    `--output=reports/authorization/canonical/${operationId}.result.json`,
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-landing-apply.result.json',
+    'reports/authorization/canonical/canonical-npc-facts-maint-apply.result.json',
+    'reports/authorization/canonical/canonical-npc-item-relations-apply.result.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    `reports/authorization/canonical/${operationId}.result.json`,
+  ]);
+  assert.deepEqual(manifest.ownershipKeys, [
+    'relation.item_source_facts.items',
+    'relation.item_source_details.items',
+  ]);
+  assert.deepEqual(manifest.requiredOperationIds, [
+    'canonical-npc-landing-apply',
+    'canonical-npc-facts-maint-apply',
+    'canonical-npc-item-relations-apply',
+  ]);
+  assert.equal(manifest.executionClass, 'formal_npc_relation_lineage_repair');
+  assert.equal(manifest.databaseWrites, true);
+  assert.equal(manifest.networkAccess, false);
+});
+
+test('NPC owner retry manifest binds a validated distinct result label', () => {
+  const operationId = 'canonical-npc-nonboss-loot-projection-apply';
+  const resultLabel = 'owner-scope-repair-20260730-01';
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    artifactDate: '2026-07-30',
+    resultLabel,
+  });
+  const resultPath = `reports/authorization/canonical/${operationId}.${resultLabel}.result.json`;
+
+  assert.equal(manifest.resultLabel, resultLabel);
+  assert.ok(manifest.command.includes(`--output=${resultPath}`));
+  assert.deepEqual(manifest.outputPaths, [resultPath]);
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    artifactDate: '2026-07-30',
+    resultLabel: '../replacement',
+  }), /result label/i);
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-boss-loot-import',
+    artifactDate: '2026-07-30',
+    resultLabel,
+  }), /NPC owner operation/i);
+});
+
+test('NPC base maint manifests bind exact source, landing result, owner partition, and no network access', () => {
+  const expected = {
+    'canonical-npc-base-maint-nontown-apply': 'maint.maint_npcs.npcs',
+    'canonical-npc-base-maint-town-apply': 'maint.maint_npcs.town',
+  };
+  for (const [operationId, ownershipKey] of Object.entries(expected)) {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-07-30',
+    });
+    assert.deepEqual(manifest.command, [
+      'node', 'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
+      `--operation-id=${operationId}`,
+      '--input=reports/authorization/canonical/canonical-npc-apply.input.json',
+      `--output=reports/authorization/canonical/${operationId}.result.json`,
+      '--apply=true',
+    ]);
+    assert.deepEqual(manifest.inputPaths, [
+      'reports/authorization/canonical/canonical-npc-apply.input.json',
+      'reports/authorization/canonical/canonical-npc-landing-apply.result.json',
+      'data/standardized/npcs.standardized.json',
+    ]);
+    assert.deepEqual(manifest.ownershipKeys, [ownershipKey]);
+    assert.deepEqual(manifest.requiredOperationIds, ['canonical-npc-landing-apply']);
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+    assert.ok(manifest.codeBundleEntries.some((entry) => (
+      entry.path === 'scripts/data/npc-canonical/npc-base-maint-apply.mjs'
+    )));
+    assert.ok(manifest.codeBundleEntries.some((entry) => (
+      entry.path === 'scripts/data/maint/sync-landing-to-maint.mjs'
+    )));
+  }
+});
+
+test('NPC T1 manifest freezes the private config identity and isolated-resource boundary', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-npc-t1-acceptance',
+    artifactDate: '2026-07-30',
+    ...manifestOptions('canonical-npc-t1-acceptance'),
+  });
+  assert.deepEqual(manifest.command, [
+    'node',
+    'scripts/data/automation/run-live-automation-acceptance.mjs',
+    '--profile=t1',
+    '--scope=npc-canonical',
+    `--config-path=${npcT1ConfigPath}`,
+    `--config-sha256=${npcT1ConfigHash}`,
+    '--redis-db=9',
+    '--run-id=npc-t1-20260730-01',
+    '--max-rows=2',
+    '--output=reports/canonical-migration/canonical-npc-t1-acceptance.json',
+  ]);
+  assert.deepEqual(manifest.isolatedAcceptance, {
+    configPath: npcT1ConfigPath,
+    configSha256: npcT1ConfigHash,
+    redisLogicalDb: 9,
+    runId: 'npc-t1-20260730-01',
+    serverFingerprint: NPC_T1_SERVER_FINGERPRINT,
+  });
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.isolatedResourceWrites, true);
+  assert.equal(manifest.networkAccess, false);
+});
+
+test('manifest CLI accepts the exact NPC T1 private-config arguments', () => {
+  const outputDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-manifest-cli-'));
+  const outputPath = path.join(outputDirectory, 'manifest.json');
+  try {
+    execFileSync(process.execPath, [
+      'scripts/data/automation/canonical-operation-execution-manifest.mjs',
+      `--repo-root=${repoRoot}`,
+      '--operation-id=canonical-npc-t1-acceptance',
+      '--artifact-date=2026-07-30',
+      `--npc-t1-config-path=${npcT1ConfigPath}`,
+      '--npc-t1-redis-db=9',
+      '--npc-t1-run-id=npc-t1-20260730-01',
+      `--output=${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    const manifest = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    assert.equal(manifest.operationId, 'canonical-npc-t1-acceptance');
+    assert.equal(manifest.isolatedAcceptance.configSha256, npcT1ConfigHash);
+  } finally {
+    fs.rmSync(outputDirectory, { recursive: true, force: true });
   }
 });
 
@@ -161,6 +385,7 @@ test('every manifest binds all repository-local static imports of its code bundl
       ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
         ? { backendApiBase: 'http://127.0.0.1:18191/api' }
         : {}),
+      ...manifestOptions(operationId),
     });
     const paths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
     const missing = [];

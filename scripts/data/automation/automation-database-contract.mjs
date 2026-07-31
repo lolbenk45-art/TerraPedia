@@ -25,6 +25,37 @@ function requireNonBlank(value, label) {
   return normalized;
 }
 
+export function canonicalServerFingerprint(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('server fingerprint is invalid');
+  }
+  const port = Number(value.port);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('server fingerprint port is invalid');
+  }
+  const databases = value.databases;
+  const expectedDatabases = Object.values(FORMAL_DATABASES);
+  if (!Array.isArray(databases) || JSON.stringify(databases) !== JSON.stringify(expectedDatabases)) {
+    throw new Error(`server fingerprint databases must be exactly: ${expectedDatabases.join(', ')}`);
+  }
+  return Object.freeze({
+    host: requireNonBlank(value.host, 'server fingerprint host'),
+    port,
+    serverUuid: requireNonBlank(value.serverUuid, 'server fingerprint UUID'),
+    databases: [...databases],
+  });
+}
+
+export function hashCanonicalServerFingerprint(value) {
+  const fingerprint = canonicalServerFingerprint(value);
+  return `sha256:${createHash('sha256').update(JSON.stringify({
+    databases: fingerprint.databases,
+    host: fingerprint.host,
+    port: fingerprint.port,
+    serverUuid: fingerprint.serverUuid,
+  }), 'utf8').digest('hex')}`;
+}
+
 function assertKnownProfile(profile) {
   if (!TEST_PROFILES.includes(profile)) {
     throw new Error(`profile must be one of: ${TEST_PROFILES.join(', ')}`);

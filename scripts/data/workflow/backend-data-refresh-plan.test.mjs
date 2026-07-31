@@ -140,6 +140,24 @@ test('buildBackendDataRefreshPlan can select bounded wiki audio asset refresh on
   ]);
 });
 
+test('buildBackendDataRefreshPlan exposes the manual bounded item image verifier', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: 'item-image-source-verification' });
+
+  assert.equal(plan.actions.length, 1);
+  assert.equal(plan.actions[0].id, 'item-image-source-verification');
+  assert.equal(plan.actions[0].manualOnly, true);
+  assert.deepEqual(plan.actions[0].args, [
+    'scripts/data/fetch/fetch-item-image-source-verification.mjs',
+    '--input=reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+    '--output=reports/audit/item-image-source-verification.latest.json',
+    '--batch-size=8',
+    '--max-requests=877'
+  ]);
+  assert.ok(!buildBackendDataRefreshPlan().actions.some(
+    (action) => action.id === 'item-image-source-verification'
+  ));
+});
+
 test('backend refresh plan keeps check force preview and apply commands distinct', () => {
   const plan = buildBackendDataRefreshPlan({
     steps: [

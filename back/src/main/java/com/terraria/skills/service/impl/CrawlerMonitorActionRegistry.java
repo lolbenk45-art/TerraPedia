@@ -156,6 +156,14 @@ public class CrawlerMonitorActionRegistry {
                 "destructive", false, true, true
             ),
             backend(
+                "items", "核验未解析物品图片来源", "wiki.item.image_source_verification",
+                "Frozen unresolved item image identity set",
+                "item-image-source-verification", "verify", "direct_crawl", "fresh",
+                "仅核验冻结列表中的未解析物品图片来源。",
+                "写入图片来源核验证据和进度", "none", 877L, false,
+                "summary", false, true, true
+            ),
+            backend(
                 "npcs", "检查 NPC 模块更新", "wiki.module.npcinfo", "Module:Npcinfo/data",
                 "wiki-npcs-refresh", "check", "check_sync", "check",
                 "检查 NPC 信息模块 revision；这不是逐 NPC 页面抓取。",

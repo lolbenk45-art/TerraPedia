@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CrawlerMonitorActionRegistryTest {
 
     @Test
-    void exposesTwentyThreeOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
+    void exposesTwentyFourOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(23, registry.all().size());
-        assertEquals(List.of("check", "force"), registry.operations("items").stream()
+        assertEquals(24, registry.all().size());
+        assertEquals(List.of("check", "force", "verify"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
         assertEquals("check", registry.requireDefaultOperation("items").operationId());
@@ -68,6 +68,7 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(List.of(
             "wiki-items-refresh",
             "wiki-items-force-refresh",
+            "item-image-source-verification",
             "wiki-npcs-refresh",
             "wiki-npcs-force-refresh",
             "wiki-projectiles-refresh",
@@ -113,6 +114,19 @@ class CrawlerMonitorActionRegistryTest {
         CrawlerMonitorActionDefinition npcLoot = registry.require("npc_loot", "npc-loot-backfill");
         assertTrue(npcLoot.backendRefresh());
         assertFalse(npcLoot.wikiDomain());
+
+        CrawlerMonitorActionDefinition itemImageVerification = registry.require(
+            "items", "item-image-source-verification"
+        );
+        assertTrue(itemImageVerification.backendRefresh());
+        assertTrue(itemImageVerification.wikiDomain());
+        assertTrue(itemImageVerification.networkAccess());
+        assertFalse(itemImageVerification.resumeSupported());
+        assertFalse(itemImageVerification.defaultOperation());
+        assertEquals("verify", itemImageVerification.operationId());
+        assertEquals("none", itemImageVerification.databaseAccess());
+        assertEquals("fresh", itemImageVerification.restartBehavior());
+        assertEquals(877L, itemImageVerification.estimatedRequests());
 
         CrawlerMonitorActionDefinition itemGroupPreview = registry.require(
             "item_groups", "item-group-canonical-preview"

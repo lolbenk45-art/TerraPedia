@@ -8,12 +8,22 @@ import {
   CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './canonical-operation-catalog.mjs';
-import { NPC_APPLY_OWNER_PHASES } from '../npc-canonical/npc-apply-ownership-preparation.mjs';
+import { canonicalServerFingerprint } from './automation-database-contract.mjs';
+import {
+  NPC_APPLY_OWNER_PHASES,
+  NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION,
+} from '../npc-canonical/npc-apply-ownership-preparation.mjs';
 
 const NPC_OWNER_OPERATION_IDS = Object.freeze([
   'canonical-npc-landing-apply',
   ...NPC_APPLY_OWNER_PHASES.map((phase) => phase.operationId),
+  NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId,
 ]);
+const NPC_BASE_MAINT_OPERATION_IDS = Object.freeze([
+  'canonical-npc-base-maint-nontown-apply',
+  'canonical-npc-base-maint-town-apply',
+]);
+const AUTHORIZED_RUNNER_CODE_PATH = 'scripts/data/automation/run-authorized-canonical-operation.mjs';
 
 const AUTHORIZED_CONTEXT_CODE_PATHS = Object.freeze([
   'scripts/data/automation/authorized-operation-context.mjs',
@@ -29,6 +39,11 @@ const CODE_PATHS = Object.freeze({
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'scripts/data/lib/mysql-module.mjs',
     'scripts/data/lib/project-root.mjs',
+  ]),
+  'canonical-item-image-source-verification': Object.freeze([
+    'scripts/data/workflow/run-backend-data-refresh.mjs',
+    'scripts/data/fetch/fetch-item-image-source-verification.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
   'canonical-image-sync': Object.freeze([
     'scripts/data/workflow/run-image-sync.mjs',
@@ -99,6 +114,16 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/crawler/src/domains/npc-domain.mjs',
     'scripts/data/workflow/backend-refresh-runtime-state.mjs',
   ]),
+  'canonical-npc-t1-acceptance': Object.freeze([
+    'scripts/data/automation/run-live-automation-acceptance.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/automation/automation-database-contract.mjs',
+    'scripts/data/automation/mysql-automation-acceptance-adapter.mjs',
+    'scripts/data/automation/provision-automation-databases.mjs',
+    'scripts/data/automation/drop-automation-databases.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
   'canonical-schema-v56-v58': Object.freeze([
     'scripts/data/automation/run-canonical-schema-migration.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
@@ -156,6 +181,11 @@ const CODE_PATHS = Object.freeze({
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'scripts/data/lib/mysql-module.mjs',
   ])])),
+  ...Object.fromEntries(NPC_BASE_MAINT_OPERATION_IDS.map((operationId) => [operationId, Object.freeze([
+    'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/lib/mysql-module.mjs',
+  ])])),
 });
 
 export const CANONICAL_EXECUTABLE_OPERATION_IDS = Object.freeze(
@@ -170,15 +200,23 @@ export function buildCanonicalOperationExecutionManifest({
   artifactDate = new Date().toISOString().slice(0, 10),
   npcLimit = 25,
   backendApiBase = null,
+  resultLabel = null,
+  npcT1ConfigPath = null,
+  npcT1RedisDb = null,
+  npcT1RunId = null,
 } = {}) {
   const contract = buildCanonicalOperationExecutionContract({
     operationId,
     artifactDate,
     npcLimit,
     backendApiBase,
+    resultLabel,
+    npcT1ConfigPath,
+    npcT1RedisDb,
+    npcT1RunId,
   });
   const root = path.resolve(repoRoot);
-  const codeBundleEntries = expandRepositoryCodePaths(root, CODE_PATHS[operationId]).map((relativePath) => {
+  const codeBundleEntries = expandRepositoryCodePaths(root, operationCodePaths(operationId)).map((relativePath) => {
     const fullPath = path.join(root, relativePath);
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
       throw new Error(`operation code file is missing: ${relativePath}`);
@@ -196,6 +234,10 @@ export function buildCanonicalOperationExecutionContract({
   artifactDate = new Date().toISOString().slice(0, 10),
   npcLimit = 25,
   backendApiBase = null,
+  resultLabel = null,
+  npcT1ConfigPath = null,
+  npcT1RedisDb = null,
+  npcT1RunId = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -209,11 +251,30 @@ export function buildCanonicalOperationExecutionContract({
   if (operationId === 'canonical-npc-crawler' && npcLimit !== 25) {
     throw new Error('npcLimit must be exactly 25 for the frozen canonical NPC operation');
   }
-  const definition = buildDefinition(operationId, artifactDate, npcLimit, backendApiBase);
+  const normalizedResultLabel = normalizeResultLabel(resultLabel);
+  if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
+    throw new Error('result label is supported only for an NPC owner operation');
+  }
+  const npcT1Acceptance = operationId === 'canonical-npc-t1-acceptance'
+    ? buildNpcT1AcceptanceIdentity({
+      configPath: npcT1ConfigPath,
+      redisLogicalDb: npcT1RedisDb,
+      runId: npcT1RunId,
+    })
+    : null;
+  const definition = buildDefinition(
+    operationId,
+    artifactDate,
+    npcLimit,
+    backendApiBase,
+    npcT1Acceptance,
+    normalizedResultLabel,
+  );
   return {
     schemaVersion: 1,
     operationId,
     artifactDate,
+    ...(normalizedResultLabel ? { resultLabel: normalizedResultLabel } : {}),
     ...definition,
   };
 }
@@ -229,12 +290,21 @@ export function assertCanonicalOperationExecutionManifestContract({
   const backendApiBase = manifest?.command?.find((argument) => (
     typeof argument === 'string' && argument.startsWith('--apiBase=')
   ))?.slice('--apiBase='.length) ?? null;
+  const npcT1Acceptance = manifest?.isolatedAcceptance ?? null;
   const expected = buildCanonicalOperationExecutionContract({
     operationId,
     artifactDate: manifest?.artifactDate,
     npcLimit,
     backendApiBase,
+    resultLabel: manifest?.resultLabel ?? null,
+    npcT1ConfigPath: npcT1Acceptance?.configPath ?? null,
+    npcT1RedisDb: npcT1Acceptance?.redisLogicalDb ?? null,
+    npcT1RunId: npcT1Acceptance?.runId ?? null,
   });
+  if (operationId === 'canonical-npc-t1-acceptance'
+      && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
+    throw new Error('NPC T1 config hash drifted from the execution manifest');
+  }
   const { codeBundleEntries, ...actualContract } = manifest ?? {};
   if (JSON.stringify(stableValue(actualContract)) !== JSON.stringify(stableValue(expected))) {
     throw new Error(`execution manifest contract drifted for operation: ${operationId}`);
@@ -242,11 +312,15 @@ export function assertCanonicalOperationExecutionManifestContract({
   const actualCodePaths = Array.isArray(codeBundleEntries)
     ? codeBundleEntries.map((entry) => entry?.path)
     : [];
-  const expectedCodePaths = expandRepositoryCodePaths(path.resolve(repoRoot), CODE_PATHS[operationId]);
+  const expectedCodePaths = expandRepositoryCodePaths(path.resolve(repoRoot), operationCodePaths(operationId));
   if (JSON.stringify(actualCodePaths) !== JSON.stringify(expectedCodePaths)) {
     throw new Error(`execution manifest contract drifted for operation code bundle: ${operationId}`);
   }
   return true;
+}
+
+function operationCodePaths(operationId) {
+  return [...CODE_PATHS[operationId], AUTHORIZED_RUNNER_CODE_PATH];
 }
 
 function expandRepositoryCodePaths(repoRoot, seedPaths) {
@@ -306,7 +380,14 @@ export function writeCanonicalOperationExecutionManifest({ outputPath, ...option
   return manifest;
 }
 
-function buildDefinition(operationId, artifactDate, npcLimit, backendApiBase) {
+function buildDefinition(
+  operationId,
+  artifactDate,
+  npcLimit,
+  backendApiBase,
+  npcT1Acceptance,
+  resultLabel,
+) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
       executionClass: 'formal_database_bootstrap',
@@ -323,6 +404,36 @@ function buildDefinition(operationId, artifactDate, npcLimit, backendApiBase) {
       progressPaths: [],
       databaseWrites: true,
       networkAccess: false,
+    },
+    'canonical-item-image-source-verification': {
+      executionClass: 'bounded_network_crawler',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--mode=apply',
+        '--steps=item-image-source-verification',
+        '--output=reports/backend-refresh/history/canonical-item-image-source-verification.json',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+      ],
+      outputPaths: ['reports/audit/item-image-source-verification.latest.json'],
+      reportPaths: [
+        'reports/audit/item-image-source-verification.latest.json',
+        'reports/backend-refresh/history/canonical-item-image-source-verification.json',
+      ],
+      progressPaths: [
+        'reports/backend-refresh/history/canonical-item-image-source-verification.runtime/item-image-source-verification.child-status.json',
+      ],
+      sources: ['https://terraria.wiki.gg/api.php'],
+      bounds: {
+        unresolvedIdentityCount: 877,
+        batchSize: 8,
+        maxRequests: 877,
+        serial: true,
+      },
+      databaseWrites: false,
+      networkAccess: true,
     },
     'canonical-image-sync': {
       executionClass: 'formal_asset_sync',
@@ -474,6 +585,9 @@ function buildDefinition(operationId, artifactDate, npcLimit, backendApiBase) {
       databaseWrites: false,
       networkAccess: true,
     },
+    ...(operationId === 'canonical-npc-t1-acceptance'
+      ? { [operationId]: npcT1AcceptanceDefinition(operationId, npcT1Acceptance) }
+      : {}),
     'canonical-schema-v56-v58': {
       executionClass: 'formal_schema_migration',
       command: [
@@ -521,18 +635,96 @@ function buildDefinition(operationId, artifactDate, npcLimit, backendApiBase) {
     'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
     ...Object.fromEntries(NPC_OWNER_OPERATION_IDS.map((npcOperationId) => [
       npcOperationId,
-      npcOwnerDefinition({ operationId: npcOperationId }),
+      npcOwnerDefinition({
+        operationId: npcOperationId,
+        resultLabel: npcOperationId === operationId ? resultLabel : null,
+      }),
+    ])),
+    ...Object.fromEntries(NPC_BASE_MAINT_OPERATION_IDS.map((npcOperationId) => [
+      npcOperationId,
+      npcBaseMaintDefinition({ operationId: npcOperationId }),
     ])),
   };
   return definitions[operationId];
 }
 
-function npcOwnerDefinition({ operationId }) {
-  const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
-  const phase = NPC_APPLY_OWNER_PHASES.find((candidate) => candidate.operationId === operationId);
-  const landing = operationId === 'canonical-npc-landing-apply';
+function buildNpcT1AcceptanceIdentity({ configPath, redisLogicalDb, runId } = {}) {
+  const resolvedConfigPath = path.resolve(requireText(configPath, 'NPC T1 config path'));
+  const stat = fs.lstatSync(resolvedConfigPath);
+  if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
+    throw new Error('NPC T1 config must be a private ordinary file');
+  }
+  const normalizedRedisDb = Number(redisLogicalDb);
+  if (!Number.isInteger(normalizedRedisDb) || normalizedRedisDb < 1 || normalizedRedisDb > 14) {
+    throw new Error('NPC T1 Redis DB must be an integer from 1 through 14');
+  }
+  const normalizedRunId = requireText(runId, 'NPC T1 runId');
+  if (!/^npc-t1-[a-z0-9-]{3,80}$/.test(normalizedRunId)) {
+    throw new Error('NPC T1 runId must use the bounded npc-t1 identity');
+  }
+  const configBytes = fs.readFileSync(resolvedConfigPath);
+  let config;
+  try {
+    config = JSON.parse(configBytes.toString('utf8'));
+  } catch {
+    throw new Error('NPC T1 config must be valid JSON');
+  }
+  const serverFingerprint = canonicalServerFingerprint(config?.npcT1ServerFingerprint);
+  if (String(config?.database?.host ?? '').trim() !== serverFingerprint.host
+      || Number(config?.database?.port) !== serverFingerprint.port) {
+    throw new Error('NPC T1 config database endpoint must match its server fingerprint');
+  }
   return {
-    executionClass: landing ? 'formal_npc_landing_apply' : 'formal_npc_owner_phase_apply',
+    configPath: resolvedConfigPath,
+    configSha256: `sha256:${createHash('sha256').update(configBytes).digest('hex')}`,
+    redisLogicalDb: normalizedRedisDb,
+    runId: normalizedRunId,
+    serverFingerprint,
+  };
+}
+
+function npcT1AcceptanceDefinition(operationId, isolatedAcceptance) {
+  if (isolatedAcceptance == null) throw new Error('NPC T1 isolated acceptance identity is required');
+  return {
+    executionClass: 'isolated_read_only_acceptance',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      '--profile=t1',
+      '--scope=npc-canonical',
+      `--config-path=${isolatedAcceptance.configPath}`,
+      `--config-sha256=${isolatedAcceptance.configSha256}`,
+      `--redis-db=${isolatedAcceptance.redisLogicalDb}`,
+      `--run-id=${isolatedAcceptance.runId}`,
+      '--max-rows=2',
+      '--output=reports/canonical-migration/canonical-npc-t1-acceptance.json',
+    ],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: ['reports/canonical-migration/canonical-npc-t1-acceptance.json'],
+    reportPaths: ['reports/canonical-migration/canonical-npc-t1-acceptance.json'],
+    progressPaths: [],
+    isolatedAcceptance,
+    databaseWrites: false,
+    isolatedResourceWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcOwnerDefinition({ operationId, resultLabel = null }) {
+  const resultPath = resultLabel
+    ? `reports/authorization/canonical/${operationId}.${resultLabel}.result.json`
+    : `reports/authorization/canonical/${operationId}.result.json`;
+  const phase = NPC_APPLY_OWNER_PHASES.find((candidate) => candidate.operationId === operationId)
+    ?? (operationId === NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId
+      ? NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION
+      : null);
+  const landing = operationId === 'canonical-npc-landing-apply';
+  const lineageRepair = operationId === NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId;
+  return {
+    executionClass: landing
+      ? 'formal_npc_landing_apply'
+      : lineageRepair
+        ? 'formal_npc_relation_lineage_repair'
+        : 'formal_npc_owner_phase_apply',
     command: [
       'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
       `--operation-id=${operationId}`,
@@ -551,6 +743,31 @@ function npcOwnerDefinition({ operationId }) {
         ]
       : [...phase.ownershipKeys],
     requiredOperationIds: landing ? [] : [...phase.requiredOperationIds],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcBaseMaintDefinition({ operationId }) {
+  const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+  const ownershipKey = operationId === 'canonical-npc-base-maint-nontown-apply'
+    ? 'maint.maint_npcs.npcs'
+    : 'maint.maint_npcs.town';
+  return {
+    executionClass: 'formal_npc_base_maint_apply',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      '--input=reports/authorization/canonical/canonical-npc-apply.input.json',
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: [ownershipKey],
+    requiredOperationIds: ['canonical-npc-landing-apply'],
     databaseWrites: true,
     networkAccess: false,
   };
@@ -620,6 +837,15 @@ function requireText(value, label) {
   return text;
 }
 
+function normalizeResultLabel(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  if (text.length > 80 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(text)) {
+    throw new Error('result label must be a lowercase kebab-case token of at most 80 characters');
+  }
+  return text;
+}
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (value && typeof value === 'object') {
@@ -644,6 +870,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       artifactDate: args['artifact-date'] ?? new Date().toISOString().slice(0, 10),
       npcLimit: args['npc-limit'] == null ? 25 : Number(args['npc-limit']),
       backendApiBase: args['backend-api-base'] ?? null,
+      resultLabel: args['result-label'] ?? null,
+      npcT1ConfigPath: args['npc-t1-config-path'] ?? null,
+      npcT1RedisDb: args['npc-t1-redis-db'] == null ? null : Number(args['npc-t1-redis-db']),
+      npcT1RunId: args['npc-t1-run-id'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

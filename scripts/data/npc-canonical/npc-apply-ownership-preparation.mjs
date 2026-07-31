@@ -52,6 +52,21 @@ export const NPC_APPLY_OWNER_PHASES = Object.freeze([
   ], ['canonical-npc-facts-maint-apply', 'canonical-npc-item-relations-apply', 'canonical-npc-buff-relations-apply', 'canonical-npc-town-shop-projection-apply', 'canonical-npc-buff-projection-apply', 'canonical-npc-nonboss-loot-projection-apply']),
 ]);
 
+export const NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION = Object.freeze({
+  phaseIndex: 8,
+  operationId: 'canonical-npc-item-relation-lineage-repair',
+  capability: 'items',
+  ownershipKeys: Object.freeze([
+    'relation.item_source_facts.items',
+    'relation.item_source_details.items',
+  ]),
+  requiredOperationIds: Object.freeze([
+    NPC_LANDING_OPERATION_ID,
+    'canonical-npc-facts-maint-apply',
+    'canonical-npc-item-relations-apply',
+  ]),
+});
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== 'object') return value;

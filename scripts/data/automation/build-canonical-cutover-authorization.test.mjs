@@ -235,9 +235,10 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes the legacy umbrella plus 24 independent stable IDs', () => {
+test('operation request builder exposes the legacy umbrella plus 29 independent stable IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
+    'canonical-item-image-source-verification',
     'canonical-image-sync',
     'canonical-boss-import',
     'canonical-boss-loot-import',
@@ -248,6 +249,7 @@ test('operation request builder exposes the legacy umbrella plus 24 independent 
     'canonical-schema-v56-v58',
     'canonical-item-group-bootstrap',
     'canonical-npc-crawler',
+    'canonical-npc-t1-acceptance',
     'canonical-npc-apply',
     'canonical-npc-landing-apply',
     'canonical-npc-facts-maint-apply',
@@ -262,6 +264,9 @@ test('operation request builder exposes the legacy umbrella plus 24 independent 
     'automation-biomes-second-l1',
     'automation-biomes-l2-promotion',
     'automation-biomes-scheduler-activation',
+    'canonical-npc-base-maint-nontown-apply',
+    'canonical-npc-base-maint-town-apply',
+    'canonical-npc-item-relation-lineage-repair',
   ]);
 
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorization-request-'));
@@ -276,6 +281,16 @@ test('operation request builder exposes the legacy umbrella plus 24 independent 
     fs.writeFileSync(path.join(repoRoot, 'data', 'generated', name), `{\"name\":\"${name}\"}`);
   }
   fs.writeFileSync(path.join(repoRoot, 'data', 'standardized', 'items.standardized.json'), '{"records":[]}');
+  fs.writeFileSync(
+    path.join(
+      repoRoot,
+      'reports',
+      'authorization',
+      'canonical',
+      'canonical-item-image-source-verification.input.json'
+    ),
+    '{"records":[],"constraints":{"batchSize":8,"maxRequests":877}}',
+  );
   fs.writeFileSync(
     path.join(repoRoot, 'reports', 'authorization', 'canonical', 'canonical-item-group-bootstrap.input.json'),
     '{"operationId":"canonical-item-group-bootstrap"}',
@@ -294,6 +309,17 @@ test('operation request builder exposes the legacy umbrella plus 24 independent 
   assert.ok(!bootstrap.requiredTechnicalFields.includes('policySetHash'));
   assert.ok(!bootstrap.missingTechnicalFields.includes('policySetHash'));
   assert.ok(bootstrap.missingTechnicalFields.includes('executionManifestHash'));
+
+  const itemImageVerification = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-item-image-source-verification',
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.deepEqual(itemImageVerification.dataBundleEntries.map((entry) => entry.path), [
+    'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+  ]);
+  assert.ok(itemImageVerification.missingTechnicalFields.includes('executionManifestHash'));
 
   const schema = buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
@@ -374,8 +400,10 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
       generatedAt: GENERATED_AT,
       expiresAt: EXPIRES_AT,
     });
-    const expectedPaths = operationId === 'canonical-npc-apply'
+    const expectedPaths = operationId === 'canonical-npc-t1-acceptance'
+      || operationId === 'canonical-npc-apply'
       || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
+      || operationId === 'canonical-npc-item-relation-lineage-repair'
       ? undefined
       : CANONICAL_OPERATION_DATA_PATHS[operationId];
     assert.deepEqual(
@@ -457,6 +485,46 @@ test('NPC apply request follows only the exact frozen input pairs and ignores un
     ...expectedPairPaths,
   ]);
   assert.equal(request.dataBundleEntries.some((entry) => entry.path.includes('historical')), false);
+
+  const landingResultPath = 'reports/authorization/canonical/canonical-npc-landing-apply.result.json';
+  write(landingResultPath, '{"operationId":"canonical-npc-landing-apply","status":"COMPLETED"}\n');
+  for (const operationId of [
+    'canonical-npc-base-maint-nontown-apply',
+    'canonical-npc-base-maint-town-apply',
+  ]) {
+    const baseRequest = buildCanonicalAuthorizationRequestForOperation({
+      repoRoot,
+      operationId,
+      generatedAt: GENERATED_AT,
+      expiresAt: EXPIRES_AT,
+    });
+    assert.deepEqual(baseRequest.dataBundleEntries.map((entry) => entry.path), [
+      inputPath,
+      landingResultPath,
+      'data/standardized/npcs.standardized.json',
+      targetPath,
+      ...expectedPairPaths,
+    ]);
+  }
+
+  const maintResultPath = 'reports/authorization/canonical/canonical-npc-facts-maint-apply.result.json';
+  const itemRelationResultPath = 'reports/authorization/canonical/canonical-npc-item-relations-apply.result.json';
+  write(maintResultPath, '{"operationId":"canonical-npc-facts-maint-apply","status":"COMPLETED"}\n');
+  write(itemRelationResultPath, '{"operationId":"canonical-npc-item-relations-apply","status":"COMPLETED"}\n');
+  const repairRequest = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-npc-item-relation-lineage-repair',
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.deepEqual(repairRequest.dataBundleEntries.map((entry) => entry.path), [
+    inputPath,
+    landingResultPath,
+    maintResultPath,
+    itemRelationResultPath,
+    targetPath,
+    ...expectedPairPaths,
+  ]);
 });
 
 test('operation manifests are bound to the exact governed entrypoint and missing executors stay closed', () => {
@@ -631,4 +699,67 @@ test('operation request builder verifies manifest code hashes against current re
     expiresAt: EXPIRES_AT,
   });
   assert.match(request.executionManifestHash, /^sha256:/);
+});
+
+test('NPC T1 request binds only isolated-acceptance technical fields and rejects private config drift', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '../../..');
+  const configDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-request-'));
+  const configPath = path.join(configDirectory, 'local-stack.json');
+  try {
+    const serverFingerprint = {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'server-uuid',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    };
+    fs.writeFileSync(configPath, `${JSON.stringify({
+      database: { host: '127.0.0.1', port: 13306 },
+      redis: { port: 6379 },
+      npcT1ServerFingerprint: serverFingerprint,
+    })}\n`, { mode: 0o600 });
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: 'canonical-npc-t1-acceptance',
+      artifactDate: '2026-07-30',
+      npcT1ConfigPath: configPath,
+      npcT1RedisDb: 9,
+      npcT1RunId: 'npc-t1-20260730-01',
+    });
+    const options = {
+      repoRoot,
+      operationId: 'canonical-npc-t1-acceptance',
+      executionManifest: manifest,
+      serverFingerprint,
+      generatedAt: GENERATED_AT,
+      expiresAt: EXPIRES_AT,
+    };
+    const request = buildCanonicalAuthorizationRequestForOperation(options);
+    assert.deepEqual(request.requiredTechnicalFields, [
+      'serverFingerprint',
+      'dataBundleSha256',
+      'executionManifestHash',
+    ]);
+    assert.deepEqual(request.schemaBundleEntries, []);
+    assert.equal(request.policySetHash, null);
+
+    assert.throws(
+      () => buildCanonicalAuthorizationRequestForOperation({
+        ...options,
+        serverFingerprint: { ...serverFingerprint, port: 13307 },
+      }),
+      /isolated.*server.*identity|server.*fingerprint/i,
+    );
+
+    fs.writeFileSync(configPath, `${JSON.stringify({
+      database: { host: '127.0.0.1', port: 13306 },
+      redis: { port: 6380 },
+      npcT1ServerFingerprint: serverFingerprint,
+    })}\n`, { mode: 0o600 });
+    assert.throws(
+      () => buildCanonicalAuthorizationRequestForOperation(options),
+      /config.*hash|config.*drift/i,
+    );
+  } finally {
+    fs.rmSync(configDirectory, { recursive: true, force: true });
+  }
 });

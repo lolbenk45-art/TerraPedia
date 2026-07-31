@@ -92,6 +92,19 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'item-image-source-verification',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/fetch/fetch-item-image-source-verification.mjs',
+        '--input=reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+        '--output=reports/audit/item-image-source-verification.latest.json',
+        '--batch-size=8',
+        '--max-requests=877'
+      ]
+    },
+    {
       id: 'recipe-reference-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 15 * 60 * 1000,
