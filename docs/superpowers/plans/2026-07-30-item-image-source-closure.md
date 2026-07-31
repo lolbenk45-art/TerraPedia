@@ -420,17 +420,17 @@ and Task 8 Steps 3-6 are unblocked.
 - Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
 - Modify: corresponding automation tests
 
-- [ ] **Step 1: Write RED atomicity tests**
+- [x] **Step 1: Write RED atomicity tests**
 
 Assert apply rejects a wrong bundle hash, stale before SHA-256, changed identity set, any unresolved row, conflict with an existing standardized source, changed non-image field, and missing authorized dispatch context. Inject a rename failure and assert original bytes remain intact.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/transform/promote-item-image-sources.test.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs`
 
 Expected: FAIL because the operation and implementation are absent.
 
-- [ ] **Step 3: Implement preview and exact apply**
+- [x] **Step 3: Implement preview and exact apply**
 
 Export `buildPromotedItemsPayload` and `runItemImageSourcePromotion`. Only these fields may differ: `imageFileTitle`, `imageUrl`, `imageWidth`, `imageHeight`, and `imageContentType`.
 
@@ -447,11 +447,11 @@ fs.renameSync(temporaryPath, itemsPath);
 
 On `--apply=true`, require `loadAuthorizedOperationContext({ operationId: 'canonical-item-image-source-promotion' })`, match `dataBundleSha256`, then consume the dispatch permit before reading writable output state. Write a private canonical result binding before/after hashes and the exact field diff.
 
-- [ ] **Step 4: Register the governed operation**
+- [x] **Step 4: Register the governed operation**
 
 Add `canonical-item-image-source-promotion` to the catalog. Its static input is `reports/authorization/canonical/canonical-item-image-source-promotion.input.json`, which binds the content-addressed bundle path/hash and standardized before hash. The manifest command uses `--input-contract=... --apply=true`; it does not follow a mutable latest pointer.
 
-- [ ] **Step 5: Run GREEN, preview, and commit**
+- [x] **Step 5: Run GREEN, preview, and commit**
 
 Run: `node --test scripts/data/transform/promote-item-image-sources.test.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs scripts/data/automation/run-authorized-canonical-operation.test.mjs`
 
@@ -463,6 +463,25 @@ Expected: tests PASS; preview reports exactly 6,131 identities and changes only 
 git add scripts/data/transform/promote-item-image-sources.mjs scripts/data/transform/promote-item-image-sources.test.mjs scripts/data/automation/canonical-operation-catalog.mjs scripts/data/automation/canonical-operation-execution-manifest.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs
 git commit -m "feat(data): authorize atomic item image promotion"
 ```
+
+
+Execution checkpoint (2026-08-01): Steps 1-5 are complete. `promote-item-image-sources.mjs`
+exports `buildPromotedItemsPayload` and `runItemImageSourcePromotion`, changes only the five
+image fields and only on items carrying no source yet, re-hashes the written bytes and the
+identity set before the rename, and requires a packet whose `dataBundleSha256` equals the
+contract's bundle hash *before* the one-time permit is spent. A retained `.gif` secondary is
+deliberately ignored here: the standardized record holds one image and the extra rows belong
+to Task 6's lineage lane, which is asserted by test.
+
+`canonical-item-image-source-promotion` is registered as governed operation 30 of 31; its
+manifest command carries `--input-contract=... --apply=true` and names no mutable latest
+pointer, which is asserted by test.
+
+The real preview over bundle generation `79159314...fd0d3f34` reports
+`total 6131 = existing 2119 + promoted 4012`, `unchanged 2119`, an unchanged identity set
+`sha256:85b9fc4e...c9da7ea0`, before `sha256:4e06da09...d6ef2520` and after
+`sha256:986fc39b...d1a5f1b3`. The standardized file and its hash are untouched by the preview
+and no result artifact was written. Apply awaits its own Owner authorization.
 
 ### Task 5: Harden Exact Managed Image Sync
 

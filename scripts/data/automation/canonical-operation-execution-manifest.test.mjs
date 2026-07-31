@@ -44,9 +44,9 @@ function manifestOptions(operationId) {
     : {};
 }
 
-test('manifest builder covers 29 governed operations and keeps NPC apply explicitly fail closed', () => {
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 30);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 29);
+test('manifest builder covers 30 governed operations and keeps NPC apply explicitly fail closed', () => {
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 31);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 30);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -87,6 +87,36 @@ test('manifest builder covers 29 governed operations and keeps NPC apply explici
       assert.equal(entry.contentHash, expected, `${operationId}:${entry.path}`);
     }
   }
+});
+
+test('item image promotion manifest binds the content-addressed bundle contract', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot: process.cwd(),
+    operationId: 'canonical-item-image-source-promotion',
+    artifactDate: '2026-08-01',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'scripts/data/transform/promote-item-image-sources.mjs',
+    '--input-contract=reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'data/standardized/items.standardized.json',
+    'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+  ]);
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.networkAccess, false);
+  // The command must never name a mutable latest pointer; the bundle reaches it
+  // only through the hash-bound contract.
+  assert.ok(manifest.command.every((token) => !String(token).includes('latest')));
+  assert.ok(manifest.codeBundleEntries.some((entry) => (
+    entry.path === 'scripts/data/transform/promote-item-image-sources.mjs'
+  )));
 });
 
 test('item image verification manifest binds the frozen backend child and request cap', () => {

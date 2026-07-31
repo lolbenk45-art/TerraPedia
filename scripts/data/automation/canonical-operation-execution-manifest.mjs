@@ -45,6 +45,10 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/fetch/fetch-item-image-source-verification.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
+  'canonical-item-image-source-promotion': Object.freeze([
+    'scripts/data/transform/promote-item-image-sources.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
   'canonical-image-sync': Object.freeze([
     'scripts/data/workflow/run-image-sync.mjs',
     'scripts/data/lib/wiki-item-utils.mjs',
@@ -434,6 +438,28 @@ function buildDefinition(
       },
       databaseWrites: false,
       networkAccess: true,
+    },
+    'canonical-item-image-source-promotion': {
+      executionClass: 'formal_standardized_apply',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--input-contract=reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
+        '--apply=true',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
+      ],
+      outputPaths: [
+        'data/standardized/items.standardized.json',
+        'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+      ],
+      reportPaths: [
+        'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+      ],
+      progressPaths: [],
+      databaseWrites: false,
+      networkAccess: false,
     },
     'canonical-image-sync': {
       executionClass: 'formal_asset_sync',

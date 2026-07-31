@@ -235,10 +235,11 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes the legacy umbrella plus 29 independent stable IDs', () => {
+test('operation request builder exposes the legacy umbrella plus 30 independent stable IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
+    'canonical-item-image-source-promotion',
     'canonical-image-sync',
     'canonical-boss-import',
     'canonical-boss-loot-import',
