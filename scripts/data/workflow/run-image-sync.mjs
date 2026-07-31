@@ -17,7 +17,10 @@ import {
   consumeAuthorizedOperationDispatchPermit,
   loadAuthorizedOperationContext
 } from '../automation/authorized-operation-context.mjs';
-import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
+import {
+  DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
+  resolveManagedImageUrlPrefixes
+} from '../relation/managed-image-url-policy.mjs';
 import { writeJsonFile } from './backend-refresh-runtime-state.mjs';
 
 const OPERATION_ID = 'canonical-image-sync';
@@ -48,8 +51,15 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
     repoRoot,
     rawOptions.outputPath ?? path.join('reports', `workflow-image-sync-${startedAt.slice(0, 10)}.json`)
   );
-  const managedUrlPrefixes = rawOptions.managedUrlPrefixes
-    ?? resolveManagedImageUrlPrefixes({ repoRoot });
+  // The resolver stays fail-closed: it trusts only what the local stack config
+  // declares. Historical endpoints are merged in here instead, because objects
+  // uploaded by earlier syncs still carry the old MinIO port. They are our own
+  // managed artifacts, and re-fetching one would mean downloading from our own
+  // storage at an endpoint that may no longer be listening.
+  const managedUrlPrefixes = [...new Set([
+    ...(rawOptions.managedUrlPrefixes ?? resolveManagedImageUrlPrefixes({ repoRoot })),
+    ...DEFAULT_MANAGED_IMAGE_URL_PREFIXES
+  ])];
 
   const readJson = dependencies.readJson ?? ((filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8')));
   const writeJson = dependencies.writeJson ?? writeJsonAtPath;

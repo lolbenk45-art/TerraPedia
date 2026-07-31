@@ -573,6 +573,36 @@ test('extractMaintEntitiesFromLandingRow expands standardized npc records and pr
   assert.equal(JSON.parse(actual.rows[0].rawJson).wikiCrawler.combat.projectileId, '24');
 });
 
+test('extractMaintEntitiesFromLandingRow reads standardized town NPC identity from extras', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 25,
+    dataset_type: 'npcs_base_raw',
+    provider: 'terrapedia.standardized',
+    source_page: 'npcs.standardized',
+    source_key: 'standardized.npcs',
+    source_revision_timestamp: '2026-07-30T00:00:00Z',
+    content_hash: 'l'.repeat(64),
+    fetched_at: '2026-07-30T00:00:00Z',
+    parsed_at: '2026-07-30T00:00:00Z',
+    payload_json: JSON.stringify({
+      records: [{
+        id: 22,
+        internalName: 'Guide',
+        name: 'Guide',
+        flags: { friendly: true, boss: false },
+        extras: { townNPC: true },
+      }],
+    }),
+  });
+
+  assert.equal(actual.rows.length, 1);
+  assert.deepEqual(JSON.parse(actual.rows[0].flagsJson), {
+    friendly: true,
+    townNpc: true,
+    boss: false,
+  });
+});
+
 test('listSourceDatasetLandingInputs locates generated NPC item relation bundles', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-npc-bundle-'));
   const repoRoot = path.join(tempRoot, 'repo');
@@ -2540,4 +2570,95 @@ test('runMaintSync reports category rule diagnostics in dry-run mode', async () 
   assert.equal(summary.categoryRules.unmatchedItems, 1);
   assert.equal(summary.categoryRules.primaryAssignments, 1);
   assert.equal(summary.categoryRules.secondaryAssignments, 0);
+});
+
+test('item_image_sources_raw maps only to maint_item_images with real landing lineage', async () => {
+  const landingRow = {
+    id: 4711,
+    dataset_type: 'item_image_sources_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'item-image-lineage',
+    source_page: 'item-image-lineage-bundle',
+    source_revision_timestamp: null,
+    content_hash: 'c'.repeat(64),
+    fetched_at: null,
+    parsed_at: null,
+    payload_json: JSON.stringify({
+      itemImages: [{
+        itemId: 71,
+        itemInternalName: 'CopperCoin',
+        itemName: 'Copper Coin',
+        role: 'icon',
+        provider: 'terraria.wiki.gg',
+        sourceFileTitle: 'Copper Coin.png',
+        sourcePage: 'Coins',
+        sourceRevisionTimestamp: '2026-07-29T12:18:22Z',
+        originalUrl: 'https://terraria.wiki.gg/images/Copper_Coin.png',
+        cachedUrl: 'http://localhost:19100/terrapedia-images/items/coppercoin.png',
+        width: 12,
+        height: 12,
+        contentType: 'image/png',
+        isPrimary: true,
+        sortOrder: 0,
+      }],
+      // A bundle in this lane must never smuggle other relation scopes.
+      recipes: [{ resultInternalName: 'CopperCoin' }],
+    }),
+  };
+
+  const result = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(result.scope, 'item_images');
+  assert.equal(result.rows.length, 1);
+  const row = result.rows[0];
+  assert.equal(row.tableName, 'maint_item_images');
+  assert.equal(row.landingSourceId, 4711);
+  assert.equal(row.originalUrl, 'https://terraria.wiki.gg/images/Copper_Coin.png');
+  assert.equal(row.cachedUrl, 'http://localhost:19100/terrapedia-images/items/coppercoin.png');
+  assert.notEqual(row.originalUrl, row.cachedUrl);
+});
+
+test('item_image_sources_raw rejects a zero landing id', async () => {
+  const landingRow = {
+    id: 0,
+    dataset_type: 'item_image_sources_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'item-image-lineage',
+    source_page: 'item-image-lineage-bundle',
+    content_hash: 'c'.repeat(64),
+    payload_json: JSON.stringify({ itemImages: [] }),
+  };
+
+  await assert.rejects(
+    () => extractMaintEntitiesFromLandingRow(landingRow),
+    /landing id/i
+  );
+});
+
+test('item_image_sources_raw rejects a row whose cached URL repeats the original', async () => {
+  const sameUrl = 'http://localhost:19100/terrapedia-images/items/coppercoin.png';
+  const landingRow = {
+    id: 4711,
+    dataset_type: 'item_image_sources_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'item-image-lineage',
+    source_page: 'item-image-lineage-bundle',
+    content_hash: 'c'.repeat(64),
+    payload_json: JSON.stringify({
+      itemImages: [{
+        itemInternalName: 'CopperCoin',
+        role: 'icon',
+        sourceFileTitle: 'Copper Coin.png',
+        originalUrl: sameUrl,
+        cachedUrl: sameUrl,
+        isPrimary: true,
+        sortOrder: 0,
+      }],
+    }),
+  };
+
+  await assert.rejects(
+    () => extractMaintEntitiesFromLandingRow(landingRow),
+    /original and cached URLs must differ/i
+  );
 });

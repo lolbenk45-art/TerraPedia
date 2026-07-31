@@ -307,7 +307,7 @@ test('listSourceDatasetLandingInputs requires paired immutable NPC crawler evide
 
   await writeJson(normalizedPath, normalized);
   await assert.rejects(
-    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npc_crawler_facts_raw'] }),
+    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npc_crawler_facts_raw', 'item_image_sources_raw'] }),
     /matching audit evidence/i,
   );
 
@@ -323,7 +323,7 @@ test('listSourceDatasetLandingInputs requires paired immutable NPC crawler evide
   const entries = await listSourceDatasetLandingInputs({
     repoRoot,
     sharedDataRoot,
-    datasets: ['npc_crawler_facts_raw'],
+    datasets: ['npc_crawler_facts_raw', 'item_image_sources_raw'],
   });
 
   assert.equal(entries.length, 1);
@@ -350,7 +350,7 @@ test('listSourceDatasetLandingInputs rejects oversized NPC fact counts before re
   )));
 
   await assert.rejects(
-    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npc_crawler_facts_raw'] }),
+    () => listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['npc_crawler_facts_raw', 'item_image_sources_raw'] }),
     /2,048 facts per run/i,
   );
 });

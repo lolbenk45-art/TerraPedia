@@ -9,6 +9,8 @@ const {
   LANDING_TABLE_NAME,
   buildSourceDatasetLandingCreateTableSql,
   validateLandingDatasetType,
+  GOVERNED_CANONICAL_DATASET_TYPES,
+  validateLandingArtifactRole,
 } = landingSchema;
 
 test('buildSourceDatasetLandingCreateTableSql defines expected landing table columns and indexes', () => {
@@ -68,8 +70,9 @@ test('landing schema exports the planned dataset types and parse statuses', () =
     'item_groups_raw',
     'npcs_base_raw',
     'npc_crawler_facts_raw',
+    'item_image_sources_raw',
   ]);
-  assert.equal(LANDING_DATASET_TYPES.length, 18);
+  assert.equal(LANDING_DATASET_TYPES.length, 19);
   assert.deepEqual(LANDING_PARSE_STATUSES, ['ok', 'partial', 'error', 'skipped']);
 });
 
@@ -96,6 +99,7 @@ test('landing artifact contracts expose only the approved Phase 1A vocabulary', 
     'item_groups_raw',
     'npcs_base_raw',
     'npc_crawler_facts_raw',
+    'item_image_sources_raw',
   ]);
   assert.deepEqual(landingSchema.LANDING_COMPATIBILITY_DEFAULTS, {
     artifactRole: 'legacy_compat',
@@ -107,4 +111,11 @@ test('landing artifact contracts expose only the approved Phase 1A vocabulary', 
   assert.equal(landingSchema.validateLandingArtifactRole?.('unknown'), false);
   assert.equal(landingSchema.buildLegacyProducerRunKey?.('a'.repeat(64)), `legacy-${'a'.repeat(64)}`);
   assert.equal(landingSchema.buildLegacyProducerRunKey?.(null), 'legacy-unknown');
+});
+
+test('item_image_sources_raw is a governed canonical source-evidence dataset', () => {
+  assert.ok(LANDING_DATASET_TYPES.includes('item_image_sources_raw'));
+  assert.ok(GOVERNED_CANONICAL_DATASET_TYPES.includes('item_image_sources_raw'));
+  assert.equal(validateLandingDatasetType('item_image_sources_raw'), true);
+  assert.equal(validateLandingArtifactRole('source_evidence'), true);
 });

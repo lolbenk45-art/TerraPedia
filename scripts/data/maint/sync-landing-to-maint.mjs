@@ -45,7 +45,7 @@ const SCOPE_TO_DATASETS = {
   projectiles: ['projectiles_raw'],
   buffs: ['buffs_raw'],
   item_pages: ['item_pages_raw'],
-  item_images: ['item_relations_bundle_raw'],
+  item_images: ['item_image_sources_raw', 'item_relations_bundle_raw'],
   recipe_pages: ['recipes_raw'],
   item_recipes: ['item_relations_bundle_raw'],
   item_sources: ['item_relations_bundle_raw'],
@@ -236,7 +236,10 @@ function extractNpcsMaintRows(landingRow, payload, zhSourceIndexes = null) {
     height: isStandardizedPayload ? toNullableNumber(record.dimensions?.height ?? record.height) : Number(record.height ?? 0) || null,
     flagsJson: JSON.stringify({
       friendly: Boolean(isStandardizedPayload ? record.flags?.friendly ?? record.friendly : record.friendly),
-      townNpc: Boolean(isStandardizedPayload ? record.flags?.townNPC ?? record.flags?.townNpc ?? record.townNPC : record.townNPC),
+      townNpc: Boolean(isStandardizedPayload
+        ? record.flags?.townNPC ?? record.flags?.townNpc
+          ?? record.extras?.townNPC ?? record.extras?.townNpc ?? record.townNPC
+        : record.townNPC),
       boss: Boolean(isStandardizedPayload ? record.flags?.boss ?? record.boss : record.boss),
     }),
   }));
@@ -442,6 +445,24 @@ function extractItemImageMaintRows(landingRow, payload) {
     landingParsedAt: landingRow.parsed_at,
     rawJson: JSON.stringify(record),
   }));
+}
+
+function extractGovernedItemImageMaintRows(landingRow, payload) {
+  const landingSourceId = Number(landingRow?.id);
+  if (!Number.isInteger(landingSourceId) || landingSourceId <= 0) {
+    throw new Error('item_image_sources_raw requires a nonzero landing id');
+  }
+  return extractItemImageMaintRows(landingRow, payload).map((row) => {
+    if (!row.originalUrl && !row.cachedUrl) {
+      throw new Error(`item_image_sources_raw requires an image URL for ${row.itemInternalName}`);
+    }
+    if (row.originalUrl && row.originalUrl === row.cachedUrl) {
+      throw new Error(
+        `item_image_sources_raw original and cached URLs must differ for ${row.itemInternalName}`
+      );
+    }
+    return row;
+  });
 }
 
 function extractItemRecipeMaintRows(landingRow, payload) {
@@ -1227,6 +1248,12 @@ export async function extractMaintEntitiesFromLandingRow(landingRow, options = {
   if (datasetType === 'recipes_raw') {
     const rows = extractRecipePageMaintRows(landingRow, payload);
     return { scope: 'recipe_pages', rows };
+  }
+  if (datasetType === 'item_image_sources_raw') {
+    // The governed item image lane. Unlike the broad relation bundle this maps
+    // to exactly one maint table, requires a real landing row, and keeps the
+    // source original and the managed cached URL as two distinct values.
+    return { scope: 'item_images', rows: extractGovernedItemImageMaintRows(landingRow, payload) };
   }
   if (datasetType === 'item_relations_bundle_raw') {
     const rows = [

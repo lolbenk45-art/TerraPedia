@@ -532,3 +532,32 @@ function createImageSyncWorkspace() {
 function sha256Hex(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
+
+test('runImageSync treats historical MinIO endpoints as already managed', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  // An object uploaded by an earlier sync still carries the historical port.
+  payload.records.find((record) => record.internalName === 'Wood').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/2026/04/08/abc.png';
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  fs.writeFileSync(workspace.itemsPath, serialized);
+  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: sha256Hex(serialized) }
+  }, null, 2)}\n`);
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    managedUrlPrefixes: ['http://localhost:19100/terrapedia-images/']
+  }, workspace.dependencies());
+
+  assert.deepEqual(result.alreadyManagedKeys, ['Torch', 'Wood']);
+  assert.deepEqual(result.uploadKeys, ['CopperCoin']);
+  assert.deepEqual(workspace.uploadedUrls, ['https://terraria.wiki.gg/images/Copper_Coin.png']);
+});

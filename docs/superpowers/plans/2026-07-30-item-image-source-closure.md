@@ -587,17 +587,17 @@ still requires its own `canonical-image-sync` packet and a running local stack.
 - Modify: `scripts/data/maint/sync-standardized-item-images-to-maint.mjs`
 - Modify: `scripts/data/maint/sync-standardized-item-images-to-maint.test.mjs`
 
-- [ ] **Step 1: Write RED lineage tests**
+- [x] **Step 1: Write RED lineage tests**
 
 Build a two-row promotion plus managed result. Assert each `itemImages` row has source `originalUrl`, managed `cachedUrl`, and exact source/managed predecessor hashes. Assert a missing managed row, swapped URL semantics, zero landing ID, or broad `item_relations_bundle_raw` descriptor is rejected.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/generate/generate-item-image-lineage-bundle.test.mjs scripts/data/landing/source-dataset-landing-schema.test.mjs scripts/data/landing/source-dataset-locator.test.mjs scripts/data/landing/import-source-dataset-landings.test.mjs scripts/data/maint/sync-landing-to-maint.test.mjs scripts/data/maint/sync-standardized-item-images-to-maint.test.mjs`
 
 Expected: FAIL because `item_image_sources_raw` and strict original/cached lineage do not exist.
 
-- [ ] **Step 3: Generate the bounded lineage bundle**
+- [x] **Step 3: Generate the bounded lineage bundle**
 
 ```js
 itemImages: promotion.rows.map((source) => ({
@@ -621,13 +621,13 @@ itemImages: promotion.rows.map((source) => ({
 
 Require 6,131 unique rows and bind both predecessor results in the bundle descriptor.
 
-- [ ] **Step 4: Add governed landing and maint extraction**
+- [x] **Step 4: Add governed landing and maint extraction**
 
 Register `item_image_sources_raw` as a governed canonical dataset with `artifactRole: 'source_evidence'`. The locator reads only the immutable lineage bundle named by the input contract. In maint extraction, map this dataset only to `maint_item_images`; retain nonzero landing ID and the distinct original/cached URL fields.
 
 Change `sync-standardized-item-images-to-maint.mjs` into a compatibility diagnostic that requires a supplied landing record and managed result; remove construction of `landingSourceId: 0` and never use standardized `imageUrl` for both URL columns.
 
-- [ ] **Step 5: Run GREEN and commit**
+- [x] **Step 5: Run GREEN and commit**
 
 Run the RED command again.
 
@@ -637,6 +637,49 @@ Expected: PASS; the broad relation bundle remains supported for legacy relations
 git add scripts/data/generate/generate-item-image-lineage-bundle.mjs scripts/data/generate/generate-item-image-lineage-bundle.test.mjs scripts/data/landing/source-dataset-landing-schema.mjs scripts/data/landing/source-dataset-landing-schema.test.mjs scripts/data/landing/source-dataset-locator.mjs scripts/data/landing/source-dataset-locator.test.mjs scripts/data/landing/import-source-dataset-landings.test.mjs scripts/data/maint/sync-landing-to-maint.mjs scripts/data/maint/sync-landing-to-maint.test.mjs scripts/data/maint/sync-standardized-item-images-to-maint.mjs scripts/data/maint/sync-standardized-item-images-to-maint.test.mjs
 git commit -m "feat(data): land exact item image lineage"
 ```
+
+
+Execution checkpoint (2026-08-01): Steps 1-5 are complete, with one contract amended against
+the real data.
+
+`generate-item-image-lineage-bundle.mjs` binds both predecessors by hash and requires a managed
+image per identity, a cached URL inside managed storage, and a source original that is not a
+managed URL. It rejects a missing managed row, a managed URL presented as a source original, a
+cached URL outside managed storage, an unclosed promotion bundle, a failed image sync, and the
+broad `item_relations_bundle_raw` dataset type.
+
+Amendment: the plan's row shape assumed every identity has a source `originalUrl`. It does not.
+Of the 6,131 bundle rows, only the 4,012 promoted rows carry a wiki original; all 2,119
+`existing` rows carry a managed URL in that field already — 1,788 relative
+`/terrapedia-images/...` and 331 absolute at the historical port. Writing that value into both
+columns is precisely the fabricated lineage this task removes, so those rows carry
+`originalUrl: null` with `originalUrlStatus: 'not_recorded'`, counted separately. Recovering
+their true originals would need a bounded re-verification of 2,119 identities under its own
+Owner authorization; until then the image panel cannot claim full source traceability, and it
+must not pretend otherwise.
+
+Retained secondary formats have no managed image, because image sync covers one image per item.
+They are emitted as `deferredSecondaryRows` with `reason: 'no_managed_image'` rather than
+invented cached URLs.
+
+`item_image_sources_raw` is registered as a governed canonical dataset with artifact role
+`source_evidence`, and maps to `maint_item_images` alone — a payload in this lane that also
+carries `recipes` yields only image rows. The extraction requires a nonzero landing id and
+refuses a row whose cached URL repeats its original.
+
+`sync-standardized-item-images-to-maint.mjs` is now a compatibility diagnostic. It requires a
+supplied landing record and managed result, no longer constructs `landingSourceId: 0`, no longer
+reuses the standardized `imageUrl` as the cached URL, and loads `mysql2` lazily so its contract
+tests run without a database driver. Its missing `fileURLToPath` import, which made the CLI throw
+at load, is fixed.
+
+Focused validation: the plan's RED command passes 101/101.
+
+The 331 historical-port URLs are also why the items dry run counted them as upload candidates.
+`run-image-sync` now merges the historical managed prefixes for classification only; the
+`resolveManagedImageUrlPrefixes` policy stays fail-closed, because weakening it would have made
+an unconfigured environment trust `localhost:9000`. The dry run is now `total 6131,
+missingSource 0, alreadyManaged 2119, uploadKeys 4012, failedKeys 0`.
 
 ### Task 7: Project Exact Maint, Relation, And Local Image Scope
 
