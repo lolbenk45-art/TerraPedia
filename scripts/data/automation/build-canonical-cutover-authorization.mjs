@@ -90,6 +90,19 @@ export function buildCanonicalAuthorizationRequest(input = {}) {
   return Object.freeze({ ...payload, requestHash: hashJson(payload) });
 }
 
+// Both shapes the durable decision ledger has ever carried, reduced to the
+// identities they name.
+export function readUsedDecisionIdentities(values) {
+  const identities = new Set();
+  for (const entry of values ?? []) {
+    const identity = typeof entry === 'string'
+      ? entry.trim()
+      : String(entry?.decisionIdentity ?? '').trim();
+    if (identity) identities.add(identity);
+  }
+  return identities;
+}
+
 export function authorizeCanonicalCutoverRequest({
   request,
   requestHash,
@@ -114,7 +127,10 @@ export function authorizeCanonicalCutoverRequest({
   if (!(usedDecisionIdentities instanceof Set)) {
     throw new TypeError('used decision identities must be a Set');
   }
-  if (usedDecisionIdentities.has(owner.decisionIdentity)) {
+  // The durable ledger mixes bare identity strings with the record form the
+  // dispatch side writes. Looking a string up in a Set that holds records never
+  // matches, which would let an already-used decision be signed again.
+  if (readUsedDecisionIdentities(usedDecisionIdentities).has(owner.decisionIdentity)) {
     throw new Error(`decision identity is already used: ${owner.decisionIdentity}`);
   }
   const authorizationTime = requireTimestamp(authorizedAt, 'authorizedAt');

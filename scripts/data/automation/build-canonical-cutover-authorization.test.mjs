@@ -13,6 +13,7 @@ import {
   buildCanonicalAuthorizationRequest,
   buildCanonicalAuthorizationRequestForOperation,
   hashOrderedBundleBytes,
+  readUsedDecisionIdentities,
   verifyCanonicalAuthorizationPacket,
 } from './build-canonical-cutover-authorization.mjs';
 import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
@@ -146,6 +147,34 @@ test('authorize requires exact Owner fields and unchanged request-bound technica
     currentTechnicalInput,
     usedDecisionIdentities: new Set([owner.decisionIdentity]),
   }), /decision identity.*already used/i);
+
+  // The durable ledger holds two shapes: bare identity strings, and the
+  // `{decisionIdentity, dispatchPermitHash}` records the dispatch side writes.
+  // A Set built straight from the ledger therefore contains objects, which no
+  // string lookup can ever match — so a decision already recorded in record
+  // form could be signed a second time.
+  assert.throws(() => authorizeCanonicalCutoverRequest({
+    request,
+    requestHash: request.requestHash,
+    ...owner,
+    currentTechnicalInput,
+    usedDecisionIdentities: new Set([
+      { decisionIdentity: owner.decisionIdentity, dispatchPermitHash: HASH },
+    ]),
+  }), /decision identity.*already used/i);
+});
+
+test('used decision identities are read from both durable ledger shapes', () => {
+  assert.deepEqual(
+    [...readUsedDecisionIdentities([
+      'canonical-image-sync-20260801-04',
+      { decisionIdentity: 'canonical-npc-t1-acceptance-20260730-01', dispatchPermitHash: HASH },
+      { dispatchPermitHash: HASH },
+      '',
+      null,
+    ])].sort(),
+    ['canonical-image-sync-20260801-04', 'canonical-npc-t1-acceptance-20260730-01'],
+  );
 });
 
 test('authorize rejects expired requests and missing technical identity', () => {
