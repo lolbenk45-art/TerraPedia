@@ -40,7 +40,8 @@ import {
 } from './projection-sync.mjs';
 import { writeRelationReports } from './relation-report.mjs';
 import {
-  isManagedImageUrl,
+  isManagedImagePath,
+  managedImagePathPrefixes,
   normalizeManagedImageUrlPrefixes,
   resolveManagedImageUrlPrefixes
 } from './managed-image-url-policy.mjs';
@@ -537,7 +538,7 @@ function buildItemIndex(rows) {
 }
 
 function isManagedProjectionImageUrl(value, prefixes) {
-  return isManagedImageUrl(value, prefixes);
+  return isManagedImagePath(value, prefixes);
 }
 
 function escapeSqlString(value) {
@@ -548,14 +549,25 @@ function escapeSqlLikeLiteral(value) {
   return escapeSqlString(String(value).replace(/[\\%_]/g, (match) => `\\${match}`));
 }
 
+// A managed image is stored either at a configured origin or as the origin-free
+// path that origin resolves to, so both forms have to be matched here. Each
+// pattern stays anchored at the start: a loose `%/terrapedia-images/%` would
+// trust any host that happens to serve that path.
+function managedImageSqlPatterns(prefixes) {
+  return [
+    ...normalizeManagedImageUrlPrefixes(prefixes),
+    ...managedImagePathPrefixes(prefixes)
+  ];
+}
+
 function buildManagedImageSqlLikeAny(column, prefixes) {
-  const clauses = normalizeManagedImageUrlPrefixes(prefixes)
+  const clauses = managedImageSqlPatterns(prefixes)
     .map((prefix) => `BINARY TRIM(${column}) LIKE BINARY '${escapeSqlLikeLiteral(prefix)}%' ESCAPE '\\\\'`);
   return clauses.length ? `(${clauses.join(' OR ')})` : 'FALSE';
 }
 
 function buildManagedImageSqlNotLikeAll(column, prefixes) {
-  const clauses = normalizeManagedImageUrlPrefixes(prefixes)
+  const clauses = managedImageSqlPatterns(prefixes)
     .map((prefix) => `BINARY TRIM(${column}) NOT LIKE BINARY '${escapeSqlLikeLiteral(prefix)}%' ESCAPE '\\\\'`);
   return clauses.length ? `(${clauses.join(' AND ')})` : 'TRUE';
 }
@@ -1438,7 +1450,7 @@ export async function runSync(options, dependencies = {}) {
     maintBuffs: maintBuffRows,
     localProjectiles,
     localBuffs: localBuffRows,
-    canonicalBuffUrlMatcher: (value) => isManagedImageUrl(value, canonicalBuffManagedUrlPrefixes)
+    canonicalBuffUrlMatcher: (value) => isManagedImagePath(value, canonicalBuffManagedUrlPrefixes)
   });
   const relationItemRarities = buildRelationItemRarities();
 

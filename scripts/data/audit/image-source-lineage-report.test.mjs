@@ -188,6 +188,53 @@ test('buildImageSourceLineageReport flags buff wrong-prefix managed rows', () =>
   assert.equal(report.entities.buffs.lineage.projection.rowsWithWrongManagedPrefix, 1);
 });
 
+test('buildImageSourceLineageReport counts managed images stored as origin-free paths', () => {
+  // The real store holds 5,800 of 6,131 item images as `/terrapedia-images/...`.
+  // Counting only absolute URLs as managed reports the whole lane as unmanaged.
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/items/',
+      'http://localhost:9000/terrapedia-images/npcs/',
+    ],
+    entities: {
+      items: {
+        coreRows: [{ internalName: 'BeetleHelmet', image: '/terrapedia-images/items/beetle.png' }],
+        relationImageRows: [{
+          itemInternalName: 'BeetleHelmet',
+          cachedUrl: '/terrapedia-images/items/beetle.png',
+          originalUrl: 'https://terraria.wiki.gg/images/Beetle_Helmet.png',
+        }],
+        projectionRows: [{ internalName: 'BeetleHelmet', image: '/terrapedia-images/items/beetle.png' }],
+      },
+    },
+  });
+
+  assert.equal(report.entities.items.lineage.projection.rowsWithManagedImage, 1);
+  assert.equal(report.entities.items.lineage.projection.rowsWithWrongManagedPrefix, 0);
+  assert.equal(report.entities.items.lineage.projection.rowsBlankButCoreImageAvailable, 0);
+  assert.ok(!report.entities.items.gapReasons.includes('projection_blank_but_core_image_available'));
+});
+
+test('buildImageSourceLineageReport flags a managed path under the wrong entity prefix', () => {
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/items/',
+      'http://localhost:9000/terrapedia-images/buffs/',
+    ],
+    entities: {
+      buffs: {
+        coreRows: [{ internalName: 'ObsidianSkin', imageCachedUrl: '/terrapedia-images/items/obsidian.png' }],
+        projectionRows: [{ internalName: 'ObsidianSkin', image: '/terrapedia-images/items/obsidian.png' }],
+      },
+    },
+  });
+
+  assert.equal(report.entities.buffs.lineage.projection.rowsWithWrongManagedPrefix, 1);
+  assert.ok(report.entities.buffs.gapReasons.includes('projection_image_wrong_managed_prefix'));
+});
+
 test('buildImageSourceLineageReport flags item projection holes when core managed images exist', () => {
   const report = buildImageSourceLineageReport({
     generatedAt: GENERATED_AT,

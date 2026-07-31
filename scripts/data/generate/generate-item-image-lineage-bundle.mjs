@@ -15,7 +15,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { isManagedImageUrl } from '../relation/managed-image-url-policy.mjs';
+import { isManagedImagePath } from '../relation/managed-image-url-policy.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 
 const DATASET_TYPE = 'item_image_sources_raw';
@@ -78,7 +78,7 @@ export function buildItemImageLineageBundle({
     const managed = managedByKey.get(itemInternalName);
     if (!managed) throw new Error(`missing managed image for ${itemInternalName}`);
     const cachedUrl = requireText(managed?.managedUrl, `managed URL for ${itemInternalName}`);
-    if (!isManagedImageUrl(cachedUrl, managedUrlPrefixes)) {
+    if (!isManagedImagePath(cachedUrl, managedUrlPrefixes)) {
       throw new Error(`cached URL is not managed for ${itemInternalName}: ${cachedUrl}`);
     }
 
@@ -159,10 +159,9 @@ export function buildItemImageLineageBundle({
 }
 
 function looksManaged(value, managedUrlPrefixes) {
-  if (isManagedImageUrl(value, managedUrlPrefixes)) return true;
-  // A relative managed path never parses as a URL, so match it structurally.
-  return /^\/?terrapedia-images\//.test(String(value).replace(/^\//, '/'))
-    || String(value).startsWith('/terrapedia-images/');
+  // Both address forms count here: presenting either one as a source original is
+  // the fabricated lineage this dataset exists to remove.
+  return isManagedImagePath(value, managedUrlPrefixes);
 }
 
 function parseJsonBytes(value, label) {

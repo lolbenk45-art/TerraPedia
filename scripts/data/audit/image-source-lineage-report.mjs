@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
-  isManagedImageUrl,
+  isManagedImagePath,
   resolveManagedImageUrlPrefixes,
 } from '../relation/managed-image-url-policy.mjs';
 
@@ -766,7 +766,7 @@ function countRowsWithManagedProjectionImage(rows, accessor, managedUrlPrefixes)
   }
   return rows.filter((row) => {
     const imageUrl = accessor(row);
-    return imageUrl ? isManagedImageUrl(imageUrl, managedUrlPrefixes) : false;
+    return imageUrl ? isManagedImagePath(imageUrl, managedUrlPrefixes) : false;
   }).length;
 }
 
@@ -780,7 +780,7 @@ function countRowsWithWrongManagedImagePrefix(rows, accessor, entityType, manage
     if (!imageUrl) {
       return false;
     }
-    return isManagedImageUrl(imageUrl, managedUrlPrefixes) && !isManagedImageUrl(imageUrl, expectedPrefixes);
+    return isManagedImagePath(imageUrl, managedUrlPrefixes) && !isManagedImagePath(imageUrl, expectedPrefixes);
   }).length;
 }
 
@@ -798,7 +798,7 @@ function countBlankProjectionRowsWithCoreManagedImageAvailable(coreRows, project
   for (const row of coreRows) {
     const key = normalizeEntityKey(config.coreKeyAccessor(row));
     const imageUrl = config.coreImageAccessor(row);
-    if (key && imageUrl && isManagedImageUrl(imageUrl, managedUrlPrefixes)) {
+    if (key && imageUrl && isManagedImagePath(imageUrl, managedUrlPrefixes)) {
       coreKeysWithManagedImages.add(key);
     }
   }

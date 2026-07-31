@@ -6,6 +6,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { summarizeImageScopes } from './run-wiki-sync.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
@@ -550,4 +552,28 @@ test('items apply normalizes existing raw module when no source action is planne
     assert.equal(progress.failedCount, 0);
     assert.equal(progress.resultKind, 'no_change');
     assert.equal(progress.resumeOutcome, 'not_supported');
+});
+
+test('image scope summary counts an origin-free managed path as managed', () => {
+    // Image sync stores the path the backend returns. Reading those as unmanaged
+    // schedules a full re-sync of every already-managed image on every plan.
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-images-'));
+    fs.mkdirSync(path.join(tempRoot, 'data', 'standardized'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tempRoot, 'data', 'standardized', 'items.standardized.json'),
+      JSON.stringify({
+        records: [
+          { internalName: 'Torch', imageUrl: '/terrapedia-images/items/2026/07/29/torch.png' },
+          { internalName: 'Wood', imageUrl: 'http://localhost:9000/terrapedia-images/items/wood.png' },
+          { internalName: 'Stone', imageUrl: 'https://terraria.wiki.gg/images/Stone_Block.png' }
+        ]
+      }),
+      'utf8'
+    );
+
+    const summary = summarizeImageScopes(['items'], undefined, { repoRoot: tempRoot });
+
+    assert.equal(summary.modules.items.total, 3);
+    assert.equal(summary.modules.items.unmanaged, 1);
+    assert.equal(summary.unmanagedImageCount, 1);
 });

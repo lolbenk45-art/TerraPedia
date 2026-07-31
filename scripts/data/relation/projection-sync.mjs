@@ -1,4 +1,4 @@
-import { isManagedImageUrl } from './managed-image-url-policy.mjs';
+import { isManagedImagePath } from './managed-image-url-policy.mjs';
 
 const BOSS_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/bosses/',
@@ -202,7 +202,7 @@ function resolveProjectedImageUrl(imageRow, managedImageUrlPrefixes = []) {
 }
 
 function resolveManagedProjectionImageValue(value, managedImageUrlPrefixes = []) {
-  return isManagedImageUrl(value, managedImageUrlPrefixes) ? value.trim() : null;
+  return isManagedImagePath(value, managedImageUrlPrefixes) ? value.trim() : null;
 }
 
 function resolveManagedRawImageUrl(raw, managedImageUrlPrefixes = []) {
@@ -212,7 +212,7 @@ function resolveManagedRawImageUrl(raw, managedImageUrlPrefixes = []) {
 }
 
 function hasProjectedImageUrl(imageRow, managedImageUrlPrefixes = []) {
-  return isManagedImageUrl(imageRow?.cachedUrl, managedImageUrlPrefixes);
+  return isManagedImagePath(imageRow?.cachedUrl, managedImageUrlPrefixes);
 }
 
 function comparePreferredImageRows(left, right, managedImageUrlPrefixes = []) {

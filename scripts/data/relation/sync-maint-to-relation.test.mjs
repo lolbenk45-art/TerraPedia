@@ -1690,6 +1690,12 @@ test('runSync apply mode clears stale relation tables before writing current sna
   assert.ok(statements.some((sql) => sql.includes('AND mi.cached_url IS NOT NULL')));
   assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
   assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
+  // Managed uploads are stored as the origin-free path the backend returns, so
+  // the projection predicates must anchor on that path too or every such row is
+  // read as unmanaged and never projected.
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY '/terrapedia-images/items/%'")));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY '/terrapedia-images/items/%'")));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY '/terrapedia-images/items/%'")));
   assert.ok(statements.every((sql) => !sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
   assert.ok(statements.some((sql) => sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
   assert.ok(statements.some((sql) => sql.includes('SET pi.image = li.image')));

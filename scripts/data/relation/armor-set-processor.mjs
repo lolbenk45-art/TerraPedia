@@ -5,7 +5,7 @@ import {
   normalizeTrace,
   relationStatus
 } from './relation-trace.mjs';
-import { isManagedImageUrl } from './managed-image-url-policy.mjs';
+import { isManagedImagePath } from './managed-image-url-policy.mjs';
 
 function toNullableNumber(value) {
   if (value == null || value === '') {
@@ -664,7 +664,7 @@ function buildManagedArmorImageLookup(
   const byPageRoleFile = new Map();
   for (const row of [...existingRelationArmorSetImages, ...maintArmorSetImages]) {
     const cachedUrl = normalizeText(row.cached_url ?? row.cachedUrl);
-    if (!isManagedImageUrl(cachedUrl, managedImageUrlPrefixes)) {
+    if (!isManagedImagePath(cachedUrl, managedImageUrlPrefixes)) {
       continue;
     }
     const originalUrl = normalizeUrlKey(row.original_url ?? row.originalUrl);
@@ -1056,7 +1056,7 @@ function buildArmorSetImageRecord(row, armorSetByTextKey, managedImageUrlPrefixe
     imageRole,
     sourceFileTitle: normalizeText(row.source_file_title ?? row.sourceFileTitle),
     originalUrl: normalizeText(row.original_url ?? row.originalUrl),
-    cachedUrl: isManagedImageUrl(row.cached_url ?? row.cachedUrl, managedImageUrlPrefixes)
+    cachedUrl: isManagedImagePath(row.cached_url ?? row.cachedUrl, managedImageUrlPrefixes)
       ? normalizeText(row.cached_url ?? row.cachedUrl)
       : null,
     width: toNullableNumber(row.width),

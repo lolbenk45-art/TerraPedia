@@ -48,6 +48,46 @@ test('lineage rows carry the source original URL and the managed cached URL', ()
   assert.equal(bundle.descriptor.promotionBundle.generationId, 'a'.repeat(64));
 });
 
+test('a managed URL stored as an origin-free path is accepted', () => {
+  // Image sync stores the path the backend returns, not the probe origin, so
+  // 5,800 of the 6,131 real managed URLs have no host at all. A cached-URL gate
+  // that only understands absolute URLs rejects the entire lane.
+  const input = lineageInput();
+  const sync = JSON.parse(input.imageSyncResultBytes);
+  for (const entry of sync.managedImages) {
+    entry.managedUrl = new URL(entry.managedUrl).pathname;
+  }
+  input.imageSyncResultBytes = JSON.stringify(sync);
+
+  const bundle = buildItemImageLineageBundle(input);
+
+  assert.equal(bundle.counters.total, 2);
+  assert.equal(
+    bundle.itemImages.find((row) => row.itemInternalName === 'CopperCoin').cachedUrl,
+    '/terrapedia-images/items/coppercoin.png'
+  );
+});
+
+test('a managed path presented as a source original is rejected', () => {
+  const input = lineageInput();
+  const promotion = JSON.parse(input.promotionBundleBytes);
+  promotion.rows.find((row) => row.itemInternalName === 'CopperCoin').source.originalUrl =
+    '/terrapedia-images/items/coppercoin.png';
+  input.promotionBundleBytes = JSON.stringify(promotion);
+
+  assert.throws(() => buildItemImageLineageBundle(input), /source original URL is managed/i);
+});
+
+test('a path outside managed storage is rejected as a cached URL', () => {
+  const input = lineageInput();
+  const sync = JSON.parse(input.imageSyncResultBytes);
+  sync.managedImages.find((entry) => entry.key === 'CopperCoin').managedUrl =
+    '/uploads/items/coppercoin.png';
+  input.imageSyncResultBytes = JSON.stringify(sync);
+
+  assert.throws(() => buildItemImageLineageBundle(input), /cached URL is not managed/i);
+});
+
 test('a missing managed row is rejected', () => {
   const input = lineageInput();
   const sync = JSON.parse(input.imageSyncResultBytes);

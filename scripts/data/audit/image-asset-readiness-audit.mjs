@@ -339,7 +339,7 @@ function buildWarningReasons(entities) {
 }
 
 function classifyBrokenCachedUrl(url, managedUrlPrefixes) {
-  if (!isHttpUrl(url)) {
+  if (!parseImageLocation(url)) {
     return 'invalid_url';
   }
   if (isWikiUrl(url)) {
@@ -352,12 +352,18 @@ function classifyBrokenCachedUrl(url, managedUrlPrefixes) {
 }
 
 function isManagedUrl(value, managedUrlPrefixes = DEFAULT_MANAGED_URL_PREFIXES) {
-  const parsed = parseUrl(value);
-  if (!parsed) {
+  const location = parseImageLocation(value);
+  if (!location) {
     return false;
   }
-  if (pathHasManagedAssetSegment(parsed.pathname)) {
+  if (pathHasManagedAssetSegment(location.pathname)) {
     return true;
+  }
+  const parsed = location.url;
+  if (!parsed) {
+    // A stored path has no origin, so the managed-segment rule above is the
+    // whole test; there is no host left to match a prefix against.
+    return false;
   }
   return normalizeManagedUrlPrefixes(managedUrlPrefixes).some((prefix) => {
     const parsedPrefix = parseUrl(prefix);
@@ -368,6 +374,21 @@ function isManagedUrl(value, managedUrlPrefixes = DEFAULT_MANAGED_URL_PREFIXES) 
       && parsed.host.toLowerCase() === parsedPrefix.host.toLowerCase()
       && pathHasPrefixSegment(parsed.pathname, parsedPrefix.pathname);
   });
+}
+
+// A stored image location is either an absolute URL or the origin-free path the
+// backend returns for a managed upload. Both have a pathname; only the absolute
+// form has an origin worth checking.
+function parseImageLocation(value) {
+  const text = firstText(value);
+  if (!text) {
+    return null;
+  }
+  if (text.startsWith('/') && !text.startsWith('//')) {
+    return { url: null, pathname: text.split(/[?#]/, 1)[0] };
+  }
+  const parsed = parseUrl(text);
+  return parsed ? { url: parsed, pathname: parsed.pathname } : null;
 }
 
 function isWikiUrl(value) {

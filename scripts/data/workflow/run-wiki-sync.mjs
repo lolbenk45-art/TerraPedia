@@ -32,6 +32,7 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
+import { isManagedImagePath } from '../relation/managed-image-url-policy.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -859,13 +860,13 @@ function summarizeZhScopes(scopes) {
   return { estimatedRequests, missingZh, modules, scopes };
 }
 
-function summarizeImageScopes(scopes, managedUrlPrefix) {
+export function summarizeImageScopes(scopes, managedUrlPrefix, { repoRoot: root = repoRoot } = {}) {
   const modules = {};
   let unmanagedImageCount = 0;
   const prefixes = [typeof managedUrlPrefix === 'string' && managedUrlPrefix.trim() !== '' ? managedUrlPrefix.trim() : 'http://localhost:9000/terrapedia-images'];
 
   for (const scope of scopes) {
-    const filePath = path.join(repoRoot, 'data', 'standardized', `${scope}.standardized.json`);
+    const filePath = path.join(root, 'data', 'standardized', `${scope}.standardized.json`);
     if (!fs.existsSync(filePath)) {
       modules[scope] = { filePath, total: 0, unmanaged: 0 };
       continue;
@@ -874,7 +875,7 @@ function summarizeImageScopes(scopes, managedUrlPrefix) {
     const records = Array.isArray(payload?.records) ? payload.records : [];
     const unmanaged = records.filter((record) => {
       const imageUrl = toText(record?.imageUrl);
-      return imageUrl && !isManagedImageUrl(imageUrl, prefixes);
+      return imageUrl && !isManagedImagePath(imageUrl, prefixes);
     }).length;
     unmanagedImageCount += unmanaged;
     modules[scope] = {
@@ -889,14 +890,6 @@ function summarizeImageScopes(scopes, managedUrlPrefix) {
 
 function hasZhValue(record) {
   return Boolean(toText(record?.nameZh) || toText(record?.localized?.zh?.name));
-}
-
-function isManagedImageUrl(value, managedUrlPrefixes) {
-  const imageUrl = toText(value);
-  if (!imageUrl) {
-    return false;
-  }
-  return managedUrlPrefixes.some((prefix) => imageUrl.startsWith(prefix));
 }
 
 function updateWorkflowManifestForScopes(manifest, workflowKey, scopes) {

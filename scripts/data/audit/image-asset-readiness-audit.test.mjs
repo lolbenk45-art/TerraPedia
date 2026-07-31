@@ -231,6 +231,47 @@ test('buildImageAssetReadinessAudit treats managed asset path as cache across ho
   assert.equal(audit.entities.items.brokenCachedUrlCount, 0);
 });
 
+test('buildImageAssetReadinessAudit treats an origin-free managed path as cache', () => {
+  // Uploads are stored as the path the backend returns. Requiring an absolute
+  // URL reads every one of those rows as an invalid URL.
+  const audit = buildImageAssetReadinessAudit({
+    generatedAt: GENERATED_AT,
+    items: [
+      {
+        id: 1,
+        internalName: 'RelativeCachedItem',
+        cachedUrl: '/terrapedia-images/items/2026/07/29/relative-cached-item.png',
+        originalUrl: 'https://terraria.wiki.gg/images/Relative_Cached_Item.png',
+        contentType: 'image/png',
+        lastVerifiedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.equal(audit.entities.items.cachedHitCount, 1);
+  assert.equal(audit.entities.items.brokenCachedUrlCount, 0);
+});
+
+test('buildImageAssetReadinessAudit rejects an origin-free path outside managed storage', () => {
+  const audit = buildImageAssetReadinessAudit({
+    generatedAt: GENERATED_AT,
+    items: [
+      {
+        id: 1,
+        internalName: 'RelativeBadPath',
+        cachedUrl: '/uploads/items/relative-bad-path.png',
+        originalUrl: 'https://terraria.wiki.gg/images/Relative_Bad_Path.png',
+        contentType: 'image/png',
+        lastVerifiedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.equal(audit.entities.items.cachedHitCount, 0);
+  assert.equal(audit.entities.items.brokenCachedUrlCount, 1);
+  assert.equal(audit.entities.items.brokenCachedUrlSamples[0].reason, 'outside_managed_prefix');
+});
+
 test('buildImageAssetReadinessAudit rejects managed path prefix collisions', () => {
   const audit = buildImageAssetReadinessAudit({
     generatedAt: GENERATED_AT,

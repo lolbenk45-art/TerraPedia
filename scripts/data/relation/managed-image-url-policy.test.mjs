@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 
 import {
   DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
+  isManagedImagePath,
   isManagedImageUrl,
   normalizeManagedImageUrlPrefixes,
   resolveManagedImageUrlPrefixes
@@ -45,6 +46,31 @@ test('resolveManagedImageUrlPrefixes keeps explicit prefixes and adds configured
     isManagedImageUrl('https://evil.example.test/terrapedia-images/items/wood.png', prefixes),
     false
   );
+});
+
+test('isManagedImagePath accepts the origin-free path the backend returns', () => {
+  const [prefix] = DEFAULT_MANAGED_IMAGE_URL_PREFIXES;
+
+  // Managed uploads are stored as `/terrapedia-images/...` with no origin, so a
+  // predicate that only understands absolute URLs reads every stored row as
+  // unmanaged. Path form carries no origin to distrust; it is matched on path.
+  assert.equal(isManagedImagePath('/terrapedia-images/items/2026/07/29/wood.png', [prefix]), true);
+  assert.equal(isManagedImagePath('/terrapedia-images/items/wood.png?v=2', [prefix]), true);
+  assert.equal(isManagedImagePath('/terrapedia-images/items', [prefix]), false);
+  assert.equal(isManagedImagePath('/terrapedia-images/items_evil/wood.png', [prefix]), false);
+  assert.equal(isManagedImagePath('/other-bucket/items/wood.png', [prefix]), false);
+  assert.equal(isManagedImagePath('/terrapedia-images/items/wood.png', []), false);
+
+  // A protocol-relative reference does carry an origin, and an unconfigured one
+  // must stay untrusted.
+  assert.equal(isManagedImagePath('//evil.example/terrapedia-images/items/wood.png', [prefix]), false);
+
+  // Absolute URLs keep the strict origin rule.
+  assert.equal(isManagedImagePath('http://localhost:9000/terrapedia-images/items/wood.png', [prefix]), true);
+  assert.equal(isManagedImagePath('http://evil.example/terrapedia-images/items/wood.png', [prefix]), false);
+  assert.equal(isManagedImagePath('https://terraria.wiki.gg/images/Wood.png', [prefix]), false);
+  assert.equal(isManagedImagePath(null, [prefix]), false);
+  assert.equal(isManagedImagePath('', [prefix]), false);
 });
 
 test('isManagedImageUrl matches configured HTTP URL origin and path only', () => {
@@ -195,3 +221,4 @@ test('default managed prefix allowlist covers canonical npc and projectile prefi
     true
   );
 });
+
