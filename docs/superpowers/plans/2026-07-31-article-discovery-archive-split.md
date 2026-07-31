@@ -385,7 +385,7 @@ Add assertions that require:
 'to="/articles/archive"'
 ```
 
-Replace the existing combined `articlePresentationContent` search assertion with destination-specific checks: the mast form/ID/submission markers must be read from `ArticleFeatureMeta.vue`, while `ArticleArchiveRail.vue` must be read for the explicit absence of the search form. Add an exact index-order assertion that the `definePageMeta` middleware block ends before the first `useAsyncData`, plus explicit forbiddens for an index API query bound to `currentPage.value` or `keyword.value`. Do not use a regex that permits optional query ownership.
+Replace the existing combined `articlePresentationContent` search assertion with destination-specific checks: the mast form/ID/submission markers must be read from `ArticleFeatureMeta.vue`. The explicit absence of the form in `ArticleArchiveRail.vue` is owned by Task 3 together with removing that markup. Add an exact index-order assertion that the `definePageMeta` middleware block ends before the first `useAsyncData`, plus explicit forbiddens for an index API query bound to `currentPage.value` or `keyword.value` within the fetch block only. Do not use a regex that permits optional query ownership.
 
 - [ ] **Step 2: Run the contract and record the expected red whitelist**
 
