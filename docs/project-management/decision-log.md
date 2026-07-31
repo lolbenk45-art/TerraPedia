@@ -206,3 +206,53 @@ change to `buildVerificationRecord` in
 in the Task 6 lineage bundle, and — for the 20 legacy items, which sit outside
 the authorized 877 frozen set — its own frozen input and a fresh Owner
 authorization.
+
+## D-2026-08-01-01: Item image dual-format retention lands with corrected disambiguation
+
+Decision: Implement the retention design deferred by `D-2026-07-31-01`, with its
+two disambiguation rules replaced. `D-2026-07-31-01` stated the rules correctly
+in the abstract but recorded the wrong outcome for the two items they were
+written for, because it read `itemInternalName` where the deciding field is the
+display name `itemName`.
+
+Corrected rules, applied in order, both failing closed:
+1. Display-name precedence. When more than one candidate survives identity
+   filtering, keep only those whose file base title equals the item's display
+   name. Candidate filtering accepts the internal name *and* the display name, so
+   a page hosting a sibling item's sprite otherwise stays ambiguous forever.
+2. Format precedence. Among what survives, exactly one `.png` leads as the
+   primary image (`is_primary=1`, `sort_order=0`) and every other format is
+   retained as a secondary row (`is_primary=0`, ascending `sort_order`). More
+   than one `.png`, or none, stays `ambiguous` rather than guessing.
+
+The superseded rule "a parenthesised variant suffix is demoted" is deleted, not
+implemented: it inverts the correct result.
+
+Evidence for the correction, from `data/standardized/items.standardized.json`
+and `data/standardized/item_pages.standardized.json`:
+- Item 2611 is `internalName=Flairon` but `name=Flairoon`, requested as page
+  title `Flairoon`. `Flairon.png` is already the existing image of item 5526
+  (`internalName=FlaironFlail`, `name=Flairon`), which shares page 4631.
+- Item 5358 is `internalName=Shellphone` but `name=Shellphone (Home)`.
+  `Shellphone.png` is already the existing image of item 5437
+  (`internalName=ShellphoneDummy`, `name=Shellphone`).
+- Task 2's independent local candidate evidence had already selected
+  `Flairoon.png` and `Shellphone (Home).png` for these two.
+
+Following `D-2026-07-31-01` literally would therefore have given both items a
+sibling item's sprite. `item_images` carries no unique key — V13 declares only
+`idx_item_images_item_id`, `idx_item_images_primary`, and
+`idx_item_images_provider` — so nothing in the database would have rejected the
+collision; uniqueness is the pipeline's responsibility alone.
+
+Scope: the 9 currently ambiguous items only. Seven (4 coins, 3 jellyfish) resolve
+by rule 2 into a `.png` primary plus a `.gif` secondary; items 2611 and 5358
+resolve by rule 1 into a single source with no secondary row. The 20 legacy
+`.gif`-primary items stay out of scope and still need their own frozen input and
+a fresh Owner authorization. `StrangePlant1..4` remain the known exception.
+
+Consequence: the 9 records carry no `source` and no imageinfo, only
+`candidateFileTitles`, so the corrected rules cannot be applied to the existing
+report offline. Clearing `ambiguous` to zero requires one more bounded run over
+exactly those 9 identities — a new frozen input, a new packet, and a new one-time
+decision identity.

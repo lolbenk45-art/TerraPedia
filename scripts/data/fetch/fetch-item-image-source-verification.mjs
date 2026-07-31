@@ -111,9 +111,13 @@ export function buildItemImageSourceVerificationInput({
     seenIds.add(String(identity.itemId));
     seenInternalNames.add(identity.itemInternalName);
     const candidate = candidateByInternalName.get(identity.itemInternalName);
+    // The review status is authoritative, not equal to the candidate
+    // classification: a completed verification round supersedes the candidate
+    // entry and can refine unresolved into ambiguous. The guard that matters is
+    // that the candidate report never resolved this identity either.
     if (!candidate || String(candidate.itemId) !== String(identity.itemId)
         || candidate.itemName !== identity.itemName
-        || candidate.classification !== reviewRow.status) {
+        || !isReverifiableClassification(candidate.classification)) {
       throw new Error(`candidate/review identity mismatch for ${identity.itemInternalName}`);
     }
     const quarantine = quarantineByInternalName.get(identity.itemInternalName);
@@ -535,7 +539,8 @@ function buildVerificationRecord(identity, response) {
       responseSha256
     };
   }
-  if (uniqueCandidates.length > 1) {
+  const resolved = resolveCandidatePreference(uniqueCandidates, identity);
+  if (!resolved) {
     return {
       ...itemIdentity(identity),
       classification: 'ambiguous',
@@ -546,33 +551,88 @@ function buildVerificationRecord(identity, response) {
     };
   }
 
-  const candidate = uniqueCandidates[0];
+  const sourceContext = {
+    identity,
+    revisionTimestamp: revisionTimestamp ?? identity.sourceRevisionTimestamp,
+    responseSha256
+  };
   return {
     ...itemIdentity(identity),
     classification: 'verified',
-    source: {
-      authority: 'raw_wiki_evidence',
-      evidenceKind: 'mediawiki_exact_file',
-      blockOrdinal: 1,
-      anchorTitle: identity.itemName,
-      rawSourceFile: identity.rawSourceFile,
-      rawFileSha256: identity.rawFileSha256,
-      pageId: identity.pageId,
-      requestedPageTitle: identity.requestedPageTitle,
-      sourcePage: identity.sourcePage,
-      sourceRevisionTimestamp: revisionTimestamp ?? identity.sourceRevisionTimestamp,
-      frozenSourceRevisionTimestamp: identity.sourceRevisionTimestamp,
-      revisionDrifted,
-      fileTitle: candidate.fileTitle,
-      originalUrl: candidate.originalUrl,
-      width: candidate.width,
-      height: candidate.height,
-      contentType: candidate.contentType,
-      verificationResponseSha256: responseSha256
-    },
+    source: buildEvidenceSource(resolved.primary, sourceContext, revisionDrifted),
+    ...(resolved.secondaries.length > 0
+      ? {
+          secondarySources: resolved.secondaries.map((candidate, index) => ({
+            ...buildEvidenceSource(candidate, sourceContext, revisionDrifted),
+            sortOrder: index + 1
+          }))
+        }
+      : {}),
     comparison: identity.comparison,
     responseSha256
   };
+}
+
+function buildEvidenceSource(candidate, { identity, revisionTimestamp, responseSha256 }, revisionDrifted) {
+  return {
+    authority: 'raw_wiki_evidence',
+    evidenceKind: 'mediawiki_exact_file',
+    blockOrdinal: 1,
+    anchorTitle: identity.itemName,
+    rawSourceFile: identity.rawSourceFile,
+    rawFileSha256: identity.rawFileSha256,
+    pageId: identity.pageId,
+    requestedPageTitle: identity.requestedPageTitle,
+    sourcePage: identity.sourcePage,
+    sourceRevisionTimestamp: revisionTimestamp,
+    frozenSourceRevisionTimestamp: identity.sourceRevisionTimestamp,
+    revisionDrifted,
+    fileTitle: candidate.fileTitle,
+    originalUrl: candidate.originalUrl,
+    width: candidate.width,
+    height: candidate.height,
+    contentType: candidate.contentType,
+    verificationResponseSha256: responseSha256
+  };
+}
+
+// Multi-candidate resolution. Two rules, applied in order, both fail closed:
+// 1. A file titled exactly like the item's display name wins. Candidate filtering
+//    accepts both the internal name and the display name, so a page hosting a
+//    sibling item's sprite (Flairon.png beside Flairoon, Shellphone.png beside
+//    Shellphone (Home)) otherwise stays ambiguous forever.
+// 2. Among what survives, exactly one `.png` leads as the primary image and every
+//    other format is retained as a secondary row. More than one `.png`, or none,
+//    stays ambiguous rather than guessing.
+function resolveCandidatePreference(candidates, identity) {
+  if (candidates.length === 1) {
+    return { primary: candidates[0], secondaries: [] };
+  }
+  const itemNameKey = normalizeIdentity(identity.itemName);
+  const exactNameMatches = candidates.filter(
+    (candidate) => normalizeFileIdentity(candidate.fileTitle) === itemNameKey
+  );
+  const preferred = exactNameMatches.length > 0 && exactNameMatches.length < candidates.length
+    ? exactNameMatches
+    : candidates;
+  if (preferred.length === 1) {
+    return { primary: preferred[0], secondaries: [] };
+  }
+  const pngCandidates = preferred.filter((candidate) => isPngCandidate(candidate));
+  if (pngCandidates.length !== 1) return null;
+  const [primary] = pngCandidates;
+  return {
+    primary,
+    secondaries: preferred.filter((candidate) => candidate !== primary)
+  };
+}
+
+function isReverifiableClassification(value) {
+  return value === 'ambiguous' || value === 'unresolved';
+}
+
+function isPngCandidate(candidate) {
+  return /\.png$/i.test(String(candidate?.fileTitle ?? ''));
 }
 
 function buildFileCandidate(page) {

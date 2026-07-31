@@ -122,11 +122,13 @@ export function buildItemImageSourcePromotionArtifacts({
     }
 
     verifyEvidenceSource(evidence.source, rawBytes);
+    const secondarySources = normalizeSecondarySources(evidence.secondarySources, rawBytes);
     counters.promoted += 1;
     rows.push({
       ...identity,
       status: 'promoted',
       source: structuredClone(evidence.source),
+      ...(secondarySources.length > 0 ? { secondarySources } : {}),
       comparison: structuredClone(evidence.comparison ?? null)
     });
   }
@@ -169,6 +171,7 @@ export function buildItemImageSourcePromotionArtifacts({
     itemName: row.itemName,
     status: row.status,
     source: row.source,
+    ...(row.secondarySources ? { secondarySources: row.secondarySources } : {}),
     comparison: row.comparison
   }));
   const bundlePayload = { descriptor, counters, rows: bundleRows };
@@ -263,6 +266,21 @@ function collectRawDescriptors(...reports) {
     }
   }
   return [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
+}
+
+// Retained non-primary formats carry the same evidence contract as the primary
+// image and must stay in a stable ascending order, so the applied rows keep a
+// deterministic sort_order.
+function normalizeSecondarySources(secondarySources, rawBytes) {
+  if (secondarySources == null) return [];
+  const sources = requireRecords(secondarySources, 'secondary image sources');
+  return sources.map((source, index) => {
+    verifyEvidenceSource(source, rawBytes);
+    if (Number(source.sortOrder) !== index + 1) {
+      throw new Error('secondary image source sortOrder must ascend from 1');
+    }
+    return structuredClone(source);
+  });
 }
 
 function verifyEvidenceSource(source, rawBytes) {

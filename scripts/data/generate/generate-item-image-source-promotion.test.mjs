@@ -102,11 +102,51 @@ test('buildItemImageSourcePromotionArtifacts lets verification evidence supersed
   assert.ok(artifacts.bundle);
 });
 
+test('buildItemImageSourcePromotionArtifacts promotes every retained image format', () => {
+  const input = promotionInput({
+    classification: 'unresolved',
+    verificationResolves: true,
+    retainedFormats: true
+  });
+
+  const artifacts = buildItemImageSourcePromotionArtifacts(input);
+
+  assert.equal(artifacts.review.counters.promoted, 1);
+  assert.equal(artifacts.review.counters.ambiguous, 0);
+  const promoted = artifacts.review.rows.find((row) => row.itemInternalName === 'Wrench');
+  assert.equal(promoted.source.fileTitle, 'Red Wrench.png');
+  assert.deepEqual(
+    promoted.secondarySources.map((source) => [source.fileTitle, source.sortOrder]),
+    [['Red Wrench.gif', 1]]
+  );
+  assert.ok(artifacts.bundle);
+  const bundleRow = artifacts.bundle.rows.find((row) => row.itemInternalName === 'Wrench');
+  assert.deepEqual(bundleRow.secondarySources.map((source) => source.fileTitle), ['Red Wrench.gif']);
+  const existingRow = artifacts.bundle.rows.find((row) => row.itemInternalName === 'Torch');
+  assert.equal('secondarySources' in existingRow, false);
+});
+
+test('buildItemImageSourcePromotionArtifacts rejects a retained format with unverifiable evidence', () => {
+  const input = promotionInput({
+    classification: 'unresolved',
+    verificationResolves: true,
+    retainedFormats: true,
+    corruptSecondary: true
+  });
+
+  assert.throws(
+    () => buildItemImageSourcePromotionArtifacts(input),
+    /raw evidence SHA-256 mismatch/i
+  );
+});
+
 function promotionInput({
   classification = 'raw_verified',
   includeRecord = true,
   duplicateCandidate = false,
-  verificationResolves = false
+  verificationResolves = false,
+  retainedFormats = false,
+  corruptSecondary = false
 } = {}) {
   const standardizedPayload = {
     schemaVersion: '1.0.0',
@@ -201,6 +241,18 @@ function promotionInput({
           itemName: 'Red Wrench',
           classification: 'verified',
           source: structuredClone(source),
+          ...(retainedFormats
+            ? {
+                secondarySources: [{
+                  ...structuredClone(source),
+                  rawFileSha256: corruptSecondary ? sha256('unrelated-bytes') : sha256(rawBytes),
+                  fileTitle: 'Red Wrench.gif',
+                  originalUrl: 'https://terraria.wiki.gg/images/Red_Wrench.gif',
+                  contentType: 'image/gif',
+                  sortOrder: 1
+                }]
+              }
+            : {}),
           comparison: {
             local: { status: 'missing' },
             lineage: { status: 'missing' }

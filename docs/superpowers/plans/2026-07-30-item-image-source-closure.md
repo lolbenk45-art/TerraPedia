@@ -375,6 +375,25 @@ decision, not a defect. Tasks 4-7 remain unimplemented and their downstream
 operations remain unregistered, so no downstream authorization can be
 pre-generated.
 
+Amendment (2026-08-01): dual-format retention is now implemented, under the
+corrected rules of `D-2026-08-01-01`. `buildVerificationRecord` no longer returns
+`ambiguous` for every multi-candidate identity. It applies display-name
+precedence first, then format precedence, and emits an optional
+`secondarySources[]` array beside the unchanged `source` object; the key is
+omitted entirely when there is no secondary, so single-candidate records stay
+byte-identical to the 868 already verified. More than one `.png`, or none, still
+fails closed as `ambiguous`. `generate-item-image-source-promotion.mjs` verifies
+each retained format against raw evidence with the same contract as the primary,
+requires `sortOrder` to ascend from 1, and carries the array through review rows
+and bundle rows.
+
+`D-2026-07-31-01`'s two special rules were recorded with inverted outcomes and
+are superseded; do not implement "parenthesised variant demoted".
+
+This closes the code half only. The 9 ambiguous records hold no imageinfo, so
+Task 8 Step 2 needs a fourth bounded run over exactly those 9 identities before
+`ambiguous` can reach zero and the bundle can be written.
+
 ### Task 4: Apply Standardized Sources Atomically
 
 **Files:**

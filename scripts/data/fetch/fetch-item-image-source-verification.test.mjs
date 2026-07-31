@@ -229,6 +229,105 @@ test('buildItemImageSourceVerificationInput freezes only unresolved review ident
   assert.equal(input.writeBoundary.databaseWrites, false);
 });
 
+test('buildItemImageSourceVerificationInput freezes an identity verification refined to ambiguous', () => {
+  const rawEvidenceBytesByFile = new Map([
+    ['unresolveditem.latest.json', rawPage({
+      pageId: 1003,
+      requestedPageTitle: 'Unresolved Item',
+      pageTitle: 'Unresolved Item group'
+    })]
+  ]);
+  const candidateReport = candidateInputReport(rawEvidenceBytesByFile, { unresolvedOnly: true });
+  const candidateReportBytes = JSON.stringify(candidateReport);
+  const promotionReviewBytes = JSON.stringify({
+    schemaVersion: 1,
+    entity: 'item_image_source_promotion_review',
+    descriptor: {
+      candidateReport: { sha256: sha256(candidateReportBytes) },
+      standardized: {
+        sha256: `sha256:${'c'.repeat(64)}`,
+        identitySetSha256: `sha256:${'d'.repeat(64)}`,
+        recordCount: 6131
+      }
+    },
+    counters: {
+      total: 6131,
+      existing: 2119,
+      promoted: 3135,
+      unresolved: 0,
+      ambiguous: 1,
+      duplicate: 0,
+      conflict: 0
+    },
+    // The candidate report never resolved this identity, and a completed
+    // verification round then refined it from unresolved to ambiguous.
+    rows: [reviewRow(3, 'UnresolvedItem', 'Unresolved Item', 'ambiguous')]
+  });
+
+  const input = buildItemImageSourceVerificationInput({
+    candidateReportBytes,
+    candidateReportPath: 'reports/audit/candidates.json',
+    promotionReviewBytes,
+    promotionReviewPath: 'reports/audit/review.json',
+    rawEvidenceBytesByFile,
+    generatedAt: '2026-08-01T00:00:00.000Z',
+    batchSize: 1,
+    maxRequests: 1
+  });
+
+  assert.deepEqual(input.records.map((record) => record.itemInternalName), ['UnresolvedItem']);
+  assert.equal(input.records[0].priorClassification, 'ambiguous');
+});
+
+test('buildItemImageSourceVerificationInput rejects a review identity the candidates already resolved', () => {
+  const rawEvidenceBytesByFile = new Map([
+    ['unresolveditem.latest.json', rawPage({
+      pageId: 1003,
+      requestedPageTitle: 'Unresolved Item',
+      pageTitle: 'Unresolved Item group'
+    })]
+  ]);
+  const candidateReport = candidateInputReport(rawEvidenceBytesByFile, { unresolvedOnly: true });
+  candidateReport.records[0].classification = 'raw_verified';
+  const candidateReportBytes = JSON.stringify(candidateReport);
+  const promotionReviewBytes = JSON.stringify({
+    schemaVersion: 1,
+    entity: 'item_image_source_promotion_review',
+    descriptor: {
+      candidateReport: { sha256: sha256(candidateReportBytes) },
+      standardized: {
+        sha256: `sha256:${'c'.repeat(64)}`,
+        identitySetSha256: `sha256:${'d'.repeat(64)}`,
+        recordCount: 6131
+      }
+    },
+    counters: {
+      total: 6131,
+      existing: 2119,
+      promoted: 3135,
+      unresolved: 0,
+      ambiguous: 1,
+      duplicate: 0,
+      conflict: 0
+    },
+    rows: [reviewRow(3, 'UnresolvedItem', 'Unresolved Item', 'ambiguous')]
+  });
+
+  assert.throws(
+    () => buildItemImageSourceVerificationInput({
+      candidateReportBytes,
+      candidateReportPath: 'reports/audit/candidates.json',
+      promotionReviewBytes,
+      promotionReviewPath: 'reports/audit/review.json',
+      rawEvidenceBytesByFile,
+      generatedAt: '2026-08-01T00:00:00.000Z',
+      batchSize: 1,
+      maxRequests: 1
+    }),
+    /candidate\/review identity mismatch/i
+  );
+});
+
 test('buildItemImageSourceVerificationInput rejects a duplicated review identity', () => {
   const rawEvidenceBytesByFile = new Map([[
     'unresolveditem.latest.json',
@@ -320,15 +419,20 @@ test('runItemImageSourceVerification publishes progress before bounded frozen re
     .every((event) => event.payload.batchLimit <= 2));
   assert.deepEqual(report.summary, {
     total: 3,
-    verified: 1,
-    ambiguous: 1,
+    verified: 2,
+    ambiguous: 0,
     unresolved: 1,
     failed: 0,
     requestCount: 3
   });
   assert.deepEqual(
     report.records.map((record) => record.classification),
-    ['verified', 'ambiguous', 'unresolved']
+    ['verified', 'verified', 'unresolved']
+  );
+  assert.equal(report.records[1].source.fileTitle, 'Ambiguous Item.png');
+  assert.deepEqual(
+    report.records[1].secondarySources.map((source) => source.fileTitle),
+    ['Ambiguous Item.gif']
   );
   assert.match(report.records[0].responseSha256, /^sha256:[a-f0-9]{64}$/);
   assert.equal(report.records[0].source.authority, 'raw_wiki_evidence');
@@ -505,6 +609,116 @@ test('resolveItemImageSourceVerificationProgressPath honors explicit and wrapper
   );
 });
 
+test('runItemImageSourceVerification keeps every format with the png as the primary source', async () => {
+  const row = frozenRow({
+    itemId: 71,
+    itemInternalName: 'CopperCoin',
+    itemName: 'Copper Coin',
+    fileTitles: ['Copper Coin.gif', 'Copper Coin.png']
+  });
+
+  const report = await runVerificationFor(row, ['Copper Coin.gif', 'Copper Coin.png']);
+
+  assert.equal(report.summary.ambiguous, 0);
+  assert.equal(report.summary.verified, 1);
+  const record = report.records[0];
+  assert.equal(record.classification, 'verified');
+  assert.equal(record.source.fileTitle, 'Copper Coin.png');
+  assert.equal(record.source.contentType, 'image/png');
+  assert.deepEqual(
+    record.secondarySources.map((source) => [source.fileTitle, source.sortOrder]),
+    [['Copper Coin.gif', 1]]
+  );
+  assert.equal(record.secondarySources[0].originalUrl, 'https://terraria.wiki.gg/images/Copper_Coin.gif');
+  assert.equal(record.candidateFileTitles, undefined);
+});
+
+test('runItemImageSourceVerification prefers the file titled exactly like the item name', async () => {
+  const row = frozenRow({
+    itemId: 2611,
+    itemInternalName: 'Flairon',
+    itemName: 'Flairoon',
+    fileTitles: ['Flairon.png', 'Flairoon.png']
+  });
+
+  const report = await runVerificationFor(row, ['Flairon.png', 'Flairoon.png']);
+
+  assert.equal(report.summary.ambiguous, 0);
+  const record = report.records[0];
+  assert.equal(record.classification, 'verified');
+  assert.equal(record.source.fileTitle, 'Flairoon.png');
+  assert.equal(record.secondarySources, undefined);
+});
+
+test('runItemImageSourceVerification keeps a parenthesised file title when it is the item name', async () => {
+  const row = frozenRow({
+    itemId: 5358,
+    itemInternalName: 'Shellphone',
+    itemName: 'Shellphone (Home)',
+    fileTitles: ['Shellphone (Home).png', 'Shellphone.png']
+  });
+
+  const report = await runVerificationFor(row, ['Shellphone (Home).png', 'Shellphone.png']);
+
+  assert.equal(report.summary.ambiguous, 0);
+  const record = report.records[0];
+  assert.equal(record.classification, 'verified');
+  assert.equal(record.source.fileTitle, 'Shellphone (Home).png');
+  assert.equal(record.secondarySources, undefined);
+});
+
+test('runItemImageSourceVerification still fails closed when no png candidate can lead', async () => {
+  const row = frozenRow({
+    itemId: 4242,
+    itemInternalName: 'LegacyThing',
+    itemName: 'Legacy Thing',
+    fileTitles: ['Legacy Thing.gif', 'Legacy Thing.jpg']
+  });
+
+  const report = await runVerificationFor(row, ['Legacy Thing.gif', 'Legacy Thing.jpg']);
+
+  assert.equal(report.summary.ambiguous, 1);
+  assert.equal(report.summary.verified, 0);
+  const record = report.records[0];
+  assert.equal(record.classification, 'ambiguous');
+  assert.equal(record.source, null);
+  assert.deepEqual(record.candidateFileTitles, ['Legacy Thing.gif', 'Legacy Thing.jpg']);
+});
+
+async function runVerificationFor(row, fileTitles) {
+  const input = frozenInput({ limit: 1 });
+  input.records = [row];
+  input.inputs.rawFiles = [{ path: row.rawSourceFile, sha256: row.rawFileSha256 }];
+
+  return runItemImageSourceVerification({
+    repoRoot: '/tmp',
+    input,
+    inputPath: '/tmp/frozen-item-image-input.json',
+    inputSha256: `sha256:${'a'.repeat(64)}`,
+    progressPath: '/tmp/item-image-progress.json',
+    outputPath: '/tmp/item-image-report.json',
+    batchSize: 1,
+    maxRequests: 1
+  }, {
+    authorize: async () => {},
+    fetchJson: async ({ identity }) => ({
+      query: {
+        pages: [
+          {
+            pageid: identity.pageId,
+            title: identity.sourcePage,
+            revisions: [{ timestamp: identity.sourceRevisionTimestamp }]
+          },
+          ...fileTitles.map((fileTitle) => wikiFile(fileTitle))
+        ]
+      }
+    }),
+    now: clock(),
+    writeProgress: async () => {},
+    writeReport: async () => {}
+  });
+}
+
 function frozenInput({ limit = 3 } = {}) {
   const rows = [
     frozenRow({
@@ -555,7 +769,7 @@ function frozenRow({ itemId, itemInternalName, itemName, fileTitles }) {
     itemName,
     priorClassification: 'unresolved',
     rawSourceFile: `${itemInternalName.toLowerCase()}.latest.json`,
-    rawFileSha256: `sha256:${String(itemId).repeat(64)}`,
+    rawFileSha256: `sha256:${String(itemId).repeat(64).slice(0, 64)}`,
     pageId: 1000 + itemId,
     requestedPageTitle: itemName,
     sourcePage: `${itemName} group`,
