@@ -66,10 +66,10 @@ export function buildItemImageSourcePromotionArtifacts({
     const key = identity.itemInternalName;
     const hasFileTitle = Boolean(text(item?.imageFileTitle));
     const hasImageUrl = Boolean(text(item?.imageUrl));
-    const evidenceRows = [
-      ...(candidateRecords.get(key) ?? []),
-      ...(verificationRecords.get(key) ?? [])
-    ];
+    const verificationRows = verificationRecords.get(key) ?? [];
+    const evidenceRows = verificationRows.length > 0
+      ? verificationRows
+      : (candidateRecords.get(key) ?? []);
 
     if (hasFileTitle !== hasImageUrl) {
       counters.conflict += 1;

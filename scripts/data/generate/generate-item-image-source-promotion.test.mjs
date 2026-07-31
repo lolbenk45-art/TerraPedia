@@ -88,10 +88,25 @@ test('buildItemImageSourcePromotionArtifacts keeps duplicate candidates review-o
   assert.equal(artifacts.bundle, null);
 });
 
+test('buildItemImageSourcePromotionArtifacts lets verification evidence supersede the candidate entry', () => {
+  const input = promotionInput({ classification: 'unresolved', verificationResolves: true });
+
+  const artifacts = buildItemImageSourcePromotionArtifacts(input);
+
+  assert.equal(artifacts.review.counters.duplicate, 0);
+  assert.equal(artifacts.review.counters.unresolved, 0);
+  assert.equal(artifacts.review.counters.promoted, 1);
+  const promoted = artifacts.review.rows.find((row) => row.itemInternalName === 'Wrench');
+  assert.equal(promoted.status, 'promoted');
+  assert.equal(promoted.source.fileTitle, 'Red Wrench.png');
+  assert.ok(artifacts.bundle);
+});
+
 function promotionInput({
   classification = 'raw_verified',
   includeRecord = true,
-  duplicateCandidate = false
+  duplicateCandidate = false,
+  verificationResolves = false
 } = {}) {
   const standardizedPayload = {
     schemaVersion: '1.0.0',
@@ -172,11 +187,33 @@ function promotionInput({
     candidates: records.filter((entry) => entry.classification === 'raw_verified')
   };
 
+  const verificationReport = verificationResolves
+    ? {
+        schemaVersion: '1.0.0',
+        entity: 'item_image_source_verification',
+        generatedAt: '2026-07-31T01:00:00.000Z',
+        inputs: {
+          rawFiles: [{ path: 'wrench.latest.json', sha256: sha256(rawBytes) }]
+        },
+        records: [{
+          itemId: 20,
+          itemInternalName: 'Wrench',
+          itemName: 'Red Wrench',
+          classification: 'verified',
+          source: structuredClone(source),
+          comparison: {
+            local: { status: 'missing' },
+            lineage: { status: 'missing' }
+          }
+        }]
+      }
+    : null;
+
   return {
     standardizedBytes,
     itemPagesBytes,
     candidateReportBytes: JSON.stringify(candidateReport),
-    verificationReportBytes: null,
+    verificationReportBytes: verificationReport == null ? null : JSON.stringify(verificationReport),
     rawEvidenceBytesByFile: new Map([['wrench.latest.json', rawBytes]]),
     producerCodeSha256: sha256('producer-code')
   };
