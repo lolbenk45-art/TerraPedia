@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
+definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import { usePublicArmorSets } from '~/composables/usePublicArmorSets'
 import type { PublicArmorSetQuery } from '~/types/public-api'

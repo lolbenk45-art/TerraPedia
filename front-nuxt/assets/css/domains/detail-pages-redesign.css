@@ -675,7 +675,7 @@
   --npc-secondary-shadow:
     inset 0 1px color-mix(in srgb, var(--tp-color-text-strong) 3.5%, transparent),
     0 12px 26px -18px color-mix(in srgb, var(--tp-color-page) 88%, transparent);
-  --npc-sunken-bg: color-mix(in srgb, var(--tp-color-page) 62%, transparent);
+  --npc-sunken-bg: color-mix(in srgb, var(--tp-color-recess) 62%, transparent);
   --npc-sunken-border: color-mix(in srgb, var(--tp-color-text-strong) 7.5%, transparent);
   --npc-sunken-shadow:
     inset 0 1px color-mix(in srgb, var(--tp-color-page) 58%, transparent),
@@ -2107,11 +2107,11 @@
     0 20px 52px color-mix(in srgb, var(--tp-color-page) 27%, transparent),
     inset 0 1px color-mix(in srgb, var(--tp-color-text-strong) 5%, transparent);
   --item-detail-line: var(--line);
-  --item-metric-bg: color-mix(in srgb, var(--tp-color-page) 50%, transparent);
+  --item-metric-bg: color-mix(in srgb, var(--tp-color-recess) 50%, transparent);
   --item-metric-border: color-mix(in srgb, var(--tp-color-text-strong) 7.5%, transparent);
   --item-metric-shadow: inset 0 1px color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent);
-  --item-price-bg: color-mix(in srgb, var(--tp-color-page) 58%, transparent);
-  --item-price-border: color-mix(in srgb, var(--tp-color-page) 50%, transparent);
+  --item-price-bg: color-mix(in srgb, var(--tp-color-recess) 58%, transparent);
+  --item-price-border: color-mix(in srgb, var(--tp-color-recess) 50%, transparent);
   --item-price-shadow:
     inset 0 1px color-mix(in srgb, var(--tp-color-page) 58%, transparent),
     inset 0 -1px color-mix(in srgb, var(--tp-color-text-strong) 3.5%, transparent);
@@ -2131,7 +2131,7 @@
   --item-rail-card-bg: color-mix(in srgb, var(--item-card-base) 95%, transparent);
   --item-rail-card-border: var(--item-card-border);
   --item-rail-card-shadow: var(--item-card-secondary-shadow);
-  --item-sunken-bg: color-mix(in srgb, var(--tp-color-page) 62%, transparent);
+  --item-sunken-bg: color-mix(in srgb, var(--tp-color-recess) 62%, transparent);
   --item-sunken-border: color-mix(in srgb, var(--tp-color-text-strong) 7.5%, transparent);
   --item-sunken-shadow:
     inset 0 1px color-mix(in srgb, var(--tp-color-page) 58%, transparent),
@@ -2140,8 +2140,8 @@
   --item-object-border: color-mix(in srgb, var(--tp-color-text-strong) 7.5%, transparent);
   --item-object-hover-bg: color-mix(in srgb, var(--tp-color-accent) 7.5%, transparent);
   --item-object-shadow: inset 0 1px color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent);
-  --item-well-bg: color-mix(in srgb, var(--tp-color-page) 50%, transparent);
-  --item-well-border: color-mix(in srgb, var(--tp-color-page) 50%, transparent);
+  --item-well-bg: color-mix(in srgb, var(--tp-color-recess) 50%, transparent);
+  --item-well-border: color-mix(in srgb, var(--tp-color-recess) 50%, transparent);
   --item-well-shadow:
     inset 0 1px 3px color-mix(in srgb, var(--tp-color-page) 55%, transparent),
     inset 0 -1px color-mix(in srgb, var(--tp-color-text-strong) 3.5%, transparent);

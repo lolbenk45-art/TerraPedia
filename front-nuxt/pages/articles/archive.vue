@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'article-screen article-archive-approved-screen tp-ground' })
+definePageMeta({ publicScreenClass: 'article-screen article-archive-approved-screen' })
 
 import type { ApiResponse, Pagination, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'

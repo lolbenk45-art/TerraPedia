@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
+definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import { usePublicBuffs } from '~/composables/usePublicBuffs'
 import type { PublicBuffQuery } from '~/types/public-api'

@@ -72,6 +72,58 @@ linear-gradient(180deg, rgba(5, 8, 6, 0), rgba(5, 8, 6, 0.82) 420px)
 
 **再次踩到同一个坑**：`publicShellClasses` 结尾的展开段会把未排除的公开页按 `'entity-screen'` 覆盖，四条新条目必须同时加进排除列表，否则断言静默失效。
 
+## 第三批：全站适配（同日追加）
+
+### 先做涟漪分析
+
+铺全站之前先把之前标为「必须先做」的涟漪分析做掉。60 处消费 `--tp-color-page` 中，**24 处把它当暗端用**：
+
+| 类别 | 数量 | 底提亮后 |
+|---|---|---|
+| 下沉面 / 井（`--npc-sunken-bg`、`--item-sunken-bg`、`--item-well-bg`、`--item-metric-bg`、`--item-price-bg`） | 5 | **层次倒置**——凹陷反而变亮 |
+| 阴影（`0 20px 52px color-mix(page 27%, transparent)` 等） | ~12 | 削弱 |
+| 压暗遮罩 | ~7 | 变弱 |
+
+只有第一类是真问题，根因是：**这些「凹陷」把「底色」当成「比面更暗的东西」用**，而这个等式只在底是全站最暗时成立。
+
+修法是给凹陷一个自己的令牌：
+
+```css
+/* tokens.css */
+--tp-color-recess: var(--bg);   /* 凹陷是"挖到比地面更低"，不随底走 */
+```
+
+深色侧 7 处声明改指它（5 个背景 + 2 个配套边框）。因为 `--tp-color-recess` 与 `--tp-color-page` 当时都读 `--bg`，**落地当天零视觉变化**；提亮之后凹陷原地不动。
+
+浅色侧的 4 处**没有**改：浅色底本轮不动，且浅色另有「必须通过既有主题令牌压平」的合同，为此引入新令牌会判红。断言相应收窄到只管混 `transparent` 的深色合成式。
+
+### 底挂到布局层
+
+原计划给每个页面 meta 逐个加 `tp-ground`。实际改在 `layouts/default.vue` 的 `screenClasses`：
+
+```js
+const screenClasses = computed(() => ['screen', 'tp-ground', ...routeScreenClass.value.split(/\s+/), 'active'])
+```
+
+一行覆盖全站，省掉 28 个页面 meta 和 28 条合同条目。且因为该 `<section>` 包住导航、正文与页脚，`.tp-ground` 里的 `--tp-color-page` 重定义自然作用于整个子树——**等于同时完成了「提升到 :root」和「各页挂载」两步**，不需要再单独改令牌。
+
+`[data-theme="dark"] .tp-ground` 特指度 `(0,2,0)`，压过各页自写的 screen 规则（含详情页的 `[data-theme="dark"] .item-detail-approved-screen`，同为 `(0,2,0)` 但 ground-gloss.css 后导入）。因此详情页的 125deg 斜向渐变、首页的硬编码底、`.entity-screen` 的 420px 黑幕全部自动让位。
+
+之前六页 meta 上的 `tp-ground` 与合同里对应条目已一并还原。
+
+### 全站实测
+
+```
+深色: page=#0b120c  recess=#050806  iso=isolate   （凹陷不跟着走）
+浅色: page=#f3ead8  recess=#f3ead8  iso=auto      （规则确实未生效）
+```
+
+首页 / 物品 / 制作 / 搜索 / 关于 / 三类详情页 均 `http=200`、`overflowX=0`。物品详情页人工核验：核心数值指标块、买入/售出价格块、合成链 L1–L3 井，全部仍明显暗于所在面板，**无倒置**。`pnpm run check` 退出码 0。
+
+### 仍未收编
+
+`/items` 卡墙的 9 个 radial 与 7 处私有 34px 栅格、`/crafting` 的私有双层栅格与它自己那条 420px 82% 黑幕（`--crafting-grid-wash`）——都是**对象级**的光与纹理，不在 screen 层，所以没有被这次接管。它们现在坐在统一底之上，不冲突但仍不统一。另行立项。
+
 ## 晋级路径（未做）
 
 试点代码即最终代码，不返工：其余页面陆续给 screenClass 追加 `tp-ground` 并各指定一个焦点容器；全站铺完后把 `--tp-color-page: #0b120c` 从 `.tp-ground` 上移到 `:root` 深色块，删掉局部覆盖。令牌定义自始至终只有一处。

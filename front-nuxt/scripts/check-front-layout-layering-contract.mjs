@@ -434,6 +434,29 @@ requireIncludes(
   'ground-gloss.css must be imported from the domains barrel',
 )
 
+// 统一底挂在布局层，全站一条；不再由各页 publicScreenClass 逐个声明。
+requireRegex(
+  'layouts/default.vue',
+  readOptional('layouts/default.vue'),
+  /const screenClasses = computed\(\(\) => \[\s*'screen',\s*'tp-ground',/m,
+  'the shared dark ground must be owned by the layout so every public route gets it',
+)
+
+// 凹陷面必须读自己的令牌：借用 --tp-color-page 时，底一提亮凹陷会跟着变亮甚至倒置。
+requireIncludes(
+  'assets/css/tokens.css',
+  tokens,
+  '--tp-color-recess:',
+  'recess surfaces need a ground-independent token',
+)
+// 只管深色那批（混 transparent 的合成式）。浅色底本轮不动，且浅色另有
+// 「必须通过既有主题令牌压平」的合同，不应为此引入新令牌。
+for (const recessToken of ['--npc-sunken-bg', '--item-sunken-bg', '--item-well-bg', '--item-metric-bg', '--item-price-bg']) {
+  if (new RegExp(`${recessToken}:\\s*color-mix\\(in srgb, var\\(--tp-color-page\\)[^;]*transparent\\)`).test(detailPageRedesignCss)) {
+    violations.push(`assets/css/domains/detail-pages-redesign.css: ${recessToken} must derive from --tp-color-recess, not the page ground`)
+  }
+}
+
 requireRegex(
   'assets/css/domains/detail-pages-redesign.css',
   detailPageRedesignCss,

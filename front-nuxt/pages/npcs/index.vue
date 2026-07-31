@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
+definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import type { NpcCatalogCard, PublicNpcQuery } from '~/types/public-api'
 

@@ -12,8 +12,12 @@ const routeScreenClass = computed(() => String(
   ?? 'entity-screen',
 ).trim())
 
+// tp-ground：统一的深色底与栅格，挂在布局层所以全站一致。
+// 它同时在子树内重定义 --tp-color-page，因此所有由底推导的面自动跟上；
+// 凹陷面读的是 --tp-color-recess，不随底走（见 tokens.css）。
 const screenClasses = computed(() => [
   'screen',
+  'tp-ground',
   ...routeScreenClass.value.split(/\s+/).filter(Boolean),
   'active',
 ])

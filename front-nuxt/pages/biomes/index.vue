@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
+definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import { usePublicBiomes } from '~/composables/usePublicBiomes'
 import {

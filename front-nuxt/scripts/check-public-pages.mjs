@@ -248,14 +248,9 @@ const publicShellClasses = new Map([
   ['pages/index.vue', 'home-screen'],
   ['pages/search-tool.vue', 'home-screen search-tool-screen'],
   ['pages/articles/index.vue', 'article-screen article-index-approved-screen'],
-  ['pages/articles/archive.vue', 'article-screen article-archive-approved-screen tp-ground'],
+  ['pages/articles/archive.vue', 'article-screen article-archive-approved-screen'],
   ['pages/articles/[slug].vue', 'article-screen'],
   ['pages/items/index.vue', 'catalog-screen'],
-  ['pages/npcs/index.vue', 'entity-screen tp-ground'],
-  ['pages/bosses/index.vue', 'entity-screen tp-ground'],
-  ['pages/buffs/index.vue', 'entity-screen tp-ground'],
-  ['pages/armor-sets/index.vue', 'entity-screen tp-ground'],
-  ['pages/biomes/index.vue', 'entity-screen tp-ground'],
   ['pages/items/[id].vue', 'detail-screen item-detail-approved-screen'],
   ['pages/npcs/[id].vue', 'entity-screen npc-detail-approved-screen'],
   ['pages/crafting/index.vue', 'entity-screen crafting-screen'],
@@ -269,10 +264,7 @@ const publicShellClasses = new Map([
   ].filter((path) => ![
     'pages/index.vue', 'pages/search-tool.vue', 'pages/articles/index.vue', 'pages/articles/archive.vue',
     'pages/articles/[slug].vue', 'pages/items/index.vue', 'pages/items/[id].vue',
-    'pages/npcs/[id].vue', 'pages/crafting/index.vue', 'pages/npcs/index.vue',
-    // 已迁到共享底：显式条目必须排除，否则会被这里按 'entity-screen' 静默覆盖。
-    'pages/bosses/index.vue', 'pages/buffs/index.vue',
-    'pages/armor-sets/index.vue', 'pages/biomes/index.vue',
+    'pages/npcs/[id].vue', 'pages/crafting/index.vue',
   ].includes(path)).map((path) => [path, 'entity-screen']),
 ])
 

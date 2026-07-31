@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'entity-screen tp-ground' })
+definePageMeta({ publicScreenClass: 'entity-screen' })
 
 import { usePublicBosses } from '~/composables/usePublicBosses'
 import type { PublicBossQuery } from '~/types/public-api'

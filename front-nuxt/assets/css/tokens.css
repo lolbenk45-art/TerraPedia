@@ -1,6 +1,13 @@
 :root {
   --tp-color-page: var(--bg);
   --tp-color-page-raised: var(--bg-2);
+  /*
+    凹陷面：语义是"挖到比地面更低"，不是"碰巧和地面同色"。
+    此前 --npc-sunken-bg 等一律由 --tp-color-page 推导，那个等式只在
+    底色是全站最暗时成立；底一提亮凹陷会跟着变亮甚至亮过它周围的面，
+    层次倒置。因此单列一个令牌，不随底走。
+  */
+  --tp-color-recess: var(--bg);
   --tp-color-surface: var(--panel);
   --tp-color-surface-strong: var(--panel-2);
   --tp-color-surface-soft: rgba(244,234,208,0.025);
