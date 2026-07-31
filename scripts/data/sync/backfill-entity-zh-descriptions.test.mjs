@@ -53,6 +53,28 @@ test('extractFirstChineseParagraph removes wiki tag spaces around Chinese punctu
   );
 });
 
+test('extractFirstChineseParagraph collapses the duplicate period left by a stripped reference', () => {
+  const html = `
+    <p><b>世界吞噬怪</b>是一个蠕虫 Boss。它总共有 67 / 72 个体节。<sup id="cite_ref-segcount_1-0" class="reference"><a href="#cite_note-segcount-1"><span class="cite-bracket">&#91;</span>1<span class="cite-bracket">&#93;</span></a></sup>。当任何身体体节被击杀时，它会分裂成多条更短的蠕虫。</p>
+  `;
+
+  assert.equal(
+    extractFirstChineseParagraph(html),
+    '世界吞噬怪是一个蠕虫 Boss。它总共有 67 / 72 个体节。当任何身体体节被击杀时，它会分裂成多条更短的蠕虫。'
+  );
+});
+
+test('extractFirstChineseParagraph keeps legitimate repeated Chinese characters intact', () => {
+  const html = `
+    <p>丛林中处处都是藤蔓，草草木木层层叠叠，敌怪会不断生成。</p>
+  `;
+
+  assert.equal(
+    extractFirstChineseParagraph(html),
+    '丛林中处处都是藤蔓，草草木木层层叠叠，敌怪会不断生成。'
+  );
+});
+
 test('extractSectionParagraphByAnchor reads Chinese overview section paragraphs', () => {
   const html = `
     <h3><span class="mw-headline" id="小片花地">小片花地</span></h3>

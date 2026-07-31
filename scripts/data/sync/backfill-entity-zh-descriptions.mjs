@@ -430,10 +430,19 @@ function cleanWikiText(value) {
     .replace(CHINESE_INTERIOR_SPACE_PATTERN, '$1$2')
     .replace(/\s+/g, ' ')
     .trim();
-  return normalizeChineseInteriorSpaces(text);
+  return collapseRepeatedChinesePunctuation(normalizeChineseInteriorSpaces(text));
 }
 
 const CHINESE_INTERIOR_SPACE_PATTERN = /([\u3400-\u9fff])\s+([\u3400-\u9fff])/g;
+// Source pages routinely close a sentence, cite it, then close it again \u2014 e.g.
+// `\u2026\u2026\u4e2a\u4f53\u8282\u3002<sup class="reference">[1]</sup>\u3002\u5f53\u4efb\u4f55\u2026\u2026`. Once the reference is
+// stripped the two marks collide, so fold a run of the SAME mark back into one.
+// Restricting to identical marks keeps real prose (\u300c\uff1f\uff01\u300d, \u53e0\u5b57) untouched.
+const REPEATED_CHINESE_PUNCTUATION_PATTERN = /([\u3002\uff01\uff1f\uff1b\uff1a\uff0c\u3001])(?:\s*\1)+/g;
+
+function collapseRepeatedChinesePunctuation(value) {
+  return String(value ?? '').replace(REPEATED_CHINESE_PUNCTUATION_PATTERN, '$1');
+}
 
 function normalizeChineseInteriorSpaces(value) {
   let previous = null;
