@@ -387,6 +387,7 @@ async function syncRecordImages({
   const uploadKeys = [];
   const uploadedKeys = [];
   const reusedKeys = [];
+  const normalizedKeys = [];
   const reuseProbeFailedKeys = [];
   const managedImages = [];
   let changed = 0;
@@ -416,7 +417,18 @@ async function syncRecordImages({
     candidateKeys.push(key);
     if (isManagedUrl(sourceUrl, entityManagedUrlPrefixes)) {
       alreadyManagedKeys.push(key);
-      managedImages.push({ key, originalUrl: null, managedUrl: sourceUrl, contentHash: sha256Bytes(sourceUrl) });
+      // An absolute URL at the origin we are configured for is the same object,
+      // written in a form that dies with the endpoint. Normalize it to the path
+      // the backend itself returns. A historical origin is left alone: whether
+      // its object still exists is a separate, unverified question.
+      const normalized = normalizeConfiguredManagedUrl(sourceUrl, managedObjectOrigin);
+      const storedUrl = normalized ?? sourceUrl;
+      if (normalized) {
+        targetUrlWriter(record, normalized);
+        changed += 1;
+        normalizedKeys.push(key);
+      }
+      managedImages.push({ key, originalUrl: null, managedUrl: storedUrl, contentHash: sha256Bytes(storedUrl) });
       progress(index + 1);
       continue;
     }
@@ -489,7 +501,7 @@ async function syncRecordImages({
     progress(index + 1);
   }
 
-  if (apply && (uploadedKeys.length > 0 || reusedKeys.length > 0)) {
+  if (apply && (uploadedKeys.length > 0 || reusedKeys.length > 0 || normalizedKeys.length > 0)) {
     writeJson(filePath, payload);
   }
 
@@ -507,6 +519,7 @@ async function syncRecordImages({
     missingSource: missingSourceKeys.length,
     missingSourceKeys: [...missingSourceKeys].sort(),
     total: records.length,
+    normalizedKeys: [...normalizedKeys].sort(),
     reused: reusedKeys.length,
     reusedKeys: [...reusedKeys].sort(),
     reuseProbeFailedKeys: [...reuseProbeFailedKeys].sort(),
@@ -544,6 +557,21 @@ async function resolveReusableManagedUrl({
   // Store the path, not the origin. The origin is a probe-time detail; baking a
   // host:port into standardized data is what stranded 331 rows on a dead port.
   return { storedUrl: managedPathOf(probedUrl), probedUrl };
+}
+
+// Only an origin we are configured for may be rewritten. Anything else keeps
+// its recorded form.
+function normalizeConfiguredManagedUrl(value, managedObjectOrigin) {
+  const origin = text(managedObjectOrigin);
+  if (!origin) return null;
+  try {
+    const parsed = new URL(String(value));
+    const target = new URL(origin);
+    if (parsed.protocol !== target.protocol || parsed.host !== target.host) return null;
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return null;
+  }
 }
 
 function managedPathOf(value) {
@@ -621,6 +649,7 @@ function aggregate(modules) {
     missingSource: entries.reduce((sum, entry) => sum + Number(entry?.missingSource ?? 0), 0),
     reused: entries.reduce((sum, entry) => sum + Number(entry?.reused ?? 0), 0),
     reusedKeys: concat('reusedKeys'),
+    normalizedKeys: concat('normalizedKeys'),
     reuseProbeFailedKeys: concat('reuseProbeFailedKeys'),
     candidateKeys: concat('candidateKeys'),
     alreadyManagedKeys: concat('alreadyManagedKeys'),

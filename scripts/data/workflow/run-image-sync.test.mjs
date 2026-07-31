@@ -670,3 +670,48 @@ test('runImageSync stores a reused object as a relative managed path', async () 
   assert.equal(evidence.managedUrl, '/terrapedia-images/items/wiki/item-images/37/coin.png');
   assert.equal(evidence.probedUrl, 'http://127.0.0.1:19100/terrapedia-images/items/wiki/item-images/37/coin.png');
 });
+
+test('runImageSync normalizes an absolute URL that already points at the configured origin', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  payload.records.find((r) => r.internalName === 'Torch').imageUrl =
+    'http://127.0.0.1:19100/terrapedia-images/items/torch.png';
+  // A historical origin is a separate, unverified concern and must be left alone.
+  payload.records.find((r) => r.internalName === 'Wood').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/wood.png';
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  fs.writeFileSync(workspace.itemsPath, serialized);
+  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: sha256Hex(serialized) }
+  }, null, 2)}\n`);
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    // Real config prefixes carry the entity segment, and the entity resolver
+    // keeps only prefixes that do.
+    managedUrlPrefixes: [
+      'http://127.0.0.1:19100/terrapedia-images/items/',
+      'http://localhost:9000/terrapedia-images/items/'
+    ]
+  }, workspace.dependencies());
+
+  const written = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  assert.equal(
+    written.records.find((r) => r.internalName === 'Torch').imageUrl,
+    '/terrapedia-images/items/torch.png'
+  );
+  assert.equal(
+    written.records.find((r) => r.internalName === 'Wood').imageUrl,
+    'http://localhost:9000/terrapedia-images/items/wood.png'
+  );
+  assert.deepEqual(result.normalizedKeys, ['Torch']);
+  assert.ok(result.alreadyManagedKeys.includes('Torch'));
+});
