@@ -233,13 +233,21 @@ const publicPageFiles = [
   ...requiredRoutes,
 ]
 
+// 「不要太过」由配额保证：每个路由至多一个光泽焦点。
+// 元素锚定让这件事可点数——坐标锚定做不到，因为光和元素没有关系。
+const glossFocusPages = [
+  'components/article/ArticleArchiveBoard.vue',
+  'pages/npcs/index.vue',
+]
+
 const publicShellClasses = new Map([
   ['pages/index.vue', 'home-screen'],
   ['pages/search-tool.vue', 'home-screen search-tool-screen'],
   ['pages/articles/index.vue', 'article-screen article-index-approved-screen'],
-  ['pages/articles/archive.vue', 'article-screen article-archive-approved-screen'],
+  ['pages/articles/archive.vue', 'article-screen article-archive-approved-screen tp-ground'],
   ['pages/articles/[slug].vue', 'article-screen'],
   ['pages/items/index.vue', 'catalog-screen'],
+  ['pages/npcs/index.vue', 'entity-screen tp-ground'],
   ['pages/items/[id].vue', 'detail-screen item-detail-approved-screen'],
   ['pages/npcs/[id].vue', 'entity-screen npc-detail-approved-screen'],
   ['pages/crafting/index.vue', 'entity-screen crafting-screen'],
@@ -253,7 +261,7 @@ const publicShellClasses = new Map([
   ].filter((path) => ![
     'pages/index.vue', 'pages/search-tool.vue', 'pages/articles/index.vue', 'pages/articles/archive.vue',
     'pages/articles/[slug].vue', 'pages/items/index.vue', 'pages/items/[id].vue',
-    'pages/npcs/[id].vue', 'pages/crafting/index.vue',
+    'pages/npcs/[id].vue', 'pages/crafting/index.vue', 'pages/npcs/index.vue',
   ].includes(path)).map((path) => [path, 'entity-screen']),
 ])
 
@@ -1097,6 +1105,15 @@ const scanFiles = [
 ]
 
 const violations = []
+
+for (const glossPath of glossFocusPages) {
+  const glossSource = existsSync(file(glossPath)) ? readFileSync(file(glossPath), 'utf8') : ''
+  const focusCount = glossSource.split('tp-gloss-focus').length - 1
+  if (focusCount !== 1) {
+    violations.push(`${glossPath}: must declare exactly one tp-gloss-focus anchor; found ${focusCount}`)
+  }
+}
+
 // WP-11.4: catalog-image-fixes.css is retired; ownership lives in domains/catalog.css.
 if (existsSync(file('assets/css/catalog-image-fixes.css'))) {
   violations.push('assets/css/catalog-image-fixes.css: retired patch must be deleted after promotion into domains/catalog.css')

@@ -76,6 +76,8 @@ const articleFeatureMeta = read('components/article/ArticleFeatureMeta.vue')
 const articleArchiveCardGrid = read('components/article/ArticleArchiveCardGrid.vue')
 const articleArchiveBoard = readOptional('components/article/ArticleArchiveBoard.vue')
 const articleArchiveList = readOptional('components/article/ArticleArchiveList.vue')
+const groundGlossCss = readOptional('assets/css/domains/ground-gloss.css')
+const domainsIndexCss = readOptional('assets/css/domains/index.css')
 const articleDetailPage = read('pages/articles/[slug].vue')
 const userArticleListPage = read('pages/user/articles/index.vue')
 const userArticleNewPage = read('pages/user/articles/new.vue')
@@ -380,11 +382,56 @@ for (const marker of [
   requireIncludes('components/article/ArticleArchiveList.vue', articleArchiveList, marker, `article archive list must expose ${marker}`)
 }
 
+// 统一后：深色底不再由本页自写，改由共享的 .tp-ground 提供。
+if (/\[data-theme="dark"\] \.article-archive-approved-screen\s*\{[^}]*background:/m.test(detailPageRedesignCss)) {
+  violations.push('assets/css/domains/detail-pages-redesign.css: article archive dark ground must come from .tp-ground, not a page-owned background')
+}
+
+// 背景层：整条规则只在深色下存在，浅色里 .tp-ground 必须是纯空操作。
 requireRegex(
-  'assets/css/domains/detail-pages-redesign.css',
-  detailPageRedesignCss,
-  /\[data-theme="dark"\] \.article-archive-approved-screen\s*\{[^}]*background:[^}]*var\(--index-grid-x\),[^}]*var\(--index-grid-y\),[^}]*radial-gradient[^}]*background-attachment:\s*fixed;/m,
-  'article archive dark route must use the token-owned grid, radial field, and fixed page ground',
+  'assets/css/domains/ground-gloss.css',
+  groundGlossCss,
+  /\[data-theme="dark"\] \.tp-ground\s*\{[^}]*--tp-ground-base:\s*#0b120c;[^}]*--tp-color-page:\s*var\(--tp-ground-base\);[^}]*isolation:\s*isolate;[^}]*background:[^}]*var\(--index-grid-x\),[^}]*var\(--index-grid-y\),/m,
+  'ground layer must be dark-scoped and redefine the page token so derived surfaces follow the lighter ground',
+)
+
+// 边界一：层叠上下文必须建在背景层，建错地方光会给焦点元素自己染色。
+if (/\.tp-gloss-focus\s*\{[^}]*isolation:/m.test(groundGlossCss)) {
+  violations.push('assets/css/domains/ground-gloss.css: isolation must sit on .tp-ground, not on .tp-gloss-focus')
+}
+
+// 边界九 + 边界一：焦点元素自带面会盖住身后的光；建层叠上下文会让光失效。
+for (const forbidden of ['background', 'transform', 'filter', 'opacity', 'will-change']) {
+  if (new RegExp(`\\.tp-gloss-focus\\s*\\{[^}]*${forbidden}:`, 'm').test(groundGlossCss)) {
+    violations.push(`assets/css/domains/ground-gloss.css: .tp-gloss-focus must not declare ${forbidden}`)
+  }
+}
+
+// 边界二：sticky 分页 dock 依赖祖先没有滚动容器。
+if (/\.tp-ground\s*\{[^}]*overflow:/m.test(groundGlossCss)) {
+  violations.push('assets/css/domains/ground-gloss.css: .tp-ground must not declare overflow; it would break sticky descendants')
+}
+
+for (const marker of [
+  '--tp-gloss-hue: 214, 177, 90;',
+  '--tp-gloss-alpha: .08;',
+  '--tp-gloss-reach: 28rem;',
+]) {
+  requireIncludes('assets/css/domains/ground-gloss.css', groundGlossCss, marker, `gloss layer must own ${marker}`)
+}
+
+requireRegex(
+  'assets/css/domains/ground-gloss.css',
+  groundGlossCss,
+  /:where\(\[data-theme="morning-paper"\], \[data-theme="warm-slate"\]\) \.tp-gloss-focus::before\s*\{[^}]*display:\s*none;/m,
+  'gloss layer must not render in light themes',
+)
+
+requireIncludes(
+  'assets/css/domains/index.css',
+  domainsIndexCss,
+  '@import "./ground-gloss.css";',
+  'ground-gloss.css must be imported from the domains barrel',
 )
 
 requireRegex(
