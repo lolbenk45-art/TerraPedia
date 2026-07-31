@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
+import { extractFirstChineseParagraph } from '../lib/wiki-page-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
@@ -25,6 +26,7 @@ import {
 const repoRoot = getProjectRoot();
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
+const ZH_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const ACTION_ID = 'domain-source-bosses';
 const RESUME_MODE_VALUE = 'keyed_items';
 const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json');
@@ -166,7 +168,7 @@ async function main(argv = process.argv.slice(2)) {
     const payload = {
       entity: 'wiki_bosses',
       generatedAt,
-      schemaVersion: '1.0.0',
+      schemaVersion: '1.1.0',
       sourceApi: API_URL,
       overview: {
         title: overview.title,
@@ -258,7 +260,9 @@ function buildBossProgressPayload({
       current,
       total,
       skippedCount: resumeSkippedCount,
-      estimatedRequests: total != null && Number.isFinite(Number(total)) ? 1 + (2 * Number(total)) : null,
+      // Per boss: English meta, English render, and the zh render. Bosses with no
+      // zh langlink skip the last one, so this is an upper bound.
+      estimatedRequests: total != null && Number.isFinite(Number(total)) ? 1 + (3 * Number(total)) : null,
       estimatedRecords: total,
       resumeAction,
       resumeReason
@@ -481,6 +485,7 @@ async function hydrateBossEntry(entry) {
     const html = await fetchBossRenderedHtml(meta.pageTitleEn);
     const intro = extractIntro(html);
     const imageUrl = extractBossImageUrl(html);
+    const introZh = await fetchBossIntroZh(meta.titleZh);
     return {
       ...entry,
       status: 'ok',
@@ -493,6 +498,7 @@ async function hydrateBossEntry(entry) {
       sourceUrlZh: meta.titleZh ? `https://terraria.wiki.gg/zh/wiki/${encodeURIComponent(meta.titleZh.replaceAll(' ', '_'))}` : null,
       imageUrl,
       notes: intro,
+      notesZh: introZh,
     };
   } catch (error) {
     return {
@@ -507,6 +513,7 @@ async function hydrateBossEntry(entry) {
       sourceUrlZh: null,
       imageUrl: null,
       notes: null,
+      notesZh: null,
       error: error instanceof Error ? error.message : String(error),
     };
   }
@@ -535,6 +542,27 @@ async function fetchBossPageMeta(title) {
     revisionTimestamp: revision?.timestamp ?? null,
     titleZh: zhTitle ? String(zhTitle) : null,
   };
+}
+
+// The zh page is a separate wiki, so a boss without a zh langlink -- or whose zh
+// page is missing or intro-less -- simply has no Chinese intro. That is normal,
+// not a fetch failure: never let it flip an otherwise-good record to 'error'.
+async function fetchBossIntroZh(zhTitle) {
+  const title = String(zhTitle ?? '').trim();
+  if (!title) return null;
+  try {
+    const url = new URL(ZH_API_URL);
+    url.searchParams.set('action', 'parse');
+    url.searchParams.set('page', title);
+    url.searchParams.set('prop', 'text');
+    url.searchParams.set('redirects', '1');
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('formatversion', '2');
+    const json = await fetchJson(url);
+    return extractFirstChineseParagraph(String(json?.parse?.text ?? ''));
+  } catch {
+    return null;
+  }
 }
 
 async function fetchBossRenderedHtml(title) {

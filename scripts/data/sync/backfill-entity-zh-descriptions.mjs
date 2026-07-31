@@ -11,7 +11,12 @@ import {
   parseCliArgs,
   writeJson,
 } from '../lib/wiki-item-utils.mjs';
-import { decodeHtmlEntities, stripHtml } from '../lib/wiki-page-utils.mjs';
+import {
+  containsChinese,
+  decodeHtmlEntities,
+  extractFirstChineseParagraph,
+  extractSectionParagraphByAnchor,
+} from '../lib/wiki-page-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
@@ -46,38 +51,14 @@ const ZH_BIOME_PAGE_TITLE_BY_ENGLISH_TITLE = new Map([
   ['Biomes', '生物群系'],
 ]);
 
+// Re-exported so existing callers and tests keep a single import site even though
+// the paragraph extraction now lives in the shared wiki page utils, where the
+// boss fetch reaches for the same Chinese cleaning rules.
+export { extractFirstChineseParagraph, extractSectionParagraphByAnchor };
+
 export function isEnglishOnlyText(value) {
   const text = normalizeText(value);
   return Boolean(text && /[A-Za-z]/.test(text) && !containsChinese(text));
-}
-
-export function extractFirstChineseParagraph(html, { minLength = 12 } = {}) {
-  const paragraphs = extractParagraphs(html);
-  return paragraphs.find((paragraph) => {
-    if (!containsChinese(paragraph)) return false;
-    if (paragraph.length < minLength) return false;
-    if (/^(电脑版|主机版|移动版|该页面|此信息仅适用于)/.test(paragraph)) return false;
-    return true;
-  }) ?? null;
-}
-
-export function extractSectionParagraphByAnchor(html, anchor, { minLength = 6 } = {}) {
-  const safeAnchor = normalizeText(anchor);
-  if (!safeAnchor || typeof html !== 'string') return null;
-  const escaped = escapeRegExp(safeAnchor);
-  const headingPattern = new RegExp(
-    `<h[23][^>]*>[\\s\\S]*?<span[^>]+class=["'][^"']*mw-headline[^"']*["'][^>]+id=["']${escaped}["'][^>]*>[\\s\\S]*?<\\/h[23]>`,
-    'i'
-  );
-  const headingMatch = html.match(headingPattern);
-  if (!headingMatch || headingMatch.index == null) return null;
-  const start = headingMatch.index + headingMatch[0].length;
-  const rest = html.slice(start);
-  const nextHeadingIndex = rest.search(/<h[23]\b/i);
-  const sectionHtml = nextHeadingIndex >= 0 ? rest.slice(0, nextHeadingIndex) : rest;
-  return extractParagraphs(sectionHtml).find((paragraph) => {
-    return containsChinese(paragraph) && paragraph.length >= minLength;
-  }) ?? null;
 }
 
 export async function buildZhDescriptionPlan({
@@ -409,51 +390,6 @@ async function fetchZhPageRevisionTimestamp(title) {
   return payload?.query?.pages?.[0]?.revisions?.[0]?.timestamp ?? null;
 }
 
-function extractParagraphs(html) {
-  if (typeof html !== 'string') return [];
-  return [...html.matchAll(/<p>([\s\S]*?)<\/p>/gi)]
-    .map((match) => cleanWikiText(match[1]))
-    .filter(Boolean);
-}
-
-function cleanWikiText(value) {
-  const text = stripHtml(String(value ?? '')
-    .replace(/<table[\s\S]*?<\/table>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<sup\b[\s\S]*?<\/sup>/gi, ' ')
-  )
-    .replace(/\s+([，。！？；：、）])/g, '$1')
-    .replace(/\s+([（])/g, '$1')
-    .replace(/([，。！？；：、（])\s+([\u3400-\u9fff])/g, '$1$2')
-    .replace(/([（])\s+/g, '$1')
-    .replace(CHINESE_INTERIOR_SPACE_PATTERN, '$1$2')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return collapseRepeatedChinesePunctuation(normalizeChineseInteriorSpaces(text));
-}
-
-const CHINESE_INTERIOR_SPACE_PATTERN = /([\u3400-\u9fff])\s+([\u3400-\u9fff])/g;
-// Source pages routinely close a sentence, cite it, then close it again \u2014 e.g.
-// `\u2026\u2026\u4e2a\u4f53\u8282\u3002<sup class="reference">[1]</sup>\u3002\u5f53\u4efb\u4f55\u2026\u2026`. Once the reference is
-// stripped the two marks collide, so fold a run of the SAME mark back into one.
-// Restricting to identical marks keeps real prose (\u300c\uff1f\uff01\u300d, \u53e0\u5b57) untouched.
-const REPEATED_CHINESE_PUNCTUATION_PATTERN = /([\u3002\uff01\uff1f\uff1b\uff1a\uff0c\u3001])(?:\s*\1)+/g;
-
-function collapseRepeatedChinesePunctuation(value) {
-  return String(value ?? '').replace(REPEATED_CHINESE_PUNCTUATION_PATTERN, '$1');
-}
-
-function normalizeChineseInteriorSpaces(value) {
-  let previous = null;
-  let current = String(value ?? '');
-  while (current !== previous) {
-    previous = current;
-    current = current.replace(CHINESE_INTERIOR_SPACE_PATTERN, '$1$2');
-  }
-  return current;
-}
-
 function resolveBiomeOverviewAnchor(row) {
   const code = normalizeText(row.code);
   if (code && BIOME_OVERVIEW_ANCHOR_BY_CODE.has(code)) {
@@ -504,14 +440,6 @@ function skippedRow(row, scope, reason, extra = {}) {
 function normalizeText(value) {
   const text = String(value ?? '').trim();
   return text ? text : null;
-}
-
-function containsChinese(value) {
-  return /[\u3400-\u9fff]/.test(String(value ?? ''));
-}
-
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function csvSet(value, fallback) {

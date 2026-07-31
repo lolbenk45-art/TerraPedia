@@ -135,6 +135,95 @@ export function extractIntroParagraphs(html) {
   return paragraphs;
 }
 
+export function containsChinese(value) {
+  return /[㐀-鿿]/.test(String(value ?? ''));
+}
+
+// Chinese wiki markup puts tag boundaries where Chinese prose has no spaces, so
+// a naive strip leaves gaps mid-phrase and before punctuation. This restores the
+// spacing a reader expects and folds the duplicate marks left by stripped refs.
+export function cleanChineseWikiText(value) {
+  const text = stripHtml(String(value ?? '')
+    .replace(/<table[\s\S]*?<\/table>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<sup\b[\s\S]*?<\/sup>/gi, ' ')
+  )
+    .replace(/\s+([，。！？；：、）])/g, '$1')
+    .replace(/\s+([（])/g, '$1')
+    .replace(/([，。！？；：、（])\s+([㐀-鿿])/g, '$1$2')
+    .replace(/([（])\s+/g, '$1')
+    .replace(CHINESE_INTERIOR_SPACE_PATTERN, '$1$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return collapseRepeatedChinesePunctuation(normalizeChineseInteriorSpaces(text));
+}
+
+export function extractChineseParagraphs(html) {
+  if (typeof html !== 'string') return [];
+  return [...html.matchAll(/<p>([\s\S]*?)<\/p>/gi)]
+    .map((match) => cleanChineseWikiText(match[1]))
+    .filter(Boolean);
+}
+
+export function extractFirstChineseParagraph(html, { minLength = 12 } = {}) {
+  return extractChineseParagraphs(html).find((paragraph) => {
+    if (!containsChinese(paragraph)) return false;
+    if (paragraph.length < minLength) return false;
+    if (/^(电脑版|主机版|移动版|该页面|此信息仅适用于)/.test(paragraph)) return false;
+    return true;
+  }) ?? null;
+}
+
+export function extractSectionParagraphByAnchor(html, anchor, { minLength = 6 } = {}) {
+  const safeAnchor = trimToNull(anchor);
+  if (!safeAnchor || typeof html !== 'string') return null;
+  const escaped = escapeRegExpLiteral(safeAnchor);
+  const headingPattern = new RegExp(
+    `<h[23][^>]*>[\\s\\S]*?<span[^>]+class=["'][^"']*mw-headline[^"']*["'][^>]+id=["']${escaped}["'][^>]*>[\\s\\S]*?<\\/h[23]>`,
+    'i'
+  );
+  const headingMatch = html.match(headingPattern);
+  if (!headingMatch || headingMatch.index == null) return null;
+  const start = headingMatch.index + headingMatch[0].length;
+  const rest = html.slice(start);
+  const nextHeadingIndex = rest.search(/<h[23]\b/i);
+  const sectionHtml = nextHeadingIndex >= 0 ? rest.slice(0, nextHeadingIndex) : rest;
+  return extractChineseParagraphs(sectionHtml).find((paragraph) => {
+    return containsChinese(paragraph) && paragraph.length >= minLength;
+  }) ?? null;
+}
+
+const CHINESE_INTERIOR_SPACE_PATTERN = /([㐀-鿿])\s+([㐀-鿿])/g;
+// Source pages routinely close a sentence, cite it, then close it again -- e.g.
+// `……个体节。<sup class="reference">[1]</sup>。当任何……`. Once the reference is
+// stripped the two marks collide, so fold a run of the SAME mark back into one.
+// Restricting the fold to identical marks keeps real prose (「？！」, 叠字) intact.
+const REPEATED_CHINESE_PUNCTUATION_PATTERN = /([。！？；：，、])(?:\s*\1)+/g;
+
+function collapseRepeatedChinesePunctuation(value) {
+  return String(value ?? '').replace(REPEATED_CHINESE_PUNCTUATION_PATTERN, '$1');
+}
+
+function normalizeChineseInteriorSpaces(value) {
+  let previous = null;
+  let current = String(value ?? '');
+  while (current !== previous) {
+    previous = current;
+    current = current.replace(CHINESE_INTERIOR_SPACE_PATTERN, '$1$2');
+  }
+  return current;
+}
+
+function trimToNull(value) {
+  const text = String(value ?? '').trim();
+  return text ? text : null;
+}
+
+function escapeRegExpLiteral(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function extractItemInfoboxImages(html) {
   if (typeof html !== 'string') {
     return [];

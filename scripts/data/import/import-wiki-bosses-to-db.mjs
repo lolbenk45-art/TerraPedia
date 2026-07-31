@@ -8,6 +8,7 @@ import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime
 import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
 import { resolveReferenceOnlyBossSource } from './boss-reference-source.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { containsChinese } from '../lib/wiki-page-utils.mjs';
 import {
   createMinioImageUploader,
   DEFAULT_MANAGED_URL_PREFIX,
@@ -567,9 +568,20 @@ function resolveBossImageUrl(record, members) {
     .find((value) => isManagedUrlForEntity(value, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) ?? null;
 }
 
+// boss_groups has no notes_zh column, so the zh backfill made `notes` itself the
+// Chinese-facing field. A sync that only resolved an English intro must therefore
+// leave Chinese already in the row alone, or every refresh would undo the backfill.
+export function reconcileBossNotes(record, existingNotes) {
+  const incoming = truncateText(toText(record?.notesZh) ?? toText(record?.notes), 2000);
+  const existing = toText(existingNotes);
+  if (!incoming) return existing;
+  if (containsChinese(incoming)) return incoming;
+  return containsChinese(existing) ? existing : incoming;
+}
+
 async function upsertBossGroup(conn, record, imageUrl) {
   const code = buildBossCode(record.titleEn);
-  const [existingRows] = await conn.execute('SELECT id, image_url FROM boss_groups WHERE code = ? LIMIT 1', [code]);
+  const [existingRows] = await conn.execute('SELECT id, image_url, notes FROM boss_groups WHERE code = ? LIMIT 1', [code]);
   const existing = existingRows[0] ?? null;
   const payload = [
     code,
@@ -578,7 +590,7 @@ async function upsertBossGroup(conn, record, imageUrl) {
     toText(record.groupType),
     imageUrl ?? null,
     Number(record.progressionOrder ?? 0),
-    truncateText(toText(record.notes), 2000),
+    reconcileBossNotes(record, existing?.notes ?? null),
     toText(record.sourceUrl),
     normalizeSqlDateTime(record.revisionTimestamp),
   ];

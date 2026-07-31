@@ -75,10 +75,146 @@ test('boss fetch publishes page work counts and fresh checkpoint outcome', () =>
   assert.equal(progress.actualCount, 1);
   assert.equal(progress.skippedCount, 0);
   assert.equal(progress.failedCount, 0);
-  assert.equal(progress.estimatedRequests, 3);
+  assert.equal(progress.estimatedRequests, 4);
   assert.equal(progress.estimatedRecords, 1);
   assert.equal(progress.resultKind, 'fetched');
   assert.equal(progress.resumeOutcome, 'fresh');
+});
+
+test('boss fetch records the Chinese intro alongside the English one', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-boss-notes-zh-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const outputPath = path.join(tempDir, 'bosses.json');
+  const reportPath = path.join(tempDir, 'bosses-report.json');
+  const resumeStatePath = path.join(tempDir, 'bosses.resume.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.writeFileSync(mockApiPath, JSON.stringify({
+    __byRequest: {
+      'parse:sections:Bosses': {
+        parse: {
+          title: 'Bosses',
+          pageid: 1,
+          sections: [
+            { level: '2', line: 'Pre-Hardmode bosses' },
+            { level: '3', line: 'Eater of Worlds' }
+          ]
+        }
+      },
+      'query:revisions|langlinks:Eater of Worlds': {
+        query: {
+          pages: [{
+            pageid: 2,
+            title: 'Eater of Worlds',
+            revisions: [{ revid: 3, timestamp: '2026-07-16T00:00:00Z' }],
+            langlinks: [{ lang: 'zh', title: '世界吞噬怪' }]
+          }]
+        }
+      },
+      'parse:text:Eater of Worlds': {
+        parse: { text: '<p>The Eater of Worlds is a pre-Hardmode worm boss with enough text for a stable source record.</p>' }
+      },
+      'parse:text:世界吞噬怪': {
+        parse: {
+          title: '世界吞噬怪',
+          text: '<p><b>世界吞噬怪</b>是一个困难模式之前的蠕虫 Boss。它总共有 67 个体节。<sup class="reference"><a href="#cite_note-1">[1]</a></sup>。当任何身体体节被击杀时，它会分裂成多条更短的蠕虫。</p>'
+        }
+      }
+    }
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--output-json=${outputPath}`,
+    `--report-json=${reportPath}`,
+    `--progress-path=${progressPath}`,
+    `--resume-state=${resumeStatePath}`,
+    '--resume-mode=fresh',
+    '--max-records=1'
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+  const record = payload.records[0];
+
+  assert.equal(record.titleZh, '世界吞噬怪');
+  assert.match(record.notes, /^The Eater of Worlds is a pre-Hardmode worm boss/);
+  assert.equal(
+    record.notesZh,
+    '世界吞噬怪是一个困难模式之前的蠕虫 Boss。它总共有 67 个体节。当任何身体体节被击杀时，它会分裂成多条更短的蠕虫。'
+  );
+});
+
+test('boss fetch leaves the Chinese intro null when the page has no zh langlink', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-boss-notes-zh-missing-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const outputPath = path.join(tempDir, 'bosses.json');
+  const reportPath = path.join(tempDir, 'bosses-report.json');
+  const resumeStatePath = path.join(tempDir, 'bosses.resume.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.writeFileSync(mockApiPath, JSON.stringify({
+    __byRequest: {
+      'parse:sections:Bosses': {
+        parse: {
+          title: 'Bosses',
+          pageid: 1,
+          sections: [
+            { level: '2', line: 'Pre-Hardmode bosses' },
+            { level: '3', line: 'King Slime' }
+          ]
+        }
+      },
+      'query:revisions|langlinks:King Slime': {
+        query: {
+          pages: [{
+            pageid: 2,
+            title: 'King Slime',
+            revisions: [{ revid: 3, timestamp: '2026-07-16T00:00:00Z' }]
+          }]
+        }
+      },
+      'parse:text:King Slime': {
+        parse: { text: '<p>King Slime is an early-game boss with enough text for a stable source record.</p>' }
+      }
+    }
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--output-json=${outputPath}`,
+    `--report-json=${reportPath}`,
+    `--progress-path=${progressPath}`,
+    `--resume-state=${resumeStatePath}`,
+    '--resume-mode=fresh',
+    '--max-records=1'
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const record = JSON.parse(fs.readFileSync(outputPath, 'utf8')).records[0];
+
+  assert.equal(record.titleZh, null);
+  assert.equal(record.notesZh, null);
 });
 
 test('boss discovery failure keeps the unknown plan null', () => {

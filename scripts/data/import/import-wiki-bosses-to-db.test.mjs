@@ -1,7 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+import { reconcileBossNotes, reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+
+test('reconcileBossNotes prefers the Chinese intro the source carries', () => {
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: '史莱姆王是个 Boss。' }, null),
+    '史莱姆王是个 Boss。'
+  );
+});
+
+test('reconcileBossNotes keeps Chinese already in the row when the source has none', () => {
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, '史莱姆王是个 Boss。'),
+    '史莱姆王是个 Boss。'
+  );
+});
+
+test('reconcileBossNotes falls back to English for rows that have no Chinese yet', () => {
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, null),
+    'King Slime is a boss.'
+  );
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, 'King Slime is an old boss.'),
+    'King Slime is a boss.'
+  );
+});
+
+test('reconcileBossNotes keeps the existing text when the source carries nothing', () => {
+  assert.equal(reconcileBossNotes({ notes: null, notesZh: null }, '史莱姆王是个 Boss。'), '史莱姆王是个 Boss。');
+  assert.equal(reconcileBossNotes({ notes: null, notesZh: null }, null), null);
+});
 
 test('reconcileBossMembers skips unchanged existing boss member assignments', async () => {
   const conn = createFakeConnection({
