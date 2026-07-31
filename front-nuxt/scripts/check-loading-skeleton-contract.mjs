@@ -163,6 +163,20 @@ assertMarkers('pages/items/[id].vue', [
   ':fallback-icon="source.icon"',
 ])
 
+assertMarkers('pages/articles/archive.vue', [
+  ':loading="articleLoading"',
+  ':error-message="articleError"',
+  '<ArticleArchiveCardGrid',
+])
+
+assertMarkers('components/article/ArticleArchiveCardGrid.vue', [
+  'const archiveLoadingSlotCount = 12',
+  'v-for="slot in archiveLoadingSlotCount"',
+  'article-archive-card article-archive-card--loading',
+  '<CommonTpSkeleton type="icon"',
+  '<CommonTpSkeleton type="line"',
+])
+
 assertMarkers('pages/armor-sets/[id].vue', [
   'armorClientReady',
   'armorDetailVisualLoading',

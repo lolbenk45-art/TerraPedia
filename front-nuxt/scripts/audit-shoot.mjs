@@ -56,6 +56,12 @@ const DEFAULT_VIEWPORTS = [
 
 const ROUTES = parseJsonEnv('AUDIT_ROUTES', DEFAULT_ROUTES)
 const VIEWPORTS = parseJsonEnv('AUDIT_VIEWPORTS', DEFAULT_VIEWPORTS)
+const AUDIT_THEME = String(process.env.AUDIT_THEME || '').trim()
+const ALLOWED_THEMES = new Set(['dark', 'morning-paper', 'warm-slate'])
+
+if (AUDIT_THEME && !ALLOWED_THEMES.has(AUDIT_THEME)) {
+  throw new Error('AUDIT_THEME must be dark, morning-paper, or warm-slate')
+}
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM
   || process.env.HOME + '/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome'
@@ -64,6 +70,9 @@ const results = []
 
 for (const [vpName, viewport] of VIEWPORTS) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 })
+  if (AUDIT_THEME) {
+    await ctx.addCookies([{ name: 'terrapedia-theme', value: AUDIT_THEME, url: BASE }])
+  }
   const page = await ctx.newPage()
   for (const [name, route] of ROUTES) {
     const url = BASE + route
@@ -81,13 +90,17 @@ for (const [vpName, viewport] of VIEWPORTS) {
       const status = resp ? resp.status() : 0
       const height = await page.evaluate(() => document.documentElement.scrollHeight)
       const hasHScroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)
+      const appliedTheme = await page.evaluate(() => document.documentElement.dataset.theme || '')
       // 视口首屏
       await page.screenshot({ path: `${OUT}/${name}--${vpName}.png` })
       // 全页(限高 20000 防超大)
       if (height < 20000) {
         await page.screenshot({ path: `${OUT}/${name}--${vpName}-full.png`, fullPage: true })
       }
-      const result = { name, vp: vpName, status, height, hasHScroll }
+      const result = { name, vp: vpName, theme: AUDIT_THEME || 'default', appliedTheme, status, height, hasHScroll }
+      if (AUDIT_THEME && appliedTheme !== AUDIT_THEME) {
+        throw new Error(`requested theme ${AUDIT_THEME} but page applied ${appliedTheme || 'none'}`)
+      }
       if (errors.length) result.errors = errors
       results.push(result)
       console.log(`${name} ${vpName} status=${status} h=${height}${hasHScroll ? ' HSCROLL!' : ''}`)

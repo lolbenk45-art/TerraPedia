@@ -1,12 +1,12 @@
 # Current Devlog
 
-Last updated: 2026-07-30 06:28 CST by Codex
+Last updated: 2026-07-31 18:23 CST by Codex
 
 Active branch: `ux/detail-pages-redesign`
 
 ## Open Work
 
-- 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，四份 NPC 定稿正文已完成技术验收并进入独立检查点提交，下一 slice 串行继续 Articles v22。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: Articles v22 视觉验收；contract handoff: 只复刻正文，保留生产导航/面包屑/容器比例与全部现有功能，动态区域只消费真实 DTO 或明确标注的展示派生值。见 `entries/2026-07-29-approved-public-pages-production.md` 与 `docs/superpowers/plans/2026-07-29-public-pages-fidelity-rebuild.md`。
+- 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，NPC 已在 `3d9045fa` 建立检查点。Article 最终裁决保留正式 `/articles` 舞台，将搜索上移到 mast、首页最新投稿收敛为 6 篇，并新增无侧栏的四列 `/articles/archive` 承担 12 篇分页与搜索。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 书面设计复核、实施计划、合同优先实现与用户视觉验收；contract handoff: `docs/superpowers/specs/2026-07-30-article-discovery-archive-split-design.md`，只消费真实 DTO 或明确标注的展示派生值。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
 - Uncommitted work pending user acceptance: triage-board layout fixes,
@@ -38,7 +38,7 @@ Active branch: `ux/detail-pages-redesign`
 
 ## Current State
 
-- Public-page fidelity rebuild remains active. Item is committed at `8d459fe1`; NPC technical acceptance is complete for merchant, guide, pirate, and traveling merchant across all three themes and both approved viewports. Articles v22 is the remaining fidelity slice; no API/data repair is part of it.
+- Public-page fidelity rebuild remains active. Item is committed at `8d459fe1`; NPC is committed at `3d9045fa`. The Article split is implemented but uncommitted: `/articles` keeps the production fold with mast search and six non-duplicated latest rows, while `/articles/archive` owns twelve-card search/pagination. Task 7 is now closed: the full static gate, direct-route/SSR-302 proof, the three server-dependent cross-route gates, the twelve-probe three-theme matrix, and the design-system review all pass, and the two compact-card defects found by that review (kicker/date spacing and fallback-cover typography) are repaired under two new contract assertions. Only user visual acceptance remains. No API/data repair is part of it.
 
 - Front P2 merged-result validation passes the full public frontend gate and
   the focused public armor/recipe backend suite (16/16). The source integration
@@ -122,10 +122,9 @@ Active branch: `ux/detail-pages-redesign`
 
 ## Next Agent Should Start Here
 
-- Continue `entries/2026-07-29-approved-public-pages-production.md` with
-  `articles-story-led-v22.html`; preserve production navigation, live data,
-  query/pagination behavior, three themes, and the contract ratchet. The four
-  approved NPC samples have completed their focused technical checkpoint.
+- The dark discovery page was repaired after acceptance was withheld: all four `--article-approved-*` surfaces were transparent tints of `--tp-color-page` and therefore resolved back to the ground in dark, and the latest-submission rows now use the user-selected G3 two-column card grid at the darkest L0 fill. Details, the one-for-one contract migration, and byte-level light-theme non-regression proof are in `entries/2026-07-29-approved-public-pages-production.md`.
+
+- The Article discovery/archive work is committed on `ux/detail-pages-redesign` at the user's explicit instruction; the plan's Task 9 acceptance gate was satisfied by that instruction rather than by a formal visual sign-off. Nothing was pushed or merged. The next open item is the fold vertical-rhythm repair: it is fully analysed with measurements in `entries/2026-07-29-approved-public-pages-production.md` under "Commit state", but not implemented, and it needs the user to choose between capping the stage height plus fluid inner spacing, or dropping the `calc(100svh - 203px)` viewport lock outright. The standard stack is live on `15177/18191/13004`; if it is down, note that a torn Redis AOF tail can block backend startup and that the authorized repair plus its verified backup are documented in that entry. Preserve every unrelated design/report path.
 
 - Front P2 and the light-theme button adaptation require no further merge
   action. Read `entries/2026-07-22-front-p2-local-integration.md` for the
@@ -144,6 +143,8 @@ Active branch: `ux/detail-pages-redesign`
   without explicit operation-level authorization.
 
 ## Current Risks
+
+- Article archive implementation is awaiting final visual acceptance. The flagged fallback-cover typography and kicker/date spacing were inspected, found genuinely defective because both classes take their base styling from the `pages/articles/index.vue` scoped block, and repaired in `assets/css/domains/detail-pages-redesign.css` under two new layering-contract assertions. A second user-directed round then repaired the dark discovery page: the four `--article-approved-*` surfaces were transparent tints of the page colour and composited back to it, so the fold and archive collapsed to one flat black mass. They are now token-derived real surfaces at the user-selected L0 level, and the archive rows became a two-column card grid (G3). The v22 band element was intentionally not reintroduced; only its closing rule was implemented, at content width rather than full bleed. The Task 7.4 interaction probe passed before the handoff but its post-repair hash was never captured; recreate it from the repaired Task 7.4 plan if durable probe hashing is required.
 
 - Acceptance follow-up browser checks observed intermittent failed Nuxt
   prefetches for unvisited crawler-monitor modules. The login and article

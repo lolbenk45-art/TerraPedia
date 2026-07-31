@@ -206,6 +206,25 @@ for (const [path, markers] of Object.entries({
   assertContains(path, content, markers)
 }
 
+{
+  const cardPath = 'components/article/ArticleArchiveCardGrid.vue'
+  const cardContent = read(cardPath)
+  assertContains(cardPath, cardContent, [
+    'failedCoverKeys',
+    '@error="markCoverFailed(article)"',
+    'v-if="hasLiveCover(article)"',
+    '{{ coverFallback(article) }}',
+    'class="article-archive-card__cover"',
+  ])
+
+  const cssPath = 'assets/css/domains/detail-pages-redesign.css'
+  const cssContent = read(cssPath)
+  assertContains(cssPath, cssContent, [
+    '.article-archive-card__cover img {',
+    'object-fit: contain;',
+  ])
+}
+
 if (failures.length) {
   console.error(`Preview image fallback contract failed:\n${failures.map((item) => `- ${item}`).join('\n')}`)
   process.exit(1)

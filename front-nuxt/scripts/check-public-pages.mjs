@@ -214,6 +214,7 @@ const requiredRoutes = [
   'pages/projectiles/index.vue',
   'pages/armor-sets/index.vue',
   'pages/armor-sets/[id].vue',
+  'pages/articles/archive.vue',
   'pages/user/index.vue',
   'pages/user/login.vue',
   'pages/user/register.vue',
@@ -235,7 +236,8 @@ const publicPageFiles = [
 const publicShellClasses = new Map([
   ['pages/index.vue', 'home-screen'],
   ['pages/search-tool.vue', 'home-screen search-tool-screen'],
-  ['pages/articles/index.vue', 'article-screen'],
+  ['pages/articles/index.vue', 'article-screen article-index-approved-screen'],
+  ['pages/articles/archive.vue', 'article-screen article-archive-approved-screen'],
   ['pages/articles/[slug].vue', 'article-screen'],
   ['pages/items/index.vue', 'catalog-screen'],
   ['pages/items/[id].vue', 'detail-screen item-detail-approved-screen'],
@@ -249,7 +251,7 @@ const publicShellClasses = new Map([
     'pages/user/articles/[id].vue',
     'pages/users/[id].vue',
   ].filter((path) => ![
-    'pages/index.vue', 'pages/search-tool.vue', 'pages/articles/index.vue',
+    'pages/index.vue', 'pages/search-tool.vue', 'pages/articles/index.vue', 'pages/articles/archive.vue',
     'pages/articles/[slug].vue', 'pages/items/index.vue', 'pages/items/[id].vue',
     'pages/npcs/[id].vue', 'pages/crafting/index.vue',
   ].includes(path)).map((path) => [path, 'entity-screen']),
@@ -277,6 +279,7 @@ const requiredSeoRoutes = [
   'pages/armor-sets/[id].vue',
   'pages/projectiles/index.vue',
   'pages/articles/index.vue',
+  'pages/articles/archive.vue',
   'pages/about.vue',
 ]
 
@@ -1162,6 +1165,7 @@ for (const [path, screenClass] of publicShellClasses) {
 
 const pageBusyMarkers = new Map([
   ['pages/articles/index.vue', ['<main class="tp-public-page-shell article-layout discovery-articles-page article-route-shell tp-page-shell" :aria-busy="articleLoading">']],
+  ['pages/articles/archive.vue', ['<main class="tp-public-page-shell article-layout article-archive-page tp-page-shell" :aria-busy="articleLoading">']],
   ['pages/articles/[slug].vue', [
     '<main v-if="articleLoading" class="article-detail-layout article-detail-loading" aria-live="polite" :aria-busy="articleLoading">',
     '<main v-else-if="notFoundState" class="article-detail-layout" :aria-busy="articleLoading">',
@@ -1661,8 +1665,28 @@ for (const path of scanFiles) {
     }
 
     for (const [componentPath, markers] of [
-      ['components/article/ArticleFeatureMeta.vue', ['article-mast', 'article-featured-story', 'article-featured-story__index', '<TerraBreadcrumb', '<h1>']],
-      ['components/article/ArticleArchiveRail.vue', ['article-library-shell', 'article-archive-row']],
+      ['components/article/ArticleFeatureMeta.vue', [
+        'article-mast',
+        'article-featured-story',
+        'article-featured-story__index',
+        '<TerraBreadcrumb',
+        '<h1>',
+        'article-approved-stage',
+        'article-lead-head',
+        'article-lead-related',
+        'article-lead-byline',
+        'article-lead-stats',
+        'article-lead-foot',
+        'article-read-cta',
+        'article-fold-row__meta',
+      ]],
+      ['components/article/ArticleArchiveRail.vue', [
+        'article-library-shell',
+        'article-archive-row',
+        'article-approved-content',
+        'article-archive-tools',
+        'article-archive-row__action',
+      ]],
     ]) {
       const componentContent = existsSync(file(componentPath)) ? readFileSync(file(componentPath), 'utf8') : ''
       for (const marker of markers) {
@@ -1670,6 +1694,240 @@ for (const path of scanFiles) {
           violations.push(`${componentPath}: missing approved article region marker ${marker}`)
         }
       }
+    }
+
+    const articleArchiveComponent = existsSync(file('components/article/ArticleArchiveRail.vue'))
+      ? readFileSync(file('components/article/ArticleArchiveRail.vue'), 'utf8')
+      : ''
+    if (articleArchiveComponent.includes('文章 #{{ article.id }}')
+      || !articleArchiveComponent.includes('<span>公开手札</span>')
+      || !articleArchiveComponent.includes('<span>{{ publishedLabel(article) }}</span>')
+      || !articleArchiveComponent.includes('<b>{{ authorLabel(article) }}</b>')
+      || !articleArchiveComponent.includes('<span>{{ viewCount(article) }} 次浏览</span>')) {
+      violations.push(`${path}: article archive rows must prioritize truthful publication, author, and view signals without raw ids`)
+    }
+
+    // 产品决定：发现页不展示阅读时长，避免较长的估算劝退读者。首屏舞台与归档卡片同样适用；
+    // 锁成负向断言，防止被悄悄加回。/articles/archive 的卡片不在此约束内。
+    if (articleArchiveComponent.includes('readingMinutes')) {
+      violations.push(`${path}: article archive rows must not surface a reading-duration estimate`)
+    }
+
+    if ([
+      'likeCount: (article: ArticleEntry) => number',
+      'commentCount: (article: ArticleEntry) => number',
+      'v-if="likeCount(article) > 0"',
+      '{{ likeCount(article) }} 次点赞',
+      'v-if="commentCount(article) > 0"',
+      '{{ commentCount(article) }} 条评论',
+      'v-if="favoriteCount(article) > 0"',
+      '{{ favoriteCount(article) }} 次收藏',
+    ].some((marker) => !articleArchiveComponent.includes(marker))) {
+      violations.push(`${path}: article archive rows must render live engagement signals only when their sanitized counts are positive`)
+    }
+
+    const articlePopularEntryLinks = articleArchiveComponent.match(/<NuxtLink class="article-popular-entry" :to="`\/articles\/\$\{article\.slug\}`">[\s\S]*?<\/NuxtLink>/g) ?? []
+    if (articlePopularEntryLinks.length !== 1 || [
+      'v-if="coverUrl(article)"',
+      ':src="coverUrl(article)"',
+      'loading="lazy"',
+      '{{ coverFallback(article) }}',
+      '<strong>{{ article.title }}</strong>',
+      '{{ viewCount(article) }} 浏览 · {{ favoriteCount(article) }} 收藏',
+    ].some((marker) => !articlePopularEntryLinks[0]?.includes(marker))) {
+      violations.push(`${path}: popular-reading entries must keep one live article link with contained cover fallback, title, and current-page metrics`)
+    }
+
+    if ([
+      "const articleSearchQuery = ref('')",
+      'const submitArticleSearch = async () => {',
+      "path: '/articles/archive'",
+      "query: nextKeyword ? { keyword: nextKeyword } : {}",
+      'v-model:search-keyword="articleSearchQuery"',
+      '@search="submitArticleSearch"',
+    ].some((marker) => !articlePresentationContent.includes(marker))) {
+      violations.push(`${path}: article archive must expose an operable keyword search that resets submission to the first result page`)
+    }
+
+    const articleFeatureComponent = existsSync(file('components/article/ArticleFeatureMeta.vue'))
+      ? readFileSync(file('components/article/ArticleFeatureMeta.vue'), 'utf8')
+      : ''
+    if (articleFeatureComponent.includes('readingMinutes')) {
+      violations.push('components/article/ArticleFeatureMeta.vue: approved article fold must not surface a reading-duration estimate')
+    }
+
+    const articleCompatibilityMiddlewarePath = 'middleware/article-discovery-archive-compat.ts'
+    const articleCompatibilityMiddleware = existsSync(file(articleCompatibilityMiddlewarePath))
+      ? readFileSync(file(articleCompatibilityMiddlewarePath), 'utf8')
+      : ''
+    const articlePageMiddlewareStart = content.indexOf("middleware: ['article-discovery-archive-compat']")
+    const articlePageDataStart = content.indexOf('const { data: articleResponse')
+    if ([
+      'defineNuxtRouteMiddleware((to) => {',
+      "path: '/articles/archive'",
+      'const hasPageQuery = rawPage !== undefined && rawPage !== null',
+      '...(hasPageQuery ? { page: String(legacyPage) } : {})',
+      'redirectCode: 302',
+      'replace: true',
+    ].some((marker) => !articleCompatibilityMiddleware.includes(marker))
+      || !content.includes("middleware: ['article-discovery-archive-compat']")
+      || articlePageMiddlewareStart < 0
+      || articlePageDataStart < 0
+      || articlePageMiddlewareStart > articlePageDataStart) {
+      violations.push(`${path}: discovery compatibility bridge must redirect legacy keyword/page queries before data fetch`)
+    }
+
+    const articleFetchEnd = content.indexOf('const articles = computed', articlePageDataStart)
+    const articleFetchBlock = articlePageDataStart >= 0 && articleFetchEnd > articlePageDataStart
+      ? content.slice(articlePageDataStart, articleFetchEnd)
+      : ''
+    if (!content.includes("const articleDataKey = 'public-articles:discovery:1:12'")
+      || !/query:\s*\{\s*page:\s*1,\s*limit:\s*articleLimit\s*\}/m.test(articleFetchBlock)
+      || articleFetchBlock.includes('page: currentPage.value')
+      || articleFetchBlock.includes('keyword: keyword.value || undefined')) {
+      violations.push(`${path}: discovery API request must stay fixed to unfiltered page one at limit twelve`)
+    }
+
+    if ([
+      "const articleSearchQuery = ref('')",
+      'const submitArticleSearch = async () => {',
+      "path: '/articles/archive'",
+      'v-model:search-keyword="articleSearchQuery"',
+      '@search="submitArticleSearch"',
+    ].some((marker) => !content.includes(marker))) {
+      violations.push(`${path}: mast search must navigate to the dedicated archive and reset page state`)
+    }
+
+    if ([
+      'searchKeyword: string',
+      "'update:searchKeyword': [value: string]",
+      'search: []',
+      'class="article-mast-search"',
+      'for="article-archive-search-input"',
+      'id="article-archive-search-input"',
+      '@submit.prevent="emit(\'search\')"',
+      'to="/articles/archive"',
+    ].some((marker) => !articleFeatureComponent.includes(marker))) {
+      violations.push('components/article/ArticleFeatureMeta.vue: approved mast must own the labelled archive search and complete-archive destination')
+    }
+
+    if ([
+      'const discoveryLatestArticles = computed(() => articlePresentation.value.discoveryLatest)',
+      ':archive-entries="discoveryLatestArticles"',
+      '<h2>最新投稿</h2>',
+      '展示 {{ archiveEntries.length }} 篇',
+    ].some((marker) => !content.includes(marker) && !articleArchiveComponent.includes(marker))) {
+      violations.push(`${path}: discovery must bind the post-fold discoveryLatest projection and truthful latest heading/status`)
+    }
+
+    if (!articleArchiveComponent.includes('to="/articles/archive"')) {
+      violations.push(`${path}: discovery latest rail must expose a complete-archive destination`)
+    }
+
+    if (articleArchiveComponent.includes('完整收录当前公开文章')
+      || articleArchiveComponent.includes('article-archive-search-input')
+      || articleArchiveComponent.includes('currentPage: number')
+      || articleArchiveComponent.includes('totalArticles: number')
+      || articleArchiveComponent.includes('const emit = defineEmits')) {
+      violations.push(`${path}: discovery latest rail must not own archive search, pagination, or false-complete copy`)
+    }
+
+    if (content.includes('<CommonPaginationDock') || content.includes('@page-change="goToPage"')) {
+      violations.push(`${path}: discovery route must not render archive pagination after the split`)
+    }
+
+    if ([
+      'const articleLikeCount = (article: UserArticle) => Math.max(0, Number(article.likeCount ?? 0))',
+      'const articleCommentCount = (article: UserArticle) => Math.max(0, Number(article.commentCount ?? 0))',
+      ':like-count="articleLikeCount"',
+      ':comment-count="articleCommentCount"',
+    ].some((marker) => !content.includes(marker))) {
+      violations.push(`${path}: article archive engagement counts must use page-owned non-negative live-data adapters`)
+    }
+
+    // 发现页不再展示阅读时长，只需保留归档投影的导入；时长派生的真实性断言已迁移到
+    // pages/articles/archive.vue，那里仍然展示时长。
+    if (!content.includes("import { buildArticleArchive } from '~/utils/articleArchive'")) {
+      violations.push(`${path}: discovery projection must come from the shared article archive builder`)
+    }
+
+    if (!content.includes("{ label: '已发布'")
+      || !content.includes("{ label: '本页作者'")
+      || !content.includes("{ label: '本页浏览'")
+      || !content.includes("{ label: '本页收藏'")) {
+      violations.push(`${path}: article mast must use four truthful publication and current-page statistics`)
+    }
+
+    const articleFidelityComponents = [
+      existsSync(file('components/article/ArticleFeatureMeta.vue')) ? readFileSync(file('components/article/ArticleFeatureMeta.vue'), 'utf8') : '',
+      existsSync(file('components/article/ArticleArchiveRail.vue')) ? readFileSync(file('components/article/ArticleArchiveRail.vue'), 'utf8') : '',
+    ].join('\n')
+    for (const unsupportedClaim of ['同主题', '按最新更新']) {
+      if (articleFidelityComponents.includes(unsupportedClaim)) {
+        violations.push(`${path}: article index must not claim unavailable topic or ordering semantics via ${unsupportedClaim}`)
+      }
+    }
+  }
+
+  if (path === 'pages/articles/archive.vue') {
+    const archiveCardComponentPath = 'components/article/ArticleArchiveCardGrid.vue'
+    const archiveCardComponent = existsSync(file(archiveCardComponentPath))
+      ? readFileSync(file(archiveCardComponentPath), 'utf8')
+      : ''
+
+    // 产品决定：文章库卡片同样不展示阅读时长，与首页发现卡片、首屏舞台保持一致。
+    if (archiveCardComponent.includes('readingMinutes') || content.includes('estimateArticleReadingMinutes')) {
+      violations.push(`${path}: archive cards must not surface a reading-duration estimate`)
+    }
+
+    if ([
+      "const articleDataKey = computed(() => `public-articles:archive:${currentPage.value}:${keyword.value}`)",
+      "usePublicApiFetch<UserArticle[]>('/articles'",
+      'page: currentPage.value',
+      'limit: articleLimit',
+      'keyword: keyword.value || undefined',
+      'const articlePagination = computed<Pagination>',
+      'const articleLoading = computed(() => articlePending.value)',
+      "const articleError = computed(() => articleFetchError.value ? '文章资料库加载失败。' : '')",
+    ].some((marker) => !content.includes(marker))) {
+      violations.push(`${path}: archive route must fetch the live keyword/page projection at the fixed twelve-record limit`)
+    }
+
+    if ([
+      "const keyword = computed(() => String(firstQueryValue(route.query.keyword) ?? '').trim())",
+      'const submitArticleSearch = async () => {',
+      'archivePageHref(1, articleSearchQuery.value.trim())',
+      "await router.push('/articles/archive')",
+      'watch(keyword, (value) => { articleSearchQuery.value = value })',
+      'const goToPage = async (page: number) => {',
+      '@page-change="goToPage"',
+      'jump-id="article-archive-page-jump"',
+    ].some((marker) => !content.includes(marker))) {
+      violations.push(`${path}: archive search, clear, deep-link pagination, and page-one reset must remain URL-owned`)
+    }
+
+    if ([
+      'id="article-archive-page-search-input"',
+      '@submit.prevent="emit(\'search\')"',
+      'class="article-archive-page-clear"',
+      '@click="emit(\'clear\')"',
+      '@click="emit(\'retry\')"',
+      'role="alert"',
+      ':to="`/articles/${article.slug}`"',
+      'v-if="likeCount(article) > 0"',
+      'v-if="commentCount(article) > 0"',
+      'v-if="favoriteCount(article) > 0"',
+    ].some((marker) => !archiveCardComponent.includes(marker))) {
+      violations.push(`${archiveCardComponentPath}: archive cards must keep labelled search/recovery, whole-card links, and positive-only live engagement`)
+    }
+
+    if ([
+      'article-approved-stage',
+      'article-reading-stack',
+      'article-popular-list',
+      'article-topic-empty',
+    ].some((marker) => content.includes(marker) || archiveCardComponent.includes(marker))) {
+      violations.push(`${path}: complete archive route must not duplicate the discovery feature, reading stack, popular rail, or topic state`)
     }
   }
 

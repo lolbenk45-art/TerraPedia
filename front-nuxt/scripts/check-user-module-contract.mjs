@@ -385,9 +385,6 @@ const pageContracts = [
       'articleCoverFallback',
       'article.coverImage',
       'articleAuthorAvatarUrl',
-      'CommonPaginationDock',
-      '@page-change="goToPage"',
-      'jump-id="article-page-jump"',
     ],
     forbidden: [
       '公开文章暂未开放',
@@ -396,6 +393,20 @@ const pageContracts = [
       '等公开文章来源和发布状态接入后',
       'class="article-pagination support-panel"',
     ],
+  },
+  {
+    path: 'pages/articles/archive.vue',
+    required: [
+      'usePublicApiFetch<UserArticle[]>',
+      "'/articles'",
+      'articlePagination',
+      'articleError',
+      'articleLoading',
+      'CommonPaginationDock',
+      '@page-change="goToPage"',
+      'jump-id="article-archive-page-jump"',
+    ],
+    forbidden: ['article-approved-stage', 'article-reading-stack', 'article-popular-list'],
   },
   {
     path: 'pages/articles/[slug].vue',
@@ -465,6 +476,21 @@ const articleIndexPresentationContracts = [
       'public-article-cover',
       'public-article-cover-fallback',
       'loading="lazy"',
+    ],
+  },
+  {
+    path: 'components/article/ArticleArchiveCardGrid.vue',
+    required: [
+      '`/articles/${article.slug}`',
+      'article.title',
+      'failedCoverKeys',
+      '@error="markCoverFailed(article)"',
+      'v-if="hasLiveCover(article)"',
+      '{{ coverFallback(article) }}',
+      'loading="lazy"',
+      'authorLabel(article)',
+      'publishedLabel(article)',
+      'viewCount(article)',
     ],
   },
 ]

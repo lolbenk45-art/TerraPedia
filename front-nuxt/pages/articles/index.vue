@@ -1,33 +1,25 @@
 <script setup lang="ts">
-definePageMeta({ publicScreenClass: 'article-screen' })
+definePageMeta({
+  publicScreenClass: 'article-screen article-index-approved-screen',
+  middleware: ['article-discovery-archive-compat'],
+})
 
 import type { ApiResponse, Pagination, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { usePublicApiFetch } from '~/composables/usePublicApi'
 import { buildArticleArchive } from '~/utils/articleArchive'
 
-const route = useRoute()
 const router = useRouter()
-
-const currentPage = computed(() => {
-  const value = Number(route.query.page ?? 1)
-  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1
-})
-const keyword = computed(() => String(route.query.keyword ?? '').trim())
+const articleSearchQuery = ref('')
 const articleLimit = 12
 const articleError = ref('')
-const articleDataKey = computed(() => `public-articles:${currentPage.value}:${keyword.value}`)
+const articleDataKey = 'public-articles:discovery:1:12'
 
 const { data: articleResponse, pending: articlePending, error: articleFetchError, refresh } = await useAsyncData(
   articleDataKey,
   () => usePublicApiFetch<UserArticle[]>('/articles', {
-    query: {
-      page: currentPage.value,
-      limit: articleLimit,
-      keyword: keyword.value || undefined,
-    },
+    query: { page: 1, limit: articleLimit },
   }),
-  { watch: [currentPage, keyword] },
 )
 
 const articles = computed(() => {
@@ -38,7 +30,7 @@ const articles = computed(() => {
 const articlePagination = computed<Pagination>(() => (
   (articleResponse.value as ApiResponse<UserArticle[]> | null)?.pagination ?? {
     total: articles.value.length,
-    page: currentPage.value,
+    page: 1,
     limit: articleLimit,
     totalPages: 1,
   }
@@ -46,15 +38,15 @@ const articlePagination = computed<Pagination>(() => (
 
 const articleLoading = computed(() => articlePending.value)
 const articleLoadingSlotCount = 4
-const totalPages = computed(() => Math.max(1, Number(articlePagination.value.totalPages ?? 1)))
-const articlePresentation = computed(() => buildArticleArchive(articles.value, { keyword: keyword.value }))
+const articlePresentation = computed(() => buildArticleArchive(articles.value))
 const featuredArticle = computed(() => articlePresentation.value.featured)
 const foldArticles = computed(() => articlePresentation.value.readingList)
-const archiveArticles = computed(() => articlePresentation.value.archive)
+const discoveryLatestArticles = computed(() => articlePresentation.value.discoveryLatest)
 const articleMastStats = computed(() => [
   { label: '已发布', value: String(articlePagination.value.total ?? articles.value.length) },
-  { label: '作者', value: String(new Set(articles.value.map((article) => article.authorId || article.authorDisplayName).filter(Boolean)).size) },
+  { label: '本页作者', value: String(new Set(articles.value.map((article) => article.authorId || article.authorDisplayName).filter(Boolean)).size) },
   { label: '本页浏览', value: new Intl.NumberFormat('zh-CN', { notation: 'compact', maximumFractionDigits: 1 }).format(articles.value.reduce((total, article) => total + articleViewCount(article), 0)) },
+  { label: '本页收藏', value: new Intl.NumberFormat('zh-CN', { notation: 'compact', maximumFractionDigits: 1 }).format(articles.value.reduce((total, article) => total + articleFavoriteCount(article), 0)) },
 ])
 
 const articleCoverUrl = (article: UserArticle) => resolvePreviewImageUrl(article.coverImage || '')
@@ -74,7 +66,12 @@ const articleAuthorAvatarUrl = (article: UserArticle) => resolvePreviewImageUrl(
 
 const articleViewCount = (article: UserArticle) => Math.max(0, Number(article.viewCount ?? 0))
 
+const articleLikeCount = (article: UserArticle) => Math.max(0, Number(article.likeCount ?? 0))
+
+const articleCommentCount = (article: UserArticle) => Math.max(0, Number(article.commentCount ?? 0))
+
 const articleFavoriteCount = (article: UserArticle) => Math.max(0, Number(article.favoriteCount ?? 0))
+
 
 const popularArticles = computed(() => [...articles.value]
   .sort((left, right) => articleViewCount(right) - articleViewCount(left)
@@ -98,17 +95,12 @@ watch(articleFetchError, (error) => {
   articleError.value = error ? '文章列表加载失败。' : ''
 }, { immediate: true })
 
-const pageHref = (page: number) => ({
-  path: '/articles',
-  query: {
-    ...(keyword.value ? { keyword: keyword.value } : {}),
-    ...(page > 1 ? { page: String(page) } : {}),
-  },
-})
-
-const goToPage = async (page: number) => {
-  if (page < 1 || page > totalPages.value) return
-  await router.push(pageHref(page))
+const submitArticleSearch = async () => {
+  const nextKeyword = articleSearchQuery.value.trim()
+  await router.push({
+    path: '/articles/archive',
+    query: nextKeyword ? { keyword: nextKeyword } : {},
+  })
 }
 
 const retryLoad = async () => {
@@ -125,6 +117,7 @@ useSeoMeta({
 <template>
   <main class="tp-public-page-shell article-layout discovery-articles-page article-route-shell tp-page-shell" :aria-busy="articleLoading">
     <ArticleFeatureMeta
+      v-model:search-keyword="articleSearchQuery"
       :mast-stats="articleMastStats"
       :featured="featuredArticle"
       :reading-list="foldArticles"
@@ -137,8 +130,9 @@ useSeoMeta({
       :published-label="articlePublishedLabel"
       :view-count="articleViewCount"
       :favorite-count="articleFavoriteCount"
+      @search="submitArticleSearch"
     />
-      <section class="article-panel article-route-system">
+      <section class="article-panel article-route-system article-approved-content-shell">
         <div v-if="articleLoading" class="public-article-list article-list-layout-balanced" aria-live="polite" aria-label="文章列表加载中">
           <article
             v-for="slot in articleLoadingSlotCount"
@@ -173,36 +167,18 @@ useSeoMeta({
           <button class="secondary-button" type="button" @click="retryLoad">重试</button>
         </div>
 
-        <article v-else-if="!articles.length" class="article-lead article-route-lead">
-          <div>
-            <span class="eyebrow">暂无公开文章</span>
-            <h2>还没有已发布内容</h2>
-            <p>暂无公开文章，请稍后再来查看。</p>
-          </div>
-        </article>
-
         <ArticleArchiveRail
           v-else
-          :archive-entries="archiveArticles"
+          :archive-entries="discoveryLatestArticles"
           :popular-entries="popularArticles"
-          :current-page="currentPage"
           :cover-url="articleCoverUrl"
           :cover-fallback="articleCoverFallback"
           :author-label="articleAuthorLabel"
           :published-label="articlePublishedLabel"
           :view-count="articleViewCount"
+          :like-count="articleLikeCount"
+          :comment-count="articleCommentCount"
           :favorite-count="articleFavoriteCount"
-        />
-
-        <CommonPaginationDock
-          v-if="totalPages > 1"
-          :current-page="currentPage"
-          :total-pages="totalPages"
-          :disabled="articleLoading"
-          aria-label="文章分页"
-          jump-id="article-page-jump"
-          show-boundary-controls
-          @page-change="goToPage"
         />
       </section>
 
