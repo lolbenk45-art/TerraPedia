@@ -397,6 +397,87 @@ test('runItemImageSourceVerification records failed terminal progress on request
   assert.match(progress.at(-1).message, /injected wiki outage/);
 });
 
+test('runItemImageSourceVerification verifies live image evidence when the source page revision drifted', async () => {
+  const input = frozenInput({ limit: 1 });
+  const frozen = input.records[0];
+  const liveRevision = '2026-07-29T12:18:22Z';
+  assert.notEqual(liveRevision, frozen.sourceRevisionTimestamp);
+
+  const report = await runItemImageSourceVerification({
+    repoRoot: '/tmp',
+    input,
+    inputPath: '/tmp/frozen-item-image-input.json',
+    inputSha256: `sha256:${'a'.repeat(64)}`,
+    progressPath: '/tmp/item-image-progress.json',
+    outputPath: '/tmp/item-image-report.json',
+    batchSize: 1,
+    maxRequests: 1
+  }, {
+    authorize: async () => {},
+    fetchJson: async ({ identity }) => ({
+      query: {
+        pages: [
+          {
+            pageid: identity.pageId,
+            title: identity.sourcePage,
+            revisions: [{ timestamp: liveRevision }]
+          },
+          wikiFile('Verified Item.png')
+        ]
+      }
+    }),
+    now: clock(),
+    writeProgress: async () => {},
+    writeReport: async () => {}
+  });
+
+  assert.equal(report.summary.failed, 0);
+  assert.equal(report.summary.verified, 1);
+  const record = report.records[0];
+  assert.equal(record.classification, 'verified');
+  assert.equal(record.source.fileTitle, 'Verified Item.png');
+  assert.equal(record.source.sourceRevisionTimestamp, liveRevision);
+  assert.equal(record.source.frozenSourceRevisionTimestamp, frozen.sourceRevisionTimestamp);
+  assert.equal(record.source.revisionDrifted, true);
+});
+
+test('runItemImageSourceVerification still fails closed when the source page identity does not match', async () => {
+  const input = frozenInput({ limit: 1 });
+  const frozen = input.records[0];
+
+  const report = await runItemImageSourceVerification({
+    repoRoot: '/tmp',
+    input,
+    inputPath: '/tmp/frozen-item-image-input.json',
+    inputSha256: `sha256:${'a'.repeat(64)}`,
+    progressPath: '/tmp/item-image-progress.json',
+    outputPath: '/tmp/item-image-report.json',
+    batchSize: 1,
+    maxRequests: 1
+  }, {
+    authorize: async () => {},
+    fetchJson: async ({ identity }) => ({
+      query: {
+        pages: [
+          {
+            pageid: identity.pageId + 1,
+            title: identity.sourcePage,
+            revisions: [{ timestamp: identity.sourceRevisionTimestamp }]
+          },
+          wikiFile('Verified Item.png')
+        ]
+      }
+    }),
+    now: clock(),
+    writeProgress: async () => {},
+    writeReport: async () => {}
+  }).catch((error) => error);
+
+  assert.ok(report instanceof Error);
+  assert.match(report.message, /page identity mismatch/i);
+  assert.equal(frozen.pageId, 1001);
+});
+
 test('resolveItemImageSourceVerificationProgressPath honors explicit and wrapper paths', () => {
   const repoRoot = path.resolve('/tmp/terrapedia-worktree');
 

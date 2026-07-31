@@ -499,8 +499,7 @@ function buildVerificationRecord(identity, response) {
     ? response.query.pages
     : Object.values(response?.query?.pages ?? {});
   const sourcePage = pages.find((page) => Number(page?.pageid) === identity.pageId);
-  const revisionTimestamp = sourcePage?.revisions?.[0]?.timestamp ?? null;
-  if (!sourcePage || revisionTimestamp !== identity.sourceRevisionTimestamp) {
+  if (!sourcePage) {
     return {
       ...itemIdentity(identity),
       classification: 'failed',
@@ -508,11 +507,13 @@ function buildVerificationRecord(identity, response) {
       comparison: identity.comparison,
       responseSha256,
       error: {
-        code: 'page_revision_mismatch',
-        message: `MediaWiki page/revision mismatch for ${identity.itemInternalName}`
+        code: 'page_identity_mismatch',
+        message: `MediaWiki page identity mismatch for ${identity.itemInternalName}`
       }
     };
   }
+  const revisionTimestamp = sourcePage?.revisions?.[0]?.timestamp ?? null;
+  const revisionDrifted = revisionTimestamp !== identity.sourceRevisionTimestamp;
 
   const requestedFileTitles = new Set(identity.fileTitles.map(normalizeComparableFileTitle));
   const identityKeys = new Set([
@@ -559,7 +560,9 @@ function buildVerificationRecord(identity, response) {
       pageId: identity.pageId,
       requestedPageTitle: identity.requestedPageTitle,
       sourcePage: identity.sourcePage,
-      sourceRevisionTimestamp: identity.sourceRevisionTimestamp,
+      sourceRevisionTimestamp: revisionTimestamp ?? identity.sourceRevisionTimestamp,
+      frozenSourceRevisionTimestamp: identity.sourceRevisionTimestamp,
+      revisionDrifted,
       fileTitle: candidate.fileTitle,
       originalUrl: candidate.originalUrl,
       width: candidate.width,
