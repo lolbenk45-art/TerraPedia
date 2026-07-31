@@ -24,3 +24,12 @@ export const buildArticleArchive = <T>(articles: readonly T[]) => {
     archive: entries,
   }
 }
+
+export type ArchiveViewMode = 'card' | 'list'
+
+// 与 terrapedia-theme 同机制：cookie 存视图偏好，SSR 首屏直出正确正文，无水合闪烁。
+export const ARCHIVE_VIEW_COOKIE = 'terrapedia-archive-view'
+
+export const normalizeArchiveViewMode = (value: unknown): ArchiveViewMode => (
+  value === 'list' ? 'list' : 'card'
+)

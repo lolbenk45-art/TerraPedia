@@ -45,3 +45,15 @@ test('preserves every real API-page record for the dedicated archive', () => {
 test('no longer exposes a reading-duration estimator', () => {
   assert.equal(articleArchive.estimateArticleReadingMinutes, undefined)
 })
+
+test('normalizes the archive view preference to card unless list is explicitly stored', () => {
+  const { ARCHIVE_VIEW_COOKIE, normalizeArchiveViewMode } = articleArchive
+
+  assert.equal(ARCHIVE_VIEW_COOKIE, 'terrapedia-archive-view')
+  assert.equal(normalizeArchiveViewMode('list'), 'list')
+  assert.equal(normalizeArchiveViewMode('card'), 'card')
+  assert.equal(normalizeArchiveViewMode(''), 'card')
+  assert.equal(normalizeArchiveViewMode(undefined), 'card')
+  assert.equal(normalizeArchiveViewMode('grid'), 'card')
+  assert.equal(normalizeArchiveViewMode({ view: 'list' }), 'card')
+})
