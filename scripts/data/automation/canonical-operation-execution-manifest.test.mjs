@@ -13,6 +13,7 @@ import {
 } from './canonical-operation-execution-manifest.mjs';
 import {
   CANONICAL_CUTOVER_OPERATION_IDS,
+  CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './build-canonical-cutover-authorization.mjs';
 
@@ -87,6 +88,24 @@ test('manifest builder covers 30 governed operations and keeps NPC apply explici
       assert.equal(entry.contentHash, expected, `${operationId}:${entry.path}`);
     }
   }
+});
+
+test('image sync manifest binds the item image promotion result as an input', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot: process.cwd(),
+    operationId: 'canonical-image-sync',
+    artifactDate: '2026-08-01',
+    backendApiBase: 'http://127.0.0.1:18191',
+  });
+
+  assert.deepEqual(manifest.inputPaths, [
+    'data/standardized/items.standardized.json',
+    'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+  ]);
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS['canonical-image-sync'], [
+    'data/standardized/items.standardized.json',
+    'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+  ]);
 });
 
 test('item image promotion manifest binds the content-addressed bundle contract', () => {

@@ -510,7 +510,7 @@ matched. Repaired at `60567e0c`.
 - Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
 - Modify: corresponding automation tests
 
-- [ ] **Step 1: Write RED completion and authorization tests**
+- [x] **Step 1: Write RED completion and authorization tests**
 
 Assert an items-only dry run reports ordered `candidateKeys`, `alreadyManagedKeys`, `uploadKeys`, and `missingSourceKeys`. Assert apply fails if any upload returns null, never writes terminal `completed`, and cannot run directly without the packet/permit. Assert:
 
@@ -521,19 +521,19 @@ assert.equal(result.candidates, result.uploaded + result.alreadyManaged);
 assert.deepEqual(result.completedKeys, [...result.uploadedKeys, ...result.alreadyManagedKeys].sort());
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/workflow/run-image-sync.test.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs`
 
 Expected: FAIL on absent key sets, false-success upload behavior, and direct apply.
 
-- [ ] **Step 3: Refactor to an exported runner**
+- [x] **Step 3: Refactor to an exported runner**
 
 Move top-level execution into `runImageSync(options, dependencies)`. Record original URL, managed URL, content hash, and key for every candidate. Write the report before terminal progress; when failures exist, report `status: 'failed'`, publish failed progress, and throw after preserving evidence.
 
 Require the promotion result/bundle identity in `canonical-image-sync` data paths and input contract. Apply must match the current standardized after hash from source promotion.
 
-- [ ] **Step 4: Run GREEN, dry-run, and commit**
+- [x] **Step 4: Run GREEN, dry-run, and commit**
 
 Run: `node --test scripts/data/workflow/run-image-sync.test.mjs scripts/data/lib/minio-image-upload.test.mjs scripts/data/audit/domain-readiness-audit.test.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs`
 
@@ -545,6 +545,32 @@ Expected after source promotion: `total=6131`, `missingSource=0`, and exact comp
 git add scripts/data/workflow/run-image-sync.mjs scripts/data/workflow/run-image-sync.test.mjs scripts/data/automation/canonical-operation-catalog.mjs scripts/data/automation/canonical-operation-execution-manifest.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs
 git commit -m "fix(data): make item image sync exact"
 ```
+
+
+Execution checkpoint (2026-08-01): Steps 1-4 are complete. `run-image-sync.mjs` no longer
+executes at import: everything moved into an exported `runImageSync(options, dependencies)`
+with injectable uploader, progress, JSON IO, wiki resolver, and clock, and the CLI is guarded
+by a direct-execution check. Every module returns ordered `candidateKeys`,
+`alreadyManagedKeys`, `uploadKeys`, `uploadedKeys`, `missingSourceKeys`, `completedKeys`, and
+`failedKeys`, plus per-image `managedImages` evidence carrying original URL, managed URL, and
+content hash. The summary aggregates the same fields across scopes, so a single-scope run
+exposes them at the top level.
+
+A null upload is now a failure rather than a silent skip: the report is written first with
+`status: 'failed'` and the failing keys, terminal progress publishes `failed`, and the runner
+throws. `completed` is never published for a partial upload set.
+
+Two apply-only gates run before anything reaches MinIO. The standardized bytes must hash to
+the `after` value of a COMPLETED `canonical-item-image-source-promotion` result, and the
+authorized packet must load and its permit be consumed. Both are scoped to the `items` scope
+only, because the governed operation freezes `--scopes=items`; the other scopes are separate
+lanes and are not covered by that packet. `canonical-image-sync` now binds the promotion
+result in both its canonical data paths and its manifest input paths.
+
+The real items dry run reports `total 6131`, `missingSource 0`, `candidates 6131 =
+uploadKeys 4343 + alreadyManagedKeys 1788`, `uploaded 0`, `failedKeys 0`, status `completed`.
+`missingSource` reaching zero is the direct consequence of Task 4's promotion. The MinIO apply
+still requires its own `canonical-image-sync` packet and a running local stack.
 
 ### Task 6: Land Original And Managed Image Evidence With Real Lineage
 

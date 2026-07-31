@@ -42,7 +42,10 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'canonical-item-image-source-promotion': Object.freeze([
     'reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
   ]),
-  'canonical-image-sync': Object.freeze(['data/standardized/items.standardized.json']),
+  'canonical-image-sync': Object.freeze([
+    'data/standardized/items.standardized.json',
+    'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+  ]),
   'canonical-boss-import': Object.freeze([
     'data/generated/wiki-bosses.latest.json',
     'data/generated/npc-standardized-map.json',

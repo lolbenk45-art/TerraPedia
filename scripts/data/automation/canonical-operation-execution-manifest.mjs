@@ -469,7 +469,10 @@ function buildDefinition(
         `--output=reports/workflow-image-sync-${artifactDate}.json`,
         '--progress-path=reports/backend-refresh/history/canonical-image-sync.runtime/child-status.json',
       ],
-      inputPaths: ['data/standardized/items.standardized.json'],
+      inputPaths: [
+        'data/standardized/items.standardized.json',
+        'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
+      ],
       outputPaths: ['data/standardized/items.standardized.json'],
       reportPaths: [`reports/workflow-image-sync-${artifactDate}.json`],
       progressPaths: ['reports/backend-refresh/history/canonical-image-sync.runtime/child-status.json'],

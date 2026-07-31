@@ -5,6 +5,9 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+
+import { runImageSync } from './run-image-sync.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const scriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-image-sync.mjs');
@@ -55,6 +58,45 @@ test('npc and projectile items-prefix URLs are not treated as already managed', 
   assert.equal(payload.modules.npcs.changed, 1);
   assert.equal(payload.modules.projectiles.alreadyManaged, 0);
   assert.equal(payload.modules.projectiles.changed, 1);
+});
+
+test('item dry run recognizes a relative managed URL as already managed', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-run-image-sync-relative-managed-'));
+  fs.mkdirSync(path.join(tempDir, 'data', 'standardized'), { recursive: true });
+  fs.mkdirSync(path.join(tempDir, 'scripts', 'dev', 'config'), { recursive: true });
+  fs.writeFileSync(
+    path.join(tempDir, 'scripts', 'dev', 'config', 'local-stack.config.json'),
+    JSON.stringify({
+      minio: {
+        publicEndpoint: 'http://localhost:9000',
+        endpoint: 'http://localhost:9000',
+        bucket: 'terrapedia-images',
+        objectPrefix: 'items',
+      },
+    }),
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(tempDir, 'data', 'standardized', 'items.standardized.json'),
+    JSON.stringify({
+      records: [
+        { internalName: 'IronPickaxe', imageUrl: '/terrapedia-images/items/iron-pickaxe.png' },
+      ],
+    }),
+    'utf8'
+  );
+
+  const result = spawnSync(process.execPath, [scriptPath, '--apply=false', '--scopes=items'], {
+    cwd: tempDir,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.modules.items.candidates, 1);
+  assert.equal(payload.modules.items.alreadyManaged, 1);
+  assert.equal(payload.modules.items.changed, 0);
+  assert.equal(payload.modules.items.uploaded, 0);
 });
 
 test('armor_set_images scope dry-run counts unmanaged raw armor set images without mutating file', () => {
@@ -285,4 +327,208 @@ function spawnNode(args, options = {}) {
     });
     child.on('close', (status) => resolve({ status, stdout, stderr }));
   });
+}
+
+test('runImageSync items dry run reports ordered key sets and the completion equation', async () => {
+  const workspace = createImageSyncWorkspace();
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: false,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/']
+  }, workspace.dependencies());
+
+  assert.equal(result.total, 4);
+  assert.equal(result.missingSource, 1);
+  assert.deepEqual(result.missingSourceKeys, ['NoSource']);
+  assert.deepEqual(result.candidateKeys, ['CopperCoin', 'Torch', 'Wood']);
+  assert.deepEqual(result.alreadyManagedKeys, ['Torch']);
+  assert.deepEqual(result.uploadKeys, ['CopperCoin', 'Wood']);
+  assert.equal(result.candidates, result.uploadKeys.length + result.alreadyManagedKeys.length);
+  assert.equal(result.uploaded, 0);
+  assert.equal(result.status, 'completed');
+});
+
+test('runImageSync apply completes the equation and records managed evidence', async () => {
+  const workspace = createImageSyncWorkspace();
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/']
+  }, workspace.dependencies());
+
+  assert.equal(result.status, 'completed');
+  assert.equal(result.uploaded, 2);
+  assert.equal(result.candidates, result.uploaded + result.alreadyManaged);
+  assert.deepEqual(
+    result.completedKeys,
+    [...result.uploadedKeys, ...result.alreadyManagedKeys].sort()
+  );
+  const evidence = result.managedImages.find((entry) => entry.key === 'CopperCoin');
+  assert.equal(evidence.originalUrl, 'https://terraria.wiki.gg/images/Copper_Coin.png');
+  assert.equal(evidence.managedUrl, 'http://localhost:9000/terrapedia-images/items/coppercoin.png');
+  assert.match(evidence.contentHash, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(
+    JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'))
+      .records.find((record) => record.internalName === 'CopperCoin').imageUrl,
+    'http://localhost:9000/terrapedia-images/items/coppercoin.png'
+  );
+});
+
+test('runImageSync fails closed when an upload returns null', async () => {
+  const workspace = createImageSyncWorkspace();
+  const dependencies = workspace.dependencies({ failUploadFor: 'Wood' });
+
+  await assert.rejects(
+    () => runImageSync({
+      repoRoot: workspace.root,
+      scopes: ['items'],
+      apply: true,
+      outputPath: workspace.reportPath,
+      progressPath: workspace.progressPath,
+      promotionResultPath: workspace.promotionResultPath,
+      managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/']
+    }, dependencies),
+    /image sync failed/i
+  );
+
+  const report = JSON.parse(fs.readFileSync(workspace.reportPath, 'utf8'));
+  assert.equal(report.status, 'failed');
+  assert.deepEqual(report.failedKeys, ['Wood']);
+  assert.equal(workspace.progressEvents.at(-1).status, 'failed');
+  assert.ok(!workspace.progressEvents.some((event) => event.status === 'completed'));
+});
+
+test('runImageSync apply refuses standardized bytes the promotion result did not produce', async () => {
+  const workspace = createImageSyncWorkspace();
+  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: `sha256:${'b'.repeat(64)}` }
+  }, null, 2)}\n`);
+
+  await assert.rejects(
+    () => runImageSync({
+      repoRoot: workspace.root,
+      scopes: ['items'],
+      apply: true,
+      outputPath: workspace.reportPath,
+      progressPath: workspace.progressPath,
+      promotionResultPath: workspace.promotionResultPath,
+      managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/']
+    }, workspace.dependencies()),
+    /standardized bytes do not match the item image promotion result/i
+  );
+
+  assert.equal(workspace.uploadedUrls.length, 0);
+});
+
+test('runImageSync apply requires an authorized context when one is demanded', async () => {
+  const workspace = createImageSyncWorkspace();
+
+  await assert.rejects(
+    () => runImageSync({
+      repoRoot: workspace.root,
+      scopes: ['items'],
+      apply: true,
+      requireAuthorization: true,
+      outputPath: workspace.reportPath,
+      progressPath: workspace.progressPath,
+      promotionResultPath: workspace.promotionResultPath,
+      managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/']
+    }, workspace.dependencies({
+      loadAuthorizedContext: () => {
+        throw new Error('TERRAPEDIA_AUTHORIZED_PACKET_PATH is required');
+      }
+    })),
+    /TERRAPEDIA_AUTHORIZED_PACKET_PATH is required/
+  );
+
+  assert.equal(workspace.uploadedUrls.length, 0);
+});
+
+function createImageSyncWorkspace() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-image-sync-runner-'));
+  const itemsPath = path.join(root, 'data/standardized/items.standardized.json');
+  const reportPath = path.join(root, 'reports/image-sync.json');
+  const progressPath = path.join(root, 'reports/progress.json');
+  const promotionResultPath = path.join(root, 'reports/promotion.result.json');
+  fs.mkdirSync(path.dirname(itemsPath), { recursive: true });
+  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+  const itemsPayload = {
+    schemaVersion: '1.0.0',
+    records: [
+      {
+        id: 8,
+        internalName: 'Torch',
+        name: 'Torch',
+        imageFileTitle: 'Torch.png',
+        imageUrl: 'http://localhost:9000/terrapedia-images/items/torch.png'
+      },
+      {
+        id: 9,
+        internalName: 'Wood',
+        name: 'Wood',
+        imageFileTitle: 'Wood.png',
+        imageUrl: 'https://terraria.wiki.gg/images/Wood.png'
+      },
+      {
+        id: 71,
+        internalName: 'CopperCoin',
+        name: 'Copper Coin',
+        imageFileTitle: 'Copper Coin.png',
+        imageUrl: 'https://terraria.wiki.gg/images/Copper_Coin.png'
+      },
+      { id: 99, internalName: 'NoSource', name: 'No Source', imageFileTitle: null, imageUrl: null }
+    ]
+  };
+  const serialized = `${JSON.stringify(itemsPayload, null, 2)}\n`;
+  fs.writeFileSync(itemsPath, serialized);
+  fs.writeFileSync(promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: sha256Hex(serialized) }
+  }, null, 2)}\n`);
+
+  const progressEvents = [];
+  const uploadedUrls = [];
+  return {
+    root,
+    itemsPath,
+    reportPath,
+    progressPath,
+    promotionResultPath,
+    progressEvents,
+    uploadedUrls,
+    dependencies({ failUploadFor = null, loadAuthorizedContext = null } = {}) {
+      return {
+        writeProgress: (_filePath, payload) => progressEvents.push(payload),
+        ...(loadAuthorizedContext ? { loadAuthorizedContext } : {}),
+        createUploader: async () => ({
+          uploadImageUrl: async (sourceUrl, context) => {
+            if (failUploadFor && context?.nameHint === failUploadFor) return null;
+            uploadedUrls.push(sourceUrl);
+            return `http://localhost:9000/terrapedia-images/items/${context.nameHint.toLowerCase()}.png`;
+          }
+        }),
+        resolveWikiImageUrl: async () => null,
+        now: (() => {
+          let tick = 0;
+          return () => new Date(Date.parse('2026-08-01T00:00:00.000Z') + (tick += 1) * 1000).toISOString();
+        })()
+      };
+    }
+  };
+}
+
+function sha256Hex(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }

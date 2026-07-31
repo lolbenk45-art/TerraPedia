@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { fetchWikiImageInfo, parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import {
@@ -11,218 +13,324 @@ import {
   slugify,
   toText
 } from '../lib/minio-image-upload.mjs';
+import {
+  consumeAuthorizedOperationDispatchPermit,
+  loadAuthorizedOperationContext
+} from '../automation/authorized-operation-context.mjs';
 import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
 import { writeJsonFile } from './backend-refresh-runtime-state.mjs';
 
-const options = parseCliArgs(process.argv.slice(2));
-const apply = booleanOption(options.apply, false);
-const scopes = resolveScopes(options.scopes ?? options.scope ?? 'projectiles,buffs');
-const progressPath = path.resolve(process.cwd(), options.progressPath ?? options['progress-path'] ?? path.join('data', 'generated', 'wiki-sync-progress.latest.json'));
-const startedAt = new Date().toISOString();
-const standardizedRoot = path.resolve(process.cwd(), 'data', 'standardized');
-const managedUrlPrefixes = Array.isArray(options.managedUrlPrefix)
-  ? options.managedUrlPrefix
-  : (toText(options.managedUrlPrefix)
-      ? [toText(options.managedUrlPrefix)]
-      : resolveManagedImageUrlPrefixes({ repoRoot: process.cwd() }));
-const reportPath = path.resolve(
-  process.cwd(),
-  options.output ?? path.join(process.cwd(), 'reports', `workflow-image-sync-${new Date().toISOString().slice(0, 10)}.json`)
-);
-const wikiImageInfoCache = new Map();
+const OPERATION_ID = 'canonical-image-sync';
+const DECISION_LEDGER_PATH = 'reports/authorization/canonical/used-decisions.json';
+const DEFAULT_PROMOTION_RESULT_PATH = 'reports/authorization/canonical/canonical-item-image-source-promotion.result.json';
+const SUPPORTED_SCOPES = Object.freeze([
+  'items',
+  'npcs',
+  'projectiles',
+  'buffs',
+  'armor_item_images',
+  'armor_set_images',
+  'town_npc_maintenance'
+]);
 
-const uploader = apply
-  ? await createMinioImageUploader({
-      apiBase: options.apiBase,
-      adminUsername: options.adminUsername,
-      adminPassword: options.adminPassword,
-      managedUrlPrefixes,
-      repoRoot: process.cwd()
+export async function runImageSync(rawOptions = {}, dependencies = {}) {
+  const repoRoot = path.resolve(rawOptions.repoRoot ?? process.cwd());
+  const apply = Boolean(rawOptions.apply);
+  const scopes = normalizeScopes(rawOptions.scopes);
+  const standardizedRoot = path.join(repoRoot, 'data', 'standardized');
+  const now = dependencies.now ?? (() => new Date().toISOString());
+  const startedAt = now();
+  const progressPath = path.resolve(
+    repoRoot,
+    rawOptions.progressPath ?? path.join('data', 'generated', 'wiki-sync-progress.latest.json')
+  );
+  const reportPath = path.resolve(
+    repoRoot,
+    rawOptions.outputPath ?? path.join('reports', `workflow-image-sync-${startedAt.slice(0, 10)}.json`)
+  );
+  const managedUrlPrefixes = rawOptions.managedUrlPrefixes
+    ?? resolveManagedImageUrlPrefixes({ repoRoot });
+
+  const readJson = dependencies.readJson ?? ((filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8')));
+  const writeJson = dependencies.writeJson ?? writeJsonAtPath;
+  const writeProgress = dependencies.writeProgress ?? ((filePath, payload) => writeJsonFile(filePath, payload));
+  const resolveWikiImageUrl = dependencies.resolveWikiImageUrl ?? createWikiImageUrlResolver();
+  const loadAuthorizedContext = dependencies.loadAuthorizedContext
+    ?? (() => loadAuthorizedOperationContext({ operationId: OPERATION_ID }));
+  const consumePermit = dependencies.consumePermit ?? ((authorizedContext) => (
+    consumeAuthorizedOperationDispatchPermit({
+      authorizedContext,
+      decisionLedgerPath: path.join(repoRoot, DECISION_LEDGER_PATH)
     })
-  : null;
+  ));
 
-const summary = {
-  apply,
-  generatedAt: new Date().toISOString(),
-  managedUrlPrefixes,
-  modules: {},
-  reportPath,
-  scopes
-};
+  const publish = ({ status, phase, message, current, total }) => {
+    writeProgress(progressPath, buildImageSyncProgressPayload({
+      status,
+      phase,
+      message,
+      current,
+      total,
+      outputPath: reportPath,
+      progressPath,
+      repoRoot,
+      startedAt,
+      now: now()
+    }));
+  };
 
-writeProgress(buildImageSyncProgressPayload({
-  status: 'running',
-  phase: 'initializing',
-  message: `starting image sync scopes=${scopes.join(',')}`,
-  current: 0,
-  total: scopes.length || 1,
-  outputPath: reportPath
-}));
+  publish({
+    status: 'running',
+    phase: 'initializing',
+    message: `starting image sync scopes=${scopes.join(',')}`,
+    current: 0,
+    total: scopes.length || 1
+  });
 
-for (const scope of scopes) {
-  if (scope === 'items') {
-    summary.modules.items = await syncItems();
-  } else if (scope === 'npcs') {
-    summary.modules.npcs = await syncNpcs();
-  } else if (scope === 'projectiles') {
-    summary.modules.projectiles = await syncProjectiles();
-  } else if (scope === 'buffs') {
-    summary.modules.buffs = await syncBuffs();
-  } else if (scope === 'armor_item_images') {
-    summary.modules.armor_item_images = await syncArmorItemImages();
-  } else if (scope === 'armor_set_images') {
-    summary.modules.armor_set_images = await syncArmorSetImages();
-  } else if (scope === 'town_npc_maintenance') {
-    summary.modules.town_npc_maintenance = await syncTownNpcMaintenanceImages();
+  // Nothing may reach MinIO before the standardized bytes are proven to be the
+  // exact output of item image source promotion, and before the packet that
+  // authorizes this sync has been verified.
+  if (apply && scopes.includes('items')) {
+    assertPromotionLineage({
+      repoRoot,
+      readJson,
+      itemsPath: path.join(standardizedRoot, 'items.standardized.json'),
+      promotionResultPath: rawOptions.promotionResultPath
+        ?? path.join(repoRoot, DEFAULT_PROMOTION_RESULT_PATH)
+    });
+  }
+  if (apply && rawOptions.requireAuthorization) {
+    const authorizedContext = loadAuthorizedContext();
+    consumePermit(authorizedContext);
+  }
+
+  const uploader = apply
+    ? await (dependencies.createUploader ?? createMinioImageUploader)({
+        apiBase: rawOptions.apiBase,
+        adminUsername: rawOptions.adminUsername,
+        adminPassword: rawOptions.adminPassword,
+        managedUrlPrefixes,
+        repoRoot
+      })
+    : null;
+
+  const summary = {
+    apply,
+    generatedAt: now(),
+    managedUrlPrefixes,
+    modules: {},
+    reportPath,
+    scopes,
+    status: 'running'
+  };
+
+  const context = {
+    apply,
+    managedUrlPrefixes,
+    publish,
+    readJson,
+    repoRoot,
+    resolveWikiImageUrl,
+    standardizedRoot,
+    uploader,
+    writeJson,
+    inputPath: rawOptions.inputPath ?? null,
+    startedAt
+  };
+
+  try {
+    for (const scope of scopes) {
+      summary.modules[scope] = await syncScope(scope, context);
+    }
+  } catch (error) {
+    summary.status = 'failed';
+    Object.assign(summary, aggregate(summary.modules));
+    summary.message = error?.message ?? String(error);
+    writeJson(reportPath, summary);
+    publish({
+      status: 'failed',
+      phase: 'failed',
+      message: summary.message,
+      current: scopes.length || 1,
+      total: scopes.length || 1
+    });
+    throw error;
+  }
+
+  Object.assign(summary, aggregate(summary.modules));
+  if (summary.failedKeys.length > 0) {
+    summary.status = 'failed';
+    summary.message = `image sync failed for ${summary.failedKeys.length} image(s)`;
+    // Evidence first: the report must survive before the terminal state, and
+    // `completed` must never be published for a partial upload set.
+    writeJson(reportPath, summary);
+    publish({
+      status: 'failed',
+      phase: 'failed',
+      message: summary.message,
+      current: scopes.length || 1,
+      total: scopes.length || 1
+    });
+    throw new Error(summary.message);
+  }
+
+  summary.status = 'completed';
+  writeJson(reportPath, summary);
+  publish({
+    status: 'completed',
+    phase: 'completed',
+    message: `finished image sync scopes=${scopes.join(',')}`,
+    current: scopes.length || 1,
+    total: scopes.length || 1
+  });
+  return summary;
+}
+
+function assertPromotionLineage({ readJson, itemsPath, promotionResultPath }) {
+  const result = readJson(promotionResultPath);
+  if (result?.resultKind !== 'canonical_item_image_source_promotion_result'
+      || result?.status !== 'COMPLETED') {
+    throw new Error('a completed item image source promotion result is required before image sync');
+  }
+  const actual = sha256Bytes(fs.readFileSync(itemsPath));
+  if (result?.after?.sha256 !== actual) {
+    throw new Error(
+      'standardized bytes do not match the item image promotion result: '
+      + `expected ${result?.after?.sha256}, found ${actual}`
+    );
   }
 }
 
-writeJson(reportPath, summary);
-writeProgress(buildImageSyncProgressPayload({
-  status: 'completed',
-  phase: 'completed',
-  message: `finished image sync scopes=${scopes.join(',')}`,
-  current: scopes.length || 1,
-  total: scopes.length || 1,
-  outputPath: reportPath
-}));
-console.log(JSON.stringify(summary, null, 2));
-
-async function syncItems() {
-  const filePath = path.join(standardizedRoot, 'items.standardized.json');
-  const payload = readJson(filePath);
-  const records = Array.isArray(payload?.records) ? payload.records : [];
-  return syncRecordImages({
-    filePath,
-    payload,
-    records,
-    sourceUrlAccessor: (record) => toText(record?.imageUrl),
-    fallbackSourceUrlResolver: (record) => resolveWikiImageUrlFromFileTitle(record?.imageFileTitle),
-    targetUrlWriter: (record, url) => {
-      record.imageUrl = url;
-    },
-    fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'item')}${guessExtension(url)}`,
-    nameHint: (record) => record?.internalName || record?.name || 'item'
-  });
-}
-
-async function syncNpcs() {
-  const filePath = path.join(standardizedRoot, 'npcs.standardized.json');
-  const payload = readJson(filePath);
-  const records = Array.isArray(payload?.records) ? payload.records : [];
-  return syncRecordImages({
-    entityDomain: 'npcs',
-    filePath,
-    payload,
-    records,
-    sourceUrlAccessor: (record) => toText(record?.imageUrl),
-    fallbackSourceUrlResolver: (record) => resolveWikiImageUrlFromFileTitle(record?.imageFileTitle),
-    targetUrlWriter: (record, url) => {
-      record.imageUrl = url;
-    },
-    fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'npc')}${guessExtension(url)}`,
-    nameHint: (record) => record?.internalName || record?.name || 'npc'
-  });
-}
-
-async function syncProjectiles() {
-  const filePath = path.join(standardizedRoot, 'projectiles.standardized.json');
-  const payload = readJson(filePath);
-  const records = Array.isArray(payload?.records) ? payload.records : [];
-  return syncRecordImages({
-    entityDomain: 'projectiles',
-    filePath,
-    payload,
-    records,
-    sourceUrlAccessor: (record) => toText(record?.imageUrl),
-    fallbackSourceUrlResolver: (record) => resolveWikiImageUrlFromFileTitle(
-      record?.imageFileTitle ?? record?.extras?.image ?? record?.image
-    ),
-    targetUrlWriter: (record, url) => {
-      record.imageUrl = url;
-    },
-    fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'projectile')}${guessExtension(url)}`,
-    nameHint: (record) => record?.internalName || record?.name || 'projectile'
-  });
-}
-
-async function syncBuffs() {
-  const filePath = path.join(standardizedRoot, 'buffs.standardized.json');
-  const payload = readJson(filePath);
-  const records = Array.isArray(payload?.records) ? payload.records : [];
-  return syncRecordImages({
-    entityDomain: 'items',
-    filePath,
-    payload,
-    records,
-    sourceUrlAccessor: (record) => toText(record?.imageUrl),
-    fallbackSourceUrlResolver: (record) => resolveWikiImageUrlFromFileTitle(
-      record?.imageFileTitle ?? record?.image
-    ),
-    targetUrlWriter: (record, url) => {
-      record.imageUrl = url;
-    },
-    fileNameHint: (record, url) => `${slugify(record?.internalName || record?.englishName || 'buff')}${guessExtension(url)}`,
-    nameHint: (record) => record?.internalName || record?.englishName || 'buff'
-  });
-}
-
-async function syncArmorItemImages() {
+async function syncScope(scope, context) {
+  const { standardizedRoot, readJson, inputPath, repoRoot } = context;
+  if (scope === 'items') {
+    const filePath = path.join(standardizedRoot, 'items.standardized.json');
+    const payload = readJson(filePath);
+    return syncRecordImages({
+      ...context,
+      entityDomain: 'items',
+      filePath,
+      payload,
+      records: recordsOf(payload),
+      sourceUrlAccessor: (record) => toText(record?.imageUrl),
+      fallbackSourceUrlResolver: (record) => context.resolveWikiImageUrl(record?.imageFileTitle),
+      targetUrlWriter: (record, url) => {
+        record.imageUrl = url;
+      },
+      fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'item')}${guessExtension(url)}`,
+      nameHint: (record) => record?.internalName || record?.name || 'item'
+    });
+  }
+  if (scope === 'npcs') {
+    const filePath = path.join(standardizedRoot, 'npcs.standardized.json');
+    const payload = readJson(filePath);
+    return syncRecordImages({
+      ...context,
+      entityDomain: 'npcs',
+      filePath,
+      payload,
+      records: recordsOf(payload),
+      sourceUrlAccessor: (record) => toText(record?.imageUrl),
+      fallbackSourceUrlResolver: (record) => context.resolveWikiImageUrl(record?.imageFileTitle),
+      targetUrlWriter: (record, url) => {
+        record.imageUrl = url;
+      },
+      fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'npc')}${guessExtension(url)}`,
+      nameHint: (record) => record?.internalName || record?.name || 'npc'
+    });
+  }
+  if (scope === 'projectiles') {
+    const filePath = path.join(standardizedRoot, 'projectiles.standardized.json');
+    const payload = readJson(filePath);
+    return syncRecordImages({
+      ...context,
+      entityDomain: 'projectiles',
+      filePath,
+      payload,
+      records: recordsOf(payload),
+      sourceUrlAccessor: (record) => toText(record?.imageUrl),
+      fallbackSourceUrlResolver: (record) => context.resolveWikiImageUrl(
+        record?.imageFileTitle ?? record?.extras?.image ?? record?.image
+      ),
+      targetUrlWriter: (record, url) => {
+        record.imageUrl = url;
+      },
+      fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || 'projectile')}${guessExtension(url)}`,
+      nameHint: (record) => record?.internalName || record?.name || 'projectile'
+    });
+  }
+  if (scope === 'buffs') {
+    const filePath = path.join(standardizedRoot, 'buffs.standardized.json');
+    const payload = readJson(filePath);
+    return syncRecordImages({
+      ...context,
+      entityDomain: 'items',
+      filePath,
+      payload,
+      records: recordsOf(payload),
+      sourceUrlAccessor: (record) => toText(record?.imageUrl),
+      fallbackSourceUrlResolver: (record) => context.resolveWikiImageUrl(
+        record?.imageFileTitle ?? record?.image
+      ),
+      targetUrlWriter: (record, url) => {
+        record.imageUrl = url;
+      },
+      fileNameHint: (record, url) => `${slugify(record?.internalName || record?.englishName || 'buff')}${guessExtension(url)}`,
+      nameHint: (record) => record?.internalName || record?.englishName || 'buff'
+    });
+  }
+  if (scope === 'armor_item_images') {
+    const filePath = path.resolve(
+      repoRoot,
+      inputPath ?? path.join('reports', `armor-item-image-evidence-${context.startedAt.slice(0, 10)}.json`)
+    );
+    const payload = readJson(filePath);
+    return syncRecordImages({
+      ...context,
+      entityDomain: 'items',
+      filePath,
+      payload,
+      records: Array.isArray(payload?.candidates) ? payload.candidates : [],
+      sourceUrlAccessor: (record) => toText(record?.cachedUrl) || toText(record?.sourceUrl),
+      targetUrlWriter: (record, url) => {
+        record.cachedUrl = url;
+      },
+      fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || record?.imageFileTitle || 'armor-item')}${guessExtension(url)}`,
+      nameHint: (record) => record?.internalName || record?.name || record?.imageFileTitle || 'armor-item'
+    });
+  }
+  if (scope === 'armor_set_images') {
+    const filePath = sharedDataPath('raw', 'wiki', 'armor_set_images.parsed.latest.json');
+    const payload = readJson(filePath);
+    return syncRecordImages({
+      ...context,
+      entityDomain: 'items',
+      filePath,
+      payload,
+      records: Array.isArray(payload?.armorSetImages) ? payload.armorSetImages : [],
+      sourceUrlAccessor: (record) => toText(record?.cachedUrl) || toText(record?.originalUrl),
+      targetUrlWriter: (record, url) => {
+        record.cachedUrl = url;
+      },
+      fileNameHint: (record, url) => `${slugify(record?.sourceFileTitle || record?.pageTitle || 'armor-set')}${guessExtension(url)}`,
+      nameHint: (record) => record?.sourceFileTitle || record?.pageTitle || 'armor-set'
+    });
+  }
   const filePath = path.resolve(
-    options.input ?? path.join(process.cwd(), 'reports', `armor-item-image-evidence-${new Date().toISOString().slice(0, 10)}.json`)
+    repoRoot,
+    inputPath ?? path.join('data', 'generated', 'wiki-town-npc-maintenance.latest.json')
   );
   const payload = readJson(filePath);
-  const records = Array.isArray(payload?.candidates) ? payload.candidates : [];
-  return syncRecordImages({
-    entityDomain: 'items',
-    filePath,
-    payload,
-    records,
-    sourceUrlAccessor: (record) => toText(record?.cachedUrl) || toText(record?.sourceUrl),
-    targetUrlWriter: (record, url) => {
-      record.cachedUrl = url;
-    },
-    fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || record?.imageFileTitle || 'armor-item')}${guessExtension(url)}`,
-    nameHint: (record) => record?.internalName || record?.name || record?.imageFileTitle || 'armor-item'
-  });
-}
-
-async function syncArmorSetImages() {
-  const filePath = sharedDataPath('raw', 'wiki', 'armor_set_images.parsed.latest.json');
-  const payload = readJson(filePath);
-  const records = Array.isArray(payload?.armorSetImages) ? payload.armorSetImages : [];
-  return syncRecordImages({
-    entityDomain: 'items',
-    filePath,
-    payload,
-    records,
-    sourceUrlAccessor: (record) => toText(record?.cachedUrl) || toText(record?.originalUrl),
-    targetUrlWriter: (record, url) => {
-      record.cachedUrl = url;
-    },
-    fileNameHint: (record, url) => `${slugify(record?.sourceFileTitle || record?.pageTitle || 'armor-set')}${guessExtension(url)}`,
-    nameHint: (record) => record?.sourceFileTitle || record?.pageTitle || 'armor-set'
-  });
-}
-
-async function syncTownNpcMaintenanceImages() {
-  const filePath = path.resolve(
-    options.input ?? path.join(process.cwd(), 'data', 'generated', 'wiki-town-npc-maintenance.latest.json')
-  );
-  const payload = readJson(filePath);
-  const townNpcs = Array.isArray(payload?.records) ? payload.records : [];
-  const records = townNpcs.flatMap((record) => {
-    const details = record?.wikiDetails && typeof record.wikiDetails === 'object'
-      ? record.wikiDetails
-      : {};
+  const records = recordsOf(payload).flatMap((record) => {
+    const details = record?.wikiDetails && typeof record.wikiDetails === 'object' ? record.wikiDetails : {};
     return [
       { owner: record, field: 'spriteImage', sourceUrl: toText(details.spriteImage) },
       { owner: record, field: 'mapIconImage', sourceUrl: toText(details.mapIconImage) },
-      { owner: record, field: 'dialogPortraitImage', sourceUrl: toText(details.dialogPortraitImage) },
+      { owner: record, field: 'dialogPortraitImage', sourceUrl: toText(details.dialogPortraitImage) }
     ].filter((entry) => entry.sourceUrl);
   });
-
   return syncRecordImages({
+    ...context,
     entityDomain: 'npcs',
     filePath,
     payload,
@@ -238,82 +346,71 @@ async function syncTownNpcMaintenanceImages() {
 }
 
 async function syncRecordImages({
+  apply,
+  entityDomain,
+  fallbackSourceUrlResolver,
+  fileNameHint,
   filePath,
+  managedUrlPrefixes,
+  nameHint,
   payload,
+  publish,
   records,
   sourceUrlAccessor,
-  fallbackSourceUrlResolver,
   targetUrlWriter,
-  fileNameHint,
-  nameHint,
-  entityDomain
+  uploader,
+  writeJson
 } = {}) {
-  let changed = 0;
-  let alreadyManaged = 0;
-  let candidates = 0;
-  let missingSource = 0;
-  let uploaded = 0;
   const entityManagedUrlPrefixes = resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes);
+  const alreadyManagedKeys = [];
+  const candidateKeys = [];
+  const failedKeys = [];
+  const missingSourceKeys = [];
+  const uploadKeys = [];
+  const uploadedKeys = [];
+  const managedImages = [];
+  let changed = 0;
 
-  writeProgress(buildImageSyncProgressPayload({
+  const progress = (current) => publish({
     status: 'running',
     phase: 'syncing_images',
-    message: `syncing image records 0/${records.length}`,
-    current: 0,
-    total: records.length,
-    outputPath: reportPath
-  }));
+    message: `syncing image records ${current}/${records.length}`,
+    current,
+    total: records.length
+  });
+
+  progress(0);
 
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
-    const current = index + 1;
-    const directSourceUrl = sourceUrlAccessor(record);
-    let sourceUrl = directSourceUrl;
+    const key = String(nameHint(record));
+    let sourceUrl = sourceUrlAccessor(record);
     if (!sourceUrl && fallbackSourceUrlResolver) {
       sourceUrl = await fallbackSourceUrlResolver(record);
     }
     if (!sourceUrl) {
-      missingSource += 1;
-      writeProgress(buildImageSyncProgressPayload({
-        status: 'running',
-        phase: 'syncing_images',
-        message: `syncing image records ${current}/${records.length}`,
-        current,
-        total: records.length,
-        outputPath: reportPath
-      }));
+      missingSourceKeys.push(key);
+      progress(index + 1);
       continue;
     }
-    candidates += 1;
+    candidateKeys.push(key);
     if (isManagedUrl(sourceUrl, entityManagedUrlPrefixes)) {
-      alreadyManaged += 1;
-      writeProgress(buildImageSyncProgressPayload({
-        status: 'running',
-        phase: 'syncing_images',
-        message: `syncing image records ${current}/${records.length}`,
-        current,
-        total: records.length,
-        outputPath: reportPath
-      }));
+      alreadyManagedKeys.push(key);
+      managedImages.push({ key, originalUrl: null, managedUrl: sourceUrl, contentHash: sha256Bytes(sourceUrl) });
+      progress(index + 1);
       continue;
     }
+    uploadKeys.push(key);
     if (!apply || !uploader) {
       changed += 1;
-      writeProgress(buildImageSyncProgressPayload({
-        status: 'running',
-        phase: 'syncing_images',
-        message: `syncing image records ${current}/${records.length}`,
-        current,
-        total: records.length,
-        outputPath: reportPath
-      }));
+      progress(index + 1);
       continue;
     }
 
     let managedUrl = await uploader.uploadImageUrl(sourceUrl, {
       entityDomain,
       fileName: fileNameHint(record, sourceUrl),
-      nameHint: nameHint(record)
+      nameHint: key
     });
     if (!managedUrl && fallbackSourceUrlResolver) {
       const fallbackSourceUrl = await fallbackSourceUrlResolver(record);
@@ -321,47 +418,69 @@ async function syncRecordImages({
         managedUrl = await uploader.uploadImageUrl(fallbackSourceUrl, {
           entityDomain,
           fileName: fileNameHint(record, fallbackSourceUrl),
-          nameHint: nameHint(record)
+          nameHint: key
         });
       }
     }
     if (!managedUrl) {
-      writeProgress(buildImageSyncProgressPayload({
-        status: 'running',
-        phase: 'syncing_images',
-        message: `syncing image records ${current}/${records.length}`,
-        current,
-        total: records.length,
-        outputPath: reportPath
-      }));
+      // A null upload is a failure, never a silent skip.
+      failedKeys.push(key);
+      progress(index + 1);
       continue;
     }
     targetUrlWriter(record, managedUrl);
     changed += 1;
-    uploaded += 1;
-    writeProgress(buildImageSyncProgressPayload({
-      status: 'running',
-      phase: 'syncing_images',
-      message: `syncing image records ${current}/${records.length}`,
-      current,
-      total: records.length,
-      outputPath: reportPath
-    }));
+    uploadedKeys.push(key);
+    managedImages.push({
+      key,
+      originalUrl: sourceUrl,
+      managedUrl,
+      contentHash: sha256Bytes(managedUrl)
+    });
+    progress(index + 1);
   }
 
-  if (apply && uploaded > 0) {
+  if (apply && uploadedKeys.length > 0) {
     writeJson(filePath, payload);
   }
 
   return {
-    alreadyManaged,
+    alreadyManaged: alreadyManagedKeys.length,
+    alreadyManagedKeys: [...alreadyManagedKeys].sort(),
     apply,
-    candidates,
+    candidates: candidateKeys.length,
+    candidateKeys: [...candidateKeys].sort(),
     changed,
+    completedKeys: [...uploadedKeys, ...alreadyManagedKeys].sort(),
+    failedKeys: [...failedKeys].sort(),
     filePath,
-    missingSource,
+    managedImages,
+    missingSource: missingSourceKeys.length,
+    missingSourceKeys: [...missingSourceKeys].sort(),
     total: records.length,
-    uploaded
+    uploadKeys: [...uploadKeys].sort(),
+    uploaded: uploadedKeys.length,
+    uploadedKeys: [...uploadedKeys].sort()
+  };
+}
+
+function aggregate(modules) {
+  const entries = Object.values(modules ?? {});
+  const concat = (field) => entries.flatMap((entry) => entry?.[field] ?? []).sort();
+  return {
+    total: entries.reduce((sum, entry) => sum + Number(entry?.total ?? 0), 0),
+    candidates: entries.reduce((sum, entry) => sum + Number(entry?.candidates ?? 0), 0),
+    uploaded: entries.reduce((sum, entry) => sum + Number(entry?.uploaded ?? 0), 0),
+    alreadyManaged: entries.reduce((sum, entry) => sum + Number(entry?.alreadyManaged ?? 0), 0),
+    missingSource: entries.reduce((sum, entry) => sum + Number(entry?.missingSource ?? 0), 0),
+    candidateKeys: concat('candidateKeys'),
+    alreadyManagedKeys: concat('alreadyManagedKeys'),
+    uploadKeys: concat('uploadKeys'),
+    uploadedKeys: concat('uploadedKeys'),
+    missingSourceKeys: concat('missingSourceKeys'),
+    completedKeys: concat('completedKeys'),
+    failedKeys: concat('failedKeys'),
+    managedImages: entries.flatMap((entry) => entry?.managedImages ?? [])
   };
 }
 
@@ -372,71 +491,70 @@ export function buildImageSyncProgressPayload({
   current,
   total,
   outputPath,
+  progressPath,
+  repoRoot = process.cwd(),
+  startedAt,
   now = new Date().toISOString()
 } = {}) {
   const generatedAt = typeof now === 'string' ? now : now.toISOString();
+  const childStatusPath = progressPath
+    ? (path.relative(repoRoot, progressPath) || progressPath)
+    : null;
   return {
     actionId: process.env.TERRAPEDIA_CRAWLER_ACTION_ID || 'image-sync',
     status,
     generatedAt,
     lastHeartbeatAt: generatedAt,
-    childStatusPath: path.relative(process.cwd(), progressPath) || progressPath,
+    childStatusPath,
     phase,
     message,
     current,
     total,
     percent: total > 0 ? Math.min(100, Math.max(0, current / total * 100)) : 0,
-    startedAt,
+    startedAt: startedAt ?? generatedAt,
     outputPath
   };
 }
 
-function writeProgress(payload) {
-  writeJsonFile(progressPath, payload);
+function createWikiImageUrlResolver() {
+  const cache = new Map();
+  return async (fileTitle) => {
+    const normalized = normalizeFileTitle(fileTitle);
+    if (!normalized) return null;
+    if (cache.has(normalized)) return cache.get(normalized);
+    let resolvedUrl = null;
+    try {
+      const imageInfo = await fetchWikiImageInfo({ fileTitle: normalized });
+      resolvedUrl = toText(imageInfo?.url);
+    } catch {
+      resolvedUrl = null;
+    }
+    cache.set(normalized, resolvedUrl);
+    return resolvedUrl;
+  };
 }
 
-async function resolveWikiImageUrlFromFileTitle(fileTitle) {
-  const normalizedTitle = normalizeFileTitle(fileTitle);
-  if (!normalizedTitle) {
-    return null;
-  }
-  if (wikiImageInfoCache.has(normalizedTitle)) {
-    return wikiImageInfoCache.get(normalizedTitle);
-  }
-
-  let resolvedUrl = null;
-  try {
-    const imageInfo = await fetchWikiImageInfo({ fileTitle: normalizedTitle });
-    resolvedUrl = toText(imageInfo?.url);
-  } catch {
-    resolvedUrl = null;
-  }
-  wikiImageInfoCache.set(normalizedTitle, resolvedUrl);
-  return resolvedUrl;
+function recordsOf(payload) {
+  return Array.isArray(payload?.records) ? payload.records : [];
 }
 
 function normalizeFileTitle(fileTitle) {
-  const text = toText(fileTitle);
-  if (!text) {
-    return null;
-  }
-  return text.replace(/^File:/i, '');
+  const value = toText(fileTitle);
+  if (!value) return null;
+  return value.replace(/^File:/i, '');
 }
 
-function resolveScopes(rawValue) {
-  return [...new Set(
-    String(rawValue ?? '')
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs', 'armor_item_images', 'armor_set_images', 'town_npc_maintenance'].includes(scope));
+function normalizeScopes(rawValue) {
+  const values = Array.isArray(rawValue)
+    ? rawValue
+    : String(rawValue ?? '').split(',');
+  return [...new Set(values.map((entry) => String(entry).trim()).filter(Boolean))]
+    .filter((scope) => SUPPORTED_SCOPES.includes(scope));
 }
 
 function guessExtension(sourceUrl) {
   const url = toText(sourceUrl);
-  if (!url) {
-    return '.png';
-  }
+  if (!url) return '.png';
   try {
     const fileName = decodeURIComponent(new URL(url).pathname.split('/').pop() || '');
     const dotIndex = fileName.lastIndexOf('.');
@@ -446,13 +564,13 @@ function guessExtension(sourceUrl) {
   }
 }
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-}
-
-function writeJson(filePath, payload) {
+function writeJsonAtPath(filePath, payload) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+function sha256Bytes(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
 function booleanOption(value, fallback) {
@@ -460,4 +578,33 @@ function booleanOption(value, fallback) {
   if (value === true || value === 'true' || value === '1') return true;
   if (value === false || value === 'false' || value === '0') return false;
   return fallback;
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  const options = parseCliArgs(process.argv.slice(2));
+  const managedUrlPrefix = Array.isArray(options.managedUrlPrefix)
+    ? options.managedUrlPrefix
+    : (toText(options.managedUrlPrefix) ? [toText(options.managedUrlPrefix)] : null);
+  runImageSync({
+    repoRoot: process.cwd(),
+    apply: booleanOption(options.apply, false),
+    scopes: options.scopes ?? options.scope ?? 'projectiles,buffs',
+    apiBase: options.apiBase,
+    adminUsername: options.adminUsername,
+    adminPassword: options.adminPassword,
+    inputPath: options.input,
+    outputPath: options.output,
+    progressPath: options.progressPath ?? options['progress-path'],
+    // Only the items scope is the governed canonical-image-sync operation, whose
+    // manifest freezes `--scopes=items`. The other scopes are separate lanes and
+    // are not covered by that packet.
+    requireAuthorization: booleanOption(options.apply, false)
+      && normalizeScopes(options.scopes ?? options.scope ?? 'projectiles,buffs').includes('items'),
+    ...(managedUrlPrefix ? { managedUrlPrefixes: managedUrlPrefix } : {})
+  }).then((summary) => {
+    console.log(JSON.stringify(summary, null, 2));
+  }).catch((error) => {
+    process.stderr.write(`${error?.stack || error?.message || error}\n`);
+    process.exitCode = 1;
+  });
 }
