@@ -54,8 +54,40 @@
 - 线上实测：`世界吞噬怪` / `史莱姆王` / `石巨人` 三页走共享提取器，输出干净无双句号。
 - 落库前已备份两表到仓库外 `~/terrapedia-backups/zh-backfill-pre-apply-2026-08-01.sql`；另外每批的 `reports/sync/*.json` 逐行记录 before/after，回滚可重建。
 
+## 重新生成快照，并被它逼出两个缺陷
+
+`data/generated/wiki-bosses.latest.json` 是**被跟踪文件**（`.gitignore` 第 137 行 `!` 反选），起初按「独立决定」留下未动。后续经确认执行了重新生成（`846027f4`），**结果暴露了两个 mock 测试不可能发现的缺陷**（`60c14fb1`）。
+
+### 缺陷一：四根天界柱拿不到任何中文
+
+首轮生成 33/33 成功，但 `Solar / Nebula / Vortex / Stardust Pillar` 的 `titleZh` 与 `notesZh` 全是 null。
+
+这是全站唯一一处「英文四个页面、中文一个页面」：中文站把四柱合并进 `天界柱`，因此**四个英文页都没有 zh langlink**，常规 langlink 查询必然空手而归。回填脚本早就知道（它有一份私有的 `CELESTIAL_PILLAR_NAME_ZH`），抓取脚本不知道——同一份知识存在两处而只有一处有。
+
+建模上分开两个字段才对：`日耀柱` 实测是指向 `天界柱#日耀柱` 的**真实重定向**，所以它继续做可点击的 `titleZh`，而 `pageTitleZh` 记真正被解析的 `天界柱`。
+
+### 缺陷二（更严重）：那些 null 正对着数据库
+
+`upsertBossGroup` 的 `name_zh = ?` 同样是无条件写。也就是说，拿这份快照入库会把回填刚写进去的**四个中文名抹成 NULL**。
+
+这和 `notes` 那个洞是同一个形状，但**发生在我上一轮没守到的列上**——当时只守了 `notes`。修法一致：缺失永不覆盖。
+
+顺带把四柱映射抽成共享模块 `scripts/data/lib/celestial-pillar-zh.mjs`，回填的私有副本删除，两边读同一份，杜绝漂移。
+
+### 重生成的实际 diff 比预估小得多
+
+按字段统计：`notesZh` 新增 33、`titleZh`/`pageTitleZh`/`sourceUrlZh` 各 4（四柱）、`revisionId`/`revisionTimestamp` 各 20（5 月至今上游正常编辑）。**英文 `notes` 与 `imageUrl` 一字未变。**
+
+四柱的 `notesZh` 与库中现存文本完全一致，将来入库对这几行是 no-op，不产生 churn。
+
+复跑验证：33/33 status ok、零 null `titleZh`/`notesZh`、0 个 `。。`、0 条 `notesZh` 不含汉字。
+
+### 顺手补的 .gitignore
+
+这次运行创建了 `data/generated/resume/`（爬虫检查点）。仓库里**没有任何 resume 状态被跟踪**，但也没有对应忽略规则——只是这个 checkout 之前从没跑过 boss 抓取所以没暴露。已补 `data/generated/resume/`。
+
 ## 没做的事
 
-- **没有重新生成 `data/generated/wiki-bosses.latest.json`。** 它是**被跟踪文件**（`.gitignore` 第 137 行用 `!` 反选）。重跑会覆盖全部 33 条记录、刷新所有 revision 时间戳，产生一个远超「新增 notesZh」的 diff，而且要走 live 网络与 crawler resume/monitor 那套机制。这是独立决定，留给使用者。**不做也不影响正确性**——入库侧第 2 层保护不依赖这个快照。
 - **`npcs.behavior_notes` 不在本次射程内。** 交接表里那 762 行（39 中文 / 723 空）不属于这个脚本覆盖的四个 scope。
 - `items` 与 `world_contexts` 无需处理：审计计数均为 0。
+- **没有把新快照导入数据库。** 入库是独立动作；真要跑，两层保护（`reconcileBossNotes` / `reconcileBossNameZh`）已经就位。
