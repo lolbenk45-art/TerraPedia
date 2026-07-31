@@ -4,7 +4,9 @@ import test from 'node:test';
 
 import {
   buildItemImageLineagePlan,
-  executeItemImageLineageApply
+  executeItemImageLineageApply,
+  OPERATION_ID,
+  runItemImageLineageApply
 } from './apply-item-image-lineage.mjs';
 
 test('the plan requires the same identity set at every layer', () => {
@@ -163,3 +165,77 @@ function planInput() {
 function sha256(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
+
+test('a governed apply consumes its permit before the first mutation', async () => {
+  const events = [];
+  const result = await runItemImageLineageApply({
+    contract: planInput().contract,
+    lineageBundleBytes: planInput().lineageBundleBytes,
+    previews: planInput().previews,
+    generatedAt: '2026-08-01T00:00:00.000Z',
+    loadAuthorizedContext: () => { events.push('authorize'); return { operationId: OPERATION_ID }; },
+    consumePermit: () => { events.push('permit'); return { decisionId: 'decision-1' }; },
+    createAdapter: () => ({
+      async snapshotOwnedScope() { events.push('snapshot'); return { snapshotId: 's1', rowCount: 0 }; },
+      async applyStage(stage) { events.push(`stage:${stage.name}`); return { rowCount: 2 }; },
+      async verifyParity(plan) {
+        events.push('verify');
+        return {
+          counts: Object.fromEntries(['landing', 'maint', 'relation', 'local']
+            .map((layer) => [layer, plan.expectedIdentityCount])),
+          preservedLocalRoles: ['detail']
+        };
+      }
+    }),
+    writeResult: (payload) => events.push(`result:${payload.status}`)
+  });
+
+  assert.equal(result.status, 'COMPLETED');
+  assert.equal(result.decisionId, 'decision-1');
+  assert.deepEqual(events.slice(0, 4), ['authorize', 'permit', 'snapshot', 'stage:landing']);
+  assert.equal(events.at(-1), 'result:COMPLETED');
+});
+
+test('an apply without an authorized packet never reaches the adapter', async () => {
+  let adapterBuilt = false;
+  await assert.rejects(
+    runItemImageLineageApply({
+      contract: planInput().contract,
+      lineageBundleBytes: planInput().lineageBundleBytes,
+      previews: planInput().previews,
+      generatedAt: '2026-08-01T00:00:00.000Z',
+      loadAuthorizedContext: () => { throw new Error('TERRAPEDIA_AUTHORIZED_PACKET_PATH is required'); },
+      consumePermit: () => ({ decisionId: 'decision-1' }),
+      createAdapter: () => { adapterBuilt = true; return {}; },
+      writeResult: () => {}
+    }),
+    /TERRAPEDIA_AUTHORIZED_PACKET_PATH/
+  );
+  assert.equal(adapterBuilt, false);
+});
+
+test('a failed apply still writes its result so the snapshot is on record', async () => {
+  const written = [];
+  const result = await runItemImageLineageApply({
+    contract: planInput().contract,
+    lineageBundleBytes: planInput().lineageBundleBytes,
+    previews: planInput().previews,
+    generatedAt: '2026-08-01T00:00:00.000Z',
+    loadAuthorizedContext: () => ({ operationId: OPERATION_ID }),
+    consumePermit: () => ({ decisionId: 'decision-1' }),
+    createAdapter: () => ({
+      async snapshotOwnedScope() { return { snapshotId: 's1', rowCount: 3 }; },
+      async applyStage(stage) {
+        if (stage.name === 'local') throw new Error('injected local failure');
+        return { rowCount: 2 };
+      },
+      async verifyParity() { throw new Error('verify must not run after a failed stage'); }
+    }),
+    writeResult: (payload) => written.push(payload)
+  });
+
+  assert.equal(result.status, 'FAILED');
+  assert.equal(written.length, 1);
+  assert.equal(written[0].snapshot.snapshotId, 's1');
+  assert.match(written[0].nextStep, /snapshot s1/);
+});

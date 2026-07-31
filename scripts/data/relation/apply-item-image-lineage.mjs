@@ -11,10 +11,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-const OPERATION_ID = 'canonical-item-image-lineage-apply';
+import {
+  consumeAuthorizedOperationDispatchPermit,
+  loadAuthorizedOperationContext
+} from '../automation/authorized-operation-context.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { createItemImageLineageAdapter } from './item-image-lineage-adapter.mjs';
+import { resolveItemImageLineageRuntimeConfig } from './item-image-lineage-db.mjs';
+
+export const OPERATION_ID = 'canonical-item-image-lineage-apply';
 const STAGE_NAMES = Object.freeze(['landing', 'maint', 'relation', 'local']);
+const DECISION_LEDGER_PATH = 'reports/authorization/canonical/used-decisions.json';
+const DEFAULT_RESULT_PATH = 'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json';
+const DEFAULT_SNAPSHOT_PATH = 'reports/authorization/canonical/canonical-item-image-lineage-apply.snapshot.json';
 
 export function buildItemImageLineagePlan({
   contract,
@@ -131,6 +143,32 @@ export async function executeItemImageLineageApply({ plan, adapter, generatedAt 
   };
 }
 
+// The governed entry point. Authorization is resolved and the single-use permit
+// is claimed before an adapter exists, so a run without an approved packet
+// cannot reach a table at all.
+export async function runItemImageLineageApply({
+  contract,
+  lineageBundleBytes,
+  previews,
+  generatedAt,
+  loadAuthorizedContext,
+  consumePermit,
+  createAdapter,
+  writeResult
+} = {}) {
+  const plan = buildItemImageLineagePlan({ contract, lineageBundleBytes, previews });
+  const authorizedContext = await requireValue(loadAuthorizedContext, 'loadAuthorizedContext')();
+  const permit = await requireValue(consumePermit, 'consumePermit')(authorizedContext);
+  const adapter = await requireValue(createAdapter, 'createAdapter')({ plan, authorizedContext, permit });
+
+  const result = {
+    ...await executeItemImageLineageApply({ plan, adapter, generatedAt }),
+    decisionId: permit?.decisionId ?? null
+  };
+  requireValue(writeResult, 'writeResult')(result);
+  return result;
+}
+
 function parseJsonBytes(value, label) {
   if (value == null) throw new Error(`${label} is required`);
   return JSON.parse(Buffer.isBuffer(value) ? value.toString('utf8') : String(value));
@@ -162,6 +200,28 @@ function sha256Bytes(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
+function assertContractMatchesServer(contract, fingerprint) {
+  const declared = contract?.serverFingerprint;
+  if (declared?.serverUuid !== fingerprint.serverUuid
+      || Number(declared?.port) !== fingerprint.port
+      || String(declared?.host) !== fingerprint.host) {
+    throw new Error('the approved contract names a different server than this run is configured for');
+  }
+}
+
+async function assertServerUuid(connection, fingerprint) {
+  const [rows] = await connection.query('SELECT @@server_uuid AS `server_uuid`');
+  const actual = String(rows?.[0]?.server_uuid ?? '').trim();
+  if (actual !== fingerprint.serverUuid) {
+    throw new Error(`server uuid ${actual || 'none'} is not the approved ${fingerprint.serverUuid}`);
+  }
+}
+
+function writePrivateJson(target, payload) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+}
+
 function parseArgs(argv) {
   const options = {};
   for (const token of argv) {
@@ -190,7 +250,65 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
         stages: plan.stages.map((stage) => stage.name)
       }, null, 2)}\n`);
     } else {
-      throw new Error('apply requires the governed adapter, which is not wired to a database yet');
+      const repoRoot = getProjectRoot();
+      const runtime = resolveItemImageLineageRuntimeConfig({ repoRoot });
+      assertContractMatchesServer(contract, runtime.serverFingerprint);
+      const resultPath = path.resolve(repoRoot, args.result ?? DEFAULT_RESULT_PATH);
+      if (fs.existsSync(resultPath)) {
+        throw new Error(`lineage apply result already exists: ${resultPath}`);
+      }
+      const snapshotPath = path.resolve(repoRoot, args.snapshot ?? DEFAULT_SNAPSHOT_PATH);
+      if (fs.existsSync(snapshotPath)) {
+        throw new Error(`owned-scope snapshot already exists: ${snapshotPath}`);
+      }
+      const mysql = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+      const database = runtime.database;
+      const connection = await mysql.createConnection({
+        host: process.env.TERRAPEDIA_DB_HOST ?? database.host ?? '127.0.0.1',
+        port: Number(process.env.TERRAPEDIA_DB_PORT ?? database.port ?? 13306),
+        user: process.env.TERRAPEDIA_DB_USERNAME ?? database.username ?? 'root',
+        password: process.env.TERRAPEDIA_DB_PASSWORD ?? database.password ?? 'root',
+        multipleStatements: false
+      });
+      try {
+        await assertServerUuid(connection, runtime.serverFingerprint);
+        const result = await runItemImageLineageApply({
+          contract,
+          lineageBundleBytes: fs.readFileSync(path.resolve(repoRoot, contract.lineageBundle.path)),
+          previews: contract?.previews,
+          generatedAt: args['generated-at'] ?? new Date().toISOString(),
+          loadAuthorizedContext: () => loadAuthorizedOperationContext({ operationId: OPERATION_ID }),
+          consumePermit: (authorizedContext) => consumeAuthorizedOperationDispatchPermit({
+            authorizedContext,
+            decisionLedgerPath: path.join(repoRoot, DECISION_LEDGER_PATH)
+          }),
+          createAdapter: () => createItemImageLineageAdapter({
+            connection,
+            databases: {
+              maintDatabase: args['maint-database'] ?? 'terria_v1_maint',
+              relationDatabase: args['relation-database'] ?? 'terria_v1_relation',
+              localDatabase: args['local-database'] ?? database.name ?? 'terria_v1_local'
+            },
+            generatedAt: args['generated-at'] ?? new Date().toISOString(),
+            saveSnapshot: (payload) => {
+              writePrivateJson(snapshotPath, payload);
+              return path.relative(repoRoot, snapshotPath);
+            }
+          }),
+          writeResult: (payload) => writePrivateJson(resultPath, payload)
+        });
+        process.stdout.write(`${JSON.stringify({
+          applied: true,
+          status: result.status,
+          expectedIdentityCount: result.expectedIdentityCount ?? plan.expectedIdentityCount,
+          counts: result.counts ?? null,
+          snapshot: result.snapshot ?? null,
+          resultPath: path.relative(repoRoot, resultPath)
+        }, null, 2)}\n`);
+        if (result.status !== 'COMPLETED') process.exitCode = 1;
+      } finally {
+        await connection.end();
+      }
     }
   } catch (error) {
     process.stderr.write(`${error?.stack || error?.message || error}\n`);
