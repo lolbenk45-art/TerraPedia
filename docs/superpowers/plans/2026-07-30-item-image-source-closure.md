@@ -572,6 +572,34 @@ uploadKeys 4343 + alreadyManagedKeys 1788`, `uploaded 0`, `failedKeys 0`, status
 `missingSource` reaching zero is the direct consequence of Task 4's promotion. The MinIO apply
 still requires its own `canonical-image-sync` packet and a running local stack.
 
+Execution checkpoint (2026-08-01, Task 5 apply): the managed sync ran under decision
+`canonical-image-sync-20260801-02` and stopped `failed` at
+`6131 = alreadyManaged 2119 + reused 3914 + uploaded 94 + failed 4`, exit 1, with no
+`completed` progress ever published.
+
+Local reuse replaced 3914 of the 4012 planned downloads. Measured beforehand read-only:
+3914 identities whose stored file title equals the verified one, all 3914 reachable; the
+other 98 hold a placed, demo, or animated variant and were uploaded.
+
+The 4 failures are `RainbowMoss`, `FishingBobberGlowingRainbow`, `RainbowPhaseblade`, and
+`RainbowPhasesaber`. Every one is a `.gif`, and every one of the 94 successful uploads is a
+`.png`. The backend image endpoint answers
+`400 仅支持有效的 JPEG、PNG 或 WebP 图片文件`. GIF acceptance exists only on this branch
+(`ac13f0e0`); the shared backend on 18191 runs `ux/detail-pages-redesign` classes from
+`/home/lolben/TerraPedia/back/target/classes`, whose source has no GIF acceptance branch. The
+plan's safety lock forbids restarting that process, so the four stay unapplied.
+
+Data readback against the previous revision: only `imageUrl` differs, the rest is byte
+identical, 4008 rows moved off wiki URLs, and exactly the four GIF identities still point at
+the wiki.
+
+Open defect introduced by the reuse path: reused rows store an absolute
+`http://127.0.0.1:19100/...` URL, while the backend returns a relative
+`/terrapedia-images/...` path and 1788 pre-existing correct rows are relative. That is the same
+shape that produced the 331 stale `localhost:9000` rows this lane already has to special-case.
+Reuse must store the path and re-origin only when probing. Fix this before the lineage lane
+carries the shape into maint, relation, and local.
+
 ### Task 6: Land Original And Managed Image Evidence With Real Lineage
 
 **Files:**
@@ -743,7 +771,7 @@ git commit -m "feat(data): govern item image lineage apply"
 - Generated evidence under `reports/audit/`, `reports/relation/`, and `reports/`
 - Modify only after real results: parent plan, active devlog, and project-management facts
 
-- [ ] **Step 1: Rebuild read-only source evidence**
+- [x] **Step 1: Rebuild read-only source evidence**
 
 Run focused tests, regenerate candidate v2 and the promotion review, and verify all referenced input hashes. If unresolved remains, generate the bounded crawler request and stop that operation at `AWAITING_OWNER` until its exact hash is approved.
 
@@ -751,7 +779,7 @@ Run focused tests, regenerate candidate v2 and the promotion review, and verify 
 
 After exact approval, dispatch `canonical-item-image-source-verification` through `run-authorized-canonical-operation.mjs`; its execution manifest enters the backend-refresh child step and uses the registered monitor progress contract. Verify terminal progress, output hash, request cap, zero out-of-scope identity, and no task process or progress `.tmp` residue. Rebuild the promotion artifacts from the exact verification result.
 
-- [ ] **Step 3: Apply standardized promotion only after a complete bundle exists**
+- [x] **Step 3: Apply standardized promotion only after a complete bundle exists**
 
 Hard preconditions: 6,131 identities, one source each, unresolved/ambiguous/duplicate all zero, all input hashes current. Generate a fresh `canonical-item-image-source-promotion` request, obtain exact approval, dispatch once, and verify before/after result hashes.
 
