@@ -171,17 +171,25 @@ git commit -m "refactor(crawler): expose shimmer fetch phases"
 - Create: `scripts/data/transform/shimmer-generation-contract.mjs`
 - Create: `scripts/data/transform/shimmer-generation-contract.test.mjs`
 
-- [ ] **Step 1: Write RED bundle-integrity tests**
+**Contract repair (2026-08-01):** The generation directory contains exactly
+eight physical files: the raw payload, context, five transformed/evidence
+payloads, and `wiki-shimmer-manifest.json`. The manifest's non-recursive
+`files` array describes the seven payload files only; frozen langlink evidence
+is bound by its descriptor and SHA-256 in the manifest, not emitted as a ninth
+generation file. This resolves the prior "eight files" shorthand without
+changing the source or authorization boundary.
+
+- [x] **Step 1: Write RED bundle-integrity tests**
 
 Cover all eight generation files, a one-byte shard mutation, a missing shard, a raw from one generation with shards from another, wrong generation ID, wrong standardized input hash, wrong table-role version, and a failed publish that preserves the previous pointer.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `node --test scripts/data/transform/shimmer-generation-contract.test.mjs`
 
 Expected: FAIL because the generation contract is absent.
 
-- [ ] **Step 3: Implement canonical descriptor and verifier**
+- [x] **Step 3: Implement canonical descriptor and verifier**
 
 The generation ID is the SHA-256 hex of a canonical input descriptor. The manifest includes raw bytes/HTML hashes, standardized item/NPC hashes, langlink evidence hash, producer code hash, table-role version, and five shard descriptors. Compute `dataBundleSha256` over a non-recursive canonical descriptor that omits the manifest's own hash.
 
@@ -201,11 +209,11 @@ manifest.dataBundleSha256 = sha256Canonical(bundleDescriptor);
 
 Export `verifyShimmerGeneration({ manifestPath })` and require exact relative child paths under that generation directory.
 
-- [ ] **Step 4: Implement staging publication and pointer swap**
+- [x] **Step 4: Implement staging publication and pointer swap**
 
 Write all files under a private run-scoped staging directory, fsync/close, verify from disk, rename to `data/generated/shimmer/generations/<generationId>/`, then atomically temp+rename `data/generated/shimmer/wiki-shimmer-current-generation.json`. Never replace the pointer before generation verification succeeds.
 
-- [ ] **Step 5: Run GREEN and commit**
+- [x] **Step 5: Run GREEN and commit**
 
 Run the RED command again.
 
