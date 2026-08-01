@@ -880,11 +880,40 @@ unauthorized migration ran against the shared databases. That instance and the 1
 later stopped by an environment restart; the uploaded objects persist on disk at
 `~/.local/share/terrapedia/minio/data`, including the four GIFs written at 04:42.
 
-- [ ] **Step 5: Apply database lineage only with its own packet**
+- [x] **Step 5: Apply database lineage only with its own packet**
 
 Generate the lineage bundle and four-layer preview. Generate and approve `canonical-item-image-lineage-apply`, dispatch once, and verify snapshot/stage/result evidence plus 6,131 parity at every layer.
 
-- [ ] **Step 6: Run image closure verification**
+
+Execution checkpoint (2026-08-01, Step 5 complete on the second decision):
+`COMPLETED` under `canonical-item-image-lineage-apply-20260801-02`, packet
+`sha256:0f67aa00…abf3d2c`, exit 0, snapshot 21,997 rows taken before the first mutation, parity
+`landing 6131 / maint 6131 / relation 6131 / local 6131`, `preservedLocalRoles: ['detail']`.
+
+Live state after apply: `maint_item_images` 6,131 rows over 6,131 distinct identities (was 4,788
+rows over 2,906); `relation_item_images` 6,131; local `item_images` role `icon` 6,136 — the 6,131
+owned plus the 5 previewed out-of-scope icons, untouched; role `detail` 3,764, unchanged; one
+current `item_image_sources_raw` landing generation. `maint.cached_url` and `local.items.image`
+both read relative 5,800 + `localhost:9000` 331, matching standardized exactly.
+
+Decision `-01` was burned on a defect of mine and stays in the ledger. The local stage used a
+multi-table `DELETE ii FROM local.item_images ii JOIN local.items i`; MySQL resolves `ii` against
+the default database rather than the qualified name in the FROM clause, and the connection selects
+none, so it died with `No database selected` after landing, maint, and relation had applied. All
+three were restored from an independent pre-dispatch `mysqldump` kept outside the repository
+(`~/.local/share/terrapedia/backups/`), and the restoration was proved by regenerating the preview
+and diffing it field by field against the pre-attempt contract — `previews`, `outOfScopeRetained`,
+`preservedLocalRoles`, `expectedIdentityCount` and the bundle hash all identical. Local was never
+touched because its transaction rolled back. Every attempt-01 artifact is archived under
+`.attempt-01.*` rather than overwritten.
+
+The lesson taken: before `-02`, all four stages were executed against the real server inside a
+single transaction with `commit` neutered and one final `ROLLBACK` — 24,685 real statements, all
+four layers applied, parity 6,131 everywhere, nothing persisted. A fake connection records SQL
+strings and cannot reproduce MySQL's name resolution, which is exactly what the first attempt
+tripped over.
+
+- [x] **Step 6: Run image closure verification**
 
 Run:
 
@@ -896,6 +925,38 @@ node scripts/data/relation/relation-health-report.mjs
 ```
 
 Expected: item image panel PASS, no new cross-DB blocker, and only the explicitly out-of-scope legacy warnings remain.
+
+
+Execution checkpoint (2026-08-01, Step 6 run; three of four as expected, one honest miss):
+
+1. `image-source-lineage-report` — items **not** contract-ready. maint and relation both read
+   6,131 with `rowsWithWrongManagedPrefix: 0`, so the four applied layers are clean; the two gap
+   reasons are `projection_image_not_managed` and `projection_blank_but_core_image_available` (2
+   rows), and both live in `projection_items`, which this lane never writes.
+2. `domain-readiness-audit --domain=items --panel=imageReadiness` — **pass**, zero blocking, zero
+   warning.
+3. `cross-db-referential-integrity --quick` — **pass**, 10 of 10 checks, zero blocking. No new
+   cross-DB blocker.
+4. `relation-health-report` — `warning`, one `warn`: `unresolved_item_npc_relation_audits` at 287.
+   The non-pass set is identical to the 2026-07-30 report, check for check, so nothing regressed;
+   that warning is the NPC relation lane's, not this one's.
+
+The miss is real and it is a scope gap in this plan, not a defect in the apply.
+`projection_items.image` still holds 6,129 URLs at `http://localhost:9000/…`, a port nothing
+serves — MinIO runs at 19000 and 19100. That was already true before the apply, so the operation
+did not make it worse, but it means the public projection is still pointing at dead objects while
+maint, relation and local now point at the correct managed paths.
+
+`projection_items` is a fifth surface, fed by `sync-maint-to-relation.mjs`, and it has **no**
+registered canonical operation of its own: the four `*-projection-apply` operations in the catalog
+are all NPC-specific. Closing the item image lane end to end therefore needs one more governed
+operation that re-projects `projection_items.image` from the current relation rows, with its own
+preview, its own owned scope, and its own Owner decision. It is deliberately not folded into this
+lane's packet, because nobody previewed it.
+
+The pre-apply lineage report is kept at
+`reports/audit/image-source-lineage-2026-08-01.pre-lineage-apply.json`; the post-apply run wrote
+`reports/audit/image-source-lineage-2026-08-01.json`.
 
 - [ ] **Step 7: Record the exact image-lane handoff**
 
