@@ -100,12 +100,57 @@ The initial three-route technical acceptance is complete. The user authorized th
 
 ## Task 6: Articles v22 fidelity continuation
 
-- [ ] Recompare the production fold and content shell against `articles-story-led-v22.html`, retaining the current 12-row live projection, query/page behavior, production navigation, and real article links.
-- [ ] Record exact contract reds before markup or CSS changes. Keep feature, five-entry reading stack, dense archive rows, current-page reading label, and topic-data degradation truthful to available fields.
-- [ ] Match v22 material hierarchy, typography, control density, and responsive composition through existing semantic theme tokens; do not add fake topic/popular aggregates.
-- [ ] Verify all three themes at 1440x1000 and 390x844 with no console/request/image/overflow regression, then run the full and supplemental gates.
+- [x] Recompare the production fold and content shell against `articles-story-led-v22.html`, retaining the current 12-row live projection, query/page behavior, production navigation, and real article links.
+- [x] Record exact contract reds before markup or CSS changes. Keep feature, five-entry reading stack, dense archive rows, current-page reading label, and topic-data degradation truthful to available fields.
+- [x] Match v22 material hierarchy, typography, control density, and responsive composition through existing semantic theme tokens; do not add fake topic/popular aggregates.
+- [x] Verify all three themes at 1440x1000 and 390x844 with no console/request/image/overflow regression, then run the full and supplemental gates.
 
 ## Task 7: Integrated visual acceptance
 
-- [ ] Run the full frontend gate, supplemental static gates, runtime-baseline comparison, focused unit tests, `git diff --check`, and path-only scope review.
+- [x] Run the full frontend gate, supplemental static gates, runtime-baseline comparison, focused unit tests, `git diff --check`, and path-only scope review.
 - [ ] Keep the entry active until the user visually accepts NPC and Articles. Do not push or include user-owned design HTML, historical devlogs, or `reports/`.
+
+## Task 6.1: Article archive-row refinement
+
+- [x] Add exact contract reds before implementation: public-page assertions remove the raw article ID, require the truthful `公开手札 / date / author / reading / views` hierarchy, require likes/comments/favorites only behind positive-count conditions, and require page-owned non-negative count adapters; layout assertions require the `104px / fluid / action` desktop track, `104x84` contained cover, `12px` metadata floor, and `88x72` mobile cover with the action under the copy column.
+- [x] In `pages/articles/index.vue`, add `articleLikeCount` and `articleCommentCount` beside the existing view/favorite adapters and pass both functions to `ArticleArchiveRail`. Do not change the 12-row projection, pagination, sorting, or API request.
+- [x] In `components/article/ArticleArchiveRail.vue`, replace `文章 #id` with `公开手札`, retain the real published date, author, reading duration, and view count, and render like/comment/favorite metrics only when their sanitized count is greater than zero.
+- [x] In `assets/css/domains/detail-pages-redesign.css`, use a `104px minmax(0, 1fr) auto` desktop row, a `104x84` contained cover, a `12px` metadata floor, and an `88px minmax(0, 1fr)` / `88x72` mobile row. Keep row density, semantic tokens, 44px action/focus behavior, and frozen breakpoints.
+- [x] Verify the exact red whitelist, then green `check:public-pages`, `check:front-layout-layering`, Article unit tests, full `pnpm run check`, supplemental static gates, and all three themes at `1440x1000` / `390x844` for cover geometry, conditional metadata, images, errors, focus, and overflow. Keep the slice uncommitted until user visual acceptance.
+
+## Task 6.2: Popular-reading cover rail
+
+**Approved design:** Visual option B from `.superpowers/brainstorm/1605451-1785373344/content/article-popular-cover-layout.html`: desktop archive geometry changes from `1070px / 278px` to `1028px / 320px` with the existing `28px` gap; each popular entry adds a `56x48` contained live cover or the existing article fallback. Mobile keeps the current single-column archive/rail order.
+
+**Files:** `components/article/ArticleArchiveRail.vue`, `assets/css/domains/detail-pages-redesign.css`, `scripts/check-public-pages.mjs`, `scripts/check-front-layout-layering-contract.mjs`, this plan, and the active devlog/current-state files. No page/API/projection/pagination/sort changes are authorized.
+
+- [x] Add one exact public-page contract for the popular-entry destination before markup changes. It must require a single `NuxtLink.article-popular-entry`, `coverUrl(article)`, lazy image rendering, `coverFallback(article)`, and the current real title/view/favorite bindings. Expected red: one `missing implementation`; all existing Article contracts stay green.
+- [x] Add exact layout contracts before CSS changes. Within the approved Article desktop block require `grid-template-columns: minmax(0, 1fr) 320px`; require `.article-popular-entry` to use `56px minmax(0, 1fr)`, and `.article-popular-cover` to reserve `56x48` with `object-fit: contain`. Within the already isolated approved `max-width: 640px` block require the archive layout to remain one column. Expected red: three `missing implementation` findings; no regex may span unrelated media blocks.
+- [x] Replace the current popular text-only link with one linked entry containing a decorative cover and a copy wrapper:
+
+```vue
+<NuxtLink class="article-popular-entry" :to="`/articles/${article.slug}`">
+  <span class="article-popular-cover" aria-hidden="true">
+    <img v-if="coverUrl(article)" :src="coverUrl(article)" alt="" loading="lazy" />
+    <span v-else class="public-article-cover-fallback"><b>{{ coverFallback(article) }}</b><em>TerraPedia</em></span>
+  </span>
+  <span class="article-popular-copy">
+    <strong>{{ article.title }}</strong>
+    <span>{{ viewCount(article) }} 浏览 · {{ favoriteCount(article) }} 收藏</span>
+  </span>
+</NuxtLink>
+```
+
+- [x] Implement only the approved B geometry with existing semantic tokens. Keep the rank as the first `28px` track, use a `56px` image track inside the link, retain contained pixel art/fallback rendering, and do not introduce a new card surface or raw color.
+- [x] Run red then green `pnpm run check:public-pages` and `pnpm run check:front-layout-layering`; then run Article tests, Nuxt typecheck, full `pnpm run check`, both static supplemental gates, and `git diff --check`. `check:loading-skeleton` may only reproduce the eight recorded armor-set failures.
+- [x] Verify `/articles` in all three themes at `1440x1000` and `390x844`: rail/main widths, four popular covers/fallbacks, six archive rows, 44px link/focus behavior, images, console/request/HTTP errors, overflow, and mobile ordering. Record ignored screenshot hashes and keep all Article work uncommitted until user visual acceptance.
+
+## Task 6.3: Restore article search and complete archive
+
+**User correction:** The featured fold is editorial selection, while the content shell must remain the complete current-page article library. `浏览全部` may anchor to that library, but the destination cannot omit the six articles reused by the fold. The existing `?keyword=` API query must also have an operable search form.
+
+- [x] Change the article projection tests first: a normal 12-row page still selects one feature plus five reading entries, but `archive` contains all 12 current-page records. Six- and eight-row pages likewise keep every real record in the archive. No duplicate API request or fabricated row is allowed.
+- [x] Add an exact public-page contract for a labelled article search form, page-owned query input, submit handling, first-page reset, and the existing `keyword` API/query chain. Add a layout contract for 44px controls and approved mobile recomposition.
+- [x] Implement the search form in the archive heading. Submitting a trimmed keyword writes `/articles?keyword=...`; submitting an empty value returns to `/articles`. Preserve pagination deep links and reset only the search submission to page one.
+- [x] Keep the featured fold unchanged and render all current-page API records in the archive. Update truthful row/page counts and do not change `articleLimit`, backend pagination, ordering, popular ranking, or article destinations.
+- [x] Run the planned red/green checks, Article tests, Nuxt typecheck, full `pnpm run check`, supplemental static gates, and three-theme desktop/mobile runtime probes for search, clear-search, complete row count, pagination, images, errors, focus, and overflow. Keep Article work uncommitted for user visual acceptance.

@@ -4,7 +4,7 @@
 
 **Goal:** Preserve the approved production `/articles` discovery stage, move its search into the masthead, show only post-fold records 7–12 as latest submissions, and add a dedicated searchable, paginated `/articles/archive` with twelve compact four-column record cards.
 
-**Architecture:** `/articles` becomes a fixed first-page editorial projection over the existing public Article API, while an inline route middleware redirects legacy filtered/page-N discovery URLs before page data loads. `/articles/archive` owns keyword/page state and the same `limit=12` API request; a route-local `ArticleArchiveCardGrid` owns its search, stable loading/error/empty states, whole-card links, and Article-local image error fallback. The existing three-theme Article ground and approved featured stage remain authoritative, and all shared Article files are changed serially under exact contract ratchets.
+**Architecture:** `/articles` becomes a fixed first-page editorial projection over the existing public Article API, while a named Nuxt route middleware redirects legacy filtered/page-N discovery URLs before page data loads. `/articles/archive` owns keyword/page state and the same `limit=12` API request; a route-local `ArticleArchiveCardGrid` owns its search, stable loading/error/empty states, whole-card links, and Article-local image error fallback. The existing three-theme Article ground and approved featured stage remain authoritative, and all shared Article files are changed serially under exact contract ratchets.
 
 **Tech Stack:** Nuxt 4, Vue 3 `<script setup>`, TypeScript, existing `usePublicApiFetch`/`UserArticle` DTOs, token-driven CSS, Node test runner, static contract scripts, and Playwright via the tracked `audit-shoot.mjs` harness.
 
@@ -48,6 +48,7 @@ This plan deliberately uses `/home/lolben/TerraPedia` on `ux/detail-pages-redesi
 
 Create:
 
+- `front-nuxt/middleware/article-discovery-archive-compat.ts` — SSR/client legacy-query compatibility bridge with HTTP 302 and history replacement.
 - `front-nuxt/pages/articles/archive.vue` — static archive route, API/query/pagination/SEO owner.
 - `front-nuxt/components/article/ArticleArchiveCardGrid.vue` — archive search/status/state/card owner with local image failure fallback.
 
@@ -55,7 +56,7 @@ Modify:
 
 - `front-nuxt/utils/articleArchive.ts` — deterministic `featured`, `readingList`, `discoveryLatest`, and `archive` projection.
 - `front-nuxt/tests/unit/articleArchive.test.mjs` — projection and reading-duration behavior.
-- `front-nuxt/pages/articles/index.vue` — pre-fetch compatibility bridge, fixed first-page discovery fetch, mast search navigation, latest binding, no paginator.
+- `front-nuxt/pages/articles/index.vue` — named compatibility-middleware attachment, fixed first-page discovery fetch, mast search navigation, latest binding, no paginator.
 - `front-nuxt/components/article/ArticleFeatureMeta.vue` — mast search props/emits/form and archive navigation.
 - `front-nuxt/components/article/ArticleArchiveRail.vue` — latest rows plus existing popular/topic rail only; no search or pagination status.
 - `front-nuxt/assets/css/domains/detail-pages-redesign.css` — mast search, archive ground, compact cards, states, and approved recomposition.
@@ -349,6 +350,7 @@ Expected: `7/7` pass. Record the exact red/green result in the active devlog. Do
 
 **Files:**
 
+- Create: `front-nuxt/middleware/article-discovery-archive-compat.ts`
 - Modify: `front-nuxt/scripts/check-public-pages.mjs`
 - Modify: `front-nuxt/pages/articles/index.vue`
 - Modify: `front-nuxt/components/article/ArticleFeatureMeta.vue`
@@ -360,7 +362,9 @@ Add assertions that require:
 
 ```js
 // pages/articles/index.vue
-'middleware: (to) => {'
+"middleware: ['article-discovery-archive-compat']"
+// middleware/article-discovery-archive-compat.ts
+'defineNuxtRouteMiddleware((to) => {'
 "path: '/articles/archive'"
 'redirectCode: 302'
 'replace: true'
@@ -385,7 +389,7 @@ Add assertions that require:
 'to="/articles/archive"'
 ```
 
-Replace the existing combined `articlePresentationContent` search assertion with destination-specific checks: the mast form/ID/submission markers must be read from `ArticleFeatureMeta.vue`. The explicit absence of the form in `ArticleArchiveRail.vue` is owned by Task 3 together with removing that markup. Add an exact index-order assertion that the `definePageMeta` middleware block ends before the first `useAsyncData`, plus explicit forbiddens for an index API query bound to `currentPage.value` or `keyword.value` within the fetch block only. Do not use a regex that permits optional query ownership.
+Replace the existing combined `articlePresentationContent` search assertion with destination-specific checks: the mast form/ID/submission markers must be read from `ArticleFeatureMeta.vue`. The explicit absence of the form in `ArticleArchiveRail.vue` is owned by Task 3 together with removing that markup. Require the named middleware file and add an exact index-order assertion that its page-meta attachment occurs before the first `useAsyncData`, plus explicit forbiddens for an index API query bound to `currentPage.value` or `keyword.value` within the fetch block only. Do not use a regex that permits optional query ownership.
 
 - [ ] **Step 2: Run the contract and record the expected red whitelist**
 
@@ -403,31 +407,37 @@ Expected red messages only:
 - `pages/articles/index.vue: mast search must navigate to the dedicated archive and reset page state` (`migration`);
 - `components/article/ArticleFeatureMeta.vue: approved mast must own the labelled archive search and complete-archive destination` (`missing implementation`).
 
-- [ ] **Step 3: Implement inline pre-fetch middleware and fixed discovery fetch**
+- [ ] **Step 3: Implement the named pre-fetch middleware and fixed discovery fetch**
 
-Use this page metadata before imports/setup data:
+Create `middleware/article-discovery-archive-compat.ts`:
+
+```ts
+export default defineNuxtRouteMiddleware((to) => {
+  const rawKeyword = Array.isArray(to.query.keyword) ? to.query.keyword[0] : to.query.keyword
+  const rawPage = Array.isArray(to.query.page) ? to.query.page[0] : to.query.page
+  const legacyKeyword = String(rawKeyword ?? '').trim()
+  const hasPageQuery = rawPage !== undefined && rawPage !== null && String(rawPage).trim() !== ''
+  const pageCandidate = Number(rawPage ?? 1)
+  const legacyPage = Number.isFinite(pageCandidate) && pageCandidate > 0 ? Math.floor(pageCandidate) : 1
+
+  if (!legacyKeyword && legacyPage <= 1) return
+
+  return navigateTo({
+    path: '/articles/archive',
+    query: {
+      ...(legacyKeyword ? { keyword: legacyKeyword } : {}),
+      ...(hasPageQuery ? { page: String(legacyPage) } : {}),
+    },
+  }, { redirectCode: 302, replace: true })
+})
+```
+
+Attach it in page metadata before imports/setup data:
 
 ```ts
 definePageMeta({
   publicScreenClass: 'article-screen article-index-approved-screen',
-  middleware: (to) => {
-    const rawKeyword = Array.isArray(to.query.keyword) ? to.query.keyword[0] : to.query.keyword
-    const rawPage = Array.isArray(to.query.page) ? to.query.page[0] : to.query.page
-    const legacyKeyword = String(rawKeyword ?? '').trim()
-    const hasPageQuery = rawPage !== undefined && rawPage !== null && String(rawPage).trim() !== ''
-    const pageCandidate = Number(rawPage ?? 1)
-    const legacyPage = Number.isFinite(pageCandidate) && pageCandidate > 0 ? Math.floor(pageCandidate) : 1
-
-    if (!legacyKeyword && legacyPage <= 1) return
-
-    return navigateTo({
-      path: '/articles/archive',
-      query: {
-        ...(legacyKeyword ? { keyword: legacyKeyword } : {}),
-        ...(hasPageQuery ? { page: String(legacyPage) } : {}),
-      },
-    }, { redirectCode: 302, replace: true })
-  },
+  middleware: ['article-discovery-archive-compat'],
 })
 ```
 
@@ -577,7 +587,7 @@ pnpm run check:public-pages
 pnpm run check:user-module
 ```
 
-Expected public red: latest binding missing, false-complete copy/search ownership still present, complete-archive link missing, and paginator still on discovery. Expected user-module red: the three moved pagination markers are missing from the not-yet-created archive page, classified `missing implementation`. No Article fetch/image/title/summary marker may fail.
+Expected public red: latest binding missing, false-complete copy/search ownership still present, complete-archive link missing, and paginator still on discovery. Because `pages/articles/archive.vue` does not exist yet, `check-user-module-contract.mjs` reports the file-missing line plus each of its eight exact required markers (nine lines total); classify all nine as one `missing implementation` destination group for the not-yet-created archive page. Once the file exists, the same group must collapse to zero without changing marker specificity. No Article fetch/image/title/summary marker may fail.
 
 - [ ] **Step 3: Bind discoveryLatest and remove search/pagination from discovery**
 
@@ -635,7 +645,7 @@ pnpm run check:public-pages
 pnpm exec nuxt typecheck
 ```
 
-Expected: projection `7/7`; public contract and typecheck green. `check:user-module` remains red only for the three not-yet-created archive pagination destinations. Record that intentional carried red in the devlog and continue immediately to Task 4; do not run or claim full `pnpm run check` green between these coupled migration halves.
+Expected: projection `7/7`; public contract and typecheck green. `check:user-module` remains red only for the one not-yet-created archive-page destination group (reported as the missing file plus its eight required markers until the file is created). Record that intentional carried red in the devlog and continue immediately to Task 4; do not run or claim full `pnpm run check` green between these coupled migration halves.
 
 ### Task 4: Create the static archive route and compact card component
 
@@ -1308,11 +1318,11 @@ Run against the Task 0 front port:
 ```bash
 curl -fsS -o /dev/null -w 'discovery %{http_code} %{url_effective}\n' http://localhost:15177/articles
 curl -fsS -o /dev/null -w 'archive %{http_code} %{url_effective}\n' http://localhost:15177/articles/archive
-curl -sS -o /dev/null -D - 'http://localhost:15177/articles?keyword=真永夜' | sed -n '1,12p'
-curl -sS -o /dev/null -D - 'http://localhost:15177/articles?page=2&keyword=真永夜' | sed -n '1,12p'
+curl -sS -o /dev/null -D - 'http://localhost:15177/articles?keyword=%E7%9C%9F%E6%B0%B8%E5%A4%9C' | sed -n '1,12p'
+curl -sS -o /dev/null -D - 'http://localhost:15177/articles?page=2&keyword=%E7%9C%9F%E6%B0%B8%E5%A4%9C' | sed -n '1,12p'
 ```
 
-Expected: both canonical routes `200`; legacy URLs return HTTP `302` with archive `Location` preserving `keyword` and `page=2`. Pair this runtime evidence with the public contract's exact source-order assertion (`definePageMeta` middleware block occurs before the first `useAsyncData`) and fixed discovery request assertion; together they prove the bridge completes before discovery data setup rather than merely hiding filtered DOM. There must be no `/articles/slug/archive` response path.
+Expected: both canonical routes `200`; legacy URLs return HTTP `302` with archive `Location` preserving `keyword` and `page=2`. Raw non-ASCII request-target text is not a valid curl probe and must remain percent-encoded. Pair this runtime evidence with the public contract's exact source-order assertion (the named middleware attachment occurs before the first `useAsyncData`) and fixed discovery request assertion; together they prove the bridge completes before discovery data setup rather than merely hiding filtered DOM. There must be no `/articles/slug/archive` response path.
 
 - [ ] **Step 3: Capture the three-theme by two-viewport matrix**
 
@@ -1369,9 +1379,11 @@ await Promise.all([
   page.locator('.article-mast-search button[type="submit"]').click(),
 ])
 assert.match(page.url(), /\/articles\/archive\?keyword=%E7%9C%9F%E6%B0%B8%E5%A4%9C$/)
+await page.locator('.article-archive-page-shell').waitFor()
 assert.equal(await page.locator('.article-featured-story').count(), 0)
 await page.goBack({ waitUntil: 'networkidle' })
 assert.equal(new URL(page.url()).pathname, '/articles')
+await page.locator('.article-featured-story').waitFor()
 assert.equal(await page.locator('.article-featured-story').count(), 1)
 
 await page.goto(`${base}/articles/archive`, { waitUntil: 'networkidle' })
@@ -1399,9 +1411,14 @@ if (await nextPage.isEnabled()) {
 }
 
 for (const legacyPath of ['/articles?keyword=%E7%9C%9F%E6%B0%B8%E5%A4%9C', '/articles?page=2']) {
-  const response = await page.goto(`${base}${legacyPath}`, { waitUntil: 'domcontentloaded' })
+  const legacyPage = await context.newPage()
+  const legacyRequests = []
+  legacyPage.on('request', (request) => { if (request.url().includes('/api/articles')) legacyRequests.push(request.url()) })
+  const response = await legacyPage.goto(`${base}${legacyPath}`, { waitUntil: 'networkidle' })
   assert.equal(response?.status(), 200)
-  assert.equal(new URL(page.url()).pathname, '/articles/archive')
+  assert.equal(new URL(legacyPage.url()).pathname, '/articles/archive')
+  assert.equal(legacyRequests.some((url) => /[?&]page=1(?:&|$)/.test(url) && !url.includes('keyword=')), false, legacyRequests.join('\n'))
+  await legacyPage.close()
 }
 
 await page.goto(`${base}/articles/archive`, { waitUntil: 'networkidle' })
@@ -1412,7 +1429,7 @@ for (const image of await page.locator('img').all()) {
   await image.scrollIntoViewIfNeeded()
   assert.equal(await image.evaluate((node) => node.complete && node.naturalWidth > 0), true)
 }
-for (const selector of ['#article-archive-page-search-input', '.article-archive-card', '.catalog-dock-icon-button']) {
+for (const selector of ['#article-archive-page-search-input', '.article-archive-card', '.catalog-dock-icon-button:not(:disabled)']) {
   const target = page.locator(selector).first()
   if (await target.count()) {
     await target.focus()
@@ -1450,12 +1467,12 @@ If any scenario fails, save the failing screenshot/request list, return to the o
 Run:
 
 ```bash
-pnpm run check:light-theme
-pnpm run check:typography-spacing
-pnpm run check:crafting-wiki-structure
+TERRAPEDIA_FRONT_NUXT_URL=http://localhost:15177 pnpm run check:light-theme
+TERRAPEDIA_FRONT_NUXT_URL=http://localhost:15177 pnpm run check:typography-spacing
+TERRAPEDIA_FRONT_NUXT_URL=http://localhost:15177 pnpm run check:crafting-wiki-structure
 ```
 
-Expected: compare to the Task 0 same-server baseline. No new `/articles` or `/articles/archive` finding is permitted. Preserve the known unrelated homepage/historical-route, `/search ready`, and `/crafting` findings; do not repair them in this task.
+Expected: compare to the Task 0 same-server baseline. These scripts default to port `5176`, so the recorded Task 0 front port must be supplied through their existing `TERRAPEDIA_FRONT_NUXT_URL` input. No new `/articles` or `/articles/archive` finding is permitted. Preserve the known unrelated homepage/historical-route, `/search ready`, and `/crafting` findings; do not repair them in this task.
 
 - [ ] **Step 6: Perform the design-system review checklist**
 
@@ -1530,6 +1547,7 @@ Stage only:
 
 ```bash
 git add \
+  front-nuxt/middleware/article-discovery-archive-compat.ts \
   front-nuxt/pages/articles/archive.vue \
   front-nuxt/pages/articles/index.vue \
   front-nuxt/components/article/ArticleArchiveCardGrid.vue \
