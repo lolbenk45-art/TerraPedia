@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-04 03:00 CST by Codex
+Last updated: 2026-08-04 06:43 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -764,6 +764,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   data; their route and fail-closed contracts remain the acceptance boundary.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-08-04-item-image-projection-apply-design.md`
+  - branch: `design/crawler-auto-ingestion-readiness`
+  - status: `closed`
+  - result: approved scoped design for
+    `canonical-item-image-projection-apply`; commit SHA pending in final response
 
 - `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
   - branch: `main` from `feat/front-p2-integration`
