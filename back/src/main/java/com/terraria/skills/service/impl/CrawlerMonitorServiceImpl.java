@@ -5069,10 +5069,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,
             "domain-source-shimmer",
-            "Domain source: Shimmer",
+            "Domain source: Shimmer generation",
             DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE,
-            "data/generated/shimmer/wiki-shimmer-manifest.latest.json",
-            domainSourceShimmerProgress
+            "data/generated/shimmer/wiki-shimmer-current-generation.json",
+            domainSourceShimmerProgress,
+            "p0",
+            "wiki Shimmer source -> verified content-addressed generation",
+            "Authorize and publish a coherent Shimmer generation before downstream audit evidence."
         ));
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,
@@ -5545,7 +5548,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             task.setStatus("missing");
             task.setProgressKind("missing");
             task.setQueueState("progress file missing");
-            task.setNextStep("Run the domain source snapshot fetch before downstream audit evidence.");
+            task.setNextStep("domain-source-shimmer".equals(id)
+                ? defaultNextStep
+                : "Run the domain source snapshot fetch before downstream audit evidence.");
             return task;
         }
         if (!progress.readable()) {

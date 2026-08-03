@@ -51,9 +51,9 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 30 governed operations and keeps NPC apply explicitly fail closed', () => {
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 32);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 31);
+test('manifest builder covers 31 governed operations and keeps NPC apply explicitly fail closed', () => {
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 33);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 32);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -213,6 +213,62 @@ test('item image verification manifest binds the frozen backend child and reques
   assert.ok(manifest.codeBundleEntries.some((entry) => (
     entry.path === 'scripts/data/fetch/fetch-item-image-source-verification.mjs'
   )));
+});
+
+test('shimmer generation manifest binds the frozen source contract, data inputs, monitor progress, and request cap', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-shimmer-generation',
+    artifactDate: '2026-08-01',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+    '--input-contract=reports/authorization/canonical/canonical-shimmer-generation.input.json',
+    '--page=Shimmer',
+    '--api=https://terraria.wiki.gg/zh/api.php',
+    '--progress-path=data/generated/domain-source-shimmer-progress.latest.json',
+    '--report-output=reports/wiki-shimmer-generation-2026-08-01.md',
+  ]);
+  assert.equal(manifest.actionId, 'domain-source-shimmer');
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/canonical-shimmer-generation.input.json',
+    'data/standardized/items.standardized.json',
+    'data/standardized/npcs.standardized.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'data/generated/shimmer/wiki-shimmer-current-generation.json',
+  ]);
+  assert.deepEqual(manifest.reportPaths, ['reports/wiki-shimmer-generation-2026-08-01.md']);
+  assert.deepEqual(manifest.progressPaths, [
+    'data/generated/domain-source-shimmer-progress.latest.json',
+  ]);
+  assert.deepEqual(manifest.sources, ['https://terraria.wiki.gg/zh/api.php']);
+  assert.deepEqual(manifest.bounds, {
+    pageTitle: 'Shimmer',
+    rawRequests: 3,
+    langlinkBatchSize: 8,
+    maxLanglinkRequests: 128,
+    maxRequests: 131,
+    serial: true,
+  });
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.networkAccess, true);
+  const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+  for (const expectedPath of [
+    'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+    'scripts/data/fetch/fetch-wiki-shimmer-page.mjs',
+    'scripts/data/fetch/fetch-wiki-shimmer-langlinks.mjs',
+    'scripts/data/transform/shimmer-generation-builder.mjs',
+    'scripts/data/maint/shimmer-structured-parser.mjs',
+    'scripts/data/transform/shimmer-generation-contract.mjs',
+    'scripts/data/workflow/backend-refresh-runtime-state.mjs',
+    'scripts/data/automation/authorized-operation-context.mjs',
+    'scripts/data/automation/build-canonical-cutover-authorization.mjs',
+  ]) {
+    assert.ok(codePaths.has(expectedPath), expectedPath);
+  }
 });
 
 test('NPC item relation lineage repair manifest binds historical predecessors and a distinct result', () => {

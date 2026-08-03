@@ -1756,15 +1756,15 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("reports/domain/domain-source-armor-attributes-2026-05-24.json", armorAttributes.getReportPath());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO shimmer = taskById(overview.getRegisteredTasks(), "domain-source-shimmer");
-        assertEquals("Domain source: Shimmer", shimmer.getLabel());
+        assertEquals("Domain source: Shimmer generation", shimmer.getLabel());
         assertEquals("missing", shimmer.getStatus());
         assertEquals("missing", shimmer.getProgressKind());
         assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressPath());
         assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressSource());
         assertFalse(shimmer.isProgressFound());
         assertFalse(shimmer.isProgressReadable());
-        assertEquals("data/generated/shimmer/wiki-shimmer-manifest.latest.json", shimmer.getOutputPath());
-        assertEquals("Run the domain source snapshot fetch before downstream audit evidence.", shimmer.getNextStep());
+        assertEquals("data/generated/shimmer/wiki-shimmer-current-generation.json", shimmer.getOutputPath());
+        assertEquals("Authorize and publish a coherent Shimmer generation before downstream audit evidence.", shimmer.getNextStep());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO townNpcMaintenance = taskById(overview.getRegisteredTasks(), "domain-source-town-npc-maintenance");
         assertEquals("Domain source: Town NPC maintenance", townNpcMaintenance.getLabel());

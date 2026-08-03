@@ -6,6 +6,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -247,11 +248,19 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void shimmerOperationEstimateMatchesItsThreeRequestProgressPlan() {
+    void shimmerOperationUsesTheFullExtractionPipelineAndDefersItsDynamicRequestEstimate() {
         CrawlerMonitorActionDefinition shimmer = CrawlerMonitorActionRegistry.defaults()
             .require("shimmer", "domain-source-shimmer");
 
-        assertEquals(3L, shimmer.estimatedRequests());
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+                "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
+            ),
+            shimmer.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "fresh")
+        );
+        assertNull(shimmer.estimatedRequests());
     }
 
     @Test

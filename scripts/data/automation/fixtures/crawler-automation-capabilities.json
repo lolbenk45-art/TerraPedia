@@ -424,9 +424,9 @@
       "domain": "shimmer",
       "mode": "fresh",
       "progressContract": {
-        "ownerScript": "scripts/data/fetch/fetch-wiki-shimmer-page.mjs",
+        "ownerScript": "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
         "canonicalPath": "data/generated/domain-source-shimmer-progress.latest.json",
-        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-shimmer-page-progress.test.mjs",
+        "isolatedTestPath": "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.test.mjs",
         "initialBeforeWork": true,
         "heartbeat": true,
         "terminalStatuses": [

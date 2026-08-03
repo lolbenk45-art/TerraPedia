@@ -106,8 +106,11 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
 
   const shimmerSync = plan.actions.find((action) => action.id === 'shimmer-sync');
   assert.ok(shimmerSync);
-  assert.ok(shimmerSync.args.includes('scripts/data/pipeline/run-shimmer-sync-pipeline.mjs'));
-  assert.ok(shimmerSync.args.includes('--apply=true'));
+  assert.deepEqual(shimmerSync.args, [
+    'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+    '--progress-path=data/generated/domain-source-shimmer-progress.latest.json'
+  ]);
+  assert.equal(shimmerSync.args.some((arg) => arg.startsWith('--apply=')), false);
 
   const supportSync = plan.actions.find((action) => action.id === 'support-sync');
   assert.ok(supportSync);

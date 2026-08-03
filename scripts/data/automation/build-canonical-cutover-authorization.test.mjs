@@ -264,7 +264,7 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes the legacy umbrella plus 30 independent stable IDs', () => {
+test('operation request builder exposes the legacy umbrella plus 31 independent stable IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
@@ -276,6 +276,7 @@ test('operation request builder exposes the legacy umbrella plus 30 independent 
     'canonical-projectile-backfill',
     'canonical-recipe-crawler',
     'canonical-recipe-apply',
+    'canonical-shimmer-generation',
     'canonical-shimmer-import',
     'canonical-schema-v56-v58',
     'canonical-item-group-bootstrap',
@@ -312,6 +313,17 @@ test('operation request builder exposes the legacy umbrella plus 30 independent 
     fs.writeFileSync(path.join(repoRoot, 'data', 'generated', name), `{\"name\":\"${name}\"}`);
   }
   fs.writeFileSync(path.join(repoRoot, 'data', 'standardized', 'items.standardized.json'), '{"records":[]}');
+  fs.writeFileSync(path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json'), '{"records":[]}');
+  fs.writeFileSync(
+    path.join(
+      repoRoot,
+      'reports',
+      'authorization',
+      'canonical',
+      'canonical-shimmer-generation.input.json'
+    ),
+    '{"schemaVersion":1,"operationId":"canonical-shimmer-generation"}',
+  );
   fs.writeFileSync(
     path.join(
       repoRoot,
@@ -351,6 +363,19 @@ test('operation request builder exposes the legacy umbrella plus 30 independent 
     'reports/authorization/canonical/canonical-item-image-source-verification.input.json',
   ]);
   assert.ok(itemImageVerification.missingTechnicalFields.includes('executionManifestHash'));
+
+  const shimmerGeneration = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-shimmer-generation',
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.deepEqual(shimmerGeneration.dataBundleEntries.map((entry) => entry.path), [
+    'reports/authorization/canonical/canonical-shimmer-generation.input.json',
+    'data/standardized/items.standardized.json',
+    'data/standardized/npcs.standardized.json',
+  ]);
+  assert.ok(shimmerGeneration.missingTechnicalFields.includes('executionManifestHash'));
 
   const schema = buildCanonicalAuthorizationRequestForOperation({
     repoRoot,

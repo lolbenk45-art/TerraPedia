@@ -52,6 +52,10 @@ export function buildShimmerGeneration(input = {}) {
   };
 }
 
+export function collectShimmerCandidateTitles(raw) {
+  return collectCandidateTitles(extractShimmerStructuredRecords(raw));
+}
+
 export function resolveFrozenTitleMeta({ parsed, itemRecords, npcRecords, langlinkEvidence } = {}) {
   const langlinks = normalizeLanglinkEvidence(langlinkEvidence);
   const itemLookup = buildEntityLookup(itemRecords);

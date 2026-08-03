@@ -9,6 +9,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-projectile-backfill',
   'canonical-recipe-crawler',
   'canonical-recipe-apply',
+  'canonical-shimmer-generation',
   'canonical-shimmer-import',
   'canonical-schema-v56-v58',
   'canonical-item-group-bootstrap',
@@ -62,6 +63,11 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   ]),
   'canonical-recipe-crawler': Object.freeze([]),
   'canonical-recipe-apply': Object.freeze(['data/generated/wiki-zh-recipe-pages.latest.json']),
+  'canonical-shimmer-generation': Object.freeze([
+    'reports/authorization/canonical/canonical-shimmer-generation.input.json',
+    'data/standardized/items.standardized.json',
+    'data/standardized/npcs.standardized.json',
+  ]),
   'canonical-shimmer-import': Object.freeze([
     'data/generated/wiki-shimmer.latest.json',
     'data/generated/shimmer/wiki-shimmer-context.importable.latest.json',
@@ -187,6 +193,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-projectile-backfill': 'scripts/data/backfill/backfill-projectile-zh-and-images.mjs',
   'canonical-recipe-crawler': 'scripts/data/fetch/fetch-wiki-zh-recipe-pages.mjs',
   'canonical-recipe-apply': 'scripts/data/pipeline/run-wiki-zh-recipe-sync-pipeline.mjs',
+  'canonical-shimmer-generation': 'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
   'canonical-shimmer-import': 'scripts/data/import/import-wiki-shimmer-to-db.mjs',
   'canonical-schema-v56-v58': 'scripts/data/automation/run-canonical-schema-migration.mjs',
   'canonical-item-group-bootstrap': 'scripts/data/item-groups/item-group-canonical-action.mjs',

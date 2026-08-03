@@ -40,6 +40,10 @@ export function loadAuthorizedOperationContext({
     packetHash: packet.packetHash,
     authorizedAt: packet.authorizedAt,
     expiresAt: packet.expiresAt,
+    serverFingerprint: packet.serverFingerprint,
+    dataBundleSha256: packet.dataBundleSha256,
+    executionManifestHash: packet.executionManifestHash,
+    executionManifest: packet.executionManifest,
   });
 }
 

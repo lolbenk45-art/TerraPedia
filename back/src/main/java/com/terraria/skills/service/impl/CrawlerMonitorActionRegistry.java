@@ -298,21 +298,21 @@ public class CrawlerMonitorActionRegistry {
             ),
             direct(
                 "shimmer",
-                "重新抓取 Shimmer 页面",
+                "生成 Shimmer 内容寻址数据包",
                 "wiki.domain.shimmer",
                 "Shimmer source page",
                 "domain-source-shimmer",
                 "fresh",
                 "direct_crawl",
                 "fresh",
-                "直接重新抓取一个 Shimmer 页面及其 revision。",
-                "更新 Shimmer 来源文件和报告",
-                3L,
-                true,
+                "抓取、解析并校验一个完整的 Shimmer 内容寻址 generation。",
+                "更新 Shimmer generation pointer、原始证据和报告",
+                null,
+                false,
                 "data/generated/domain-source-shimmer-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/fetch/fetch-wiki-shimmer-page.mjs",
+                    "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
                     "--progress-path=data/generated/domain-source-shimmer-progress.latest.json"
                 )
             ),

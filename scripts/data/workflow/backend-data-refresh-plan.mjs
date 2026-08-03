@@ -267,8 +267,8 @@ export function buildBackendDataRefreshPlan(options = {}) {
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
-        'scripts/data/pipeline/run-shimmer-sync-pipeline.mjs',
-        '--apply=true'
+        'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+        '--progress-path=data/generated/domain-source-shimmer-progress.latest.json'
       ]
     },
     {

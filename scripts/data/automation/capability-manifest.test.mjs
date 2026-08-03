@@ -20,7 +20,7 @@ const PROGRESS_OWNER_WORK_BOUNDARIES = new Map([
   ['scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs', 'const payload = await fetchWikiApiJson'],
   ['scripts/data/fetch/fetch-wiki-bosses.mjs', 'const overview = await fetchBossSections'],
   ['scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', 'const { records, scraped, skipped } = await crawlRecords'],
-  ['scripts/data/fetch/fetch-wiki-shimmer-page.mjs', 'const revision = await fetchRevision'],
+  ['scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs', 'raw = await fetchRaw'],
   ['scripts/data/item-groups/item-group-canonical-action.mjs', 'const result = await execute'],
   ['scripts/data/npc-canonical/npc-crawler-fact-action.mjs', 'const result = await execute'],
 ]);
