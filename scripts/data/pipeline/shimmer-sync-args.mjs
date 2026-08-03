@@ -1,15 +1,31 @@
 export function buildShimmerImportArgs(options = {}) {
-  const args = [`--apply=${isTrue(options.apply) ? 'true' : 'false'}`];
-  pushOption(args, 'input', options.input);
-  pushOption(args, 'raw', options.raw);
-  return args;
+  const bundleManifest = requireContentAddressedManifest(resolveBundleManifest(options));
+  if (isTrue(options.apply)) {
+    throw new Error('direct apply is not available through the shimmer sync pipeline');
+  }
+  return [
+    '--apply=false',
+    `--bundle-manifest=${bundleManifest}`
+  ];
 }
 
-function pushOption(args, key, value) {
-  if (value == null || value === '') {
-    return;
+function resolveBundleManifest(options) {
+  const camelCaseValue = String(options?.bundleManifest ?? '').trim();
+  const kebabCaseValue = String(options?.['bundle-manifest'] ?? '').trim();
+  if (camelCaseValue && kebabCaseValue && camelCaseValue !== kebabCaseValue) {
+    throw new Error('conflicting bundle manifest options are not allowed');
   }
-  args.push(`--${key}=${value}`);
+  return camelCaseValue || kebabCaseValue;
+}
+
+function requireContentAddressedManifest(value) {
+  const manifest = String(value ?? '').trim().replaceAll('\\', '/');
+  if (!manifest) throw new Error('bundleManifest is required');
+  if (manifest.includes('latest')
+      || !/^data\/generated\/shimmer\/generations\/[a-f0-9]{64}\/wiki-shimmer-manifest\.json$/.test(manifest)) {
+    throw new Error('bundleManifest must name a content-addressed generation manifest');
+  }
+  return manifest;
 }
 
 function isTrue(value) {
