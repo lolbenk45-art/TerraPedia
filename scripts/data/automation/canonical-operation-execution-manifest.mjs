@@ -8,6 +8,12 @@ import {
   CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './canonical-operation-catalog.mjs';
+import {
+  CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH,
+  CANONICAL_SHIMMER_IMPORT_RESULT_PATH,
+  readCanonicalShimmerImportInputContract,
+  shimmerImportBindingFromInputContract,
+} from './canonical-shimmer-import-input-contract.mjs';
 import { canonicalServerFingerprint } from './automation-database-contract.mjs';
 import {
   NPC_APPLY_OWNER_PHASES,
@@ -112,6 +118,11 @@ const CODE_PATHS = Object.freeze({
   ]),
   'canonical-shimmer-import': Object.freeze([
     'scripts/data/import/import-wiki-shimmer-to-db.mjs',
+    'scripts/data/automation/canonical-shimmer-import-input-contract.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/transform/shimmer-generation-contract.mjs',
+    'scripts/data/transform/shimmer-generation-builder.mjs',
+    'scripts/data/maint/shimmer-structured-parser.mjs',
     'scripts/data/lib/mysql-module.mjs',
     'scripts/data/lib/project-root.mjs',
     'scripts/data/lib/wiki-item-utils.mjs',
@@ -219,7 +230,9 @@ export function buildCanonicalOperationExecutionManifest({
   itemImagePromotionBundlePath = null,
   managedObjectOrigin = null,
 } = {}) {
+  const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
+    repoRoot: root,
     operationId,
     artifactDate,
     npcLimit,
@@ -231,7 +244,6 @@ export function buildCanonicalOperationExecutionManifest({
     npcT1RedisDb,
     npcT1RunId,
   });
-  const root = path.resolve(repoRoot);
   const codeBundleEntries = expandRepositoryCodePaths(root, operationCodePaths(operationId)).map((relativePath) => {
     const fullPath = path.join(root, relativePath);
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
@@ -246,6 +258,7 @@ export function buildCanonicalOperationExecutionManifest({
 }
 
 export function buildCanonicalOperationExecutionContract({
+  repoRoot = process.cwd(),
   operationId,
   artifactDate = new Date().toISOString().slice(0, 10),
   npcLimit = 25,
@@ -280,6 +293,11 @@ export function buildCanonicalOperationExecutionContract({
       runId: npcT1RunId,
     })
     : null;
+  const shimmerImport = operationId === 'canonical-shimmer-import'
+    ? shimmerImportBindingFromInputContract(readCanonicalShimmerImportInputContract({
+      repoRoot: path.resolve(repoRoot),
+    }).contract)
+    : null;
   const definition = buildDefinition(
     operationId,
     artifactDate,
@@ -289,6 +307,7 @@ export function buildCanonicalOperationExecutionContract({
     normalizedResultLabel,
     itemImagePromotionBundlePath,
     managedObjectOrigin,
+    shimmerImport,
   );
   return {
     schemaVersion: 1,
@@ -315,6 +334,7 @@ export function assertCanonicalOperationExecutionManifestContract({
     typeof argument === 'string' && argument.startsWith(prefix)
   ))?.slice(prefix.length) ?? null;
   const expected = buildCanonicalOperationExecutionContract({
+    repoRoot,
     operationId,
     artifactDate: manifest?.artifactDate,
     npcLimit,
@@ -414,6 +434,7 @@ function buildDefinition(
   resultLabel,
   itemImagePromotionBundlePath,
   managedObjectOrigin,
+  shimmerImport,
 ) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
@@ -651,23 +672,17 @@ function buildDefinition(
     'canonical-shimmer-import': {
       executionClass: 'formal_database_import',
       command: [
-        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--apply=true',
-        '--raw=data/generated/wiki-shimmer.latest.json', '--input=data/generated/shimmer',
-        `--output=reports/wiki-shimmer-db-import-${artifactDate}.json`,
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--input-contract=${CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH}`,
+        '--apply=true',
+        `--output=${CANONICAL_SHIMMER_IMPORT_RESULT_PATH}`,
         '--database=terria_v1_local',
       ],
-      inputPaths: [
-        'data/generated/wiki-shimmer.latest.json',
-        'data/generated/shimmer/wiki-shimmer-context.importable.latest.json',
-        'data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json',
-        'data/generated/shimmer/wiki-shimmer-decraft-rules.importable.latest.json',
-        'data/generated/shimmer/wiki-shimmer-entity-transforms.importable.latest.json',
-        'data/generated/shimmer/wiki-shimmer-npc-transforms.importable.latest.json',
-        'data/generated/shimmer/wiki-shimmer-manifest.latest.json',
-      ],
-      outputPaths: [],
-      reportPaths: [`reports/wiki-shimmer-db-import-${artifactDate}.json`],
+      inputPaths: [CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH],
+      outputPaths: [CANONICAL_SHIMMER_IMPORT_RESULT_PATH],
+      reportPaths: [],
       progressPaths: [],
+      shimmerImport,
       databaseWrites: true,
       networkAccess: false,
     },

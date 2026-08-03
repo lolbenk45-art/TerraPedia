@@ -17,6 +17,7 @@ import {
   verifyCanonicalAuthorizationPacket,
 } from './build-canonical-cutover-authorization.mjs';
 import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
+import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const GENERATED_AT = '2026-07-27T15:00:00.000Z';
@@ -439,8 +440,12 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
     fs.writeFileSync(filePath, content);
   };
   for (const paths of Object.values(CANONICAL_OPERATION_DATA_PATHS)) {
-    for (const relativePath of paths) write(relativePath, `{"path":"${relativePath}"}`);
+    for (const relativePath of paths) {
+      if (relativePath === 'reports/authorization/canonical/canonical-shimmer-import.input.json') continue;
+      write(relativePath, `{"path":"${relativePath}"}`);
+    }
   }
+  writeShimmerImportContract(repoRoot);
   fs.rmSync(path.join(
     repoRoot,
     'reports/authorization/canonical/canonical-npc-apply.input.json',
@@ -480,6 +485,59 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
   assert.equal(incomplete.dataBundleSha256, null);
   assert.equal(incomplete.dataBundleEntries, null);
   assert.ok(incomplete.missingTechnicalFields.includes('dataBundleSha256'));
+});
+
+test('shimmer authorization binds one private input contract and cannot reuse the legacy null-bundle request', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-contract-request-'));
+  try {
+    const contractPath = path.join(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.input.json',
+    );
+    const missing = buildCanonicalAuthorizationRequestForOperation({
+      repoRoot,
+      operationId: 'canonical-shimmer-import',
+      generatedAt: GENERATED_AT,
+      expiresAt: EXPIRES_AT,
+    });
+    assert.equal(missing.dataBundleSha256, null);
+    assert.ok(missing.missingTechnicalFields.includes('dataBundleSha256'));
+
+    const publication = writeShimmerImportContract(repoRoot);
+    const request = buildCanonicalAuthorizationRequestForOperation({
+      repoRoot,
+      operationId: 'canonical-shimmer-import',
+      generatedAt: GENERATED_AT,
+      expiresAt: EXPIRES_AT,
+    });
+    assert.deepEqual(request.dataBundleEntries?.map((entry) => entry.path), [
+      'reports/authorization/canonical/canonical-shimmer-import.input.json',
+    ]);
+    assert.match(request.dataBundleSha256, /^sha256:[a-f0-9]{64}$/);
+    assert.equal(request.dataBundleEntries.some((entry) => /wiki-shimmer.*latest/.test(entry.path)), false);
+    assert.equal(publication.manifest.generationId, JSON.parse(fs.readFileSync(contractPath, 'utf8')).generationId);
+
+    fs.rmSync(contractPath);
+    for (const legacyPath of [
+      'data/generated/wiki-shimmer.latest.json',
+      'data/generated/shimmer/wiki-shimmer-context.importable.latest.json',
+      'data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json',
+    ]) {
+      fs.mkdirSync(path.dirname(path.join(repoRoot, legacyPath)), { recursive: true });
+      fs.writeFileSync(path.join(repoRoot, legacyPath), '{"legacy":true}\n');
+    }
+    const stale = buildCanonicalAuthorizationRequestForOperation({
+      repoRoot,
+      operationId: 'canonical-shimmer-import',
+      generatedAt: GENERATED_AT,
+      expiresAt: EXPIRES_AT,
+    });
+    assert.equal(stale.dataBundleSha256, null);
+    assert.equal(stale.dataBundleEntries, null);
+    assert.ok(stale.missingTechnicalFields.includes('dataBundleSha256'));
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
 });
 
 test('NPC apply request follows only the exact frozen input pairs and ignores unrelated crawler history', () => {
@@ -819,3 +877,58 @@ test('NPC T1 request binds only isolated-acceptance technical fields and rejects
     fs.rmSync(configDirectory, { recursive: true, force: true });
   }
 });
+
+function writeShimmerImportContract(repoRoot) {
+  const generationRoot = path.join(repoRoot, 'data/generated/shimmer/generations');
+  const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
+  const publication = publishShimmerGeneration({
+    rawBytes: Buffer.from(JSON.stringify({ pageTitle: 'Shimmer', html: '<table></table>' })),
+    shards: {
+      context: { entity: 'wiki_shimmer_context_importable', records: [{ code: 'SHIMMER' }] },
+      itemTransforms: { entity: 'wiki_shimmer_item_transforms_importable', records: [] },
+      decraftRules: { entity: 'wiki_shimmer_decraft_rules_importable', records: [] },
+      entityTransforms: { entity: 'wiki_shimmer_entity_transforms_importable', records: [] },
+      npcTransforms: { entity: 'wiki_shimmer_npc_transforms_importable', records: [] },
+      titleResolution: { entity: 'wiki_shimmer_title_resolution', records: [] },
+    },
+    standardizedInputs: {
+      items: { path: 'data/standardized/items.standardized.json', sha256: `sha256:${'a'.repeat(64)}` },
+      npcs: { path: 'data/standardized/npcs.standardized.json', sha256: `sha256:${'b'.repeat(64)}` },
+    },
+    langlinkEvidenceBytes: Buffer.from(JSON.stringify({ records: [] })),
+    producerCodeSha256: `sha256:${'c'.repeat(64)}`,
+    tableRoleVersion: 'shimmer-table-roles/1',
+    generatedAt: '2026-08-03T00:00:00.000Z',
+    generationRoot,
+    pointerPath,
+    runId: 'authorization-test',
+  });
+  const contractPath = path.join(
+    repoRoot,
+    'reports/authorization/canonical/canonical-shimmer-import.input.json',
+  );
+  const generationId = publication.manifest.generationId;
+  fs.mkdirSync(path.dirname(contractPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(contractPath, `${JSON.stringify({
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    generationId,
+    manifestPath: `data/generated/shimmer/generations/${generationId}/wiki-shimmer-manifest.json`,
+    manifestSha256: publication.manifest.manifestSha256,
+    dataBundleSha256: publication.manifest.dataBundleSha256,
+    previewSha256: `sha256:${'d'.repeat(64)}`,
+    targetFingerprintSha256: `sha256:${'e'.repeat(64)}`,
+    providerScope: {
+      provider: 'wiki_zh',
+      sourcePage: '微光',
+      tables: [
+        'shimmer_item_transforms',
+        'shimmer_decraft_rules',
+        'shimmer_entity_transforms',
+        'shimmer_npc_transforms',
+      ],
+    },
+  }, null, 2)}\n`, { mode: 0o600 });
+  fs.chmodSync(contractPath, 0o600);
+  return publication;
+}

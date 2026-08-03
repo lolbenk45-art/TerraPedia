@@ -15,10 +15,6 @@ if (isDirectExecution()) {
 export function buildShimmerSyncPreviewPlan(options = {}) {
   assertPreviewOnlyOptions(options);
   return Object.freeze({
-    extract: {
-      scriptPath: 'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
-      args: []
-    },
     preview: {
       scriptPath: 'scripts/data/import/import-wiki-shimmer-to-db.mjs',
       args: buildShimmerImportArgs(options)
@@ -39,9 +35,8 @@ function main() {
   const repoRoot = getProjectRoot();
   const options = parseCliArgs(process.argv.slice(2));
   const plan = buildShimmerSyncPreviewPlan(options);
-  runScript(repoRoot, plan.extract.scriptPath, plan.extract.args, 'shimmer extract');
   runScript(repoRoot, plan.preview.scriptPath, plan.preview.args, 'shimmer import preview');
-  console.log('Shimmer sync extraction and preview finished successfully');
+  console.log('Shimmer import preview finished successfully');
 }
 
 function runScript(repoRoot, scriptPath, args, label) {

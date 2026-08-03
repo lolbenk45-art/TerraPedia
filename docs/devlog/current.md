@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-01 01:30 CST by Claude
+Last updated: 2026-08-04 03:00 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -731,6 +731,14 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   crawler/import/backfill/image-sync/apply, L1/L2 promotion, source flip, or
   scheduler activation without the exact operation-level packet required by
   the plan; do not mutate the shared stack.
+
+- Shimmer Task 6 has cleared final independent security review. Its private
+  input contract, proposal path, importer result path, runner outputs, and
+  readiness evidence reject symbolic-link ancestors/endpoints; the runner keeps
+  Shimmer's completed-apply result contract operation-specific and safely
+  prepares missing output parents before dispatch. Task 7 is not implied by
+  this code checkpoint. Do not create a generation, preview, request, packet,
+  permit, import, or data write until its exact Owner confirmation is supplied.
 
 ## Current Risks
 

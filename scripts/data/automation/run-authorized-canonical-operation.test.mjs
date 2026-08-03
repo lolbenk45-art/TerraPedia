@@ -6,6 +6,7 @@ import {
   buildCanonicalAuthorizationRequest,
 } from './build-canonical-cutover-authorization.mjs';
 import {
+  assertExecutionManifestDispatchPreflight,
   consumeDecisionIdentityFile,
   runExecutionManifestCommand,
   runAuthorizedCanonicalOperation,
@@ -135,6 +136,100 @@ test('runner supports durable decision consumption immediately before dispatch',
   assert.equal(dispatchedAfterConsume, true);
 });
 
+test('runner dispatch preflight rejects before consuming a decision or dispatching', async () => {
+  const job = authorizedJob('canonical-image-sync', 'image-sync-preflight');
+  let consumed = false;
+  let dispatched = false;
+
+  await assert.rejects(() => runAuthorizedCanonicalOperation({
+    ...job,
+    usedDecisionIdentities: new Set(),
+    now: '2026-07-28T01:00:00.000Z',
+    preflight: () => {
+      throw new Error('declared output has a symbolic-link ancestor');
+    },
+    consumeDecisionIdentity: () => {
+      consumed = true;
+    },
+    dispatchers: {
+      'canonical-image-sync': async () => {
+        dispatched = true;
+      },
+    },
+  }), /symbolic-link ancestor/i);
+
+  assert.equal(consumed, false);
+  assert.equal(dispatched, false);
+});
+
+test('runner dispatch preflight safely prepares missing output parents without creating outputs', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPaths = [
+    'data/wiki-crawler/normalized-light/npc',
+    'data/wiki-crawler/canonical/npc',
+    'data/wiki-crawler/audit/npc',
+  ];
+
+  try {
+    fs.mkdirSync(path.join(repoRoot, 'data', 'wiki-crawler'), { recursive: true });
+
+    assert.doesNotThrow(() => assertExecutionManifestDispatchPreflight({
+      cwd: repoRoot,
+      manifest: {
+        command: ['node', 'scripts/data/npc-canonical/npc-crawler-fact-action.mjs'],
+        outputPaths,
+      },
+    }));
+
+    for (const outputPath of outputPaths) {
+      assert.equal(fs.existsSync(path.join(repoRoot, outputPath)), false);
+      assert.equal(fs.lstatSync(path.dirname(path.join(repoRoot, outputPath))).isDirectory(), true);
+    }
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('runner dispatch preflight rejects a canonical result directory before decision consumption or dispatch', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/canonical-image-sync.result.json';
+  const output = path.join(repoRoot, outputPath);
+  const job = authorizedJob('canonical-image-sync', 'image-sync-result-directory');
+  let consumed = false;
+  let dispatches = 0;
+
+  try {
+    fs.mkdirSync(output, { recursive: true });
+    fs.writeFileSync(path.join(output, 'sentinel.txt'), 'not a result file\n');
+
+    await assert.rejects(() => runAuthorizedCanonicalOperation({
+      ...job,
+      usedDecisionIdentities: new Set(),
+      now: '2026-07-28T01:00:00.000Z',
+      preflight: () => assertExecutionManifestDispatchPreflight({
+        cwd: repoRoot,
+        manifest: {
+          command: ['node', 'scripts/data/workflow/run-image-sync.mjs'],
+          outputPaths: [outputPath],
+        },
+      }),
+      consumeDecisionIdentity: () => {
+        consumed = true;
+      },
+      dispatchers: {
+        'canonical-image-sync': async () => {
+          dispatches += 1;
+        },
+      },
+    }), /canonical result.*ordinary file/i);
+
+    assert.equal(consumed, false);
+    assert.equal(dispatches, 0);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
 test('independent coordinator keeps a failed lane closed and continues eligible lanes', async () => {
   const first = authorizedJob('canonical-image-sync', 'image-sync-3');
   const second = authorizedJob('canonical-boss-import', 'boss-import-1');
@@ -223,4 +318,247 @@ test('manifest command dispatch uses no shell and rejects credential-shaped argu
     manifest: { command: ['node', 'script.mjs', '--password=secret'] },
     spawnImpl: async () => ({ exitCode: 0 }),
   }), /credential-shaped/i);
+});
+
+test('manifest command rejects a successful process when its declared result is empty', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/example.result.json';
+  const output = path.join(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, '', { mode: 0o600 });
+
+  await assert.rejects(() => runExecutionManifestCommand({
+    cwd: repoRoot,
+    manifest: {
+      operationId: 'example',
+      command: ['node', 'scripts/data/example.mjs'],
+      outputPaths: [outputPath],
+      databaseWrites: true,
+    },
+    spawnImpl: async () => ({ exitCode: 0 }),
+  }), /declared output.*empty/i);
+});
+
+test('manifest command rejects a canonical result that is not private', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/example.result.json';
+  const output = path.join(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, '{"operationId":"example","status":"COMPLETED"}\n', { mode: 0o644 });
+  fs.chmodSync(output, 0o644);
+
+  await assert.rejects(() => runExecutionManifestCommand({
+    cwd: repoRoot,
+    manifest: {
+      operationId: 'example',
+      command: ['node', 'scripts/data/example.mjs'],
+      outputPaths: [outputPath],
+    },
+    spawnImpl: async () => ({ exitCode: 0 }),
+  }), /canonical result.*private/i);
+});
+
+test('manifest command rejects a canonical result that is not valid JSON', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/example.result.json';
+  const output = path.join(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, '{', { mode: 0o600 });
+
+  await assert.rejects(() => runExecutionManifestCommand({
+    cwd: repoRoot,
+    manifest: {
+      operationId: 'example',
+      command: ['node', 'scripts/data/example.mjs'],
+      outputPaths: [outputPath],
+    },
+    spawnImpl: async () => ({ exitCode: 0 }),
+  }), /canonical result.*valid JSON/i);
+});
+
+test('manifest command rejects a canonical result for another operation', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/example.result.json';
+  const output = path.join(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, '{"operationId":"other-operation","status":"COMPLETED"}\n', { mode: 0o600 });
+
+  await assert.rejects(() => runExecutionManifestCommand({
+    cwd: repoRoot,
+    manifest: {
+      operationId: 'example',
+      command: ['node', 'scripts/data/example.mjs'],
+      outputPaths: [outputPath],
+    },
+    spawnImpl: async () => ({ exitCode: 0 }),
+  }), /canonical result.*operationId/i);
+});
+
+test('manifest command rejects failed and dry-run canonical result outputs', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/canonical-shimmer-import.result.json';
+  const output = path.join(repoRoot, outputPath);
+  const manifest = {
+    operationId: 'canonical-shimmer-import',
+    command: ['node', 'scripts/data/import/import-wiki-shimmer-to-db.mjs', '--apply=true'],
+    outputPaths: [outputPath],
+  };
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+
+  for (const [result, error] of [
+    [{ operationId: 'canonical-shimmer-import', status: 'failed', apply: true }, /status.*completed/i],
+    [{ operationId: 'canonical-shimmer-import', status: 'completed', apply: false }, /apply.*true/i],
+  ]) {
+    fs.writeFileSync(output, `${JSON.stringify(result)}\n`, { mode: 0o600 });
+    fs.chmodSync(output, 0o600);
+    await assert.rejects(
+      runExecutionManifestCommand({
+        cwd: repoRoot,
+        manifest,
+        spawnImpl: async () => ({ exitCode: 0 }),
+      }),
+      error,
+    );
+  }
+});
+
+test('manifest command rejects a matching canonical result that is not completed and applied', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/canonical-shimmer-import.result.json';
+  const output = path.join(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, '{"operationId":"canonical-shimmer-import","status":"failed","apply":false}\n', { mode: 0o600 });
+  fs.chmodSync(output, 0o600);
+
+  await assert.rejects(() => runExecutionManifestCommand({
+    cwd: repoRoot,
+    manifest: {
+      operationId: 'canonical-shimmer-import',
+      command: ['node', 'scripts/data/import/import-wiki-shimmer-to-db.mjs', '--apply=true'],
+      outputPaths: [outputPath],
+      databaseWrites: true,
+    },
+    spawnImpl: async () => ({ exitCode: 0 }),
+  }), /completed|applied/i);
+});
+
+test('manifest command accepts the established result shape for another database-writing operation', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outputPath = 'reports/authorization/canonical/canonical-npc-base-maint-nontown-apply.result.json';
+  const output = path.join(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, JSON.stringify({
+    operationId: 'canonical-npc-base-maint-nontown-apply',
+    status: 'COMPLETED',
+  }), { mode: 0o600 });
+  fs.chmodSync(output, 0o600);
+
+  await runExecutionManifestCommand({
+    cwd: repoRoot,
+    manifest: {
+      operationId: 'canonical-npc-base-maint-nontown-apply',
+      command: ['node', 'scripts/data/npc-canonical/npc-base-maint-apply.mjs'],
+      outputPaths: [outputPath],
+      databaseWrites: true,
+    },
+    spawnImpl: async () => ({ exitCode: 0 }),
+  });
+});
+
+test('manifest command rejects a canonical result beneath an ancestor symlink outside its cwd', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-outside-'));
+  try {
+    const outputPath = 'reports/authorization/canonical/example.result.json';
+    const canonicalDirectory = path.join(repoRoot, 'reports/authorization/canonical');
+    const outsideCanonicalDirectory = path.join(outsideRoot, 'canonical');
+    fs.mkdirSync(path.dirname(canonicalDirectory), { recursive: true });
+    fs.mkdirSync(outsideCanonicalDirectory, { recursive: true });
+    fs.symlinkSync(outsideCanonicalDirectory, canonicalDirectory, 'dir');
+    const output = path.join(outsideCanonicalDirectory, 'example.result.json');
+    fs.writeFileSync(output, '{"operationId":"example","status":"completed","apply":true}\n', { mode: 0o600 });
+    fs.chmodSync(output, 0o600);
+
+    let spawnCalls = 0;
+    await assert.rejects(() => runExecutionManifestCommand({
+      cwd: repoRoot,
+      manifest: {
+        operationId: 'example',
+        command: ['node', 'scripts/data/example.mjs'],
+        outputPaths: [outputPath],
+        databaseWrites: true,
+      },
+      spawnImpl: async () => {
+        spawnCalls += 1;
+        return { exitCode: 0 };
+      },
+    }), /inside.*repository|ancestor|symbolic/i);
+    assert.equal(spawnCalls, 0, 'unsafe output ancestry must reject before dispatch');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('manifest command rejects a symbolic-link output endpoint before dispatch', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-outside-'));
+  try {
+    const outputPath = 'reports/authorization/canonical/example.result.json';
+    const output = path.join(repoRoot, outputPath);
+    const outsideOutput = path.join(outsideRoot, 'example.result.json');
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    fs.writeFileSync(outsideOutput, '{"operationId":"example","status":"completed","apply":true}\n', { mode: 0o600 });
+    fs.chmodSync(outsideOutput, 0o600);
+    fs.symlinkSync(outsideOutput, output);
+
+    let spawnCalls = 0;
+    await assert.rejects(() => runExecutionManifestCommand({
+      cwd: repoRoot,
+      manifest: {
+        operationId: 'example',
+        command: ['node', 'scripts/data/example.mjs'],
+        outputPaths: [outputPath],
+        databaseWrites: true,
+      },
+      spawnImpl: async () => {
+        spawnCalls += 1;
+        return { exitCode: 0 };
+      },
+    }), /ordinary|symbolic/i);
+    assert.equal(spawnCalls, 0, 'symbolic-link output must reject before dispatch');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('manifest command rejects a dangling symbolic-link output endpoint before dispatch', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-outside-'));
+  try {
+    const outputPath = 'reports/authorization/canonical/example.result.json';
+    const output = path.join(repoRoot, outputPath);
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    fs.symlinkSync(path.join(outsideRoot, 'missing.result.json'), output);
+
+    let spawnCalls = 0;
+    await assert.rejects(() => runExecutionManifestCommand({
+      cwd: repoRoot,
+      manifest: {
+        operationId: 'example',
+        command: ['node', 'scripts/data/example.mjs'],
+        outputPaths: [outputPath],
+        databaseWrites: true,
+      },
+      spawnImpl: async () => {
+        spawnCalls += 1;
+        return { exitCode: 0 };
+      },
+    }), /ordinary|symbolic/i);
+    assert.equal(spawnCalls, 0, 'dangling symbolic-link output must reject before dispatch');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
 });

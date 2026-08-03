@@ -1,4 +1,5 @@
 import test from 'node:test';
+import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
@@ -11,6 +12,7 @@ import {
   buildDomainReadinessReport,
   resolveDomainReportPath,
 } from './domain-readiness-audit.mjs';
+import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -1497,57 +1499,6 @@ test('buildDomainReadinessReport blocks recipe support gate when source coverage
   assert.ok(report.blockingReasons.some((reason) => /trulyMissingEverywhereCount=1/.test(reason)));
 });
 
-test('buildDomainReadinessReport applies shimmer support gate semantics', () => {
-  const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-04-22.json', {
-    generatedAt: '2026-04-22T00:00:00Z',
-    apply: true,
-    counts: {
-      itemTransforms: 279,
-      decraftRules: 248,
-      entityTransforms: 121,
-      npcTransforms: 29,
-      unresolvedTitles: 0,
-    },
-    after: { shimmerWorldContext: { code: 'SHIMMER' }, shimmerTables: {} },
-  });
-
-  const report = buildDomainReadinessReport({
-    repoRoot,
-    domainId: 'support.shimmer',
-    panel: 'blocking',
-    generatedAt: '2026-05-03T12:00:00Z',
-  });
-
-  assert.equal(report.status, 'warning');
-  assert.equal(report.summary.blockedCount, 0);
-  assert.ok(report.warningReasons.some((reason) => reason.includes('Missing optional evidence: back/src/main/java/com/terraria/skills/controller/AdminShimmerController.java')));
-  assert.ok(report.checks.some((check) => check.status === 'pass' && /shimmer import semantic gates are clean/.test(check.message)));
-});
-
-test('buildDomainReadinessReport blocks shimmer support gate unresolved titles', () => {
-  const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-04-22.json', {
-    counts: {
-      itemTransforms: 279,
-      decraftRules: 248,
-      entityTransforms: 121,
-      npcTransforms: 29,
-      unresolvedTitles: 2,
-    },
-  });
-
-  const report = buildDomainReadinessReport({
-    repoRoot,
-    domainId: 'support.shimmer',
-    panel: 'blocking',
-    generatedAt: '2026-05-03T12:00:00Z',
-  });
-
-  assert.equal(report.status, 'blocked');
-  assert.ok(report.blockingReasons.some((reason) => /unresolvedTitles=2/.test(reason)));
-});
-
 test('buildDomainReadinessReport applies item group support gate semantics', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/item-groups/any-item-group-source-audit-2026-05-01.json', {
@@ -1843,27 +1794,270 @@ test('recipe blocking readiness rejects empty shells and accepts all three produ
   assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'blocking' }).status, 'pass');
 });
 
-test('shimmer blocking readiness rejects dry-run or incomplete reports and accepts applied producer output', () => {
+test('shimmer readiness requires the current verified generation and an exact completed private import result', () => {
   const repoRoot = createTempRepo();
-  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/AdminShimmerController.java', 'class AdminShimmerController {}');
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
+  const pointerBytes = fs.readFileSync(pointerPath);
 
-  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' });
-  assert.equal(missing.status, 'warning');
-  assert.ok(missing.warningReasons.some((reason) => /wiki-shimmer-db-import/.test(reason)));
+  try {
+    writeJson(repoRoot, 'data/generated/wiki-shimmer.latest.json', { legacy: true });
+    fs.rmSync(pointerPath);
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+      'raw-only evidence must not satisfy shimmer source readiness',
+    );
 
-  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-07-27.json', {
-    apply: false,
-    counts: { itemTransforms: 1, decraftRules: 1, entityTransforms: 1, npcTransforms: 1, unresolvedTitles: 0 },
-  });
-  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status, 'pass');
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+      'generation-only evidence must not satisfy shimmer source readiness',
+    );
+    fs.writeFileSync(pointerPath, pointerBytes, { mode: 0o600 });
 
-  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-07-27.json', {
-    generatedAt: '2026-07-27T00:00:00Z',
-    apply: true,
-    counts: { itemTransforms: 1, decraftRules: 1, entityTransforms: 1, npcTransforms: 1, unresolvedTitles: 0 },
-    after: { shimmerWorldContext: { code: 'SHIMMER' }, shimmerTables: { itemTransforms: { rowCount: 1 } } },
-  });
-  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status, 'pass');
+    const completed = buildCompletedShimmerImportResult(publication.manifest);
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      completed,
+      { mode: 0o600 },
+    );
+    const source = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'source',
+      generatedAt: '2026-08-03T00:00:00Z',
+    });
+    assert.equal(source.status, 'pass');
+
+    const blocking = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'blocking',
+      generatedAt: '2026-08-03T00:00:00Z',
+    });
+    assert.equal(blocking.status, 'pass');
+
+    const canonicalResultPath = path.join(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+    );
+    fs.chmodSync(canonicalResultPath, 0o644);
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+      'a completed import result must remain private',
+    );
+    fs.chmodSync(canonicalResultPath, 0o600);
+
+    const preservedSnapshots = buildCompletedShimmerImportResult(publication.manifest, {
+      priorSnapshotLogicalKeys: [{
+        entityType: 'wiki_shimmer_legacy',
+        provider: 'wiki_zh',
+        sourceKind: 'generated_json',
+        sourceLocator: 'data/generated/shimmer/generations/legacy/wiki-shimmer-legacy.json',
+      }],
+    });
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      preservedSnapshots,
+      { mode: 0o600 },
+    );
+    assert.equal(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+      'a completed import must retain frozen prior provider snapshots outside the current generation',
+    );
+
+    const droppedFrozenSnapshot = buildCompletedShimmerImportResult(publication.manifest, {
+      priorSnapshotLogicalKeys: preservedSnapshots.snapshots.before.logicalKeys,
+      afterSnapshotLogicalKeys: shimmerSnapshotLogicalKeys(publication.manifest),
+    });
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      droppedFrozenSnapshot,
+      { mode: 0o600 },
+    );
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+      'a completed import must not omit a frozen prior provider snapshot',
+    );
+
+    for (const [field, value] of [
+      ['apply', false],
+      ['status', 'failed'],
+      ['generationId', 'b'.repeat(64)],
+      ['dataBundleSha256', sha256('wrong-bundle')],
+      ['manifestSha256', sha256('wrong-manifest')],
+      ['previewSha256', sha256('wrong-preview')],
+      ['targetFingerprintSha256', sha256('wrong-target')],
+      ['providerScope', { ...completed.providerScope, provider: 'other' }],
+    ]) {
+      writeJson(
+        repoRoot,
+        'reports/authorization/canonical/canonical-shimmer-import.result.json',
+        { ...completed, [field]: value },
+        { mode: 0o600 },
+      );
+      assert.notEqual(
+        buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+        'pass',
+        `wrong ${field} must fail closed`,
+      );
+    }
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer readiness rejects noncanonical title-resolution evidence', () => {
+  for (const kind of ['ambiguous', 'unresolved', 'mixed', 'unreported', 'other']) {
+    const repoRoot = createTempRepo();
+    const publication = publishShimmerReadinessGeneration(repoRoot, {
+      titleResolutionRecords: [{ kind, nameZh: '木剑' }],
+    });
+    try {
+      writeJson(
+        repoRoot,
+        'reports/authorization/canonical/canonical-shimmer-import.result.json',
+        buildCompletedShimmerImportResult(publication.manifest),
+        { mode: 0o600 },
+      );
+      const report = buildDomainReadinessReport({
+        repoRoot,
+        domainId: 'support.shimmer',
+        panel: 'blocking',
+        generatedAt: '2026-08-03T00:00:00Z',
+      });
+      assert.notEqual(report.status, 'pass', `${kind} title-resolution evidence must block readiness`);
+      assert.match(report.blockingReasons.join('\n'), /title|reference|identity/i);
+    } finally {
+      fs.rmSync(repoRoot, { recursive: true, force: true });
+    }
+  }
+});
+
+test('shimmer source readiness rejects a generation directory symlink that resolves outside its canonical root', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const generationPath = path.dirname(publication.manifestPath);
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-outside-generation-'));
+
+  try {
+    const outsideGenerationPath = path.join(outsideRoot, path.basename(generationPath));
+    fs.cpSync(generationPath, outsideGenerationPath, { recursive: true });
+    fs.rmSync(generationPath, { recursive: true, force: true });
+    fs.symlinkSync(outsideGenerationPath, generationPath, 'dir');
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects a canonical generation root symlink outside the repository', () => {
+  const repoRoot = createTempRepo();
+  publishShimmerReadinessGeneration(repoRoot);
+  const generationRoot = path.join(repoRoot, 'data', 'generated', 'shimmer', 'generations');
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-outside-generation-root-'));
+  const outsideGenerationRoot = path.join(outsideRoot, 'generations');
+
+  try {
+    fs.renameSync(generationRoot, outsideGenerationRoot);
+    fs.symlinkSync(outsideGenerationRoot, generationRoot, 'dir');
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects an external transit symlink before its in-repository generation root', () => {
+  const repoRoot = createTempRepo();
+  publishShimmerReadinessGeneration(repoRoot);
+  const shimmerPath = path.join(repoRoot, 'data', 'generated', 'shimmer');
+  const internalShimmerPath = path.join(repoRoot, 'data', 'generated', 'shimmer-internal');
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-transit-root-'));
+  const outsideShimmerPath = path.join(outsideRoot, 'shimmer');
+
+  try {
+    fs.renameSync(shimmerPath, internalShimmerPath);
+    fs.mkdirSync(outsideShimmerPath, { recursive: true });
+    fs.symlinkSync(outsideShimmerPath, shimmerPath, 'dir');
+    fs.symlinkSync(path.join(internalShimmerPath, 'generations'), path.join(outsideShimmerPath, 'generations'), 'dir');
+    fs.copyFileSync(
+      path.join(internalShimmerPath, 'wiki-shimmer-current-generation.json'),
+      path.join(outsideShimmerPath, 'wiki-shimmer-current-generation.json'),
+    );
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects a symbolic-link current-generation pointer', () => {
+  const repoRoot = createTempRepo();
+  publishShimmerReadinessGeneration(repoRoot);
+  const pointerPath = path.join(repoRoot, 'data', 'generated', 'shimmer', 'wiki-shimmer-current-generation.json');
+  const replacementPath = path.join(repoRoot, 'data', 'generated', 'shimmer', 'pointer-source.json');
+
+  try {
+    fs.renameSync(pointerPath, replacementPath);
+    fs.symlinkSync(replacementPath, pointerPath);
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer readiness rejects a canonical result beneath an ancestor symlink outside the repository', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-result-outside-'));
+
+  try {
+    const canonicalDirectory = path.join(repoRoot, 'reports/authorization/canonical');
+    const outsideCanonicalDirectory = path.join(outsideRoot, 'canonical');
+    fs.mkdirSync(path.dirname(canonicalDirectory), { recursive: true });
+    fs.mkdirSync(outsideCanonicalDirectory, { recursive: true });
+    fs.symlinkSync(outsideCanonicalDirectory, canonicalDirectory, 'dir');
+    const resultPath = path.join(outsideCanonicalDirectory, 'canonical-shimmer-import.result.json');
+    fs.writeFileSync(
+      resultPath,
+      `${JSON.stringify(buildCompletedShimmerImportResult(publication.manifest))}\n`,
+      { mode: 0o600 },
+    );
+    fs.chmodSync(resultPath, 0o600);
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
 });
 
 test('resolveDomainReportPath matches domain acceptance report patterns', () => {
@@ -1966,7 +2160,7 @@ test('source stays read-only and does not execute child commands', () => {
 
   assert.doesNotMatch(source, /\bspawn\b|\bexec\b|execFile|spawnSync/);
   assert.doesNotMatch(source, /\bcreateConnection\b|\bmysql\b/i);
-  assert.doesNotMatch(source, /\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b/i);
+  assert.doesNotMatch(source, /^\s*(?:INSERT(?:\s+IGNORE)?\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|DROP\s+(?:TABLE|DATABASE|SCHEMA))\b/im);
 });
 
 function createTempRepo() {
@@ -1976,10 +2170,14 @@ function createTempRepo() {
   return repoRoot;
 }
 
-function writeJson(repoRoot, relativePath, payload) {
+function writeJson(repoRoot, relativePath, payload, options = {}) {
   const fullPath = path.join(repoRoot, relativePath);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-  fs.writeFileSync(fullPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(fullPath, `${JSON.stringify(payload, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: options.mode ?? 0o644,
+  });
+  if (options.mode != null) fs.chmodSync(fullPath, options.mode);
   return fullPath;
 }
 
@@ -1991,6 +2189,158 @@ function writeText(repoRoot, relativePath, text) {
   const fullPath = path.join(repoRoot, relativePath);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, text, 'utf8');
+}
+
+function publishShimmerReadinessGeneration(repoRoot, { titleResolutionRecords = [{ kind: 'item', nameZh: '木剑' }] } = {}) {
+  return publishShimmerGeneration({
+    rawBytes: Buffer.from(JSON.stringify({
+      pageTitle: 'Shimmer',
+      pageId: 4242,
+      revisionTimestamp: '2026-08-03T00:00:00.000Z',
+      html: '<table></table>',
+    })),
+    shards: {
+      context: { entity: 'wiki_shimmer_context_importable', records: [{ code: 'SHIMMER' }] },
+      itemTransforms: { entity: 'wiki_shimmer_item_transforms_importable', records: [{ key: 'item' }] },
+      decraftRules: { entity: 'wiki_shimmer_decraft_rules_importable', records: [{ key: 'decraft' }] },
+      entityTransforms: { entity: 'wiki_shimmer_entity_transforms_importable', records: [{ key: 'entity' }] },
+      npcTransforms: { entity: 'wiki_shimmer_npc_transforms_importable', records: [{ key: 'npc' }] },
+      titleResolution: { entity: 'wiki_shimmer_title_resolution', records: titleResolutionRecords },
+    },
+    standardizedInputs: {
+      items: { path: 'data/standardized/items.standardized.json', sha256: sha256('items') },
+      npcs: { path: 'data/standardized/npcs.standardized.json', sha256: sha256('npcs') },
+    },
+    langlinkEvidenceBytes: Buffer.from(JSON.stringify({ records: [] })),
+    producerCodeSha256: sha256('producer'),
+    tableRoleVersion: 'shimmer-table-roles/1',
+    generatedAt: '2026-08-03T00:00:00.000Z',
+    generationRoot: path.join(repoRoot, 'data/generated/shimmer/generations'),
+    pointerPath: path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json'),
+    runId: 'domain-readiness-test',
+  });
+}
+
+function buildCompletedShimmerImportResult(manifest, {
+  priorSnapshotLogicalKeys = [],
+  afterSnapshotLogicalKeys = null,
+} = {}) {
+  const tableNames = [
+    'shimmer_item_transforms',
+    'shimmer_decraft_rules',
+    'shimmer_entity_transforms',
+    'shimmer_npc_transforms',
+  ];
+  const providerScope = { provider: 'wiki_zh', sourcePage: '微光', tables: tableNames };
+  const target = {
+    host: '127.0.0.1',
+    port: 13306,
+    database: 'terria_v1_local',
+    serverUuid: 'shimmer-readiness-server',
+  };
+  const empty = (tableName) => descriptor(tableName, 0);
+  const after = (tableName, count) => descriptor(tableName, count);
+  const tables = Object.fromEntries(tableNames.map((tableName, index) => [tableName, {
+    before: empty(tableName),
+    after: after(tableName, manifest.files[index + 2].recordCount),
+  }]));
+  const worldContext = { before: empty('world_contexts'), after: after('world_contexts', 1) };
+  const currentSnapshotLogicalKeys = shimmerSnapshotLogicalKeys(manifest);
+  const snapshots = {
+    before: snapshotDescriptor(priorSnapshotLogicalKeys),
+    after: snapshotDescriptor(afterSnapshotLogicalKeys ?? [
+      ...priorSnapshotLogicalKeys,
+      ...currentSnapshotLogicalKeys,
+    ]),
+  };
+  const previewPayload = {
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    providerScope,
+    generationId: manifest.generationId,
+    dataBundleSha256: manifest.dataBundleSha256,
+    manifestSha256: manifest.manifestSha256,
+    target,
+    targetFingerprintSha256: sha256Canonical(target),
+    tables,
+    worldContext,
+    snapshots,
+  };
+  return {
+    ...previewPayload,
+    previewSha256: sha256Canonical(previewPayload),
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    status: 'completed',
+    apply: true,
+    generatedAt: '2026-08-03T00:00:00.000Z',
+    transaction: { status: 'completed' },
+  };
+}
+
+function descriptor(tableName, count) {
+  const logicalKeys = Array.from({ length: count }, (_, index) => ({ key: `${tableName}-${index}` }));
+  return {
+    count,
+    keySha256: sha256Canonical({ tableName, rows: logicalKeys }),
+    logicalKeys,
+    sha256: sha256Canonical({ tableName, rows: logicalKeys }),
+  };
+}
+
+function shimmerSnapshotLogicalKeys(manifest) {
+  const generationPath = `data/generated/shimmer/generations/${manifest.generationId}`;
+  return [
+    ['wiki_shimmer_page', 'wiki_page', 'wiki-shimmer.raw.json'],
+    ['wiki_shimmer_context', 'generated_json', 'wiki-shimmer-context.importable.json'],
+    ['wiki_shimmer_item_transforms', 'generated_json', 'wiki-shimmer-item-transforms.importable.json'],
+    ['wiki_shimmer_decraft_rules', 'generated_json', 'wiki-shimmer-decraft-rules.importable.json'],
+    ['wiki_shimmer_entity_transforms', 'generated_json', 'wiki-shimmer-entity-transforms.importable.json'],
+    ['wiki_shimmer_npc_transforms', 'generated_json', 'wiki-shimmer-npc-transforms.importable.json'],
+    ['wiki_shimmer_manifest', 'generated_json', 'wiki-shimmer-manifest.json'],
+  ].map(([entityType, sourceKind, fileName]) => ({
+    entityType,
+    provider: 'wiki_zh',
+    sourceKind,
+    sourceLocator: `${generationPath}/${fileName}`,
+  }));
+}
+
+function snapshotDescriptor(logicalKeys) {
+  const rows = logicalKeys.map(stableValue).sort((left, right) => (
+    JSON.stringify(left).localeCompare(JSON.stringify(right))
+  ));
+  return {
+    count: rows.length,
+    keySha256: sha256Canonical({ tableName: 'entity_source_snapshots', rows }),
+    logicalKeys: rows,
+    sha256: sha256Canonical({ tableName: 'entity_source_snapshots', rows }),
+    descriptors: rows.map((logicalKey) => ({
+      logicalKey,
+      payloadSha256: sha256(JSON.stringify(logicalKey)),
+      sourcePage: '微光',
+      sourceRevisionTimestamp: '2026-08-03 00:00:00',
+      fetchedAt: '2026-08-03 00:00:00',
+      isCurrent: 1,
+      parseStatus: 'parsed',
+    })),
+  };
+}
+
+function sha256Canonical(value) {
+  return sha256(JSON.stringify(stableValue(value)));
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+
+function sha256(value) {
+  return `sha256:${crypto.createHash('sha256').update(String(value), 'utf8').digest('hex')}`;
 }
 
 

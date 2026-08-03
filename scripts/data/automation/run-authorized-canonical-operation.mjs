@@ -12,6 +12,7 @@ import {
   createAuthorizedOperationDispatchPermit,
   revokeAuthorizedOperationDispatchPermit,
 } from './authorized-operation-context.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 
 export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity, dispatchPermitHash = null } = {}) {
   const identity = requireText(decisionIdentity, 'decision identity');
@@ -63,17 +64,7 @@ export async function runExecutionManifestCommand({
   env = process.env,
   spawnImpl = spawnCommand,
 } = {}) {
-  const commandParts = manifest?.command;
-  if (!Array.isArray(commandParts) || commandParts.length < 2
-      || commandParts.some((part) => typeof part !== 'string' || !part.trim())) {
-    throw new Error('execution manifest command must contain at least two non-empty strings');
-  }
-  if (path.basename(commandParts[0]) !== 'node') {
-    throw new Error('execution manifest command must use the Node runtime');
-  }
-  if (commandParts.some((part) => /^--[^=]*(?:password|token|secret|api[-_]?key)[^=]*=/i.test(part))) {
-    throw new Error('execution manifest command contains a credential-shaped argument');
-  }
+  const { commandParts, root } = assertExecutionManifestDispatchPreflight({ manifest, cwd });
   if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
   const permit = authorizationDispatchPermit == null
     ? null
@@ -94,7 +85,7 @@ export async function runExecutionManifestCommand({
         }),
       };
   const result = await spawnImpl(commandParts[0], commandParts.slice(1), {
-    cwd: path.resolve(cwd),
+    cwd: root,
     shell: false,
     env: childEnv,
   });
@@ -102,7 +93,116 @@ export async function runExecutionManifestCommand({
   if (!Number.isInteger(exitCode) || exitCode !== 0) {
     throw new Error(`authorized operation command failed with exit code ${result?.exitCode ?? 'unknown'}`);
   }
+  verifyDeclaredManifestOutputs({ manifest, cwd: root });
   return result;
+}
+
+export function assertExecutionManifestDispatchPreflight({ manifest, cwd = process.cwd() } = {}) {
+  const commandParts = manifest?.command;
+  if (!Array.isArray(commandParts) || commandParts.length < 2
+      || commandParts.some((part) => typeof part !== 'string' || !part.trim())) {
+    throw new Error('execution manifest command must contain at least two non-empty strings');
+  }
+  if (path.basename(commandParts[0]) !== 'node') {
+    throw new Error('execution manifest command must use the Node runtime');
+  }
+  if (commandParts.some((part) => /^--[^=]*(?:password|token|secret|api[-_]?key)[^=]*=/i.test(part))) {
+    throw new Error('execution manifest command contains a credential-shaped argument');
+  }
+  const { root, outputs } = resolveDeclaredManifestOutputs({ manifest, cwd });
+  for (const { relativePath, output } of outputs) {
+    assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: output,
+      label: 'authorized operation declared output',
+      createParent: true,
+    });
+    const existingStat = lstatIfPresent(output);
+    if (existingStat != null
+        && (existingStat.isSymbolicLink() || (!existingStat.isFile() && !existingStat.isDirectory()))) {
+      throw new Error(`authorized operation declared output is not an ordinary file or directory: ${relativePath}`);
+    }
+    if (existingStat != null
+        && relativePath.startsWith('reports/authorization/canonical/')
+        && relativePath.endsWith('.result.json')
+        && (!existingStat.isFile() || existingStat.isSymbolicLink() || (existingStat.mode & 0o077) !== 0)) {
+      throw new Error(`authorized operation canonical result must be a private ordinary file: ${relativePath}`);
+    }
+  }
+  return { commandParts, root };
+}
+
+function verifyDeclaredManifestOutputs({ manifest, cwd }) {
+  const { root, outputs } = resolveDeclaredManifestOutputs({ manifest, cwd });
+  for (const { relativePath, output } of outputs) {
+    const stat = lstatIfPresent(output);
+    if (stat == null) {
+      throw new Error(`authorized operation declared output is missing: ${relativePath}`);
+    }
+    assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: output,
+      label: 'authorized operation declared output',
+    });
+    if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory())) {
+      throw new Error(`authorized operation declared output is not an ordinary file or directory: ${relativePath}`);
+    }
+    if ((stat.isFile() && stat.size === 0)
+        || (stat.isDirectory() && fs.readdirSync(output).length === 0)) {
+      throw new Error(`authorized operation declared output is empty: ${relativePath}`);
+    }
+    if (relativePath.startsWith('reports/authorization/canonical/')
+        && relativePath.endsWith('.result.json')
+        && (!stat.isFile() || (stat.mode & 0o077) !== 0)) {
+      throw new Error(`authorized operation canonical result must be a private ordinary file: ${relativePath}`);
+    }
+    if (relativePath.startsWith('reports/authorization/canonical/')
+        && relativePath.endsWith('.result.json')) {
+      let result;
+      try {
+        result = JSON.parse(fs.readFileSync(output, 'utf8'));
+      } catch {
+        throw new Error(`authorized operation canonical result must be valid JSON: ${relativePath}`);
+      }
+      if (result?.operationId !== manifest.operationId) {
+        throw new Error(`authorized operation canonical result operationId drifted: ${relativePath}`);
+      }
+      const requiresAppliedCompletion = manifest.operationId === 'canonical-shimmer-import';
+      if (requiresAppliedCompletion && result?.status !== 'completed') {
+        throw new Error(`authorized operation canonical result status must be completed: ${relativePath}`);
+      }
+      if (requiresAppliedCompletion && result?.apply !== true) {
+        throw new Error(`authorized operation canonical result apply must be true: ${relativePath}`);
+      }
+    }
+  }
+}
+
+function lstatIfPresent(filePath) {
+  try {
+    return fs.lstatSync(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function resolveDeclaredManifestOutputs({ manifest, cwd }) {
+  const root = path.resolve(cwd);
+  const outputs = (manifest?.outputPaths ?? []).map((declaredPath) => {
+    const relativePath = String(declaredPath ?? '').trim().replaceAll('\\', '/');
+    if (!relativePath || path.posix.isAbsolute(relativePath)
+        || path.posix.normalize(relativePath) !== relativePath
+        || relativePath.split('/').some((part) => !part || part === '.' || part === '..')) {
+      throw new Error(`authorized operation declared output path is invalid: ${declaredPath ?? ''}`);
+    }
+    const output = path.resolve(root, relativePath);
+    if (!output.startsWith(`${root}${path.sep}`)) {
+      throw new Error(`authorized operation declared output path is invalid: ${declaredPath ?? ''}`);
+    }
+    return { relativePath, output };
+  });
+  return { root, outputs };
 }
 
 function spawnCommand(command, args, options) {
@@ -124,6 +224,7 @@ export async function runAuthorizedCanonicalOperation({
   currentTechnicalInput,
   usedDecisionIdentities,
   consumeDecisionIdentity = null,
+  preflight = null,
   dispatchers,
   now = new Date().toISOString(),
 } = {}) {
@@ -137,6 +238,10 @@ export async function runAuthorizedCanonicalOperation({
   const dispatch = dispatchers?.[packet.operationId];
   if (typeof dispatch !== 'function') {
     throw new Error(`no authorized dispatcher is registered for operation: ${packet.operationId}`);
+  }
+  if (preflight != null) {
+    if (typeof preflight !== 'function') throw new TypeError('authorized operation preflight must be a function');
+    await preflight({ packet, currentTechnicalInput });
   }
 
   if (consumeDecisionIdentity != null) {
@@ -246,6 +351,10 @@ async function main() {
     packet,
     currentTechnicalInput,
     usedDecisionIdentities: readUsedDecisionIdentities(ledgerPath),
+    preflight: ({ packet: preflightPacket }) => assertExecutionManifestDispatchPreflight({
+      manifest: preflightPacket.executionManifest,
+      cwd: repoRoot,
+    }),
     consumeDecisionIdentity: (decisionIdentity) => {
       dispatchPermit = createAuthorizedOperationDispatchPermit({
         directory: path.join(repoRoot, 'reports/authorization/canonical'),

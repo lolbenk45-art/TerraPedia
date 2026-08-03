@@ -3,50 +3,48 @@ import test from 'node:test';
 
 import { buildShimmerSyncPreviewPlan } from './run-shimmer-sync-pipeline.mjs';
 
-const manifestPath = `data/generated/shimmer/generations/${'a'.repeat(64)}/wiki-shimmer-manifest.json`;
+const inputContractPath = 'reports/authorization/canonical/canonical-shimmer-import.input.json';
 
-test('shimmer sync pipeline passes only one verified bundle manifest to preview', () => {
-  const plan = buildShimmerSyncPreviewPlan({ bundleManifest: manifestPath });
+test('shimmer sync pipeline previews only an existing canonical input contract', () => {
+  const plan = buildShimmerSyncPreviewPlan({ inputContract: inputContractPath });
 
-  assert.deepEqual(plan.extract, {
-    scriptPath: 'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
-    args: []
-  });
   assert.deepEqual(plan.preview, {
     scriptPath: 'scripts/data/import/import-wiki-shimmer-to-db.mjs',
-    args: ['--apply=false', `--bundle-manifest=${manifestPath}`]
+    args: ['--apply=false', `--input-contract=${inputContractPath}`]
   });
+  assert.equal('extract' in plan, false);
 });
 
-test('shimmer sync pipeline accepts the standard bundle-manifest CLI key', () => {
-  const plan = buildShimmerSyncPreviewPlan({ 'bundle-manifest': manifestPath });
+test('shimmer sync pipeline accepts the standard input-contract CLI key', () => {
+  const plan = buildShimmerSyncPreviewPlan({ 'input-contract': inputContractPath });
 
   assert.deepEqual(plan.preview.args, [
     '--apply=false',
-    `--bundle-manifest=${manifestPath}`
+    `--input-contract=${inputContractPath}`
   ]);
 });
 
 test('shimmer sync pipeline accepts an explicit preview apply=false option', () => {
   for (const apply of ['false', false]) {
-    const plan = buildShimmerSyncPreviewPlan({ apply, bundleManifest: manifestPath });
+    const plan = buildShimmerSyncPreviewPlan({ apply, inputContract: inputContractPath });
 
     assert.deepEqual(plan.preview.args, [
       '--apply=false',
-      `--bundle-manifest=${manifestPath}`
+      `--input-contract=${inputContractPath}`
     ]);
   }
 });
 
-test('shimmer sync pipeline rejects apply, raw, and input bypass options', () => {
+test('shimmer sync pipeline rejects apply, raw, input, and direct manifest bypass options', () => {
   for (const options of [
-    { apply: 'true', bundleManifest: manifestPath },
-    { raw: 'data/generated/wiki-shimmer.latest.json', bundleManifest: manifestPath },
-    { input: 'data/generated/shimmer', bundleManifest: manifestPath }
+    { apply: 'true', inputContract: inputContractPath },
+    { raw: 'data/generated/wiki-shimmer.latest.json', inputContract: inputContractPath },
+    { input: 'data/generated/shimmer', inputContract: inputContractPath },
+    { bundleManifest: `data/generated/shimmer/generations/${'a'.repeat(64)}/wiki-shimmer-manifest.json` }
   ]) {
     assert.throws(
       () => buildShimmerSyncPreviewPlan(options),
-      /does not accept|preview inputs/i
+      /does not accept|preview inputs|bundle manifest/i
     );
   }
 });

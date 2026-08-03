@@ -9,6 +9,7 @@ import test, { after } from 'node:test';
 import {
   CANONICAL_EXECUTABLE_OPERATION_IDS,
   buildCanonicalOperationExecutionManifest,
+  assertCanonicalOperationExecutionManifestContract,
   writeCanonicalOperationExecutionManifest,
 } from './canonical-operation-execution-manifest.mjs';
 import {
@@ -16,6 +17,12 @@ import {
   CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './build-canonical-cutover-authorization.mjs';
+import {
+  SHIMMER_IMPORT_PROVIDER_SCOPE,
+  shimmerImportBindingFromInputContract,
+  writeCanonicalShimmerImportInputContract,
+} from './canonical-shimmer-import-input-contract.mjs';
+import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
@@ -52,6 +59,7 @@ function manifestOptions(operationId) {
 }
 
 test('manifest builder covers 31 governed operations and keeps NPC apply explicitly fail closed', () => {
+  const shimmerFixture = createShimmerManifestFixture();
   assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 33);
   assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 32);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
@@ -68,31 +76,38 @@ test('manifest builder covers 31 governed operations and keeps NPC apply explici
     )),
   );
 
-  for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
-    const manifest = buildCanonicalOperationExecutionManifest({
-      repoRoot,
-      operationId,
-      artifactDate: '2026-07-28',
-      npcLimit: 25,
-      ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
-        ? { backendApiBase: 'http://127.0.0.1:18191/api' }
-        : {}),
-      ...manifestOptions(operationId),
-    });
-    assert.equal(manifest.schemaVersion, 1);
-    assert.equal(manifest.operationId, operationId);
-    assert.equal(manifest.command[0], 'node');
-    assert.equal(manifest.command[1], CANONICAL_OPERATION_ENTRYPOINTS[operationId]);
-    assert.ok(manifest.codeBundleEntries.length >= 2, operationId);
-    assert.ok(manifest.codeBundleEntries.some((entry) => entry.path === manifest.command[1]));
-    assert.ok(manifest.codeBundleEntries.some((entry) => (
-      entry.path === 'scripts/data/automation/run-authorized-canonical-operation.mjs'
-    )), `${operationId}: authorized runner`);
-    for (const entry of manifest.codeBundleEntries) {
-      const bytes = fs.readFileSync(path.join(repoRoot, entry.path));
-      const expected = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-      assert.equal(entry.contentHash, expected, `${operationId}:${entry.path}`);
+  try {
+    for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
+      const operationRepoRoot = operationId === 'canonical-shimmer-import'
+        ? shimmerFixture.repoRoot
+        : repoRoot;
+      const manifest = buildCanonicalOperationExecutionManifest({
+        repoRoot: operationRepoRoot,
+        operationId,
+        artifactDate: '2026-07-28',
+        npcLimit: 25,
+        ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
+          ? { backendApiBase: 'http://127.0.0.1:18191/api' }
+          : {}),
+        ...manifestOptions(operationId),
+      });
+      assert.equal(manifest.schemaVersion, 1);
+      assert.equal(manifest.operationId, operationId);
+      assert.equal(manifest.command[0], 'node');
+      assert.equal(manifest.command[1], CANONICAL_OPERATION_ENTRYPOINTS[operationId]);
+      assert.ok(manifest.codeBundleEntries.length >= 2, operationId);
+      assert.ok(manifest.codeBundleEntries.some((entry) => entry.path === manifest.command[1]));
+      assert.ok(manifest.codeBundleEntries.some((entry) => (
+        entry.path === 'scripts/data/automation/run-authorized-canonical-operation.mjs'
+      )), `${operationId}: authorized runner`);
+      for (const entry of manifest.codeBundleEntries) {
+        const bytes = fs.readFileSync(path.join(operationRepoRoot, entry.path));
+        const expected = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+        assert.equal(entry.contentHash, expected, `${operationId}:${entry.path}`);
+      }
     }
+  } finally {
+    shimmerFixture.cleanup();
   }
 });
 
@@ -270,6 +285,123 @@ test('shimmer generation manifest binds the frozen source contract, data inputs,
     assert.ok(codePaths.has(expectedPath), expectedPath);
   }
 });
+
+test('shimmer import manifest passes only the private exact input contract to the importer', () => {
+  const fixture = createShimmerManifestFixture();
+
+  try {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot: fixture.repoRoot,
+      operationId: 'canonical-shimmer-import',
+      artifactDate: '2026-08-03',
+    });
+
+    assert.deepEqual(manifest.command, [
+      'node',
+      'scripts/data/import/import-wiki-shimmer-to-db.mjs',
+      '--input-contract=reports/authorization/canonical/canonical-shimmer-import.input.json',
+      '--apply=true',
+      '--output=reports/authorization/canonical/canonical-shimmer-import.result.json',
+      '--database=terria_v1_local',
+    ]);
+    assert.deepEqual(manifest.inputPaths, [
+      'reports/authorization/canonical/canonical-shimmer-import.input.json',
+    ]);
+    assert.deepEqual(manifest.outputPaths, [
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+    ]);
+    assert.deepEqual(manifest.reportPaths, []);
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+    assert.deepEqual(manifest.shimmerImport, fixture.binding);
+    assert.ok(manifest.command.every((token) => !String(token).includes('latest')));
+    assert.ok(manifest.command.every((token) => !String(token).startsWith('--raw=')));
+    assert.ok(manifest.command.every((token) => !String(token).startsWith('--input=')));
+
+    assert.doesNotThrow(() => assertCanonicalOperationExecutionManifestContract({
+      repoRoot: fixture.repoRoot,
+      operationId: 'canonical-shimmer-import',
+      manifest,
+    }));
+    assert.throws(() => assertCanonicalOperationExecutionManifestContract({
+      repoRoot: fixture.repoRoot,
+      operationId: 'canonical-shimmer-import',
+      manifest: {
+        ...manifest,
+        shimmerImport: {
+          ...manifest.shimmerImport,
+          previewSha256: `sha256:${'f'.repeat(64)}`,
+        },
+      },
+    }), /contract drifted/i);
+
+    const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+    for (const expectedPath of [
+      'scripts/data/import/import-wiki-shimmer-to-db.mjs',
+      'scripts/data/automation/canonical-shimmer-import-input-contract.mjs',
+      'scripts/data/automation/authorized-operation-context.mjs',
+      'scripts/data/automation/build-canonical-cutover-authorization.mjs',
+      'scripts/data/transform/shimmer-generation-contract.mjs',
+      'scripts/data/transform/shimmer-generation-builder.mjs',
+      'scripts/data/maint/shimmer-structured-parser.mjs',
+    ]) {
+      assert.ok(codePaths.has(expectedPath), expectedPath);
+    }
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+function createShimmerManifestFixture() {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-manifest-'));
+  const sourceScripts = path.join(repoRoot, 'scripts');
+  fs.symlinkSync(sourceScripts, path.join(fixtureRoot, 'scripts'), 'dir');
+  const publication = publishShimmerGeneration({
+    rawBytes: Buffer.from(JSON.stringify({ pageTitle: 'Shimmer', html: '<table></table>' })),
+    shards: {
+      context: { entity: 'wiki_shimmer_context_importable', records: [{ code: 'SHIMMER' }] },
+      itemTransforms: { entity: 'wiki_shimmer_item_transforms_importable', records: [] },
+      decraftRules: { entity: 'wiki_shimmer_decraft_rules_importable', records: [] },
+      entityTransforms: { entity: 'wiki_shimmer_entity_transforms_importable', records: [] },
+      npcTransforms: { entity: 'wiki_shimmer_npc_transforms_importable', records: [] },
+      titleResolution: { entity: 'wiki_shimmer_title_resolution', records: [] },
+    },
+    standardizedInputs: {
+      items: { path: 'data/standardized/items.standardized.json', sha256: `sha256:${'a'.repeat(64)}` },
+      npcs: { path: 'data/standardized/npcs.standardized.json', sha256: `sha256:${'b'.repeat(64)}` },
+    },
+    langlinkEvidenceBytes: Buffer.from(JSON.stringify({ records: [] })),
+    producerCodeSha256: `sha256:${'c'.repeat(64)}`,
+    tableRoleVersion: 'shimmer-table-roles/1',
+    generatedAt: '2026-08-04T00:00:00.000Z',
+    generationRoot: path.join(fixtureRoot, 'data/generated/shimmer/generations'),
+    pointerPath: path.join(fixtureRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json'),
+    runId: 'manifest-test',
+  });
+  const inputContract = writeCanonicalShimmerImportInputContract({
+    repoRoot: fixtureRoot,
+    inputContract: {
+      schemaVersion: 1,
+      operationId: 'canonical-shimmer-import',
+      generationId: publication.manifest.generationId,
+      manifestPath: path.relative(fixtureRoot, publication.manifestPath).replaceAll('\\', '/'),
+      manifestSha256: publication.manifest.manifestSha256,
+      dataBundleSha256: publication.manifest.dataBundleSha256,
+      previewSha256: `sha256:${'d'.repeat(64)}`,
+      targetFingerprintSha256: `sha256:${'e'.repeat(64)}`,
+      providerScope: {
+        provider: SHIMMER_IMPORT_PROVIDER_SCOPE.provider,
+        sourcePage: SHIMMER_IMPORT_PROVIDER_SCOPE.sourcePage,
+        tables: [...SHIMMER_IMPORT_PROVIDER_SCOPE.tables],
+      },
+    },
+  });
+  return {
+    binding: shimmerImportBindingFromInputContract(inputContract.contract),
+    cleanup: () => fs.rmSync(fixtureRoot, { recursive: true, force: true }),
+    repoRoot: fixtureRoot,
+  };
+}
 
 test('NPC item relation lineage repair manifest binds historical predecessors and a distinct result', () => {
   const operationId = 'canonical-npc-item-relation-lineage-repair';
@@ -521,34 +653,42 @@ test('boss manifest binds the backend managed-image upload contract it executes'
 });
 
 test('every manifest binds all repository-local static imports of its code bundle', () => {
-  for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
-    const manifest = buildCanonicalOperationExecutionManifest({
-      repoRoot,
-      operationId,
-      artifactDate: '2026-07-28',
-      npcLimit: 25,
-      ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
-        ? { backendApiBase: 'http://127.0.0.1:18191/api' }
-        : {}),
-      ...manifestOptions(operationId),
-    });
-    const paths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
-    const missing = [];
-    for (const relativePath of paths) {
-      if (!relativePath.endsWith('.mjs')) continue;
-      const source = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
-      for (const specifier of staticRelativeImports(source)) {
-        let importedPath = path.posix.normalize(path.posix.join(
-          path.posix.dirname(relativePath),
-          specifier,
-        ));
-        if (!path.posix.extname(importedPath)) importedPath += '.mjs';
-        if (fs.existsSync(path.join(repoRoot, importedPath)) && !paths.has(importedPath)) {
-          missing.push(importedPath);
+  const shimmerFixture = createShimmerManifestFixture();
+  try {
+    for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
+      const operationRepoRoot = operationId === 'canonical-shimmer-import'
+        ? shimmerFixture.repoRoot
+        : repoRoot;
+      const manifest = buildCanonicalOperationExecutionManifest({
+        repoRoot: operationRepoRoot,
+        operationId,
+        artifactDate: '2026-07-28',
+        npcLimit: 25,
+        ...(operationId === 'canonical-image-sync' || operationId === 'canonical-boss-import'
+          ? { backendApiBase: 'http://127.0.0.1:18191/api' }
+          : {}),
+        ...manifestOptions(operationId),
+      });
+      const paths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+      const missing = [];
+      for (const relativePath of paths) {
+        if (!relativePath.endsWith('.mjs')) continue;
+        const source = fs.readFileSync(path.join(operationRepoRoot, relativePath), 'utf8');
+        for (const specifier of staticRelativeImports(source)) {
+          let importedPath = path.posix.normalize(path.posix.join(
+            path.posix.dirname(relativePath),
+            specifier,
+          ));
+          if (!path.posix.extname(importedPath)) importedPath += '.mjs';
+          if (fs.existsSync(path.join(operationRepoRoot, importedPath)) && !paths.has(importedPath)) {
+            missing.push(importedPath);
+          }
         }
       }
+      assert.deepEqual([...new Set(missing)], [], operationId);
     }
-    assert.deepEqual([...new Set(missing)], [], operationId);
+  } finally {
+    shimmerFixture.cleanup();
   }
 });
 

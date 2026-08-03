@@ -1,31 +1,35 @@
+import { CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH } from '../automation/canonical-shimmer-import-input-contract.mjs';
+
 export function buildShimmerImportArgs(options = {}) {
-  const bundleManifest = requireContentAddressedManifest(resolveBundleManifest(options));
+  if (options?.bundleManifest != null || options?.['bundle-manifest'] != null) {
+    throw new Error('direct bundle manifest input is forbidden for the shimmer sync preview');
+  }
+  const inputContract = requireCanonicalInputContract(resolveInputContract(options));
   if (isTrue(options.apply)) {
     throw new Error('direct apply is not available through the shimmer sync pipeline');
   }
   return [
     '--apply=false',
-    `--bundle-manifest=${bundleManifest}`
+    `--input-contract=${inputContract}`
   ];
 }
 
-function resolveBundleManifest(options) {
-  const camelCaseValue = String(options?.bundleManifest ?? '').trim();
-  const kebabCaseValue = String(options?.['bundle-manifest'] ?? '').trim();
+function resolveInputContract(options) {
+  const camelCaseValue = String(options?.inputContract ?? '').trim();
+  const kebabCaseValue = String(options?.['input-contract'] ?? '').trim();
   if (camelCaseValue && kebabCaseValue && camelCaseValue !== kebabCaseValue) {
-    throw new Error('conflicting bundle manifest options are not allowed');
+    throw new Error('conflicting input contract options are not allowed');
   }
   return camelCaseValue || kebabCaseValue;
 }
 
-function requireContentAddressedManifest(value) {
-  const manifest = String(value ?? '').trim().replaceAll('\\', '/');
-  if (!manifest) throw new Error('bundleManifest is required');
-  if (manifest.includes('latest')
-      || !/^data\/generated\/shimmer\/generations\/[a-f0-9]{64}\/wiki-shimmer-manifest\.json$/.test(manifest)) {
-    throw new Error('bundleManifest must name a content-addressed generation manifest');
+function requireCanonicalInputContract(value) {
+  const inputContract = String(value ?? '').trim().replaceAll('\\', '/');
+  if (!inputContract) throw new Error('inputContract is required');
+  if (inputContract !== CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH) {
+    throw new Error('shimmer sync preview requires the canonical input contract');
   }
-  return manifest;
+  return inputContract;
 }
 
 function isTrue(value) {

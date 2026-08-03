@@ -344,15 +344,35 @@ git commit -m "fix(data): bind shimmer import to one manifest"
 - Modify: `scripts/data/automation/canonical-operation-catalog.mjs`
 - Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
 - Modify: `scripts/data/automation/canonical-operation-execution-manifest.test.mjs`
+- Create: `scripts/data/lib/private-repository-path.mjs`
 - Modify: `scripts/data/automation/build-canonical-cutover-authorization.mjs`
 - Modify: `scripts/data/automation/build-canonical-cutover-authorization.test.mjs`
+- Create: `scripts/data/automation/canonical-shimmer-import-input-contract.mjs`
+- Create: `scripts/data/automation/build-canonical-shimmer-import-proposal.mjs`
+- Create: `scripts/data/automation/build-canonical-shimmer-import-proposal.test.mjs`
+- Modify: `scripts/data/automation/run-authorized-canonical-operation.mjs`
 - Modify: `scripts/data/automation/run-authorized-canonical-operation.test.mjs`
+- Modify: `scripts/data/import/import-wiki-shimmer-to-db.mjs`
+- Modify: `scripts/data/import/import-wiki-shimmer-to-db.test.mjs`
 - Modify: `scripts/data/audit/domain-readiness-audit.mjs`
 - Modify: `scripts/data/audit/domain-readiness-audit.test.mjs`
+- Modify: `scripts/data/pipeline/shimmer-sync-args.mjs`
+- Modify: `scripts/data/pipeline/shimmer-sync-args.test.mjs`
+- Modify: `scripts/data/pipeline/run-shimmer-sync-pipeline.mjs`
+- Modify: `scripts/data/pipeline/run-shimmer-sync-pipeline.test.mjs`
+
+> **Active repair:** the legacy `run-shimmer-sync-pipeline.mjs` is a
+> contract-only preview compatibility entrypoint. It may preview an existing
+> canonical private input contract, but cannot invoke extraction, accept a
+> direct manifest/raw/input path, or reach importer apply. This does not
+> authorize either Task 7 checkpoint. A separate proposal entrypoint may read
+> one verified content-addressed generation plus an injected read-only target
+> snapshot to construct preview evidence and a candidate input contract; it
+> cannot consume a packet, invoke apply, or write database rows.
 
 - [ ] **Step 1: Write RED authorization/readiness tests**
 
-Assert `canonical-shimmer-import` data inputs contain a static private input contract that names one content-addressed manifest, manifest SHA-256, `dataBundleSha256`, preview hash, and target fingerprint. Assert the old request with null bundle hash is incomplete and cannot be patched/reused. Domain readiness must reject raw-only, generation-only, dry-run, failed, wrong-generation, or wrong-bundle reports.
+Assert `canonical-shimmer-import` data inputs contain one private ordinary JSON input contract at `reports/authorization/canonical/canonical-shimmer-import.input.json`. The contract must name exactly one content-addressed manifest plus its `manifestSha256`, `dataBundleSha256`, `previewSha256`, `targetFingerprintSha256`, and the fixed `wiki_zh`/`微光` provider scope. Assert the old request with null bundle hash is incomplete and cannot be patched/reused. Assert every apply API rejects a missing private contract, ambiguous/unresolved/mixed/unreported references fail before connection, and a canonical write result must be both `apply=true` and `status='completed'`. Domain readiness must reject raw-only, generation-only, dry-run, failed, wrong-generation, wrong-bundle, wrong-preview, wrong-target, noncanonical identity evidence, and a generation symlink outside its canonical root.
 
 - [ ] **Step 2: Run RED**
 
@@ -362,20 +382,20 @@ Expected: FAIL against the old latest-file list and weak import semantics.
 
 - [ ] **Step 3: Update the operation contract**
 
-Replace fixed latest shard data paths with `reports/authorization/canonical/canonical-shimmer-import.input.json`. The manifest command passes that contract to the importer. Include generation verifier/builder/parser files in the code bundle.
+Replace fixed latest shard data paths with `reports/authorization/canonical/canonical-shimmer-import.input.json`. The execution manifest command passes `--input-contract=reports/authorization/canonical/canonical-shimmer-import.input.json` to the importer. The importer must resolve the manifest path only from that private contract, verify the contract's manifest/bundle identities against the on-disk generation, and bind the computed preview/target/scope back to the contract before apply. Include the importer, generation verifier/builder/parser, and contract reader in the code bundle.
 
-Create a fresh request only after a generation and preview exist. Never edit or reuse the old null-bundle request identity.
+Create a dependency-injected read-only proposal builder that accepts a verified content-addressed manifest only for proposal construction, freezes the preview and candidate contract, and writes a private proposal artifact. Materialize the canonical input contract only from a verified proposal through an atomic no-overwrite writer. Create a fresh request only after a generation, inspected proposal, and private contract exist. Never edit or reuse the old null-bundle request identity.
 
 - [ ] **Step 4: Tighten domain semantics**
 
-Require `apply=true`, `status='completed'`, generation ID, bundle hash, manifest hash, target fingerprint, zero missing/mixed/unreported records, and exact manifest/preview/after counts for context, item transforms, decraft rules, entity transforms, and NPC transforms.
+The Shimmer source panel must read the content-addressed `data/generated/shimmer/wiki-shimmer-current-generation.json` pointer and its referenced verified manifest; it must not require the retired mutable `wiki-shimmer-manifest.latest.json` path. The blocking panel must require `apply=true`, `status='completed'`, generation ID, bundle hash, manifest hash, preview hash, target fingerprint, the exact `wiki_zh`/`微光` scope, zero missing/mixed/unreported records, and exact manifest/preview/after counts and descriptors for context, item transforms, decraft rules, entity transforms, NPC transforms, and snapshots.
 
 - [ ] **Step 5: Run GREEN and commit**
 
 Run the RED command again.
 
 ```bash
-git add scripts/data/automation/canonical-operation-catalog.mjs scripts/data/automation/canonical-operation-execution-manifest.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs scripts/data/automation/run-authorized-canonical-operation.test.mjs scripts/data/audit/domain-readiness-audit.mjs scripts/data/audit/domain-readiness-audit.test.mjs
+git add scripts/data/automation/canonical-operation-catalog.mjs scripts/data/automation/canonical-operation-execution-manifest.mjs scripts/data/automation/canonical-operation-execution-manifest.test.mjs scripts/data/automation/build-canonical-cutover-authorization.mjs scripts/data/automation/build-canonical-cutover-authorization.test.mjs scripts/data/automation/canonical-shimmer-import-input-contract.mjs scripts/data/automation/build-canonical-shimmer-import-proposal.mjs scripts/data/automation/build-canonical-shimmer-import-proposal.test.mjs scripts/data/automation/run-authorized-canonical-operation.mjs scripts/data/automation/run-authorized-canonical-operation.test.mjs scripts/data/import/import-wiki-shimmer-to-db.mjs scripts/data/import/import-wiki-shimmer-to-db.test.mjs scripts/data/audit/domain-readiness-audit.mjs scripts/data/audit/domain-readiness-audit.test.mjs scripts/data/pipeline/shimmer-sync-args.mjs scripts/data/pipeline/shimmer-sync-args.test.mjs scripts/data/pipeline/run-shimmer-sync-pipeline.mjs scripts/data/pipeline/run-shimmer-sync-pipeline.test.mjs
 git commit -m "feat(automation): authorize exact shimmer bundles"
 ```
 
@@ -389,13 +409,13 @@ git commit -m "feat(automation): authorize exact shimmer bundles"
 
 After exact Owner confirmation, dispatch `canonical-shimmer-generation` through `run-authorized-canonical-operation.mjs` while supplying the registered `domain-source-shimmer` progress path. Verify the monitor overview plus terminal progress, generation directory, current pointer, manifest, raw/shard hashes, normalized langlink evidence, and zero task/process/progress-temp residue. A completed generation is read-only source evidence, not DB authorization.
 
-- [ ] **Step 2: Build and inspect the import preview**
+- [ ] **Step 2: Build and inspect a read-only import proposal**
 
-Run the manifest-only preview against `terria_v1_local`. Record target fingerprint, provider-owned before/after counts/key hashes, snapshot, manifest hash, generation ID, and data bundle hash.
+Run the proposal entrypoint against the approved content-addressed manifest and `terria_v1_local` only after generation evidence exists. It may open the target in a read-only transaction and writes only a private `canonical-shimmer-import.proposal.json`; it records target fingerprint, provider-owned before/after counts/key hashes, snapshots, manifest hash, generation ID, data bundle hash, preview hash, and candidate input-contract bytes. It must reject `--apply`, packet/permit inputs, raw/input paths, and noncanonical manifests. Inspect the proposal before materializing any canonical input contract.
 
-- [ ] **Step 3: Generate a new exact import request**
+- [ ] **Step 3: Materialize the exact input contract and generate a request**
 
-Create `canonical-shimmer-import.input.json`, execution manifest, and request from current bytes. Confirm the prior null-`dataBundleSha256` request remains unused/invalid history. Stop at `AWAITING_OWNER` until the new exact request hash receives all Owner fields and a new one-time decision identity.
+Use the verified private proposal to atomically create `canonical-shimmer-import.input.json` without overwriting an existing contract, then create the execution manifest and request from current bytes. Confirm the prior null-`dataBundleSha256` request remains unused/invalid history. Stop at `AWAITING_OWNER` until the new exact request hash receives all Owner fields and a new one-time decision identity.
 
 - [ ] **Step 4: Dispatch the approved import once**
 

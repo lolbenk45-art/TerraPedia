@@ -10,6 +10,9 @@ import {
   CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
 } from './canonical-operation-catalog.mjs';
+import {
+  readCanonicalShimmerImportInputContract,
+} from './canonical-shimmer-import-input-contract.mjs';
 import { assertCanonicalOperationExecutionManifestContract } from './canonical-operation-execution-manifest.mjs';
 import {
   canonicalServerFingerprint,
@@ -237,6 +240,9 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     ? readMigrationEntries(root)
     : [];
   let dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
+  if (operationId === 'canonical-shimmer-import' && dataEntries !== null) {
+    readCanonicalShimmerImportInputContract({ repoRoot: root });
+  }
   if (operationId === 'canonical-npc-t1-acceptance'
       || operationId === 'canonical-npc-apply'
       || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')

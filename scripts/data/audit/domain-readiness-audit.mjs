@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,16 @@ import { fileURLToPath } from 'node:url';
 import { buildSourceContractComplianceReport } from './canonical-source-contract-registry.mjs';
 import { resolveExpectedArmorSetPlaceholder } from '../generate/armor-set-definition-source.mjs';
 import { resolveSharedDataRoot } from '../lib/project-root.mjs';
+import {
+  assertRepositoryOrdinaryDirectory,
+  assertRepositoryOrdinaryFile,
+} from '../lib/private-repository-path.mjs';
+import { verifyShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
+import {
+  CANONICAL_SHIMMER_IMPORT_RESULT_PATH,
+  CANONICAL_SHIMMER_IMPORT_OPERATION_ID,
+  SHIMMER_IMPORT_PROVIDER_SCOPE,
+} from '../automation/canonical-shimmer-import-input-contract.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -357,16 +368,13 @@ const SUPPORT_DOMAIN_CONFIG = {
     sourceReadiness: {
       fileKey: 'source-readiness',
       evidence: [
-        requiredJson('data/generated/shimmer/wiki-shimmer-manifest.latest.json'),
-        optionalJson('data/generated/shimmer/wiki-shimmer-context.importable.latest.json'),
-        optionalJson('data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json'),
+        requiredJson('data/generated/shimmer/wiki-shimmer-current-generation.json'),
       ],
     },
     blockingGate: {
       fileKey: 'blocking-gate',
       evidence: [
-        optionalLatestJson('reports/wiki-shimmer-db-import*.json'),
-        optionalText('back/src/main/java/com/terraria/skills/controller/AdminShimmerController.java'),
+        requiredJson(CANONICAL_SHIMMER_IMPORT_RESULT_PATH),
       ],
     },
   },
@@ -520,6 +528,29 @@ function evaluateEvidence(repoRoot, evidence, { domainId, panelId } = {}) {
     };
   }
 
+  try {
+    assertShimmerEvidenceConfinement({
+      repoRoot,
+      domainId,
+      panelId,
+      evidence,
+      resolvedPath: resolved.relativePath,
+    });
+  } catch (error) {
+    return {
+      id: evidence.id,
+      type: evidence.type,
+      required: evidence.required,
+      found: true,
+      readable: false,
+      evidencePath: resolved.relativePath,
+      latestReportPath: evidence.latest ? resolved.relativePath : null,
+      recordCount: null,
+      status: evidence.required ? 'blocked' : 'warning',
+      message: `Rejected ${evidence.required ? 'required' : 'optional'} evidence: ${resolved.relativePath} (${error.message})`,
+    };
+  }
+
   const readability = readEvidence(resolved.fullPath, evidence.type);
   if (!readability.readable) {
     return {
@@ -579,10 +610,21 @@ function readEvidence(fullPath, type) {
 }
 
 function evaluateEvidenceSemantics({ repoRoot, evidence, domainId, panelId, resolvedPath, payload }) {
+  const pathKey = normalizePath(evidence.path);
+  if (domainId === 'support.shimmer'
+      && panelId === 'sourceReadiness'
+      && pathKey === 'data/generated/shimmer/wiki-shimmer-current-generation.json') {
+    return shimmerCurrentGenerationSemantics({ repoRoot, payload, reportPath: resolvedPath });
+  }
+  if (domainId === 'support.shimmer'
+      && panelId === 'blockingGate'
+      && pathKey === CANONICAL_SHIMMER_IMPORT_RESULT_PATH) {
+    return shimmerDbImportSemantics({ repoRoot, payload, reportPath: resolvedPath });
+  }
   if (panelId !== 'blockingGate' || evidence.type !== 'json' || !evidence.latest) {
     return evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId, resolvedPath, payload });
   }
-  const supportSemanticStatus = evaluateSupportDomainBlockingSemantics({ evidence, domainId, resolvedPath, payload });
+  const supportSemanticStatus = evaluateSupportDomainBlockingSemantics({ repoRoot, evidence, domainId, resolvedPath, payload });
   if (supportSemanticStatus) {
     return supportSemanticStatus;
   }
@@ -751,7 +793,7 @@ function unresolvedAuditTrendSemantics(payload, reportPath) {
   });
 }
 
-function evaluateSupportDomainBlockingSemantics({ evidence, domainId, resolvedPath, payload }) {
+function evaluateSupportDomainBlockingSemantics({ repoRoot, evidence, domainId, resolvedPath, payload }) {
   const pathKey = normalizePath(evidence.path);
   const reportPath = normalizePath(resolvedPath);
   if (domainId === 'support.recipe' && pathKey === 'reports/recipe-provider-consolidation*.json') {
@@ -762,9 +804,6 @@ function evaluateSupportDomainBlockingSemantics({ evidence, domainId, resolvedPa
   }
   if (domainId === 'support.recipe' && pathKey === 'reports/wiki-zh-recipe-source-coverage*.json') {
     return recipeSourceCoverageSemantics(payload, reportPath);
-  }
-  if (domainId === 'support.shimmer' && pathKey === 'reports/wiki-shimmer-db-import*.json') {
-    return shimmerDbImportSemantics(payload, reportPath);
   }
   if (domainId === 'support.item_group' && pathKey === 'reports/item-groups/any-item-group-source-audit*.json') {
     return itemGroupSourceAuditSemantics(payload, reportPath);
@@ -859,31 +898,448 @@ function recipeSourceCoverageSemantics(payload, reportPath) {
   });
 }
 
-function shimmerDbImportSemantics(payload, reportPath) {
+function shimmerCurrentGenerationSemantics({ repoRoot, payload, reportPath }) {
   const blocking = [];
-  requireGeneratedAt(payload, blocking);
-  if (payload?.apply !== true) {
-    blocking.push('shimmer import report is not from an applied run');
-  }
-  const counts = payload?.counts ?? {};
-  if (!isNonNegativeNumber(counts.unresolvedTitles)) {
-    blocking.push('unresolvedTitles is missing or invalid');
-  } else if (counts.unresolvedTitles > 0) {
-    blocking.push(`unresolvedTitles=${counts.unresolvedTitles}`);
-  }
-  for (const key of ['itemTransforms', 'decraftRules', 'entityTransforms', 'npcTransforms']) {
-    if (!Number.isFinite(counts[key]) || counts[key] <= 0) {
-      blocking.push(`${key} is missing or zero`);
-    }
-  }
-  if (!payload?.after || typeof payload.after !== 'object' || Array.isArray(payload.after)) {
-    blocking.push('after database snapshot is missing');
+  try {
+    verifyCurrentShimmerGenerationPointer({ repoRoot, pointer: payload });
+  } catch (error) {
+    blocking.push(`current Shimmer generation pointer is invalid: ${error.message}`);
   }
   return semanticResult({
     reportPath,
-    cleanMessage: `shimmer import semantic gates are clean in ${reportPath}`,
+    cleanMessage: `current Shimmer generation pointer is verified in ${reportPath}`,
     blocking,
   });
+}
+
+function shimmerDbImportSemantics({ repoRoot, payload, reportPath }) {
+  const blocking = [];
+  if (!isPrivateOrdinaryEvidenceFile({ repoRoot, relativePath: reportPath })) {
+    blocking.push('completed Shimmer import result must be a private ordinary file');
+  }
+  requireGeneratedAt(payload, blocking);
+  if (payload?.operationId !== CANONICAL_SHIMMER_IMPORT_OPERATION_ID) {
+    blocking.push(`operationId must be ${CANONICAL_SHIMMER_IMPORT_OPERATION_ID}`);
+  }
+  if (payload?.apply !== true) {
+    blocking.push('shimmer import result is not from an applied run');
+  }
+  if (payload?.status !== 'completed') {
+    blocking.push(`shimmer import result status must be completed, received ${payload?.status ?? 'missing'}`);
+  }
+  if (payload?.transaction?.status !== 'completed') {
+    blocking.push('shimmer import result transaction is not completed');
+  }
+
+  let verified = null;
+  try {
+    verified = verifyCurrentShimmerGenerationPointer({ repoRoot, pointer: readCurrentShimmerPointer(repoRoot) });
+  } catch (error) {
+    blocking.push(`current Shimmer generation pointer is invalid: ${error.message}`);
+  }
+  if (verified != null) {
+    assertShimmerResultMatchesGeneration({ payload, verified, blocking });
+  }
+
+  return semanticResult({
+    reportPath,
+    cleanMessage: `Shimmer import binds the current verified generation and completed private result in ${reportPath}`,
+    blocking,
+  });
+}
+
+function readCurrentShimmerPointer(repoRoot) {
+  const pointerPath = assertCurrentShimmerPointerPath(repoRoot);
+  return JSON.parse(fs.readFileSync(pointerPath, 'utf8'));
+}
+
+function verifyCurrentShimmerGenerationPointer({ repoRoot, pointer }) {
+  const requiredFields = [
+    'schemaVersion',
+    'entity',
+    'generationId',
+    'manifestPath',
+    'manifestSha256',
+    'dataBundleSha256',
+    'generatedAt',
+  ];
+  if (!pointer || typeof pointer !== 'object' || Array.isArray(pointer)
+      || JSON.stringify(Object.keys(pointer).sort()) !== JSON.stringify(requiredFields.sort())) {
+    throw new Error('pointer must contain exactly the current-generation fields');
+  }
+  if (pointer.schemaVersion !== 1 || pointer.entity !== 'wiki_shimmer_current_generation') {
+    throw new Error('pointer entity or schema version is invalid');
+  }
+  if (!/^[a-f0-9]{64}$/.test(String(pointer.generationId ?? ''))
+      || !isSha256(pointer.manifestSha256)
+      || !isSha256(pointer.dataBundleSha256)
+      || !isTimestamp(pointer.generatedAt)) {
+    throw new Error('pointer generation identity is invalid');
+  }
+  const expectedRelativeManifestPath = `generations/${pointer.generationId}/wiki-shimmer-manifest.json`;
+  if (pointer.manifestPath !== expectedRelativeManifestPath) {
+    throw new Error('pointer manifest path does not name its content-addressed generation');
+  }
+  const root = path.resolve(repoRoot);
+  assertCurrentShimmerPointerPath(root);
+  const generationRoot = path.join(root, 'data/generated/shimmer/generations');
+  const manifestPath = path.resolve(root, 'data/generated/shimmer', pointer.manifestPath);
+  if (!manifestPath.startsWith(`${path.resolve(generationRoot)}${path.sep}`)) {
+    throw new Error('pointer manifest path escapes the generation root');
+  }
+  assertRepositoryOrdinaryDirectory({
+    repoRoot: root,
+    filePath: generationRoot,
+    label: 'pointer generation root',
+  });
+  assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: manifestPath,
+    label: 'pointer manifest',
+  });
+  const realRepoRoot = fs.realpathSync(root);
+  const realGenerationRoot = fs.realpathSync(generationRoot);
+  if (!isPathInside(realRepoRoot, realGenerationRoot)) {
+    throw new Error('pointer generation root must resolve inside the repository root');
+  }
+  const realManifestPath = fs.realpathSync(manifestPath);
+  if (!isPathInside(realGenerationRoot, realManifestPath)) {
+    throw new Error('pointer manifest must resolve inside the canonical generation root');
+  }
+  const verified = verifyShimmerGeneration({ manifestPath });
+  if (verified.manifest.generationId !== pointer.generationId
+      || verified.manifest.manifestSha256 !== pointer.manifestSha256
+      || verified.manifest.dataBundleSha256 !== pointer.dataBundleSha256
+      || verified.manifest.generatedAt !== pointer.generatedAt) {
+    throw new Error('pointer identity does not match its verified generation manifest');
+  }
+  return verified;
+}
+
+function assertShimmerResultMatchesGeneration({ payload, verified, blocking }) {
+  const { manifest } = verified;
+  if (payload?.generationId !== manifest.generationId) {
+    blocking.push('completed Shimmer import generationId does not match the current pointer');
+  }
+  if (payload?.manifestSha256 !== manifest.manifestSha256) {
+    blocking.push('completed Shimmer import manifest hash does not match the current pointer');
+  }
+  if (payload?.dataBundleSha256 !== manifest.dataBundleSha256) {
+    blocking.push('completed Shimmer import data bundle hash does not match the current pointer');
+  }
+  if (!isSha256(payload?.previewSha256)) {
+    blocking.push('completed Shimmer import preview hash is missing or invalid');
+  }
+  if (!hasExpectedShimmerProviderScope(payload?.providerScope)) {
+    blocking.push('completed Shimmer import provider scope is outside wiki_zh/微光');
+  }
+  const target = normalizeShimmerTarget(payload?.target);
+  if (target == null || !isSha256(payload?.targetFingerprintSha256)
+      || hashCanonical(target) !== payload.targetFingerprintSha256) {
+    blocking.push('completed Shimmer import target fingerprint is missing or does not match the target descriptor');
+  }
+
+  const preview = {
+    schemaVersion: 1,
+    operationId: CANONICAL_SHIMMER_IMPORT_OPERATION_ID,
+    providerScope: payload?.providerScope,
+    generationId: payload?.generationId,
+    dataBundleSha256: payload?.dataBundleSha256,
+    manifestSha256: payload?.manifestSha256,
+    target: payload?.target,
+    targetFingerprintSha256: payload?.targetFingerprintSha256,
+    tables: payload?.tables,
+    worldContext: payload?.worldContext,
+    snapshots: payload?.snapshots,
+  };
+  if (isSha256(payload?.previewSha256) && hashCanonical(preview) !== payload.previewSha256) {
+    blocking.push('completed Shimmer import preview descriptor does not match previewSha256');
+  }
+
+  const descriptorByName = new Map(manifest.files.map((descriptor) => [descriptor.name, descriptor]));
+  const context = descriptorByName.get('wiki-shimmer-context.importable.json');
+  if (context?.recordCount !== 1) {
+    blocking.push('current Shimmer generation must contain exactly one context record');
+  }
+  assertShimmerDescriptor({
+    descriptor: payload?.worldContext?.before,
+    tableName: 'world_contexts',
+    label: 'world context preview before',
+    blocking,
+  });
+  assertShimmerDescriptor({
+    descriptor: payload?.worldContext?.after,
+    tableName: 'world_contexts',
+    label: 'world context after',
+    expectedCount: context?.recordCount,
+    blocking,
+  });
+
+  const tables = [
+    ['shimmer_item_transforms', 'wiki-shimmer-item-transforms.importable.json'],
+    ['shimmer_decraft_rules', 'wiki-shimmer-decraft-rules.importable.json'],
+    ['shimmer_entity_transforms', 'wiki-shimmer-entity-transforms.importable.json'],
+    ['shimmer_npc_transforms', 'wiki-shimmer-npc-transforms.importable.json'],
+  ];
+  if (!payload?.tables || typeof payload.tables !== 'object' || Array.isArray(payload.tables)
+      || JSON.stringify(Object.keys(payload.tables).sort()) !== JSON.stringify(tables.map(([name]) => name).sort())) {
+    blocking.push('completed Shimmer import does not report exactly the provider-owned tables');
+  }
+  for (const [tableName, fileName] of tables) {
+    const expectedCount = descriptorByName.get(fileName)?.recordCount;
+    assertShimmerDescriptor({
+      descriptor: payload?.tables?.[tableName]?.before,
+      tableName,
+      label: `${tableName} preview before`,
+      blocking,
+    });
+    assertShimmerDescriptor({
+      descriptor: payload?.tables?.[tableName]?.after,
+      tableName,
+      label: `${tableName} after`,
+      expectedCount,
+      blocking,
+    });
+  }
+
+  assertShimmerSnapshotCoverage({
+    before: payload?.snapshots?.before,
+    after: payload?.snapshots?.after,
+    manifest,
+    blocking,
+  });
+
+  const titleResolution = readShimmerGenerationPayload(
+    verified.generationPath,
+    'wiki-shimmer-title-resolution.evidence.json',
+  );
+  if (!Array.isArray(titleResolution?.records)) {
+    blocking.push('current Shimmer generation title-resolution evidence is unreadable');
+  } else {
+    const invalidKinds = titleResolution.records.filter((record) => (
+      !['item', 'item_group', 'npc'].includes(record?.kind)
+    ));
+    if (invalidKinds.length > 0) {
+      const unresolved = invalidKinds.filter((record) => record?.kind === 'unresolved').length;
+      const ambiguous = invalidKinds.filter((record) => record?.kind === 'ambiguous').length;
+      blocking.push(
+        `current Shimmer generation has non-importable title identities=${invalidKinds.length}`
+        + ` (unresolved=${unresolved}, ambiguous=${ambiguous})`,
+      );
+    }
+  }
+}
+
+function assertShimmerDescriptor({ descriptor, tableName, label, expectedCount = null, blocking }) {
+  if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor)
+      || !isNonNegativeNumber(descriptor.count)
+      || !isSha256(descriptor.keySha256)
+      || !isSha256(descriptor.sha256)
+      || !Array.isArray(descriptor.logicalKeys)
+      || descriptor.logicalKeys.length !== descriptor.count) {
+    blocking.push(`${label} descriptor is missing or invalid`);
+    return;
+  }
+  if (descriptor.keySha256 !== hashCanonical({ tableName, rows: descriptor.logicalKeys })) {
+    blocking.push(`${label} logical-key hash does not match its descriptor`);
+  }
+  if (expectedCount != null && descriptor.count !== expectedCount) {
+    blocking.push(`${label} count=${descriptor.count} does not match the verified manifest count=${expectedCount}`);
+  }
+}
+
+function assertShimmerSnapshotCoverage({ before, after, manifest, blocking }) {
+  assertShimmerDescriptor({
+    descriptor: before,
+    tableName: 'entity_source_snapshots',
+    label: 'snapshot preview before',
+    blocking,
+  });
+  assertShimmerDescriptor({
+    descriptor: after,
+    tableName: 'entity_source_snapshots',
+    label: 'snapshot after',
+    blocking,
+  });
+
+  const beforeKeys = snapshotLogicalKeyMap(before?.logicalKeys, 'snapshot preview before', blocking);
+  const afterKeys = snapshotLogicalKeyMap(after?.logicalKeys, 'snapshot after', blocking);
+  const currentGenerationKeys = snapshotLogicalKeyMap(
+    currentShimmerSnapshotLogicalKeys(manifest),
+    'current Shimmer generation snapshot',
+    blocking,
+  );
+  if (beforeKeys == null || afterKeys == null || currentGenerationKeys == null) return;
+
+  const expectedAfterKeys = new Map([...beforeKeys, ...currentGenerationKeys]);
+  if (!sameLogicalKeySets(afterKeys, expectedAfterKeys)) {
+    blocking.push('completed Shimmer import snapshot keys do not match the frozen preview plus current generation');
+  }
+
+  if (!Array.isArray(after?.descriptors) || after.descriptors.length !== after.count) {
+    blocking.push('completed Shimmer import snapshot descriptors are missing or incomplete');
+    return;
+  }
+  const descriptorKeys = new Map();
+  for (const entry of after.descriptors) {
+    if (!entry?.logicalKey || typeof entry.logicalKey !== 'object' || Array.isArray(entry.logicalKey)
+        || !isSha256(entry.payloadSha256)) {
+      blocking.push('completed Shimmer import snapshot descriptors are missing or incomplete');
+      return;
+    }
+    const key = canonicalLogicalKey(entry.logicalKey);
+    if (!afterKeys.has(key) || descriptorKeys.has(key)) {
+      blocking.push('completed Shimmer import snapshot descriptors do not match snapshot logical keys');
+      return;
+    }
+    descriptorKeys.set(key, entry);
+  }
+  if (!sameLogicalKeySets(descriptorKeys, afterKeys)) {
+    blocking.push('completed Shimmer import snapshot descriptors do not cover every snapshot logical key');
+  }
+}
+
+function currentShimmerSnapshotLogicalKeys(manifest) {
+  const generationPath = `data/generated/shimmer/generations/${manifest.generationId}`;
+  return [
+    ['wiki_shimmer_page', 'wiki_page', 'wiki-shimmer.raw.json'],
+    ['wiki_shimmer_context', 'generated_json', 'wiki-shimmer-context.importable.json'],
+    ['wiki_shimmer_item_transforms', 'generated_json', 'wiki-shimmer-item-transforms.importable.json'],
+    ['wiki_shimmer_decraft_rules', 'generated_json', 'wiki-shimmer-decraft-rules.importable.json'],
+    ['wiki_shimmer_entity_transforms', 'generated_json', 'wiki-shimmer-entity-transforms.importable.json'],
+    ['wiki_shimmer_npc_transforms', 'generated_json', 'wiki-shimmer-npc-transforms.importable.json'],
+    ['wiki_shimmer_manifest', 'generated_json', 'wiki-shimmer-manifest.json'],
+  ].map(([entityType, sourceKind, fileName]) => ({
+    entityType,
+    provider: SHIMMER_IMPORT_PROVIDER_SCOPE.provider,
+    sourceKind,
+    sourceLocator: `${generationPath}/${fileName}`,
+  }));
+}
+
+function snapshotLogicalKeyMap(logicalKeys, label, blocking) {
+  if (!Array.isArray(logicalKeys)) return null;
+  const keys = new Map();
+  for (const logicalKey of logicalKeys) {
+    if (!logicalKey || typeof logicalKey !== 'object' || Array.isArray(logicalKey)) {
+      blocking.push(`${label} contains an invalid logical key`);
+      return null;
+    }
+    const key = canonicalLogicalKey(logicalKey);
+    if (keys.has(key)) {
+      blocking.push(`${label} contains a duplicate logical key`);
+      return null;
+    }
+    keys.set(key, logicalKey);
+  }
+  return keys;
+}
+
+function canonicalLogicalKey(value) {
+  return JSON.stringify(stableValue(value));
+}
+
+function sameLogicalKeySets(left, right) {
+  return left.size === right.size && [...left.keys()].every((key) => right.has(key));
+}
+
+function isPrivateOrdinaryEvidenceFile({ repoRoot, relativePath }) {
+  try {
+    const root = path.resolve(repoRoot);
+    const filePath = path.resolve(root, relativePath);
+    if (!filePath.startsWith(`${root}${path.sep}`)) return false;
+    assertRepositoryOrdinaryFile({
+      repoRoot: root,
+      filePath,
+      label: 'completed Shimmer import result',
+    });
+    const stat = fs.lstatSync(filePath);
+    return (stat.mode & 0o077) === 0;
+  } catch {
+    return false;
+  }
+}
+
+function assertShimmerEvidenceConfinement({ repoRoot, domainId, panelId, evidence, resolvedPath }) {
+  const pathKey = normalizePath(evidence.path);
+  if (domainId === 'support.shimmer'
+      && panelId === 'sourceReadiness'
+      && pathKey === 'data/generated/shimmer/wiki-shimmer-current-generation.json') {
+    assertCurrentShimmerPointerPath(repoRoot);
+    return;
+  }
+  if (domainId === 'support.shimmer'
+      && panelId === 'blockingGate'
+      && pathKey === CANONICAL_SHIMMER_IMPORT_RESULT_PATH) {
+    const root = path.resolve(repoRoot);
+    assertRepositoryOrdinaryFile({
+      repoRoot: root,
+      filePath: path.resolve(root, resolvedPath),
+      label: 'completed Shimmer import result',
+    });
+  }
+}
+
+function assertCurrentShimmerPointerPath(repoRoot) {
+  const root = path.resolve(repoRoot);
+  return assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: path.join(root, 'data/generated/shimmer/wiki-shimmer-current-generation.json'),
+    label: 'current Shimmer generation pointer',
+  });
+}
+
+function readShimmerGenerationPayload(generationPath, fileName) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(generationPath, fileName), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function hasExpectedShimmerProviderScope(scope) {
+  return scope != null
+    && typeof scope === 'object'
+    && !Array.isArray(scope)
+    && JSON.stringify(Object.keys(scope).sort()) === JSON.stringify(['provider', 'sourcePage', 'tables'])
+    && scope.provider === SHIMMER_IMPORT_PROVIDER_SCOPE.provider
+    && scope.sourcePage === SHIMMER_IMPORT_PROVIDER_SCOPE.sourcePage
+    && JSON.stringify(scope.tables) === JSON.stringify(SHIMMER_IMPORT_PROVIDER_SCOPE.tables);
+}
+
+function normalizeShimmerTarget(target) {
+  const host = String(target?.host ?? '').trim();
+  const database = String(target?.database ?? '').trim();
+  const serverUuid = String(target?.serverUuid ?? '').trim();
+  const port = Number(target?.port);
+  if (!host || !database || !serverUuid || !Number.isInteger(port) || port <= 0) return null;
+  return { host, port, database, serverUuid };
+}
+
+function isTimestamp(value) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
+function isSha256(value) {
+  return /^sha256:[a-f0-9]{64}$/.test(String(value ?? ''));
+}
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' && !relative.startsWith(`..${path.sep}`)
+    && relative !== '..' && !path.isAbsolute(relative);
+}
+
+function hashCanonical(value) {
+  return `sha256:${crypto.createHash('sha256').update(JSON.stringify(stableValue(value)), 'utf8').digest('hex')}`;
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
 }
 
 function itemGroupSourceAuditSemantics(payload, reportPath) {

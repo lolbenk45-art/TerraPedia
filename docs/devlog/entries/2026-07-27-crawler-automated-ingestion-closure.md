@@ -956,6 +956,48 @@
   by the exact packet-consuming Node executor; enabling the backend bean without
   a same-transaction domain importer would be a protocol bypass.
 
+- At 2026-08-04 01:03 CST, an independent Task 6 review found three Important
+  fail-closed gaps: `ambiguous` title identities could reach import and still
+  satisfy readiness, exported `applyVerifiedShimmerImport` retained a
+  manifest-only programmatic bypass, and Task 7 required a preview before the
+  contract that its own preview entrypoint already required. The reviewer also
+  found result verification accepted a matching operation ID without proving a
+  completed applied run and pointer confinement needed a realpath check.
+  Disposition: accepted. Task 6 is `active` and `COMMIT BLOCKED` until each
+  repair receives fresh spec and code-quality re-review. The repaired plan adds
+  a dependency-injected, read-only proposal builder followed by an atomic
+  no-overwrite private contract materializer; neither constructs a request,
+  consumes a permit, or writes database rows. A transient overlapping agent
+  touched the same source/test scope and was halted immediately
+  (`integration-conflict`); Codex is the sole writer and will run integrated
+  validation before review. Targeted RED reproduced the importer, readiness,
+  and runner gaps; no live generation/import, packet, permit, database/MinIO
+  write, or lifecycle action ran. See git for code-level diff details.
+- At 2026-08-04 01:57 CST, the independent Task 6 quality review found one
+  Critical private-artifact confinement gap: contract, proposal, canonical
+  result, and readiness code checked only the final file while an ancestor
+  directory could be a symlink outside the worktree. Disposition: accepted.
+  Task 6 remains `active` and `COMMIT BLOCKED`; Codex is the sole writer for
+  serial RED/GREEN repairs covering private contract/proposal read-write,
+  runner result verification, and readiness acceptance. No generation/import,
+  packet, permit, database/MinIO write, or lifecycle action ran.
+- At 2026-08-04 03:00 CST, Task 6 cleared final independent security
+  re-review with no remaining Critical or Important findings. The repair now
+  rejects symbolic-link ancestors/endpoints for private contracts, proposals,
+  canonical results, generation pointers, manifests, and readiness evidence.
+  The direct importer checks its canonical result path before authorization,
+  connection, or permit use. The runner checks declared output ancestry and
+  canonical result endpoints before decision consumption/spawn, safely creates
+  only missing ordinary parent directories, and keeps the lowercase
+  `completed` plus `apply=true` result contract specific to
+  `canonical-shimmer-import` so existing canonical NPC `COMPLETED` result
+  schemas remain valid. The final read-only focused Task 6 suite passed
+  `184/184`; no generation/import, packet, permit, database/MinIO write, or
+  lifecycle action ran. Task 6 is code-complete for its focused checkpoint;
+  this parent entry remains `active` because Task 7 still requires exact Owner
+  authorization before any source or database operation. See git for
+  code-level diff details.
+
 ## Follow-up
 
 - System Owner: Batch 04 and group Step 4 need no further authorization. The item image source

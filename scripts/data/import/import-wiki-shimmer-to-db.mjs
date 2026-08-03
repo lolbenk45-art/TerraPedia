@@ -10,8 +10,20 @@ import {
   consumeAuthorizedOperationDispatchPermit,
   loadAuthorizedOperationContext
 } from '../automation/authorized-operation-context.mjs';
+import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
+import {
+  CANONICAL_SHIMMER_IMPORT_RESULT_PATH,
+  assertCanonicalShimmerImportInputContract,
+  readCanonicalShimmerImportInputContract,
+  shimmerImportBindingFromInputContract,
+} from '../automation/canonical-shimmer-import-input-contract.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
+import {
+  assertRepositoryOrdinaryDirectory,
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { verifyShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
@@ -104,10 +116,13 @@ if (isDirectExecution()) {
 
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
+  if (args['bundle-manifest'] != null || args.bundleManifest != null || args.raw != null || args.input != null) {
+    throw new Error('Shimmer import accepts only --input-contract; direct manifest, raw, and input arguments are forbidden');
+  }
   const apply = booleanOption(args.apply, false);
   const result = await runShimmerImport({
     apply,
-    bundleManifestPath: args['bundle-manifest'] ?? args.bundleManifest,
+    inputContractPath: args['input-contract'] ?? args.inputContract,
     database: args.database,
     dbOverrides: {
       host: args.host,
@@ -151,6 +166,7 @@ export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: 
     })
   ]));
   requireVerifiedShimmerWorldContext(payloads.contextPayload);
+  assertImportableReferenceKinds(payloads);
   return Object.freeze({
     ...payloads,
     dataBundleSha256: verified.manifest.dataBundleSha256,
@@ -161,6 +177,23 @@ export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: 
     manifestSha256: verified.manifest.manifestSha256,
     repoRoot: root
   });
+}
+
+export function loadVerifiedShimmerImportBundleFromInputContract({
+  inputContractPath,
+  repoRoot: suppliedRepoRoot = repoRoot,
+} = {}) {
+  const root = path.resolve(suppliedRepoRoot);
+  const inputContract = readCanonicalShimmerImportInputContract({
+    repoRoot: root,
+    inputContractPath,
+  });
+  const bundle = loadVerifiedShimmerImportBundle({
+    bundleManifestPath: inputContract.manifestPath,
+    repoRoot: root,
+  });
+  assertInputContractMatchesBundle({ inputContract, bundle });
+  return Object.freeze({ ...bundle, inputContract });
 }
 
 export function buildShimmerImportPreview({ bundle, target, existing = {} } = {}) {
@@ -229,6 +262,7 @@ function mergeSnapshotProjectionRows(existingRows, nextRows) {
 export function buildShimmerImportProjection({ bundle } = {}) {
   const normalizedBundle = requireVerifiedBundle(bundle);
   assertBundleProviderScope(normalizedBundle);
+  assertImportableReferenceKinds(normalizedBundle);
   const worldContext = requireVerifiedShimmerWorldContext(normalizedBundle.contextPayload);
   const shimmerTables = buildShimmerTableProjectionRows(normalizedBundle, worldContext.code);
   const snapshots = buildShimmerSnapshotDefinitions(normalizedBundle)
@@ -255,6 +289,9 @@ function assertBundleProviderScope(bundle) {
 
 export async function runShimmerImport(options = {}, dependencies = {}) {
   const root = path.resolve(options.repoRoot ?? repoRoot);
+  if (options.bundleManifestPath != null) {
+    throw new Error('Shimmer import requires a private input contract and cannot accept a bundle manifest directly');
+  }
   const apply = booleanOption(options.apply, false);
   const outputPath = resolveShimmerImportOutputPath({
     apply,
@@ -269,6 +306,9 @@ export async function runShimmerImport(options = {}, dependencies = {}) {
   const buildPreview = dependencies.buildPreview ?? buildShimmerImportPreview;
   const applyVerified = dependencies.applyVerified ?? applyVerifiedShimmerImport;
   const writeCanonicalResult = dependencies.writeCanonicalResult ?? writeCanonicalShimmerImportResult;
+  const loadInputContractBundle = dependencies.loadInputContractBundle
+    ?? loadVerifiedShimmerImportBundleFromInputContract;
+  let inputContract = null;
   let bundle = null;
   let preview = null;
   let connection = null;
@@ -276,10 +316,11 @@ export async function runShimmerImport(options = {}, dependencies = {}) {
   let phase = 'preflight';
   let primaryError = null;
   try {
-    bundle = loadVerifiedShimmerImportBundle({
-      bundleManifestPath: options.bundleManifestPath,
+    bundle = loadInputContractBundle({
+      inputContractPath: options.inputContractPath,
       repoRoot: root
     });
+    inputContract = bundle.inputContract;
     const config = dependencies.loadLocalStackConfig?.(root) ?? loadLocalStackConfig(root);
     const db = buildDatabaseConfig({
       config,
@@ -292,7 +333,7 @@ export async function runShimmerImport(options = {}, dependencies = {}) {
       ? loadAuthorizationContext({ env: options.env ?? process.env, operationId: OPERATION_ID })
       : null;
     const authorizedBinding = apply
-      ? assertAuthorizedBundle({ authorizedContext, bundle })
+      ? assertAuthorizedBundle({ authorizedContext, bundle, inputContract })
       : null;
     const mysql = loadMysqlModule();
     const mysqlClient = dependencies.mysql ?? mysql;
@@ -325,6 +366,7 @@ export async function runShimmerImport(options = {}, dependencies = {}) {
     const result = await applyVerified({
       authorizedContext,
       bundle,
+      inputContract,
       connection,
       consumeDispatchPermit: () => consumeDispatchPermit({
         env: options.env ?? process.env,
@@ -379,13 +421,7 @@ export async function runShimmerImport(options = {}, dependencies = {}) {
 export function resolveShimmerImportOutputPath({ apply = false, outputPath, repoRoot: suppliedRepoRoot = repoRoot } = {}) {
   const root = path.resolve(suppliedRepoRoot);
   if (apply) {
-    const fallbackPath = path.join(
-      root,
-      'reports',
-      'authorization',
-      'canonical',
-      'canonical-shimmer-import.result.json'
-    );
+    const fallbackPath = path.join(root, CANONICAL_SHIMMER_IMPORT_RESULT_PATH);
     return requireCanonicalReportPath(outputPath ?? fallbackPath, root);
   }
   const fallbackPath = path.join(root, 'reports', 'wiki-shimmer-db-import-preview.json');
@@ -395,6 +431,7 @@ export function resolveShimmerImportOutputPath({ apply = false, outputPath, repo
 export async function applyVerifiedShimmerImport({
   authorizedContext,
   bundle,
+  inputContract,
   connection,
   consumeDispatchPermit,
   currentTargetFingerprintSha256,
@@ -404,7 +441,12 @@ export async function applyVerifiedShimmerImport({
   verifyAfter
 } = {}) {
   const normalizedBundle = requireVerifiedBundle(bundle);
-  const authorizedBinding = assertAuthorizedBundle({ authorizedContext, bundle: normalizedBundle });
+  requireApplyInputContract(inputContract);
+  const authorizedBinding = assertAuthorizedBundle({
+    authorizedContext,
+    bundle: normalizedBundle,
+    inputContract,
+  });
   requireMatchingPreview({ bundle: normalizedBundle, preview });
   if (currentTargetFingerprintSha256 !== undefined
       && currentTargetFingerprintSha256 !== preview.targetFingerprintSha256) {
@@ -469,15 +511,24 @@ function requireContentAddressedManifestPath({ bundleManifestPath, repoRoot: roo
   if (relativePath.startsWith('../') || path.posix.isAbsolute(relativePath)) {
     throw new Error('bundle manifest must be inside the repository root');
   }
-  const stat = fs.lstatSync(manifestPath);
-  if (!stat.isFile() || stat.isSymbolicLink()) {
-    throw new Error('bundle manifest must be an ordinary file');
-  }
   const canonicalGenerationRoot = path.join(root, 'data', 'generated', 'shimmer', 'generations');
+  assertRepositoryOrdinaryDirectory({
+    repoRoot: root,
+    filePath: canonicalGenerationRoot,
+    label: 'canonical generation root',
+  });
+  assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: manifestPath,
+    label: 'bundle manifest',
+  });
+  const realRepoRoot = fs.realpathSync(root);
   const realGenerationRoot = fs.realpathSync(canonicalGenerationRoot);
+  if (!isPathInside(realRepoRoot, realGenerationRoot)) {
+    throw new Error('canonical generation root must resolve inside the repository root');
+  }
   const realManifestPath = fs.realpathSync(manifestPath);
-  const realRelativePath = path.relative(realGenerationRoot, realManifestPath);
-  if (realRelativePath.startsWith('..') || path.isAbsolute(realRelativePath)) {
+  if (!isPathInside(realGenerationRoot, realManifestPath)) {
     throw new Error('bundle manifest must resolve inside the canonical generation root');
   }
   return manifestPath;
@@ -519,6 +570,45 @@ function requireVerifiedBundle(bundle) {
     throw new Error('verified shimmer import bundle identity is invalid');
   }
   return bundle;
+}
+
+function requireApplyInputContract(inputContract) {
+  if (!inputContract || typeof inputContract !== 'object' || Array.isArray(inputContract)
+      || !Buffer.isBuffer(inputContract.bytes)
+      || inputContract.relativePath !== 'reports/authorization/canonical/canonical-shimmer-import.input.json') {
+    throw new Error('private input contract is required for verified shimmer apply');
+  }
+  assertCanonicalShimmerImportInputContract(inputContract.contract ?? inputContract);
+  return inputContract;
+}
+
+function assertImportableReferenceKinds(bundle) {
+  const allowed = new Set(['item', 'item_group', 'npc']);
+  const assertKind = (kind, label) => {
+    if (!allowed.has(kind)) {
+      throw new Error(`verified shimmer import ${label} has an unsupported reference kind: ${kind ?? 'missing'}`);
+    }
+  };
+  for (const [index, record] of (bundle.itemTransformsPayload?.records ?? []).entries()) {
+    assertKind(record?.inputKind, `itemTransforms[${index}].inputKind`);
+    assertKind(record?.outputKind, `itemTransforms[${index}].outputKind`);
+  }
+  for (const [index, record] of (bundle.decraftRulesPayload?.records ?? []).entries()) {
+    assertKind(record?.input?.kind, `decraftRules[${index}].input.kind`);
+    for (const [outputIndex, output] of (record?.outputs ?? []).entries()) {
+      assertKind(output?.kind, `decraftRules[${index}].outputs[${outputIndex}].kind`);
+    }
+  }
+  for (const [index, record] of (bundle.entityTransformsPayload?.records ?? []).entries()) {
+    assertKind(record?.input?.kind, `entityTransforms[${index}].input.kind`);
+    assertKind(record?.output?.kind, `entityTransforms[${index}].output.kind`);
+  }
+  for (const [index, record] of (bundle.npcTransformsPayload?.records ?? []).entries()) {
+    assertKind(record?.npc?.kind, `npcTransforms[${index}].npc.kind`);
+  }
+  for (const [index, record] of (bundle.titleResolutionPayload?.records ?? []).entries()) {
+    assertKind(record?.kind, `titleResolution[${index}].kind`);
+  }
 }
 
 function normalizeTargetFingerprint(target) {
@@ -604,19 +694,38 @@ function isSha256(value) {
   return /^sha256:[a-f0-9]{64}$/.test(String(value ?? ''));
 }
 
-function assertAuthorizedBundle({ authorizedContext, bundle }) {
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' && !relative.startsWith(`..${path.sep}`)
+    && relative !== '..' && !path.isAbsolute(relative);
+}
+
+function assertInputContractMatchesBundle({ inputContract, bundle }) {
+  const binding = shimmerImportBindingFromInputContract(inputContract?.contract ?? inputContract);
+  if (binding.generationId !== bundle.generationId
+      || binding.manifestSha256 !== bundle.manifestSha256
+      || binding.dataBundleSha256 !== bundle.dataBundleSha256) {
+    throw new Error('Shimmer import input contract does not match the verified bundle');
+  }
+  return binding;
+}
+
+function assertAuthorizedBundle({ authorizedContext, bundle, inputContract }) {
   if (authorizedContext?.operationId !== OPERATION_ID) {
     throw new Error(`authorized shimmer import operation must be ${OPERATION_ID}`);
   }
-  if (authorizedContext?.dataBundleSha256 !== bundle.dataBundleSha256) {
-    throw new Error('authorized shimmer import data bundle does not match the verified manifest');
+  requireApplyInputContract(inputContract);
+  const binding = assertInputContractMatchesBundle({ inputContract, bundle });
+  const authorizedDataBundleSha256 = hashOrderedBundleBytes([{
+    path: inputContract.relativePath,
+    bytes: inputContract.bytes,
+  }], 'data bundle');
+  if (authorizedContext?.dataBundleSha256 !== authorizedDataBundleSha256) {
+    throw new Error('authorized shimmer import data bundle does not match the private input contract');
   }
-  const binding = requireAuthorizedShimmerImportBinding(authorizedContext);
-  if (binding.operationId !== OPERATION_ID
-      || binding.generationId !== bundle.generationId
-      || binding.manifestSha256 !== bundle.manifestSha256
-      || binding.dataBundleSha256 !== bundle.dataBundleSha256) {
-    throw new Error('authorized shimmer import binding does not match the verified bundle');
+  const authorizedBinding = requireAuthorizedShimmerImportBinding(authorizedContext);
+  if (hashCanonical(binding) !== hashCanonical(authorizedBinding)) {
+    throw new Error('authorized shimmer import binding does not match the private input contract');
   }
   return binding;
 }
@@ -958,7 +1067,7 @@ async function loadShimmerTableStats(connection) {
   return stats;
 }
 
-async function loadCurrentShimmerScope(connection, bundle, { forUpdate = false } = {}) {
+export async function loadCurrentShimmerScope(connection, bundle, { forUpdate = false } = {}) {
   const projection = buildShimmerImportProjection({ bundle });
   const lockClause = forUpdate ? ' FOR UPDATE' : '';
   const [[worldContextRow]] = await connection.execute(
@@ -1014,7 +1123,7 @@ async function loadCurrentShimmerScope(connection, bundle, { forUpdate = false }
   };
 }
 
-async function loadTargetFingerprint(connection, db) {
+export async function loadTargetFingerprint(connection, db) {
   const [[row]] = await connection.query('SELECT @@server_uuid AS serverUuid');
   return {
     host: db.host,
@@ -1123,7 +1232,8 @@ function buildShimmerImportResult({ bundle = null, preview = null, apply, status
     schemaVersion: 1,
     operationId: OPERATION_ID,
     status,
-    apply
+    apply,
+    generatedAt: new Date().toISOString(),
   };
   if (bundle?.generationId != null) output.generationId = bundle.generationId;
   if (bundle?.dataBundleSha256 != null) output.dataBundleSha256 = bundle.dataBundleSha256;
@@ -1144,13 +1254,7 @@ function buildShimmerImportResult({ bundle = null, preview = null, apply, status
 }
 
 async function writeCanonicalShimmerImportResult(outputPath, root, result) {
-  const fallbackPath = path.join(
-    root,
-    'reports',
-    'authorization',
-    'canonical',
-    'canonical-shimmer-import.result.json'
-  );
+  const fallbackPath = path.join(root, CANONICAL_SHIMMER_IMPORT_RESULT_PATH);
   const reportPath = requireCanonicalReportPath(outputPath ?? fallbackPath, root);
   await writePrivateJson(reportPath, result);
 }
@@ -1168,22 +1272,43 @@ function requirePreviewReportPath(outputPath, root) {
   if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
     throw new Error('shimmer import report path must be inside the repository root');
   }
+  assertRepositoryReportPath({
+    reportPath,
+    root,
+    label: 'shimmer import report',
+  });
   return reportPath;
 }
 
 function requireCanonicalReportPath(outputPath, root) {
   const reportPath = path.resolve(outputPath);
-  const canonicalPath = path.join(
-    root,
-    'reports',
-    'authorization',
-    'canonical',
-    'canonical-shimmer-import.result.json'
-  );
+  const canonicalPath = path.join(root, CANONICAL_SHIMMER_IMPORT_RESULT_PATH);
   if (reportPath !== canonicalPath) {
     throw new Error('applied shimmer import result must use the canonical private result path');
   }
+  assertRepositoryReportPath({
+    reportPath,
+    root,
+    label: 'applied shimmer import result',
+  });
   return reportPath;
+}
+
+function assertRepositoryReportPath({ reportPath, root, label }) {
+  assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: reportPath,
+    label,
+    createParent: true,
+  });
+  try {
+    const stat = fs.lstatSync(reportPath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error(`${label} must be an ordinary file when it already exists`);
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
 }
 
 async function writePrivateJson(outputPath, value) {

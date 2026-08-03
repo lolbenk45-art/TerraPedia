@@ -1,3 +1,5 @@
+import { CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH } from './canonical-shimmer-import-input-contract.mjs';
+
 export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-l0-bootstrap',
   'canonical-item-image-source-verification',
@@ -69,13 +71,7 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
     'data/standardized/npcs.standardized.json',
   ]),
   'canonical-shimmer-import': Object.freeze([
-    'data/generated/wiki-shimmer.latest.json',
-    'data/generated/shimmer/wiki-shimmer-context.importable.latest.json',
-    'data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json',
-    'data/generated/shimmer/wiki-shimmer-decraft-rules.importable.latest.json',
-    'data/generated/shimmer/wiki-shimmer-entity-transforms.importable.latest.json',
-    'data/generated/shimmer/wiki-shimmer-npc-transforms.importable.latest.json',
-    'data/generated/shimmer/wiki-shimmer-manifest.latest.json',
+    CANONICAL_SHIMMER_IMPORT_INPUT_CONTRACT_PATH,
   ]),
   'canonical-schema-v56-v58': Object.freeze([]),
   'canonical-item-group-bootstrap': Object.freeze([

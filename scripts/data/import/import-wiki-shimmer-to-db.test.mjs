@@ -6,9 +6,65 @@ import path from 'node:path';
 import test from 'node:test';
 
 import * as shimmerImporter from './import-wiki-shimmer-to-db.mjs';
+import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
 import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const { importShimmerItemTransforms } = shimmerImporter;
+
+test('shimmer importer resolves a generation only through the private input contract', async () => {
+  const fixture = createGenerationFixture();
+  let connectionAttempts = 0;
+
+  try {
+    assert.equal(typeof shimmerImporter.loadVerifiedShimmerImportBundleFromInputContract, 'function');
+    const bundle = shimmerImporter.loadVerifiedShimmerImportBundleFromInputContract({
+      inputContractPath: fixture.inputContractPath,
+      repoRoot: fixture.repoRoot,
+    });
+    assert.equal(bundle.generationId, fixture.publication.manifest.generationId);
+    assert.equal(bundle.manifestSha256, fixture.publication.manifest.manifestSha256);
+    assert.equal(bundle.dataBundleSha256, fixture.publication.manifest.dataBundleSha256);
+
+    const pathDrift = path.join(fixture.repoRoot, 'reports/authorization/canonical/path-drift.input.json');
+    fs.copyFileSync(fixture.inputContractPath, pathDrift);
+    assert.throws(
+      () => shimmerImporter.loadVerifiedShimmerImportBundleFromInputContract({
+        inputContractPath: pathDrift,
+        repoRoot: fixture.repoRoot,
+      }),
+      /canonical path/i,
+    );
+
+    fs.chmodSync(fixture.inputContractPath, 0o644);
+    assert.throws(
+      () => shimmerImporter.loadVerifiedShimmerImportBundleFromInputContract({
+        inputContractPath: fixture.inputContractPath,
+        repoRoot: fixture.repoRoot,
+      }),
+      /private|ordinary/i,
+    );
+    fs.chmodSync(fixture.inputContractPath, 0o600);
+
+    await assert.rejects(
+      shimmerImporter.runShimmerImport({
+        apply: false,
+        bundleManifestPath: fixture.publication.manifestPath,
+        repoRoot: fixture.repoRoot,
+      }, {
+        mysql: {
+          createConnection: async () => {
+            connectionAttempts += 1;
+            throw new Error('database connection must not be reached');
+          },
+        },
+      }),
+      /input contract/i,
+    );
+    assert.equal(connectionAttempts, 0);
+  } finally {
+    fixture.cleanup();
+  }
+});
 
 test('shimmer importer accepts only a verified content-addressed bundle manifest', () => {
   assert.equal(typeof shimmerImporter.loadVerifiedShimmerImportBundle, 'function');
@@ -65,6 +121,25 @@ test('shimmer importer accepts only a verified content-addressed bundle manifest
         repoRoot: fixture.repoRoot
       }),
       /hash mismatch/i
+    );
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('verified shimmer import projection rejects ambiguous or unresolved references', () => {
+  const fixture = createGenerationFixture();
+
+  try {
+    const bundle = shimmerImporter.loadVerifiedShimmerImportBundle({
+      bundleManifestPath: fixture.publication.manifestPath,
+      repoRoot: fixture.repoRoot,
+    });
+    const ambiguous = structuredClone(bundle);
+    ambiguous.itemTransformsPayload.records[0].inputKind = 'ambiguous';
+    assert.throws(
+      () => shimmerImporter.buildShimmerImportProjection({ bundle: ambiguous }),
+      /ambiguous|unresolved|reference kind/i,
     );
   } finally {
     fixture.cleanup();
@@ -173,10 +248,73 @@ test('shimmer importer rejects a generation directory that resolves outside the 
         bundleManifestPath: fixture.publication.manifestPath,
         repoRoot: fixture.repoRoot
       }),
-      /canonical generation root/i
+      /canonical generation root|ancestor|symbolic/i,
     );
   } finally {
     fixture.cleanup();
+  }
+});
+
+test('shimmer importer rejects a canonical generation root that resolves outside the repository', () => {
+  const fixture = createGenerationFixture();
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-outside-generation-root-'));
+  const generationRoot = path.join(fixture.repoRoot, 'data', 'generated', 'shimmer', 'generations');
+  const outsideGenerationRoot = path.join(outsideRoot, 'generations');
+
+  try {
+    fs.renameSync(generationRoot, outsideGenerationRoot);
+    fs.symlinkSync(outsideGenerationRoot, generationRoot, 'dir');
+
+    assert.throws(
+      () => shimmerImporter.loadVerifiedShimmerImportBundle({
+        bundleManifestPath: fixture.publication.manifestPath,
+        repoRoot: fixture.repoRoot,
+      }),
+      /generation root.*repository|canonical generation root|ordinary directory/i,
+    );
+    assert.throws(
+      () => shimmerImporter.loadVerifiedShimmerImportBundleFromInputContract({
+        inputContractPath: fixture.inputContractPath,
+        repoRoot: fixture.repoRoot,
+      }),
+      /generation root.*repository|canonical generation root|ordinary directory/i,
+    );
+  } finally {
+    fixture.cleanup();
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer importer and private contract reject a generation path with an external transit symlink', () => {
+  const fixture = createGenerationFixture();
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-transit-root-'));
+  const shimmerPath = path.join(fixture.repoRoot, 'data', 'generated', 'shimmer');
+  const internalShimmerPath = path.join(fixture.repoRoot, 'data', 'generated', 'shimmer-internal');
+  const outsideShimmerPath = path.join(outsideRoot, 'shimmer');
+
+  try {
+    fs.renameSync(shimmerPath, internalShimmerPath);
+    fs.mkdirSync(outsideShimmerPath, { recursive: true });
+    fs.symlinkSync(outsideShimmerPath, shimmerPath, 'dir');
+    fs.symlinkSync(path.join(internalShimmerPath, 'generations'), path.join(outsideShimmerPath, 'generations'), 'dir');
+
+    assert.throws(
+      () => shimmerImporter.loadVerifiedShimmerImportBundle({
+        bundleManifestPath: fixture.publication.manifestPath,
+        repoRoot: fixture.repoRoot,
+      }),
+      /ancestor|symbolic|repository/i,
+    );
+    assert.throws(
+      () => shimmerImporter.loadVerifiedShimmerImportBundleFromInputContract({
+        inputContractPath: fixture.inputContractPath,
+        repoRoot: fixture.repoRoot,
+      }),
+      /ancestor|symbolic|repository/i,
+    );
+  } finally {
+    fixture.cleanup();
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
   }
 });
 
@@ -194,7 +332,7 @@ test('shimmer importer rejects missing, malformed, or non-SHIMMER contexts befor
       await assert.rejects(
         shimmerImporter.runShimmerImport({
           apply: false,
-          bundleManifestPath: fixture.publication.manifestPath,
+          inputContractPath: fixture.inputContractPath,
           repoRoot: fixture.repoRoot
         }, {
           mysql: {
@@ -359,7 +497,7 @@ test('shimmer preview result and report retain scope, target, and inspectable ev
     });
     const result = await shimmerImporter.runShimmerImport({
       apply: false,
-      bundleManifestPath: fixture.publication.manifestPath,
+      inputContractPath: fixture.inputContractPath,
       outputPath,
       repoRoot: fixture.repoRoot
     }, {
@@ -583,6 +721,42 @@ test('shimmer import preview rejects bundle records outside the wiki_zh Shimmer 
   }
 });
 
+test('shimmer import rejects noncanonical title references before opening a database connection', async () => {
+  for (const kind of ['ambiguous', 'unresolved', 'mixed', 'unreported', 'other']) {
+    const fixture = createGenerationFixture({
+      titleResolutionRecords: [{
+        nameZh: 'Torch',
+        nameEn: 'Torch',
+        kind,
+        internalName: null,
+      }],
+    });
+    let connectionAttempts = 0;
+
+    try {
+      await assert.rejects(
+        shimmerImporter.runShimmerImport({
+          apply: false,
+          inputContractPath: fixture.inputContractPath,
+          repoRoot: fixture.repoRoot,
+        }, {
+          mysql: {
+            createConnection: async () => {
+              connectionAttempts += 1;
+              throw new Error('database connection must not be reached');
+            },
+          },
+        }),
+        /title[- ]resolution|reference kind/i,
+        `${kind} title references must fail closed`,
+      );
+      assert.equal(connectionAttempts, 0, `${kind} must stop before connection`);
+    } finally {
+      fixture.cleanup();
+    }
+  }
+});
+
 test('direct shimmer apply rejects a missing packet before opening a database connection', async () => {
   assert.equal(typeof shimmerImporter.runShimmerImport, 'function');
   const fixture = createGenerationFixture();
@@ -592,7 +766,7 @@ test('direct shimmer apply rejects a missing packet before opening a database co
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         env: {},
         repoRoot: fixture.repoRoot
       }, {
@@ -611,7 +785,31 @@ test('direct shimmer apply rejects a missing packet before opening a database co
   }
 });
 
-test('legacy shimmer import binding fails closed before connection or permit consumption', async () => {
+test('verified shimmer apply rejects a missing private input contract before transaction or permit', async () => {
+  const calls = [];
+  const bundle = createVerifiedBundleIdentity();
+  const preview = createAuthorizedPreview(bundle);
+  const authorizedContext = createAuthorizedContext(bundle, preview);
+  delete authorizedContext.inputContract;
+
+  await assert.rejects(
+    shimmerImporter.applyVerifiedShimmerImport({
+      authorizedContext,
+      bundle,
+      connection: createTransactionConnection(calls),
+      consumeDispatchPermit: () => calls.push('consume'),
+      currentTargetFingerprintSha256: preview.targetFingerprintSha256,
+      preview,
+      readLockedBefore: async () => createEmptyShimmerScope(preview),
+      applyChanges: async () => calls.push('apply'),
+      verifyAfter: async () => calls.push('verify'),
+    }),
+    /private input contract/i,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test('shimmer import rejects an authorization bundle that is not bound to the private contract', async () => {
   const fixture = createGenerationFixture();
   const calls = [];
 
@@ -625,7 +823,7 @@ test('legacy shimmer import binding fails closed before connection or permit con
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         repoRoot: fixture.repoRoot
       }, {
         loadAuthorizationContext: () => ({
@@ -657,7 +855,7 @@ test('legacy shimmer import binding fails closed before connection or permit con
           return { status: 'completed' };
         }
       }),
-      /authorized shimmer import binding/i
+      /private input contract/i
     );
 
     assert.deepEqual(calls, []);
@@ -666,7 +864,7 @@ test('legacy shimmer import binding fails closed before connection or permit con
   }
 });
 
-test('shimmer import binding identity drift fails closed before connection or permit consumption', async () => {
+test('shimmer input-contract identity drift fails closed before connection or permit consumption', async () => {
   const fixture = createGenerationFixture();
   const bundle = shimmerImporter.loadVerifiedShimmerImportBundle({
     bundleManifestPath: fixture.publication.manifestPath,
@@ -682,13 +880,13 @@ test('shimmer import binding identity drift fails closed before connection or pe
       ['unexpected', 'extra binding field']
     ]) {
       const calls = [];
-      const authorizedContext = createAuthorizedContext(bundle, preview);
-      authorizedContext.executionManifest.shimmerImport[field] = value;
+      const inputContract = bindFixtureContract(fixture, preview, { [field]: value });
+      const authorizedContext = createAuthorizedContext(bundle, preview, inputContract);
 
       await assert.rejects(
         shimmerImporter.runShimmerImport({
           apply: true,
-          bundleManifestPath: fixture.publication.manifestPath,
+          inputContractPath: fixture.inputContractPath,
           repoRoot: fixture.repoRoot
         }, {
           loadAuthorizationContext: () => authorizedContext,
@@ -700,8 +898,8 @@ test('shimmer import binding identity drift fails closed before connection or pe
           },
           consumeDispatchPermit: () => calls.push('consume')
         }),
-        /authorized shimmer import binding/i,
-        `expected ${field} binding drift to fail closed`
+        /input contract|generation identity/i,
+        `expected ${field} input contract drift to fail closed`
       );
 
       assert.deepEqual(calls, [], `${field} drift must not connect or consume`);
@@ -727,7 +925,8 @@ test('wrong frozen preview or target hashes stop before permit or apply after re
     ]) {
       const calls = [];
       const resultWrites = [];
-      const authorizedContext = createAuthorizedContext(bundle, preview);
+      const inputContract = bindFixtureContract(fixture, preview, { [field]: value });
+      const authorizedContext = createAuthorizedContext(bundle, preview, inputContract);
       authorizedContext.executionManifest.shimmerImport[field] = value;
       const connection = {
         async beginTransaction() {
@@ -745,7 +944,7 @@ test('wrong frozen preview or target hashes stop before permit or apply after re
       await assert.rejects(
         shimmerImporter.runShimmerImport({
           apply: true,
-          bundleManifestPath: fixture.publication.manifestPath,
+          inputContractPath: fixture.inputContractPath,
           repoRoot: fixture.repoRoot
         }, {
           loadAuthorizationContext: () => authorizedContext,
@@ -799,6 +998,7 @@ test('shimmer apply resolves a canonical private result path before opening a da
     repoRoot: fixture.repoRoot
   });
   const preview = createAuthorizedPreview(bundle);
+  const inputContract = bindFixtureContract(fixture, preview);
   let connectionAttempts = 0;
 
   try {
@@ -831,12 +1031,12 @@ test('shimmer apply resolves a canonical private result path before opening a da
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         outputPath: path.join(fixture.repoRoot, 'reports', 'wiki-shimmer-db-import.json'),
         repoRoot: fixture.repoRoot
       }, {
         loadAuthorizationContext: () => ({
-          ...createAuthorizedContext(bundle, preview)
+          ...createAuthorizedContext(bundle, preview, inputContract)
         }),
         mysql: {
           createConnection: async () => {
@@ -865,6 +1065,62 @@ test('shimmer apply resolves a canonical private result path before opening a da
   }
 });
 
+test('direct shimmer apply rejects a canonical result path beneath an ancestor symlink before external write', async () => {
+  const fixture = createGenerationFixture();
+  const bundle = shimmerImporter.loadVerifiedShimmerImportBundle({
+    bundleManifestPath: fixture.publication.manifestPath,
+    repoRoot: fixture.repoRoot,
+  });
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-result-outside-'));
+  const canonicalDirectory = path.join(fixture.repoRoot, 'reports', 'authorization', 'canonical');
+  const outsideCanonicalDirectory = path.join(outsideRoot, 'canonical');
+  let connectionAttempts = 0;
+  let permitAttempts = 0;
+
+  try {
+    fs.renameSync(canonicalDirectory, outsideCanonicalDirectory);
+    fs.symlinkSync(outsideCanonicalDirectory, canonicalDirectory, 'dir');
+
+    let rejection = null;
+    try {
+      await shimmerImporter.runShimmerImport({
+        apply: true,
+        inputContractPath: fixture.inputContractPath,
+        repoRoot: fixture.repoRoot,
+      }, {
+        loadInputContractBundle: () => bundle,
+        loadAuthorizationContext: () => {
+          throw new Error('authorization should not be read for an unsafe result path');
+        },
+        mysql: {
+          createConnection: async () => {
+            connectionAttempts += 1;
+            throw new Error('database connection must not be reached');
+          },
+        },
+        consumeDispatchPermit: () => {
+          permitAttempts += 1;
+        },
+      });
+      assert.fail('unsafe canonical result ancestry must reject');
+    } catch (error) {
+      rejection = error;
+    }
+
+    assert.equal(
+      fs.existsSync(path.join(outsideCanonicalDirectory, 'canonical-shimmer-import.result.json')),
+      false,
+      'unsafe result ancestry must not write outside the repository',
+    );
+    assert.match(rejection.message, /symbolic-link ancestor/i);
+    assert.equal(connectionAttempts, 0);
+    assert.equal(permitAttempts, 0);
+  } finally {
+    fixture.cleanup();
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
 test('shimmer import writes a private preflight failure result without opening a connection', async () => {
   const fixture = createGenerationFixture();
   const outputPath = path.join(
@@ -884,7 +1140,7 @@ test('shimmer import writes a private preflight failure result without opening a
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         outputPath,
         repoRoot: fixture.repoRoot
       }, {
@@ -933,17 +1189,18 @@ test('shimmer import writes a private connection failure result without ending a
     repoRoot: fixture.repoRoot
   });
   const preview = createAuthorizedPreview(bundle);
+  const inputContract = bindFixtureContract(fixture, preview);
   const calls = [];
 
   try {
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         outputPath,
         repoRoot: fixture.repoRoot
       }, {
-        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview),
+        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview, inputContract),
         mysql: {
           createConnection: async () => {
             calls.push('connect');
@@ -987,6 +1244,7 @@ test('shimmer import does not overwrite a completed apply result when its writer
     repoRoot: fixture.repoRoot
   });
   const preview = createAuthorizedPreview(bundle);
+  const inputContract = bindFixtureContract(fixture, preview);
   const connectionCalls = [];
   const resultWrites = [];
   const connection = {
@@ -1003,11 +1261,11 @@ test('shimmer import does not overwrite a completed apply result when its writer
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         outputPath,
         repoRoot: fixture.repoRoot
       }, {
-        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview),
+        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview, inputContract),
         mysql: {
           createConnection: async () => {
             connectionCalls.push('connect');
@@ -1051,6 +1309,7 @@ test('shimmer import preserves a +08:00 DATETIME fixture as a raw string', async
     repoRoot: fixture.repoRoot
   });
   const preview = createAuthorizedPreview(bundle);
+  const inputContract = bindFixtureContract(fixture, preview);
   const nonUtcDateTime = '2026-08-03 23:45:17';
   const connectionOptions = [];
   const calls = [];
@@ -1086,10 +1345,10 @@ test('shimmer import preserves a +08:00 DATETIME fixture as a raw string', async
   try {
     const result = await shimmerImporter.runShimmerImport({
       apply: true,
-      bundleManifestPath: fixture.publication.manifestPath,
+      inputContractPath: fixture.inputContractPath,
       repoRoot: fixture.repoRoot
     }, {
-      loadAuthorizationContext: () => createAuthorizedContext(bundle, preview),
+      loadAuthorizationContext: () => createAuthorizedContext(bundle, preview, inputContract),
       mysql: {
         createConnection: async (options) => {
           connectionOptions.push(options);
@@ -1144,6 +1403,7 @@ test('shimmer import rejects a non-completed apply result before writing complet
     repoRoot: fixture.repoRoot
   });
   const preview = createAuthorizedPreview(bundle);
+  const inputContract = bindFixtureContract(fixture, preview);
   const calls = [];
   const resultWrites = [];
   const connection = {
@@ -1160,10 +1420,10 @@ test('shimmer import rejects a non-completed apply result before writing complet
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         repoRoot: fixture.repoRoot
       }, {
-        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview),
+        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview, inputContract),
         mysql: {
           createConnection: async () => {
             calls.push('connect');
@@ -1213,6 +1473,7 @@ test('shimmer import writes a private failed result after an apply error', async
     repoRoot: fixture.repoRoot
   });
   const preview = createAuthorizedPreview(bundle);
+  const inputContract = bindFixtureContract(fixture, preview);
   const connection = {
     async beginTransaction() {},
     async rollback() {},
@@ -1225,11 +1486,11 @@ test('shimmer import writes a private failed result after an apply error', async
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         outputPath,
         repoRoot: fixture.repoRoot
       }, {
-        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview),
+        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview, inputContract),
         mysql: {
           createConnection: async () => connection
         },
@@ -1301,6 +1562,7 @@ test('authorized shimmer apply rolls back when post-write verification drifts', 
         ...createAuthorizedContext(bundle, preview)
       },
       bundle,
+      inputContract: createTestInputContract(bundle, preview),
       connection,
       consumeDispatchPermit: () => calls.push('consume'),
       preview,
@@ -1347,6 +1609,7 @@ test('shimmer import rolls back a stale locked scope before permit consumption o
       snapshots: []
     };
     const preview = shimmerImporter.buildShimmerImportPreview({ bundle, target, existing: previewScope });
+    const inputContract = bindFixtureContract(fixture, preview);
     const connection = {
       async beginTransaction() {
         calls.push('begin');
@@ -1387,10 +1650,10 @@ test('shimmer import rolls back a stale locked scope before permit consumption o
     await assert.rejects(
       shimmerImporter.runShimmerImport({
         apply: true,
-        bundleManifestPath: fixture.publication.manifestPath,
+        inputContractPath: fixture.inputContractPath,
         repoRoot: fixture.repoRoot
       }, {
-        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview),
+        loadAuthorizationContext: () => createAuthorizedContext(bundle, preview, inputContract),
         mysql: {
           createConnection: async () => {
             calls.push('connect');
@@ -1459,6 +1722,7 @@ test('verified shimmer apply rejects bundle or scope drift before permit consump
       shimmerImporter.applyVerifiedShimmerImport({
         authorizedContext: createAuthorizedContext(bundle, preview),
         bundle,
+        inputContract: createTestInputContract(bundle, preview),
         connection,
         consumeDispatchPermit: () => calls.push('consume'),
         preview: { ...preview, ...mutation },
@@ -1468,6 +1732,32 @@ test('verified shimmer apply rejects bundle or scope drift before permit consump
       /preview|scope/i
     );
   }
+
+  assert.deepEqual(calls, []);
+});
+
+test('verified shimmer apply requires a canonical private contract before transaction or permit use', async () => {
+  const calls = [];
+  const bundle = createVerifiedBundleIdentity();
+  const preview = createAuthorizedPreview(bundle);
+
+  await assert.rejects(
+    shimmerImporter.applyVerifiedShimmerImport({
+      authorizedContext: createAuthorizedContext(bundle, preview),
+      bundle,
+      connection: createTransactionConnection(calls),
+      consumeDispatchPermit: () => calls.push('consume'),
+      currentTargetFingerprintSha256: preview.targetFingerprintSha256,
+      preview,
+      readLockedBefore: async () => {
+        calls.push('locked');
+        return createEmptyShimmerScope(preview);
+      },
+      applyChanges: async () => calls.push('apply'),
+      verifyAfter: async () => calls.push('verify'),
+    }),
+    /private input contract/i,
+  );
 
   assert.deepEqual(calls, []);
 });
@@ -1498,6 +1788,7 @@ test('verified shimmer apply rejects preview descriptor tampering before permit 
       shimmerImporter.applyVerifiedShimmerImport({
         authorizedContext: createAuthorizedContext(bundle, preview),
         bundle,
+        inputContract: createTestInputContract(bundle, preview),
         connection: createTransactionConnection(calls),
         consumeDispatchPermit: () => calls.push('consume'),
         preview: tamperedPreview,
@@ -1522,6 +1813,7 @@ test('verified shimmer apply rejects target fingerprint drift before permit cons
     shimmerImporter.applyVerifiedShimmerImport({
       authorizedContext: createAuthorizedContext(bundle, preview),
       bundle,
+      inputContract: createTestInputContract(bundle, preview),
       connection: createTransactionConnection(calls),
       consumeDispatchPermit: () => calls.push('consume'),
       preview,
@@ -1556,6 +1848,7 @@ test('frozen shimmer import binding rejects every altered identity before permit
       shimmerImporter.applyVerifiedShimmerImport({
         authorizedContext,
         bundle,
+        inputContract: createTestInputContract(bundle, preview),
         connection: createTransactionConnection(calls),
         consumeDispatchPermit: () => calls.push('consume'),
         currentTargetFingerprintSha256: preview.targetFingerprintSha256,
@@ -1578,6 +1871,7 @@ test('verified shimmer apply commits only after every matching verification pass
   const result = await shimmerImporter.applyVerifiedShimmerImport({
     authorizedContext: createAuthorizedContext(bundle, preview),
     bundle,
+    inputContract: createTestInputContract(bundle, preview),
     connection: createTransactionConnection(calls),
     consumeDispatchPermit: () => calls.push('consume'),
     preview,
@@ -1856,9 +2150,13 @@ function createEmptyShimmerScope(preview) {
   };
 }
 
-function createAuthorizedContext(bundle, preview) {
+function createAuthorizedContext(bundle, preview, inputContract = createTestInputContract(bundle, preview)) {
   return {
-    dataBundleSha256: bundle.dataBundleSha256,
+    dataBundleSha256: hashOrderedBundleBytes([{
+      path: inputContract.relativePath,
+      bytes: inputContract.bytes,
+    }], 'data bundle'),
+    inputContract,
     executionManifest: {
       shimmerImport: {
         operationId: 'canonical-shimmer-import',
@@ -1872,6 +2170,37 @@ function createAuthorizedContext(bundle, preview) {
     },
     operationId: 'canonical-shimmer-import'
   };
+}
+
+function createTestInputContract(bundle, preview) {
+  const contract = {
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    generationId: bundle.generationId,
+    manifestPath: `data/generated/shimmer/generations/${bundle.generationId}/wiki-shimmer-manifest.json`,
+    manifestSha256: bundle.manifestSha256,
+    dataBundleSha256: bundle.dataBundleSha256,
+    previewSha256: preview.previewSha256,
+    targetFingerprintSha256: preview.targetFingerprintSha256,
+    providerScope: stableValue(preview.providerScope),
+  };
+  const bytes = Buffer.from(`${JSON.stringify(contract, null, 2)}\n`, 'utf8');
+  return {
+    ...contract,
+    contract,
+    bytes,
+    contractPath: contract.manifestPath,
+    relativePath: 'reports/authorization/canonical/canonical-shimmer-import.input.json',
+  };
+}
+
+function bindFixtureContract(fixture, preview, overrides = {}) {
+  return fixture.writeInputContract({
+    previewSha256: preview.previewSha256,
+    targetFingerprintSha256: preview.targetFingerprintSha256,
+    providerScope: stableValue(preview.providerScope),
+    ...overrides,
+  });
 }
 
 function createTransactionConnection(calls) {
@@ -1903,7 +2232,7 @@ function stableValue(value) {
   return value;
 }
 
-function createGenerationFixture({ contextRecords } = {}) {
+function createGenerationFixture({ contextRecords, titleResolutionRecords } = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-import-'));
   const repoRoot = tempDir;
   const generationRoot = path.join(repoRoot, 'data', 'generated', 'shimmer', 'generations');
@@ -1970,7 +2299,12 @@ function createGenerationFixture({ contextRecords } = {}) {
       },
       titleResolution: {
         entity: 'wiki_shimmer_title_resolution',
-        records: [{ nameZh: 'Torch', nameEn: 'Torch', kind: 'item', internalName: 'Torch' }]
+        records: titleResolutionRecords ?? [{
+          nameZh: 'Torch',
+          nameEn: 'Torch',
+          kind: 'item',
+          internalName: 'Torch',
+        }]
       }
     },
     standardizedInputs: {
@@ -1985,11 +2319,53 @@ function createGenerationFixture({ contextRecords } = {}) {
     pointerPath,
     runId: 'import-test'
   });
-  return {
+  const fixture = {
     cleanup: () => fs.rmSync(tempDir, { recursive: true, force: true }),
     publication,
     repoRoot
   };
+  fixture.writeInputContract = (overrides = {}) => {
+    const contractPath = path.join(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.input.json',
+    );
+    const contract = {
+      schemaVersion: 1,
+      operationId: 'canonical-shimmer-import',
+      generationId: publication.manifest.generationId,
+      manifestPath: path.relative(repoRoot, publication.manifestPath).replaceAll('\\', '/'),
+      manifestSha256: publication.manifest.manifestSha256,
+      dataBundleSha256: publication.manifest.dataBundleSha256,
+      previewSha256: sha256('fixture-preview'),
+      targetFingerprintSha256: sha256('fixture-target'),
+      providerScope: {
+        provider: 'wiki_zh',
+        sourcePage: '微光',
+        tables: [
+          'shimmer_item_transforms',
+          'shimmer_decraft_rules',
+          'shimmer_entity_transforms',
+          'shimmer_npc_transforms',
+        ],
+      },
+      ...overrides,
+    };
+    const bytes = Buffer.from(`${JSON.stringify(contract, null, 2)}\n`, 'utf8');
+    fs.mkdirSync(path.dirname(contractPath), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(contractPath, bytes, { mode: 0o600 });
+    fs.chmodSync(contractPath, 0o600);
+    fixture.inputContractPath = contractPath;
+    fixture.inputContract = {
+      ...contract,
+      contract,
+      bytes,
+      contractPath,
+      relativePath: path.relative(repoRoot, contractPath).replaceAll('\\', '/'),
+    };
+    return fixture.inputContract;
+  };
+  fixture.writeInputContract();
+  return fixture;
 }
 
 function sha256(value) {

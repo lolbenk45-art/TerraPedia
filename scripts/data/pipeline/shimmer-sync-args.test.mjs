@@ -3,36 +3,42 @@ import assert from 'node:assert/strict';
 
 import { buildShimmerImportArgs } from './shimmer-sync-args.mjs';
 
-test('buildShimmerImportArgs requires one content-addressed bundle manifest', () => {
+const inputContractPath = 'reports/authorization/canonical/canonical-shimmer-import.input.json';
+
+test('buildShimmerImportArgs requires the canonical private input contract', () => {
   assert.throws(
     () => buildShimmerImportArgs({}),
-    /bundleManifest/i
+    /input.*contract/i
   );
 });
 
-test('buildShimmerImportArgs defaults to preview and never exposes direct apply', () => {
+test('buildShimmerImportArgs defaults to preview and never exposes direct apply or a bundle manifest', () => {
   assert.deepEqual(
     buildShimmerImportArgs({
-      bundleManifest: generationManifestPath()
+      inputContract: inputContractPath
     }),
     [
       '--apply=false',
-      `--bundle-manifest=${generationManifestPath()}`
+      `--input-contract=${inputContractPath}`
     ]
   );
   assert.throws(
     () => buildShimmerImportArgs({
-      bundleManifest: generationManifestPath(),
-      'bundle-manifest': `data/generated/shimmer/generations/${'b'.repeat(64)}/wiki-shimmer-manifest.json`
+      inputContract: inputContractPath,
+      'input-contract': 'reports/authorization/canonical/other.input.json'
     }),
-    /conflicting bundle manifest/i
+    /conflicting input contract/i
   );
   assert.throws(
     () => buildShimmerImportArgs({
       apply: 'true',
-      bundleManifest: generationManifestPath()
+      inputContract: inputContractPath
     }),
     /direct apply/i
+  );
+  assert.throws(
+    () => buildShimmerImportArgs({ bundleManifest: generationManifestPath() }),
+    /bundle manifest.*forbidden/i
   );
 });
 
@@ -40,11 +46,11 @@ function generationManifestPath() {
   return `data/generated/shimmer/generations/${'a'.repeat(64)}/wiki-shimmer-manifest.json`;
 }
 
-test('buildShimmerImportArgs rejects mutable latest pointers', () => {
+test('buildShimmerImportArgs rejects non-canonical input contracts', () => {
   assert.throws(
     () => buildShimmerImportArgs({
-      bundleManifest: 'data/generated/shimmer/wiki-shimmer-manifest.latest.json'
+      inputContract: 'reports/authorization/canonical/other.input.json'
     }),
-    /latest|content-addressed/i
+    /canonical.*input contract/i
   );
 });
