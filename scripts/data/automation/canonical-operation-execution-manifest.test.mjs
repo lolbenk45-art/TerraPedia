@@ -584,6 +584,37 @@ test('manifest CLI accepts the exact NPC T1 private-config arguments', () => {
   }
 });
 
+test('manifest CLI preserves the exact legacy-origin repair arguments', () => {
+  const outputDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-image-sync-manifest-cli-'));
+  const outputPath = path.join(outputDirectory, 'manifest.json');
+  try {
+    execFileSync(process.execPath, [
+      'scripts/data/automation/canonical-operation-execution-manifest.mjs',
+      `--repo-root=${repoRoot}`,
+      '--operation-id=canonical-image-sync',
+      '--artifact-date=2026-08-04',
+      '--backend-api-base=http://127.0.0.1:18188/api',
+      '--item-image-promotion-bundle-path=reports/audit/item-image-source-promotion-abc.bundle.json',
+      '--managed-object-origin=http://127.0.0.1:19100',
+      '--legacy-origin-repair=true',
+      '--legacy-origin=http://localhost:9000',
+      '--expected-legacy-count=331',
+      `--output=${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    const manifest = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    assert.deepEqual(manifest.command.slice(-6), [
+      '--managed-object-origin=http://127.0.0.1:19100',
+      '--legacy-origin-repair=true',
+      '--legacy-origin=http://localhost:9000',
+      '--expected-legacy-count=331',
+      '--output=reports/workflow-image-sync-2026-08-04.json',
+      '--progress-path=reports/backend-refresh/history/canonical-image-sync.runtime/child-status.json',
+    ]);
+  } finally {
+    fs.rmSync(outputDirectory, { recursive: true, force: true });
+  }
+});
+
 test('bootstrap, recipe, and NPC manifests freeze exact safety-critical arguments', () => {
   const bootstrap = buildCanonicalOperationExecutionManifest({
     repoRoot,

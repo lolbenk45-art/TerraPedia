@@ -1412,6 +1412,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       npcT1RunId: args['npc-t1-run-id'] ?? null,
       itemImagePromotionBundlePath: args['item-image-promotion-bundle-path'] ?? null,
       managedObjectOrigin: args['managed-object-origin'] ?? null,
+      legacyOriginRepair: args['legacy-origin-repair'] === 'true',
+      legacyOrigin: args['legacy-origin'] ?? null,
+      expectedLegacyCount: args['expected-legacy-count'] == null
+        ? null
+        : Number(args['expected-legacy-count']),
       itemImageProjectionAttemptRoot: args['item-image-projection-attempt-root'] ?? null,
       outputPath: args.output,
     });
