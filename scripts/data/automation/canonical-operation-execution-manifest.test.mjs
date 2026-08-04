@@ -136,6 +136,26 @@ test('image sync manifest freezes the local reuse evidence bundle and managed or
   assert.ok(manifest.command.every((token) => !String(token).includes('latest')));
 });
 
+test('image sync manifest freezes the legacy-origin probe-only repair boundary', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot: process.cwd(),
+    operationId: 'canonical-image-sync',
+    artifactDate: '2026-08-04',
+    backendApiBase: 'http://127.0.0.1:18188/api',
+    itemImagePromotionBundlePath: 'reports/audit/item-image-source-promotion-abc.bundle.json',
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    legacyOriginRepair: true,
+    legacyOrigin: 'http://localhost:9000',
+    expectedLegacyCount: 331,
+  });
+
+  assert.ok(manifest.command.includes('--legacy-origin-repair=true'));
+  assert.ok(manifest.command.includes('--legacy-origin=http://localhost:9000'));
+  assert.ok(manifest.command.includes('--expected-legacy-count=331'));
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.networkAccess, true);
+});
+
 test('image sync manifest refuses a missing local reuse evidence bundle', () => {
   assert.throws(
     () => buildCanonicalOperationExecutionManifest({

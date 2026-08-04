@@ -630,6 +630,144 @@ test('runImageSync treats historical MinIO endpoints as already managed', async 
   assert.deepEqual(workspace.uploadedUrls, ['https://terraria.wiki.gg/images/Copper_Coin.png']);
 });
 
+test('legacy-origin repair probes exactly its candidates and atomically stores relative paths', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  payload.records.find((record) => record.internalName === 'Torch').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/torch.png';
+  payload.records.find((record) => record.internalName === 'Wood').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/wood.png';
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  fs.writeFileSync(workspace.itemsPath, serialized);
+  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: sha256Hex(serialized) }
+  }, null, 2)}\n`);
+  const probed = [];
+
+  const result = await runImageSync({
+    repoRoot: workspace.root,
+    scopes: ['items'],
+    apply: true,
+    legacyOriginRepair: true,
+    legacyOrigin: 'http://localhost:9000',
+    expectedLegacyCount: 2,
+    managedObjectOrigin: 'http://127.0.0.1:19100',
+    outputPath: workspace.reportPath,
+    progressPath: workspace.progressPath,
+    promotionResultPath: workspace.promotionResultPath,
+  }, workspace.dependencies({
+    probeObject: async (url) => {
+      probed.push(url);
+      return true;
+    },
+    createUploader: async () => {
+      throw new Error('legacy-origin repair must not create an uploader');
+    }
+  }));
+
+  assert.equal(result.status, 'completed');
+  assert.equal(result.normalizedKeys.length, 2);
+  assert.equal(result.uploaded, 0);
+  assert.deepEqual(probed, [
+    'http://127.0.0.1:19100/terrapedia-images/items/torch.png',
+    'http://127.0.0.1:19100/terrapedia-images/items/wood.png'
+  ]);
+  const written = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  assert.equal(written.records.find((record) => record.internalName === 'Torch').imageUrl,
+    '/terrapedia-images/items/torch.png');
+  assert.equal(written.records.find((record) => record.internalName === 'Wood').imageUrl,
+    '/terrapedia-images/items/wood.png');
+  assert.equal(written.records.find((record) => record.internalName === 'CopperCoin').imageUrl,
+    'https://terraria.wiki.gg/images/Copper_Coin.png');
+});
+
+test('legacy-origin repair leaves standardized bytes unchanged when any probe fails', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  payload.records.find((record) => record.internalName === 'Torch').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/torch.png';
+  payload.records.find((record) => record.internalName === 'Wood').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/wood.png';
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  fs.writeFileSync(workspace.itemsPath, serialized);
+  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: sha256Hex(serialized) }
+  }, null, 2)}\n`);
+  const beforeBytes = fs.readFileSync(workspace.itemsPath);
+  let probes = 0;
+
+  await assert.rejects(
+    () => runImageSync({
+      repoRoot: workspace.root,
+      scopes: ['items'],
+      apply: true,
+      legacyOriginRepair: true,
+      legacyOrigin: 'http://localhost:9000',
+      expectedLegacyCount: 2,
+      managedObjectOrigin: 'http://127.0.0.1:19100',
+      outputPath: workspace.reportPath,
+      progressPath: workspace.progressPath,
+      promotionResultPath: workspace.promotionResultPath,
+    }, workspace.dependencies({
+      probeObject: async () => {
+        probes += 1;
+        return probes !== 2;
+      },
+      createUploader: async () => {
+        throw new Error('legacy-origin repair must not create an uploader');
+      }
+    })),
+    /image sync failed/i
+  );
+
+  assert.equal(probes, 2);
+  assert.deepEqual(fs.readFileSync(workspace.itemsPath), beforeBytes);
+  const report = JSON.parse(fs.readFileSync(workspace.reportPath, 'utf8'));
+  assert.equal(report.status, 'failed');
+  assert.deepEqual(report.failedKeys, ['Wood']);
+  assert.ok(!workspace.progressEvents.some((event) => event.status === 'completed'));
+});
+
+test('legacy-origin repair rejects candidate-count drift before probing', async () => {
+  const workspace = createImageSyncWorkspace();
+  const payload = JSON.parse(fs.readFileSync(workspace.itemsPath, 'utf8'));
+  payload.records.find((record) => record.internalName === 'Torch').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/torch.png';
+  payload.records.find((record) => record.internalName === 'Wood').imageUrl =
+    'http://localhost:9000/terrapedia-images/items/wood.png';
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  fs.writeFileSync(workspace.itemsPath, serialized);
+  fs.writeFileSync(workspace.promotionResultPath, `${JSON.stringify({
+    resultKind: 'canonical_item_image_source_promotion_result',
+    status: 'COMPLETED',
+    after: { sha256: sha256Hex(serialized) }
+  }, null, 2)}\n`);
+
+  await assert.rejects(
+    () => runImageSync({
+      repoRoot: workspace.root,
+      scopes: ['items'],
+      apply: true,
+      legacyOriginRepair: true,
+      legacyOrigin: 'http://localhost:9000',
+      expectedLegacyCount: 3,
+      managedObjectOrigin: 'http://127.0.0.1:19100',
+      outputPath: workspace.reportPath,
+      progressPath: workspace.progressPath,
+      promotionResultPath: workspace.promotionResultPath,
+    }, workspace.dependencies({
+      probeObject: async () => {
+        throw new Error('candidate-count drift must fail before probing');
+      }
+    })),
+    /expected legacy-origin candidate count 3, found 2/i
+  );
+});
+
 test('runImageSync reuses a local managed object instead of re-downloading it', async () => {
   const workspace = createImageSyncWorkspace();
   const probed = [];

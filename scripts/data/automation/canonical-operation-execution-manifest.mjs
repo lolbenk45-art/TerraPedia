@@ -252,6 +252,9 @@ export function buildCanonicalOperationExecutionManifest({
   npcT1RunId = null,
   itemImagePromotionBundlePath = null,
   managedObjectOrigin = null,
+  legacyOriginRepair = false,
+  legacyOrigin = null,
+  expectedLegacyCount = null,
   itemImageProjectionAttemptRoot = null,
 } = {}) {
   const root = path.resolve(repoRoot);
@@ -264,6 +267,9 @@ export function buildCanonicalOperationExecutionManifest({
     resultLabel,
     itemImagePromotionBundlePath,
     managedObjectOrigin,
+    legacyOriginRepair,
+    legacyOrigin,
+    expectedLegacyCount,
     itemImageProjectionAttemptRoot,
     npcT1ConfigPath,
     npcT1RedisDb,
@@ -298,6 +304,9 @@ export function buildCanonicalOperationExecutionContract({
   npcT1RunId = null,
   itemImagePromotionBundlePath = null,
   managedObjectOrigin = null,
+  legacyOriginRepair = false,
+  legacyOrigin = null,
+  expectedLegacyCount = null,
   itemImageProjectionAttemptRoot = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
@@ -338,6 +347,9 @@ export function buildCanonicalOperationExecutionContract({
     normalizedResultLabel,
     itemImagePromotionBundlePath,
     managedObjectOrigin,
+    legacyOriginRepair,
+    legacyOrigin,
+    expectedLegacyCount,
     shimmerImport,
     itemImageProjectionAttemptRoot,
   );
@@ -377,6 +389,11 @@ export function assertCanonicalOperationExecutionManifestContract({
     npcT1RunId: npcT1Acceptance?.runId ?? null,
     itemImagePromotionBundlePath: commandArgument('--local-evidence='),
     managedObjectOrigin: commandArgument('--managed-object-origin='),
+    legacyOriginRepair: manifest?.command?.includes('--legacy-origin-repair=true') ?? false,
+    legacyOrigin: commandArgument('--legacy-origin='),
+    expectedLegacyCount: commandArgument('--expected-legacy-count=') == null
+      ? null
+      : Number(commandArgument('--expected-legacy-count=')),
     itemImageProjectionAttemptRoot: manifest?.itemImageProjectionAttempt?.attemptRoot ?? null,
   });
   if (operationId === 'canonical-npc-t1-acceptance'
@@ -683,6 +700,9 @@ function buildDefinition(
   resultLabel,
   itemImagePromotionBundlePath,
   managedObjectOrigin,
+  legacyOriginRepair,
+  legacyOrigin,
+  expectedLegacyCount,
   shimmerImport,
   itemImageProjectionAttemptRoot,
 ) {
@@ -790,6 +810,11 @@ function buildDefinition(
         `--apiBase=${requireBackendApiBase(operationId, backendApiBase)}`,
         `--local-evidence=${requireItemImagePromotionBundlePath(operationId, itemImagePromotionBundlePath)}`,
         `--managed-object-origin=${requireManagedObjectOrigin(operationId, managedObjectOrigin)}`,
+        ...(legacyOriginRepair ? [
+          '--legacy-origin-repair=true',
+          `--legacy-origin=${requireLegacyOrigin(operationId, legacyOrigin)}`,
+          `--expected-legacy-count=${requireExpectedLegacyCount(operationId, expectedLegacyCount)}`,
+        ] : []),
         `--output=reports/workflow-image-sync-${artifactDate}.json`,
         '--progress-path=reports/backend-refresh/history/canonical-image-sync.runtime/child-status.json',
       ],
@@ -1257,6 +1282,31 @@ function requireManagedObjectOrigin(operationId, value) {
     throw new Error(`${operationId} managedObjectOrigin must use http or https`);
   }
   return text.replace(/\/$/, '');
+}
+
+function requireLegacyOrigin(operationId, value) {
+  if (operationId !== 'canonical-image-sync') return '';
+  const text = String(value ?? '').trim();
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new Error(`${operationId} legacyOrigin must be an absolute URL origin`);
+  }
+  if (!['http:', 'https:'].includes(url.protocol)
+      || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error(`${operationId} legacyOrigin must be an absolute URL origin`);
+  }
+  return url.origin;
+}
+
+function requireExpectedLegacyCount(operationId, value) {
+  if (operationId !== 'canonical-image-sync') return '';
+  const count = Number(value);
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new Error(`${operationId} expectedLegacyCount must be a positive integer`);
+  }
+  return String(count);
 }
 
 function requireBackendApiBase(operationId, value) {

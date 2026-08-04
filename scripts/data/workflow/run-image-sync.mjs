@@ -40,6 +40,14 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
   const repoRoot = path.resolve(rawOptions.repoRoot ?? process.cwd());
   const apply = Boolean(rawOptions.apply);
   const scopes = normalizeScopes(rawOptions.scopes);
+  const legacyOriginRepair = normalizeLegacyOriginRepairOptions({
+    apply,
+    scopes,
+    enabled: rawOptions.legacyOriginRepair,
+    legacyOrigin: rawOptions.legacyOrigin,
+    managedObjectOrigin: rawOptions.managedObjectOrigin,
+    expectedLegacyCount: rawOptions.expectedLegacyCount
+  });
   const standardizedRoot = path.join(repoRoot, 'data', 'standardized');
   const now = dependencies.now ?? (() => new Date().toISOString());
   const startedAt = now();
@@ -110,12 +118,18 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
         ?? path.join(repoRoot, DEFAULT_PROMOTION_RESULT_PATH)
     });
   }
+  const legacyOriginRepairPlan = legacyOriginRepair
+    ? buildLegacyOriginRepairPlan({
+        payload: readJson(path.join(standardizedRoot, 'items.standardized.json')),
+        ...legacyOriginRepair
+      })
+    : null;
   if (apply && rawOptions.requireAuthorization) {
     const authorizedContext = loadAuthorizedContext();
     consumePermit(authorizedContext);
   }
 
-  const uploader = apply
+  const uploader = apply && !legacyOriginRepair
     ? await (dependencies.createUploader ?? createMinioImageUploader)({
         apiBase: rawOptions.apiBase,
         adminUsername: rawOptions.adminUsername,
@@ -149,6 +163,8 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
     uploader,
     writeJson,
     inputPath: rawOptions.inputPath ?? null,
+    legacyOriginRepair,
+    legacyOriginRepairPlan,
     startedAt
   };
 
@@ -393,6 +409,8 @@ async function syncRecordImages({
   filePath,
   localEvidence,
   localFileTitleAccessor,
+  legacyOriginRepair,
+  legacyOriginRepairPlan,
   managedObjectOrigin,
   managedUrlPrefixes,
   nameHint,
@@ -432,6 +450,35 @@ async function syncRecordImages({
     const record = records[index];
     const key = String(nameHint(record));
     let sourceUrl = sourceUrlAccessor(record);
+    const legacyRepairCandidate = legacyOriginRepairPlan?.candidateKeys?.has(key) ?? false;
+    if (legacyOriginRepair) {
+      if (!legacyRepairCandidate) {
+        alreadyManagedKeys.push(key);
+        progress(index + 1);
+        continue;
+      }
+      candidateKeys.push(key);
+      const probedUrl = reoriginManagedUrl(sourceUrl, legacyOriginRepair.managedObjectOrigin);
+      const reachable = probedUrl ? await probeObject(probedUrl) : false;
+      if (!reachable) {
+        failedKeys.push(key);
+        progress(index + 1);
+        continue;
+      }
+      const storedUrl = managedPathOf(probedUrl);
+      targetUrlWriter(record, storedUrl);
+      changed += 1;
+      normalizedKeys.push(key);
+      managedImages.push({
+        key,
+        originalUrl: sourceUrl,
+        managedUrl: storedUrl,
+        probedUrl,
+        contentHash: sha256Bytes(storedUrl)
+      });
+      progress(index + 1);
+      continue;
+    }
     if (!sourceUrl && fallbackSourceUrlResolver) {
       sourceUrl = await fallbackSourceUrlResolver(record);
     }
@@ -528,7 +575,10 @@ async function syncRecordImages({
   }
 
   if (apply && (uploadedKeys.length > 0 || reusedKeys.length > 0 || normalizedKeys.length > 0)) {
-    writeJson(filePath, payload);
+    if (!legacyOriginRepair || failedKeys.length === 0) {
+      const writer = legacyOriginRepair ? writeJsonAtomicallyAtPath : writeJson;
+      writer(filePath, payload);
+    }
   }
 
   return {
@@ -538,7 +588,12 @@ async function syncRecordImages({
     candidates: candidateKeys.length,
     candidateKeys: [...candidateKeys].sort(),
     changed,
-    completedKeys: [...uploadedKeys, ...reusedKeys, ...alreadyManagedKeys].sort(),
+    completedKeys: [
+      ...uploadedKeys,
+      ...reusedKeys,
+      ...alreadyManagedKeys,
+      ...(legacyOriginRepair ? normalizedKeys : [])
+    ].sort(),
     failedKeys: [...failedKeys].sort(),
     filePath,
     managedImages,
@@ -598,6 +653,75 @@ function normalizeConfiguredManagedUrl(value, managedObjectOrigin) {
   } catch {
     return null;
   }
+}
+
+function normalizeLegacyOriginRepairOptions({
+  apply,
+  scopes,
+  enabled,
+  legacyOrigin,
+  managedObjectOrigin,
+  expectedLegacyCount
+} = {}) {
+  if (!enabled) return null;
+  if (!apply || scopes.length !== 1 || scopes[0] !== 'items') {
+    throw new Error('legacy-origin repair requires apply=true and scopes=items only');
+  }
+  const expectedCount = Number(expectedLegacyCount);
+  if (!Number.isInteger(expectedCount) || expectedCount <= 0) {
+    throw new Error('legacy-origin repair expectedLegacyCount must be a positive integer');
+  }
+  return {
+    legacyOrigin: requireOriginOnly(legacyOrigin, 'legacyOrigin'),
+    managedObjectOrigin: requireOriginOnly(managedObjectOrigin, 'managedObjectOrigin'),
+    expectedLegacyCount: expectedCount
+  };
+}
+
+function buildLegacyOriginRepairPlan({
+  payload,
+  legacyOrigin,
+  expectedLegacyCount
+} = {}) {
+  const candidateKeys = new Set();
+  for (const record of recordsOf(payload)) {
+    const key = text(record?.internalName);
+    const imageUrl = text(record?.imageUrl);
+    if (!key || !isLegacyItemImageUrl(imageUrl, legacyOrigin)) continue;
+    candidateKeys.add(key);
+  }
+  if (candidateKeys.size !== expectedLegacyCount) {
+    throw new Error(
+      `expected legacy-origin candidate count ${expectedLegacyCount}, found ${candidateKeys.size}`
+    );
+  }
+  return { candidateKeys };
+}
+
+function isLegacyItemImageUrl(value, legacyOrigin) {
+  try {
+    const parsed = new URL(String(value));
+    return parsed.origin === legacyOrigin
+      && parsed.pathname.startsWith('/terrapedia-images/items/');
+  } catch {
+    return false;
+  }
+}
+
+function requireOriginOnly(value, label) {
+  let parsed;
+  try {
+    parsed = new URL(String(value ?? ''));
+  } catch {
+    throw new Error(`${label} must be an absolute HTTP origin`);
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)
+      || parsed.pathname !== '/'
+      || parsed.search
+      || parsed.hash) {
+    throw new Error(`${label} must be an absolute HTTP origin`);
+  }
+  return parsed.origin;
 }
 
 function managedPathOf(value) {
@@ -773,6 +897,17 @@ function writeJsonAtPath(filePath, payload) {
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
 
+function writeJsonAtomicallyAtPath(filePath, payload) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    fs.writeFileSync(temporaryPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    fs.renameSync(temporaryPath, filePath);
+  } finally {
+    fs.rmSync(temporaryPath, { force: true });
+  }
+}
+
 function sha256Bytes(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
@@ -812,6 +947,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     // are not covered by that packet.
     requireAuthorization: booleanOption(options.apply, false)
       && normalizeScopes(options.scopes ?? options.scope ?? 'projectiles,buffs').includes('items'),
+    legacyOriginRepair: booleanOption(options['legacy-origin-repair'], false),
+    legacyOrigin: options['legacy-origin'],
+    expectedLegacyCount: options['expected-legacy-count'],
     ...(managedUrlPrefix ? { managedUrlPrefixes: managedUrlPrefix } : {})
   }).then((summary) => {
     console.log(JSON.stringify(summary, null, 2));
