@@ -8,8 +8,11 @@ import test from 'node:test';
 import {
   authorizeCanonicalCutoverRequest,
   buildCanonicalAuthorizationRequest,
+  hashOrderedBundleBytes,
 } from './build-canonical-cutover-authorization.mjs';
 import {
+  assertAuthorizedOperationDataBundle,
+  assertItemImageProjectionAuthorizationEnvironment,
   consumeAuthorizedOperationDispatchPermit,
   createAuthorizedOperationDispatchPermit,
   loadAuthorizedOperationContext,
@@ -121,6 +124,88 @@ test('private dispatch permit binds and atomically consumes the authorized packe
   }), /unavailable|already consumed/i);
 });
 
+test('projection dispatch permit uses one exact private no-overwrite output path', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-outside-'));
+  const outputPath = path.join(dir, 'permit.json');
+  const authorized = packet();
+  try {
+    const permit = createAuthorizedOperationDispatchPermit({
+      directory: dir,
+      outputPath,
+      packet: authorized,
+    });
+    assert.equal(permit.path, outputPath);
+    assert.equal(fs.statSync(outputPath).mode & 0o777, 0o600);
+    assert.throws(
+      () => createAuthorizedOperationDispatchPermit({
+        directory: dir,
+        outputPath,
+        packet: authorized,
+      }),
+      /already exists|overwrite/i,
+    );
+    assert.throws(() => createAuthorizedOperationDispatchPermit({
+      directory: dir,
+      outputPath: path.join(outside, 'escaped-permit.json'),
+      packet: authorized,
+    }), /confinement|inside|outside/i);
+    fs.symlinkSync(outside, path.join(dir, 'linked-attempt'));
+    assert.throws(() => createAuthorizedOperationDispatchPermit({
+      directory: dir,
+      outputPath: path.join(dir, 'linked-attempt', 'permit.json'),
+      packet: authorized,
+    }), /symbolic|confinement|inside/i);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
+});
+
+test('authorized data bundle validator recomputes the current manifest-derived bytes', () => {
+  const dataEntries = [{ path: 'attempt/input.json', bytes: Buffer.from('{"ok":true}\n') }];
+  const dataBundleSha256 = hashOrderedBundleBytes(dataEntries, 'data bundle');
+  const authorizedContext = {
+    operationId: 'canonical-item-image-projection-apply',
+    dataBundleSha256,
+    executionManifest: { operationId: 'canonical-item-image-projection-apply' },
+  };
+  assert.equal(assertAuthorizedOperationDataBundle({
+    repoRoot: '/tmp/repo',
+    authorizedContext,
+    resolveTechnicalInput: () => ({ dataEntries }),
+  }), true);
+  assert.throws(() => assertAuthorizedOperationDataBundle({
+    repoRoot: '/tmp/repo',
+    authorizedContext,
+    resolveTechnicalInput: () => ({ dataEntries: [{ ...dataEntries[0], bytes: Buffer.from('{}\n') }] }),
+  }), /data bundle.*drift/i);
+});
+
+test('projection child authorization environment requires exact same-attempt packet and permit paths', () => {
+  const repoRoot = path.resolve('/tmp/projection-child-root');
+  const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${'5'.repeat(64)}`;
+  const exactEnv = {
+    TERRAPEDIA_AUTHORIZED_PACKET_PATH: path.join(repoRoot, attemptRoot, 'packet.json'),
+    TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH: path.join(repoRoot, attemptRoot, 'permit.json'),
+  };
+  assert.equal(assertItemImageProjectionAuthorizationEnvironment({
+    repoRoot,
+    attemptRoot,
+    env: exactEnv,
+  }), true);
+  for (const env of [
+    { ...exactEnv, TERRAPEDIA_AUTHORIZED_PACKET_PATH: path.join(repoRoot, 'packet.json') },
+    { ...exactEnv, TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH: path.join(repoRoot, 'permit.json') },
+  ]) {
+    assert.throws(() => assertItemImageProjectionAuthorizationEnvironment({
+      repoRoot,
+      attemptRoot,
+      env,
+    }), /same-attempt|exact.*attempt/i);
+  }
+});
+
 test('NPC owner executor rejects direct CLI use before it can read an input or connect', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-'));
   const file = path.join(dir, 'packet.json');
@@ -191,4 +276,52 @@ test('NPC owner executor rejects direct CLI use before it can read an input or c
   });
   assert.notEqual(forged.status, 0);
   assert.match(forged.stderr, /dispatch permit.*durable decision ledger/i);
+});
+
+test('NPC base maint executor rejects direct CLI use before reading source files or connecting', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-base-maint-context-'));
+  const packetPath = path.join(dir, 'packet.json');
+  const now = Date.now();
+  const operationId = 'canonical-npc-base-maint-nontown-apply';
+  const technical = {
+    operationId,
+    targetDatabases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    serverFingerprint: {
+      host: '127.0.0.1', port: 3306, serverUuid: 'server',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
+    schemaEntries: [],
+    dataEntries: [],
+    policyRows: [{ domainId: 'biomes', policyVersion: 1, policyHash: HASH }],
+    executionManifest: { schemaVersion: 1, operationId, command: ['node', 'script.mjs'] },
+    requiredTechnicalFields: ['serverFingerprint', 'schemaBundleSha256', 'dataBundleSha256', 'policySetHash', 'executionManifestHash'],
+  };
+  const request = buildCanonicalAuthorizationRequest({
+    ...technical,
+    generatedAt: new Date(now - 60_000).toISOString(),
+    expiresAt: new Date(now + 60_000).toISOString(),
+  });
+  const packet = authorizeCanonicalCutoverRequest({
+    request,
+    requestHash: request.requestHash,
+    actor: 'system-owner',
+    reason: 'test base maint direct executor rejection',
+    authorizationReference: 'decision://base-maint-direct-executor-test',
+    decisionIdentity: 'base-maint-direct-executor-test',
+    authorizedAt: new Date(now - 30_000).toISOString(),
+    currentTechnicalInput: technical,
+  });
+  fs.writeFileSync(packetPath, `${JSON.stringify(packet)}\n`, { mode: 0o600 });
+
+  const result = spawnSync(process.execPath, [
+    path.resolve(import.meta.dirname, '../npc-canonical/npc-base-maint-apply.mjs'),
+    `--operation-id=${operationId}`,
+    '--apply=true',
+    '--input=does-not-exist.json',
+  ], {
+    encoding: 'utf8',
+    env: { ...process.env, TERRAPEDIA_AUTHORIZED_PACKET_PATH: packetPath },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /authorized dispatch permit.*required/i);
 });

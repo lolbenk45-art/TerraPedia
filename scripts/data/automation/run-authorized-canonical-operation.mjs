@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,6 +13,13 @@ import {
   revokeAuthorizedOperationDispatchPermit,
 } from './authorized-operation-context.mjs';
 import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import {
+  assertItemImageProjectionCompletedResult,
+  assertItemImageProjectionFailedResult,
+  readItemImageProjectionInputContract,
+} from '../relation/item-image-projection-contract.mjs';
+
+const ITEM_IMAGE_PROJECTION_OPERATION_ID = 'canonical-item-image-projection-apply';
 
 export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity, dispatchPermitHash = null } = {}) {
   const identity = requireText(decisionIdentity, 'decision identity');
@@ -63,15 +70,22 @@ export async function runExecutionManifestCommand({
   authorizationDispatchPermit = null,
   env = process.env,
   spawnImpl = spawnCommand,
+  now = new Date().toISOString(),
+  projectionContract = null,
 } = {}) {
-  const { commandParts, root } = assertExecutionManifestDispatchPreflight({ manifest, cwd });
-  if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
   const permit = authorizationDispatchPermit == null
     ? null
     : {
         path: path.resolve(requireText(authorizationDispatchPermit.path, 'authorization dispatch permit path')),
         nonce: requireText(authorizationDispatchPermit.nonce, 'authorization dispatch permit nonce'),
       };
+  const { commandParts, root } = assertExecutionManifestDispatchPreflight({
+    manifest,
+    cwd,
+    authorizationPacketPath,
+    authorizationDispatchPermit: permit,
+  });
+  if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
   const childEnv = authorizationPacketPath == null
     ? env
     : {
@@ -91,13 +105,45 @@ export async function runExecutionManifestCommand({
   });
   const exitCode = Number(result?.exitCode);
   if (!Number.isInteger(exitCode) || exitCode !== 0) {
+    if (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID) {
+      const retainedPath = verifyItemImageProjectionTerminalResult({
+        manifest,
+        cwd: root,
+        expectedStatus: 'failed',
+        now,
+        projectionContract,
+      });
+      throw new Error(
+        `authorized operation command failed with exit code ${result?.exitCode ?? 'unknown'}; retained result: ${retainedPath}`,
+      );
+    }
     throw new Error(`authorized operation command failed with exit code ${result?.exitCode ?? 'unknown'}`);
   }
-  verifyDeclaredManifestOutputs({ manifest, cwd: root });
+  verifyDeclaredManifestOutputs({ manifest, cwd: root, now, projectionContract });
   return result;
 }
 
-export function assertExecutionManifestDispatchPreflight({ manifest, cwd = process.cwd() } = {}) {
+export function assertExecutionManifestTechnicalPreflight({
+  manifest,
+  cwd = process.cwd(),
+} = {}) {
+  return assertExecutionManifestPreflight({ manifest, cwd });
+}
+
+export function assertExecutionManifestDispatchPreflight(options = {}) {
+  return assertExecutionManifestPreflight({
+    ...options,
+    requireProjectionAuthorizationPaths: true,
+  });
+}
+
+function assertExecutionManifestPreflight({
+  manifest,
+  cwd = process.cwd(),
+  authorizationPacketPath = null,
+  authorizationDispatchPermit = null,
+  requireProjectionAuthorizationPaths = false,
+} = {}) {
   const commandParts = manifest?.command;
   if (!Array.isArray(commandParts) || commandParts.length < 2
       || commandParts.some((part) => typeof part !== 'string' || !part.trim())) {
@@ -110,6 +156,15 @@ export function assertExecutionManifestDispatchPreflight({ manifest, cwd = proce
     throw new Error('execution manifest command contains a credential-shaped argument');
   }
   const { root, outputs } = resolveDeclaredManifestOutputs({ manifest, cwd });
+  if (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID) {
+    assertItemImageProjectionAttemptDispatch({
+      manifest,
+      root,
+      authorizationPacketPath,
+      authorizationDispatchPermit,
+      requireAuthorizationPaths: requireProjectionAuthorizationPaths,
+    });
+  }
   for (const { relativePath, output } of outputs) {
     assertRepositoryPathConfinement({
       repoRoot: root,
@@ -123,8 +178,7 @@ export function assertExecutionManifestDispatchPreflight({ manifest, cwd = proce
       throw new Error(`authorized operation declared output is not an ordinary file or directory: ${relativePath}`);
     }
     if (existingStat != null
-        && relativePath.startsWith('reports/authorization/canonical/')
-        && relativePath.endsWith('.result.json')
+        && isCanonicalResultPath(manifest, relativePath)
         && (!existingStat.isFile() || existingStat.isSymbolicLink() || (existingStat.mode & 0o077) !== 0)) {
       throw new Error(`authorized operation canonical result must be a private ordinary file: ${relativePath}`);
     }
@@ -132,7 +186,7 @@ export function assertExecutionManifestDispatchPreflight({ manifest, cwd = proce
   return { commandParts, root };
 }
 
-function verifyDeclaredManifestOutputs({ manifest, cwd }) {
+function verifyDeclaredManifestOutputs({ manifest, cwd, now, projectionContract }) {
   const { root, outputs } = resolveDeclaredManifestOutputs({ manifest, cwd });
   for (const { relativePath, output } of outputs) {
     const stat = lstatIfPresent(output);
@@ -151,13 +205,11 @@ function verifyDeclaredManifestOutputs({ manifest, cwd }) {
         || (stat.isDirectory() && fs.readdirSync(output).length === 0)) {
       throw new Error(`authorized operation declared output is empty: ${relativePath}`);
     }
-    if (relativePath.startsWith('reports/authorization/canonical/')
-        && relativePath.endsWith('.result.json')
+    if (isCanonicalResultPath(manifest, relativePath)
         && (!stat.isFile() || (stat.mode & 0o077) !== 0)) {
       throw new Error(`authorized operation canonical result must be a private ordinary file: ${relativePath}`);
     }
-    if (relativePath.startsWith('reports/authorization/canonical/')
-        && relativePath.endsWith('.result.json')) {
+    if (isCanonicalResultPath(manifest, relativePath)) {
       let result;
       try {
         result = JSON.parse(fs.readFileSync(output, 'utf8'));
@@ -166,6 +218,17 @@ function verifyDeclaredManifestOutputs({ manifest, cwd }) {
       }
       if (result?.operationId !== manifest.operationId) {
         throw new Error(`authorized operation canonical result operationId drifted: ${relativePath}`);
+      }
+      if (manifest.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID) {
+        verifyItemImageProjectionTerminalResult({
+          manifest,
+          cwd: root,
+          expectedStatus: 'completed',
+          now,
+          projectionContract,
+          result,
+        });
+        continue;
       }
       const requiresAppliedCompletion = manifest.operationId === 'canonical-shimmer-import';
       if (requiresAppliedCompletion && result?.status !== 'completed') {
@@ -176,6 +239,123 @@ function verifyDeclaredManifestOutputs({ manifest, cwd }) {
       }
     }
   }
+}
+
+function isCanonicalResultPath(manifest, relativePath) {
+  if (!relativePath.startsWith('reports/authorization/canonical/')) return false;
+  return relativePath.endsWith('.result.json')
+    || (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
+      && relativePath === manifest?.itemImageProjectionAttempt?.resultPath);
+}
+
+function assertItemImageProjectionAttemptDispatch({
+  manifest,
+  root,
+  authorizationPacketPath,
+  authorizationDispatchPermit,
+  requireAuthorizationPaths,
+}) {
+  const attempt = manifest?.itemImageProjectionAttempt;
+  const attemptRoot = String(attempt?.attemptRoot ?? '').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-projection-apply/';
+  if (!attemptRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('projection dispatch attempt root is invalid');
+  }
+  const inputPath = `${attemptRoot}/input.json`;
+  const resultPath = `${attemptRoot}/result.json`;
+  const packetPath = `${attemptRoot}/packet.json`;
+  const permitPath = `${attemptRoot}/permit.json`;
+  const expectedCommand = [
+    'node',
+    'scripts/data/relation/apply-item-image-projection.mjs',
+    `--input-contract=${inputPath}`,
+    '--apply=true',
+    `--output=${resultPath}`,
+  ];
+  if (JSON.stringify(manifest.inputPaths) !== JSON.stringify([inputPath])
+      || JSON.stringify(manifest.outputPaths) !== JSON.stringify([resultPath])
+      || JSON.stringify(manifest.command) !== JSON.stringify(expectedCommand)
+      || attempt.packetPath !== packetPath
+      || attempt.permitPath !== permitPath
+      || attempt.resultPath !== resultPath) {
+    throw new Error('projection dispatch manifest paths drifted across attempts');
+  }
+  if (!requireAuthorizationPaths) return;
+  const packet = resolveFromRoot(root, requireText(
+    authorizationPacketPath,
+    'projection authorization packet path',
+  ));
+  const permit = resolveFromRoot(root, requireText(
+    authorizationDispatchPermit?.path,
+    'projection authorization dispatch permit path',
+  ));
+  if (packet !== path.resolve(root, packetPath)) {
+    throw new Error('projection authorization packet must use the exact attempt path');
+  }
+  if (permit !== path.resolve(root, permitPath)) {
+    throw new Error('projection authorization dispatch permit must use the exact attempt path');
+  }
+}
+
+function resolveFromRoot(root, filePath) {
+  return path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(root, filePath);
+}
+
+function verifyItemImageProjectionTerminalResult({
+  manifest,
+  cwd,
+  expectedStatus,
+  now,
+  projectionContract,
+  result = null,
+}) {
+  const attempt = manifest.itemImageProjectionAttempt;
+  const relativePath = attempt.resultPath;
+  const output = path.resolve(cwd, relativePath);
+  let parsed = result;
+  if (parsed == null) {
+    const stat = lstatIfPresent(output);
+    if (stat == null || !stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
+      throw new Error(`projection terminal result must be a private ordinary file: ${relativePath}`);
+    }
+    try {
+      parsed = JSON.parse(fs.readFileSync(output, 'utf8'));
+    } catch {
+      throw new Error(`projection terminal result must be valid JSON: ${relativePath}`);
+    }
+  }
+  const contract = projectionContract ?? {
+    readInput: ({ repoRoot, inputPath, currentTime }) => readItemImageProjectionInputContract({
+      repoRoot,
+      inputContractPath: inputPath,
+      now: currentTime,
+    }),
+    assertCompleted: assertItemImageProjectionCompletedResult,
+    assertFailed: assertItemImageProjectionFailedResult,
+  };
+  const inputContract = contract.readInput({
+    repoRoot: cwd,
+    inputPath: manifest.inputPaths[0],
+    currentTime: now,
+  });
+  const inputContractSha256 = `sha256:${createHash('sha256')
+    .update(fs.readFileSync(path.resolve(cwd, manifest.inputPaths[0])))
+    .digest('hex')}`;
+  if (parsed.inputContractSha256 !== inputContractSha256) {
+    throw new Error('projection terminal result input contract hash drifted');
+  }
+  if (expectedStatus === 'completed') {
+    if (typeof contract.assertCompleted !== 'function') {
+      throw new Error('projection completed result validator is required');
+    }
+    contract.assertCompleted({ result: parsed, inputContract });
+  } else {
+    if (typeof contract.assertFailed !== 'function') {
+      throw new Error('projection failed result validator is required');
+    }
+    contract.assertFailed({ result: parsed, inputContract });
+  }
+  return relativePath;
 }
 
 function lstatIfPresent(filePath) {
@@ -351,13 +531,17 @@ async function main() {
     packet,
     currentTechnicalInput,
     usedDecisionIdentities: readUsedDecisionIdentities(ledgerPath),
-    preflight: ({ packet: preflightPacket }) => assertExecutionManifestDispatchPreflight({
+    preflight: ({ packet: preflightPacket }) => assertExecutionManifestTechnicalPreflight({
       manifest: preflightPacket.executionManifest,
       cwd: repoRoot,
     }),
     consumeDecisionIdentity: (decisionIdentity) => {
+      const projectionPermitPath = packet.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
+        ? path.join(repoRoot, packet.executionManifest.itemImageProjectionAttempt.permitPath)
+        : null;
       dispatchPermit = createAuthorizedOperationDispatchPermit({
         directory: path.join(repoRoot, 'reports/authorization/canonical'),
+        outputPath: projectionPermitPath,
         packet,
       });
       try {

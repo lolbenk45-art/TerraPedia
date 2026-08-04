@@ -1555,7 +1555,7 @@ test('runSync dry-run prefers wiki armor source fallback and projects single-pie
 test('runSync apply mode clears stale relation tables before writing current snapshot', async () => {
   const statements = [];
 
-  await runSync(
+  const result = await runSync(
     {
       apply: true,
       createDatabase: false,
@@ -1694,19 +1694,15 @@ test('runSync apply mode clears stale relation tables before writing current sna
   // the projection predicates must anchor on that path too or every such row is
   // read as unmanaged and never projected.
   assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY '/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY '/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY '/terrapedia-images/items/%'")));
+  assert.ok(statements.every((sql) => !sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
+  assert.ok(statements.every((sql) => !sql.includes('SET pi.image = li.image')));
   assert.ok(statements.every((sql) => !sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
-  assert.ok(statements.some((sql) => sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
-  assert.ok(statements.some((sql) => sql.includes('SET pi.image = li.image')));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
   assert.ok(statements.every((sql) => !sql.includes("LIKE '%/terrapedia-images/%'")));
   assert.ok(statements.some((sql) => sql.includes('SELECT id, related_items_json')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_local`.`items`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_armor_sets` SET related_items_json = ?')));
+  assert.equal('localItemImageFallbackRows' in result.summary.bridgeBreakdown, false);
+  assert.equal(result.summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows, 1);
   assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_shop_candidates`')));
   assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_loot_candidates`')));
   assert.ok(statements.every((sql) => !sql.includes('item_npc_shop_candidates` (`record_key`')));

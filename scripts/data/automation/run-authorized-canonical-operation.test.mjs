@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import {
@@ -7,6 +8,7 @@ import {
 } from './build-canonical-cutover-authorization.mjs';
 import {
   assertExecutionManifestDispatchPreflight,
+  assertExecutionManifestTechnicalPreflight,
   consumeDecisionIdentityFile,
   runExecutionManifestCommand,
   runAuthorizedCanonicalOperation,
@@ -421,6 +423,197 @@ test('manifest command rejects failed and dry-run canonical result outputs', asy
     );
   }
 });
+
+test('projection dispatch rejects cross-attempt packet and permit paths before child spawn', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-runner-'));
+  const attemptId = '1'.repeat(64);
+  const siblingId = '2'.repeat(64);
+  const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${attemptId}`;
+  const siblingRoot = `reports/authorization/canonical/item-image-projection-apply/${siblingId}`;
+  const manifest = projectionRunnerManifest(attemptRoot);
+  let spawnCalls = 0;
+  try {
+    for (const [packetPath, permitPath] of [
+      [`${siblingRoot}/packet.json`, `${attemptRoot}/permit.json`],
+      [`${attemptRoot}/packet.json`, `${siblingRoot}/permit.json`],
+      [`${attemptRoot}/packet.json`, 'reports/authorization/canonical/permit.json'],
+    ]) {
+      await assert.rejects(() => runExecutionManifestCommand({
+        cwd: repoRoot,
+        manifest,
+        authorizationPacketPath: path.join(repoRoot, packetPath),
+        authorizationDispatchPermit: {
+          path: path.join(repoRoot, permitPath),
+          nonce: 'nonce',
+        },
+        spawnImpl: async () => {
+          spawnCalls += 1;
+          return { exitCode: 0 };
+        },
+      }), /attempt|packet|permit/i);
+    }
+    assert.equal(spawnCalls, 0);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('projection technical preflight can run before the same-attempt permit is created', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-preflight-'));
+  const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${'9'.repeat(64)}`;
+  const manifest = projectionRunnerManifest(attemptRoot);
+  try {
+    assert.doesNotThrow(() => assertExecutionManifestTechnicalPreflight({
+      manifest,
+      cwd: repoRoot,
+    }));
+    assert.throws(() => assertExecutionManifestDispatchPreflight({
+      manifest,
+      cwd: repoRoot,
+    }), /packet/i);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('projection dispatch accepts only the exact completed result contract', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-runner-'));
+  const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${'3'.repeat(64)}`;
+  const manifest = projectionRunnerManifest(attemptRoot);
+  const output = path.join(repoRoot, manifest.outputPaths[0]);
+  const input = path.join(repoRoot, manifest.inputPaths[0]);
+  fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(input, '{}\n', { mode: 0o600 });
+  fs.writeFileSync(output, JSON.stringify({
+    operationId: 'canonical-item-image-projection-apply',
+    status: 'completed',
+    apply: true,
+    inputContractSha256: sha256Bytes(fs.readFileSync(input)),
+  }) + '\n', { mode: 0o600 });
+  let validated = false;
+  try {
+    await runExecutionManifestCommand({
+      cwd: repoRoot,
+      manifest,
+      authorizationPacketPath: path.join(repoRoot, `${attemptRoot}/packet.json`),
+      authorizationDispatchPermit: {
+        path: path.join(repoRoot, `${attemptRoot}/permit.json`),
+        nonce: 'nonce',
+      },
+      projectionContract: {
+        readInput: () => ({ attemptRoot }),
+        assertCompleted: ({ result }) => {
+          assert.equal(result.status, 'completed');
+          assert.equal(result.apply, true);
+          validated = true;
+        },
+      },
+      spawnImpl: async () => ({ exitCode: 0 }),
+    });
+    assert.equal(validated, true);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('projection dispatch retains and reports an exact failed terminal result', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-runner-'));
+  const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${'4'.repeat(64)}`;
+  const manifest = projectionRunnerManifest(attemptRoot);
+  const output = path.join(repoRoot, manifest.outputPaths[0]);
+  const input = path.join(repoRoot, manifest.inputPaths[0]);
+  fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(input, '{}\n', { mode: 0o600 });
+  fs.writeFileSync(output, JSON.stringify({
+    operationId: 'canonical-item-image-projection-apply',
+    status: 'failed',
+    apply: true,
+    inputContractSha256: sha256Bytes(fs.readFileSync(input)),
+  }) + '\n', { mode: 0o600 });
+  let validated = false;
+  try {
+    await assert.rejects(() => runExecutionManifestCommand({
+      cwd: repoRoot,
+      manifest,
+      authorizationPacketPath: path.join(repoRoot, `${attemptRoot}/packet.json`),
+      authorizationDispatchPermit: {
+        path: path.join(repoRoot, `${attemptRoot}/permit.json`),
+        nonce: 'nonce',
+      },
+      projectionContract: {
+        readInput: () => ({ attemptRoot }),
+        assertFailed: ({ result }) => {
+          assert.equal(result.status, 'failed');
+          validated = true;
+        },
+      },
+      spawnImpl: async () => ({ exitCode: 7 }),
+    }), /exit code 7.*result\.json/i);
+    assert.equal(validated, true);
+    assert.equal(fs.existsSync(output), true);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('projection dispatch rejects a result whose input hash does not match the actual input bytes', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-runner-'));
+  const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${'6'.repeat(64)}`;
+  const manifest = projectionRunnerManifest(attemptRoot);
+  const input = path.join(repoRoot, manifest.inputPaths[0]);
+  const output = path.join(repoRoot, manifest.outputPaths[0]);
+  fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(input, '{"actual":true}\n', { mode: 0o600 });
+  fs.writeFileSync(output, JSON.stringify({
+    operationId: 'canonical-item-image-projection-apply',
+    status: 'completed',
+    apply: true,
+    inputContractSha256: `sha256:${'f'.repeat(64)}`,
+  }) + '\n', { mode: 0o600 });
+  try {
+    await assert.rejects(() => runExecutionManifestCommand({
+      cwd: repoRoot,
+      manifest,
+      authorizationPacketPath: path.join(repoRoot, `${attemptRoot}/packet.json`),
+      authorizationDispatchPermit: {
+        path: path.join(repoRoot, `${attemptRoot}/permit.json`),
+        nonce: 'nonce',
+      },
+      projectionContract: {
+        readInput: () => ({ attemptRoot }),
+        assertCompleted: () => {},
+      },
+      spawnImpl: async () => ({ exitCode: 0 }),
+    }), /input.*hash|hash.*input/i);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+function projectionRunnerManifest(attemptRoot) {
+  return {
+    operationId: 'canonical-item-image-projection-apply',
+    command: [
+      'node',
+      'scripts/data/relation/apply-item-image-projection.mjs',
+      `--input-contract=${attemptRoot}/input.json`,
+      '--apply=true',
+      `--output=${attemptRoot}/result.json`,
+    ],
+    inputPaths: [`${attemptRoot}/input.json`],
+    outputPaths: [`${attemptRoot}/result.json`],
+    itemImageProjectionAttempt: {
+      attemptRoot,
+      packetPath: `${attemptRoot}/packet.json`,
+      permitPath: `${attemptRoot}/permit.json`,
+      resultPath: `${attemptRoot}/result.json`,
+    },
+  };
+}
+
+function sha256Bytes(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
 
 test('manifest command rejects a matching canonical result that is not completed and applied', async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorized-output-'));

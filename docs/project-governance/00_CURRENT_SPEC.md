@@ -61,6 +61,14 @@ bounded compatibility-export and governance inputs until the source-contract
 registry is explicitly flipped. That flip stays fail-closed while the complete
 repository gate still reports domain warnings or blockers.
 
+Canonical item image ownership follows the active primary
+`terria_v1_relation.relation_item_images.cached_url` rows. The governed
+`canonical-item-image-projection-apply` operation may update only the `image`
+column of existing active `terria_v1_relation.projection_items` rows; the
+projection value is derived state and relation sync must not reverse-copy
+`terria_v1_local.items.image` into it. The local item image remains available
+only for the existing armor-set `related_items_json` compatibility fallback.
+
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
 DB `15`, and exposes verification codes only through the E2E profile's

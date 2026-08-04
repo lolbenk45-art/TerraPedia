@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -14,10 +15,23 @@ import {
   buildCanonicalAuthorizationRequestForOperation,
   hashOrderedBundleBytes,
   readUsedDecisionIdentities,
+  resolveCanonicalOperationTechnicalInput,
   verifyCanonicalAuthorizationPacket,
 } from './build-canonical-cutover-authorization.mjs';
-import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
+import {
+  buildCanonicalOperationExecutionManifest,
+  writeCanonicalOperationExecutionManifest,
+} from './canonical-operation-execution-manifest.mjs';
 import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
+import {
+  assertItemImageProjectionSnapshot,
+  buildItemImageProjectionAttemptPaths,
+  buildItemImageProjectionInputContract,
+  buildItemImageProjectionProposal,
+  buildItemImageProjectionSnapshot,
+  canonicalItemImageProjectionHash,
+  recomputeItemImageProjectionPacketHash,
+} from '../relation/item-image-projection-contract.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const GENERATED_AT = '2026-07-27T15:00:00.000Z';
@@ -265,12 +279,13 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes the legacy umbrella plus 31 independent stable IDs', () => {
+test('operation request builder exposes all 34 stable governed IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
     'canonical-item-image-source-promotion',
     'canonical-item-image-lineage-apply',
+    'canonical-item-image-projection-apply',
     'canonical-image-sync',
     'canonical-boss-import',
     'canonical-boss-loot-import',
@@ -455,6 +470,7 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
   write('back/src/main/resources/db/migration/V58__c.sql', 'DDL-58');
 
   for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
+    if (operationId === 'canonical-item-image-projection-apply') continue;
     const request = buildCanonicalAuthorizationRequestForOperation({
       repoRoot,
       operationId,
@@ -877,6 +893,518 @@ test('NPC T1 request binds only isolated-acceptance technical fields and rejects
     fs.rmSync(configDirectory, { recursive: true, force: true });
   }
 });
+
+test('item image projection authorization expands and verifies the complete frozen data bundle', () => {
+  const fixture = createProjectionAuthorizationFixture();
+  try {
+    const request = buildProjectionAuthorizationRequest(fixture);
+    assert.deepEqual(request.executionManifest.inputPaths, [fixture.paths.inputPath]);
+    assert.deepEqual(request.dataBundleEntries.map((entry) => entry.path), fixture.dataPaths);
+    assert.equal(request.dataBundleEntries.some((entry) => (
+      entry.path === 'reports/authorization/canonical/used-decisions.json'
+    )), false);
+    assert.equal(request.dataBundleSha256, hashOrderedBundleBytes(
+      fixture.dataPaths.map((entryPath) => ({
+        path: entryPath,
+        bytes: fs.readFileSync(path.join(fixture.repoRoot, entryPath)),
+      })),
+      'data bundle',
+    ));
+    assert.equal(
+      request.executionManifest.itemImageProjectionAttempt.inputBinding.lineage.decisionIdentity,
+      fixture.input.lineage.decisionIdentity,
+    );
+    assert.equal(
+      request.executionManifest.itemImageProjectionAttempt.inputBinding.lineage.dispatchPermitHash,
+      fixture.input.lineage.dispatchPermitHash,
+    );
+
+    const proposalPath = path.join(fixture.repoRoot, fixture.paths.proposalPath);
+    fs.appendFileSync(proposalPath, ' ');
+    assert.throws(() => buildProjectionAuthorizationRequest(fixture), /proposal.*hash|bundle.*drift/i);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection authorization rejects private, packet, and confinement drift', () => {
+  for (const mutate of [
+    (fixture) => fs.chmodSync(path.join(fixture.repoRoot, fixture.paths.snapshotPath), 0o644),
+    (fixture) => fs.chmodSync(path.join(
+      fixture.repoRoot,
+      fixture.input.lineage.inputContractPath,
+    ), 0o644),
+    (fixture) => fs.chmodSync(path.join(
+      fixture.repoRoot,
+      fixture.input.lineage.resultPath,
+    ), 0o644),
+    (fixture) => fs.chmodSync(path.join(
+      fixture.repoRoot,
+      fixture.input.lineage.applySnapshotPath,
+    ), 0o644),
+    (fixture) => {
+      const packetPath = path.join(fixture.repoRoot, fixture.historicalPacketPath);
+      const packet = JSON.parse(fs.readFileSync(packetPath, 'utf8'));
+      fs.writeFileSync(packetPath, JSON.stringify({ ...packet, actor: 'different-owner' }), { mode: 0o600 });
+    },
+    (fixture) => {
+      const ownerPath = path.join(fixture.repoRoot, fixture.paths.proposalReadOwnerInputPath);
+      const owner = JSON.parse(fs.readFileSync(ownerPath, 'utf8'));
+      fs.writeFileSync(ownerPath, JSON.stringify({ ...owner, reason: 'drifted' }), { mode: 0o600 });
+    },
+  ]) {
+    const fixture = createProjectionAuthorizationFixture();
+    try {
+      mutate(fixture);
+      assert.throws(
+        () => buildProjectionAuthorizationRequest(fixture),
+        /private|packet|content hash|authorization|bundle|hash/i,
+      );
+    } finally {
+      fixture.cleanup();
+    }
+  }
+
+  const fixture = createProjectionAuthorizationFixture();
+  try {
+    const bundlePath = path.join(fixture.repoRoot, fixture.input.lineage.bundlePath);
+    fs.rmSync(bundlePath);
+    fs.symlinkSync('/etc/hosts', bundlePath);
+    assert.throws(() => buildProjectionAuthorizationRequest(fixture), /ordinary|symbolic|confinement|bundle/i);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection authorization requires the manifest as its sole dynamic root', () => {
+  const fixture = createProjectionAuthorizationFixture();
+  try {
+    assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
+      repoRoot: fixture.repoRoot,
+      operationId: 'canonical-item-image-projection-apply',
+      serverFingerprint: fixture.serverFingerprint,
+      policyRows: fixture.policyRows,
+      generatedAt: '2026-08-04T02:00:00.000Z',
+      expiresAt: '2026-08-05T02:00:00.000Z',
+    }), /execution manifest.*required|projection.*manifest/i);
+
+    const sibling = createProjectionAuthorizationFixture({
+      decisionIdentity: 'canonical-item-image-projection-proposal-read-20990101-12',
+    });
+    try {
+      const mixed = {
+        ...fixture.manifest,
+        inputPaths: [sibling.paths.inputPath],
+        command: fixture.manifest.command.map((argument) => (
+          argument.startsWith('--input-contract=')
+            ? `--input-contract=${sibling.paths.inputPath}`
+            : argument
+        )),
+      };
+      assert.throws(
+        () => resolveCanonicalOperationTechnicalInput({
+          repoRoot: fixture.repoRoot,
+          operationId: 'canonical-item-image-projection-apply',
+          executionManifest: mixed,
+        }),
+        /manifest contract.*drift|attempt|input/i,
+      );
+    } finally {
+      sibling.cleanup();
+    }
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection retry uses a distinct decision-derived artifact and hash namespace', () => {
+  const first = createProjectionAuthorizationFixture();
+  const second = createProjectionAuthorizationFixture({
+    decisionIdentity: 'canonical-item-image-projection-proposal-read-20990101-13',
+  });
+  try {
+    const firstRequest = buildProjectionAuthorizationRequest(first);
+    const secondRequest = buildProjectionAuthorizationRequest(second);
+    assert.notEqual(first.paths.attemptId, second.paths.attemptId);
+    assert.notEqual(first.paths.attemptRoot, second.paths.attemptRoot);
+    for (const key of [
+      'inputPath', 'manifestPath', 'requestPath', 'packetPath', 'permitPath', 'resultPath',
+    ]) {
+      assert.notEqual(first.paths[key], second.paths[key], key);
+    }
+    assert.notEqual(firstRequest.dataBundleSha256, secondRequest.dataBundleSha256);
+    assert.notEqual(firstRequest.executionManifestHash, secondRequest.executionManifestHash);
+    assert.notEqual(firstRequest.requestHash, secondRequest.requestHash);
+  } finally {
+    first.cleanup();
+    second.cleanup();
+  }
+});
+
+test('item image projection request and packet CLI outputs are exact, private, and no-overwrite', () => {
+  const fixture = createProjectionAuthorizationFixture({ writeManifest: true });
+  try {
+    const requestOutput = runProjectionAuthorizationCli(fixture, {
+      mode: 'request',
+      output: fixture.paths.requestPath,
+    });
+    assert.equal(requestOutput.authorizationStatus, 'AWAITING_OWNER');
+    assert.equal(fs.statSync(path.join(fixture.repoRoot, fixture.paths.requestPath)).mode & 0o777, 0o600);
+    assert.throws(() => runProjectionAuthorizationCli(fixture, {
+      mode: 'request',
+      output: fixture.paths.requestPath,
+    }), /Command failed/);
+
+    writeProjectionOwnerInput(fixture);
+    const packetOutput = runProjectionAuthorizationCli(fixture, {
+      mode: 'authorize',
+      output: fixture.paths.packetPath,
+    });
+    assert.equal(packetOutput.authorizationStatus, 'AUTHORIZED');
+    assert.equal(fs.statSync(path.join(fixture.repoRoot, fixture.paths.packetPath)).mode & 0o777, 0o600);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection request CLI rejects a retained failed attempt before creating a replacement', () => {
+  const fixture = createProjectionAuthorizationFixture({ writeManifest: true });
+  try {
+    fixture.write(fixture.paths.resultPath, {
+      operationId: 'canonical-item-image-projection-apply',
+      status: 'failed',
+      apply: true,
+    });
+    assert.throws(() => runProjectionAuthorizationCli(fixture, {
+      mode: 'request',
+      output: fixture.paths.requestPath,
+    }), /Command failed/);
+    assert.equal(fs.existsSync(path.join(fixture.repoRoot, fixture.paths.requestPath)), false);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection authorization CLI rejects cross-root outputs before creating files', () => {
+  for (const mode of ['request', 'authorize']) {
+    const fixture = createProjectionAuthorizationFixture({ writeManifest: true });
+    try {
+      if (mode === 'authorize') {
+        runProjectionAuthorizationCli(fixture, { mode: 'request', output: fixture.paths.requestPath });
+        writeProjectionOwnerInput(fixture);
+      }
+      const siblingPaths = buildItemImageProjectionAttemptPaths(
+        'canonical-item-image-projection-proposal-read-20990101-sibling',
+      );
+      for (const output of [
+        `reports/authorization/canonical/${mode}.json`,
+        `${fixture.paths.attemptRoot}/nested/${mode}.json`,
+        mode === 'request' ? siblingPaths.requestPath : siblingPaths.packetPath,
+        path.join(fixture.repoRoot, mode === 'request' ? fixture.paths.requestPath : fixture.paths.packetPath),
+      ]) {
+        assert.throws(
+          () => runProjectionAuthorizationCli(fixture, { mode, output }),
+          /Command failed/,
+        );
+        const candidate = path.isAbsolute(output) ? output : path.join(fixture.repoRoot, output);
+        assert.equal(fs.existsSync(candidate), false, `${mode}:${output}`);
+      }
+    } finally {
+      fixture.cleanup();
+    }
+  }
+});
+
+test('item image projection authorization CLI verifies the manifest before output handling', () => {
+  const fixture = createProjectionAuthorizationFixture({ writeManifest: true });
+  try {
+    const manifestPath = path.join(fixture.repoRoot, fixture.paths.manifestPath);
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifest.codeBundleEntries[0].contentHash = `sha256:${'0'.repeat(64)}`;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
+    const invalidOutput = 'reports/authorization/canonical/legacy-fixed-request.json';
+    assert.throws(
+      () => runProjectionAuthorizationCli(fixture, { mode: 'request', output: invalidOutput }),
+      (error) => /code bundle.*hash mismatch/i.test(String(error.stderr)),
+    );
+    assert.equal(fs.existsSync(path.join(fixture.repoRoot, invalidOutput)), false);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection authorization CLI rejects a symbolic-link attempt parent', () => {
+  const fixture = createProjectionAuthorizationFixture({ writeManifest: true });
+  try {
+    const attemptRoot = path.join(fixture.repoRoot, fixture.paths.attemptRoot);
+    const retainedRoot = `${attemptRoot}.retained`;
+    fs.renameSync(attemptRoot, retainedRoot);
+    fs.symlinkSync(path.basename(retainedRoot), attemptRoot);
+    assert.throws(
+      () => runProjectionAuthorizationCli(fixture, {
+        mode: 'request',
+        output: fixture.paths.requestPath,
+      }),
+      (error) => /symbolic-link ancestor/i.test(String(error.stderr)),
+    );
+    assert.equal(fs.existsSync(path.join(retainedRoot, 'request.json')), false);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+function createProjectionAuthorizationFixture({
+  decisionIdentity = 'canonical-item-image-projection-proposal-read-20990101-11',
+  writeManifest = false,
+} = {}) {
+  const sourceRoot = path.resolve(import.meta.dirname, '../../..');
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-authorization-'));
+  fs.cpSync(path.join(sourceRoot, 'scripts'), path.join(fixtureRoot, 'scripts'), { recursive: true });
+  const paths = buildItemImageProjectionAttemptPaths(decisionIdentity);
+  const write = (relativePath, value, { mode = 0o600, json = true } = {}) => {
+    const output = path.join(fixtureRoot, relativePath);
+    fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+    const bytes = Buffer.isBuffer(value)
+      ? value
+      : Buffer.from(json ? `${JSON.stringify(value, null, 2)}\n` : String(value));
+    fs.writeFileSync(output, bytes, { mode });
+    fs.chmodSync(output, mode);
+    return bytes;
+  };
+  const sha = (bytes) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const serverFingerprint = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'projection-authorization-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  const target = {
+    host: serverFingerprint.host,
+    port: serverFingerprint.port,
+    serverUuid: serverFingerprint.serverUuid,
+    databases: {
+      local: 'terria_v1_local',
+      maint: 'terria_v1_maint',
+      relation: 'terria_v1_relation',
+    },
+    ownedDatabase: 'terria_v1_relation',
+    ownedTable: 'projection_items',
+    ownedColumn: 'image',
+  };
+  const ownerBase = {
+    schemaVersion: 1,
+    authorizationKind: 'canonical_read_only_proposal_authorization',
+    operationId: 'canonical-item-image-projection-apply',
+    action: 'read-only-proposal',
+    actor: 'admin',
+    reason: 'Build the exact no-write projection proposal.',
+    authorizationReference: 'decision://projection/read-only/2099-01-01',
+    decisionIdentity,
+    authorizedAt: '2026-08-04T00:30:00.000Z',
+    expiresAt: '2026-08-05T00:30:00.000Z',
+    targetDatabases: serverFingerprint.databases,
+    noWrite: true,
+  };
+  const owner = { ...ownerBase, authorizationHash: canonicalItemImageProjectionHash(ownerBase) };
+  const ownerBytes = write(paths.proposalReadOwnerInputPath, owner);
+
+  const lineageInputPath = 'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json';
+  const lineageResultPath = 'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json';
+  const lineageBundlePath = 'reports/audit/item-image-lineage.bundle.json';
+  const lineageSnapshotPath = 'reports/authorization/canonical/canonical-item-image-lineage-apply.snapshot.json';
+  const historicalPacketPath = 'reports/authorization/canonical/canonical-item-image-lineage-apply.packet.json';
+  const lineageInputBytes = write(lineageInputPath, { operationId: 'canonical-item-image-lineage-apply' });
+  const lineageResultBytes = write(lineageResultPath, {
+    operationId: 'canonical-item-image-lineage-apply', status: 'COMPLETED',
+  });
+  const lineageBundleBytes = write(lineageBundlePath, { entity: 'item_image_lineage_bundle' }, { mode: 0o644 });
+  const lineageSnapshotBytes = write(lineageSnapshotPath, {
+    operationId: 'canonical-item-image-lineage-apply', rowCount: 1,
+  });
+  const historicalDecisionIdentity = 'canonical-item-image-lineage-apply-20260801-02';
+  const historicalPacketPayload = {
+    schemaVersion: 1,
+    authorizationStatus: 'AUTHORIZED',
+    operationId: 'canonical-item-image-lineage-apply',
+    actor: 'admin',
+    decisionIdentity: historicalDecisionIdentity,
+  };
+  const historicalPacket = {
+    ...historicalPacketPayload,
+    packetHash: recomputeItemImageProjectionPacketHash(historicalPacketPayload),
+  };
+  const historicalPacketBytes = write(historicalPacketPath, historicalPacket);
+  const managedPolicyPath = 'scripts/data/relation/managed-image-url-policy.mjs';
+  const managedPolicyBytes = fs.readFileSync(path.join(fixtureRoot, managedPolicyPath));
+  const managedUrlPrefixes = ['http://127.0.0.1:9000/terrapedia-images/items/'];
+  const managedUrlPolicy = {
+    sourcePath: managedPolicyPath,
+    sourceSha256: sha(managedPolicyBytes),
+    resolvedPrefixesSha256: canonicalItemImageProjectionHash(managedUrlPrefixes),
+  };
+  const snapshot = buildItemImageProjectionSnapshot({
+    generatedAt: '2020-01-01T01:00:00.000Z',
+    target,
+    managedUrlPolicy,
+    managedUrlPrefixes,
+    lineageKeys: ['Wood'],
+    relationRows: [{
+      recordKey: 'relation-wood', internalName: 'Wood',
+      cachedUrl: '/terrapedia-images/items/wood.png', role: 'icon', isPrimary: 1,
+      status: 1, deleted: 0,
+    }],
+    projectionRows: [{
+      id: 1, relationRecordKey: 'relation-wood', internalName: 'Wood',
+      image: '/legacy/wood.png', status: 1, deleted: 0,
+    }],
+  });
+  assertItemImageProjectionSnapshot(snapshot);
+  const snapshotBytes = write(paths.snapshotPath, snapshot);
+  const dispatchPermitHash = sha(Buffer.from('historical-dispatch-permit'));
+  const proposal = buildItemImageProjectionProposal({
+    generatedAt: snapshot.generatedAt,
+    expiresAt: '2099-01-02T00:00:00.000Z',
+    proposalAuthorization: {
+      path: paths.proposalReadOwnerInputPath,
+      sha256: sha(ownerBytes),
+      decisionIdentity,
+      authorizationHash: owner.authorizationHash,
+    },
+    lineage: {
+      inputContractPath: lineageInputPath,
+      inputContractSha256: sha(lineageInputBytes),
+      resultPath: lineageResultPath,
+      resultSha256: sha(lineageResultBytes),
+      bundlePath: lineageBundlePath,
+      bundleSha256: sha(lineageBundleBytes),
+      applySnapshotPath: lineageSnapshotPath,
+      applySnapshotSha256: sha(lineageSnapshotBytes),
+      authorizationPacketPath: historicalPacketPath,
+      authorizationPacketSha256: sha(historicalPacketBytes),
+      decisionIdentity: historicalDecisionIdentity,
+      packetHash: historicalPacket.packetHash,
+      dispatchPermitHash,
+      completedRowCount: 1,
+    },
+    lineageKeys: ['Wood'],
+    target,
+    snapshotPath: paths.snapshotPath,
+    snapshotSha256: sha(snapshotBytes),
+    managedUrlPolicy,
+    managedUrlPrefixes,
+    relationRows: [{
+      recordKey: 'relation-wood', internalName: 'Wood',
+      cachedUrl: '/terrapedia-images/items/wood.png', role: 'icon', isPrimary: 1,
+      status: 1, deleted: 0,
+    }],
+    projectionRows: [{
+      id: 1, relationRecordKey: 'relation-wood', internalName: 'Wood',
+      image: '/legacy/wood.png', status: 1, deleted: 0,
+    }],
+  });
+  const proposalBytes = write(paths.proposalPath, proposal);
+  const input = buildItemImageProjectionInputContract({
+    proposal,
+    proposalPath: paths.proposalPath,
+    proposalSha256: sha(proposalBytes),
+  });
+  write(paths.inputPath, input);
+  const manifestOptions = {
+    repoRoot: fixtureRoot,
+    operationId: 'canonical-item-image-projection-apply',
+    artifactDate: '2026-08-04',
+    itemImageProjectionAttemptRoot: paths.attemptRoot,
+  };
+  const manifest = writeManifest
+    ? writeCanonicalOperationExecutionManifest({
+      ...manifestOptions,
+      outputPath: path.join(fixtureRoot, paths.manifestPath),
+    })
+    : buildCanonicalOperationExecutionManifest(manifestOptions);
+  const policyRows = [{ domainId: 'items', policyVersion: 1, policyHash: HASH }];
+  const dataPaths = [
+    paths.inputPath,
+    paths.proposalPath,
+    paths.snapshotPath,
+    paths.proposalReadOwnerInputPath,
+    lineageInputPath,
+    lineageResultPath,
+    lineageBundlePath,
+    lineageSnapshotPath,
+    historicalPacketPath,
+    managedPolicyPath,
+  ];
+  return {
+    repoRoot: fixtureRoot,
+    paths,
+    input,
+    manifest,
+    manifestOptions,
+    serverFingerprint,
+    policyRows,
+    dataPaths,
+    historicalPacketPath,
+    write,
+    cleanup: () => fs.rmSync(fixtureRoot, { recursive: true, force: true }),
+  };
+}
+
+function buildProjectionAuthorizationRequest(fixture) {
+  return buildCanonicalAuthorizationRequestForOperation({
+    repoRoot: fixture.repoRoot,
+    operationId: 'canonical-item-image-projection-apply',
+    serverFingerprint: fixture.serverFingerprint,
+    policyRows: fixture.policyRows,
+    executionManifest: fixture.manifest,
+    generatedAt: '2026-08-04T02:00:00.000Z',
+    expiresAt: '2026-08-05T02:00:00.000Z',
+  });
+}
+
+function writeProjectionOwnerInput(fixture) {
+  fixture.write('owner-input.json', {
+    actor: 'admin',
+    reason: 'Apply the exact item image projection.',
+    authorizationReference: 'decision://projection/apply/2099-01-01',
+    decisionIdentity: 'canonical-item-image-projection-apply-20990101-01',
+    authorizedAt: '2026-08-04T03:00:00.000Z',
+  });
+  fixture.write('used-decisions.json', []);
+}
+
+function runProjectionAuthorizationCli(fixture, { mode, output }) {
+  const sourceRoot = path.resolve(import.meta.dirname, '../../..');
+  const script = path.join(sourceRoot, 'scripts/data/automation/build-canonical-cutover-authorization.mjs');
+  const args = [
+    script,
+    `--mode=${mode}`,
+    `--repo-root=${fixture.repoRoot}`,
+    '--operation-id=canonical-item-image-projection-apply',
+    `--server-fingerprint=${path.join(fixture.repoRoot, 'server-fingerprint.json')}`,
+    `--policy-rows=${path.join(fixture.repoRoot, 'policy-rows.json')}`,
+    `--execution-manifest=${fixture.paths.manifestPath}`,
+    `--output=${output}`,
+  ];
+  fixture.write('server-fingerprint.json', fixture.serverFingerprint);
+  fixture.write('policy-rows.json', fixture.policyRows);
+  if (mode === 'request') {
+    args.push('--generated-at=2026-08-04T02:00:00.000Z', '--expires-at=2026-08-05T02:00:00.000Z');
+  } else {
+    const request = JSON.parse(fs.readFileSync(path.join(fixture.repoRoot, fixture.paths.requestPath), 'utf8'));
+    args.push(
+      `--request=${fixture.paths.requestPath}`,
+      `--request-hash=${request.requestHash}`,
+      '--owner-input=owner-input.json',
+      '--used-decisions=used-decisions.json',
+    );
+  }
+  const stdout = execFileSync(process.execPath, args, {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  return JSON.parse(stdout);
+}
 
 function writeShimmerImportContract(repoRoot) {
   const generationRoot = path.join(repoRoot, 'data/generated/shimmer/generations');

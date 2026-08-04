@@ -735,30 +735,6 @@ async function reconcileProjectionItemImageFromMaint(connection, maintDatabase, 
   return Number(result?.affectedRows ?? 0);
 }
 
-async function reconcileProjectionItemImageFromLocal(connection, localDatabase, enabled = true, prefixes) {
-  if (!localDatabase || !enabled) {
-    return 0;
-  }
-
-  const localImageManagedPredicate = buildManagedImageSqlLikeAny('li.image', prefixes);
-  const projectionImageUnmanagedPredicate = buildManagedImageSqlNotLikeAll('pi.image', prefixes);
-  const [result] = await connection.query(
-    `
-    UPDATE \`projection_items\` pi
-    INNER JOIN \`${localDatabase}\`.\`items\` li
-      ON li.internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
-    SET pi.image = li.image
-    WHERE pi.deleted = 0
-      AND li.deleted = 0
-      AND (pi.image IS NULL OR TRIM(pi.image) = '' OR ${projectionImageUnmanagedPredicate})
-      AND li.image IS NOT NULL
-      AND TRIM(li.image) <> ''
-      AND ${localImageManagedPredicate}
-    `.trim()
-  );
-  return Number(result?.affectedRows ?? 0);
-}
-
 async function reconcileProjectionArmorSetRelatedItemImagesFromLocal(connection, localDatabase, enabled = true, prefixes) {
   if (!localDatabase || !enabled) {
     return 0;
@@ -1630,7 +1606,6 @@ export async function runSync(options, dependencies = {}) {
       itemTextOverrideRows: maintItemTextOverrides.length,
       localItemImageFallbackEnabled: Boolean(options.allowLocalItemImageFallback && options.localDatabase),
       maintItemImageFillRows: 0,
-      localItemImageFallbackRows: 0,
       localArmorSetRelatedItemImageFallbackRows: 0,
     },
     gateBreakdown: {
@@ -1793,12 +1768,6 @@ export async function runSync(options, dependencies = {}) {
       summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(
         connection,
         options.maintDatabase,
-        managedImageUrlPrefixes
-      );
-      summary.bridgeBreakdown.localItemImageFallbackRows = await reconcileProjectionItemImageFromLocal(
-        connection,
-        options.localDatabase,
-        options.allowLocalItemImageFallback,
         managedImageUrlPrefixes
       );
       summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows =

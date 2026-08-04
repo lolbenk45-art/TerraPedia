@@ -23,6 +23,11 @@ import {
   writeCanonicalShimmerImportInputContract,
 } from './canonical-shimmer-import-input-contract.mjs';
 import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
+import {
+  buildItemImageProjectionAttemptPaths,
+  buildItemImageProjectionInputContract,
+  buildItemImageProjectionProposal,
+} from '../relation/item-image-projection-contract.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
@@ -58,10 +63,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 31 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 34 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 33);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 32);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 34);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 33);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -78,6 +83,7 @@ test('manifest builder covers 31 governed operations and keeps NPC apply explici
 
   try {
     for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
+      if (operationId === 'canonical-item-image-projection-apply') continue;
       const operationRepoRoot = operationId === 'canonical-shimmer-import'
         ? shimmerFixture.repoRoot
         : repoRoot;
@@ -656,6 +662,7 @@ test('every manifest binds all repository-local static imports of its code bundl
   const shimmerFixture = createShimmerManifestFixture();
   try {
     for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
+      if (operationId === 'canonical-item-image-projection-apply') continue;
       const operationRepoRoot = operationId === 'canonical-shimmer-import'
         ? shimmerFixture.repoRoot
         : repoRoot;
@@ -848,3 +855,325 @@ test('the item image lineage code bundle pins every module the apply loads', () 
     assert.ok(pinned.has(required), `${required} must be pinned by the code bundle`);
   }
 });
+
+test('item image projection manifest binds one decision-derived attempt root', () => {
+  const fixture = createProjectionManifestFixture();
+  try {
+    const manifest = buildProjectionManifest(fixture);
+    const { attemptRoot } = fixture.paths;
+    assert.deepEqual(manifest.inputPaths, [`${attemptRoot}/input.json`]);
+    assert.deepEqual(manifest.outputPaths, [`${attemptRoot}/result.json`]);
+    assert.deepEqual(manifest.itemImageProjectionAttempt, {
+      attemptId: fixture.paths.attemptId,
+      attemptRoot,
+      manifestPath: fixture.paths.manifestPath,
+      requestPath: fixture.paths.requestPath,
+      packetPath: fixture.paths.packetPath,
+      permitPath: fixture.paths.permitPath,
+      resultPath: fixture.paths.resultPath,
+      inputBinding: projectionInputBinding(fixture.input),
+    });
+    assert.deepEqual(manifest.command, [
+      'node',
+      'scripts/data/relation/apply-item-image-projection.mjs',
+      `--input-contract=${attemptRoot}/input.json`,
+      '--apply=true',
+      `--output=${attemptRoot}/result.json`,
+    ]);
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+
+    const pinned = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+    assert.deepEqual([...pinned].sort(), [
+      'scripts/data/automation/authorized-operation-context.mjs',
+      'scripts/data/automation/automation-database-contract.mjs',
+      'scripts/data/automation/build-canonical-cutover-authorization.mjs',
+      'scripts/data/automation/canonical-operation-catalog.mjs',
+      'scripts/data/automation/canonical-operation-execution-manifest.mjs',
+      'scripts/data/automation/canonical-shimmer-import-input-contract.mjs',
+      'scripts/data/automation/policy-set-hash.mjs',
+      'scripts/data/automation/run-authorized-canonical-operation.mjs',
+      'scripts/data/automation/table-ownership-matrix.mjs',
+      'scripts/data/lib/mysql-module.mjs',
+      'scripts/data/lib/private-repository-path.mjs',
+      'scripts/data/lib/project-root.mjs',
+      'scripts/data/maint/maint-schema.mjs',
+      'scripts/data/npc-canonical/npc-apply-ownership-preparation.mjs',
+      'scripts/data/relation/apply-item-image-projection.mjs',
+      'scripts/data/relation/build-item-image-projection-proposal.mjs',
+      'scripts/data/relation/item-image-lineage-db.mjs',
+      'scripts/data/relation/item-image-projection-contract.mjs',
+      'scripts/data/relation/item-image-projection-db.mjs',
+      'scripts/data/relation/managed-image-url-policy.mjs',
+      'scripts/data/relation/projection-schema.mjs',
+      'scripts/data/relation/relation-schema.mjs',
+      'scripts/data/transform/shimmer-generation-contract.mjs',
+      'scripts/lib/local-runtime-config.mjs',
+    ].sort());
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection manifest rejects attempt aliases and input-derived identity drift', () => {
+  const fixture = createProjectionManifestFixture();
+  const sibling = createProjectionManifestFixture({
+    decisionIdentity: 'canonical-item-image-projection-proposal-read-20990101-02',
+  });
+  try {
+    for (const attemptRoot of [
+      `${fixture.paths.attemptRoot}/child`,
+      `${fixture.paths.attemptRoot}/../${fixture.paths.attemptId}`,
+      sibling.paths.attemptRoot,
+      path.resolve(fixture.repoRoot, fixture.paths.attemptRoot),
+    ]) {
+      assert.throws(
+        () => buildProjectionManifest(fixture, { attemptRoot }),
+        /attempt|input.*root|relative|projection input contract/i,
+      );
+    }
+  } finally {
+    fixture.cleanup();
+    sibling.cleanup();
+  }
+});
+
+test('item image projection manifest rejects every dynamic import expression form', () => {
+  for (const expression of [
+    "import('./unbound.mjs')",
+    "import('/tmp/unbound.mjs')",
+    "import('unbound-package')",
+    'import(specifier)',
+    'import(`./${specifier}.mjs`)',
+    '`${import(specifier)}`',
+  ]) {
+    const fixture = createProjectionManifestFixture();
+    try {
+      const entrypoint = path.join(
+        fixture.repoRoot,
+        'scripts/data/relation/apply-item-image-projection.mjs',
+      );
+      fs.appendFileSync(entrypoint, `\nvoid ${expression};\n`);
+      assert.throws(() => buildProjectionManifest(fixture), /forbids dynamic import/i, expression);
+    } finally {
+      fixture.cleanup();
+    }
+  }
+});
+
+test('item image projection supplied manifest verification rechecks dynamic imports', () => {
+  const fixture = createProjectionManifestFixture();
+  try {
+    const manifest = buildProjectionManifest(fixture);
+    const relativeEntrypoint = 'scripts/data/relation/apply-item-image-projection.mjs';
+    const entrypoint = path.join(fixture.repoRoot, relativeEntrypoint);
+    fs.appendFileSync(entrypoint, "\nvoid import('./unbound.mjs');\n");
+    const codeBundleEntries = manifest.codeBundleEntries.map((entry) => (
+      entry.path === relativeEntrypoint
+        ? {
+            ...entry,
+            contentHash: `sha256:${createHash('sha256').update(fs.readFileSync(entrypoint)).digest('hex')}`,
+          }
+        : entry
+    ));
+    assert.throws(() => assertCanonicalOperationExecutionManifestContract({
+      repoRoot: fixture.repoRoot,
+      operationId: 'canonical-item-image-projection-apply',
+      manifest: { ...manifest, codeBundleEntries },
+    }), /forbids dynamic import/i);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection manifest writer requires the exact private no-overwrite attempt path', () => {
+  const fixture = createProjectionManifestFixture();
+  try {
+    const exactOutput = path.join(fixture.repoRoot, fixture.paths.manifestPath);
+    const manifest = writeCanonicalOperationExecutionManifest({
+      ...projectionManifestOptions(fixture),
+      outputPath: exactOutput,
+    });
+    assert.equal(manifest.itemImageProjectionAttempt.manifestPath, fixture.paths.manifestPath);
+    assert.equal(fs.statSync(exactOutput).mode & 0o777, 0o600);
+    assert.throws(() => writeCanonicalOperationExecutionManifest({
+      ...projectionManifestOptions(fixture),
+      outputPath: exactOutput,
+    }), /already exists|overwrite/i);
+
+    for (const outputPath of [
+      path.join(fixture.repoRoot, 'execution-manifest.json'),
+      path.join(fixture.repoRoot, fixture.paths.attemptRoot, 'nested', 'execution-manifest.json'),
+    ]) {
+      assert.throws(() => writeCanonicalOperationExecutionManifest({
+        ...projectionManifestOptions(fixture),
+        outputPath,
+      }), /execution-manifest\.json|attempt root|exact/i);
+      assert.equal(fs.existsSync(outputPath), false);
+    }
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('item image projection manifest writer rejects a retained failed attempt before creating a replacement', () => {
+  const fixture = createProjectionManifestFixture();
+  try {
+    const resultPath = path.join(fixture.repoRoot, fixture.paths.resultPath);
+    fs.mkdirSync(path.dirname(resultPath), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(resultPath, JSON.stringify({
+      operationId: 'canonical-item-image-projection-apply',
+      status: 'failed',
+      apply: true,
+    }) + '\n', { mode: 0o600 });
+    const outputPath = path.join(fixture.repoRoot, fixture.paths.manifestPath);
+    assert.throws(() => writeCanonicalOperationExecutionManifest({
+      ...projectionManifestOptions(fixture),
+      outputPath,
+    }), /retained failed attempt|result.*already exists|retry/i);
+    assert.equal(fs.existsSync(outputPath), false);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+function createProjectionManifestFixture({
+  decisionIdentity = 'canonical-item-image-projection-proposal-read-20990101-01',
+} = {}) {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-manifest-'));
+  fs.cpSync(path.join(repoRoot, 'scripts'), path.join(fixtureRoot, 'scripts'), { recursive: true });
+  const paths = buildItemImageProjectionAttemptPaths(decisionIdentity);
+  const hash = `sha256:${'a'.repeat(64)}`;
+  const managedPrefix = 'http://127.0.0.1:9000/terrapedia-images/items/';
+  const target = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'projection-manifest-server',
+    databases: {
+      local: 'terria_v1_local',
+      maint: 'terria_v1_maint',
+      relation: 'terria_v1_relation',
+    },
+    ownedDatabase: 'terria_v1_relation',
+    ownedTable: 'projection_items',
+    ownedColumn: 'image',
+  };
+  const proposal = buildItemImageProjectionProposal({
+    generatedAt: '2020-01-01T00:00:00.000Z',
+    expiresAt: '2099-01-02T00:00:00.000Z',
+    proposalAuthorization: {
+      path: paths.proposalReadOwnerInputPath,
+      sha256: hash,
+      decisionIdentity,
+      authorizationHash: hash,
+    },
+    lineage: {
+      inputContractPath: 'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
+      inputContractSha256: hash,
+      resultPath: 'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
+      resultSha256: hash,
+      bundlePath: 'reports/audit/item-image-lineage.bundle.json',
+      bundleSha256: hash,
+      applySnapshotPath: 'reports/authorization/canonical/canonical-item-image-lineage-apply.snapshot.json',
+      applySnapshotSha256: hash,
+      authorizationPacketPath: 'reports/authorization/canonical/canonical-item-image-lineage-apply.packet.json',
+      authorizationPacketSha256: hash,
+      decisionIdentity: 'canonical-item-image-lineage-apply-20990101-01',
+      packetHash: hash,
+      dispatchPermitHash: hash,
+      completedRowCount: 1,
+    },
+    lineageKeys: ['Wood'],
+    target,
+    snapshotPath: paths.snapshotPath,
+    snapshotSha256: hash,
+    managedUrlPolicy: {
+      sourcePath: 'scripts/data/relation/managed-image-url-policy.mjs',
+      sourceSha256: hash,
+      resolvedPrefixesSha256: hashValue([managedPrefix]),
+    },
+    managedUrlPrefixes: [managedPrefix],
+    relationRows: [{
+      recordKey: 'relation-wood',
+      internalName: 'Wood',
+      cachedUrl: '/terrapedia-images/items/wood.png',
+      role: 'icon',
+      isPrimary: 1,
+      status: 1,
+      deleted: 0,
+    }],
+    projectionRows: [{
+      id: 1,
+      relationRecordKey: 'relation-wood',
+      internalName: 'Wood',
+      image: '/legacy/wood.png',
+      status: 1,
+      deleted: 0,
+    }],
+  });
+  const input = buildItemImageProjectionInputContract({
+    proposal,
+    proposalPath: paths.proposalPath,
+    proposalSha256: hash,
+  });
+  const inputPath = path.join(fixtureRoot, paths.inputPath);
+  fs.mkdirSync(path.dirname(inputPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(inputPath, `${JSON.stringify(input, null, 2)}\n`, { mode: 0o600 });
+  fs.chmodSync(inputPath, 0o600);
+  return {
+    repoRoot: fixtureRoot,
+    paths,
+    input,
+    cleanup: () => fs.rmSync(fixtureRoot, { recursive: true, force: true }),
+  };
+}
+
+function projectionManifestOptions(fixture) {
+  return {
+    repoRoot: fixture.repoRoot,
+    operationId: 'canonical-item-image-projection-apply',
+    artifactDate: '2099-01-01',
+    itemImageProjectionAttemptRoot: fixture.paths.attemptRoot,
+  };
+}
+
+function buildProjectionManifest(fixture, { attemptRoot = fixture.paths.attemptRoot } = {}) {
+  return buildCanonicalOperationExecutionManifest({
+    ...projectionManifestOptions(fixture),
+    itemImageProjectionAttemptRoot: attemptRoot,
+  });
+}
+
+function projectionInputBinding(input) {
+  return {
+    operationId: input.operationId,
+    contractVersion: input.contractVersion,
+    attemptId: input.attemptId,
+    attemptRoot: input.attemptRoot,
+    proposalAuthorization: input.proposalAuthorization,
+    proposalPath: input.proposalPath,
+    proposalSha256: input.proposalSha256,
+    snapshotPath: input.snapshotPath,
+    snapshotSha256: input.snapshotSha256,
+    lineage: input.lineage,
+    target: input.target,
+    managedUrlPolicy: input.managedUrlPolicy,
+    managedUrlPrefixes: input.managedUrlPrefixes,
+    keys: input.keys,
+    keySetSha256: input.keySetSha256,
+    relationRowsSha256: input.relationRowsSha256,
+    projectionBeforeSha256: input.projectionBeforeSha256,
+    projectionAfterSha256: input.projectionAfterSha256,
+    targetRowCount: input.targetRowCount,
+    changedRowCount: input.changedRowCount,
+  };
+}
+
+function hashValue(value) {
+  const stable = (candidate) => Array.isArray(candidate)
+    ? candidate.map(stable)
+    : candidate && typeof candidate === 'object'
+      ? Object.fromEntries(Object.keys(candidate).sort().map((key) => [key, stable(candidate[key])]))
+      : candidate;
+  return `sha256:${createHash('sha256').update(JSON.stringify(stable(value))).digest('hex')}`;
+}

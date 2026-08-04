@@ -19,6 +19,13 @@ import {
   NPC_APPLY_OWNER_PHASES,
   NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION,
 } from '../npc-canonical/npc-apply-ownership-preparation.mjs';
+import {
+  buildItemImageProjectionAttemptPaths,
+  readItemImageProjectionInputContract,
+} from '../relation/item-image-projection-contract.mjs';
+import {
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 
 const NPC_OWNER_OPERATION_IDS = Object.freeze([
   'canonical-npc-landing-apply',
@@ -58,6 +65,22 @@ const CODE_PATHS = Object.freeze({
   'canonical-item-image-lineage-apply': Object.freeze([
     'scripts/data/relation/apply-item-image-lineage.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-item-image-projection-apply': Object.freeze([
+    'scripts/data/relation/apply-item-image-projection.mjs',
+    'scripts/data/relation/build-item-image-projection-proposal.mjs',
+    'scripts/data/relation/item-image-projection-contract.mjs',
+    'scripts/data/relation/item-image-projection-db.mjs',
+    'scripts/data/relation/managed-image-url-policy.mjs',
+    'scripts/data/lib/private-repository-path.mjs',
+    'scripts/data/lib/project-root.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    'scripts/data/automation/authorized-operation-context.mjs',
+    'scripts/data/automation/build-canonical-cutover-authorization.mjs',
+    'scripts/data/automation/canonical-operation-catalog.mjs',
+    'scripts/data/automation/canonical-operation-execution-manifest.mjs',
+    'scripts/data/automation/policy-set-hash.mjs',
   ]),
   'canonical-image-sync': Object.freeze([
     'scripts/data/workflow/run-image-sync.mjs',
@@ -229,6 +252,7 @@ export function buildCanonicalOperationExecutionManifest({
   npcT1RunId = null,
   itemImagePromotionBundlePath = null,
   managedObjectOrigin = null,
+  itemImageProjectionAttemptRoot = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -240,11 +264,16 @@ export function buildCanonicalOperationExecutionManifest({
     resultLabel,
     itemImagePromotionBundlePath,
     managedObjectOrigin,
+    itemImageProjectionAttemptRoot,
     npcT1ConfigPath,
     npcT1RedisDb,
     npcT1RunId,
   });
-  const codeBundleEntries = expandRepositoryCodePaths(root, operationCodePaths(operationId)).map((relativePath) => {
+  const codePaths = expandRepositoryCodePaths(root, operationCodePaths(operationId));
+  if (operationId === 'canonical-item-image-projection-apply') {
+    assertNoDynamicImports(root, codePaths);
+  }
+  const codeBundleEntries = codePaths.map((relativePath) => {
     const fullPath = path.join(root, relativePath);
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
       throw new Error(`operation code file is missing: ${relativePath}`);
@@ -269,6 +298,7 @@ export function buildCanonicalOperationExecutionContract({
   npcT1RunId = null,
   itemImagePromotionBundlePath = null,
   managedObjectOrigin = null,
+  itemImageProjectionAttemptRoot = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -299,6 +329,7 @@ export function buildCanonicalOperationExecutionContract({
     }).contract)
     : null;
   const definition = buildDefinition(
+    path.resolve(repoRoot),
     operationId,
     artifactDate,
     npcLimit,
@@ -308,6 +339,7 @@ export function buildCanonicalOperationExecutionContract({
     itemImagePromotionBundlePath,
     managedObjectOrigin,
     shimmerImport,
+    itemImageProjectionAttemptRoot,
   );
   return {
     schemaVersion: 1,
@@ -345,6 +377,7 @@ export function assertCanonicalOperationExecutionManifestContract({
     npcT1RunId: npcT1Acceptance?.runId ?? null,
     itemImagePromotionBundlePath: commandArgument('--local-evidence='),
     managedObjectOrigin: commandArgument('--managed-object-origin='),
+    itemImageProjectionAttemptRoot: manifest?.itemImageProjectionAttempt?.attemptRoot ?? null,
   });
   if (operationId === 'canonical-npc-t1-acceptance'
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -360,6 +393,9 @@ export function assertCanonicalOperationExecutionManifestContract({
   const expectedCodePaths = expandRepositoryCodePaths(path.resolve(repoRoot), operationCodePaths(operationId));
   if (JSON.stringify(actualCodePaths) !== JSON.stringify(expectedCodePaths)) {
     throw new Error(`execution manifest contract drifted for operation code bundle: ${operationId}`);
+  }
+  if (operationId === 'canonical-item-image-projection-apply') {
+    assertNoDynamicImports(path.resolve(repoRoot), expectedCodePaths);
   }
   return true;
 }
@@ -410,22 +446,235 @@ function staticRelativeImports(source) {
   return imports;
 }
 
+function assertNoDynamicImports(repoRoot, codePaths) {
+  for (const relativePath of codePaths) {
+    if (!relativePath.endsWith('.mjs')) continue;
+    const source = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+    if (containsDynamicImport(source)) {
+      throw new Error(`projection code bundle forbids dynamic import(): ${relativePath}`);
+    }
+  }
+}
+
+function containsDynamicImport(source) {
+  const tokens = javascriptTokens(source);
+  return tokens.some((token, index) => (
+    token === 'import' && tokens[index - 1] !== '.' && tokens[index + 1] === '('
+  ));
+}
+
+function javascriptTokens(source) {
+  const shebangEnd = source.startsWith('#!') ? source.indexOf('\n') : 0;
+  const start = shebangEnd === -1 ? source.length : shebangEnd;
+  return scanJavascriptTokens(source, start, false).tokens;
+}
+
+function scanJavascriptTokens(source, start, stopAtClosingBrace) {
+  const tokens = [];
+  let index = start;
+  let canStartRegex = true;
+  let braceDepth = 0;
+  while (index < source.length) {
+    const character = source[index];
+    const next = source[index + 1];
+    if (/\s/.test(character)) {
+      index += 1;
+      continue;
+    }
+    if (character === '/' && next === '/') {
+      index = skipLineComment(source, index + 2);
+      continue;
+    }
+    if (character === '/' && next === '*') {
+      index = skipBlockComment(source, index + 2);
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      index = skipQuotedLiteral(source, index + 1, character);
+      canStartRegex = false;
+      continue;
+    }
+    if (character === '`') {
+      const template = scanTemplateTokens(source, index + 1);
+      tokens.push(...template.tokens);
+      index = template.index;
+      canStartRegex = false;
+      continue;
+    }
+    if (character === '/' && canStartRegex) {
+      index = skipRegexLiteral(source, index + 1);
+      canStartRegex = false;
+      continue;
+    }
+    if (character === '{') {
+      tokens.push(character);
+      braceDepth += 1;
+      index += 1;
+      canStartRegex = true;
+      continue;
+    }
+    if (character === '}') {
+      if (stopAtClosingBrace && braceDepth === 0) {
+        return { tokens, index: index + 1 };
+      }
+      tokens.push(character);
+      braceDepth = Math.max(0, braceDepth - 1);
+      index += 1;
+      canStartRegex = false;
+      continue;
+    }
+    if (/[A-Za-z_$]/.test(character)) {
+      const start = index;
+      index += 1;
+      while (/[A-Za-z0-9_$]/.test(source[index] ?? '')) index += 1;
+      const token = source.slice(start, index);
+      tokens.push(token);
+      canStartRegex = REGEX_PREFIX_KEYWORDS.has(token);
+      continue;
+    }
+    if (/[0-9]/.test(character)) {
+      index += 1;
+      while (/[A-Za-z0-9_.]/.test(source[index] ?? '')) index += 1;
+      tokens.push('literal');
+      canStartRegex = false;
+      continue;
+    }
+    tokens.push(character);
+    index += 1;
+    canStartRegex = REGEX_PREFIX_PUNCTUATORS.has(character);
+  }
+  return { tokens, index };
+}
+
+const REGEX_PREFIX_KEYWORDS = new Set([
+  'await', 'case', 'delete', 'do', 'else', 'in', 'instanceof', 'new', 'of',
+  'return', 'throw', 'typeof', 'void', 'yield',
+]);
+const REGEX_PREFIX_PUNCTUATORS = new Set([
+  '(', '[', '{', ',', ';', ':', '=', '!', '?', '&', '|', '+', '-', '*', '%',
+  '^', '~', '<', '>',
+]);
+
+function skipLineComment(source, index) {
+  const newline = source.indexOf('\n', index);
+  return newline === -1 ? source.length : newline + 1;
+}
+
+function skipBlockComment(source, index) {
+  const end = source.indexOf('*/', index);
+  return end === -1 ? source.length : end + 2;
+}
+
+function skipQuotedLiteral(source, index, quote) {
+  while (index < source.length) {
+    if (source[index] === '\\') {
+      index += 2;
+      continue;
+    }
+    if (source[index] === quote) return index + 1;
+    index += 1;
+  }
+  return source.length;
+}
+
+function scanTemplateTokens(source, index) {
+  const tokens = [];
+  while (index < source.length) {
+    if (source[index] === '\\') {
+      index += 2;
+      continue;
+    }
+    if (source[index] === '`') return { tokens, index: index + 1 };
+    if (source[index] === '$' && source[index + 1] === '{') {
+      const expression = scanJavascriptTokens(source, index + 2, true);
+      tokens.push(...expression.tokens);
+      index = expression.index;
+      continue;
+    }
+    index += 1;
+  }
+  return { tokens, index };
+}
+
+function skipRegexLiteral(source, index) {
+  let inCharacterClass = false;
+  while (index < source.length) {
+    if (source[index] === '\\') {
+      index += 2;
+      continue;
+    }
+    if (source[index] === '[') inCharacterClass = true;
+    if (source[index] === ']') inCharacterClass = false;
+    if (source[index] === '/' && !inCharacterClass) {
+      index += 1;
+      while (/[A-Za-z]/.test(source[index] ?? '')) index += 1;
+      return index;
+    }
+    index += 1;
+  }
+  return source.length;
+}
+
 export function writeCanonicalOperationExecutionManifest({ outputPath, ...options } = {}) {
   const output = path.resolve(requireText(outputPath, 'outputPath'));
   const manifest = buildCanonicalOperationExecutionManifest(options);
-  fs.mkdirSync(path.dirname(output), { recursive: true });
+  const projectionManifestPath = manifest.itemImageProjectionAttempt?.manifestPath ?? null;
+  if (projectionManifestPath != null) {
+    const expectedOutput = path.resolve(options.repoRoot ?? process.cwd(), projectionManifestPath);
+    const retainedResult = path.resolve(
+      options.repoRoot ?? process.cwd(),
+      manifest.itemImageProjectionAttempt.resultPath,
+    );
+    if (pathEntryExists(retainedResult)) {
+      throw new Error('projection retained result already exists; retry requires a new attempt');
+    }
+    if (output !== expectedOutput) {
+      throw new Error('projection execution manifest output must be the exact attempt execution-manifest.json path');
+    }
+    assertRepositoryPathConfinement({
+      repoRoot: options.repoRoot ?? process.cwd(),
+      filePath: output,
+      label: 'projection execution manifest',
+    });
+    if (fs.existsSync(output)) {
+      throw new Error('projection execution manifest already exists; overwrite is forbidden');
+    }
+  } else {
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+  }
   const temporary = `${output}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
   try {
     fs.writeFileSync(temporary, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    fs.renameSync(temporary, output);
+    if (projectionManifestPath != null) {
+      fs.linkSync(temporary, output);
+      fs.unlinkSync(temporary);
+    } else {
+      fs.renameSync(temporary, output);
+    }
     fs.chmodSync(output, 0o600);
+  } catch (error) {
+    if (projectionManifestPath != null && error?.code === 'EEXIST') {
+      throw new Error('projection execution manifest already exists; overwrite is forbidden');
+    }
+    throw error;
   } finally {
     fs.rmSync(temporary, { force: true });
   }
   return manifest;
 }
 
+function pathEntryExists(filePath) {
+  try {
+    fs.lstatSync(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
 function buildDefinition(
+  repoRoot,
   operationId,
   artifactDate,
   npcLimit,
@@ -435,6 +684,7 @@ function buildDefinition(
   itemImagePromotionBundlePath,
   managedObjectOrigin,
   shimmerImport,
+  itemImageProjectionAttemptRoot,
 ) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
@@ -504,6 +754,13 @@ function buildDefinition(
       databaseWrites: true,
       networkAccess: false,
     },
+    ...(operationId === 'canonical-item-image-projection-apply'
+      ? { [operationId]: projectionDefinition({
+        repoRoot,
+        operationId,
+        attemptRoot: itemImageProjectionAttemptRoot,
+      }) }
+      : {}),
     'canonical-item-image-source-promotion': {
       executionClass: 'formal_standardized_apply',
       command: [
@@ -771,6 +1028,84 @@ function buildDefinition(
   return definitions[operationId];
 }
 
+function projectionDefinition({ repoRoot, operationId, attemptRoot }) {
+  const normalizedRoot = requireText(attemptRoot, 'item image projection attempt root')
+    .replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-projection-apply/';
+  if (path.isAbsolute(normalizedRoot)
+      || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('item image projection attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const inputContract = readItemImageProjectionInputContract({
+    repoRoot,
+    inputContractPath: inputPath,
+  });
+  if (inputContract.attemptRoot !== normalizedRoot) {
+    throw new Error('item image projection attempt root must match the exact input contract root');
+  }
+  const attemptPaths = buildItemImageProjectionAttemptPaths(
+    inputContract.proposalAuthorization.decisionIdentity,
+  );
+  if (attemptPaths.attemptRoot !== normalizedRoot || attemptPaths.inputPath !== inputPath) {
+    throw new Error('item image projection attempt root must be decision-derived from the input contract');
+  }
+  const outputPath = attemptPaths.resultPath;
+  return {
+    executionClass: 'formal_database_projection',
+    command: [
+      'node',
+      CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input-contract=${inputPath}`,
+      '--apply=true',
+      `--output=${outputPath}`,
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath],
+    reportPaths: [outputPath],
+    progressPaths: [],
+    itemImageProjectionAttempt: {
+      attemptId: attemptPaths.attemptId,
+      attemptRoot: normalizedRoot,
+      manifestPath: attemptPaths.manifestPath,
+      requestPath: attemptPaths.requestPath,
+      packetPath: attemptPaths.packetPath,
+      permitPath: attemptPaths.permitPath,
+      resultPath: attemptPaths.resultPath,
+      inputBinding: itemImageProjectionInputBinding(inputContract),
+    },
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function itemImageProjectionInputBinding(input) {
+  return {
+    operationId: input.operationId,
+    contractVersion: input.contractVersion,
+    attemptId: input.attemptId,
+    attemptRoot: input.attemptRoot,
+    proposalAuthorization: input.proposalAuthorization,
+    proposalPath: input.proposalPath,
+    proposalSha256: input.proposalSha256,
+    snapshotPath: input.snapshotPath,
+    snapshotSha256: input.snapshotSha256,
+    lineage: input.lineage,
+    target: input.target,
+    managedUrlPolicy: input.managedUrlPolicy,
+    managedUrlPrefixes: input.managedUrlPrefixes,
+    keys: input.keys,
+    keySetSha256: input.keySetSha256,
+    relationRowsSha256: input.relationRowsSha256,
+    projectionBeforeSha256: input.projectionBeforeSha256,
+    projectionAfterSha256: input.projectionAfterSha256,
+    targetRowCount: input.targetRowCount,
+    changedRowCount: input.changedRowCount,
+  };
+}
+
 function buildNpcT1AcceptanceIdentity({ configPath, redisLogicalDb, runId } = {}) {
   const resolvedConfigPath = path.resolve(requireText(configPath, 'NPC T1 config path'));
   const stat = fs.lstatSync(resolvedConfigPath);
@@ -1027,6 +1362,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       npcT1RunId: args['npc-t1-run-id'] ?? null,
       itemImagePromotionBundlePath: args['item-image-promotion-bundle-path'] ?? null,
       managedObjectOrigin: args['managed-object-origin'] ?? null,
+      itemImageProjectionAttemptRoot: args['item-image-projection-attempt-root'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

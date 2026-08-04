@@ -1,17 +1,32 @@
 # Current Devlog
 
-Last updated: 2026-08-04 06:43 CST by Codex
+Last updated: 2026-08-04 12:07 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Open Work
 
+- Item-image projection apply runtime is awaiting the read-only Owner gate.
+  Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
+  worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
+  child of `entries/2026-07-27-crawler-automated-ingestion-closure.md`; follows
+  the closed implementation entry; blocked-by: exact read-only proposal Owner
+  authorization fields; contract handoff:
+  `entries/2026-08-04-item-image-projection-apply-runtime.md` and
+  `../superpowers/plans/2026-08-04-item-image-projection-apply.md`.
+  Implementation is `CODE_READY` with fresh offline validation `155/155`.
+  No real DB read, proposal/input/request/packet/permit/apply, crawler, network,
+  MinIO, source flip, scheduler, or lifecycle action has run. The next action is
+  only the zero-write proposal authorization; the formal apply request hash is
+  deferred until the authorized snapshot/proposal/input bytes exist.
+
 - Automated-ingestion closure execution is active.
   Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`;
-  blocked-by: remaining item-image source coverage and missing coherent shimmer
-  source evidence, then T2/source-flip and later L1/L2/scheduler checkpoints;
+  blocked-by: Owner-authorized item-image projection proposal/apply and missing
+  coherent shimmer source evidence, then T2/source-flip and later L1/L2/
+  scheduler checkpoints;
   NPC landing, seven owner phases, isolated T1, and both base-maint partitions
   are complete. Task 10's two non-green domain panels are the current
   dependency before any source-contract flip or L1 preview;
@@ -765,11 +780,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-08-04-item-image-projection-apply-implementation.md`
+  - branch: `design/crawler-auto-ingestion-readiness`
+  - status: `closed`
+  - result: governed projection code is `CODE_READY`; focused commit SHA pending
+    in final response; runtime/data closure remains open
+
 - `docs/devlog/entries/2026-08-04-item-image-projection-apply-design.md`
   - branch: `design/crawler-auto-ingestion-readiness`
   - status: `closed`
   - result: approved scoped design for
-    `canonical-item-image-projection-apply`; commit SHA pending in final response
+    `canonical-item-image-projection-apply`; commit `6d79158f`
 
 - `docs/devlog/entries/2026-07-22-light-theme-button-system.md`
   - branch: `main` from `feat/front-p2-integration`

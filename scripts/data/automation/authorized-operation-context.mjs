@@ -2,7 +2,62 @@ import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { verifyCanonicalAuthorizationPacket } from './build-canonical-cutover-authorization.mjs';
+import {
+  hashOrderedBundleBytes,
+  resolveCanonicalOperationTechnicalInput,
+  verifyCanonicalAuthorizationPacket,
+} from './build-canonical-cutover-authorization.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+
+export function assertAuthorizedOperationDataBundle({
+  repoRoot,
+  authorizedContext,
+  resolveTechnicalInput = resolveCanonicalOperationTechnicalInput,
+} = {}) {
+  const operationId = requireText(authorizedContext?.operationId, 'authorized data bundle operationId');
+  const current = resolveTechnicalInput({
+    repoRoot,
+    operationId,
+    executionManifest: authorizedContext?.executionManifest,
+  });
+  if (!Array.isArray(current?.dataEntries)) {
+    throw new Error('authorized data bundle entries are required');
+  }
+  const actual = hashOrderedBundleBytes(current.dataEntries, 'authorized data bundle');
+  if (actual !== authorizedContext?.dataBundleSha256) {
+    throw new Error('authorized data bundle drifted');
+  }
+  return true;
+}
+
+export function assertItemImageProjectionAuthorizationEnvironment({
+  repoRoot,
+  attemptRoot,
+  env = process.env,
+} = {}) {
+  const root = path.resolve(requireText(repoRoot, 'projection repository root'));
+  const normalizedAttemptRoot = requireText(attemptRoot, 'projection attempt root').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-projection-apply/';
+  if (!normalizedAttemptRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedAttemptRoot.slice(prefix.length))) {
+    throw new Error('projection authorization environment attempt root is invalid');
+  }
+  const packetPath = path.resolve(requireText(
+    env?.TERRAPEDIA_AUTHORIZED_PACKET_PATH,
+    'projection authorized packet path',
+  ));
+  const permitPath = path.resolve(requireText(
+    env?.TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH,
+    'projection authorized dispatch permit path',
+  ));
+  if (packetPath !== path.resolve(root, normalizedAttemptRoot, 'packet.json')) {
+    throw new Error('projection authorized packet must use the exact same-attempt path');
+  }
+  if (permitPath !== path.resolve(root, normalizedAttemptRoot, 'permit.json')) {
+    throw new Error('projection authorized dispatch permit must use the exact same-attempt path');
+  }
+  return true;
+}
 
 export function loadAuthorizedOperationContext({
   env = process.env,
@@ -47,12 +102,25 @@ export function loadAuthorizedOperationContext({
   });
 }
 
-export function createAuthorizedOperationDispatchPermit({ directory, packet } = {}) {
-  const outputDirectory = path.resolve(requireText(directory, 'authorized dispatch permit directory'));
+export function createAuthorizedOperationDispatchPermit({ directory = null, outputPath = null, packet } = {}) {
+  const outputDirectoryRoot = path.resolve(requireText(
+    directory,
+    'authorized dispatch permit directory',
+  ));
+  const resolvedOutputPath = outputPath == null ? null : assertRepositoryPathConfinement({
+    repoRoot: outputDirectoryRoot,
+    filePath: path.resolve(requireText(outputPath, 'authorized dispatch permit output path')),
+    label: 'authorized dispatch permit output',
+    createParent: true,
+  });
+  const outputDirectory = resolvedOutputPath == null
+    ? outputDirectoryRoot
+    : path.dirname(resolvedOutputPath);
   const normalized = normalizePermitContext(packet);
   fs.mkdirSync(outputDirectory, { recursive: true, mode: 0o700 });
   const nonce = randomBytes(24).toString('hex');
-  const output = path.join(outputDirectory, `.authorized-dispatch-${process.pid}-${randomBytes(12).toString('hex')}.json`);
+  const output = resolvedOutputPath
+    ?? path.join(outputDirectory, `.authorized-dispatch-${process.pid}-${randomBytes(12).toString('hex')}.json`);
   const payload = {
     schemaVersion: 1,
     ...normalized,

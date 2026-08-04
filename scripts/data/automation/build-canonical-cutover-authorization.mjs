@@ -19,6 +19,18 @@ import {
   hashCanonicalServerFingerprint,
 } from './automation-database-contract.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
+import {
+  assertItemImageProjectionAuthorizationPacket,
+  assertItemImageProjectionInputContract,
+  assertItemImageProjectionProposal,
+  assertItemImageProjectionSnapshot,
+  buildItemImageProjectionInputContract,
+  canonicalItemImageProjectionHash,
+} from '../relation/item-image-projection-contract.mjs';
 
 export {
   CANONICAL_CUTOVER_OPERATION_IDS,
@@ -239,7 +251,15 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
   const schemaEntries = operationId === 'canonical-schema-v56-v58'
     ? readMigrationEntries(root)
     : [];
-  let dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
+  let dataEntries;
+  if (operationId === 'canonical-item-image-projection-apply') {
+    if (verifiedExecutionManifest == null) {
+      throw new Error('item image projection execution manifest is required');
+    }
+    dataEntries = readItemImageProjectionDataEntries(root, verifiedExecutionManifest);
+  } else {
+    dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
+  }
   if (operationId === 'canonical-shimmer-import' && dataEntries !== null) {
     readCanonicalShimmerImportInputContract({ repoRoot: root });
   }
@@ -450,6 +470,234 @@ function verifyRequestEnvelope(request, requestHash) {
   requireTimestamp(request.expiresAt, 'expiresAt');
 }
 
+function readItemImageProjectionDataEntries(repoRoot, manifest) {
+  const inputPath = requireProjectionManifestPath(manifest?.inputPaths, 'input');
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, {
+    label: 'projection input contract',
+    privateFile: true,
+  });
+  const input = parseJsonBytes(inputEntry.bytes, 'projection input contract');
+  assertItemImageProjectionInputContract(input);
+  const manifestBinding = manifest?.itemImageProjectionAttempt?.inputBinding;
+  if (JSON.stringify(stableValue(manifestBinding))
+      !== JSON.stringify(stableValue(projectionInputBinding(input)))) {
+    throw new Error('projection execution manifest input binding drifted');
+  }
+
+  const proposalEntry = readProjectionBoundEntry(repoRoot, input.proposalPath, input.proposalSha256, {
+    label: 'projection proposal',
+    privateFile: true,
+  });
+  const proposal = parseJsonBytes(proposalEntry.bytes, 'projection proposal');
+  assertItemImageProjectionProposal(proposal);
+  const rebuiltInput = buildItemImageProjectionInputContract({
+    proposal,
+    proposalPath: input.proposalPath,
+    proposalSha256: input.proposalSha256,
+  });
+  if (JSON.stringify(stableValue(rebuiltInput)) !== JSON.stringify(stableValue(input))) {
+    throw new Error('projection proposal content drifted from the input contract');
+  }
+
+  const snapshotEntry = readProjectionBoundEntry(repoRoot, input.snapshotPath, input.snapshotSha256, {
+    label: 'projection snapshot',
+    privateFile: true,
+  });
+  const snapshot = parseJsonBytes(snapshotEntry.bytes, 'projection snapshot');
+  assertItemImageProjectionSnapshot(snapshot);
+  if (JSON.stringify(stableValue(snapshot))
+      !== JSON.stringify(stableValue(projectionSnapshotBinding(input)))) {
+    throw new Error('projection snapshot content drifted from the input contract');
+  }
+
+  const ownerEntry = readProjectionBoundEntry(
+    repoRoot,
+    input.proposalAuthorization.path,
+    input.proposalAuthorization.sha256,
+    { label: 'projection proposal-read Owner authorization', privateFile: true },
+  );
+  const ownerAuthorization = parseJsonBytes(
+    ownerEntry.bytes,
+    'projection proposal-read Owner authorization',
+  );
+  assertProjectionProposalAuthorization(ownerAuthorization, input);
+
+  const lineageBindings = [
+    ['inputContractPath', 'inputContractSha256', 'lineage input contract', true],
+    ['resultPath', 'resultSha256', 'lineage result', true],
+    ['bundlePath', 'bundleSha256', 'lineage bundle', false],
+    ['applySnapshotPath', 'applySnapshotSha256', 'lineage apply snapshot', true],
+    ['authorizationPacketPath', 'authorizationPacketSha256', 'lineage authorization packet', true],
+  ];
+  const lineageEntries = lineageBindings.map(([pathKey, hashKey, label, privateFile]) => (
+    readProjectionBoundEntry(repoRoot, input.lineage[pathKey], input.lineage[hashKey], {
+      label,
+      privateFile,
+    })
+  ));
+  const historicalPacket = parseJsonBytes(
+    lineageEntries.at(-1).bytes,
+    'lineage authorization packet',
+  );
+  assertItemImageProjectionAuthorizationPacket(historicalPacket);
+  if (historicalPacket.decisionIdentity !== input.lineage.decisionIdentity
+      || historicalPacket.packetHash !== input.lineage.packetHash) {
+    throw new Error('lineage authorization packet identity drifted from projection input');
+  }
+
+  const policyEntry = readProjectionBoundEntry(
+    repoRoot,
+    input.managedUrlPolicy.sourcePath,
+    input.managedUrlPolicy.sourceSha256,
+    { label: 'projection managed URL policy', privateFile: false },
+  );
+  const entries = [
+    inputEntry,
+    proposalEntry,
+    snapshotEntry,
+    ownerEntry,
+    ...lineageEntries,
+    policyEntry,
+  ];
+  const seen = new Set();
+  for (const entry of entries) {
+    if (seen.has(entry.path)) {
+      throw new Error(`projection data bundle contains duplicate path: ${entry.path}`);
+    }
+    seen.add(entry.path);
+  }
+  return entries;
+}
+
+function requireProjectionManifestPath(paths, label) {
+  if (!Array.isArray(paths) || paths.length !== 1) {
+    throw new Error(`projection execution manifest must declare exactly one ${label} path`);
+  }
+  return requireNormalizedPath(paths[0], `projection execution manifest ${label} path`);
+}
+
+function readProjectionBoundEntry(repoRoot, relativePath, expectedSha256, options) {
+  if (!HASH_PATTERN.test(expectedSha256 ?? '')) {
+    throw new Error(`${options.label} hash is invalid`);
+  }
+  const entry = readConfinedEntry(repoRoot, relativePath, options);
+  const actualSha256 = `sha256:${createHash('sha256').update(entry.bytes).digest('hex')}`;
+  if (actualSha256 !== expectedSha256) {
+    throw new Error(`${options.label} hash drifted`);
+  }
+  return entry;
+}
+
+function readConfinedEntry(repoRoot, relativePath, { label, privateFile }) {
+  const normalized = requireNormalizedPath(relativePath, `${label} path`);
+  const absolutePath = assertRepositoryPathConfinement({
+    repoRoot,
+    filePath: path.resolve(repoRoot, normalized),
+    label,
+  });
+  assertRepositoryOrdinaryFile({ repoRoot, filePath: absolutePath, label });
+  if (privateFile && (fs.statSync(absolutePath).mode & 0o077) !== 0) {
+    throw new Error(`${label} must be private`);
+  }
+  return { path: normalized, bytes: fs.readFileSync(absolutePath) };
+}
+
+function assertProjectionProposalAuthorization(value, input) {
+  const expectedKeys = [
+    'schemaVersion',
+    'authorizationKind',
+    'operationId',
+    'action',
+    'actor',
+    'reason',
+    'authorizationReference',
+    'decisionIdentity',
+    'authorizedAt',
+    'expiresAt',
+    'targetDatabases',
+    'noWrite',
+    'authorizationHash',
+  ].sort();
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+      || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(expectedKeys)) {
+    throw new Error('projection proposal-read Owner authorization schema drifted');
+  }
+  if (value.schemaVersion !== 1
+      || value.authorizationKind !== 'canonical_read_only_proposal_authorization'
+      || value.operationId !== 'canonical-item-image-projection-apply'
+      || value.action !== 'read-only-proposal'
+      || value.noWrite !== true) {
+    throw new Error('projection proposal-read Owner authorization contract drifted');
+  }
+  requireText(value.actor, 'projection proposal-read Owner actor');
+  requireText(value.reason, 'projection proposal-read Owner reason');
+  requireText(value.authorizationReference, 'projection proposal-read Owner reference');
+  requireTimestamp(value.authorizedAt, 'projection proposal-read Owner authorizedAt');
+  requireTimestamp(value.expiresAt, 'projection proposal-read Owner expiresAt');
+  const { authorizationHash, ...payload } = value;
+  if (canonicalItemImageProjectionHash(payload) !== authorizationHash
+      || authorizationHash !== input.proposalAuthorization.authorizationHash
+      || value.decisionIdentity !== input.proposalAuthorization.decisionIdentity) {
+    throw new Error('projection proposal-read Owner authorization hash or identity drifted');
+  }
+  if (JSON.stringify(value.targetDatabases)
+      !== JSON.stringify(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'])) {
+    throw new Error('projection proposal-read Owner authorization target databases drifted');
+  }
+}
+
+function projectionInputBinding(input) {
+  return {
+    operationId: input.operationId,
+    contractVersion: input.contractVersion,
+    attemptId: input.attemptId,
+    attemptRoot: input.attemptRoot,
+    proposalAuthorization: input.proposalAuthorization,
+    proposalPath: input.proposalPath,
+    proposalSha256: input.proposalSha256,
+    snapshotPath: input.snapshotPath,
+    snapshotSha256: input.snapshotSha256,
+    lineage: input.lineage,
+    target: input.target,
+    managedUrlPolicy: input.managedUrlPolicy,
+    managedUrlPrefixes: input.managedUrlPrefixes,
+    keys: input.keys,
+    keySetSha256: input.keySetSha256,
+    relationRowsSha256: input.relationRowsSha256,
+    projectionBeforeSha256: input.projectionBeforeSha256,
+    projectionAfterSha256: input.projectionAfterSha256,
+    targetRowCount: input.targetRowCount,
+    changedRowCount: input.changedRowCount,
+  };
+}
+
+function projectionSnapshotBinding(input) {
+  return {
+    snapshotKind: 'canonical_item_image_projection_snapshot',
+    operationId: input.operationId,
+    contractVersion: input.contractVersion,
+    generatedAt: input.generatedAt,
+    target: input.target,
+    managedUrlPolicy: input.managedUrlPolicy,
+    managedUrlPrefixes: input.managedUrlPrefixes,
+    keys: input.keys,
+    keySetSha256: input.keySetSha256,
+    relationRows: input.relationRows,
+    relationRowsSha256: input.relationRowsSha256,
+    projectionBeforeRows: input.projectionBeforeRows,
+    projectionBeforeSha256: input.projectionBeforeSha256,
+    targetRowCount: input.targetRowCount,
+  };
+}
+
+function parseJsonBytes(bytes, label) {
+  try {
+    return JSON.parse(bytes.toString('utf8'));
+  } catch {
+    throw new Error(`${label} must contain valid JSON`);
+  }
+}
+
 function readMigrationEntries(repoRoot) {
   const dir = path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration');
   const names = fs.existsSync(dir)
@@ -588,15 +836,107 @@ function readOptionalJson(filePath) {
   return JSON.parse(fs.readFileSync(path.resolve(filePath), 'utf8'));
 }
 
-function writeJsonAtomic(filePath, payload) {
+function writeJsonAtomic(filePath, payload, { noOverwrite = false } = {}) {
   const output = path.resolve(filePath);
+  if (noOverwrite && fs.existsSync(output)) {
+    throw new Error('authorization artifact already exists; overwrite is forbidden');
+  }
   fs.mkdirSync(path.dirname(output), { recursive: true });
   const temporary = `${output}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
   try {
     fs.writeFileSync(temporary, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    fs.renameSync(temporary, output);
+    if (noOverwrite) {
+      fs.linkSync(temporary, output);
+      fs.unlinkSync(temporary);
+    } else {
+      fs.renameSync(temporary, output);
+    }
+    fs.chmodSync(output, 0o600);
+  } catch (error) {
+    if (noOverwrite && error?.code === 'EEXIST') {
+      throw new Error('authorization artifact already exists; overwrite is forbidden');
+    }
+    throw error;
   } finally {
     fs.rmSync(temporary, { force: true });
+  }
+}
+
+function projectionAuthorizationCliPaths({
+  repoRoot,
+  operationId,
+  executionManifestPath,
+  executionManifest,
+  mode,
+  outputPath,
+  requestPath = null,
+}) {
+  if (operationId !== 'canonical-item-image-projection-apply') {
+    return { output: path.resolve(outputPath), noOverwrite: false };
+  }
+  if (!executionManifest) throw new Error('projection execution manifest is required');
+  const attempt = executionManifest.itemImageProjectionAttempt;
+  if (!attempt || typeof attempt !== 'object') {
+    throw new Error('projection execution manifest attempt binding is required');
+  }
+  const retainedResultPath = path.resolve(
+    repoRoot,
+    requireNormalizedPath(attempt.resultPath, 'projection result path'),
+  );
+  if (pathEntryExists(retainedResultPath)) {
+    throw new Error('projection retained result already exists; retry requires a new attempt');
+  }
+  const normalizedManifestPath = requireNormalizedPath(
+    executionManifestPath,
+    'projection execution manifest path',
+  );
+  if (normalizedManifestPath !== attempt.manifestPath) {
+    throw new Error('projection execution manifest path must be the exact attempt manifest path');
+  }
+  const absoluteManifestPath = path.resolve(repoRoot, normalizedManifestPath);
+  assertRepositoryOrdinaryFile({
+    repoRoot,
+    filePath: absoluteManifestPath,
+    label: 'projection execution manifest',
+  });
+  if ((fs.statSync(absoluteManifestPath).mode & 0o077) !== 0) {
+    throw new Error('projection execution manifest must be private');
+  }
+  const expectedOutput = mode === 'request' ? attempt.requestPath : attempt.packetPath;
+  const normalizedOutput = requireNormalizedPath(outputPath, `projection ${mode} output path`);
+  if (normalizedOutput !== expectedOutput) {
+    throw new Error(`projection ${mode} output must be the exact attempt ${path.posix.basename(expectedOutput)} path`);
+  }
+  if (mode === 'authorize') {
+    const normalizedRequest = requireNormalizedPath(requestPath, 'projection request path');
+    if (normalizedRequest !== attempt.requestPath) {
+      throw new Error('projection authorization must read the exact same-attempt request path');
+    }
+    const absoluteRequestPath = path.resolve(repoRoot, normalizedRequest);
+    assertRepositoryOrdinaryFile({
+      repoRoot,
+      filePath: absoluteRequestPath,
+      label: 'projection authorization request',
+    });
+    if ((fs.statSync(absoluteRequestPath).mode & 0o077) !== 0) {
+      throw new Error('projection authorization request must be private');
+    }
+  }
+  const output = assertRepositoryPathConfinement({
+    repoRoot,
+    filePath: path.resolve(repoRoot, normalizedOutput),
+    label: `projection ${mode} output`,
+  });
+  return { output, noOverwrite: true };
+}
+
+function pathEntryExists(filePath) {
+  try {
+    fs.lstatSync(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
   }
 }
 
@@ -604,14 +944,29 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const mode = args.mode ?? 'request';
   const operationId = args['operation-id'];
-  const output = requireText(args.output, 'output');
+  const rawOutput = requireText(args.output, 'output');
+  const repoRoot = path.resolve(args['repo-root'] ?? process.cwd());
   const serverFingerprint = readOptionalJson(args['server-fingerprint']);
   const policyRows = readOptionalJson(args['policy-rows']) ?? [];
   const executionManifest = readOptionalJson(args['execution-manifest']);
+  const cliExecutionManifest = operationId === 'canonical-item-image-projection-apply'
+    && executionManifest != null
+    ? verifyExecutionManifestCodeBundle(repoRoot, executionManifest, operationId)
+    : executionManifest;
+  const outputIdentity = projectionAuthorizationCliPaths({
+    repoRoot,
+    operationId,
+    executionManifestPath: args['execution-manifest'],
+    executionManifest: cliExecutionManifest,
+    mode,
+    outputPath: rawOutput,
+    requestPath: args.request,
+  });
+  const output = outputIdentity.output;
   if (mode === 'request') {
     const generatedAt = args['generated-at'] ?? new Date().toISOString();
     const request = buildCanonicalAuthorizationRequestForOperation({
-      repoRoot: args['repo-root'] ?? process.cwd(),
+      repoRoot,
       operationId,
       serverFingerprint,
       policyRows,
@@ -619,7 +974,7 @@ function main() {
       generatedAt,
       expiresAt: args['expires-at'] ?? new Date(Date.parse(generatedAt) + 24 * 60 * 60 * 1000).toISOString(),
     });
-    writeJsonAtomic(output, request);
+    writeJsonAtomic(output, request, { noOverwrite: outputIdentity.noOverwrite });
     process.stdout.write(`${JSON.stringify({ output: path.resolve(output), requestHash: request.requestHash, authorizationStatus: request.authorizationStatus })}\n`);
     return;
   }
@@ -634,7 +989,7 @@ function main() {
     ...owner,
     currentTechnicalInput: {
       ...resolveCanonicalOperationTechnicalInput({
-        repoRoot: args['repo-root'] ?? process.cwd(),
+        repoRoot,
         operationId: request.operationId,
         executionManifest,
       }),
@@ -643,7 +998,7 @@ function main() {
     },
     usedDecisionIdentities: new Set(used),
   });
-  writeJsonAtomic(output, packet);
+  writeJsonAtomic(output, packet, { noOverwrite: outputIdentity.noOverwrite });
   process.stdout.write(`${JSON.stringify({ output: path.resolve(output), packetHash: packet.packetHash, authorizationStatus: packet.authorizationStatus })}\n`);
 }
 
