@@ -3677,7 +3677,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Shadow Orb.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/629731dff1be46039698fc98f66ca29b.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/629731dff1be46039698fc98f66ca29b.gif",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/gif"
@@ -3773,7 +3773,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Hook.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4c619c0265fe4fc2bfab12e3156b9321.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4c619c0265fe4fc2bfab12e3156b9321.png",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -3805,7 +3805,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Flamarang.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/78a62197e64843bf8dde47af9354e3a1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/78a62197e64843bf8dde47af9354e3a1.png",
       "imageWidth": 18,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -3837,7 +3837,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Molten Fury.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c177f89ceb8e41a284a77c55d725fc21.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c177f89ceb8e41a284a77c55d725fc21.png",
       "imageWidth": 18,
       "imageHeight": 36,
       "imageContentType": "image/png"
@@ -3869,7 +3869,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Volcano.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/67fb70f6bcb84cfa829388b820857f61.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/67fb70f6bcb84cfa829388b820857f61.png",
       "imageWidth": 70,
       "imageHeight": 70,
       "imageContentType": "image/png"
@@ -3901,7 +3901,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Molten Pickaxe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3320c5c571e944de80897391da72719c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3320c5c571e944de80897391da72719c.png",
       "imageWidth": 36,
       "imageHeight": 36,
       "imageContentType": "image/png"
@@ -4029,7 +4029,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bottled Water.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/daec30648f694aad809d3f29bd1ef276.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/daec30648f694aad809d3f29bd1ef276.png",
       "imageWidth": 20,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -4061,7 +4061,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Space Gun.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c00f7b2f18ee40239e3228f33dabed1b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c00f7b2f18ee40239e3228f33dabed1b.png",
       "imageWidth": 36,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -4093,7 +4093,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rocket Boots.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1a4f3c2649854d758f7edd1fc84b4203.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1a4f3c2649854d758f7edd1fc84b4203.png",
       "imageWidth": 30,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -4125,7 +4125,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gray Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/cf2ede1c8bff40129c0ded32f6e9f9df.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/cf2ede1c8bff40129c0ded32f6e9f9df.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -4157,7 +4157,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gray Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4e7ee0b291664ec7945b0a3310ce14a8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4e7ee0b291664ec7945b0a3310ce14a8.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -7773,7 +7773,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bunny Hood.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/649e7286555c470ea49d74c39cf67161.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/649e7286555c470ea49d74c39cf67161.png",
       "imageWidth": 22,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -8285,7 +8285,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Leather.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/23f8297db156437abc5fe4df6f072d6c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/23f8297db156437abc5fe4df6f072d6c.png",
       "imageWidth": 20,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -8349,7 +8349,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Goldfish.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9326590ca59743d6afb0e2cc0deab559.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9326590ca59743d6afb0e2cc0deab559.png",
       "imageWidth": 26,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -8381,7 +8381,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Robe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/631632d15ecf41348faec950c1b95bd9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/631632d15ecf41348faec950c1b95bd9.png",
       "imageWidth": 30,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -8413,7 +8413,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Robot Hat.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ccd9102f68c44fef9028fcc2951da491.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ccd9102f68c44fef9028fcc2951da491.png",
       "imageWidth": 22,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -8445,7 +8445,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gold Crown.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b8a7e7b0d6de41059a3fa846b7c7cf2d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b8a7e7b0d6de41059a3fa846b7c7cf2d.png",
       "imageWidth": 20,
       "imageHeight": 12,
       "imageContentType": "image/png"
@@ -8477,7 +8477,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Hellfire Arrow.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ebaf9185fa8442b19ebe722b1672e6b0.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ebaf9185fa8442b19ebe722b1672e6b0.png",
       "imageWidth": 14,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -8509,7 +8509,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Sandgun.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/33f9be33e4d841889f61076a831c522f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/33f9be33e4d841889f61076a831c522f.png",
       "imageWidth": 44,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -8541,7 +8541,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Guide Voodoo Doll.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/58606d12766e4fcda1a01a58cbaace78.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/58606d12766e4fcda1a01a58cbaace78.png",
       "imageWidth": 16,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -8573,7 +8573,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Diving Helmet.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/104545c721d74fa7916a4a6f2291d089.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/104545c721d74fa7916a4a6f2291d089.png",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -8701,7 +8701,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Demon Scythe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/82f6385493874187999c407189b7c6fb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/82f6385493874187999c407189b7c6fb.png",
       "imageWidth": 28,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -8733,7 +8733,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Night's Edge.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b3ddc7b2db8b4c53a00b0274ed9edfaa.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b3ddc7b2db8b4c53a00b0274ed9edfaa.png",
       "imageWidth": 50,
       "imageHeight": 54,
       "imageContentType": "image/png"
@@ -8765,7 +8765,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Dark Lance.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/80cb1f150eb8439bb58f0f7c9dac2e75.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/80cb1f150eb8439bb58f0f7c9dac2e75.png",
       "imageWidth": 52,
       "imageHeight": 52,
       "imageContentType": "image/png"
@@ -8797,7 +8797,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Coral.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ab4d7c076015452292036364a79a5654.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ab4d7c076015452292036364a79a5654.png",
       "imageWidth": 24,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -8829,7 +8829,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Growing cactus.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/92f055dc90b047319f647bcdb24664d2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/92f055dc90b047319f647bcdb24664d2.png",
       "imageWidth": 32,
       "imageHeight": 62,
       "imageContentType": "image/png"
@@ -12381,7 +12381,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Adamantite Chainsaw.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/33bdf535c7b94449b5968586ed3a4f80.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/33bdf535c7b94449b5968586ed3a4f80.png",
       "imageWidth": 56,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -12413,7 +12413,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Adamantite Drill.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c4c36fc396944dabb82c0b6525984057.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c4c36fc396944dabb82c0b6525984057.png",
       "imageWidth": 50,
       "imageHeight": 18,
       "imageContentType": "image/png"
@@ -12445,7 +12445,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Dao of Pow.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/648930b645b447cf9b471b364aa26026.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/648930b645b447cf9b471b364aa26026.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -12477,7 +12477,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mythril Halberd.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2477c93acc3c47ccbf1a8f3a2cc71a16.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2477c93acc3c47ccbf1a8f3a2cc71a16.png",
       "imageWidth": 44,
       "imageHeight": 44,
       "imageContentType": "image/png"
@@ -12509,7 +12509,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Adamantite Bar.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e88e4ba2d0f548c286a24b710f86fb66.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e88e4ba2d0f548c286a24b710f86fb66.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -12541,7 +12541,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Glass Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/478c230f2c6a46e89616f5203ba0c203.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/478c230f2c6a46e89616f5203ba0c203.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -12573,7 +12573,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Compass.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/73f3e9b312754f97b6de10671936e55d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/73f3e9b312754f97b6de10671936e55d.png",
       "imageWidth": 28,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -12605,7 +12605,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Diving Gear.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ad04e20f73e04d49b9ee3b049ef2b18e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ad04e20f73e04d49b9ee3b049ef2b18e.png",
       "imageWidth": 30,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -12637,7 +12637,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "GPS.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1f1da96111c044dc8ca454abafbb2546.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1f1da96111c044dc8ca454abafbb2546.png",
       "imageWidth": 30,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -12669,7 +12669,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Obsidian Horseshoe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fc121abc6e064c90bd6378d308cf616f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fc121abc6e064c90bd6378d308cf616f.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -12701,7 +12701,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Obsidian Shield.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a8cb4a701fab405a85df527ee55bafb0.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a8cb4a701fab405a85df527ee55bafb0.png",
       "imageWidth": 28,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -12733,7 +12733,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tinkerer's Workshop.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9dc874d6247a494687009a46ab874240.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9dc874d6247a494687009a46ab874240.png",
       "imageWidth": 30,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -12765,7 +12765,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cloud in a Balloon.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/15fc91e785744235aec52702367ee4ef.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/15fc91e785744235aec52702367ee4ef.png",
       "imageWidth": 22,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -12957,7 +12957,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Spectre Boots.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d732ac0483634358804fd37234ae4388.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d732ac0483634358804fd37234ae4388.png",
       "imageWidth": 34,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -12989,7 +12989,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Adamantite Glaive.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9f8daa731fcf44a1ab98328400c27fd2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9f8daa731fcf44a1ab98328400c27fd2.png",
       "imageWidth": 44,
       "imageHeight": 44,
       "imageContentType": "image/png"
@@ -13021,7 +13021,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Toolbelt.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b021f1d2663d407dbc5887512a10f2d3.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b021f1d2663d407dbc5887512a10f2d3.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -16637,7 +16637,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Soul of Light.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1c2b75ef52ab43b1b4717f89479742d5.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1c2b75ef52ab43b1b4717f89479742d5.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -16669,7 +16669,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Soul of Night.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bd5aeb1c65c24e79ada7e9e453549ee9.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bd5aeb1c65c24e79ada7e9e453549ee9.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -17501,7 +17501,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Soul of Fright.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/cfe894e9f3cc44d286a49d1e05acf9f7.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/cfe894e9f3cc44d286a49d1e05acf9f7.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -17533,7 +17533,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Soul of Might.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/884af1b4fd2e41888afc0bf1cc920dae.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/884af1b4fd2e41888afc0bf1cc920dae.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -17565,7 +17565,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Soul of Sight.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5ee1abbe041947de8bb4fb81aa773cd0.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5ee1abbe041947de8bb4fb81aa773cd0.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -17725,7 +17725,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cross Necklace.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e80f274bf8e5446c8371eb4275ea3ecc.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e80f274bf8e5446c8371eb4275ea3ecc.png",
       "imageWidth": 26,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -17757,7 +17757,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mana Flower.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7779efb3b70348b7b12e5f3429abcace.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7779efb3b70348b7b12e5f3429abcace.png",
       "imageWidth": 20,
       "imageHeight": 44,
       "imageContentType": "image/png"
@@ -17789,7 +17789,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mechanical Worm.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a531056a506d42fdb1ee25e3175c07ed.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a531056a506d42fdb1ee25e3175c07ed.png",
       "imageWidth": 28,
       "imageHeight": 18,
       "imageContentType": "image/png"
@@ -17821,7 +17821,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mechanical Skull.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7ccbf6133748486bb193d5332ccc7f6b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7ccbf6133748486bb193d5332ccc7f6b.png",
       "imageWidth": 20,
       "imageHeight": 18,
       "imageContentType": "image/png"
@@ -17917,7 +17917,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Slime Crown.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b58ac6c4218b47d7a31fa8c84562402c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b58ac6c4218b47d7a31fa8c84562402c.png",
       "imageWidth": 24,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -17949,7 +17949,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Light Disc.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/011f363427984a4b952546de70e7854d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/011f363427984a4b952546de70e7854d.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -18397,7 +18397,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Soul of Flight.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/de0a298c9a474b3ea1fd95c320eb586e.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/de0a298c9a474b3ea1fd95c320eb586e.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -18461,7 +18461,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Demonite Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/03b140cb291449458934584e0b614af3.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/03b140cb291449458934584e0b614af3.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -18493,7 +18493,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Hallowed Repeater.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6f71611694be49a3a49d41def80af827.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6f71611694be49a3a49d41def80af827.png",
       "imageWidth": 52,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -21181,7 +21181,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rainbow Brick.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e54c64f24c3a4d888b193ca6888ba9c5.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e54c64f24c3a4d888b193ca6888ba9c5.gif",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/gif"
@@ -21213,7 +21213,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rainbow Brick Wall.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7cf85d754d6f426281829a10018a4102.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7cf85d754d6f426281829a10018a4102.gif",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/gif"
@@ -24029,7 +24029,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cloud.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8815b8e1a6e74beb85c1eb5ea48d2664.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8815b8e1a6e74beb85c1eb5ea48d2664.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -24061,7 +24061,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cloud Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/829a3b86f04d4533b1efc212bfc12ff8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/829a3b86f04d4533b1efc212bfc12ff8.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -24093,7 +24093,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Seaweed.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ebb6ca8f3d16447892e82d5aea29efa4.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ebb6ca8f3d16447892e82d5aea29efa4.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -24189,7 +24189,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mushroom Spear.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6efb12b746ec4995b5159fdb13c747c9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6efb12b746ec4995b5159fdb13c747c9.png",
       "imageWidth": 52,
       "imageHeight": 52,
       "imageContentType": "image/png"
@@ -24221,7 +24221,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Terra Blade.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png",
       "imageWidth": 46,
       "imageHeight": 54,
       "imageContentType": "image/png"
@@ -24253,7 +24253,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Grenade Launcher.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2555d405d24e4061a710559ab06b0cfe.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2555d405d24e4061a710559ab06b0cfe.png",
       "imageWidth": 56,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -24285,7 +24285,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rocket Launcher.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/483f9bbda47f419b8bfdab3addb026a8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/483f9bbda47f419b8bfdab3addb026a8.png",
       "imageWidth": 52,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -24317,7 +24317,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Proximity Mine Launcher.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/127959e08bbf472e91bfadc59ffe6e6f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/127959e08bbf472e91bfadc59ffe6e6f.png",
       "imageWidth": 52,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -24381,7 +24381,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Slime Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bded7a527a80496aa514573d8110ec9c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bded7a527a80496aa514573d8110ec9c.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -24413,7 +24413,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Flesh Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f7af1db80c1b44bcb13642c39c4a3cdc.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f7af1db80c1b44bcb13642c39c4a3cdc.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -24445,7 +24445,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mushroom Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5fba2e735c0747de9a2ceb227d426e5c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5fba2e735c0747de9a2ceb227d426e5c.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -24477,7 +24477,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rain Cloud.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ecc44f0496a7433c981fa2e8771bff31.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ecc44f0496a7433c981fa2e8771bff31.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -24509,7 +24509,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bone Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c483055d6c76460685d87486f1634fc8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c483055d6c76460685d87486f1634fc8.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -30397,7 +30397,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ice Skates.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/268b81cb8d20496bbc110e0290b70528.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/268b81cb8d20496bbc110e0290b70528.png",
       "imageWidth": 30,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -30429,7 +30429,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Snowball Launcher.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fc5de031d0f1427ca9d2ab6073eeb87d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fc5de031d0f1427ca9d2ab6073eeb87d.png",
       "imageWidth": 26,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -30461,7 +30461,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Web Covered Chest.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f64b04b2fcce418c9b41c302b23aac49.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f64b04b2fcce418c9b41c302b23aac49.png",
       "imageWidth": 32,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -30493,7 +30493,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Climbing Claws.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8050202c9c874be192a030cc1c04a25a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8050202c9c874be192a030cc1c04a25a.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -30813,7 +30813,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Black Belt.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e6ce0d3c1e5e4a3cae3d9e9026f37bb7.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e6ce0d3c1e5e4a3cae3d9e9026f37bb7.png",
       "imageWidth": 28,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -30845,7 +30845,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Boomstick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ae5bca4a080a4b7bafbd1f099fccd9b0.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ae5bca4a080a4b7bafbd1f099fccd9b0.png",
       "imageWidth": 40,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -30941,7 +30941,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Marshmallow.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/111562c78174460dae274b4a030c20de.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/111562c78174460dae274b4a030c20de.png",
       "imageWidth": 12,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -30973,7 +30973,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Marshmallow on a Stick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0b4933a55f1244dc94ad452bfeb4324b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0b4933a55f1244dc94ad452bfeb4324b.png",
       "imageWidth": 32,
       "imageHeight": 10,
       "imageContentType": "image/png"
@@ -31005,7 +31005,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cooked Marshmallow.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2d709f50c430443193e83bad836b7141.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2d709f50c430443193e83bad836b7141.png",
       "imageWidth": 12,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -31197,7 +31197,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Shoe Spikes.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6167a1d0be0c4557a412fbb991ab68d7.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6167a1d0be0c4557a412fbb991ab68d7.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -31229,7 +31229,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tiger Climbing Gear.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7ab33296370c4ca1839aba2043b211df.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7ab33296370c4ca1839aba2043b211df.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -31261,7 +31261,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tabi.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/52ba0a3c1431465f9454260195fce8f8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/52ba0a3c1431465f9454260195fce8f8.png",
       "imageWidth": 26,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -31421,7 +31421,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mana Regeneration Band.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7705a89ea20d4ac594f747489f18b9f7.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7705a89ea20d4ac594f747489f18b9f7.png",
       "imageWidth": 28,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -31453,7 +31453,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Sandstorm in a Balloon.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5ce7c8f476f048d9a89bf528fd270d27.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5ce7c8f476f048d9a89bf528fd270d27.png",
       "imageWidth": 22,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -31485,7 +31485,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Master Ninja Gear.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2b00b478dbdf4b9eb9441d9e50b901a6.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2b00b478dbdf4b9eb9441d9e50b901a6.png",
       "imageWidth": 30,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -37981,7 +37981,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Palladium Repeater.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/785f5825a2d94d2a8c049862557a6265.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/785f5825a2d94d2a8c049862557a6265.png",
       "imageWidth": 58,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -38013,7 +38013,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Palladium Pickaxe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/54c379c806134676871111a6aeb71a24.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/54c379c806134676871111a6aeb71a24.png",
       "imageWidth": 40,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -38045,7 +38045,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Palladium Drill.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/421a7cda79104b1cae0d07e86fce0dfb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/421a7cda79104b1cae0d07e86fce0dfb.png",
       "imageWidth": 46,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -38077,7 +38077,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Palladium Chainsaw.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8c543bfcb8044fd4b885cf33a6cffdbe.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8c543bfcb8044fd4b885cf33a6cffdbe.png",
       "imageWidth": 56,
       "imageHeight": 18,
       "imageContentType": "image/png"
@@ -38109,7 +38109,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Bar.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/30881a7766b445349e539e31b632596a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/30881a7766b445349e539e31b632596a.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -38141,7 +38141,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Sword.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6ec66368c8c74020bf9a9794ffa7c26d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6ec66368c8c74020bf9a9794ffa7c26d.png",
       "imageWidth": 54,
       "imageHeight": 54,
       "imageContentType": "image/png"
@@ -38173,7 +38173,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Halberd.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/dfeab49d658748d3af7b433b05e1a927.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/dfeab49d658748d3af7b433b05e1a927.png",
       "imageWidth": 44,
       "imageHeight": 46,
       "imageContentType": "image/png"
@@ -38205,7 +38205,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Repeater.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2909378875b246d6b48b30d1d489ed82.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2909378875b246d6b48b30d1d489ed82.png",
       "imageWidth": 56,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -38237,7 +38237,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Pickaxe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f3faba93ce98418b8a2bbdb244b871c9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f3faba93ce98418b8a2bbdb244b871c9.png",
       "imageWidth": 40,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -38269,7 +38269,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Drill.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/da43ef248980440b883d052782d2e6d3.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/da43ef248980440b883d052782d2e6d3.png",
       "imageWidth": 48,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -38301,7 +38301,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Orichalcum Chainsaw.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/08216fcd841b46fcb3aae66bb71ceffd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/08216fcd841b46fcb3aae66bb71ceffd.png",
       "imageWidth": 56,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -38333,7 +38333,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Titanium Bar.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7499324a8c6448b2a14567cf26b7ae25.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7499324a8c6448b2a14567cf26b7ae25.png",
       "imageWidth": 30,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -38365,7 +38365,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Titanium Sword.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ff800268326f450a9ef76ffac87aecc2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ff800268326f450a9ef76ffac87aecc2.png",
       "imageWidth": 60,
       "imageHeight": 60,
       "imageContentType": "image/png"
@@ -38397,7 +38397,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Titanium Trident.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e48f44c72d3b4859aac28b6574f5ae01.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e48f44c72d3b4859aac28b6574f5ae01.png",
       "imageWidth": 52,
       "imageHeight": 50,
       "imageContentType": "image/png"
@@ -38429,7 +38429,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Titanium Repeater.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a9cb87c29f464e9ea2ff9dba5912279f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a9cb87c29f464e9ea2ff9dba5912279f.png",
       "imageWidth": 58,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -42365,7 +42365,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bananarang.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3fcc1140ffe7482999ebd1903ea12b9a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3fcc1140ffe7482999ebd1903ea12b9a.png",
       "imageWidth": 22,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -42397,7 +42397,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Chain Knife.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c1c52aa44b674e2d8af835c3b0faa9c9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c1c52aa44b674e2d8af835c3b0faa9c9.png",
       "imageWidth": 30,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -42429,7 +42429,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rod of Discord.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/be7cc99e09a9408192a2b440dd6d8e9b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/be7cc99e09a9408192a2b440dd6d8e9b.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -42461,7 +42461,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Death Sickle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e49c7ec6a70e42d689e228f1724f9d83.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e49c7ec6a70e42d689e228f1724f9d83.png",
       "imageWidth": 70,
       "imageHeight": 64,
       "imageContentType": "image/png"
@@ -42493,7 +42493,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Turtle Shell.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2720398a31d54e698954fda32588fe08.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2720398a31d54e698954fda32588fe08.png",
       "imageWidth": 22,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -42525,7 +42525,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tissue Sample.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2d4510446cab48898763bc64bd455c71.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2d4510446cab48898763bc64bd455c71.png",
       "imageWidth": 26,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -42557,7 +42557,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Vertebra.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/685fae5c2a034e95878943c881140bb6.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/685fae5c2a034e95878943c881140bb6.png",
       "imageWidth": 26,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -42589,7 +42589,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bloody Spine.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c227e4a3a89947fdbf40949a339c5d81.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c227e4a3a89947fdbf40949a339c5d81.png",
       "imageWidth": 24,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -42621,7 +42621,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ichor.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a59290e291eb464ab05947fa097f44ac.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a59290e291eb464ab05947fa097f44ac.png",
       "imageWidth": 16,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -42685,7 +42685,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ichor Arrow.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2ba6bcf2b63c4b3c91da6b26dfeca469.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2ba6bcf2b63c4b3c91da6b26dfeca469.png",
       "imageWidth": 14,
       "imageHeight": 38,
       "imageContentType": "image/png"
@@ -42717,7 +42717,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ichor Bullet.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e9118b8a6c3f402cad5f8e0968992d78.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e9118b8a6c3f402cad5f8e0968992d78.png",
       "imageWidth": 10,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -42749,7 +42749,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Golden Shower.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3a495125aee041e9b8f6c28328d5b41c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3a495125aee041e9b8f6c28328d5b41c.png",
       "imageWidth": 28,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -42781,7 +42781,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bunny Cannon.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2059aae2cc2b4aa3a6938890b4d92091.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2059aae2cc2b4aa3a6938890b4d92091.png",
       "imageWidth": 38,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -42813,7 +42813,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Explosive Bunny.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/213038c922d045b481ff108895fbf7ed.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/213038c922d045b481ff108895fbf7ed.png",
       "imageWidth": 28,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -42845,7 +42845,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Vial of Venom.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/95e3e151b75843e6a725c1621c40e7ab.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/95e3e151b75843e6a725c1621c40e7ab.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -57085,7 +57085,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Explosive Jack 'O Lantern.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f52cce06baa6410894bfcef9c4ad51d1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f52cce06baa6410894bfcef9c4ad51d1.png",
       "imageWidth": 32,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -57149,7 +57149,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Sickle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/900fea75f1fb41c6a00b7f9f275d40f1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/900fea75f1fb41c6a00b7f9f275d40f1.png",
       "imageWidth": 40,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -57181,7 +57181,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pumpkin Pie.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d77bbd3e694a43ce9476ad5362ef4203.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d77bbd3e694a43ce9476ad5362ef4203.png",
       "imageWidth": 38,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -57533,7 +57533,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Spider Egg.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9f119dffb43f479ebca6d99a0c8474b5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9f119dffb43f479ebca6d99a0c8474b5.png",
       "imageWidth": 24,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -57565,7 +57565,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Magical Pumpkin Seed.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0996a94d37134743a52d8f122405c3ca.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0996a94d37134743a52d8f122405c3ca.png",
       "imageWidth": 28,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -57597,7 +57597,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bat Hook.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/350d72381ff64cabbe29fcd520fb2f9b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/350d72381ff64cabbe29fcd520fb2f9b.png",
       "imageWidth": 28,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -57629,7 +57629,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bat Scepter.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/03914bc2878e4eb09fe50b72b05906d1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/03914bc2878e4eb09fe50b72b05906d1.png",
       "imageWidth": 30,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -57661,7 +57661,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Raven Staff.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/04d7dcf00c7c44bd871407cf3e615631.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/04d7dcf00c7c44bd871407cf3e615631.png",
       "imageWidth": 38,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -57885,7 +57885,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rotten Egg.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b33a5f8d7a89453cb09d1f964446f08f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b33a5f8d7a89453cb09d1f964446f08f.png",
       "imageWidth": 20,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -57917,7 +57917,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Unlucky Yarn.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/48f1b460db6847f7aa2f26d81aeb32f7.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/48f1b460db6847f7aa2f26d81aeb32f7.png",
       "imageWidth": 24,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -57949,7 +57949,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Black Fairy Dust.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2682a18a466349fd800e0af92dcd75c8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2682a18a466349fd800e0af92dcd75c8.png",
       "imageWidth": 26,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -58013,7 +58013,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Jack 'O Lantern.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a559f5b0bd994ea1b24bce034fee149d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a559f5b0bd994ea1b24bce034fee149d.png",
       "imageWidth": 32,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -58365,7 +58365,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cat Ears.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fec0b9ea388c4a9ebf56331e2c3dc5ac.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fec0b9ea388c4a9ebf56331e2c3dc5ac.png",
       "imageWidth": 24,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -58397,7 +58397,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bloody Machete.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f93b32d0b6cd4092b2fdd42e8d4b2b36.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f93b32d0b6cd4092b2fdd42e8d4b2b36.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -58429,7 +58429,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "The Horseman's Blade.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bcdcad1c9f5749ac865272680bf8d36a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bcdcad1c9f5749ac865272680bf8d36a.png",
       "imageWidth": 54,
       "imageHeight": 54,
       "imageContentType": "image/png"
@@ -70525,7 +70525,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Honey Dispenser.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f9cef456547e45b0bd60589a3e58e84a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f9cef456547e45b0bd60589a3e58e84a.png",
       "imageWidth": 28,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -70557,7 +70557,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Penguin blue.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/41f20201e38445b387daa0ce5b89aeed.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/41f20201e38445b387daa0ce5b89aeed.png",
       "imageWidth": 24,
       "imageHeight": 38,
       "imageContentType": "image/png"
@@ -70653,7 +70653,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Terrarium.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/84bc72e0f3d249a1ac93708e5633d8b3.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/84bc72e0f3d249a1ac93708e5633d8b3.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -70685,7 +70685,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Super Mana Potion.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5254809348754c45bc4f0fc28273e1ce.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5254809348754c45bc4f0fc28273e1ce.png",
       "imageWidth": 20,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -70845,7 +70845,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Brick Layer.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/aee90b4e75ae4727b921b409a3da12c1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/aee90b4e75ae4727b921b409a3da12c1.png",
       "imageWidth": 34,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -70877,7 +70877,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Extendo Grip.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/80be70dcabb64fd58abedddb40bedfd6.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/80be70dcabb64fd58abedddb40bedfd6.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -70909,7 +70909,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Paint Sprayer.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/60e87ff2c353447aa807dfaad1464bfd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/60e87ff2c353447aa807dfaad1464bfd.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -70941,7 +70941,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Portable Cement Mixer.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e0bd1109a7614628b48423ca0fda288c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e0bd1109a7614628b48423ca0fda288c.png",
       "imageWidth": 34,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -70973,7 +70973,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Beetle Husk.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5ac45736220744df888df27b74200602.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5ac45736220744df888df27b74200602.png",
       "imageWidth": 24,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -71005,7 +71005,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Celestial Magnet.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/86308af6557a486aac9cdd31493c1e52.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/86308af6557a486aac9cdd31493c1e52.png",
       "imageWidth": 30,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -71037,7 +71037,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Celestial Emblem.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b1f26584516246b495ccad6d9b761fca.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b1f26584516246b495ccad6d9b761fca.png",
       "imageWidth": 30,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -71069,7 +71069,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Celestial Cuffs.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e938c6de3b414e6f869938271eed6127.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e938c6de3b414e6f869938271eed6127.png",
       "imageWidth": 32,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -71101,7 +71101,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Peddler's Hat.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4264ef94e7134e918c2883e2c7798b69.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4264ef94e7134e918c2883e2c7798b69.png",
       "imageWidth": 30,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -71133,7 +71133,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pulse Bow.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e6e7644250be493eb636fc6a2d5b50cf.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e6e7644250be493eb636fc6a2d5b50cf.png",
       "imageWidth": 28,
       "imageHeight": 46,
       "imageContentType": "image/png"
@@ -74813,7 +74813,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Seaweed.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ebb6ca8f3d16447892e82d5aea29efa4.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ebb6ca8f3d16447892e82d5aea29efa4.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -77437,7 +77437,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Zephyr Fish.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e6166ec307354c1988d2314de0f1aacb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e6166ec307354c1988d2314de0f1aacb.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -77533,7 +77533,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Frog Leg.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/79b5e4d2a4414134becac6a506c53968.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/79b5e4d2a4414134becac6a506c53968.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -77565,7 +77565,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Anchor.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f26d7d3ab27944bfbe1cae3e6389bede.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f26d7d3ab27944bfbe1cae3e6389bede.png",
       "imageWidth": 48,
       "imageHeight": 46,
       "imageContentType": "image/png"
@@ -77693,7 +77693,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Fuzzy Carrot.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8ed59ef1f93d49e4ba96167fc93957ed.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8ed59ef1f93d49e4ba96167fc93957ed.png",
       "imageWidth": 26,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -77725,7 +77725,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Scaly Truffle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4f51e064bae9412ebf7ee46dd9f00fcb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4f51e064bae9412ebf7ee46dd9f00fcb.png",
       "imageWidth": 30,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -77757,7 +77757,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Slimy Saddle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ab15c5a5bbd94b4a80c49c2e0e5dd8ab.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ab15c5a5bbd94b4a80c49c2e0e5dd8ab.png",
       "imageWidth": 34,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -77789,7 +77789,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bee Wax.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d87c997e835140d39fb674c0b2aa9e4b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d87c997e835140d39fb674c0b2aa9e4b.png",
       "imageWidth": 30,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -77821,7 +77821,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Copper Plating Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1b3963a0cd444d7abf9bba598ff9774d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1b3963a0cd444d7abf9bba598ff9774d.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -77853,7 +77853,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Stone Slab Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a2b09690e36a45f3905b23caa9ebb5dd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a2b09690e36a45f3905b23caa9ebb5dd.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -77885,7 +77885,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Sail.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9d1865144fe640bf92e740a9cd049da1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9d1865144fe640bf92e740a9cd049da1.png",
       "imageWidth": 34,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -77917,7 +77917,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Coralstone Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/561a077b5fe14bbab01cde733dcf2a9d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/561a077b5fe14bbab01cde733dcf2a9d.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -78141,7 +78141,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Life Preserver.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f3160409f02847628c56fb1845c72f9d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f3160409f02847628c56fb1845c72f9d.png",
       "imageWidth": 26,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -78173,7 +78173,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ship's Wheel.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c67eb1fd26be4894becd31bc89bcd2e9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c67eb1fd26be4894becd31bc89bcd2e9.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -78205,7 +78205,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Compass Rose.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e79be95b79d04ab0ac56658625820a61.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e79be95b79d04ab0ac56658625820a61.png",
       "imageWidth": 30,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -78237,7 +78237,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Wall Anchor.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7b9482d5ef3447968863068e8b7d545c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7b9482d5ef3447968863068e8b7d545c.png",
       "imageWidth": 32,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -85533,7 +85533,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Truffle Worm (NPC).gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/18aadd9a217b40539f3b9dd8ed166c82.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/18aadd9a217b40539f3b9dd8ed166c82.gif",
       "imageWidth": 34,
       "imageHeight": 10,
       "imageContentType": "image/gif"
@@ -88669,7 +88669,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Brain Scrambler.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/99cb1adbd23240fcaa1b8294dc9e8060.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/99cb1adbd23240fcaa1b8294dc9e8060.gif",
       "imageWidth": 30,
       "imageHeight": 44,
       "imageContentType": "image/gif"
@@ -91933,7 +91933,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Living Ocean Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fa9a3b9c9e394a5c95dcd5ccfc2d3240.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fa9a3b9c9e394a5c95dcd5ccfc2d3240.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -92093,7 +92093,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Wisp Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/29109eb1c8574eeea36832ec3d083271.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/29109eb1c8574eeea36832ec3d083271.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -92125,7 +92125,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pixie Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bac4c3717f6c450db4b4a1a6fb91d681.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bac4c3717f6c450db4b4a1a6fb91d681.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -92157,7 +92157,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Influx Waver.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d233a9f21a4b47418330ebf20c9666aa.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d233a9f21a4b47418330ebf20c9666aa.png",
       "imageWidth": 50,
       "imageHeight": 50,
       "imageContentType": "image/png"
@@ -92189,7 +92189,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Phasic Warp Ejector.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bbf6ee68869642e997bc472d57bc4888.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bbf6ee68869642e997bc472d57bc4888.png",
       "imageWidth": 58,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -92221,7 +92221,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Charged Blaster Cannon.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/403fb6f09364472196561997a67144ff.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/403fb6f09364472196561997a67144ff.png",
       "imageWidth": 18,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -92253,7 +92253,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Chlorophyte Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f1f128e5fd4f4e5ea0e45ac07e5efe89.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f1f128e5fd4f4e5ea0e45ac07e5efe89.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -92285,7 +92285,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Unicorn Wisp Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/06c3502f9c794278bf078e7e21e214b4.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/06c3502f9c794278bf078e7e21e214b4.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -92317,7 +92317,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Infernal Wisp Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1cef939d4e8448c3b8a13c1d631eb793.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1cef939d4e8448c3b8a13c1d631eb793.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -92381,7 +92381,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Vicious Mushroom.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1387690a7ae54f58a369574705f68be2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1387690a7ae54f58a369574705f68be2.png",
       "imageWidth": 22,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -92413,7 +92413,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "The Bee's Knees.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/21036df926a14fcb911652a99ea7103f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/21036df926a14fcb911652a99ea7103f.png",
       "imageWidth": 30,
       "imageHeight": 56,
       "imageContentType": "image/png"
@@ -92445,7 +92445,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gold Bird.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/262f9871549545d8b166232c696cb533.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/262f9871549545d8b166232c696cb533.png",
       "imageWidth": 22,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -92477,7 +92477,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gold Bunny.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8c2f71dbe9f24fcbaaa2e24ced2c823d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8c2f71dbe9f24fcbaaa2e24ced2c823d.png",
       "imageWidth": 28,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -97981,7 +97981,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Crimson Heart.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5bd814d62f0143f9ac9721dc9a761fc2.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5bd814d62f0143f9ac9721dc9a761fc2.gif",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/gif"
@@ -99229,7 +99229,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Meteorite Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4cb4448aff6d40ae8cc5a3e47b70fdee.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4cb4448aff6d40ae8cc5a3e47b70fdee.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -99261,7 +99261,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Metal Detector.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1af99a674cce47ca8a02167d19f85fa9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1af99a674cce47ca8a02167d19f85fa9.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -99293,7 +99293,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Endless Quiver.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3b464dbd002448e2bd0efecee204d321.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3b464dbd002448e2bd0efecee204d321.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -99325,7 +99325,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Endless Musket Pouch.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/27a88257a9fc4b0497f90bfe8b5906b5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/27a88257a9fc4b0497f90bfe8b5906b5.png",
       "imageWidth": 26,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -99357,7 +99357,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Toxic Flask.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/283fac905c7e40ef8ab3bdd4f7c4614d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/283fac905c7e40ef8ab3bdd4f7c4614d.png",
       "imageWidth": 28,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -99389,7 +99389,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Psycho Knife.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e4388b67d05b4f0f884f577b2fa2801d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e4388b67d05b4f0f884f577b2fa2801d.png",
       "imageWidth": 30,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -99421,7 +99421,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Nail.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e0e3a67a08db46379b2192204180abea.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e0e3a67a08db46379b2192204180abea.png",
       "imageWidth": 10,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -99485,7 +99485,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Night Vision Helmet.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3ecfff55a08648adabaa76a557dfba86.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3ecfff55a08648adabaa76a557dfba86.png",
       "imageWidth": 20,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -99517,7 +99517,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Celestial Shell.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a8223ca0573f4789a385d9e3fa5f6923.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a8223ca0573f4789a385d9e3fa5f6923.png",
       "imageWidth": 40,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -99549,7 +99549,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pink Gel.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7c6cc37efc6b470ebf10877df2cce951.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7c6cc37efc6b470ebf10877df2cce951.png",
       "imageWidth": 16,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -99581,7 +99581,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bouncy Glowstick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e1fb896b552d4f9598c7bd8534e13fc9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e1fb896b552d4f9598c7bd8534e13fc9.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -99613,7 +99613,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pink Slime Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8fcf935e27f1401cb45457b5f86bb90d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8fcf935e27f1401cb45457b5f86bb90d.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -99677,7 +99677,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bouncy Bomb.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8491365de01d49e382ddaebcecb1c324.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8491365de01d49e382ddaebcecb1c324.png",
       "imageWidth": 22,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -99709,7 +99709,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bouncy Grenade.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f56f9cf2551a4285b2657a4c1cd80682.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f56f9cf2551a4285b2657a4c1cd80682.png",
       "imageWidth": 16,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -107133,7 +107133,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Desert Fossil Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0dd569f9e7c2415aaa61686f675a1999.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0dd569f9e7c2415aaa61686f675a1999.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -107165,7 +107165,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Exotic Scimitar.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/30205d11c3454edc85f2a10c8a54f0e0.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/30205d11c3454edc85f2a10c8a54f0e0.png",
       "imageWidth": 40,
       "imageHeight": 48,
       "imageContentType": "image/png"
@@ -107197,7 +107197,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Paintball Gun.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0b16a89500b649419fe89bc8ec0ccc6e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0b16a89500b649419fe89bc8ec0ccc6e.png",
       "imageWidth": 28,
       "imageHeight": 18,
       "imageContentType": "image/png"
@@ -107229,7 +107229,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Classy Cane.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/404abf9b5cea4352a5a308e5c1d4239d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/404abf9b5cea4352a5a308e5c1d4239d.png",
       "imageWidth": 28,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -107261,7 +107261,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Stylish Scissors.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d54163fae2b74226a79b390356ea9553.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d54163fae2b74226a79b390356ea9553.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -107325,7 +107325,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mechanical Wheel Piece.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/99cbe6c40abd474eafe8722a1b45f216.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/99cbe6c40abd474eafe8722a1b45f216.png",
       "imageWidth": 28,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -107357,7 +107357,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mechanical Wagon Piece.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2176cd6af84b4320864aaabb42ec438f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2176cd6af84b4320864aaabb42ec438f.png",
       "imageWidth": 30,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -107389,7 +107389,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mechanical Battery Piece.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5545aac025764307ad794e3f98b118cd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5545aac025764307ad794e3f98b118cd.png",
       "imageWidth": 32,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -107645,7 +107645,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Fireplace.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/673b0ab3443342b2af48a081a0ba6d48.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/673b0ab3443342b2af48a081a0ba6d48.png",
       "imageWidth": 30,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -107677,7 +107677,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Chimney.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4e2eaac5dc3f4d06870043bcdfcac769.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4e2eaac5dc3f4d06870043bcdfcac769.png",
       "imageWidth": 20,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -107709,7 +107709,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Yoyo Bag.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d28077f3be784a90ba8108c870461e26.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d28077f3be784a90ba8108c870461e26.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -107741,7 +107741,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Shrimpy Truffle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/17c1f3dd1eac4ae0b5c33e706b4a0a8b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/17c1f3dd1eac4ae0b5c33e706b4a0a8b.png",
       "imageWidth": 30,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -107773,7 +107773,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Arkhalis.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/99bc728ff5c047e6b32527265b93641c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/99bc728ff5c047e6b32527265b93641c.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -107805,7 +107805,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Confetti Cannon.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/31c21d56e4fe4112b2ee5bb0013cd11c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/31c21d56e4fe4112b2ee5bb0013cd11c.png",
       "imageWidth": 30,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -108061,7 +108061,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Amber Staff.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/54bc55ef3b784d8381b740e03a00099f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/54bc55ef3b784d8381b740e03a00099f.png",
       "imageWidth": 40,
       "imageHeight": 38,
       "imageContentType": "image/png"
@@ -108317,7 +108317,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Strange Plants.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/gif"
@@ -108349,7 +108349,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Strange Plants.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/gif"
@@ -108381,7 +108381,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Strange Plants.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/gif"
@@ -108413,7 +108413,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Strange Plants.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f0a4b48ca5e8493fa2bd4a581cee8522.gif",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/gif"
@@ -110493,7 +110493,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Damage Booster.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3b3a96a1c24a40839c0aa71c13b2f474.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3b3a96a1c24a40839c0aa71c13b2f474.gif",
       "imageWidth": 14,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -110525,7 +110525,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Life Booster.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2c763131d6e64cc8a7f717a774be0222.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2c763131d6e64cc8a7f717a774be0222.gif",
       "imageWidth": 14,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -110557,7 +110557,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mana Booster.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6c2497def59046698c3fc19a2c6c7266.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6c2497def59046698c3fc19a2c6c7266.gif",
       "imageWidth": 14,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -113341,7 +113341,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Nebula Blaze.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fba9126a56a64742a57f585dee1ec82a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fba9126a56a64742a57f585dee1ec82a.png",
       "imageWidth": 26,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -113373,7 +113373,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Daybreak.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c95ad619afd54b6ba4198f2a18c2344f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c95ad619afd54b6ba4198f2a18c2344f.png",
       "imageWidth": 48,
       "imageHeight": 48,
       "imageContentType": "image/png"
@@ -113405,7 +113405,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Super Healing Potion.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b9b991f4379b4ab883d69305e12008a5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b9b991f4379b4ab883d69305e12008a5.png",
       "imageWidth": 20,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -113437,7 +113437,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Detonator.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/eb10afd367c148d681e8c967dad17afe.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/eb10afd367c148d681e8c967dad17afe.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -113469,7 +113469,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Celebration.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c555049d85034872a1c82c5b7196f4ca.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c555049d85034872a1c82c5b7196f4ca.png",
       "imageWidth": 34,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -113501,7 +113501,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bouncy Dynamite.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d6a86e189fc94271a24f881da32f8629.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d6a86e189fc94271a24f881da32f8629.png",
       "imageWidth": 10,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -113533,7 +113533,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Happy Grenade.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8f57cc857115400a878311cdb016ce43.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8f57cc857115400a878311cdb016ce43.png",
       "imageWidth": 14,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -113565,7 +113565,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ancient Manipulator.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/aedb7debc8434f229683c93f0779a18b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/aedb7debc8434f229683c93f0779a18b.png",
       "imageWidth": 30,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -113693,7 +113693,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Reflective Copper Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d9567a74e5834ec4a01c6d2a5f378c98.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d9567a74e5834ec4a01c6d2a5f378c98.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -113725,7 +113725,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Reflective Obsidian Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9e9129cde52943cc878c78de127ac7c8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9e9129cde52943cc878c78de127ac7c8.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -113757,7 +113757,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Reflective Metal Dye.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/340e0baa03454e21bbf3c0c2689e86ba.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/340e0baa03454e21bbf3c0c2689e86ba.png",
       "imageWidth": 16,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -114557,7 +114557,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Yoraiz0r's Spell.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/293e265518f64f50b0b950f7c89bdd81.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/293e265518f64f50b0b950f7c89bdd81.gif",
       "imageWidth": 22,
       "imageHeight": 22,
       "imageContentType": "image/gif"
@@ -122685,7 +122685,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ghastly Glaive.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/dec764b9330c4c4493e0a82a46f5b7fc.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/dec764b9330c4c4493e0a82a46f5b7fc.png",
       "imageWidth": 52,
       "imageHeight": 52,
       "imageContentType": "image/png"
@@ -123037,7 +123037,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tome of Infinite Wisdom.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f742e1afe4db42928ca1a0edd1c1b57b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f742e1afe4db42928ca1a0edd1c1b57b.png",
       "imageWidth": 42,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -123069,7 +123069,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Phantom Phoenix.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2c569d8512364afa8fd885e8c31d6d75.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2c569d8512364afa8fd885e8c31d6d75.png",
       "imageWidth": 28,
       "imageHeight": 58,
       "imageContentType": "image/png"
@@ -123101,7 +123101,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gato Egg.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/26aaf02d202e4580b085b1f826d5d077.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/26aaf02d202e4580b085b1f826d5d077.png",
       "imageWidth": 22,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -123133,7 +123133,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Creeper Egg.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ee2842816f69418998152d277ae28d3d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ee2842816f69418998152d277ae28d3d.png",
       "imageWidth": 22,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -123165,7 +123165,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Dragon Egg.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f10985c18ee142b88f0033df1788bc47.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f10985c18ee142b88f0033df1788bc47.png",
       "imageWidth": 22,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -123197,7 +123197,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Sky Dragon's Fury.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6ba18a1d507148adac207f1b9b47adc6.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6ba18a1d507148adac207f1b9b47adc6.png",
       "imageWidth": 60,
       "imageHeight": 64,
       "imageContentType": "image/png"
@@ -123229,7 +123229,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Aerial Bane.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6638add06694457faf424ebc62ba47ae.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6638add06694457faf424ebc62ba47ae.png",
       "imageWidth": 28,
       "imageHeight": 58,
       "imageContentType": "image/png"
@@ -123517,7 +123517,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Betsy's Wrath.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0b84e6dde28848b5ba6d73fb4ecae00a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0b84e6dde28848b5ba6d73fb4ecae00a.png",
       "imageWidth": 62,
       "imageHeight": 64,
       "imageContentType": "image/png"
@@ -125437,7 +125437,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Celebration Mk2.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/02784101a7ab462b98f5f0d39b78b7e8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/02784101a7ab462b98f5f0d39b78b7e8.png",
       "imageWidth": 78,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -126109,7 +126109,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Iron Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6fb38efb8d7744399b6d671e7cb08cf2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6fb38efb8d7744399b6d671e7cb08cf2.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -126141,7 +126141,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Iron Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9aba112db27444469dbdaf4212e6bf58.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9aba112db27444469dbdaf4212e6bf58.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -126173,7 +126173,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Lead Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/61c5115db40745e7937a5ab612fee723.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/61c5115db40745e7937a5ab612fee723.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -126205,7 +126205,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Lead Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/167b331222c845a0bd4b129ec5ab779b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/167b331222c845a0bd4b129ec5ab779b.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -130525,7 +130525,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Shell Pile.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a6b99fe272dd42fd843a86f1f2f174ac.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a6b99fe272dd42fd843a86f1f2f174ac.png",
       "imageWidth": 30,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -130557,7 +130557,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Anti-Portal Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b923fd76ca964d32b47ac0c438968cfb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b923fd76ca964d32b47ac0c438968cfb.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -130685,7 +130685,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Golf Whistle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4236e621613c4cfcbdf15cd47fe2ca2c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4236e621613c4cfcbdf15cd47fe2ca2c.png",
       "imageWidth": 30,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -131837,7 +131837,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Void Bag.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fcfcbe5d755b4f9ca69a98bdb26cd233.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fcfcbe5d755b4f9ca69a98bdb26cd233.png",
       "imageWidth": 26,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -132093,7 +132093,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Spider Nest Block.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9fedd607feab4cf88029e0168582f95e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9fedd607feab4cf88029e0168582f95e.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -132125,7 +132125,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Spider Nest Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a8ae23acea3a4f7f8bc8a630edb31300.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a8ae23acea3a4f7f8bc8a630edb31300.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -132189,7 +132189,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Decay Chamber.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/cfce852d1e9e4b94a01100bad53b7adc.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/cfce852d1e9e4b94a01100bad53b7adc.png",
       "imageWidth": 22,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -132221,7 +132221,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Terragrim.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/687a7907abd446308480eaee8b338953.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/687a7907abd446308480eaee8b338953.png",
       "imageWidth": 32,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -134941,7 +134941,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Solar Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/315cdaff70744dcba19d40983ecb73bb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/315cdaff70744dcba19d40983ecb73bb.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -134973,7 +134973,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Vortex Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/109709fde18d4e29b0b198861cbf03c1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/109709fde18d4e29b0b198861cbf03c1.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -135005,7 +135005,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Nebula Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5fb3dc2ce38648928195337d8253d90b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5fb3dc2ce38648928195337d8253d90b.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -135037,7 +135037,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Stardust Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c363ddaa9b024e6fabf60cd72baadea2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c363ddaa9b024e6fabf60cd72baadea2.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -135069,7 +135069,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Solar Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9ea5b86b3d1d423aa7418ebf52c081e1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/9ea5b86b3d1d423aa7418ebf52c081e1.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -135101,7 +135101,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Vortex Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4bfc669a6af64ea7b6640b82f029d197.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4bfc669a6af64ea7b6640b82f029d197.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -135133,7 +135133,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Nebula Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2000b6894f51429ea4de51e718380aa9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2000b6894f51429ea4de51e718380aa9.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -142429,7 +142429,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gladius.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/83b78776d64f4bb3842cbbe2db91bfe2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/83b78776d64f4bb3842cbbe2db91bfe2.png",
       "imageWidth": 42,
       "imageHeight": 42,
       "imageContentType": "image/png"
@@ -142461,7 +142461,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Turtle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d7d93ad330ea46c29a2eb7a2dc4f22c9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d7d93ad330ea46c29a2eb7a2dc4f22c9.png",
       "imageWidth": 34,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -142493,7 +142493,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Jungle Turtle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6f014068f3964fa2a11909fcacaada14.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6f014068f3964fa2a11909fcacaada14.png",
       "imageWidth": 34,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -142973,7 +142973,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Seahorse.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/23cc86fe95284a269121cfa01647f8e2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/23cc86fe95284a269121cfa01647f8e2.png",
       "imageWidth": 20,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -143037,7 +143037,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Gold Seahorse.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ce55ac7111e34318a5dfd4bde7942702.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ce55ac7111e34318a5dfd4bde7942702.png",
       "imageWidth": 20,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -143165,7 +143165,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ebonstone Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c1eced31716844a293f480a9fd9546c7.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c1eced31716844a293f480a9fd9546c7.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143197,7 +143197,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mud Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/29dbfd3db0d94c498ab9a7b9d9bde957.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/29dbfd3db0d94c498ab9a7b9d9bde957.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143229,7 +143229,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pearlstone Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b692a3b51a8943248982c7cb9fcdaebb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b692a3b51a8943248982c7cb9fcdaebb.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143261,7 +143261,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Snow Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b22e3c18480d4cc28223ac073366ed6e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b22e3c18480d4cc28223ac073366ed6e.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143709,7 +143709,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Spider Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/edaa1c2a7baa433fafb4fed33e606d37.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/edaa1c2a7baa433fafb4fed33e606d37.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143741,7 +143741,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Corrupt Grass Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/87f07e2abaae400ca56622f95304602d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/87f07e2abaae400ca56622f95304602d.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143773,7 +143773,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Hallowed Grass Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/101b13850a0d46ac9fc2e764a9fc84ca.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/101b13850a0d46ac9fc2e764a9fc84ca.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143805,7 +143805,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ice Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/10e5fd8cfd0645c7b0621b741bd8affc.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/10e5fd8cfd0645c7b0621b741bd8affc.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143869,7 +143869,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Crimson Grass Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/94b68e1d15ed4e16a70674a1b8b9be3d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/94b68e1d15ed4e16a70674a1b8b9be3d.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -143901,7 +143901,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Crimstone Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/aaa20bccd62749ea914f8bb275491b83.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/aaa20bccd62749ea914f8bb275491b83.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -153213,7 +153213,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Possessed Skull.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0800ff3bb4b7460b96525cc5c238b442.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0800ff3bb4b7460b96525cc5c238b442.png",
       "imageWidth": 26,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -153245,7 +153245,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Sparkling Honey.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2a651462cd1b431ba5a511b2601fd068.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2a651462cd1b431ba5a511b2601fd068.png",
       "imageWidth": 30,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -153277,7 +153277,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Deactivated Probe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/cf245e73a134428ca427a1783da032f9.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/cf245e73a134428ca427a1783da032f9.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -153309,7 +153309,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pair of Eyeballs.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d46344a414da4698a60b92245b8d45ca.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d46344a414da4698a60b92245b8d45ca.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -153341,7 +153341,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Robotic Skull.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1b592af195a4427ebc5fec051e5180e5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/1b592af195a4427ebc5fec051e5180e5.png",
       "imageWidth": 22,
       "imageHeight": 38,
       "imageContentType": "image/png"
@@ -153373,7 +153373,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Plantera Seedling.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/68577f1dc3ab4eb9b6691db4518c24b1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/68577f1dc3ab4eb9b6691db4518c24b1.png",
       "imageWidth": 26,
       "imageHeight": 36,
       "imageContentType": "image/png"
@@ -153405,7 +153405,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Guardian Golem.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/055cd60fe1ed497089adee57addbe83e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/055cd60fe1ed497089adee57addbe83e.png",
       "imageWidth": 32,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -153437,7 +153437,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pork of the Sea.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ee2ce84fb2484325a2bdf8725ead1739.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ee2ce84fb2484325a2bdf8725ead1739.png",
       "imageWidth": 28,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -153469,7 +153469,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tablet Fragment.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4df06e13e7ef4671a650f8583bd12769.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4df06e13e7ef4671a650f8583bd12769.png",
       "imageWidth": 30,
       "imageHeight": 42,
       "imageContentType": "image/png"
@@ -153501,7 +153501,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Piece of Moon Squid.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ea344c1b05474b16b5708d25cf5eb39d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ea344c1b05474b16b5708d25cf5eb39d.png",
       "imageWidth": 28,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -153533,7 +153533,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Jewel of Light.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4d70a6526c774824bb878b476c97cedf.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4d70a6526c774824bb878b476c97cedf.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -153565,7 +153565,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pumpkin Scented Candle.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/98956d64c4ec45ec88ab74b02e2dc75e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/98956d64c4ec45ec88ab74b02e2dc75e.png",
       "imageWidth": 26,
       "imageHeight": 42,
       "imageContentType": "image/png"
@@ -153597,7 +153597,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Shrub Star.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e407229160aa48c1a45e7ddae31a3b7e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e407229160aa48c1a45e7ddae31a3b7e.png",
       "imageWidth": 26,
       "imageHeight": 38,
       "imageContentType": "image/png"
@@ -153629,7 +153629,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Frozen Crown.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a18a69b8b46441b4afe5660c8bcb77b6.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a18a69b8b46441b4afe5660c8bcb77b6.png",
       "imageWidth": 34,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -153661,7 +153661,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cosmic Skateboard.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f76f5af4ac884a26bb60306f655c27b2.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f76f5af4ac884a26bb60306f655c27b2.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -162525,7 +162525,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Froggle Bunwich.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/769f4c9f98c9446da33e70181978ba43.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/769f4c9f98c9446da33e70181978ba43.png",
       "imageWidth": 36,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -162557,7 +162557,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Tentacle Spike.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/aad81854ce4f4d06a4bb18846b6eac17.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/aad81854ce4f4d06a4bb18846b6eac17.png",
       "imageWidth": 48,
       "imageHeight": 40,
       "imageContentType": "image/png"
@@ -162589,7 +162589,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Lucy the Axe.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/814500a698be4e11bd31ec6fb405b1d8.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/814500a698be4e11bd31ec6fb405b1d8.png",
       "imageWidth": 42,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -162621,7 +162621,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ham Bat.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e08fccf799ff4655a021a7339aedbc21.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e08fccf799ff4655a021a7339aedbc21.png",
       "imageWidth": 48,
       "imageHeight": 42,
       "imageContentType": "image/png"
@@ -162653,7 +162653,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bat Bat.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bac0406392f748c097122ba5873d18cd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bac0406392f748c097122ba5873d18cd.png",
       "imageWidth": 52,
       "imageHeight": 52,
       "imageContentType": "image/png"
@@ -162685,7 +162685,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Eye Bone.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4e2772f5b01146888600506fcf33f27c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4e2772f5b01146888600506fcf33f27c.png",
       "imageWidth": 32,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -162717,7 +162717,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Garland.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a1bd17c70d1744b091b413dcd5bc9c26.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a1bd17c70d1744b091b413dcd5bc9c26.png",
       "imageWidth": 28,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -162749,7 +162749,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Bone Helm.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/70799c055a7a49cda9487abbe5248530.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/70799c055a7a49cda9487abbe5248530.png",
       "imageWidth": 36,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -162781,7 +162781,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Eyebrella.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/57c8643f4ccf48049f5681c35ce3f20b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/57c8643f4ccf48049f5681c35ce3f20b.png",
       "imageWidth": 38,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -162973,7 +162973,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Magiluminescence.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b84f021d0e2d4cafbbabab27032967c5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b84f021d0e2d4cafbbabab27032967c5.png",
       "imageWidth": 24,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -163197,7 +163197,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Abigail's Flower.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ca9164b3391747038cb94362436dbf28.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/ca9164b3391747038cb94362436dbf28.png",
       "imageWidth": 30,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -163293,7 +163293,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Pew-matic Horn.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f10c1ea267db4ed2bc07397fafd0e932.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f10c1ea267db4ed2bc07397fafd0e932.png",
       "imageWidth": 28,
       "imageHeight": 26,
       "imageContentType": "image/png"
@@ -163325,7 +163325,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Weather Pain.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4955329472b94458ad9a2e2ac87ae445.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/4955329472b94458ad9a2e2ac87ae445.png",
       "imageWidth": 42,
       "imageHeight": 48,
       "imageContentType": "image/png"
@@ -163357,7 +163357,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Houndius Shootius.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d959503883414483816ce5b855bf976c.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d959503883414483816ce5b855bf976c.png",
       "imageWidth": 34,
       "imageHeight": 46,
       "imageContentType": "image/png"
@@ -172541,7 +172541,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mercury Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/63a4a8f1c2da40ffaa2f6da89aa0dff1.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/63a4a8f1c2da40ffaa2f6da89aa0dff1.png",
       "imageWidth": 20,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -172573,7 +172573,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Star Royale Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fc97a44fdaa24462a9c35d4b6792187b.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/fc97a44fdaa24462a9c35d4b6792187b.png",
       "imageWidth": 20,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -172605,7 +172605,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Heavenforge Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b074796fbc514e50818ccf0421956a22.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b074796fbc514e50818ccf0421956a22.png",
       "imageWidth": 20,
       "imageHeight": 20,
       "imageContentType": "image/png"
@@ -172637,7 +172637,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Lunar Rust Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/97c30b40d6d6459dad5819612375f47f.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/97c30b40d6d6459dad5819612375f47f.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172669,7 +172669,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Dark Celestial Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/49eed312e05c4e5580a9c52884e42234.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/49eed312e05c4e5580a9c52884e42234.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172701,7 +172701,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Astra Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/db9acb366d354763a7091f249b8d87db.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/db9acb366d354763a7091f249b8d87db.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172733,7 +172733,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cosmic Ember Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8b16be3929174151ac7586dbcfbbf07d.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/8b16be3929174151ac7586dbcfbbf07d.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172765,7 +172765,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Cryocore Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/252c20a4780346cfbd36a3db57dec925.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/252c20a4780346cfbd36a3db57dec925.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172797,7 +172797,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mercury Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bbcf7147e10f4486bcb79bd90ae711bd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/bbcf7147e10f4486bcb79bd90ae711bd.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172829,7 +172829,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Star Royale Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0095db220f0c4651863303bd7257706e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/0095db220f0c4651863303bd7257706e.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -172861,7 +172861,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Heavenforge Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3395eb71e69847778a67d6de45d124b6.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3395eb71e69847778a67d6de45d124b6.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -173085,7 +173085,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ancient Gold Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f64217113af34550bfef286f8339a73e.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f64217113af34550bfef286f8339a73e.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -173117,7 +173117,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ancient Gold Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a12348a87a504b93b8960897df27a4c5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/a12348a87a504b93b8960897df27a4c5.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -173149,7 +173149,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ancient Silver Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d6d16b3d326c494fb0ad7fb83e5e7fef.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/d6d16b3d326c494fb0ad7fb83e5e7fef.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -173181,7 +173181,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ancient Silver Brick Wall.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/268e616a484d492c93f2fe9bb5f5fc28.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/268e616a484d492c93f2fe9bb5f5fc28.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -173213,7 +173213,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Ancient Copper Brick.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2dc0c607986b43cdb9897296021c47b7.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/2dc0c607986b43cdb9897296021c47b7.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -173757,7 +173757,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Helium Moss Brick.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6c5af44baa354c6580133781b44320d5.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6c5af44baa354c6580133781b44320d5.gif",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/gif"
@@ -173949,7 +173949,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Helium Moss Brick Wall.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/041f6ab3d8a747e988b5bf12ac1408dc.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/041f6ab3d8a747e988b5bf12ac1408dc.gif",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/gif"
@@ -176637,7 +176637,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Fairy Choker.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/07a24f775a1a4426876f4fe573f76994.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/07a24f775a1a4426876f4fe573f76994.png",
       "imageWidth": 28,
       "imageHeight": 22,
       "imageContentType": "image/png"
@@ -176829,7 +176829,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Magic String.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3f5e08c4697e45e78a942fe1326a4297.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/3f5e08c4697e45e78a942fe1326a4297.png",
       "imageWidth": 34,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -176861,7 +176861,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Magic Yoyo Bag.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f22ba0e526bf408e8058604ddd8df2af.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f22ba0e526bf408e8058604ddd8df2af.png",
       "imageWidth": 34,
       "imageHeight": 34,
       "imageContentType": "image/png"
@@ -176893,7 +176893,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Freeze Bomb.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/81e3dfb7f2bc4e8fa1887ae4149bbacb.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/81e3dfb7f2bc4e8fa1887ae4149bbacb.png",
       "imageWidth": 22,
       "imageHeight": 30,
       "imageContentType": "image/png"
@@ -176925,7 +176925,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Stress Ball.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c633f8553dfb4168a53d24de3c08c054.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/c633f8553dfb4168a53d24de3c08c054.png",
       "imageWidth": 24,
       "imageHeight": 24,
       "imageContentType": "image/png"
@@ -177053,7 +177053,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Strung Counterweight.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f52c69a54aec43309d077023718d20a5.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/f52c69a54aec43309d077023718d20a5.png",
       "imageWidth": 34,
       "imageHeight": 42,
       "imageContentType": "image/png"
@@ -177757,7 +177757,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Lava Cloud.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e590558294cb4181b15d88e591522a8a.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/e590558294cb4181b15d88e591522a8a.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -177789,7 +177789,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Star Cloud.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b7d5477443c646a39bb1ac9bcc561bdd.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/b7d5477443c646a39bb1ac9bcc561bdd.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -177821,7 +177821,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rainbow Cloud.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/31b4c85dea3e4968afe45eb7bbb38a90.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/31b4c85dea3e4968afe45eb7bbb38a90.png",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/png"
@@ -177853,7 +177853,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Mud Ball.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6c45d9fc7f6f4332a7efed51b2c0daf4.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/6c45d9fc7f6f4332a7efed51b2c0daf4.png",
       "imageWidth": 14,
       "imageHeight": 14,
       "imageContentType": "image/png"
@@ -177885,7 +177885,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Torch God's Flavor.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5af932352b444e00b605a6502492af75.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5af932352b444e00b605a6502492af75.png",
       "imageWidth": 26,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -177917,7 +177917,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Lucky Clover.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/34ba1c0417674b63872a0990b20834c0.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/34ba1c0417674b63872a0990b20834c0.png",
       "imageWidth": 28,
       "imageHeight": 28,
       "imageContentType": "image/png"
@@ -177949,7 +177949,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Wilted Clover.png",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5e9152de57664938a81670b30606e827.png",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/5e9152de57664938a81670b30606e827.png",
       "imageWidth": 26,
       "imageHeight": 32,
       "imageContentType": "image/png"
@@ -180125,7 +180125,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Rainbow Glowstick.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d33678ce0e14e2f9b98ab9e5a2981c5.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/7d33678ce0e14e2f9b98ab9e5a2981c5.gif",
       "imageWidth": 16,
       "imageHeight": 16,
       "imageContentType": "image/gif"
@@ -180157,7 +180157,7 @@
       "status": 1,
       "tooltip": null,
       "imageFileTitle": "Scrying Orb.gif",
-      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/599e9bd5d5b241f18b5f415f839fe280.gif",
+      "imageUrl": "/terrapedia-images/items/2026/04/08/599e9bd5d5b241f18b5f415f839fe280.gif",
       "imageWidth": 24,
       "imageHeight": 26,
       "imageContentType": "image/gif"
