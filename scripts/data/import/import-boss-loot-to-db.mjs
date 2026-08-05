@@ -347,7 +347,9 @@ async function loadExistingBossLootRows(conn, npcId) {
        status,
        deleted
      FROM npc_loot_entries
-     WHERE npc_id = ? AND deleted = 0`,
+     WHERE npc_id = ?
+       AND deleted = 0
+       AND drop_source_kind IN ('direct_boss', 'treasure_bag')`,
     [npcId]
   );
   return rows.map((row) => normalizeLootRowForCompare(row));

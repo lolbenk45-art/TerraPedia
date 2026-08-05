@@ -274,6 +274,41 @@ function toNullableNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function loadStandardizedItemSources(dataDir) {
+  const entityDir = path.join(dataDir, 'item_relations');
+  const metaPath = path.join(entityDir, '_meta.json');
+  const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+  if (meta?.entity !== 'item_relations' || meta?.mode !== 'object-arrays') {
+    throw new Error(`Expected item_relations object-arrays view: ${metaPath}`);
+  }
+
+  const itemSourceParts = (Array.isArray(meta.parts) ? meta.parts : [])
+    .filter((part) => String(part?.name ?? '').replaceAll('\\', '/').startsWith('itemSources/'));
+  if (itemSourceParts.length === 0) {
+    throw new Error(`No itemSources parts declared in standardized view: ${metaPath}`);
+  }
+
+  const itemSources = [];
+  for (const part of itemSourceParts) {
+    const normalizedName = String(part.name).replaceAll('\\', '/');
+    const partPath = path.resolve(entityDir, normalizedName);
+    const relativePath = path.relative(entityDir, partPath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      throw new Error(`Standardized itemSources part escapes entity directory: ${normalizedName}`);
+    }
+    const payload = JSON.parse(fs.readFileSync(partPath, 'utf8'));
+    if (!Array.isArray(payload)) {
+      throw new Error(`Standardized itemSources part must be an array: ${partPath}`);
+    }
+    if (Number.isInteger(part.records) && payload.length !== part.records) {
+      throw new Error(`Standardized itemSources count mismatch: ${partPath}`);
+    }
+    itemSources.push(...payload);
+  }
+
+  return { itemSources };
+}
+
 function isDirectExecution() {
   if (!process.argv[1]) {
     return false;
@@ -283,12 +318,20 @@ function isDirectExecution() {
 
 if (isDirectExecution()) {
   const options = parseCliArgs(process.argv.slice(2));
-  const relationsPath = path.resolve(
-    process.cwd(),
-    options.input ??
-      options.relations ??
-      sharedDataPath('normalized', 'item-relations.bundle.json')
-  );
+  const standardizedDataDir = toNullableText(options['standardized-data-dir'])
+    ? path.resolve(process.cwd(), options['standardized-data-dir'])
+    : null;
+  if (standardizedDataDir && (toNullableText(options.input) || toNullableText(options.relations))) {
+    throw new Error('--standardized-data-dir cannot be combined with --input or --relations');
+  }
+  const relationsPath = standardizedDataDir
+    ? path.join(standardizedDataDir, 'item_relations', '_meta.json')
+    : path.resolve(
+      process.cwd(),
+      options.input ??
+        options.relations ??
+        sharedDataPath('normalized', 'item-relations.bundle.json')
+    );
   const npcPath = path.resolve(
     process.cwd(),
     options.npcs ??
@@ -300,7 +343,9 @@ if (isDirectExecution()) {
       sharedDataPath('normalized', 'boss-loot.bundle.json')
   );
 
-  const relationPayload = JSON.parse(fs.readFileSync(relationsPath, 'utf8'));
+  const relationPayload = standardizedDataDir
+    ? loadStandardizedItemSources(standardizedDataDir)
+    : JSON.parse(fs.readFileSync(relationsPath, 'utf8'));
   const npcPayload = JSON.parse(fs.readFileSync(npcPath, 'utf8'));
   const bundle = buildBossLootBundle({
     relationPayload,

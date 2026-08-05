@@ -1,7 +1,77 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import { buildBossLootBundle } from './generate-boss-loot-bundle.mjs';
+
+test('generate-boss-loot-bundle reads item sources from a standardized view', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boss-loot-standardized-view-'));
+  const dataDir = path.join(root, 'standardized-view');
+  const entityDir = path.join(dataDir, 'item_relations');
+  const itemSourcesDir = path.join(entityDir, 'itemSources');
+  const npcPath = path.join(root, 'npcs.json');
+  const outputPath = path.join(root, 'boss-loot.bundle.json');
+  fs.mkdirSync(itemSourcesDir, { recursive: true });
+  fs.writeFileSync(path.join(dataDir, '_index.json'), JSON.stringify({ entities: ['item_relations'] }));
+  fs.writeFileSync(path.join(entityDir, '_meta.json'), JSON.stringify({
+    entity: 'item_relations',
+    generatedAt: '2026-07-30T00:00:00Z',
+    mode: 'object-arrays',
+    totalRecords: 3,
+    parts: [
+      { name: 'itemSources/itemSources.part-0001.json', records: 1 },
+      { name: 'itemSources/itemSources.part-0002.json', records: 1 },
+      { name: 'snapshots/snapshots.part-0001.json', records: 1 },
+    ],
+  }));
+  fs.writeFileSync(path.join(itemSourcesDir, 'itemSources.part-0001.json'), JSON.stringify([
+    {
+      itemInternalName: 'SlimeGun',
+      itemName: 'Slime Gun',
+      sourceType: 'drop',
+      sourceRefType: 'boss',
+      sourceRefName: 'King Slime',
+      sourcePage: 'Slime Gun',
+      sourceRevisionTimestamp: '2026-07-30T00:00:00Z',
+    },
+  ]));
+  fs.writeFileSync(path.join(itemSourcesDir, 'itemSources.part-0002.json'), JSON.stringify([
+    {
+      itemInternalName: 'RoyalGel',
+      itemName: 'Royal Gel',
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      sourceRefName: 'Treasure Bag (King Slime)',
+      sourcePage: 'Royal Gel',
+      sourceRevisionTimestamp: '2026-07-30T00:00:00Z',
+    },
+  ]));
+  fs.writeFileSync(npcPath, JSON.stringify({
+    npcs: [{ internalName: 'KingSlime', name: 'King Slime', boss: true }],
+  }));
+
+  const result = spawnSync(process.execPath, [
+    path.resolve('scripts/data/generate/generate-boss-loot-bundle.mjs'),
+    `--standardized-data-dir=${dataDir}`,
+    `--npcs=${npcPath}`,
+    `--output=${outputPath}`,
+  ], {
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const bundle = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+  assert.equal(bundle.relationsSourceFile, path.join(entityDir, '_meta.json'));
+  assert.equal(bundle.totalBosses, 1);
+  assert.equal(bundle.totalDrops, 2);
+  assert.deepEqual(
+    bundle.bosses[0].drops.map((drop) => drop.dropSourceKind),
+    ['treasure_bag', 'direct_boss']
+  );
+});
 
 test('buildBossLootBundle keeps direct boss and treasure bag drops as separate records', () => {
   const bundle = buildBossLootBundle({
