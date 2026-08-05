@@ -1,0 +1,768 @@
+{
+  "generatedAt": "2026-08-01T00:18:22.228Z",
+  "dateTag": "2026-08-01",
+  "databases": {
+    "maintDatabase": "terria_v1_maint",
+    "relationDatabase": "terria_v1_relation",
+    "localDatabase": "terria_v1_local"
+  },
+  "summary": {
+    "status": "warning",
+    "totalChecks": 28,
+    "blockingCount": 0,
+    "warningCount": 1,
+    "passCount": 21,
+    "infoCount": 6
+  },
+  "checks": [
+    {
+      "id": "maint_item_sources_vs_item_source_facts",
+      "title": "maint_item_sources matches item_source_facts",
+      "status": "pass",
+      "message": "delta is 0",
+      "description": "Canonical relation facts must stay row-for-row with active maint item sources.",
+      "expectation": {
+        "type": "delta_zero",
+        "field": "delta"
+      },
+      "reportPath": null,
+      "sql": "SELECT\n  (SELECT COUNT(*) FROM `terria_v1_maint`.`maint_item_sources` WHERE status = 1 AND deleted = 0) AS maintCount,\n  (SELECT COUNT(*) FROM `terria_v1_relation`.`item_source_facts` WHERE source_maint_table = 'maint_item_sources') AS relationCount,\n  ((SELECT COUNT(*) FROM `terria_v1_maint`.`maint_item_sources` WHERE status = 1 AND deleted = 0) - (SELECT COUNT(*) FROM `terria_v1_relation`.`item_source_facts` WHERE source_maint_table = 'maint_item_sources')) AS delta",
+      "rows": [
+        {
+          "maintCount": 5322,
+          "relationCount": 5322,
+          "delta": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "maint_item_sources_missing_in_relation",
+      "title": "maint_item_sources keys missing from item_source_facts",
+      "status": "pass",
+      "message": "count is 0",
+      "description": "Every active maint item source record_key must be present in relation item source facts.",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_maint`.`maint_item_sources` m\nLEFT JOIN `terria_v1_relation`.`item_source_facts` f\n  ON f.source_maint_table = 'maint_item_sources'\n AND BINARY f.source_maint_record_key = BINARY m.record_key\nWHERE m.status = 1 AND m.deleted = 0\n  AND f.record_key IS NULL",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "item_source_facts_missing_in_maint",
+      "title": "item_source_facts keys missing from maint_item_sources",
+      "status": "pass",
+      "message": "count is 0",
+      "description": "Relation item source facts must remain traceable to active maint item sources.",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_source_facts` f\nLEFT JOIN `terria_v1_maint`.`maint_item_sources` m\n  ON f.source_maint_table = 'maint_item_sources'\n AND BINARY m.record_key = BINARY f.source_maint_record_key\n AND m.status = 1 AND m.deleted = 0\nLEFT JOIN `terria_v1_maint`.`maint_npc_crawler_facts` n\n  ON f.source_maint_table = 'maint_npc_crawler_facts'\n AND BINARY n.record_key = BINARY f.source_maint_record_key\n AND n.status = 1\n AND n.deleted = 0\nWHERE f.source_maint_record_key IS NULL\n   OR f.source_maint_table NOT IN ('maint_item_sources', 'maint_npc_crawler_facts')\n   OR (f.source_maint_table = 'maint_item_sources' AND m.record_key IS NULL)\n   OR (f.source_maint_table = 'maint_npc_crawler_facts' AND n.record_key IS NULL)",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "maint_item_sources_by_type",
+      "title": "maint_item_sources by source type",
+      "status": "info",
+      "message": "5 row(s)",
+      "description": null,
+      "expectation": {
+        "type": "info"
+      },
+      "reportPath": null,
+      "sql": "SELECT\n  source_type AS sourceType,\n  source_ref_type AS sourceRefType,\n  COUNT(*) AS count\nFROM `terria_v1_maint`.`maint_item_sources`\nWHERE status = 1 AND deleted = 0\nGROUP BY source_type, source_ref_type\nORDER BY source_type, source_ref_type",
+      "rows": [
+        {
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "count": 138
+        },
+        {
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "count": 3393
+        },
+        {
+          "sourceType": "mining",
+          "sourceRefType": "world",
+          "count": 54
+        },
+        {
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "count": 1495
+        },
+        {
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "count": 242
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "maint_backfill_candidates_open_count",
+      "title": "maint-owned open backfill candidates",
+      "status": "info",
+      "message": "1 row(s)",
+      "description": "Backfill candidates are validated from maint only; relation sync must not write this table.",
+      "expectation": {
+        "type": "info"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_maint`.`maint_backfill_candidates`\nWHERE status = 'open'\n  AND domain IN ('npc_item_relation', 'npc_projectile_relation', 'item_source_relation', 'boss_reward_relation')",
+      "rows": [
+        {
+          "count": 432
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "maint_backfill_candidates_breakdown",
+      "title": "maint-owned backfill candidate breakdown",
+      "status": "info",
+      "message": "2 row(s)",
+      "description": "Maint remains the owner of crawler/backfill candidate queue state.",
+      "expectation": {
+        "type": "info"
+      },
+      "reportPath": null,
+      "sql": "SELECT\n  domain,\n  missing_field AS missingField,\n  recommended_action AS recommendedAction,\n  status,\n  COUNT(*) AS count\nFROM `terria_v1_maint`.`maint_backfill_candidates`\nGROUP BY domain, missing_field, recommended_action, status\nORDER BY domain, missing_field, recommended_action, status",
+      "rows": [
+        {
+          "domain": "npc_item_relation",
+          "missingField": "loot",
+          "recommendedAction": "crawl_npc_page",
+          "status": "open",
+          "count": 185
+        },
+        {
+          "domain": "npc_projectile_relation",
+          "missingField": "projectileId",
+          "recommendedAction": "crawl_npc_page",
+          "status": "open",
+          "count": 247
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "item_source_facts_by_type_review",
+      "title": "item_source_facts by source type and review status",
+      "status": "info",
+      "message": "10 row(s)",
+      "description": null,
+      "expectation": {
+        "type": "info"
+      },
+      "reportPath": null,
+      "sql": "SELECT\n  source_type AS sourceType,\n  source_ref_type AS sourceRefType,\n  review_status AS reviewStatus,\n  COUNT(*) AS count\nFROM `terria_v1_relation`.`item_source_facts`\nGROUP BY source_type, source_ref_type, review_status\nORDER BY source_type, source_ref_type, review_status",
+      "rows": [
+        {
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "reviewStatus": "resolved",
+          "count": 138
+        },
+        {
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "reviewStatus": "blocked",
+          "count": 1679
+        },
+        {
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "reviewStatus": "excluded",
+          "count": 84
+        },
+        {
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "reviewStatus": "resolved",
+          "count": 1578
+        },
+        {
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "reviewStatus": "unresolved",
+          "count": 195
+        },
+        {
+          "sourceType": "mining",
+          "sourceRefType": "world",
+          "reviewStatus": "resolved",
+          "count": 54
+        },
+        {
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "reviewStatus": "ambiguous",
+          "count": 10
+        },
+        {
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "reviewStatus": "resolved",
+          "count": 1610
+        },
+        {
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "reviewStatus": "unresolved",
+          "count": 61
+        },
+        {
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "reviewStatus": "resolved",
+          "count": 242
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "shop_relation_resolved_count",
+      "title": "resolved shop relation count",
+      "status": "pass",
+      "message": "count is 1116",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_shop_relations`\nWHERE deleted = 0\n  AND status = 1\n  AND review_status IN ('accepted', 'resolved', 'promoted')",
+      "rows": [
+        {
+          "count": 1116
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "loot_relation_resolved_count",
+      "title": "resolved loot relation count",
+      "status": "pass",
+      "message": "count is 1544",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_loot_relations`\nWHERE deleted = 0\n  AND status = 1\n  AND review_status IN ('accepted', 'resolved', 'promoted')",
+      "rows": [
+        {
+          "count": 1544
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "shop_relation_orphans",
+      "title": "shop relations without source facts",
+      "status": "pass",
+      "message": "count is 0",
+      "description": null,
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_shop_relations` r\nLEFT JOIN `terria_v1_relation`.`item_source_facts` f\n  ON f.record_key = r.source_fact_key\nWHERE f.record_key IS NULL",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "loot_relation_orphans",
+      "title": "loot relations without source facts",
+      "status": "pass",
+      "message": "count is 0",
+      "description": null,
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_loot_relations` r\nLEFT JOIN `terria_v1_relation`.`item_source_facts` f\n  ON f.record_key = r.source_fact_key\nWHERE f.record_key IS NULL",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "shop_relation_missing_resolution",
+      "title": "shop relations missing item or NPC resolution",
+      "status": "pass",
+      "message": "count is 0",
+      "description": null,
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_shop_relations` r\nWHERE r.item_internal_name IS NULL\n   OR TRIM(r.item_internal_name) = ''\n   OR r.npc_source_id IS NULL\n   OR r.npc_internal_name IS NULL\n   OR TRIM(r.npc_internal_name) = ''",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "loot_relation_missing_resolution",
+      "title": "loot relations missing item or NPC resolution",
+      "status": "pass",
+      "message": "count is 0",
+      "description": null,
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_loot_relations` r\nWHERE r.item_internal_name IS NULL\n   OR TRIM(r.item_internal_name) = ''\n   OR r.npc_source_id IS NULL\n   OR r.npc_internal_name IS NULL\n   OR TRIM(r.npc_internal_name) = ''",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "unresolved_item_npc_relation_audits",
+      "title": "unresolved item/NPC relation audit issue count",
+      "status": "warn",
+      "message": "count is 287",
+      "description": null,
+      "expectation": {
+        "type": "warn_if_nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_relation_audits`\nWHERE audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')",
+      "rows": [
+        {
+          "count": 287
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "open_item_npc_loot_relation_audits",
+      "title": "open NPC loot relation audit blocker count",
+      "status": "pass",
+      "message": "count is 0",
+      "description": "NPC loot closure must not pass while unresolved, ambiguous, polluted, or rejected loot audit rows remain open.",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_relation_audits`\nWHERE relation_kind = 'loot'\n  AND audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')",
+      "rows": [
+        {
+          "count": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "item_npc_relation_audit_breakdown",
+      "title": "item/NPC relation audit breakdown",
+      "status": "info",
+      "message": "23 row(s)",
+      "description": null,
+      "expectation": {
+        "type": "info"
+      },
+      "reportPath": null,
+      "sql": "SELECT\n  audit_status AS auditStatus,\n  reason_code AS reasonCode,\n  COUNT(*) AS count\nFROM `terria_v1_relation`.`item_npc_relation_audits`\nGROUP BY audit_status, reason_code\nORDER BY audit_status, reason_code",
+      "rows": [
+        {
+          "auditStatus": "ambiguous",
+          "reasonCode": "npc_source_ambiguous",
+          "count": 10
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "bag_container",
+          "count": 18
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "boss_lane_reference_source",
+          "count": 1
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "chest_container",
+          "count": 211
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "crate_container",
+          "count": 821
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "heart_or_orb_source",
+          "count": 10
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "lock_box_container",
+          "count": 16
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "mode_or_bonus_bucket",
+          "count": 211
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "non_npc_item_source_entity",
+          "count": 16
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "present_container",
+          "count": 20
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "reviewed_slime_bonus_drop_source_only",
+          "count": 126
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "treasure_bag_container",
+          "count": 120
+        },
+        {
+          "auditStatus": "blocked",
+          "reasonCode": "tree_source",
+          "count": 163
+        },
+        {
+          "auditStatus": "excluded",
+          "reasonCode": "item_bundle_collective_bucket_not_npc_domain_source",
+          "count": 69
+        },
+        {
+          "auditStatus": "excluded",
+          "reasonCode": "item_group_requires_expansion",
+          "count": 4
+        },
+        {
+          "auditStatus": "excluded",
+          "reasonCode": "legacy_only_item_not_in_current_corpus",
+          "count": 4
+        },
+        {
+          "auditStatus": "excluded",
+          "reasonCode": "ordinary_mimic_contract_mismatch",
+          "count": 7
+        },
+        {
+          "auditStatus": "polluted",
+          "reasonCode": "source_text_polluted",
+          "count": 223
+        },
+        {
+          "auditStatus": "superseded",
+          "reasonCode": "npc_loot_source_superseded_by_npc_page",
+          "count": 417
+        },
+        {
+          "auditStatus": "superseded",
+          "reasonCode": "npc_shop_source_superseded_by_npc_page",
+          "count": 485
+        },
+        {
+          "auditStatus": "unresolved",
+          "reasonCode": "item_ambiguous",
+          "count": 2
+        },
+        {
+          "auditStatus": "unresolved",
+          "reasonCode": "item_unresolved",
+          "count": 32
+        },
+        {
+          "auditStatus": "unresolved",
+          "reasonCode": "npc_source_unresolved",
+          "count": 20
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "relation_exportable_reports_latest",
+      "title": "latest relation sync exportable report rows",
+      "status": "info",
+      "message": "4 row(s)",
+      "description": "Relation sync exports unresolved/candidate evidence through reports, not maint_backfill_candidates writes.",
+      "expectation": {
+        "type": "info"
+      },
+      "reportPath": "/home/lolben/TerraPedia/reports/relation/relation-unresolved-2026-06-04.json",
+      "sql": "SELECT\n  rr.report_kind AS reportKind,\n  COUNT(*) AS count,\n  MAX(rr.report_path) AS latestReportPath\nFROM `terria_v1_relation`.`relation_run_reports` rr\nINNER JOIN `terria_v1_relation`.`relation_runs` r\n  ON r.run_key = rr.run_key\nWHERE r.id = (\n  SELECT MAX(id)\n  FROM `terria_v1_relation`.`relation_runs`\n  WHERE status = 'succeeded'\n)\n  AND rr.report_kind IN ('audit_json', 'audit_md', 'conflicts_json', 'unresolved_json')\nGROUP BY rr.report_kind\nORDER BY rr.report_kind",
+      "rows": [
+        {
+          "reportKind": "audit_json",
+          "count": 1,
+          "latestReportPath": "/home/lolben/TerraPedia/reports/relation/relation-audit-2026-06-04.json"
+        },
+        {
+          "reportKind": "audit_md",
+          "count": 1,
+          "latestReportPath": "/home/lolben/TerraPedia/reports/relation/relation-audit-2026-06-04.md"
+        },
+        {
+          "reportKind": "conflicts_json",
+          "count": 1,
+          "latestReportPath": "/home/lolben/TerraPedia/reports/relation/relation-conflicts-2026-06-04.json"
+        },
+        {
+          "reportKind": "unresolved_json",
+          "count": 1,
+          "latestReportPath": "/home/lolben/TerraPedia/reports/relation/relation-unresolved-2026-06-04.json"
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "relation_unresolved_export_report_count",
+      "title": "latest relation unresolved export report count",
+      "status": "pass",
+      "message": "count is 1",
+      "description": "A latest successful relation run should have an unresolved JSON export, even when it contains zero rows.",
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`relation_run_reports` rr\nINNER JOIN `terria_v1_relation`.`relation_runs` r\n  ON r.run_key = rr.run_key\nWHERE r.id = (\n  SELECT MAX(id)\n  FROM `terria_v1_relation`.`relation_runs`\n  WHERE status = 'succeeded'\n)\n  AND rr.report_kind = 'unresolved_json'",
+      "rows": [
+        {
+          "count": 1
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "projection_items_source_npcs_nonempty",
+      "title": "projection_items.source_npcs_json non-empty rows",
+      "status": "pass",
+      "message": "count is 1196",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`projection_items`\nWHERE JSON_VALID(`source_npcs_json`) = 1\n  AND CASE WHEN JSON_VALID(`source_npcs_json`) = 1 THEN JSON_TYPE(`source_npcs_json`) ELSE NULL END = 'ARRAY'\n  AND CASE WHEN JSON_VALID(`source_npcs_json`) = 1 THEN JSON_LENGTH(`source_npcs_json`) ELSE 0 END > 0",
+      "rows": [
+        {
+          "count": 1196
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "projection_npcs_loot_items_nonempty",
+      "title": "projection_npcs.loot_items_json non-empty rows",
+      "status": "pass",
+      "message": "count is 418",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`projection_npcs`\nWHERE JSON_VALID(`loot_items_json`) = 1\n  AND CASE WHEN JSON_VALID(`loot_items_json`) = 1 THEN JSON_TYPE(`loot_items_json`) ELSE NULL END = 'ARRAY'\n  AND CASE WHEN JSON_VALID(`loot_items_json`) = 1 THEN JSON_LENGTH(`loot_items_json`) ELSE 0 END > 0",
+      "rows": [
+        {
+          "count": 418
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "projection_npcs_shop_items_nonempty",
+      "title": "projection_npcs.shop_items_json non-empty rows",
+      "status": "pass",
+      "message": "count is 30",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`projection_npcs`\nWHERE JSON_VALID(`shop_items_json`) = 1\n  AND CASE WHEN JSON_VALID(`shop_items_json`) = 1 THEN JSON_TYPE(`shop_items_json`) ELSE NULL END = 'ARRAY'\n  AND CASE WHEN JSON_VALID(`shop_items_json`) = 1 THEN JSON_LENGTH(`shop_items_json`) ELSE 0 END > 0",
+      "rows": [
+        {
+          "count": 30
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "projection_npcs_source_items_nonempty",
+      "title": "projection_npcs.source_items_json non-empty rows",
+      "status": "pass",
+      "message": "count is 497",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`projection_npcs`\nWHERE JSON_VALID(`source_items_json`) = 1\n  AND CASE WHEN JSON_VALID(`source_items_json`) = 1 THEN JSON_TYPE(`source_items_json`) ELSE NULL END = 'ARRAY'\n  AND CASE WHEN JSON_VALID(`source_items_json`) = 1 THEN JSON_LENGTH(`source_items_json`) ELSE 0 END > 0",
+      "rows": [
+        {
+          "count": 497
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "projection_projectiles_source_items_nonempty",
+      "title": "projection_projectiles.source_items_json non-empty rows",
+      "status": "pass",
+      "message": "count is 624",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`projection_projectiles`\nWHERE JSON_VALID(`source_items_json`) = 1\n  AND CASE WHEN JSON_VALID(`source_items_json`) = 1 THEN JSON_TYPE(`source_items_json`) ELSE NULL END = 'ARRAY'\n  AND CASE WHEN JSON_VALID(`source_items_json`) = 1 THEN JSON_LENGTH(`source_items_json`) ELSE 0 END > 0",
+      "rows": [
+        {
+          "count": 624
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "projection_projectiles_source_npcs_nonempty",
+      "title": "projection_projectiles.source_npcs_json non-empty rows",
+      "status": "pass",
+      "message": "count is 30",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count\nFROM `terria_v1_relation`.`projection_projectiles`\nWHERE JSON_VALID(`source_npcs_json`) = 1\n  AND CASE WHEN JSON_VALID(`source_npcs_json`) = 1 THEN JSON_TYPE(`source_npcs_json`) ELSE NULL END = 'ARRAY'\n  AND CASE WHEN JSON_VALID(`source_npcs_json`) = 1 THEN JSON_LENGTH(`source_npcs_json`) ELSE 0 END > 0",
+      "rows": [
+        {
+          "count": 30
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "local_compat_item_acquisition_sources_count",
+      "title": "local compatibility item_acquisition_sources rows",
+      "status": "pass",
+      "message": "count is 8857",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count FROM `terria_v1_local`.`item_acquisition_sources`",
+      "rows": [
+        {
+          "count": 8857
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "local_compat_npc_loot_entries_count",
+      "title": "local compatibility npc_loot_entries rows",
+      "status": "pass",
+      "message": "count is 1880",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count FROM `terria_v1_local`.`npc_loot_entries`",
+      "rows": [
+        {
+          "count": 1880
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "local_compat_npc_shop_entries_count",
+      "title": "local compatibility npc_shop_entries rows",
+      "status": "pass",
+      "message": "count is 1116",
+      "description": null,
+      "expectation": {
+        "type": "nonzero",
+        "field": "count"
+      },
+      "reportPath": null,
+      "sql": "SELECT COUNT(*) AS count FROM `terria_v1_local`.`npc_shop_entries`",
+      "rows": [
+        {
+          "count": 1116
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "local_compat_npc_shop_conditions_count",
+      "title": "local compatibility npc_shop_conditions rows",
+      "status": "pass",
+      "message": "delta is 0",
+      "description": "Local shop condition rows should match the projected shop-entry joins produced from relation rows that carry condition fields.",
+      "expectation": {
+        "type": "delta_zero",
+        "field": "delta"
+      },
+      "reportPath": null,
+      "sql": "SELECT\n  expected.expectedCount,\n  local.localCount,\n  expected.expectedCount - local.localCount AS delta\nFROM (\n  SELECT COUNT(*) AS expectedCount\n  FROM `terria_v1_relation`.`item_npc_shop_relations` r\n  INNER JOIN `terria_v1_relation`.`item_source_facts` f\n    ON f.record_key = r.source_fact_key\n  INNER JOIN `terria_v1_local`.`npcs` n\n    ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci\n   AND n.deleted = 0\n   AND n.status = 1\n  INNER JOIN `terria_v1_local`.`items` i\n    ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci\n   AND i.deleted = 0\n   AND i.status = 1\n  INNER JOIN `terria_v1_local`.`npc_shop_entries` se\n    ON se.npc_id = n.id\n   AND (se.item_id <=> i.id)\n   AND (se.price_text COLLATE utf8mb4_unicode_ci <=> r.price_text COLLATE utf8mb4_unicode_ci)\n  WHERE r.deleted = 0\n    AND r.status = 1\n    AND r.review_status IN ('accepted', 'resolved', 'promoted')\n    AND f.deleted = 0\n    AND f.status = 1\n    AND f.review_status IN ('accepted', 'resolved', 'promoted')\n    AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)\n) expected\nCROSS JOIN (\n  SELECT COUNT(*) AS localCount\n  FROM `terria_v1_local`.`npc_shop_conditions`\n) local",
+      "rows": [
+        {
+          "expectedCount": 257,
+          "localCount": 257,
+          "delta": 0
+        }
+      ],
+      "error": null
+    }
+  ]
+}

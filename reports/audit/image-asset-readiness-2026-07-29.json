@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-07-29T11:17:14.881Z",
+  "reportPath": "/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness/reports/audit/image-asset-readiness-2026-07-29.json",
+  "status": "warning",
+  "entities": {
+    "items": {
+      "status": "warning",
+      "totalRows": 6159,
+      "totalWithImage": 6136,
+      "cachedHitCount": 6134,
+      "wikiFallbackOnlyCount": 2,
+      "missingImageCount": 23,
+      "brokenCachedUrlCount": 2,
+      "brokenCachedUrlSamples": [
+        {
+          "entityType": "items",
+          "id": 8426,
+          "internalName": "AntlionEggs",
+          "name": "Antlion Eggs",
+          "cachedUrl": "https://terraria.wiki.gg/images/Antlion_Eggs.png?6bc6f1",
+          "reason": "source_url_in_cached_field"
+        },
+        {
+          "entityType": "items",
+          "id": 8427,
+          "internalName": "BoneWhip",
+          "name": "Spinal Tap",
+          "cachedUrl": "https://terraria.wiki.gg/images/Spinal_Tap.png?b45b00",
+          "reason": "source_url_in_cached_field"
+        }
+      ],
+      "missingContentTypeCount": 0,
+      "staleLastVerifiedCount": 109,
+      "missingOriginalForCachedCount": 0,
+      "unifiedContractReady": true
+    },
+    "buffs": {
+      "status": "pass",
+      "totalRows": 388,
+      "totalWithImage": 388,
+      "cachedHitCount": 388,
+      "wikiFallbackOnlyCount": 0,
+      "missingImageCount": 0,
+      "brokenCachedUrlCount": 0,
+      "brokenCachedUrlSamples": [],
+      "missingContentTypeCount": 0,
+      "staleLastVerifiedCount": 0,
+      "missingOriginalForCachedCount": 0,
+      "unifiedContractReady": true
+    },
+    "npcs": {
+      "status": "warning",
+      "totalRows": 762,
+      "totalWithImage": 758,
+      "cachedHitCount": 0,
+      "wikiFallbackOnlyCount": 758,
+      "missingImageCount": 4,
+      "brokenCachedUrlCount": 0,
+      "brokenCachedUrlSamples": [],
+      "missingContentTypeCount": 0,
+      "staleLastVerifiedCount": 0,
+      "missingOriginalForCachedCount": 0,
+      "unifiedContractReady": false
+    }
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "items has 23 rows without a managed cache or wiki fallback image",
+    "items has 2 cached URL value(s) outside the managed cache contract",
+    "items has 109 image row(s) past the last-verified threshold",
+    "npcs image assets still need a unified source/cache/fallback contract",
+    "npcs has 4 rows without a managed cache or wiki fallback image"
+  ]
+}

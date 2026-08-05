@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-07-29T21:17:24.360Z",
+  "domainId": "support.item_group",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedContractCount": 3,
+    "passedCount": 3,
+    "warningCount": 0,
+    "blockedCount": 0,
+    "modes": {
+      "b1_migrating": 3
+    }
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/item-group-overrides.json",
+      "mode": "b1_migrating",
+      "status": "pass",
+      "deadline": "2026-10-31",
+      "daysRemaining": 94,
+      "reason": null,
+      "declaredState": "DESIGN_APPROVED",
+      "designReference": "docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md"
+    },
+    {
+      "input": "data/generated/recipe-group-overrides.json",
+      "mode": "b1_migrating",
+      "status": "pass",
+      "deadline": "2026-10-31",
+      "daysRemaining": 94,
+      "reason": null,
+      "declaredState": "DESIGN_APPROVED",
+      "designReference": "docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md"
+    },
+    {
+      "input": "data/generated/recipe-material-reference.json",
+      "mode": "b1_migrating",
+      "status": "pass",
+      "deadline": "2026-10-31",
+      "daysRemaining": 94,
+      "reason": null,
+      "declaredState": "DESIGN_APPROVED",
+      "designReference": "docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md"
+    }
+  ],
+  "reportPath": "reports/domain/support.item_group/b1-exemption-compliance-2026-07-29.json"
+}
