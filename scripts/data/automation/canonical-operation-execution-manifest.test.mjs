@@ -60,13 +60,25 @@ function manifestOptions(operationId) {
       npcT1RunId: 'npc-t1-20260730-01',
     };
   }
+  if (operationId === 'canonical-item-image-projection-missing-row-insert') {
+    return {
+      itemImageProjectionMissingRowInsertAttemptRoot:
+        `reports/authorization/canonical/item-image-projection-missing-row-insert/${'b'.repeat(64)}`,
+    };
+  }
+  if (operationId === 'canonical-item-base-entity-restoration') {
+    return {
+      itemCanonicalBaseEntityRestorationAttemptRoot:
+        `reports/authorization/canonical/item-canonical-base-entity-restoration/${'c'.repeat(64)}`,
+    };
+  }
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 34 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 36 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 34);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 33);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 36);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 35);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -905,6 +917,34 @@ test('the item image lineage code bundle pins every module the apply loads', () 
   ]) {
     assert.ok(pinned.has(required), `${required} must be pinned by the code bundle`);
   }
+});
+
+test('item image lineage manifest binds one fresh attempt root', () => {
+  const attemptRoot = 'reports/authorization/canonical/item-image-lineage-apply/'
+    + 'a'.repeat(64);
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-item-image-lineage-apply',
+    artifactDate: '2026-08-05',
+    itemImageLineageAttemptRoot: attemptRoot,
+  });
+
+  assert.deepEqual(manifest.inputPaths, [`${attemptRoot}/input.json`]);
+  assert.deepEqual(manifest.outputPaths, [
+    `${attemptRoot}/snapshot.json`,
+    `${attemptRoot}/result.json`,
+  ]);
+  assert.deepEqual(manifest.command, [
+    'node',
+    'scripts/data/relation/apply-item-image-lineage.mjs',
+    `--input-contract=${attemptRoot}/input.json`,
+    '--apply=true',
+    `--snapshot=${attemptRoot}/snapshot.json`,
+    `--result=${attemptRoot}/result.json`,
+  ]);
+  assert.equal(manifest.databaseWrites, true);
+  assert.equal(manifest.networkAccess, false);
+  assert.equal(manifest.itemImageLineageAttempt.attemptRoot, attemptRoot);
 });
 
 test('item image projection manifest binds one decision-derived attempt root', () => {

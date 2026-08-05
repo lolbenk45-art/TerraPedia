@@ -1,12 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-import {
+import * as liveAcceptance from './run-live-automation-acceptance.mjs';
+import { runNpcCanonicalT0Acceptance } from '../npc-canonical/npc-canonical-t0-acceptance.mjs';
+
+const npcT1Acceptance = await import('../npc-canonical/npc-canonical-t1-acceptance.mjs').catch(() => ({}));
+
+const {
   buildAcceptanceProbeSql,
   buildLiveResourceNames,
   parseProbeCounts,
   resolveAcceptanceScope,
-} from './run-live-automation-acceptance.mjs';
+} = liveAcceptance;
+
+const T1_COMPLETION = {
+  inputHash: `sha256:${'a'.repeat(64)}`,
+  completionHash: `sha256:${'b'.repeat(64)}`,
+};
+
+const NPC_T1_SERVER_FINGERPRINT = Object.freeze({
+  host: '127.0.0.1',
+  port: 13306,
+  serverUuid: 'npc-t1-server-uuid',
+  databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+});
+
+function canonicalServerFingerprintHash(value) {
+  return `sha256:${createHash('sha256').update(JSON.stringify({
+    databases: value.databases,
+    host: value.host,
+    port: value.port,
+    serverUuid: value.serverUuid,
+  })).digest('hex')}`;
+}
+
+function t1DataBundleEntries(completion = T1_COMPLETION) {
+  return [
+    {
+      path: 'reports/authorization/canonical/canonical-npc-apply.input.json',
+      contentHash: completion.inputHash,
+    },
+    {
+      path: 'reports/authorization/canonical/canonical-npc-apply.completion.json',
+      contentHash: completion.completionHash,
+    },
+  ];
+}
 
 test('live resource names are exact runKey-isolated databases and bounded temporary accounts', () => {
   const value = buildLiveResourceNames({ profile: 't1', runKey: 'abc_0123456789abcdef' });
@@ -48,4 +91,281 @@ test('live acceptance resolves only explicit registered scopes', () => {
   assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
   assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
   assert.throws(() => resolveAcceptanceScope('npc-canonical'), /executor/i);
+});
+
+test('NPC canonical selects a distinct T1 executor instead of the fixture executor', () => {
+  assert.equal(typeof liveAcceptance.resolveAcceptanceExecutor, 'function');
+  assert.equal(typeof npcT1Acceptance.runNpcCanonicalT1Acceptance, 'function');
+  assert.equal(
+    liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'npc-canonical' }),
+    runNpcCanonicalT0Acceptance,
+  );
+  assert.equal(
+    liveAcceptance.resolveAcceptanceExecutor({ profile: 't1', scope: 'npc-canonical' }),
+    npcT1Acceptance.runNpcCanonicalT1Acceptance,
+  );
+});
+
+test('NPC T1 preflights the one fixed evidence path before live resources are created', () => {
+  assert.equal(typeof liveAcceptance.preflightLiveAcceptanceInvocation, 'function');
+  assert.throws(
+    () => liveAcceptance.preflightLiveAcceptanceInvocation({ profile: 't1', scope: 'npc-canonical' }),
+    /output/i,
+  );
+  assert.throws(
+    () => liveAcceptance.preflightLiveAcceptanceInvocation({
+      profile: 't1', scope: 'npc-canonical', output: 'reports/canonical-migration/other.json', repoRoot: '/tmp/npc-t1',
+    }),
+    /canonical-npc-t1-acceptance/i,
+  );
+  assert.equal(
+    liveAcceptance.preflightLiveAcceptanceInvocation({
+      profile: 't1', scope: 'npc-canonical',
+      output: 'reports/canonical-migration/canonical-npc-t1-acceptance.json', repoRoot: '/tmp/npc-t1', completion: T1_COMPLETION,
+    }),
+    '/tmp/npc-t1/reports/canonical-migration/canonical-npc-t1-acceptance.json',
+  );
+  assert.throws(
+    () => liveAcceptance.preflightLiveAcceptanceInvocation({
+      profile: 't1', scope: 'npc-canonical', output: 'reports/canonical-migration/canonical-npc-t1-acceptance.json', repoRoot: '/tmp/npc-t1',
+    }),
+    /completion/i,
+  );
+});
+
+test('NPC T1 CLI preflight requires a private hash-bound config and one-time authorization permit', async () => {
+  assert.equal(typeof liveAcceptance.preflightNpcT1AuthorizedCliInvocation, 'function');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-cli-'));
+  const configPath = path.join(directory, 'local-stack.json');
+  try {
+    const configBytes = Buffer.from(`${JSON.stringify({
+      database: { host: '127.0.0.1', port: 13306, username: 'automation', password: 'private' },
+      redis: { port: 6379 },
+      npcT1ServerFingerprint: NPC_T1_SERVER_FINGERPRINT,
+    })}\n`);
+    const configHash = `sha256:${createHash('sha256').update(configBytes).digest('hex')}`;
+    fs.writeFileSync(configPath, configBytes, { mode: 0o600 });
+    const calls = [];
+    const result = await liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+      repoRoot: directory,
+      configPath,
+      expectedConfigHash: configHash,
+      redisLogicalDb: 9,
+      runId: 'npc-t1-20260730-01',
+      env: { TERRAPEDIA_AUTHORIZED_PACKET_PATH: '/private/packet.json' },
+      loadAuthorizationContextImpl: ({ operationId }) => {
+        calls.push(['load', operationId]);
+        return {
+          operationId,
+          decisionIdentity: 'npc-t1-decision',
+          packetHash: `sha256:${'a'.repeat(64)}`,
+          serverFingerprint: canonicalServerFingerprintHash(NPC_T1_SERVER_FINGERPRINT),
+          dataBundleSha256: `sha256:${'b'.repeat(64)}`,
+          executionManifestHash: `sha256:${'c'.repeat(64)}`,
+          executionManifest: {
+            operationId,
+            isolatedAcceptance: {
+              configPath,
+              configSha256: configHash,
+              redisLogicalDb: 9,
+              runId: 'npc-t1-20260730-01',
+              serverFingerprint: NPC_T1_SERVER_FINGERPRINT,
+            },
+          },
+        };
+      },
+      resolveCurrentTechnicalInputImpl: () => ({
+        dataBundleSha256: `sha256:${'b'.repeat(64)}`,
+        executionManifestHash: `sha256:${'c'.repeat(64)}`,
+        dataBundleEntries: t1DataBundleEntries(),
+        completion: T1_COMPLETION,
+      }),
+      inspectServerFingerprintImpl: async () => NPC_T1_SERVER_FINGERPRINT,
+      consumeDispatchPermitImpl: ({ authorizedContext, decisionLedgerPath }) => {
+        calls.push(['consume', authorizedContext.operationId, decisionLedgerPath]);
+        return true;
+      },
+    });
+    assert.equal(result.configBytes.toString('utf8'), configBytes.toString('utf8'));
+    assert.deepEqual(calls, [[
+      'load', 'canonical-npc-t1-acceptance',
+    ], [
+      'consume', 'canonical-npc-t1-acceptance', path.join(directory, 'reports/authorization/canonical/used-decisions.json'),
+    ]]);
+
+    fs.chmodSync(configPath, 0o644);
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: configHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+      }),
+      /private ordinary/i,
+    );
+    fs.chmodSync(configPath, 0o600);
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: `sha256:${'0'.repeat(64)}`,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        loadAuthorizationContextImpl: () => {
+          throw new Error('authorization must not be reached after config hash drift');
+        },
+      }),
+      /config hash/i,
+    );
+
+    const invalidConfigBytes = Buffer.from('{invalid-json}\n');
+    const invalidConfigHash = `sha256:${createHash('sha256').update(invalidConfigBytes).digest('hex')}`;
+    fs.writeFileSync(configPath, invalidConfigBytes, { mode: 0o600 });
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: invalidConfigHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        loadAuthorizationContextImpl: () => {
+          throw new Error('authorization must not be reached after config JSON validation fails');
+        },
+      }),
+      /valid JSON/i,
+    );
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('NPC T1 CLI preflight rejects packet data or server identity drift before permit consumption', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-packet-binding-'));
+  const configPath = path.join(directory, 'local-stack.json');
+  const configBytes = Buffer.from(`${JSON.stringify({
+    database: { host: '127.0.0.1', port: 13306, username: 'automation', password: 'private' },
+    redis: { port: 6379 },
+    npcT1ServerFingerprint: NPC_T1_SERVER_FINGERPRINT,
+  })}\n`);
+  const configHash = `sha256:${createHash('sha256').update(configBytes).digest('hex')}`;
+  const baseContext = {
+    operationId: 'canonical-npc-t1-acceptance',
+    decisionIdentity: 'npc-t1-binding-decision',
+    packetHash: `sha256:${'a'.repeat(64)}`,
+    serverFingerprint: canonicalServerFingerprintHash(NPC_T1_SERVER_FINGERPRINT),
+    dataBundleSha256: `sha256:${'b'.repeat(64)}`,
+    executionManifestHash: `sha256:${'c'.repeat(64)}`,
+    executionManifest: {
+      operationId: 'canonical-npc-t1-acceptance',
+      isolatedAcceptance: {
+        configPath,
+        configSha256: configHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        serverFingerprint: NPC_T1_SERVER_FINGERPRINT,
+      },
+    },
+  };
+  try {
+    fs.writeFileSync(configPath, configBytes, { mode: 0o600 });
+    const calls = [];
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: configHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        loadAuthorizationContextImpl: () => baseContext,
+        resolveCurrentTechnicalInputImpl: () => ({
+          dataBundleSha256: `sha256:${'d'.repeat(64)}`,
+          executionManifestHash: baseContext.executionManifestHash,
+          dataBundleEntries: t1DataBundleEntries(),
+          completion: T1_COMPLETION,
+        }),
+        inspectServerFingerprintImpl: async () => NPC_T1_SERVER_FINGERPRINT,
+        consumeDispatchPermitImpl: () => calls.push('consume'),
+      }),
+      /data bundle/i,
+    );
+    assert.deepEqual(calls, []);
+
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: configHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        loadAuthorizationContextImpl: () => ({
+          ...baseContext,
+          executionManifest: {
+            ...baseContext.executionManifest,
+            isolatedAcceptance: {
+              ...baseContext.executionManifest.isolatedAcceptance,
+              serverFingerprint: { ...NPC_T1_SERVER_FINGERPRINT, serverUuid: 'wrong-server' },
+            },
+          },
+        }),
+        resolveCurrentTechnicalInputImpl: () => ({
+          dataBundleSha256: baseContext.dataBundleSha256,
+          executionManifestHash: baseContext.executionManifestHash,
+          dataBundleEntries: t1DataBundleEntries(),
+          completion: T1_COMPLETION,
+        }),
+        inspectServerFingerprintImpl: async () => NPC_T1_SERVER_FINGERPRINT,
+        consumeDispatchPermitImpl: () => calls.push('consume'),
+      }),
+      /server fingerprint/i,
+    );
+    assert.deepEqual(calls, []);
+
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: configHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        loadAuthorizationContextImpl: () => baseContext,
+        resolveCurrentTechnicalInputImpl: () => ({
+          dataBundleSha256: baseContext.dataBundleSha256,
+          executionManifestHash: baseContext.executionManifestHash,
+          dataBundleEntries: t1DataBundleEntries(),
+          completion: T1_COMPLETION,
+        }),
+        inspectServerFingerprintImpl: async () => ({
+          ...NPC_T1_SERVER_FINGERPRINT,
+          serverUuid: 'live-server-uuid-drift',
+        }),
+        consumeDispatchPermitImpl: () => calls.push('consume'),
+      }),
+      /live server fingerprint/i,
+    );
+    assert.deepEqual(calls, []);
+
+    await assert.rejects(
+      () => liveAcceptance.preflightNpcT1AuthorizedCliInvocation({
+        repoRoot: directory,
+        configPath,
+        expectedConfigHash: configHash,
+        redisLogicalDb: 9,
+        runId: 'npc-t1-20260730-01',
+        loadAuthorizationContextImpl: () => baseContext,
+        resolveCurrentTechnicalInputImpl: () => ({
+          dataBundleSha256: baseContext.dataBundleSha256,
+          executionManifestHash: baseContext.executionManifestHash,
+          dataBundleEntries: t1DataBundleEntries(),
+          completion: { ...T1_COMPLETION, completionHash: `sha256:${'e'.repeat(64)}` },
+        }),
+        inspectServerFingerprintImpl: async () => NPC_T1_SERVER_FINGERPRINT,
+        consumeDispatchPermitImpl: () => calls.push('consume'),
+      }),
+      /completion.*data bundle/i,
+    );
+    assert.deepEqual(calls, []);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });

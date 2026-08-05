@@ -346,7 +346,7 @@ export function createMysqlBiomesAutomationAdapter(connection, {
           'UPDATE crawler_automation_write_fence SET committed_generation = ?, commit_marker = ?'
           + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ?'
           + ' AND latest_run_id = ? AND before_generation = ?',
-          [generation.generation + 1, bundle.bundleHash, environmentId,
+          [generation.generation + 1, bundle.bundleHash.slice('sha256:'.length), environmentId,
             generation.databaseRole, generation.table, bundle.runId, generation.generation],
         );
         if (Number(fenceResult?.affectedRows) !== 1) {
@@ -413,7 +413,7 @@ export async function runBiomesAutomationOperationCli({
       writeJsonAtomic(outputPath, result);
       return result;
     }
-    const bundle = await buildBiomesAutomationPreview({
+    const previewBundle = await buildBiomesAutomationPreview({
       connection,
       operationId,
       runId: args['run-id'],
@@ -424,8 +424,8 @@ export async function runBiomesAutomationOperationCli({
       itemBiomesDir: args['item-biomes-dir'] ?? null,
       wikiBiomesFile: args['wiki-biomes-file'] ?? null,
     });
-    writeJsonAtomic(outputPath, bundle);
-    return bundle;
+    writeJsonAtomic(outputPath, previewBundle);
+    return previewBundle;
   } finally {
     await connection.end();
   }
@@ -460,6 +460,26 @@ export function validateBiomesAutomationBundle(value) {
   }
   cloneObject(value.importPlan, 'importPlan');
   return value;
+}
+
+export function classifyBiomesWriteFence({
+  fence,
+  runId,
+  currentGeneration,
+  executionTime,
+} = {}) {
+  if (!fence) return 'absent';
+  if (fence.latestRunId === runId) return 'current';
+  if (fence.committedGeneration != null) {
+    const committedGeneration = Number(fence.committedGeneration);
+    return Number.isSafeInteger(committedGeneration)
+      && committedGeneration === currentGeneration
+      ? 'committed'
+      : 'drifted';
+  }
+  return Date.parse(String(fence.expiresAt)) > Date.parse(requireTimestamp(executionTime, 'execution time'))
+    ? 'active'
+    : 'expired';
 }
 
 function validateAuthorizationContext(context, operationId, now) {
@@ -642,17 +662,24 @@ async function readCurrentBiomesContext(connection, {
     generations.push({ ...scope, generation });
     if (lock && bundle) {
       const [fences] = await connection.query(
-        'SELECT latest_run_id AS latestRunId, expires_at AS expiresAt'
+        'SELECT latest_run_id AS latestRunId, committed_generation AS committedGeneration,'
+        + ' expires_at AS expiresAt'
         + ' FROM crawler_automation_write_fence WHERE environment_id = ?'
         + ' AND database_role = ? AND physical_table = ? AND field_group = ?'
         + ' AND logical_predicate_hash = ? FOR UPDATE',
         [environmentId, scope.databaseRole, scope.table, 'all_columns', hashJson({ kind: 'all' })],
       );
       const fence = fences?.[0];
-      if (fence && fence.latestRunId !== bundle.runId
-          && Date.parse(String(fence.expiresAt)) > Date.parse(requireTimestamp(executionTime, 'execution time'))) {
+      const fenceStatus = classifyBiomesWriteFence({
+        fence,
+        runId: bundle.runId,
+        currentGeneration: generation,
+        executionTime,
+      });
+      if (fenceStatus === 'active') {
         throw new Error(`active write fence exists for ${scope.table}`);
       }
+      if (fenceStatus === 'drifted') throw new Error(`write fence generation drifted for ${scope.table}`);
     }
   }
   const baseline = await readBiomesBaseline(connection, lock);

@@ -6,6 +6,8 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-item-image-source-promotion',
   'canonical-item-image-lineage-apply',
   'canonical-item-image-projection-apply',
+  'canonical-item-image-projection-missing-row-insert',
+  'canonical-item-base-entity-restoration',
   'canonical-image-sync',
   'canonical-boss-import',
   'canonical-boss-loot-import',
@@ -47,10 +49,10 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'canonical-item-image-source-promotion': Object.freeze([
     'reports/authorization/canonical/canonical-item-image-source-promotion.input.json',
   ]),
-  'canonical-item-image-lineage-apply': Object.freeze([
-    'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
-  ]),
+  'canonical-item-image-lineage-apply': Object.freeze([]),
   'canonical-item-image-projection-apply': Object.freeze([]),
+  'canonical-item-image-projection-missing-row-insert': Object.freeze([]),
+  'canonical-item-base-entity-restoration': Object.freeze([]),
   'canonical-image-sync': Object.freeze([
     'data/standardized/items.standardized.json',
     'reports/authorization/canonical/canonical-item-image-source-promotion.result.json',
@@ -186,6 +188,8 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-item-image-source-promotion': 'scripts/data/transform/promote-item-image-sources.mjs',
   'canonical-item-image-lineage-apply': 'scripts/data/relation/apply-item-image-lineage.mjs',
   'canonical-item-image-projection-apply': 'scripts/data/relation/apply-item-image-projection.mjs',
+  'canonical-item-image-projection-missing-row-insert': 'scripts/data/relation/apply-item-image-projection-missing-row-insert.mjs',
+  'canonical-item-base-entity-restoration': 'scripts/data/relation/apply-item-canonical-base-entity-restoration.mjs',
   'canonical-image-sync': 'scripts/data/workflow/run-image-sync.mjs',
   'canonical-boss-import': 'scripts/data/import/import-wiki-bosses-to-db.mjs',
   'canonical-boss-loot-import': 'scripts/data/import/import-boss-loot-to-db.mjs',

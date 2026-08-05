@@ -8,6 +8,7 @@ import test from 'node:test';
 import {
   buildBiomesAutomationPreview,
   buildBiomesAutomationBundle,
+  classifyBiomesWriteFence,
   createMysqlBiomesAutomationAdapter,
   executeBiomesAutomationOperation,
   runBiomesAutomationOperationCli,
@@ -230,6 +231,54 @@ test('biomes MySQL adapter rejects a lost write-fence update', async () => {
   }
 });
 
+test('biomes MySQL adapter stores the fence marker within the VARCHAR(64) contract', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biomes-fence-marker-'));
+  const bundlePath = path.join(directory, 'bundle.json');
+  const frozen = bundle();
+  fs.writeFileSync(bundlePath, JSON.stringify(frozen), { mode: 0o600 });
+  const calls = [];
+  const connection = {
+    async query(sql, params) {
+      calls.push({ sql, params });
+      return [{ affectedRows: 1 }];
+    },
+  };
+  try {
+    const mysql = createMysqlBiomesAutomationAdapter(connection, { bundlePath });
+    await mysql.advanceMutationGenerations(frozen);
+    const fenceUpdate = calls.find(({ sql }) => /UPDATE crawler_automation_write_fence SET committed_generation/.test(sql));
+    assert.ok(fenceUpdate);
+    assert.match(fenceUpdate.params[1], /^[a-f0-9]{64}$/);
+    assert.equal(fenceUpdate.params[1], frozen.bundleHash.slice('sha256:'.length));
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('biomes write fence permits the next generation only after the prior fence committed', () => {
+  const executionTime = '2026-08-05T14:58:00.000Z';
+  const expiresAt = '2026-08-06T14:43:09.000Z';
+
+  assert.equal(classifyBiomesWriteFence({
+    fence: { latestRunId: 'first-run', committedGeneration: null, expiresAt },
+    runId: 'second-run',
+    currentGeneration: 1,
+    executionTime,
+  }), 'active');
+  assert.equal(classifyBiomesWriteFence({
+    fence: { latestRunId: 'first-run', committedGeneration: 1, expiresAt },
+    runId: 'second-run',
+    currentGeneration: 1,
+    executionTime,
+  }), 'committed');
+  assert.equal(classifyBiomesWriteFence({
+    fence: { latestRunId: 'first-run', committedGeneration: 2, expiresAt },
+    runId: 'second-run',
+    currentGeneration: 1,
+    executionTime,
+  }), 'drifted');
+});
+
 test('biomes preview is read-only deterministic and writes a private atomic bundle', async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biomes-preview-'));
   const standardizedPath = path.join(repoRoot, 'data/standardized/biomes.standardized.json');
@@ -303,6 +352,39 @@ test('biomes apply validates authorization before opening a database connection'
       now: '2026-07-28T03:02:00.000Z',
     }), /authorization packet rejected/);
     assert.equal(connectionCount, 0);
+    assert.equal(fs.existsSync(outputPath), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('biomes CLI apply reaches the transaction with a valid authorization context', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biomes-valid-auth-'));
+  const inputPath = path.join(directory, 'bundle.json');
+  const outputPath = path.join(directory, 'result.json');
+  fs.writeFileSync(inputPath, JSON.stringify(bundle()), { mode: 0o600 });
+  try {
+    await assert.rejects(() => runBiomesAutomationOperationCli({
+      argv: [
+        '--operation-id=automation-biomes-first-l1',
+        `--input=${inputPath}`,
+        `--output=${outputPath}`,
+        '--apply=true',
+      ],
+      env: databaseEnv(directory),
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() { throw new Error('transaction reached'); },
+            async end() {},
+          };
+        },
+      },
+      loadAuthorizationContextImpl() {
+        return authorizationContext('automation-biomes-first-l1');
+      },
+      now: '2026-07-28T03:02:00.000Z',
+    }), /transaction reached/);
     assert.equal(fs.existsSync(outputPath), false);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });

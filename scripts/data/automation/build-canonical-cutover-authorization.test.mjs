@@ -279,13 +279,15 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes all 34 stable governed IDs', () => {
+test('operation request builder exposes all 36 stable governed IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
     'canonical-item-image-source-promotion',
     'canonical-item-image-lineage-apply',
     'canonical-item-image-projection-apply',
+    'canonical-item-image-projection-missing-row-insert',
+    'canonical-item-base-entity-restoration',
     'canonical-image-sync',
     'canonical-boss-import',
     'canonical-boss-loot-import',
@@ -470,7 +472,10 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
   write('back/src/main/resources/db/migration/V58__c.sql', 'DDL-58');
 
   for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
-    if (operationId === 'canonical-item-image-projection-apply') continue;
+    if (operationId === 'canonical-item-image-lineage-apply'
+        || operationId === 'canonical-item-image-projection-apply'
+        || operationId === 'canonical-item-image-projection-missing-row-insert'
+        || operationId === 'canonical-item-base-entity-restoration') continue;
     const request = buildCanonicalAuthorizationRequestForOperation({
       repoRoot,
       operationId,
@@ -501,6 +506,54 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
   assert.equal(incomplete.dataBundleSha256, null);
   assert.equal(incomplete.dataBundleEntries, null);
   assert.ok(incomplete.missingTechnicalFields.includes('dataBundleSha256'));
+});
+
+test('lineage authorization binds the fresh attempt input and bundle paths', () => {
+  const sourceRoot = path.resolve(import.meta.dirname, '../../..');
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-lineage-attempt-request-'));
+  fs.cpSync(path.join(sourceRoot, 'scripts'), path.join(repoRoot, 'scripts'), { recursive: true });
+  const attemptRoot = 'reports/authorization/canonical/item-image-lineage-apply/'
+    + 'b'.repeat(64);
+  const write = (relativePath, value, mode = 0o600) => {
+    const output = path.join(repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+    const bytes = Buffer.isBuffer(value) ? value : Buffer.from(`${JSON.stringify(value)}\n`);
+    fs.writeFileSync(output, bytes, { mode });
+    fs.chmodSync(output, mode);
+    return { output, bytes };
+  };
+  const bundleBytes = Buffer.from(`${JSON.stringify({
+    entity: 'item_image_lineage_bundle',
+    datasetType: 'item_image_sources_raw',
+  })}\n`);
+  const bundleSha256 = `sha256:${createHash('sha256').update(bundleBytes).digest('hex')}`;
+  write(`${attemptRoot}/bundle.json`, bundleBytes, 0o644);
+  write(`${attemptRoot}/input.json`, {
+    schemaVersion: 1,
+    operationId: 'canonical-item-image-lineage-apply',
+    lineageBundle: {
+      path: `${attemptRoot}/bundle.json`,
+      sha256: bundleSha256,
+    },
+  });
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-item-image-lineage-apply',
+    artifactDate: '2026-08-05',
+    itemImageLineageAttemptRoot: attemptRoot,
+  });
+
+  const request = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: 'canonical-item-image-lineage-apply',
+    executionManifest: manifest,
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.deepEqual(request.dataBundleEntries?.map((entry) => entry.path), [
+    `${attemptRoot}/input.json`,
+    `${attemptRoot}/bundle.json`,
+  ]);
 });
 
 test('shimmer authorization binds one private input contract and cannot reuse the legacy null-bundle request', () => {

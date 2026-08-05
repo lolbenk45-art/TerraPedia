@@ -82,6 +82,31 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/automation/canonical-operation-execution-manifest.mjs',
     'scripts/data/automation/policy-set-hash.mjs',
   ]),
+  'canonical-item-image-projection-missing-row-insert': Object.freeze([
+    'scripts/data/relation/apply-item-image-projection-missing-row-insert.mjs',
+    'scripts/data/relation/item-image-projection-missing-row-insert-contract.mjs',
+    'scripts/data/relation/item-image-projection-missing-row-insert-db.mjs',
+    'scripts/data/lib/private-repository-path.mjs',
+    'scripts/data/lib/project-root.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-item-base-entity-restoration': Object.freeze([
+    'scripts/data/relation/apply-item-canonical-base-entity-restoration.mjs',
+    'scripts/data/relation/build-item-canonical-base-entity-restoration-proposal.mjs',
+    'scripts/data/relation/item-canonical-base-entity-restoration-contract.mjs',
+    'scripts/data/relation/item-canonical-base-entity-restoration-db.mjs',
+    'scripts/data/relation/base-entity-processor.mjs',
+    'scripts/data/relation/projection-sync.mjs',
+    'scripts/data/relation/relation-trace.mjs',
+    'scripts/data/relation/managed-image-url-policy.mjs',
+    'scripts/data/lib/private-repository-path.mjs',
+    'scripts/data/lib/project-root.mjs',
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
   'canonical-image-sync': Object.freeze([
     'scripts/data/workflow/run-image-sync.mjs',
     'scripts/data/lib/wiki-item-utils.mjs',
@@ -255,7 +280,10 @@ export function buildCanonicalOperationExecutionManifest({
   legacyOriginRepair = false,
   legacyOrigin = null,
   expectedLegacyCount = null,
+  itemImageLineageAttemptRoot = null,
   itemImageProjectionAttemptRoot = null,
+  itemImageProjectionMissingRowInsertAttemptRoot = null,
+  itemCanonicalBaseEntityRestorationAttemptRoot = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -270,7 +298,10 @@ export function buildCanonicalOperationExecutionManifest({
     legacyOriginRepair,
     legacyOrigin,
     expectedLegacyCount,
+    itemImageLineageAttemptRoot,
     itemImageProjectionAttemptRoot,
+    itemImageProjectionMissingRowInsertAttemptRoot,
+    itemCanonicalBaseEntityRestorationAttemptRoot,
     npcT1ConfigPath,
     npcT1RedisDb,
     npcT1RunId,
@@ -307,7 +338,10 @@ export function buildCanonicalOperationExecutionContract({
   legacyOriginRepair = false,
   legacyOrigin = null,
   expectedLegacyCount = null,
+  itemImageLineageAttemptRoot = null,
   itemImageProjectionAttemptRoot = null,
+  itemImageProjectionMissingRowInsertAttemptRoot = null,
+  itemCanonicalBaseEntityRestorationAttemptRoot = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -351,7 +385,10 @@ export function buildCanonicalOperationExecutionContract({
     legacyOrigin,
     expectedLegacyCount,
     shimmerImport,
+    itemImageLineageAttemptRoot,
     itemImageProjectionAttemptRoot,
+    itemImageProjectionMissingRowInsertAttemptRoot,
+    itemCanonicalBaseEntityRestorationAttemptRoot,
   );
   return {
     schemaVersion: 1,
@@ -394,7 +431,12 @@ export function assertCanonicalOperationExecutionManifestContract({
     expectedLegacyCount: commandArgument('--expected-legacy-count=') == null
       ? null
       : Number(commandArgument('--expected-legacy-count=')),
+    itemImageLineageAttemptRoot: manifest?.itemImageLineageAttempt?.attemptRoot ?? null,
     itemImageProjectionAttemptRoot: manifest?.itemImageProjectionAttempt?.attemptRoot ?? null,
+    itemImageProjectionMissingRowInsertAttemptRoot:
+      manifest?.itemImageProjectionMissingRowInsertAttempt?.attemptRoot ?? null,
+    itemCanonicalBaseEntityRestorationAttemptRoot:
+      manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
   });
   if (operationId === 'canonical-npc-t1-acceptance'
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -704,7 +746,10 @@ function buildDefinition(
   legacyOrigin,
   expectedLegacyCount,
   shimmerImport,
+  itemImageLineageAttemptRoot,
   itemImageProjectionAttemptRoot,
+  itemImageProjectionMissingRowInsertAttemptRoot,
+  itemCanonicalBaseEntityRestorationAttemptRoot,
 ) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
@@ -753,32 +798,29 @@ function buildDefinition(
       databaseWrites: false,
       networkAccess: true,
     },
-    'canonical-item-image-lineage-apply': {
-      executionClass: 'formal_database_projection',
-      command: [
-        'node',
-        CANONICAL_OPERATION_ENTRYPOINTS[operationId],
-        '--input-contract=reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
-        '--apply=true',
-      ],
-      inputPaths: [
-        'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
-      ],
-      outputPaths: [
-        'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
-      ],
-      reportPaths: [
-        'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
-      ],
-      progressPaths: [],
-      databaseWrites: true,
-      networkAccess: false,
-    },
+    ...(operationId === 'canonical-item-image-lineage-apply'
+      ? { [operationId]: lineageDefinition({
+        operationId,
+        attemptRoot: itemImageLineageAttemptRoot,
+      }) }
+      : {}),
     ...(operationId === 'canonical-item-image-projection-apply'
       ? { [operationId]: projectionDefinition({
         repoRoot,
         operationId,
         attemptRoot: itemImageProjectionAttemptRoot,
+      }) }
+      : {}),
+    ...(operationId === 'canonical-item-image-projection-missing-row-insert'
+      ? { [operationId]: missingRowInsertDefinition({
+        operationId,
+        attemptRoot: itemImageProjectionMissingRowInsertAttemptRoot,
+      }) }
+      : {}),
+    ...(operationId === 'canonical-item-base-entity-restoration'
+      ? { [operationId]: baseEntityRestorationDefinition({
+        operationId,
+        attemptRoot: itemCanonicalBaseEntityRestorationAttemptRoot,
       }) }
       : {}),
     'canonical-item-image-source-promotion': {
@@ -1106,6 +1148,133 @@ function projectionDefinition({ repoRoot, operationId, attemptRoot }) {
   };
 }
 
+function missingRowInsertDefinition({ operationId, attemptRoot }) {
+  const normalizedRoot = requireText(
+    attemptRoot,
+    'item image projection missing-row insert attempt root',
+  ).replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-projection-missing-row-insert/';
+  if (path.isAbsolute(normalizedRoot)
+      || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('missing-row insert attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const resultPath = `${normalizedRoot}/result.json`;
+  const paths = {
+    attemptId: normalizedRoot.slice(prefix.length),
+    attemptRoot: normalizedRoot,
+    manifestPath: `${normalizedRoot}/execution-manifest.json`,
+    requestPath: `${normalizedRoot}/request.json`,
+    packetPath: `${normalizedRoot}/packet.json`,
+    permitPath: `${normalizedRoot}/permit.json`,
+    resultPath,
+  };
+  return {
+    executionClass: 'formal_database_projection_insert',
+    command: [
+      'node',
+      CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input-contract=${inputPath}`,
+      '--apply=true',
+      `--output=${resultPath}`,
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [resultPath],
+    reportPaths: [resultPath],
+    progressPaths: [],
+    itemImageProjectionMissingRowInsertAttempt: paths,
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function baseEntityRestorationDefinition({ operationId, attemptRoot }) {
+  const normalizedRoot = requireText(attemptRoot, 'canonical base-entity restoration attempt root').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-canonical-base-entity-restoration/';
+  if (path.isAbsolute(normalizedRoot) || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('canonical base-entity restoration attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const resultPath = `${normalizedRoot}/result.json`;
+  return {
+    executionClass: 'formal_database_base_entity_restoration',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], `--input-contract=${inputPath}`, '--apply=true', `--output=${resultPath}`],
+    inputPaths: [inputPath], outputPaths: [resultPath], reportPaths: [resultPath], progressPaths: [],
+    itemCanonicalBaseEntityRestorationAttempt: {
+      attemptId: normalizedRoot.slice(prefix.length), attemptRoot: normalizedRoot,
+      manifestPath: `${normalizedRoot}/execution-manifest.json`, requestPath: `${normalizedRoot}/request.json`,
+      packetPath: `${normalizedRoot}/packet.json`, permitPath: `${normalizedRoot}/permit.json`, resultPath,
+    },
+    databaseWrites: true, networkAccess: false,
+  };
+}
+
+function lineageDefinition({ operationId, attemptRoot }) {
+  if (attemptRoot == null) {
+    return {
+      executionClass: 'formal_database_projection',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--input-contract=reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
+        '--apply=true',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json',
+      ],
+      outputPaths: [
+        'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
+      ],
+      reportPaths: [
+        'reports/authorization/canonical/canonical-item-image-lineage-apply.result.json',
+      ],
+      progressPaths: [],
+      databaseWrites: true,
+      networkAccess: false,
+    };
+  }
+
+  const normalizedRoot = requireText(attemptRoot, 'item image lineage attempt root')
+    .replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-lineage-apply/';
+  if (path.isAbsolute(normalizedRoot)
+      || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('item image lineage attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const snapshotPath = `${normalizedRoot}/snapshot.json`;
+  const resultPath = `${normalizedRoot}/result.json`;
+  return {
+    executionClass: 'formal_database_projection',
+    command: [
+      'node',
+      CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input-contract=${inputPath}`,
+      '--apply=true',
+      `--snapshot=${snapshotPath}`,
+      `--result=${resultPath}`,
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [snapshotPath, resultPath],
+    reportPaths: [resultPath],
+    progressPaths: [],
+    itemImageLineageAttempt: {
+      attemptRoot: normalizedRoot,
+      inputPath,
+      bundlePath: `${normalizedRoot}/bundle.json`,
+      snapshotPath,
+      resultPath,
+    },
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
 function itemImageProjectionInputBinding(input) {
   return {
     operationId: input.operationId,
@@ -1417,7 +1586,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       expectedLegacyCount: args['expected-legacy-count'] == null
         ? null
         : Number(args['expected-legacy-count']),
+      itemImageLineageAttemptRoot: args['item-image-lineage-attempt-root'] ?? null,
       itemImageProjectionAttemptRoot: args['item-image-projection-attempt-root'] ?? null,
+      itemImageProjectionMissingRowInsertAttemptRoot:
+        args['item-image-projection-missing-row-insert-attempt-root'] ?? null,
+      itemCanonicalBaseEntityRestorationAttemptRoot:
+        args['item-canonical-base-entity-restoration-attempt-root'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

@@ -31,6 +31,8 @@ import {
   buildItemImageProjectionInputContract,
   canonicalItemImageProjectionHash,
 } from '../relation/item-image-projection-contract.mjs';
+const ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID =
+  'canonical-item-image-projection-missing-row-insert';
 
 export {
   CANONICAL_CUTOVER_OPERATION_IDS,
@@ -257,6 +259,21 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
       throw new Error('item image projection execution manifest is required');
     }
     dataEntries = readItemImageProjectionDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-item-image-lineage-apply') {
+    if (verifiedExecutionManifest == null) {
+      throw new Error('item image lineage execution manifest is required');
+    }
+    dataEntries = readItemImageLineageDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) {
+      throw new Error('missing-row insert execution manifest is required');
+    }
+    dataEntries = readItemImageProjectionMissingRowInsertDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-item-base-entity-restoration') {
+    if (verifiedExecutionManifest == null) {
+      throw new Error('canonical base-entity restoration execution manifest is required');
+    }
+    dataEntries = readItemCanonicalBaseEntityRestorationDataEntries(root, verifiedExecutionManifest);
   } else {
     dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
   }
@@ -280,6 +297,45 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     executionManifest: verifiedExecutionManifest,
     requiredTechnicalFields: requiredTechnicalFieldsForOperation(operationId),
   };
+}
+
+function readItemImageLineageDataEntries(repoRoot, manifest) {
+  const attempt = manifest?.itemImageLineageAttempt;
+  const attemptRoot = requireNormalizedPath(attempt?.attemptRoot, 'lineage attempt root');
+  const prefix = 'reports/authorization/canonical/item-image-lineage-apply/';
+  if (!attemptRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('lineage execution manifest attempt root is invalid');
+  }
+  const inputPath = requireNormalizedPath(attempt?.inputPath, 'lineage input path');
+  const bundlePath = requireNormalizedPath(attempt?.bundlePath, 'lineage bundle path');
+  if (inputPath !== `${attemptRoot}/input.json`
+      || bundlePath !== `${attemptRoot}/bundle.json`) {
+    throw new Error('lineage execution manifest paths must share the exact attempt root');
+  }
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, {
+    label: 'lineage input contract',
+    privateFile: true,
+  });
+  const bundleEntry = readConfinedEntry(repoRoot, bundlePath, {
+    label: 'lineage bundle',
+    privateFile: false,
+  });
+  let input;
+  try {
+    input = JSON.parse(inputEntry.bytes.toString('utf8'));
+  } catch {
+    throw new Error('lineage input contract must be valid JSON');
+  }
+  if (input?.operationId !== 'canonical-item-image-lineage-apply'
+      || input?.lineageBundle?.path !== bundlePath) {
+    throw new Error('lineage input contract must bind the exact manifest bundle path');
+  }
+  const bundleSha256 = `sha256:${createHash('sha256').update(bundleEntry.bytes).digest('hex')}`;
+  if (input.lineageBundle.sha256 !== bundleSha256) {
+    throw new Error('lineage input contract bundle hash drifted');
+  }
+  return [inputEntry, bundleEntry];
 }
 
 function requiredTechnicalFieldsForOperation(operationId) {
@@ -468,6 +524,95 @@ function verifyRequestEnvelope(request, requestHash) {
   }
   requireTimestamp(request.generatedAt, 'generatedAt');
   requireTimestamp(request.expiresAt, 'expiresAt');
+}
+
+function readItemImageProjectionMissingRowInsertDataEntries(repoRoot, manifest) {
+  const attempt = manifest?.itemImageProjectionMissingRowInsertAttempt;
+  const inputPath = requireProjectionManifestPath(manifest?.inputPaths, 'input');
+  if (attempt?.attemptRoot == null || inputPath !== `${attempt.attemptRoot}/input.json`) {
+    throw new Error('missing-row insert manifest input must share its attempt root');
+  }
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, {
+    label: 'missing-row insert input contract',
+    privateFile: true,
+  });
+  const input = parseJsonBytes(inputEntry.bytes, 'missing-row insert input contract');
+  if (input?.operationId !== ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID
+      || input?.attemptRoot !== attempt.attemptRoot
+      || Number(input?.insertedRowCount) !== 5
+      || JSON.stringify(input?.keys) !== JSON.stringify([
+        'AntlionEggs', 'BoneWhip', 'RoninShirt', 'TVHeadPants', 'TimelessTravelerHood',
+      ])) {
+    throw new Error('missing-row insert input contract is not the exact five-row scope');
+  }
+  const expectedAttemptId = createHash('sha256')
+    .update(String(input.proposalAuthorization?.decisionIdentity ?? ''), 'utf8')
+    .digest('hex');
+  const expectedAttemptRoot = `reports/authorization/canonical/item-image-projection-missing-row-insert/${expectedAttemptId}`;
+  if (expectedAttemptRoot !== attempt.attemptRoot) {
+    throw new Error('missing-row insert input attempt root is not decision-derived');
+  }
+  return [inputEntry];
+}
+
+function readItemCanonicalBaseEntityRestorationDataEntries(repoRoot, manifest) {
+  const attemptRoot = requireNormalizedPath(
+    manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot,
+    'canonical restoration attempt root',
+  );
+  const prefix = 'reports/authorization/canonical/item-canonical-base-entity-restoration/';
+  if (!attemptRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('canonical restoration execution manifest attempt root is invalid');
+  }
+  const inputPath = requireProjectionManifestPath(manifest?.inputPaths, 'input');
+  if (inputPath !== `${attemptRoot}/input.json`) {
+    throw new Error('canonical restoration execution manifest input path drifted');
+  }
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, {
+    label: 'canonical restoration input contract', privateFile: true,
+  });
+  const input = parseJsonBytes(inputEntry.bytes, 'canonical restoration input contract');
+  if (input?.operationId !== 'canonical-item-base-entity-restoration' || input?.apply !== true
+      || input?.attemptRoot !== attemptRoot || input?.attemptId !== attemptRoot.slice(prefix.length)
+      || input?.maintRows?.length !== 5 || input?.relationRows?.length !== 5
+      || input?.projectionRows?.length !== 5 || input?.legacyMaintRows?.length !== 5
+      || input?.legacyRelationRows?.length !== 5 || input?.legacyProjectionRows?.length !== 5
+      || input?.legacyProjectileAudits?.length !== 5) {
+    throw new Error('canonical restoration input contract is not the exact reconciliation scope');
+  }
+  const paths = [
+    ['proposalPath', 'canonical restoration proposal'],
+    ['snapshotPath', 'canonical restoration snapshot'],
+    ['archivePath', 'canonical restoration archive'],
+    ['proposalAuthorization.path', 'canonical restoration proposal-read Owner authorization'],
+  ];
+  const entries = [inputEntry];
+  for (const [field, label] of paths) {
+    const value = field.includes('.')
+      ? field.split('.').reduce((current, key) => current?.[key], input)
+      : input[field];
+    const relativePath = requireNormalizedPath(value, `${label} path`);
+    if (!relativePath.startsWith(`${attemptRoot}/`)) {
+      throw new Error(`${label} must be inside the same restoration attempt`);
+    }
+    entries.push(readConfinedEntry(repoRoot, relativePath, { label, privateFile: true }));
+  }
+  const standardizedPath = requireNormalizedPath(
+    input?.standardizedSource?.path,
+    'canonical restoration standardized source path',
+  );
+  if (standardizedPath !== 'data/standardized/items.standardized.json') {
+    throw new Error('canonical restoration standardized source path drifted');
+  }
+  entries.push(readConfinedEntry(repoRoot, standardizedPath, {
+    label: 'canonical restoration standardized source', privateFile: false,
+  }));
+  const seen = new Set();
+  for (const entry of entries) {
+    if (seen.has(entry.path)) throw new Error(`canonical restoration data bundle duplicates ${entry.path}`);
+    seen.add(entry.path);
+  }
+  return entries;
 }
 
 function readItemImageProjectionDataEntries(repoRoot, manifest) {

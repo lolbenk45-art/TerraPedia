@@ -8,14 +8,36 @@ import {
   buildAutomationDatabaseNames,
   openDurableRunKeyRegistry
 } from './automation-database-contract.mjs';
-import { createLiveAutomationAdapter } from './mysql-automation-acceptance-adapter.mjs';
+import {
+  consumeAuthorizedOperationDispatchPermit,
+  loadAuthorizedOperationContext,
+} from './authorized-operation-context.mjs';
+import {
+  deriveCanonicalTechnicalIdentity,
+  resolveCanonicalOperationTechnicalInput,
+} from './build-canonical-cutover-authorization.mjs';
+import { canonicalServerFingerprint, hashCanonicalServerFingerprint } from './automation-database-contract.mjs';
+import {
+  createLiveAutomationAdapter,
+  createMysqlCommandClient,
+} from './mysql-automation-acceptance-adapter.mjs';
 import { provisionAutomationDatabases } from './provision-automation-databases.mjs';
 import { dropAutomationDatabases } from './drop-automation-databases.mjs';
 import { runItemGroupLiveAcceptance } from '../item-groups/item-group-live-acceptance.mjs';
 import { runNpcCanonicalT0Acceptance } from '../npc-canonical/npc-canonical-t0-acceptance.mjs';
+import {
+  buildNpcCanonicalT1Evidence,
+  buildNpcCanonicalT1SnapshotBinding,
+  runNpcCanonicalT1Acceptance,
+} from '../npc-canonical/npc-canonical-t1-acceptance.mjs';
+import { readCanonicalNpcOwnerPhaseCompletion } from '../npc-canonical/npc-canonical-readiness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PROBE_TABLE = '__automation_acceptance_probe';
+const NPC_T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-npc-t1-acceptance.json';
+const NPC_T1_OPERATION_ID = 'canonical-npc-t1-acceptance';
+const NPC_T1_INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
+const NPC_T1_COMPLETION_PATH = 'reports/authorization/canonical/canonical-npc-apply.completion.json';
 
 function requireRunKey(runKey) {
   if (!/^[a-z0-9]{1,3}_[0-9a-f]{16}$/.test(runKey ?? '')) throw new Error('live acceptance runKey is invalid');
@@ -93,6 +115,31 @@ export function resolveAcceptanceScope(scope, executor) {
   return executor;
 }
 
+export function resolveAcceptanceExecutor({ profile, scope } = {}) {
+  if (scope === undefined || scope === null || scope === '') return null;
+  if (scope === 'item-groups') return runItemGroupLiveAcceptance;
+  if (scope === 'npc-canonical' && profile === 't0') return runNpcCanonicalT0Acceptance;
+  if (scope === 'npc-canonical' && profile === 't1') return runNpcCanonicalT1Acceptance;
+  if (scope === 'npc-canonical') throw new Error('NPC canonical acceptance supports only T0 or T1');
+  throw new Error(`unsupported live acceptance scope: ${scope}`);
+}
+
+export function preflightLiveAcceptanceInvocation({ profile, scope, output, repoRoot = ROOT, completion } = {}) {
+  if (profile === 't1' && scope === 'npc-canonical') {
+    const evidenceOutput = preflightNpcT1EvidenceOutput({ output, repoRoot });
+    requireNpcT1Completion(completion);
+    return evidenceOutput;
+  }
+  return null;
+}
+
+function preflightNpcT1EvidenceOutput({ output, repoRoot = ROOT } = {}) {
+  if (output !== NPC_T1_EVIDENCE_PATH) {
+    throw new Error(`NPC T1 evidence output must be ${NPC_T1_EVIDENCE_PATH}`);
+  }
+  return resolveNpcT1EvidenceOutput(repoRoot, output);
+}
+
 export async function runLiveAutomationAcceptance({
   profile,
   runId,
@@ -103,11 +150,15 @@ export async function runLiveAutomationAcceptance({
   maxRowsPerTable = 2,
   scope,
   acceptanceExecutor,
+  completion,
   onResources = () => {}
 } = {}) {
   if (!['t0', 't1'].includes(profile)) throw new Error('live acceptance profile must be t0 or t1');
   if (!runId || !privateDirectory) throw new Error('runId and privateDirectory are required');
   const scopedExecutor = resolveAcceptanceScope(scope, acceptanceExecutor);
+  const npcT1Completion = profile === 't1' && scope === 'npc-canonical'
+    ? requireNpcT1Completion(completion)
+    : null;
   fs.mkdirSync(privateDirectory, { recursive: true, mode: 0o700 });
   fs.chmodSync(privateDirectory, 0o700);
   const mappings = openDurableRunKeyRegistry(path.join(privateDirectory, 'run-keys.json'));
@@ -131,6 +182,7 @@ export async function runLiveAutomationAcceptance({
   });
   let manifest;
   let primaryError;
+  let result;
   try {
     const observed = await adapter.inspectServer();
     manifest = await provisionAutomationDatabases({
@@ -146,6 +198,13 @@ export async function runLiveAutomationAcceptance({
     const snapshotVerification = profile === 't1'
       ? await adapter.verifyCopiedSnapshot({ sourceSnapshot: manifest.sourceSnapshot, targetDatabases: manifest.databases })
       : null;
+    const snapshotBinding = npcT1Completion
+      ? buildNpcCanonicalT1SnapshotBinding({
+        completion: npcT1Completion,
+        sourceSnapshot: manifest.sourceSnapshot,
+        snapshotVerification,
+      })
+      : null;
     const probeId = `probe_${createHash('sha256').update(runId).digest('hex').slice(0, 16)}`;
     const probeCounts = parseProbeCounts(await adapter.provisionerClient.query(
       buildAcceptanceProbeSql(resources.databases, probeId)
@@ -156,8 +215,11 @@ export async function runLiveAutomationAcceptance({
       databases: resources.databases,
       client: adapter.provisionerClient,
       manifest,
+      snapshotVerification,
+      completion: npcT1Completion,
+      snapshotBinding,
     }) : null;
-    return {
+    result = {
       profile,
       runId,
       runKey: manifest.runKey,
@@ -175,8 +237,10 @@ export async function runLiveAutomationAcceptance({
         tableCount: snapshotVerification.tables.length,
         verificationHash: snapshotVerification.verificationHash
       } : null,
+      snapshotBinding,
       probeCounts,
       acceptance,
+      cleanupPassed: false,
       status: 'passed'
     };
   } catch (error) {
@@ -207,6 +271,199 @@ export async function runLiveAutomationAcceptance({
     if (cleanupErrors.length && primaryError) {
       primaryError.message += `; cleanup failures: ${cleanupErrors.map((error) => error.message).join('; ')}`;
     }
+    if (result && cleanupErrors.length === 0) result.cleanupPassed = true;
+  }
+  return result;
+}
+
+function requireNpcT1Completion(completion) {
+  if (!/^sha256:[a-f0-9]{64}$/.test(completion?.inputHash ?? '')
+      || !/^sha256:[a-f0-9]{64}$/.test(completion?.completionHash ?? '')) {
+    throw new Error('NPC T1 requires a pre-read owner-phase completion binding');
+  }
+  return completion;
+}
+
+export async function preflightNpcT1AuthorizedCliInvocation({
+  repoRoot = ROOT,
+  configPath,
+  expectedConfigHash,
+  redisLogicalDb,
+  runId,
+  env = process.env,
+  now = new Date().toISOString(),
+  loadAuthorizationContextImpl = loadAuthorizedOperationContext,
+  consumeDispatchPermitImpl = consumeAuthorizedOperationDispatchPermit,
+  resolveCurrentTechnicalInputImpl = resolveNpcT1CurrentTechnicalIdentity,
+  inspectServerFingerprintImpl = inspectNpcT1ServerFingerprint,
+} = {}) {
+  const configBytes = readPrivateNpcT1Config({ configPath, expectedConfigHash });
+  let config;
+  try {
+    config = JSON.parse(configBytes.toString('utf8'));
+  } catch {
+    throw new Error('NPC T1 config must be valid JSON');
+  }
+  const authorizationContext = loadAuthorizationContextImpl({
+    env,
+    operationId: NPC_T1_OPERATION_ID,
+    now,
+  });
+  const currentTechnicalInput = await resolveCurrentTechnicalInputImpl({
+    repoRoot: path.resolve(repoRoot),
+    config,
+    authorizationContext,
+  });
+  const completion = requireNpcT1Completion(currentTechnicalInput?.completion);
+  assertNpcT1CompletionMatchesDataBundle({
+    completion,
+    dataBundleEntries: currentTechnicalInput?.dataBundleEntries,
+  });
+  const expectedServerFingerprint = assertNpcT1PacketTechnicalIdentity({
+    configPath,
+    expectedConfigHash,
+    redisLogicalDb,
+    runId,
+    authorizationContext,
+    currentTechnicalInput,
+  });
+  const observedServerFingerprint = canonicalServerFingerprint(await inspectServerFingerprintImpl({ config }));
+  if (JSON.stringify(observedServerFingerprint) !== JSON.stringify(expectedServerFingerprint)) {
+    throw new Error('NPC T1 live server fingerprint differs from the authorized config identity');
+  }
+  consumeDispatchPermitImpl({
+    env,
+    authorizedContext: authorizationContext,
+    decisionLedgerPath: path.join(path.resolve(repoRoot), 'reports/authorization/canonical/used-decisions.json'),
+  });
+  return {
+    configBytes,
+    config,
+    authorizationContext,
+    currentTechnicalInput,
+    serverFingerprint: expectedServerFingerprint,
+    completion,
+  };
+}
+
+export function assertNpcT1PacketTechnicalIdentity({
+  configPath,
+  expectedConfigHash,
+  redisLogicalDb,
+  runId,
+  authorizationContext,
+  currentTechnicalInput,
+} = {}) {
+  const operationId = authorizationContext?.operationId;
+  if (operationId !== NPC_T1_OPERATION_ID) {
+    throw new Error(`NPC T1 packet operationId must be ${NPC_T1_OPERATION_ID}`);
+  }
+  const manifest = authorizationContext?.executionManifest;
+  const isolatedAcceptance = manifest?.isolatedAcceptance;
+  const expectedServerFingerprint = canonicalServerFingerprint(isolatedAcceptance?.serverFingerprint);
+  if (path.resolve(String(configPath ?? '')) !== path.resolve(String(isolatedAcceptance?.configPath ?? ''))
+      || expectedConfigHash !== isolatedAcceptance?.configSha256) {
+    throw new Error('NPC T1 config path or hash differs from the authorized execution manifest');
+  }
+  if (Number(redisLogicalDb) !== isolatedAcceptance?.redisLogicalDb
+      || String(runId ?? '') !== isolatedAcceptance?.runId) {
+    throw new Error('NPC T1 Redis DB or run ID differs from the authorized execution manifest');
+  }
+  if (authorizationContext?.serverFingerprint !== hashCanonicalServerFingerprint(expectedServerFingerprint)) {
+    throw new Error('NPC T1 packet server fingerprint differs from the authorized config identity');
+  }
+  if (authorizationContext?.dataBundleSha256 !== currentTechnicalInput?.dataBundleSha256) {
+    throw new Error('NPC T1 data bundle drifted after authorization');
+  }
+  if (authorizationContext?.executionManifestHash !== currentTechnicalInput?.executionManifestHash) {
+    throw new Error('NPC T1 execution manifest drifted after authorization');
+  }
+  return expectedServerFingerprint;
+}
+
+export function assertNpcT1CompletionMatchesDataBundle({ completion, dataBundleEntries } = {}) {
+  const current = requireNpcT1Completion(completion);
+  if (!Array.isArray(dataBundleEntries)) {
+    throw new Error('NPC T1 completion requires current data bundle entries');
+  }
+  const hashes = new Map(dataBundleEntries.map((entry) => [entry?.path, entry?.contentHash]));
+  if (hashes.get(NPC_T1_INPUT_PATH) !== current.inputHash
+      || hashes.get(NPC_T1_COMPLETION_PATH) !== current.completionHash) {
+    throw new Error('NPC T1 completion differs from the current data bundle');
+  }
+  return current;
+}
+
+async function resolveNpcT1CurrentTechnicalIdentity({ repoRoot, config, authorizationContext } = {}) {
+  const serverFingerprint = canonicalServerFingerprint(config?.npcT1ServerFingerprint);
+  const technicalIdentity = deriveCanonicalTechnicalIdentity({
+    ...resolveCanonicalOperationTechnicalInput({
+      repoRoot,
+      operationId: NPC_T1_OPERATION_ID,
+      executionManifest: authorizationContext?.executionManifest,
+    }),
+    serverFingerprint,
+  });
+  const completion = await readCanonicalNpcOwnerPhaseCompletion({ repoRoot });
+  assertNpcT1CompletionMatchesDataBundle({
+    completion,
+    dataBundleEntries: technicalIdentity.dataBundleEntries,
+  });
+  return { ...technicalIdentity, completion };
+}
+
+export async function inspectNpcT1ServerFingerprint({ config, mysqlClientFactory = createMysqlCommandClient } = {}) {
+  const expected = canonicalServerFingerprint(config?.npcT1ServerFingerprint);
+  const client = mysqlClientFactory({
+    host: expected.host,
+    port: expected.port,
+    username: config?.database?.username,
+    password: config?.database?.password,
+  });
+  const serverUuid = String(await client.query('SELECT @@server_uuid')).trim();
+  return canonicalServerFingerprint({ ...expected, serverUuid });
+}
+
+function readPrivateNpcT1Config({ configPath, expectedConfigHash } = {}) {
+  const resolvedConfigPath = path.resolve(String(configPath ?? ''));
+  if (!configPath || !/^sha256:[a-f0-9]{64}$/.test(expectedConfigHash ?? '')) {
+    throw new Error('NPC T1 config hash is required');
+  }
+  const stat = fs.lstatSync(resolvedConfigPath);
+  if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
+    throw new Error('NPC T1 config must be a private ordinary file');
+  }
+  const configBytes = fs.readFileSync(resolvedConfigPath);
+  const actualConfigHash = `sha256:${createHash('sha256').update(configBytes).digest('hex')}`;
+  if (actualConfigHash !== expectedConfigHash) {
+    throw new Error('NPC T1 config hash drifted from the authorized execution manifest');
+  }
+  return configBytes;
+}
+
+function resolveNpcT1EvidenceOutput(repoRoot, outputPath) {
+  const relative = String(outputPath ?? '').replaceAll('\\', '/');
+  if (!relative || path.posix.isAbsolute(relative) || path.posix.normalize(relative) !== relative) {
+    throw new Error('NPC T1 evidence output must be a normalized repository-relative path');
+  }
+  const root = path.resolve(repoRoot);
+  const output = path.resolve(root, relative);
+  const reportsRoot = path.resolve(root, 'reports/canonical-migration');
+  if (!output.startsWith(`${reportsRoot}${path.sep}`)) {
+    throw new Error('NPC T1 evidence output must stay under reports/canonical-migration');
+  }
+  return output;
+}
+
+async function writePrivateJson(outputPath, value) {
+  await fs.promises.mkdir(path.dirname(outputPath), { recursive: true, mode: 0o700 });
+  const temporary = `${outputPath}.${process.pid}.tmp`;
+  try {
+    await fs.promises.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+    await fs.promises.rename(temporary, outputPath);
+    await fs.promises.chmod(outputPath, 0o600);
+  } finally {
+    await fs.promises.rm(temporary, { force: true });
   }
 }
 
@@ -218,24 +475,34 @@ function parseArgs(argv) {
 }
 
 async function main() {
-  if (process.env.TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED !== '1') {
+  const args = parseArgs(process.argv);
+  const profile = args.profile;
+  const scope = args.scope;
+  const npcT1Invocation = profile === 't1' && scope === 'npc-canonical';
+  if (!npcT1Invocation && process.env.TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED !== '1') {
     throw new Error('set TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED=1 for the authorized isolated run');
   }
-  const args = parseArgs(process.argv);
   const configPath = path.resolve(args['config-path'] ?? '');
   if (!args['config-path'] || !fs.existsSync(configPath)) throw new Error('--config-path is required');
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const profile = args.profile;
   const redisLogicalDb = Number(args['redis-db']);
-  const scope = args.scope;
-  const acceptanceExecutor = resolveAcceptanceScope(
-    scope,
-    scope === 'item-groups'
-      ? runItemGroupLiveAcceptance
-      : scope === 'npc-canonical' ? runNpcCanonicalT0Acceptance : undefined,
-  );
+  const requestedRunId = args['run-id'] ?? null;
+  const acceptanceExecutor = resolveAcceptanceExecutor({ profile, scope });
+  const npcT1EvidenceOutput = npcT1Invocation
+    ? preflightNpcT1EvidenceOutput({ output: args.output, repoRoot: ROOT })
+    : preflightLiveAcceptanceInvocation({ profile, scope, output: args.output, repoRoot: ROOT });
+  const npcT1Preflight = npcT1Invocation
+    ? await preflightNpcT1AuthorizedCliInvocation({
+      repoRoot: ROOT,
+      configPath,
+      expectedConfigHash: args['config-sha256'],
+      redisLogicalDb,
+      runId: requestedRunId,
+    })
+    : null;
+  const npcT1Completion = npcT1Preflight?.completion ?? null;
+  const config = npcT1Preflight?.config ?? JSON.parse(fs.readFileSync(configPath, 'utf8'));
   const privateDirectory = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-${profile}-live-`));
-  const runId = args['run-id'] || `${profile}-${Date.now()}-${randomBytes(8).toString('hex')}`;
+  const runId = requestedRunId || `${profile}-${Date.now()}-${randomBytes(8).toString('hex')}`;
   try {
     const result = await runLiveAutomationAcceptance({
       profile,
@@ -256,6 +523,7 @@ async function main() {
       maxRowsPerTable: Number(args['max-rows'] || 2),
       scope,
       acceptanceExecutor,
+      completion: npcT1Completion,
       onResources: async (resources) => {
         process.stdout.write(`${JSON.stringify({ safetyBoundary: {
           formalDatabases: 'read-only',
@@ -265,6 +533,15 @@ async function main() {
         } }, null, 2)}\n`);
       }
     });
+    if (npcT1EvidenceOutput) {
+      const postCleanupCompletion = await readCanonicalNpcOwnerPhaseCompletion({ repoRoot: ROOT });
+      if (postCleanupCompletion.inputHash !== npcT1Completion.inputHash
+          || postCleanupCompletion.completionHash !== npcT1Completion.completionHash) {
+        throw new Error('NPC T1 owner-phase completion changed during isolated acceptance');
+      }
+      const evidence = buildNpcCanonicalT1Evidence({ runId, result, completion: postCleanupCompletion });
+      await writePrivateJson(npcT1EvidenceOutput, evidence);
+    }
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } finally {
     fs.rmSync(privateDirectory, { recursive: true, force: true });
