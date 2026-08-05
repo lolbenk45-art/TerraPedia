@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-06 00:58 CST by Codex
+Last updated: 2026-08-06 01:07 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -987,9 +987,14 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   previously untracked historical Shimmer generations and audit snapshots are
   preserved by `06a0b861` and `0d953f0e`. NPC T2 verifier Task 1 is committed
   at `e1727ac1`; its governed no-write operation registration passes focused
-  tests and is the active Task 2 checkpoint. Next generate a fresh
-  `canonical-npc-t2-cutover-verification-20260806-admin-*` request and stop for
-  exact Owner confirmation before dispatch. The four source-contract flips and
+  tests and is checkpointed at `65c0b0d2`. Fresh no-write request
+  `canonical-npc-t2-cutover-verification-20260806-admin-01` is
+  `AWAITING_OWNER` at request hash
+  `sha256:a61ea58d38b24e3dd1c9772cce0a369fdd47802bcc18e4eaf61ad6bbb7a35f74`;
+  its manifest hash is
+  `sha256:b0636493a7df3d87fcd99080c47f0d60e3d11119bd175de22f212ee13682afbc`.
+  Stop for exact Owner confirmation before creating a packet or dispatching.
+  The four source-contract flips and
   final closeout remain pending, so the branch is not ready for integration.
   Do not start a recurring scheduler
   daemon or crawler run unless a later plan and operation-level authorization

@@ -1819,6 +1819,19 @@
   No request, packet, decision consumption, T2 runtime, source flip, DB write,
   crawler, scheduler daemon, or service lifecycle action ran. See git for
   code-level diff details.
+- Task 2 is committed at `65c0b0d2`. Read-only preflight confirmed the formal
+  server UUID and database triplet, fresh NPC landing/runtime evidence, matching
+  admin/public API snapshot evidence through isolated backend `18201`, zero
+  active attempts/reservations, and no retained permit or prior T2 attempt.
+  Fresh private `0600` request
+  `canonical-npc-t2-cutover-verification-20260806-admin-01` is
+  `AWAITING_OWNER` at
+  `sha256:a61ea58d38b24e3dd1c9772cce0a369fdd47802bcc18e4eaf61ad6bbb7a35f74`;
+  execution manifest hash is
+  `sha256:b0636493a7df3d87fcd99080c47f0d60e3d11119bd175de22f212ee13682afbc`.
+  The attempt contains only manifest, request, and owner input; no packet,
+  permit, result, decision consumption, T2 publication, source flip, or DB
+  write exists. Exact Owner confirmation is the next gate.
 
 ## Commits
 
@@ -1850,3 +1863,4 @@
 - `fb113247` `docs(data): define npc t2 source cutover`
 - `b44b413b` `docs(data): plan npc t2 source cutover`
 - `e1727ac1` `feat(npc): verify canonical t2 cutover`
+- `65c0b0d2` `feat(automation): govern npc t2 verification`
