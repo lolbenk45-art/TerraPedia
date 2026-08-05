@@ -808,6 +808,7 @@ export function readNpcBridgeRetirementEvidence(repoRoot) {
     throw new Error('NPC bridge-retirement report must be a passing read-only report');
   }
   return {
+    status: report.status,
     referenceCount: report.referenceCount,
     snapshotHash: hashJson({
       retiredPath: report.retiredPath,

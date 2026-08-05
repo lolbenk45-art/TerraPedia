@@ -1832,6 +1832,20 @@
   The attempt contains only manifest, request, and owner input; no packet,
   permit, result, decision consumption, T2 publication, source flip, or DB
   write exists. Exact Owner confirmation is the next gate.
+- ADMIN-01 was confirmed and consumed once under packet
+  `sha256:94170321b89d12d940a41cf286cc16e25ece10a438128d050fe7ce9fcd366033`.
+  The child failed before terminal-result creation with `NPC T2 bridge
+  retirement evidence must pass with zero references`. Root-cause tracing
+  proved the raw report and reader validation were both passing, but
+  `readNpcBridgeRetirementEvidence` discarded the validated `status` field
+  before T2 validation. A RED/GREEN real-reader regression now preserves
+  `status: pass`; focused verification passes `105/105`, two syntax checks, and
+  `git diff --check`. Post-failure readback exactly matches pre-dispatch DB
+  snapshot `sha256:d89271e0...945e6`, counts and relation/local hashes; active
+  attempts/reservations remain `0/0`, with no result or retained permit.
+  ADMIN-01 is consumed historical evidence. A new current-code ADMIN-02 request
+  is required before any replacement dispatch. See git for code-level diff
+  details.
 
 ## Commits
 

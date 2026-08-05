@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-06 01:07 CST by Codex
+Last updated: 2026-08-06 01:25 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -993,8 +993,14 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `sha256:a61ea58d38b24e3dd1c9772cce0a369fdd47802bcc18e4eaf61ad6bbb7a35f74`;
   its manifest hash is
   `sha256:b0636493a7df3d87fcd99080c47f0d60e3d11119bd175de22f212ee13682afbc`.
-  Stop for exact Owner confirmation before creating a packet or dispatching.
-  The four source-contract flips and
+  ADMIN-01 was confirmed and consumed once under packet
+  `sha256:94170321b89d12d940a41cf286cc16e25ece10a438128d050fe7ce9fcd366033`,
+  then failed before terminal-result creation because the validated bridge
+  reader dropped `status: pass` from its return value. Independent readback
+  proves unchanged DB snapshot `sha256:d89271e0...945e6`, zero active
+  attempts/reservations, and no result or retained permit. The reader contract
+  repair passes focused tests `105/105`; ADMIN-01 is consumed historical
+  evidence and a new current-code ADMIN-02 request is required. The four source-contract flips and
   final closeout remain pending, so the branch is not ready for integration.
   Do not start a recurring scheduler
   daemon or crawler run unless a later plan and operation-level authorization

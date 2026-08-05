@@ -13,12 +13,36 @@ import {
   NPC_CANONICAL_READINESS_SCHEMA_VERSION,
   buildNpcCanonicalReadinessReport,
   buildNpcCanonicalReadinessSnapshot,
+  readNpcBridgeRetirementEvidence,
   readNpcCanonicalReadinessRows,
   writeNpcCanonicalReadinessReport,
   validateNpcCanonicalReadinessReport,
 } from './npc-canonical-readiness.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
+
+test('bridge retirement reader preserves its validated pass status for T2', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-bridge-retirement-'));
+  try {
+    writeJson(repoRoot, 'reports/canonical-migration/npc-bridge-retirement.json', {
+      status: 'pass',
+      writesDatabase: false,
+      requiresDatabase: false,
+      retiredPath: 'data/generated/wiki-crawler-npc-bridge',
+      scannedFileCount: 10,
+      allowedReferenceCount: 0,
+      referenceCount: 0,
+    });
+
+    const evidence = readNpcBridgeRetirementEvidence(repoRoot);
+
+    assert.equal(evidence.status, 'pass');
+    assert.equal(evidence.referenceCount, 0);
+    assert.match(evidence.snapshotHash, /^sha256:[a-f0-9]{64}$/);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
 
 function validOwnerPhaseCompletion() {
   return {
