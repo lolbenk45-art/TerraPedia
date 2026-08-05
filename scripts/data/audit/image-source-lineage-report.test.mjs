@@ -204,6 +204,27 @@ test('item readiness accepts only exact completed projection after rows', () => 
   ));
 });
 
+test('item readiness ignores retained projection rows outside the frozen apply key set', () => {
+  const evidence = projectionEvidence();
+  const retainedLegacyRow = {
+    id: 99,
+    relationRecordKey: 'legacy-only-record',
+    internalName: 'LegacyOnlyItem',
+    image: 'http://localhost:9000/terrapedia-images/items/legacy.png',
+  };
+  const currentRows = [
+    ...evidence.inputContract.projectionAfterRows,
+    retainedLegacyRow,
+  ];
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/items/'],
+    entities: { items: projectionReadyEntityRows(currentRows) },
+    itemImageProjectionEvidence: evidence,
+  });
+  assert.deepEqual(report.entities.items.gapReasons, []);
+});
+
 test('item readiness reports distinct projection evidence failure classes', () => {
   const base = projectionEvidence();
   const unmanagedAfterRows = base.inputContract.projectionAfterRows.map((row) => ({

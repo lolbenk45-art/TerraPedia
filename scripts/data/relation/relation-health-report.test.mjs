@@ -73,14 +73,16 @@ test('buildRelationHealthQueries blocks on open loot relation audits', () => {
 
 test('buildRelationHealthQueries keeps local validation scoped to standalone compatibility outputs', () => {
   const queries = buildRelationHealthQueries();
-  const allSql = queries.map((query) => query.sql).join('\n\n');
+  const standaloneSql = queries
+    .filter((query) => query.id !== 'local_compat_npc_shop_conditions_count')
+    .map((query) => query.sql)
+    .join('\n\n');
 
-  assert.doesNotMatch(allSql, /`terria_v1_local`\.`items`/);
-  assert.doesNotMatch(allSql, /`terria_v1_local`\.`npcs`/);
-  assert.match(allSql, /`terria_v1_local`\.`item_acquisition_sources`/);
-  assert.match(allSql, /`terria_v1_local`\.`npc_loot_entries`/);
-  assert.match(allSql, /`terria_v1_local`\.`npc_shop_entries`/);
-  assert.match(allSql, /`terria_v1_local`\.`npc_shop_conditions`/);
+  assert.doesNotMatch(standaloneSql, /`terria_v1_local`\.`items`/);
+  assert.doesNotMatch(standaloneSql, /`terria_v1_local`\.`npcs`/);
+  assert.match(standaloneSql, /`terria_v1_local`\.`item_acquisition_sources`/);
+  assert.match(standaloneSql, /`terria_v1_local`\.`npc_loot_entries`/);
+  assert.match(standaloneSql, /`terria_v1_local`\.`npc_shop_entries`/);
 });
 
 test('buildRelationHealthQueries checks maint item source key parity in both directions', () => {
@@ -105,10 +107,17 @@ test('buildRelationHealthQueries checks maint item source key parity in both dir
   assert.match(maintMissing.sql, /m\.deleted\s*=\s*0/);
   assert.match(relationMissing.sql, /FROM `terria_v1_relation`\.`item_source_facts` f/);
   assert.match(relationMissing.sql, /LEFT JOIN `terria_v1_maint`\.`maint_item_sources` m/);
+  assert.match(relationMissing.sql, /LEFT JOIN `terria_v1_maint`\.`maint_npc_crawler_facts` n/);
   assert.match(relationMissing.sql, /BINARY m\.record_key = BINARY f\.source_maint_record_key/);
-  assert.match(relationMissing.sql, /f\.source_maint_table <> 'maint_item_sources'/);
+  assert.match(relationMissing.sql, /f\.source_maint_table = 'maint_npc_crawler_facts'/);
+  assert.match(relationMissing.sql, /BINARY n\.record_key = BINARY f\.source_maint_record_key/);
   assert.match(relationMissing.sql, /m\.status\s*=\s*1/);
   assert.match(relationMissing.sql, /m\.deleted\s*=\s*0/);
+  assert.match(relationMissing.sql, /n\.status\s*=\s*1/);
+  assert.match(relationMissing.sql, /n\.deleted\s*=\s*0/);
+
+  const parity = byId.get('maint_item_sources_vs_item_source_facts');
+  assert.match(parity.sql, /source_maint_table = 'maint_item_sources'/);
 });
 
 test('buildRelationHealthQueries requires projection JSON columns to be valid non-empty arrays', () => {
@@ -144,6 +153,18 @@ test('buildRelationHealthQueries makes standalone local compatibility counts blo
     type: 'delta_zero',
     field: 'delta'
   });
+});
+
+test('shop condition parity counts projected local shop-entry joins instead of source rows', () => {
+  const queries = buildRelationHealthQueries();
+  const query = queries.find((entry) => entry.id === 'local_compat_npc_shop_conditions_count');
+
+  assert.match(query.sql, /INNER JOIN `terria_v1_local`\.`npcs` n/);
+  assert.match(query.sql, /INNER JOIN `terria_v1_local`\.`items` i/);
+  assert.match(query.sql, /INNER JOIN `terria_v1_local`\.`npc_shop_entries` se/);
+  assert.match(query.sql, /se\.npc_id = n\.id/);
+  assert.match(query.sql, /se\.item_id <=> i\.id/);
+  assert.match(query.sql, /se\.price_text COLLATE utf8mb4_unicode_ci <=> r\.price_text COLLATE utf8mb4_unicode_ci/);
 });
 
 test('buildRelationHealthReport classifies blocking, warning, passing, and info checks', () => {

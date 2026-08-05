@@ -27,6 +27,8 @@ export function buildItemImageLineageBundle({
   promotionResultSha256,
   imageSyncResultBytes,
   imageSyncResultSha256,
+  imageSyncOverlayResultBytes = null,
+  imageSyncOverlayResultSha256 = null,
   datasetType = DATASET_TYPE,
   generatedAt
 } = {}) {
@@ -36,6 +38,9 @@ export function buildItemImageLineageBundle({
   const promotionBundle = parseJsonBytes(promotionBundleBytes, 'promotionBundleBytes');
   const promotionResult = parseJsonBytes(promotionResultBytes, 'promotionResultBytes');
   const imageSync = parseJsonBytes(imageSyncResultBytes, 'imageSyncResultBytes');
+  const imageSyncOverlay = imageSyncOverlayResultBytes == null
+    ? null
+    : parseJsonBytes(imageSyncOverlayResultBytes, 'imageSyncOverlayResultBytes');
 
   if (promotionBundle?.entity !== 'item_image_source_promotion_bundle') {
     throw new Error('an item image source promotion bundle is required');
@@ -59,6 +64,18 @@ export function buildItemImageLineageBundle({
     const key = requireText(entry?.key, 'managed image key');
     if (managedByKey.has(key)) throw new Error(`duplicate managed image for ${key}`);
     managedByKey.set(key, entry);
+  }
+  if (imageSyncOverlay != null) {
+    if (imageSyncOverlay?.status !== 'completed' || imageSyncOverlay?.apply !== true) {
+      throw new Error('a completed image sync overlay result is required');
+    }
+    for (const entry of requireRecords(imageSyncOverlay?.managedImages, 'image sync overlay managed images')) {
+      const key = requireText(entry?.key, 'overlay managed image key');
+      if (!managedByKey.has(key)) {
+        throw new Error(`overlay managed image has no base image for ${key}`);
+      }
+      managedByKey.set(key, entry);
+    }
   }
 
   const seen = new Set();
@@ -145,7 +162,12 @@ export function buildItemImageLineageBundle({
       },
       imageSyncResult: {
         sha256: requireSha256(imageSyncResultSha256, 'imageSyncResultSha256')
-      }
+      },
+      ...(imageSyncOverlay == null ? {} : {
+        imageSyncRepairResult: {
+          sha256: requireSha256(imageSyncOverlayResultSha256, 'imageSyncOverlayResultSha256')
+        }
+      })
     },
     counters: {
       total: itemImages.length,
@@ -220,12 +242,20 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     }
     const promotionResultBytes = fs.readFileSync(path.resolve(requireText(args['promotion-result'], 'promotion-result')));
     const imageSyncResultBytes = fs.readFileSync(path.resolve(requireText(args['image-sync-result'], 'image-sync-result')));
+    const overlayPath = args['image-sync-overlay-result'] == null
+      ? null
+      : path.resolve(requireText(args['image-sync-overlay-result'], 'image-sync-overlay-result'));
+    const imageSyncOverlayResultBytes = overlayPath == null ? null : fs.readFileSync(overlayPath);
     const bundle = buildItemImageLineageBundle({
       promotionBundleBytes: fs.readFileSync(path.resolve(requireText(args['promotion-bundle'], 'promotion-bundle'))),
       promotionResultBytes,
       promotionResultSha256: sha256Bytes(promotionResultBytes),
       imageSyncResultBytes,
       imageSyncResultSha256: sha256Bytes(imageSyncResultBytes),
+      imageSyncOverlayResultBytes,
+      imageSyncOverlayResultSha256: imageSyncOverlayResultBytes == null
+        ? null
+        : sha256Bytes(imageSyncOverlayResultBytes),
       generatedAt: args['generated-at'] ?? new Date().toISOString()
     });
     writeJsonFile(outputPath, bundle);

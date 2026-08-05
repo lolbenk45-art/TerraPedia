@@ -68,6 +68,28 @@ test('a managed URL stored as an origin-free path is accepted', () => {
   );
 });
 
+test('a completed repair overlay replaces only matching managed image keys', () => {
+  const input = lineageInput();
+  input.imageSyncOverlayResultBytes = JSON.stringify({
+    status: 'completed',
+    apply: true,
+    managedUrlPrefixes: ['http://localhost:19100/terrapedia-images/'],
+    managedImages: [{
+      key: 'CopperCoin',
+      managedUrl: '/terrapedia-images/items/coppercoin-repaired.png',
+    }],
+  });
+  input.imageSyncOverlayResultSha256 = sha256('repair-overlay');
+
+  const bundle = buildItemImageLineageBundle(input);
+
+  assert.equal(
+    bundle.itemImages.find((row) => row.itemInternalName === 'CopperCoin').cachedUrl,
+    '/terrapedia-images/items/coppercoin-repaired.png',
+  );
+  assert.equal(bundle.descriptor.imageSyncRepairResult.sha256, sha256('repair-overlay'));
+});
+
 test('a managed path presented as a source original is rejected', () => {
   const input = lineageInput();
   const promotion = JSON.parse(input.promotionBundleBytes);

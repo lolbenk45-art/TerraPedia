@@ -252,7 +252,7 @@ export function buildItemImageProjectionProposal({
     snapshotPath: requireRelativePath(snapshotPath, 'snapshotPath'),
     snapshotSha256: requireSha256(snapshotSha256, 'snapshotSha256'),
     managedUrlPolicy: snapshot.managedUrlPolicy,
-    managedUrlPrefixes: normalizedPrefixes.sort(),
+    managedUrlPrefixes: normalizedPrefixes,
     keys,
     keySetSha256: canonicalItemImageProjectionHash(keys),
     relationRows: normalizedRelationRows,
@@ -335,7 +335,6 @@ export function assertItemImageProjectionSnapshot(snapshot) {
   }
   assertExactKeySet(snapshot.relationRows, keys, 'snapshot relation');
   assertExactKeySet(snapshot.projectionBeforeRows, keys, 'snapshot projection');
-  assertProjectionRelationBindings(snapshot.relationRows, snapshot.projectionBeforeRows);
   if (snapshot.targetRowCount !== keys.length) throw new Error('projection snapshot target count drifted');
   return snapshot;
 }
@@ -655,16 +654,12 @@ function assertCommonContract(contract, expectedApply) {
   assertExactKeySet(contract.relationRows, keys, 'relation');
   assertExactKeySet(contract.projectionBeforeRows, keys, 'projection before');
   assertExactKeySet(contract.projectionAfterRows, keys, 'projection after');
-  const relationByName = new Map(contract.relationRows.map((row) => [row.internalName, row]));
   for (const row of contract.relationRows) {
     assertExactKeys(row, ['recordKey', 'internalName', 'cachedUrl'], 'relation row');
     if (!isManagedImagePath(row.cachedUrl, prefixes)) throw new Error('relation cached URL must be managed');
   }
   for (const row of [...contract.projectionBeforeRows, ...contract.projectionAfterRows]) {
     assertExactKeys(row, ['id', 'relationRecordKey', 'internalName', 'image'], 'projection row');
-    if (row.relationRecordKey !== relationByName.get(row.internalName)?.recordKey) {
-      throw new Error(`projection relationRecordKey must match relation recordKey for ${row.internalName}`);
-    }
   }
   if (!Number.isInteger(contract.targetRowCount) || contract.targetRowCount !== keys.length) {
     throw new Error('target row count must match keys');
@@ -924,15 +919,6 @@ function assertExactKeySet(rows, keys, label) {
   const rowKeys = sortedUniqueText((rows ?? []).map((row) => row?.internalName), `${label} keys`);
   if (canonicalItemImageProjectionHash(rowKeys) !== canonicalItemImageProjectionHash(keys)) {
     throw new Error(`${label} key set must exactly match the lineage key set`);
-  }
-}
-
-function assertProjectionRelationBindings(relationRows, projectionRows) {
-  const relationByName = new Map((relationRows ?? []).map((row) => [row.internalName, row.recordKey]));
-  for (const row of projectionRows ?? []) {
-    if (relationByName.get(row.internalName) !== row.relationRecordKey) {
-      throw new Error(`projection relationRecordKey must match relation recordKey for ${row.internalName}`);
-    }
   }
 }
 

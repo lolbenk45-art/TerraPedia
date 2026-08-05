@@ -53,6 +53,7 @@ export function buildRelationHealthQueries({
   localDatabase = DEFAULTS.localDatabase
 } = {}) {
   const maintItemSources = table(maintDatabase, 'maint_item_sources');
+  const maintNpcCrawlerFacts = table(maintDatabase, 'maint_npc_crawler_facts');
   const maintBackfillCandidates = table(maintDatabase, 'maint_backfill_candidates');
   const itemSourceFacts = table(relationDatabase, 'item_source_facts');
   const shopRelations = table(relationDatabase, 'item_npc_shop_relations');
@@ -67,6 +68,8 @@ export function buildRelationHealthQueries({
   const localCompatNpcLoot = table(localDatabase, 'npc_loot_entries');
   const localCompatNpcShop = table(localDatabase, 'npc_shop_entries');
   const localCompatNpcShopConditions = table(localDatabase, 'npc_shop_conditions');
+  const localItems = table(localDatabase, 'items');
+  const localNpcs = table(localDatabase, 'npcs');
   const activeMaintItemSourceWhere = 'status = 1 AND deleted = 0';
   const activeMaintItemSourceAliasWhere = 'm.status = 1 AND m.deleted = 0';
 
@@ -78,8 +81,8 @@ export function buildRelationHealthQueries({
       description: 'Canonical relation facts must stay row-for-row with active maint item sources.',
       sql: `SELECT
   (SELECT COUNT(*) FROM ${maintItemSources} WHERE ${activeMaintItemSourceWhere}) AS maintCount,
-  (SELECT COUNT(*) FROM ${itemSourceFacts}) AS relationCount,
-  ((SELECT COUNT(*) FROM ${maintItemSources} WHERE ${activeMaintItemSourceWhere}) - (SELECT COUNT(*) FROM ${itemSourceFacts})) AS delta`
+  (SELECT COUNT(*) FROM ${itemSourceFacts} WHERE source_maint_table = 'maint_item_sources') AS relationCount,
+  ((SELECT COUNT(*) FROM ${maintItemSources} WHERE ${activeMaintItemSourceWhere}) - (SELECT COUNT(*) FROM ${itemSourceFacts} WHERE source_maint_table = 'maint_item_sources')) AS delta`
     }),
     countCheck({
       id: 'maint_item_sources_missing_in_relation',
@@ -102,11 +105,18 @@ WHERE ${activeMaintItemSourceAliasWhere}
       sql: `SELECT COUNT(*) AS count
 FROM ${itemSourceFacts} f
 LEFT JOIN ${maintItemSources} m
-  ON BINARY m.record_key = BINARY f.source_maint_record_key
+  ON f.source_maint_table = 'maint_item_sources'
+ AND BINARY m.record_key = BINARY f.source_maint_record_key
  AND ${activeMaintItemSourceAliasWhere}
-WHERE f.source_maint_table <> 'maint_item_sources'
-   OR f.source_maint_record_key IS NULL
-   OR m.record_key IS NULL`
+LEFT JOIN ${maintNpcCrawlerFacts} n
+  ON f.source_maint_table = 'maint_npc_crawler_facts'
+ AND BINARY n.record_key = BINARY f.source_maint_record_key
+ AND n.status = 1
+ AND n.deleted = 0
+WHERE f.source_maint_record_key IS NULL
+   OR f.source_maint_table NOT IN ('maint_item_sources', 'maint_npc_crawler_facts')
+   OR (f.source_maint_table = 'maint_item_sources' AND m.record_key IS NULL)
+   OR (f.source_maint_table = 'maint_npc_crawler_facts' AND n.record_key IS NULL)`
     }),
     countCheck({
       id: 'maint_item_sources_by_type',
@@ -360,37 +370,40 @@ WHERE ${nonEmptyJson('source_npcs_json')}`
       id: 'local_compat_npc_shop_conditions_count',
       title: 'local compatibility npc_shop_conditions rows',
       expectation: { type: 'delta_zero', field: 'delta' },
-      description: 'Local shop condition rows should match relation-publishable shop relations that actually carry condition fields.',
+      description: 'Local shop condition rows should match the projected shop-entry joins produced from relation rows that carry condition fields.',
       sql: `SELECT
-  (
-    SELECT COUNT(*)
-    FROM ${shopRelations} r
-    INNER JOIN ${itemSourceFacts} f
-      ON f.record_key = r.source_fact_key
-    WHERE r.deleted = 0
-      AND r.status = 1
-      AND r.review_status IN ('accepted', 'resolved', 'promoted')
-      AND f.deleted = 0
-      AND f.status = 1
-      AND f.review_status IN ('accepted', 'resolved', 'promoted')
-      AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
-  ) AS expectedCount,
-  (SELECT COUNT(*) FROM ${localCompatNpcShopConditions}) AS localCount,
-  (
-    (
-      SELECT COUNT(*)
-      FROM ${shopRelations} r
-      INNER JOIN ${itemSourceFacts} f
-        ON f.record_key = r.source_fact_key
-      WHERE r.deleted = 0
-        AND r.status = 1
-        AND r.review_status IN ('accepted', 'resolved', 'promoted')
-        AND f.deleted = 0
-        AND f.status = 1
-        AND f.review_status IN ('accepted', 'resolved', 'promoted')
-        AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
-    ) - (SELECT COUNT(*) FROM ${localCompatNpcShopConditions})
-  ) AS delta`
+  expected.expectedCount,
+  local.localCount,
+  expected.expectedCount - local.localCount AS delta
+FROM (
+  SELECT COUNT(*) AS expectedCount
+  FROM ${shopRelations} r
+  INNER JOIN ${itemSourceFacts} f
+    ON f.record_key = r.source_fact_key
+  INNER JOIN ${localNpcs} n
+    ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+   AND n.deleted = 0
+   AND n.status = 1
+  INNER JOIN ${localItems} i
+    ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+   AND i.deleted = 0
+   AND i.status = 1
+  INNER JOIN ${localCompatNpcShop} se
+    ON se.npc_id = n.id
+   AND (se.item_id <=> i.id)
+   AND (se.price_text COLLATE utf8mb4_unicode_ci <=> r.price_text COLLATE utf8mb4_unicode_ci)
+  WHERE r.deleted = 0
+    AND r.status = 1
+    AND r.review_status IN ('accepted', 'resolved', 'promoted')
+    AND f.deleted = 0
+    AND f.status = 1
+    AND f.review_status IN ('accepted', 'resolved', 'promoted')
+    AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
+) expected
+CROSS JOIN (
+  SELECT COUNT(*) AS localCount
+  FROM ${localCompatNpcShopConditions}
+) local`
     })
   ];
 }

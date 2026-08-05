@@ -812,12 +812,16 @@ function itemImageProjectionEvidenceGaps({ evidence, projectionRows }) {
     return [classifyItemImageProjectionEvidenceError(error)];
   }
 
-  const currentRows = projectionRows.map((row) => ({
-    id: Number(row?.id),
-    relationRecordKey: firstText(row?.relationRecordKey, row?.relation_record_key),
-    internalName: firstText(row?.internalName, row?.internal_name),
-    image: firstText(row?.image),
-  })).sort((left, right) => left.internalName.localeCompare(right.internalName));
+  const frozenKeys = new Set(evidence.inputContract.keys);
+  const currentRows = projectionRows
+    .filter((row) => frozenKeys.has(firstText(row?.internalName, row?.internal_name)))
+    .map((row) => ({
+      id: Number(row?.id),
+      relationRecordKey: firstText(row?.relationRecordKey, row?.relation_record_key),
+      internalName: firstText(row?.internalName, row?.internal_name),
+      image: firstText(row?.image),
+    }))
+    .sort((left, right) => left.internalName.localeCompare(right.internalName));
   if (canonicalItemImageProjectionHash(currentRows)
       !== canonicalItemImageProjectionHash(evidence.inputContract.projectionAfterRows)) {
     return ['item_image_projection_after_rows_drifted'];

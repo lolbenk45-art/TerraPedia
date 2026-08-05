@@ -1941,6 +1941,30 @@ test('shimmer readiness rejects noncanonical title-resolution evidence', () => {
   }
 });
 
+test('shimmer readiness accepts the explicit none title-resolution kind', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot, {
+    titleResolutionRecords: [{ kind: 'none', nameZh: '无', nameEn: null, internalName: null }],
+  });
+  try {
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      buildCompletedShimmerImportResult(publication.manifest),
+      { mode: 0o600 },
+    );
+    const report = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'blocking',
+      generatedAt: '2026-08-03T00:00:00Z',
+    });
+    assert.equal(report.status, 'pass');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
 test('shimmer source readiness rejects a generation directory symlink that resolves outside its canonical root', () => {
   const repoRoot = createTempRepo();
   const publication = publishShimmerReadinessGeneration(repoRoot);
@@ -2373,6 +2397,20 @@ test('items image readiness accounts for reused objects and refuses a failed syn
     changed: 4012,
     missingSource: 0,
     failedKeys: [],
+  }).status, 'pass');
+
+  // A bounded legacy-origin repair reports only its 331 repair candidates;
+  // the remaining 5800 identities are already-managed and complete the total.
+  assert.equal(applied({
+    total: 6131,
+    candidates: 331,
+    alreadyManaged: 5800,
+    reused: 0,
+    uploaded: 0,
+    changed: 331,
+    missingSource: 0,
+    failedKeys: [],
+    normalizedKeys: Array.from({ length: 331 }, (_, index) => `Legacy${index}`),
   }).status, 'pass');
 
   // Dropping reuse from the accounting must break the equation, not pass silently.

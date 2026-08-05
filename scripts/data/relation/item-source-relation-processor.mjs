@@ -1170,6 +1170,9 @@ export function buildNpcCrawlerFactItemSourceRows(maintNpcCrawlerFactRows = []) 
         };
         rows.push({
           record_key: createRecordKey({ type: 'npc_crawler_item_source', crawlerFactRecordKey, sourceType, index, itemName }),
+          source_maint_table: 'maint_npc_crawler_facts',
+          source_maint_record_key: crawlerFactRecordKey,
+          source_maint_id: fact.id ?? fact.sourceMaintId ?? null,
           item_source_id: null,
           item_internal_name: normalizeText(entry.itemInternalName ?? entry.item_internal_name),
           item_name: itemName,
@@ -1220,7 +1223,14 @@ export function buildItemSourceRelations({
   for (let index = 0; index < itemSourceRows.length; index += 1) {
     const row = itemSourceRows[index] ?? {};
     const raw = parseRawJson(row);
-    const trace = normalizeTrace('maint_item_sources', row);
+    const trace = normalizeTrace(
+      row.source_maint_table ?? row.sourceMaintTable ?? 'maint_item_sources',
+      {
+        ...row,
+        record_key: row.source_maint_record_key ?? row.sourceMaintRecordKey ?? row.record_key,
+        id: row.source_maint_id ?? row.sourceMaintId ?? row.id,
+      },
+    );
     const sourceType = normalizeText(row.source_type)?.toLowerCase() ?? null;
     const sourceRefType = normalizeText(row.source_ref_type)?.toLowerCase() ?? null;
     const itemResolution = resolveItemRef(row, raw, itemIndex);
@@ -1240,7 +1250,7 @@ export function buildItemSourceRelations({
     const itemKey = normalizeLookupKey(itemInternalName);
     const sourceFactKey = createRecordKey({
       type: 'item_source_fact',
-      rowRecordKey: trace.sourceMaintRecordKey,
+      rowRecordKey: normalizeText(row.record_key ?? row.recordKey) ?? trace.sourceMaintRecordKey,
       sortOrder: row.sort_order ?? index
     });
 

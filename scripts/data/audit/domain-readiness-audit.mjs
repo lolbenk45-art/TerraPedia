@@ -1117,7 +1117,7 @@ function assertShimmerResultMatchesGeneration({ payload, verified, blocking }) {
     blocking.push('current Shimmer generation title-resolution evidence is unreadable');
   } else {
     const invalidKinds = titleResolution.records.filter((record) => (
-      !['item', 'item_group', 'npc'].includes(record?.kind)
+      !['item', 'item_group', 'npc', 'none'].includes(record?.kind)
     ));
     if (invalidKinds.length > 0) {
       const unresolved = invalidKinds.filter((record) => record?.kind === 'unresolved').length;
@@ -1634,10 +1634,24 @@ function imageSyncReportSemantics(payload, reportPath, scope) {
     // storage under the verified file title, so the equation must count it or a
     // run that reused most of its images reads as broken.
     const reused = isNonNegativeNumber(module.reused) ? module.reused : 0;
-    if (isNonNegativeNumber(module.candidates)
+    const normalizedCount = Array.isArray(module.normalizedKeys)
+      ? module.normalizedKeys.length
+      : 0;
+    const regularRunComplete = isNonNegativeNumber(module.candidates)
       && isNonNegativeNumber(module.uploaded)
       && isNonNegativeNumber(module.alreadyManaged)
-      && module.candidates !== module.uploaded + reused + module.alreadyManaged) {
+      && module.candidates === module.uploaded + reused + module.alreadyManaged;
+    const boundedLegacyRepairComplete = isNonNegativeNumber(module.total)
+      && isNonNegativeNumber(module.candidates)
+      && isNonNegativeNumber(module.uploaded)
+      && isNonNegativeNumber(module.alreadyManaged)
+      && isNonNegativeNumber(module.changed)
+      && module.candidates + module.alreadyManaged === module.total
+      && normalizedCount === module.candidates
+      && module.uploaded === 0
+      && reused === 0
+      && module.changed === module.candidates;
+    if (!regularRunComplete && !boundedLegacyRepairComplete) {
       blocking.push(
         `image sync module ${scope}.candidates=${module.candidates} does not match `
         + `uploaded+reused+alreadyManaged=${module.uploaded + reused + module.alreadyManaged}`

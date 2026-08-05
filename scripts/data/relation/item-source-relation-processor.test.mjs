@@ -9,6 +9,7 @@ import {
 test('buildNpcCrawlerFactItemSourceRows reconstructs only MATCHED shop and loot facts', () => {
   const rows = buildNpcCrawlerFactItemSourceRows([
     {
+      id: 901,
       record_key: 'a'.repeat(64),
       npc_source_id: 477,
       npc_internal_name: 'Medusa',
@@ -35,8 +36,31 @@ test('buildNpcCrawlerFactItemSourceRows reconstructs only MATCHED shop and loot 
   assert.equal(rows.every((row) => row.source_ref_type === 'npc'), true);
   assert.equal(rows.every((row) => row.source_ref_name === 'Medusa'), true);
   assert.equal(rows.every((row) => row.landing_source_key === 'wiki.npc.crawler_fact:medusa'), true);
+  assert.equal(rows.every((row) => row.source_maint_table === 'maint_npc_crawler_facts'), true);
+  assert.equal(rows.every((row) => row.source_maint_record_key === 'a'.repeat(64)), true);
+  assert.equal(rows.every((row) => row.source_maint_id === 901), true);
   assert.equal(JSON.parse(rows[0].raw_json).crawlerFactRecordKey, 'a'.repeat(64));
   assert.equal(JSON.parse(rows[0].raw_json).sourceRefResolution, 'exact_internal_name');
+
+  const projection = buildItemSourceRelations({
+    itemSourceRows: rows,
+    itemIndex: new Map([
+      ['Torch', { source_id: 8, internal_name: 'Torch', name: 'Torch' }],
+      ['torch', { source_id: 8, internal_name: 'Torch', name: 'Torch' }],
+      ['Medusa Head', { source_id: 4272, internal_name: 'MedusaHead', name: 'Medusa Head' }],
+      ['medusa head', { source_id: 4272, internal_name: 'MedusaHead', name: 'Medusa Head' }],
+    ]),
+    npcIndex: new Map([
+      ['Medusa', { source_id: 477, internal_name: 'Medusa', name: 'Medusa' }],
+      ['medusa', { source_id: 477, internal_name: 'Medusa', name: 'Medusa' }],
+    ]),
+  });
+
+  assert.equal(projection.sourceFacts.length, 2);
+  assert.equal(new Set(projection.sourceFacts.map((row) => row.recordKey)).size, 2);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintTable === 'maint_npc_crawler_facts'), true);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintRecordKey === 'a'.repeat(64)), true);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintId === 901), true);
 });
 
 test('buildItemSourceRelations splits resolved shop and unresolved drops', () => {

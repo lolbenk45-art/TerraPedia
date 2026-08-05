@@ -100,6 +100,41 @@ test('projection snapshot freezes normalized policy, source, and target rows', (
   );
 });
 
+test('projection relation key may differ from the image evidence record key', () => {
+  const proposal = buildItemImageProjectionProposal(proposalFixture({
+    relationRows: [
+      relationRow({ recordKey: 'image-record-dirt', internalName: 'DirtBlock', cachedUrl: '/terrapedia-images/items/dirt.png' }),
+      relationRow({ recordKey: 'image-record-wood', internalName: 'Wood', cachedUrl: '/terrapedia-images/items/wood.png' }),
+    ],
+    projectionRows: [
+      projectionRow({ id: 1, relationRecordKey: 'relation-wood', internalName: 'Wood' }),
+      projectionRow({ id: 2, relationRecordKey: 'relation-dirt', internalName: 'DirtBlock' }),
+    ],
+  }));
+
+  assert.deepEqual(proposal.projectionAfterRows.map((row) => row.relationRecordKey), [
+    'relation-dirt',
+    'relation-wood',
+  ]);
+});
+
+test('projection proposal accepts a frozen multi-prefix managed URL policy', () => {
+  const managedUrlPrefixes = [
+    ...ITEM_PREFIXES,
+    'http://localhost:19000/terrapedia-images/items/',
+    'http://localhost:19100/terrapedia-images/items/',
+  ];
+  const proposal = buildItemImageProjectionProposal(proposalFixture({
+    managedUrlPrefixes,
+    managedUrlPolicy: {
+      ...proposalFixture().managedUrlPolicy,
+      resolvedPrefixesSha256: canonicalItemImageProjectionHash([...managedUrlPrefixes].sort()),
+    },
+  }));
+
+  assert.deepEqual(proposal.managedUrlPrefixes, [...managedUrlPrefixes].sort());
+});
+
 test('projection packet hash covers every packet field except packetHash', () => {
   const packet = {
     operationId: ITEM_IMAGE_PROJECTION_OPERATION_ID,
@@ -159,14 +194,6 @@ test('projection contract rejects missing, extra, duplicate, inactive, and unman
       )),
     })),
     /duplicate.*id|projection/i,
-  );
-  assert.throws(
-    () => buildItemImageProjectionProposal(proposalFixture({
-      projectionRows: proposalFixture().projectionRows.map((row, index) => (
-        index === 0 ? { ...row, relationRecordKey: 'wrong-relation' } : row
-      )),
-    })),
-    /relationRecordKey.*match|relation recordKey/i,
   );
   assert.throws(
     () => buildItemImageProjectionProposal(proposalFixture({
@@ -449,12 +476,12 @@ function proposalFixture(overrides = {}) {
     },
     snapshotPath: overrides.snapshotPath ?? attemptPaths.snapshotPath,
     snapshotSha256: sha('projection-snapshot'),
-    managedUrlPolicy: {
+    managedUrlPolicy: overrides.managedUrlPolicy ?? {
       sourcePath: 'scripts/data/relation/managed-image-url-policy.mjs',
       sourceSha256: sha('managed-policy-source'),
       resolvedPrefixesSha256: canonicalItemImageProjectionHash(ITEM_PREFIXES),
     },
-    managedUrlPrefixes: ITEM_PREFIXES,
+    managedUrlPrefixes: overrides.managedUrlPrefixes ?? ITEM_PREFIXES,
     relationRows: overrides.reverseRows ? [...relationRows].reverse() : relationRows,
     projectionRows: overrides.reverseRows ? [...projectionRows].reverse() : projectionRows,
   };

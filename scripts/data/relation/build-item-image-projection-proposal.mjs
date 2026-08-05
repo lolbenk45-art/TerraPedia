@@ -92,6 +92,7 @@ export async function runItemImageProjectionProposal(options = {}, dependencies 
     lineageBundleBytes,
     lineageBundlePath,
     lineageInputContractBytes,
+    lineageInputContractPath,
     lineageApplySnapshot: parseJson(lineageApplySnapshotBytes, 'lineage apply snapshot'),
     lineageApplySnapshotPath,
     lineageAuthorizationPacket: parseJson(
@@ -295,6 +296,7 @@ function validateLineageEvidence({
   lineageBundleBytes,
   lineageBundlePath,
   lineageInputContractBytes,
+  lineageInputContractPath,
   lineageApplySnapshot,
   lineageApplySnapshotPath,
   lineageAuthorizationPacket,
@@ -369,7 +371,7 @@ function validateLineageEvidence({
   assertItemImageProjectionAuthorizationPacket(packet);
   assertHistoricalPacketTimestampOrder(packet);
   const inputEntry = packet.dataBundleEntries.find((entry) => (
-    entry?.path === 'reports/authorization/canonical/canonical-item-image-lineage-apply.input.json'
+    entry?.path === lineageInputContractPath
   ));
   if (inputEntry?.contentHash !== sha256Bytes(lineageInputContractBytes)) {
     throw new Error('lineage authorization packet input hash drifted');
