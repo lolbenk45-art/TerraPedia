@@ -668,7 +668,7 @@
             i.name,
             i.name_zh AS nameZh,
             i.internal_name AS internalName,
-            <include refid="PreferredItemImageExpr"/> AS image,
+            <include refid="ManagedItemImageExpr"/> AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
             (
@@ -751,7 +751,7 @@
             i.name,
             i.name_zh AS nameZh,
             i.internal_name AS internalName,
-            <include refid="PreferredItemImageExpr"/> AS image,
+            <include refid="ManagedItemImageExpr"/> AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
             i.rarity_id AS rarityId,

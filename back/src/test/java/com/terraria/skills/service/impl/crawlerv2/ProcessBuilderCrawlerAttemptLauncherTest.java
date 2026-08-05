@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
@@ -387,6 +388,42 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
             assertTrue(launcher.resume(drifted.process()));
             assertTrue(launcher.terminateForcibly(drifted.process()));
             assertTrue(launcher.awaitExit(drifted.process(), Duration.ofSeconds(2)));
+        } finally {
+            forceGroupCleanup(process, -1L);
+        }
+    }
+
+    @Test
+    void driftedStartInstantMustRetryATransientlyUnreadableAttemptFingerprint() throws Exception {
+        assumeLinuxProcessTools();
+        CrawlerAttemptProcessLauncher.ManagedProcess process = launchAndResume(
+            new CrawlerAttemptProcessLauncher.LaunchSpec(
+                List.of("sh", "-c", "while :; do sleep 1; done"),
+                tempDir,
+                Map.of("TERRAPEDIA_CRAWLER_ATTEMPT_ID", "attempt-transient-read"),
+                tempDir.resolve("drift-transient.log")
+            )
+        );
+        AtomicInteger reads = new AtomicInteger();
+        ProcessBuilderCrawlerAttemptLauncher transientInspector = new ProcessBuilderCrawlerAttemptLauncher(
+            null,
+            null,
+            Files::readString,
+            pid -> reads.getAndIncrement() == 0
+                ? new byte[0]
+                : Files.readAllBytes(Path.of("/proc", Long.toString(pid), "environ"))
+        );
+        try {
+            CrawlerAttemptProcessLauncher.ProcessLookup lookup = transientInspector.findExact(
+                new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                    process.pid(),
+                    process.startedAt().plusSeconds(67),
+                    "attempt-transient-read"
+                )
+            );
+
+            assertEquals(CrawlerAttemptProcessLauncher.LookupCode.FOUND, lookup.code());
+            assertTrue(reads.get() >= 2);
         } finally {
             forceGroupCleanup(process, -1L);
         }

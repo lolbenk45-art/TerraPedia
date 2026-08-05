@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class LegacyLocalBackendPortCleanerTest {
 
-    private static final Path REPO_ROOT = Path.of("G:\\ClaudeCode\\TerraPedia-dev");
+    private static final Path REPO_ROOT = Path.of("target", "legacy-port-cleaner-repo")
+        .toAbsolutePath()
+        .normalize();
 
     @Test
     void shouldTerminateListeningOldTerraPediaBackend() {
@@ -22,8 +24,8 @@ class LegacyLocalBackendPortCleanerTest {
             port -> OptionalLong.of(1234L),
             pid -> Optional.of(new LegacyLocalBackendPortCleaner.ProcessSnapshot(
                 pid,
-                "C:\\Program Files\\Java\\jdk-21\\bin\\java.exe",
-                "\"C:\\Program Files\\Java\\jdk-21\\bin\\java.exe\" -cp G:\\ClaudeCode\\TerraPedia-dev\\back\\target\\classes com.terraria.skills.SkillsBackApplication"
+                "java",
+                oldBackendCommandLine()
             )),
             terminator,
             () -> 9999L
@@ -60,8 +62,8 @@ class LegacyLocalBackendPortCleanerTest {
             port -> OptionalLong.of(7777L),
             pid -> Optional.of(new LegacyLocalBackendPortCleaner.ProcessSnapshot(
                 pid,
-                "C:\\Program Files\\Java\\jdk-21\\bin\\java.exe",
-                "\"C:\\Program Files\\Java\\jdk-21\\bin\\java.exe\" -cp G:\\ClaudeCode\\TerraPedia-dev\\back\\target\\classes com.terraria.skills.SkillsBackApplication"
+                "java",
+                oldBackendCommandLine()
             )),
             terminator,
             () -> 7777L
@@ -78,8 +80,8 @@ class LegacyLocalBackendPortCleanerTest {
             port -> OptionalLong.of(1234L),
             pid -> Optional.of(new LegacyLocalBackendPortCleaner.ProcessSnapshot(
                 pid,
-                "C:\\Program Files\\Java\\jdk-21\\bin\\java.exe",
-                "\"C:\\Program Files\\Java\\jdk-21\\bin\\java.exe\" -cp G:\\ClaudeCode\\TerraPedia-dev\\back\\target\\classes com.terraria.skills.SkillsBackApplication"
+                "java",
+                oldBackendCommandLine()
             )),
             new RecordingProcessTerminator(false),
             () -> 9999L
@@ -91,6 +93,11 @@ class LegacyLocalBackendPortCleanerTest {
         );
 
         assertEquals("Failed to stop old TerraPedia backend process on port 8888", error.getMessage());
+    }
+
+    private static String oldBackendCommandLine() {
+        return "java -cp \"" + REPO_ROOT.resolve("back").resolve("target").resolve("classes")
+            + "\" com.terraria.skills.SkillsBackApplication";
     }
 
     private static final class RecordingProcessTerminator implements LegacyLocalBackendPortCleaner.ProcessTerminator {

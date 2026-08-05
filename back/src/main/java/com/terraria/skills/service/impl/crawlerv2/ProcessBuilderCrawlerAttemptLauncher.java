@@ -141,7 +141,16 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                             // pid 已被无关进程占用 → 我们的进程确实不在了
                             return new ProcessLookup(LookupCode.NOT_FOUND, null);
                         }
-                        // 指纹不可读(权限/竞态)→ 保持原严格语义,不冒险签发控制权
+                        // exec 边界可能短暂暴露空 environ；只在既有有限窗口内重读。
+                        if (attempt + 1 < GROUP_LOOKUP_ATTEMPTS) {
+                            try {
+                                TimeUnit.MILLISECONDS.sleep(GROUP_POLL_MILLIS);
+                            } catch (InterruptedException exception) {
+                                Thread.currentThread().interrupt();
+                                return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
+                            }
+                            continue;
+                        }
                         return new ProcessLookup(LookupCode.START_TIME_MISMATCH, null);
                     }
                     ProcStatRead rootStat = readProcStat(identity.pid());

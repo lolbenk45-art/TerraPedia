@@ -238,7 +238,7 @@ class ItemMapperPreferredImageSqlTest {
         String managedImageExpr = sqlFragment(mapperXml, "ManagedItemImageExpr");
 
         assertFalse(publicDetailSql.contains("source_npcs_json"), "public item detail shell must not read source_npcs_json");
-        assertFalse(publicDetailSql.contains("relatedCategoryIdsRaw"), "public item detail shell must not read category relation aggregate strings");
+        assertTrue(publicDetailSql.contains("relatedCategoryIdsRaw"), "public item detail must retain category relation identities used by the service projection");
         assertFalse(publicDetailSql.contains(" i.created_at"), "public item detail shell must not read created_at");
         assertFalse(publicDetailSql.contains(" i.updated_at"), "public item detail shell must not read updated_at");
         assertTrue(publicDetailSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item detail shell must reuse the managed-image projection fragment");

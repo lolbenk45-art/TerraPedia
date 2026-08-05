@@ -166,7 +166,7 @@ class CrawlerQueueV2ApplicationServiceTest {
             .filter(state -> "items".equals(state.domain()))
             .findFirst()
             .orElseThrow();
-        assertEquals(List.of("check", "force"), items.operations().stream()
+        assertEquals(List.of("check", "force", "verify"), items.operations().stream()
             .map(CrawlerQueueV2OverviewDTO.OperationDTO::operationId)
             .toList());
         verify(repository, never()).createQueue(any());
