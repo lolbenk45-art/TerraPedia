@@ -580,12 +580,14 @@ e2e_artifact_dir="$report_dir/artifacts"
 e2e_environment=(
   "${isolated_environment[@]}"
   'SPRING_PROFILES_ACTIVE=e2e'
+  'SPRING_FLYWAY_BASELINE_VERSION=0'
   'TERRAPEDIA_E2E_ENABLED=true'
   "TERRAPEDIA_E2E_DB_URL=jdbc:mysql://$mysql_host:$mysql_port/$database_name"
   "TERRAPEDIA_E2E_DB_USERNAME=$mysql_username"
   "TERRAPEDIA_E2E_DB_PASSWORD=$mysql_password"
   "TERRAPEDIA_E2E_REDIS_HOST=$redis_host"
   "TERRAPEDIA_E2E_REDIS_PORT=$redis_port"
+  "TERRAPEDIA_E2E_REDIS_DATABASE=$redis_database"
   "TERRAPEDIA_E2E_REDIS_PASSWORD=$redis_password"
   "TERRAPEDIA_E2E_RUN_ID=$run_id"
   "TERRAPEDIA_E2E_RUN_SECRET=$run_secret"
@@ -604,7 +606,7 @@ start_owned_group 'backend' "$repo_root/back" backend_pid backend_group mvn -q s
 wait_for_owned_listener 'backend' "$backend_port" "$backend_group"
 
 for attempt in $(seq 1 60); do
-  status_code="$(curl_client --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 2 "$backend_origin/api/user-auth/refresh" 2>>"$backend_log" || true)"
+  status_code="$(curl_client --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 2 --request POST "$backend_origin/api/user-auth/refresh" 2>>"$backend_log" || true)"
   [[ "$status_code" == '401' ]] && break
   sleep 1
 done
@@ -621,5 +623,5 @@ for attempt in $(seq 1 60); do
 done
 [[ "$status_code" == '200' ]] || die 'frontend root did not become ready'
 
-env -i "${e2e_environment[@]}" pnpm --dir "$repo_root/front-nuxt" run "test:e2e:$mode" >"$suite_log" 2>&1
+env -i "${e2e_environment[@]}" pnpm --dir "$repo_root/front-nuxt" run "test:e2e:auth:$mode" >"$suite_log" 2>&1
 suite_succeeded=true

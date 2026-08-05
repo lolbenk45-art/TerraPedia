@@ -265,8 +265,15 @@ export const installRegisterDebugCodeSuppression = async (page: Page, _caseId: s
 
       const observer = new MutationObserver(ensureSuppression)
       observer.observe(document, { childList: true, subtree: true, characterData: true })
-      document.documentElement.setAttribute(guardAttribute, 'installed')
-      ensureSuppression()
+      const installGuard = () => {
+        document.documentElement.setAttribute(guardAttribute, 'installed')
+        ensureSuppression()
+      }
+      if (document.documentElement) {
+        installGuard()
+      } else {
+        document.addEventListener('DOMContentLoaded', installGuard, { once: true })
+      }
     },
     {
       guardAttribute: REGISTER_DEBUG_CODE_GUARD_ATTRIBUTE,

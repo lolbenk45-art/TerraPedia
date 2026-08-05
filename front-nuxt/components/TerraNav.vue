@@ -337,15 +337,15 @@ onBeforeUnmount(closeMenu)
               </button>
             </div>
           </div>
-          <NuxtLink
+          <button
             v-if="authStore.isAuthenticated"
             class="account-menu-logout"
-            to="/user/login"
+            type="button"
             :tabindex="menuLinkTabIndex('account')"
             @click.prevent="logout"
           >
             <span class="sprite-icon icon-close menu-icon" aria-hidden="true"></span><b>退出登录</b>
-          </NuxtLink>
+          </button>
         </div>
       </div>
     </div>

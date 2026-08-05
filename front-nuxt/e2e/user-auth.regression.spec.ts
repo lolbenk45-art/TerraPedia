@@ -31,13 +31,13 @@ const registerRequest = (url: string, method: string) =>
 const fillRegistrationForm = async (page: Page, user: RunScopedUser) => {
   await page.getByLabel('昵称', { exact: true }).fill(user.displayName)
   await page.getByLabel('邮箱', { exact: true }).fill(user.email)
-  await page.getByLabel('密码', { exact: true }).fill(PASSWORD)
+  await page.getByLabel(/^密码/).fill(PASSWORD)
 }
 
 test('AUTH-LOGIN-002 rejects a wrong valid-shaped password without auth cookies', async ({ page }) => {
   await page.goto('/user/login')
   await page.getByLabel('邮箱', { exact: true }).fill(activeUser.email)
-  await page.getByLabel('密码', { exact: true }).fill('WrongPass123')
+  await page.getByLabel(/^密码/).fill('WrongPass123')
 
   const responsePromise = page.waitForResponse((response) => loginRequest(response.url(), response.request().method()))
   await page.getByRole('button', { name: '登录', exact: true }).click()
@@ -59,7 +59,7 @@ test('AUTH-LOGIN-003 blocks a malformed email in the browser before a login requ
 
   await page.goto('/user/login')
   await page.getByLabel('邮箱', { exact: true }).fill('not-an-email')
-  await page.getByLabel('密码', { exact: true }).fill(PASSWORD)
+  await page.getByLabel(/^密码/).fill(PASSWORD)
   await expect(page.getByLabel('邮箱', { exact: true }).evaluate((input) => (input as HTMLInputElement).validity.valid)).resolves.toBe(false)
   await page.getByRole('button', { name: '登录', exact: true }).click()
   await page.waitForTimeout(150)
@@ -98,7 +98,7 @@ test('AUTH-REGISTER-003 blocks a 9-character submission and caps native password
   const boundaryCodeState = await fillMaskedVerificationCode(page, '1234', 'AUTH-REGISTER-003')
   expect(boundaryCodeState.masked && boundaryCodeState.valueMatches).toBe(true)
 
-  const passwordInput = page.getByLabel('密码', { exact: true })
+  const passwordInput = page.getByLabel(/^密码/)
   await passwordInput.pressSequentially('Abcdefg12')
   await expect(passwordInput.evaluate((input) => (input as HTMLInputElement).validity.valid)).resolves.toBe(false)
   await page.getByRole('button', { name: '注册', exact: true }).click()
@@ -132,7 +132,7 @@ test('AUTH-REGISTER-004 blocks malformed codes in the browser and rejects wrong 
   await page.goto('/user/register')
   await page.getByLabel('昵称', { exact: true }).fill(user.displayName)
   await page.getByLabel('邮箱', { exact: true }).fill(user.email)
-  await page.getByLabel('密码', { exact: true }).fill(PASSWORD)
+  await page.getByLabel(/^密码/).fill(PASSWORD)
   await assertRegisterDebugCodeSuppressed(page, 'AUTH-REGISTER-004')
 
   const verificationCodeInput = page.getByLabel('验证码', { exact: true })

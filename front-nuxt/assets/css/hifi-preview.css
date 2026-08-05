@@ -1318,7 +1318,7 @@ h4,
   gap: 7px;
 }
 
-.account-menu-panel a {
+.account-menu-panel :is(a, button.account-menu-logout) {
   position: relative;
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
@@ -1331,9 +1331,10 @@ h4,
   color: var(--paper);
   padding: 8px 9px;
   text-decoration: none;
+  font: inherit; text-align: left; cursor: pointer;
 }
 
-.account-menu-panel a b {
+.account-menu-panel :is(a, button.account-menu-logout) b {
   display: block;
   color: var(--gold-2);
   font-size: 12px;
@@ -1361,13 +1362,13 @@ h4,
   line-height: 1;
 }
 
-.account-menu-panel a span {
+.account-menu-panel :is(a, button.account-menu-logout) span {
   display: block;
   color: rgba(244, 234, 208, 0.56);
   font-size: 12px;
 }
 
-.account-menu-panel a > span:not(.sprite-icon) {
+.account-menu-panel :is(a, button.account-menu-logout) > span:not(.sprite-icon) {
   display: grid;
   gap: 6px;
 }
