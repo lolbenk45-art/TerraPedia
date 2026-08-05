@@ -1,8 +1,30 @@
 import { extractShimmerStructuredRecords } from '../maint/shimmer-structured-parser.mjs';
 
-const ITEM_GROUP_ALIASES = new Set(['Any Fruit', 'Any Torch', 'Any Pylon', 'Recorded Music Boxes']);
+const ITEM_GROUP_ALIASES = new Set([
+  'Any Fruit', 'Any Torch', 'Any Pylon', 'Recorded Music Boxes',
+  'Timers', 'Team Blocks', 'Shadow armor', 'Strings', 'Flameburst sentry summons',
+  'Explosive Trap sentry summons', 'Biome Keys', 'Biome Chests', 'Coins',
+  'Jungle armor', 'Lamps', 'Lanterns', 'Chandeliers', 'Candles', 'Doors',
+  'Platforms', 'Bookcases', 'Sinks', 'Chairs', 'Tables', 'Thrown Powder',
+  "Pharaoh's set", 'Macaws', 'Gem Squirrels', 'Gem Bunnies', 'Dungeon Brick Walls',
+  'Fairies', 'Pearls', 'Dungeon Bricks', 'Buckets', 'Liquid rockets', 'Liquid bombs',
+  'Campfires', 'Moss', 'Frost armor', 'Obsidian armor', 'Solutions', 'Dynasty Shingles',
+  'Counterweights', 'Cockatiels', 'Gladiator armor', 'Watches', 'Gold armor',
+  'Forbidden armor', 'Banners (enemy)', 'Flares', 'Magic Droppers',
+  'Ballista sentry summons', 'Lightning Aura sentry summons', 'Block-placing wands',
+  'Necro armor', 'Statues', 'Iron armor', 'Mining armor', "Plaguebringer's set",
+  'Bottomless Buckets', 'Pylons', 'Monoliths', "Timeless Traveler's set",
+  'Ancient Shadow armor', 'Ancient Dungeon Bricks', 'Ancient Cobalt armor',
+  'Ducks', 'Birds', 'Scorpions', 'Squirrels',
+]);
+
+const ITEM_PREFERRED_SHARED_TITLES = new Set([
+  'Seagull', 'Gold Goldfish', 'Goldfish', 'Owl', 'Grebe', 'Penguin',
+  'Solar Fragment', 'Bunny', 'Truffle Worm',
+]);
 
 export const SHIMMER_TITLE_META_OVERRIDES = new Map([
+  ['金蠕虫', { kind: 'item', nameEn: 'Gold Worm', internalName: 'GoldWorm' }],
   ['录音后的八音盒', { kind: 'item_group', nameEn: 'Recorded Music Boxes', internalName: null }],
   ['天后史莱姆', { kind: 'npc', nameEn: 'Diva Slime', internalName: 'TownSlimeRainbow' }],
   ['史莱姆僵尸', { kind: 'npc', nameEn: 'Slimed Zombie', internalName: 'SlimedZombie' }],
@@ -83,6 +105,13 @@ export function resolveFrozenTitleMeta({ parsed, itemRecords, npcRecords, langli
 
     if (isItemGroupName(nameZh, nameEn)) {
       meta.set(nameZh, { kind: 'item_group', nameZh, nameEn, internalName: null, hint: 'item_group' });
+    } else if (nameZh === '无') {
+      meta.set(nameZh, { kind: 'none', nameZh, nameEn: null, internalName: null, hint: 'no_output' });
+    } else if (item && npc && (
+      Number(npc?.extras?.catchItem) === Number(item?.id)
+      || ITEM_PREFERRED_SHARED_TITLES.has(nameEn)
+    )) {
+      meta.set(nameZh, { kind: 'item', nameZh, nameEn: item.name, internalName: item.internalName, hint: 'shared_item' });
     } else if (item && npc) {
       meta.set(nameZh, { kind: 'ambiguous', nameZh, nameEn, internalName: null, hint: 'ambiguous' });
     } else if (item) {
@@ -138,6 +167,13 @@ function collectCandidateTitles(parsed) {
 
 function buildContextPayload(raw, parsed, generatedAt) {
   return {
+    code: 'SHIMMER',
+    nameEn: 'Shimmer',
+    nameZh: '\u5fae\u5149',
+    contextType: 'ENVIRONMENT',
+    description: null,
+    iconUrl: null,
+    sortOrder: 30,
     generatedAt,
     sourcePage: raw.pageTitle ?? null,
     sourcePageId: raw.pageId ?? null,

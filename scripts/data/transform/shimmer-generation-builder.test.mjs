@@ -38,6 +38,13 @@ test('buildShimmerGeneration emits all five shards plus context', () => {
   ]);
   assert.equal(generation.context.sourcePageId, 4242);
   assert.equal(generation.context.generatedAt, '2026-07-30T12:00:00.000Z');
+  assert.equal(generation.context.code, 'SHIMMER');
+  assert.equal(generation.context.nameEn, 'Shimmer');
+  assert.equal(generation.context.nameZh, '\u5fae\u5149');
+  assert.equal(generation.context.contextType, 'ENVIRONMENT');
+  assert.equal(generation.context.description, null);
+  assert.equal(generation.context.iconUrl, null);
+  assert.equal(generation.context.sortOrder, 30);
   assert.equal(generation.itemTransforms.length, 2);
 });
 
@@ -98,6 +105,54 @@ test('buildShimmerGeneration resolves the npc shard through its own npc field', 
     true,
     'npc shard titles must reach title resolution evidence'
   );
+});
+
+test('buildShimmerGeneration prefers the item identity for critters shared by item and NPC tables', () => {
+  const fixture = baseInput();
+  fixture.raw.html = fixture.raw.html.replace(anchor('木剑'), anchor('金蠕虫'));
+  fixture.itemRecords.push({ name: 'Gold Worm', internalName: 'GoldWorm' });
+  fixture.npcRecords.push({ name: 'Gold Worm', internalName: 'GoldWorm' });
+  const generation = buildShimmerGeneration({
+    raw: fixture.raw,
+    itemRecords: fixture.itemRecords,
+    npcRecords: fixture.npcRecords,
+    langlinkEvidence: [{ nameZh: '金蠕虫', nameEn: 'Gold Worm' }],
+    generatedAt: '2026-07-30T12:00:00.000Z',
+  });
+  assert.equal(generation.itemTransforms[0].inputKind, 'item');
+  assert.equal(generation.itemTransforms[0].inputInternalName, 'GoldWorm');
+});
+
+test('buildShimmerGeneration resolves a shared critter through its exact catchItem identity', () => {
+  const input = baseInput();
+  input.raw.html = input.raw.html.replace(anchor('木剑'), anchor('青蛙'));
+  input.itemRecords.push({ id: 2121, name: 'Frog', internalName: 'Frog' });
+  input.npcRecords.push({ id: 361, name: 'Frog', internalName: 'Frog', extras: { catchItem: 2121 } });
+  input.langlinkEvidence = [{ nameZh: '青蛙', nameEn: 'Frog' }];
+  const generation = buildShimmerGeneration(input);
+  assert.equal(generation.itemTransforms[0].inputKind, 'item');
+  assert.equal(generation.itemTransforms[0].inputInternalName, 'Frog');
+});
+
+test('buildShimmerGeneration classifies explicit collection labels as item groups', () => {
+  const input = baseInput();
+  input.raw.html = input.raw.html.replace(anchor('木剑'), anchor('暗淡白团队块'));
+  input.langlinkEvidence = [{ nameZh: '暗淡白团队块', nameEn: 'Team Blocks' }];
+  const generation = buildShimmerGeneration(input);
+  assert.equal(generation.itemTransforms[0].inputKind, 'item_group');
+});
+
+test('buildShimmerGeneration classifies an explicit no-output marker as none', () => {
+  const input = baseInput();
+  input.raw.html = input.raw.html.replace(anchor('木剑'), anchor('金币'));
+  input.raw.html = input.raw.html.replace(anchor('铂金剑'), anchor('无'));
+  input.langlinkEvidence = [
+    { nameZh: '金币', nameEn: 'Coins' },
+    { nameZh: '无', nameEn: null },
+  ];
+  const generation = buildShimmerGeneration(input);
+  assert.equal(generation.itemTransforms[0].inputKind, 'item_group');
+  assert.equal(generation.itemTransforms[0].outputKind, 'none');
 });
 
 test('buildShimmerGeneration requires explicit generatedAt', () => {

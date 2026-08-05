@@ -583,7 +583,7 @@ function requireApplyInputContract(inputContract) {
 }
 
 function assertImportableReferenceKinds(bundle) {
-  const allowed = new Set(['item', 'item_group', 'npc']);
+  const allowed = new Set(['item', 'item_group', 'npc', 'none']);
   const assertKind = (kind, label) => {
     if (!allowed.has(kind)) {
       throw new Error(`verified shimmer import ${label} has an unsupported reference kind: ${kind ?? 'missing'}`);
