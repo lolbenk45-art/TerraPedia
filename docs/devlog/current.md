@@ -976,15 +976,15 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   without explicit operation-level authorization.
 - For automated-ingestion closure, read
   `entries/2026-07-27-crawler-automated-ingestion-closure.md`; the complete
-  result matrix is fresh at `45 pass / 0 warning / 0 blocked`; all quality-gate
-  stages pass. The first full invocation stopped only because the isolated auth
-  runner lacked `TERRAPEDIA_E2E_REDIS_PASSWORD`; the targeted auth smoke was
-  rerun with the local password and passed. Item image projection and Shimmer import are
+  result matrix is fresh at `45 pass / 0 warning / 0 blocked`; the complete
+  quality gate passes with explicit local E2E credentials, including isolated
+  auth smoke and cleanup. Item image projection and Shimmer import are
   completed runtime evidence. Both L1 applies, L2 promotion, and bounded
   scheduler eligibility are completed runtime evidence. Task 16 durable-audit
   alignment is complete; ownership lanes are checkpointed in focused commits
   `0b689213`, `6f9ef484`, `92548a25`, `b88b26ef`, `4f3f7875`, `fa9d456e`, and
-  `c48a99b5`. Remaining work is devlog closeout and final verification. Do not start a recurring scheduler
+  `c48a99b5`. Validation and ownership-lane checkpointing are complete; the
+  branch is ready for review/integration. Do not start a recurring scheduler
   daemon or crawler run unless a later plan and operation-level authorization
   explicitly require it. Keep all consumed historical identities non-reusable.
   Do not reuse consumed identities or execute a formal

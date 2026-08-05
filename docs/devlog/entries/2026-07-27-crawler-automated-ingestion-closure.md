@@ -1798,8 +1798,14 @@
   `docs/audits/generated-data-consumer-map.md`. The delta records V56-V58,
   both capability counts, completed item-image/Shimmer evidence, two L1 applies,
   L2/scheduler decision identities, fresh hashes, and the bounded eligibility
-  boundary. The entry remains `active`: the large mixed worktree still needs
-  ownership-lane review and focused commits, so Task 16 Steps 3-4 are not closed.
+  boundary. Ownership-lane review and focused checkpointing are complete, so
+  Task 16 Steps 3-4 are complete. A fresh full `scripts/dev/quality-gate.sh`
+  run with explicit local E2E MySQL/Redis credentials exits zero, including
+  data workflow, domain/cross-DB gates, backend tests, public frontend checks,
+  isolated auth browser smoke and cleanup, and admin checks/build. Focused
+  post-commit contracts pass `72/72`; E2E temporary database and Redis DB 15
+  counts are zero, and ports 18122/13022 are unbound. Scheduler daemon
+  deployment remains explicitly out of scope.
 
 ## Commits
 
