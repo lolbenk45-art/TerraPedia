@@ -244,14 +244,14 @@ git commit -m "data(npc): record canonical t2 cutover"
 - Modify: `docs/audits/canonical-migration-boundary.md`
 - Modify: `docs/project-governance/00_CURRENT_SPEC.md`
 
-- [ ] **Step 1: Write the failing registry contract**
+- [x] **Step 1: Write the failing registry contract**
 
 Require three item-group rows in `canonical` mode to reference
 `reports/canonical-migration/canonical-item-group-readiness.json`, the NPC row
 to reference the maintained NPC readiness report, and the bridge row to remain
 `retired`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 node --test scripts/data/audit/canonical-source-contract-registry.test.mjs
@@ -259,7 +259,7 @@ node --test scripts/data/audit/canonical-source-contract-registry.test.mjs
 
 Expected: FAIL because the four rows remain `b1_migrating`.
 
-- [ ] **Step 3: Change only the four registry rows and current fact sheet**
+- [x] **Step 3: Change only the four registry rows and current fact sheet**
 
 Use exact row forms:
 
@@ -271,7 +271,7 @@ Update the current spec to state that canonical item-group and NPC runtime
 ownership is verified and the JSON/standardized inputs are compatibility and
 governance evidence, not steady-state runtime readers.
 
-- [ ] **Step 4: Run GREEN and acceptance gates**
+- [x] **Step 4: Run GREEN and acceptance gates**
 
 ```bash
 node --test scripts/data/audit/canonical-source-contract-registry.test.mjs \

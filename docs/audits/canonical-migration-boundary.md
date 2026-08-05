@@ -80,15 +80,15 @@
 
 | 输入 | mode | 证据 | deadline |
 | --- | --- | --- | --- |
-| `data/generated/recipe-material-reference.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
-| `data/generated/recipe-group-overrides.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
-| `data/generated/item-group-overrides.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
+| `data/generated/recipe-material-reference.json` | `canonical` | report: `reports/canonical-migration/canonical-item-group-readiness.json` | — |
+| `data/generated/recipe-group-overrides.json` | `canonical` | report: `reports/canonical-migration/canonical-item-group-readiness.json` | — |
+| `data/generated/item-group-overrides.json` | `canonical` | report: `reports/canonical-migration/canonical-item-group-readiness.json` | — |
 | `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | `retired` | report: `reports/canonical-migration/npc-bridge-retirement.json` | — |
-| `data/standardized/npcs.standardized.json` | `b1_migrating` | `DESIGN_APPROVED`; design: `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md` | 2026-10-31 |
+| `data/standardized/npcs.standardized.json` | `canonical` | report: `reports/canonical-migration/canonical-npc-crawler-facts-readiness.json` | — |
 
 bridge 一行被退役的原因：该路径自 `a743791d`（2026-04-20）起就被 gitignore，`git log` 对它零提交，任何一次干净 clone 都没有它。它从来不是可迁移的数据源，而是一个派生产物；退役不是删除，而是由缺席报告持续断言"无人引用"。
 
-它的替代输入 `data/standardized/npcs.standardized.json` 本身仍是 B1 档（`data/standardized/` 下当数据源的过渡文件），因此登记为 `b1_migrating` 而非直接消失。canonical NPC crawler-fact 链需要一次单独授权的 crawler 运行，暂缓。
+替代输入 `data/standardized/npcs.standardized.json` 已由正式 T2 只读验收绑定到 canonical NPC crawler-fact 链；它现在只作为兼容和治理输入，不是 steady-state runtime reader。
 
 ## Apply 前准入
 

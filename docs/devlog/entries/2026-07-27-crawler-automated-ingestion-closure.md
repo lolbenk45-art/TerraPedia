@@ -1868,6 +1868,13 @@
   report is `pass/formal-t2/T2_CUTOVER_VERIFIED`. Focused verification passes
   `19/19`; source-contract promotion remains the next step. See git for
   report-level diff details.
+- The four remaining source contracts are promoted to `canonical`; the NPC
+  bridge remains `retired`. A RED/GREEN registry repair accepts the maintained
+  readiness shape only when it is passing, no-write, fresh, and carries formal
+  `t2-readonly` database evidence. The refreshed item-group report passes;
+  registry/domain tests pass `84/84`, domain acceptance is `45/0/0`, and
+  cross-DB quick audit is `10/10 pass`. Full repository verification is next.
+  See git for code- and contract-level diff details.
 
 ## Commits
 

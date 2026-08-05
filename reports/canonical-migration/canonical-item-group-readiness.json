@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "reportKind": "canonical_item_group_readiness",
-  "generatedAt": "2026-07-29T10:50:11.651Z",
+  "generatedAt": "2026-08-05T17:44:52.507Z",
   "writesDatabase": false,
   "databaseRole": "t2-readonly",
   "cutoverIdentity": {

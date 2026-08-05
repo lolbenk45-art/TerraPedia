@@ -56,10 +56,15 @@ Canonical item-group runtime reads use the published formal
 item-group, admin recipe-group, and recipe-tree consumers have no production
 JSON reader or JSON fallback. The three JSON artifacts were regenerated as the
 one-way compatibility export `ig_export_20260729_01`; fresh canonical readiness
-passes with distinct runtime and compatibility snapshot identities. They remain
-bounded compatibility-export and governance inputs until the source-contract
-registry is explicitly flipped. That flip stays fail-closed while the complete
-repository gate still reports domain warnings or blockers.
+passes with distinct runtime and compatibility snapshot identities. Their
+source contracts are canonical, and the JSON files remain compatibility-export
+and governance evidence rather than steady-state runtime readers.
+
+Canonical NPC runtime reads use the published formal `terria_v1_local`
+projection backed by maint and relation lineage. The formal no-write T2 cutover
+verification passes against matching admin/public API evidence. The standardized
+NPC input remains compatibility and governance evidence, while the generated
+NPC bridge contract remains retired.
 
 Canonical item image ownership follows the active primary
 `terria_v1_relation.relation_item_images.cached_url` rows. The governed

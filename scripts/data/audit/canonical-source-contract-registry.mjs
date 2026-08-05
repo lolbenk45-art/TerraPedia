@@ -230,11 +230,13 @@ function checkCanonical(root, base, contract, now) {
   if (!payload) {
     return { ...base, status: 'blocked', reportPath: contract.reportPath, reason: `Source contract ${contract.input} readiness report ${contract.reportPath} is malformed.` };
   }
-  if (payload.status !== 'pass') {
+  if ((payload.status ?? payload.summary?.status) !== 'pass') {
     return { ...base, status: 'blocked', reportPath: contract.reportPath, reason: `Source contract ${contract.input} readiness report is not passing.` };
   }
-  if (payload.writesDatabase !== false || payload.requiresDatabase !== true) {
-    return { ...base, status: 'blocked', reportPath: contract.reportPath, reason: `Source contract ${contract.input} readiness report must declare requiresDatabase: true and writesDatabase: false.` };
+  const hasReadOnlyDatabaseEvidence = payload.requiresDatabase === true
+    || payload.databaseRole === 't2-readonly';
+  if (payload.writesDatabase !== false || !hasReadOnlyDatabaseEvidence) {
+    return { ...base, status: 'blocked', reportPath: contract.reportPath, reason: `Source contract ${contract.input} readiness report must declare read-only database evidence and writesDatabase: false.` };
   }
   const generated = parseDate(payload.generatedAt);
   if (!generated) {

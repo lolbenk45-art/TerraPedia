@@ -307,3 +307,72 @@ test('domain readiness delegates the b1ExemptionCompliance panel to the contract
   assert.equal(report.summary.trackedContractCount, 1);
   assert.equal(report.reportPath, null);
 });
+
+test('canonical accepts maintained read-only readiness shape and requires a database role', () => {
+  const repoRoot = createTempRepo();
+  const reportPath = 'reports/canonical-migration/readiness.json';
+  writeBoundaryDoc(repoRoot, [
+    `| \`data/standardized/npcs.standardized.json\` | \`canonical\` | report: \`${reportPath}\` | — |`,
+  ]);
+  writeReport(repoRoot, reportPath, {
+    generatedAt: '2026-08-06T00:00:00Z',
+    summary: { status: 'pass' },
+    writesDatabase: false,
+    databaseRole: 't2-readonly',
+  });
+
+  const passing = buildSourceContractComplianceReport({
+    repoRoot,
+    domainId: 'support.town_npc_maintenance',
+    generatedAt: '2026-08-06T01:00:00Z',
+    inputs: ['data/standardized/npcs.standardized.json'],
+  });
+  assert.equal(passing.status, 'pass');
+
+  writeReport(repoRoot, reportPath, {
+    generatedAt: '2026-08-06T00:00:00Z',
+    summary: { status: 'pass' },
+    writesDatabase: false,
+  });
+  const missingRole = buildSourceContractComplianceReport({
+    repoRoot,
+    domainId: 'support.town_npc_maintenance',
+    generatedAt: '2026-08-06T01:00:00Z',
+    inputs: ['data/standardized/npcs.standardized.json'],
+  });
+  assert.equal(missingRole.status, 'blocked');
+});
+
+test('the maintained registry promotes item-group and NPC inputs while retaining the retired bridge', () => {
+  const itemGroup = buildSourceContractComplianceReport({
+    repoRoot: process.cwd(),
+    domainId: 'support.item_group',
+    generatedAt: '2026-08-06T00:00:00Z',
+  });
+  assert.equal(itemGroup.status, 'pass');
+  assert.equal(itemGroup.summary.trackedContractCount, 3);
+  assert.deepEqual(itemGroup.checks.map(({ mode, reportPath }) => ({ mode, reportPath })), [
+    { mode: 'canonical', reportPath: 'reports/canonical-migration/canonical-item-group-readiness.json' },
+    { mode: 'canonical', reportPath: 'reports/canonical-migration/canonical-item-group-readiness.json' },
+    { mode: 'canonical', reportPath: 'reports/canonical-migration/canonical-item-group-readiness.json' },
+  ]);
+
+  const npc = buildSourceContractComplianceReport({
+    repoRoot: process.cwd(),
+    domainId: 'support.town_npc_maintenance',
+    generatedAt: '2026-08-06T00:00:00Z',
+  });
+  assert.equal(npc.status, 'pass');
+  assert.deepEqual(npc.checks.map(({ input, mode, reportPath }) => ({ input, mode, reportPath })), [
+    {
+      input: 'data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json',
+      mode: 'retired',
+      reportPath: 'reports/canonical-migration/npc-bridge-retirement.json',
+    },
+    {
+      input: 'data/standardized/npcs.standardized.json',
+      mode: 'canonical',
+      reportPath: 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json',
+    },
+  ]);
+});
