@@ -201,28 +201,28 @@ git commit -m "feat(automation): govern npc t2 verification"
 - Generate private ignored artifacts under: `reports/authorization/canonical/canonical-npc-t2-cutover-verification/`
 - Update after success: `reports/canonical-migration/canonical-npc-crawler-facts-readiness.json`
 
-- [ ] **Step 1: Run preflight read-only checks**
+- [x] **Step 1: Run preflight read-only checks**
 
 Verify the current owner/base completions, T1 evidence, database triplet, API
 origin, zero active crawler attempts/reservations, and no stale T2 attempt.
 
-- [ ] **Step 2: Generate the execution manifest and ADMIN request**
+- [x] **Step 2: Generate the execution manifest and ADMIN request**
 
 Use a fresh identity of the form
 `canonical-npc-t2-cutover-verification-20260806-admin-01`. Print the decision
 identity, request hash, request path, `0600` owner-input path, and manifest hash.
 
-- [ ] **Step 3: Stop for explicit Owner confirmation**
+- [x] **Step 3: Stop for explicit Owner confirmation**
 
 Do not create a packet or dispatch the verifier until the user confirms the
 exact decision identity and request hash.
 
-- [ ] **Step 4: Build and independently inspect the packet**
+- [x] **Step 4: Build and independently inspect the packet**
 
 After confirmation, verify actor `admin`, expiry, request hash, manifest hash,
 no-write flag, database triplet, API origin, and all frozen input/code hashes.
 
-- [ ] **Step 5: Execute once and read back independently**
+- [x] **Step 5: Execute once and read back independently**
 
 Dispatch through `run-authorized-canonical-operation.mjs`. Require a completed
 T2 result, no retained permit, no database mutation, and a maintained NPC report

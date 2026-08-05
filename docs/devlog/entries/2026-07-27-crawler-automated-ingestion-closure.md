@@ -1857,6 +1857,17 @@
   Its `0600` attempt contains only manifest, request, and owner input; no
   packet, permit, result, decision consumption, T2 publication, source flip,
   or DB write exists. Exact Owner confirmation is the next gate.
+- ADMIN-02 was confirmed and consumed exactly once under packet
+  `sha256:1d30a768e7ce18dde32c3f05181101539685581d0dd4dfcf88861d38042fde5d`.
+  The private terminal result is `completed/noWrite=true` with state
+  `T2_CUTOVER_VERIFIED` and result hash
+  `sha256:583292f85cacc32fe146bf1815b5af292f066f5e600a10af07d293da0d8f7356`.
+  Independent readback preserves database snapshot
+  `sha256:d89271e0cb222c9896694c19f2e8abccac4a6e9f6bdc9de4df6e481ddde945e6`,
+  finds one ledger use and no retained permit, and confirms the maintained NPC
+  report is `pass/formal-t2/T2_CUTOVER_VERIFIED`. Focused verification passes
+  `19/19`; source-contract promotion remains the next step. See git for
+  report-level diff details.
 
 ## Commits
 
