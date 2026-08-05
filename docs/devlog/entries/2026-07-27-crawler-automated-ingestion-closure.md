@@ -1832,3 +1832,5 @@
 - `4f3f7875` `data(shimmer): publish validated canonical generation`
 - `fa9d456e` `feat(automation): govern biomes promotion and scheduler`
 - `c48a99b5` `data(crawler): harden boss loot bundle ingestion`
+- `06a0b861` `data(shimmer): archive historical generation evidence`
+- `0d953f0e` `data(reports): archive ingestion audit snapshots`

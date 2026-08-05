@@ -984,7 +984,9 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   alignment is complete; ownership lanes are checkpointed in focused commits
   `0b689213`, `6f9ef484`, `92548a25`, `b88b26ef`, `4f3f7875`, `fa9d456e`, and
   `c48a99b5`. Validation and ownership-lane checkpointing are complete; the
-  branch is ready for review/integration. Do not start a recurring scheduler
+  previously untracked historical Shimmer generations and audit snapshots are
+  preserved by `06a0b861` and `0d953f0e`; the branch is ready for
+  review/integration. Do not start a recurring scheduler
   daemon or crawler run unless a later plan and operation-level authorization
   explicitly require it. Keep all consumed historical identities non-reusable.
   Do not reuse consumed identities or execute a formal
