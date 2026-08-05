@@ -119,3 +119,32 @@ source landing / maint_item_sources
 - shop/loot orphan 和 missing resolution 已通过。
 - local compat 已有非空输出。
 - unresolved audit 仍是 warning，适合在管理端显式展示，而不是阻断全部 NPC 体验。
+
+## 2026-08-05 自动入库闭环快照
+
+本节是对上方历史边界的增量更新，不抹除旧的迁移过程记录。
+
+- formal local 已成功登记 Flyway V56-V58；canonical group、NPC、item image
+  和 Shimmer 的具名执行证据已落地，完整 domain acceptance 为
+  `45 pass / 0 warning / 0 blocked`。
+- item image 的 authoritative 发布链为
+  `standardized -> maint -> relation image -> projection_items.image`。四层
+  lineage 为 `6131/6131/6131/6131`，projection apply 只更新既有实体的
+  `image` 字段；legacy `items.image` 不再拥有反向覆盖 projection 的权限。
+- Shimmer generation `2e231b3862a938a1ac3cd7f4266327e0a5867c8e4c1ae9f7db6ded98520276d4`
+  已由独立 import packet 提交；生成数据仍是 immutable operation input，
+  不能被普通 runtime 直接当作可变 source of truth。
+- monitor action catalog 的闭环基线为 24；formal canonical operation catalog
+  当前为 36。二者是不同目录，不得用一个计数替代另一个。
+- `biomes` v1 已完成两次独立 L1 apply，四个 owned mutation generation 均为
+  2，随后分别记录一个 `L2_PROMOTION` 和一个 `SCHEDULER_ACTIVATION`
+  decision。当前 policy 为 `L2/ACTIVE`，但 activation 只表示 bounded
+  scheduler eligibility，不表示常驻 daemon、crawler run 或部署已经启动。
+- scheduler result hash 为
+  `sha256:78c5d9c41200db2040c249995b55501bd3ce71708de0cb4a4b11fc4359db3fe6`；
+  fresh readback 为零 active attempt、零 reservation、零 permit、空 circuit，
+  activation 没有修改 biome 业务表。
+- fresh cross-DB quick evidence hash 为
+  `sha256:58100f5b3d7f0636d1d1a919d1d86c2e5c2e5ee0c5afc7095dd91e90def9d87a`。
+  release、真实 crawler、recurring scheduler 和 source flip 仍需各自独立计划与
+  operation-level authorization。

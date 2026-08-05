@@ -80,15 +80,30 @@
 - Final focused validation passes: Node automation plus dev contracts 181/181, Java automation/controller/policy 41/41, Admin automation contracts 14/14 plus Nuxt typecheck, syntax checks, and `git diff --check`.
 - Full `quality-gate.sh` was executed from the beginning. Its data workflow step passed 231/231 and crawler automation step passed 132/132. It then stopped at `Domain acceptance full dry-run`: 31 pass, 10 warning, 4 blocked. The four blocked panels expand to seven canonical-migration B1 exemption references whose 2026-06-30 deadlines have expired (recipe material/group, item-group override, and NPC bridge). No report was written and no mutation command ran.
 - B1 repair design decision on 2026-07-26: the user selected the complete landing -> maint -> relation -> local canonical chain and chose to retain the four compatibility JSON paths as read-only outputs. Any Item Group receives normalized source, relation, and runtime tables; NPC reuses the existing canonical NPC chain and removes implicit dependence on the absent bridge path. See `docs/superpowers/specs/2026-07-26-b1-canonical-source-migration-design.md`. This is a design checkpoint only; no crawler, import, backfill, apply, schema migration, or database write ran.
+- 2026-08-05 child-chain update: formal V56-V58, canonical group/NPC, item-image
+  projection, and Shimmer runtime evidence are complete. Domain acceptance is
+  `45/45`; the full local quality gate passes. `biomes` completed two independent
+  L1 applies, one L2 promotion, and one bounded scheduler-eligibility decision.
+  This supersedes the older open-runtime statements below only as current state;
+  those bullets remain historical execution evidence. No recurring scheduler,
+  crawler run, release, deployment, push, or merge is implied.
 
 ## Residual Risks
 
-- T1 snapshot-backed preview/apply/verify/rollback has not run and requires separate authorization; the runner now hard-stops instead of reporting a synthetic pass.
-- Write-capable T0/T1 preflight has not created the run-derived isolated three-database set or verified real grants/server UUID/runKey/Redis identity; this requires explicit operation-level authorization.
-- L1/L2 and scheduler activation remain disabled and require System Owner bootstrap, reauthentication, domain-scoped approval, and fresh evidence.
+- The snapshot-backed T0/T1 acceptance chain has run with rollback/commit/restore
+  and cleanup evidence. It proves the bounded acceptance protocol, not authority
+  for an arbitrary crawler, import, or formal apply.
+- `biomes` is `L2/ACTIVE` with bounded scheduler eligibility, but no recurring
+  scheduler daemon or crawler run has been started. Any such runtime action
+  requires a separate plan and operation-level authorization.
 - The Flyway target-DDL pre-scan may conservatively reject extreme whitespace/comment variants; this fails closed and does not permit a writer.
-- The repository-wide quality gate remains red outside this branch's T0/T1 implementation because canonical-migration B1 exemptions expired on 2026-06-30. Do not extend those deadlines merely to green the gate; complete or explicitly govern the referenced migrations first.
-- The live runner proves isolation, frozen bounded snapshot transfer, exact common-column sample presence, three-schema transaction behavior, and cleanup. It does not authorize or execute any of the 19 real crawler/import apply operations.
+- The fresh repository-wide quality gate passes, but this large mixed worktree
+  still requires ownership-lane review and focused commits before branch
+  closeout.
+- The live runner proves isolation, frozen bounded snapshot transfer, exact
+  common-column sample presence, three-schema transaction behavior, and cleanup.
+  It does not authorize or execute arbitrary entries from the current
+  36-operation formal catalog.
 
 ## Cross-Review
 
@@ -176,15 +191,14 @@
 
 ## Follow-up
 
-- Implementer: continue from the child entry. V56-V58 are registered on formal
-  local, but the relation role schema remains incomplete. Regenerate any
-  expired or superseded request and execute only its exact operation after the
-  System Owner authorizes the replacement hash.
-- Project/data owner: after the full group chain reaches its separately defined milestone, close or explicitly re-govern the remaining B1 canonical-migration contracts and rerun `bash ./scripts/dev/quality-gate.sh` from the beginning.
-- System Owner: the singleton Owner is ACTIVE and the exact `biomes` v1 policy
-  is `L1/ACTIVE`. Authorize only exact current requests for the remaining formal retries,
-  group/NPC T2, L1/L2, or scheduler checkpoints. Push and merge remain outside
-  this task.
+- Implementer: continue from the child entry's Task 16 closeout. Review the
+  mixed worktree by ownership lane, resolve the two known manifest-test fixture
+  gaps in their owning lane, and prepare explicit focused commits.
+- Project/data owner: preserve every consumed decision and immutable result.
+  Treat `biomes` v1 `L2/ACTIVE` plus scheduler eligibility as recorded state,
+  not permission to start a recurring scheduler or crawler.
+- Push, merge, release, deployment, recurring scheduler startup, and real
+  crawler execution remain outside this task.
 
 ## Commits
 

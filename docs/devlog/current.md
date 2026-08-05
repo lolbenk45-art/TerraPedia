@@ -1,24 +1,96 @@
 # Current Devlog
 
-Last updated: 2026-08-04 12:07 CST by Codex
+Last updated: 2026-08-05 23:46 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Open Work
 
-- Item-image projection apply runtime is awaiting the read-only Owner gate.
-  Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
+- Item-image projection apply runtime is active with projection DML complete. Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
   worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`;
   child of `entries/2026-07-27-crawler-automated-ingestion-closure.md`; follows
-  the closed implementation entry; blocked-by: exact read-only proposal Owner
-  authorization fields; contract handoff:
+  the closed implementation entry; blocked-by: a new read-only projection
+  proposal and independent ADMIN apply decision; contract handoff:
   `entries/2026-08-04-item-image-projection-apply-runtime.md` and
   `../superpowers/plans/2026-08-04-item-image-projection-apply.md`.
-  Implementation is `CODE_READY` with fresh offline validation `155/155`.
-  No real DB read, proposal/input/request/packet/permit/apply, crawler, network,
-  MinIO, source flip, scheduler, or lifecycle action has run. The next action is
-  only the zero-write proposal authorization; the formal apply request hash is
-  deferred until the authorized snapshot/proposal/input bytes exist.
+  Implementation is `CODE_READY` with offline validation `155/155`. Read-only
+  decision `canonical-item-image-projection-proposal-read-20260804-01` opened
+  the exact no-write snapshot transaction, then failed closed on
+  `AbigailsFlower`: relation has 5800 origin-free managed paths plus 331 stale
+  `http://localhost:9000/...` URLs. It rolled back and created no snapshot,
+  proposal, input, request, packet, permit, or result. No DML, crawler, network,
+  MinIO, source flip, scheduler, or lifecycle action ran. A formal projection
+  request hash remains deferred until a fresh successful proposal exists.
+  The separate 331-item legacy-origin implementation is checkpointed at
+  `3c93bcd1` plus CLI binding `fd3d92eb`; fresh focused validation passes
+  `53/53`. Explicitly authorized MinIO PID `2881550` is healthy on
+  `127.0.0.1:19100`; no other service started. Decision
+  `canonical-image-sync-legacy-origin-repair-20260805-01` completed once under
+  packet `sha256:8c1795ef...b3ca`: exactly 331 `imageUrl` fields changed, all
+  6131 standardized values are origin-free `/terrapedia-images/items/...`,
+  other-field changes/uploads/failures are `0`, and no permit or temp residue
+  remains. Final source hash is `sha256:fdb1d2a7...f4756c`. The lineage
+  attempt-path repair is validated and `ADMIN-03` completed the new four-layer
+  apply with `6131/6131/6131/6131` parity. The independent read-only projection
+  proposal now fails on a real owned-scope mismatch: 5 lineage keys have no
+  active `projection_items` row and 20 active projection-only keys remain.
+  The current exact-key contract conflicts with the no-INSERT/no-DELETE scope.
+  The Owner selected a separate five-row INSERT scope, but its new ADMIN
+  read-only proposal stopped before DML: all five keys have managed relation
+  images but no `maint_items` or `relation_items` base row, and exist only in
+  local compatibility `items`. Do not manufacture projection entities or
+  reverse-copy local rows. The approved upstream five-entity restoration has
+  an active implementation plan at
+  `docs/superpowers/plans/2026-08-05-item-canonical-base-entity-restoration.md`.
+  Its initial contract/transaction/manifest focused tests pass `8/8`, but a
+  fresh private `ADMIN` read-only artifact now exists as
+  `canonical-item-base-entity-restoration-proposal-read-20260805-admin-01`
+  (`noWrite: true` only). Its proposal, standardized source, and Owner bytes
+  must still be bound into the authorization bundle, with authorized
+  CLI/terminal-result guards, before it can be consumed or any apply material
+  can be created. That read-only preflight then fail-closed on an ID collision:
+  all five standardized IDs are actively owned by different canonical entities
+  (`HeartArrow`, `ValentineRing`, `TurkeyFeather`, `FestiveTopHat`, `Wiesnbrau`).
+  No snapshot/proposal/input, DML, packet, or permit exists. The Owner selected
+  the new archival identity-reconciliation scope: only the five archived legacy
+  occupants and their five audit rows may be hard-deleted, followed by five
+  standardized inserts. Private `0600` ADMIN authorization
+  reconciliation was completed once under
+  `canonical-item-base-entity-restoration-reconcile-20260805-admin-04`, packet
+  `sha256:12473c6a6cf78be15324d0ffdbbd99d9b6a8e8b911dabe94e1273a694b700a1b`,
+  in attempt
+  `b8cd8be7a0c388dc8063bc92f6d5611f252fcab296e013e05730af13abd0e8e2`.
+  Its immutable archive and result prove exact `5/5/5/5` legacy/audit deletes
+  followed by `5/5/5` canonical inserts. Independent readback now has all five
+  current standardized entities in maint/relation/projection and zero matching
+  audits; the other fifteen legacy-only rows remain untouched. The old
+  `admin-02` and `admin-03` reconciliation attempts rolled back and are
+  consumed historical evidence. Fresh read-only counts are `6131` active
+  primary relation image rows and `6146` active projection rows, with the
+  complete 6131-key lineage now eligible for a new no-write proposal.
+  The fresh ADMIN-03 proposal attempt
+  `06b62bde7777842be38e028107c34eb2995e73a27c024ca79e78af1bd1b37757`
+  failed closed before DML because the contract incorrectly compared the
+  projection base `relation_record_key` with the image evidence row's own
+  `record_key` at `AaronsBreastplate`; no snapshot/proposal/input or permit is
+  reusable from that attempt. Read-only schema evidence proves all `6131/6131`
+  projection-to-`relation_items` base keys match and `0/6131` match image
+  evidence keys. The contract/test repair now passes `26/26`. ADMIN-04 then
+  exposed a second defect while materializing its snapshot: a frozen
+  three-prefix policy array was sorted in place. Its attempt
+  `001e971e2a02f220abe48ba2ee2da20b68e7804c18e7035a55cc7567d64b84dd` has only
+  private owner and snapshot evidence, no proposal/input/permit/DML, and is
+  consumed historical evidence. The immutable-array repair now passes `27/27`;
+  a fresh ADMIN-05 decision is required. ADMIN-05 then completed the read-only
+  proposal, independent ADMIN apply authorization, and one-time dispatch:
+  result `completed/apply=true`, `targetRowCount=6131`, `changedRowCount=6126`.
+  Read-only image lineage now reports items `contractReady=true` with
+  maint/relation/projection image counts `6131/6131/6131`; cross-DB quick audit
+  is `10/10 pass`. The image-sync semantic gate now accepts both regular full
+  runs and the bounded 331-row legacy-origin repair when its normalized-key
+  evidence proves `331 + 5800 = 6131`; the regenerated items image readiness
+  report is `pass` with `0` blockers and `0` warnings. The remaining global
+  warning is shimmer; source-flip/L1/L2/scheduler remain gated on that work.
 
 - Automated-ingestion closure execution is active.
   Owner: Codex; status: `active`; branch: `design/crawler-auto-ingestion-readiness`;
@@ -34,6 +106,76 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `../superpowers/plans/2026-07-30-item-image-source-closure.md`, and
   `../superpowers/plans/2026-07-30-shimmer-generation-closure.md`; the NPC
   owner-phase runway remains completed historical context.
+  Shimmer Task 4 is checkpointed at `818a69bc`
+  (`feat(crawler): publish coherent shimmer generations`): the full
+  `domain-source-shimmer` pipeline owns progress before authorization and every
+  network request, validates the fixed input contract/items/NPC hashes/page/API
+  scope and `3 + 128 = 131` request cap, consumes
+  `canonical-shimmer-generation`'s dispatch permit before raw fetch, and only
+  completes after disk verification of the published pointer. The action,
+  backend refresh plan, canonical operation catalog/manifest, and capability
+  fixture all use that single owner. Fresh offline validation passes pipeline
+  `10/10`, related Node contracts `82/82`, and monitor Maven tests `198/198`.
+  One first Maven run hit an unrelated report-archive `.tmp` scan race; an
+  immediate full rerun passed without a code change. No packet, crawler,
+  database/MinIO write, source pointer in the real worktree, or shared
+  lifecycle ran. Next start point: make Task 5's manifest-only importer
+  checkpoint independently reviewable; retain Task 7's separate Owner gate.
+  Task 5 remains active under Codex as the only writer. Read-only reviewer
+  `/root/shimmer_task5_quality_review` is limited to the importer/sync-pipeline
+  diff and its tests, has no write or devlog authority, and must report
+  Critical/Important findings plus fresh test gaps to the coordinator. No live
+  generation, import, permit, database, MinIO, or lifecycle action is allowed.
+  The review found two Critical fail-closed gaps: authorization did not bind a
+  frozen preview/target and payloads could change after generation verification.
+  It also found the CLI `--bundle-manifest` alias gap plus incomplete snapshot
+  and post-commit result evidence. Task 5 remains `active` and commit-blocked
+  until serial RED/GREEN repair and re-review; Task 6's static input-contract
+  files remain out of scope.
+  Final re-review found one additional Critical MySQL `DATETIME` round-trip
+  mismatch plus two narrow follow-up repairs. Codex remains coordinator:
+  `/root/shimmer_task5_implementer` owns only importer/source-test
+  `dateStrings` repair, while `/root/shimmer_task5_pipeline_repair` owns only
+  the disjoint sync-pipeline source/test `apply=false` repair. Neither agent
+  may edit devlog, Task 6 files, or runtime state; integrated validation and
+  fresh re-review remain required before Task 5 can leave `active`.
+  Final Task 5 spec review remains `COMMIT BLOCKED`: a verified generation can
+  currently select an arbitrary `world_contexts` code, and preview evidence
+  hashes logical keys/snapshots without exposing the frozen key sets and
+  snapshot descriptors. Coordinator arbitration rejects the reported
+  connection-order finding: exact preview/target values require the Task 5
+  read-only DB snapshot, while bundle/binding shape fail before connection and
+  every exact field is compared before permit consumption or transaction. A
+  regression test must lock that no-match path. The importer/test owner is
+  serialized for the accepted repairs only; no live operation, permit,
+  database/MinIO write, lifecycle action, staging, or commit is authorized.
+  Final Task 5 quality review found an Important stale-preview race: the
+  provider-owned `before` scope is not re-read and compared under transaction
+  locks before delete/replace DML. A concurrent provider-scoped change could
+  therefore be overwritten despite a frozen preview. Task 5 stays `active` and
+  `COMMIT BLOCKED`; the importer/test owner must add a locked transactional
+  recheck and stale-preview regression before fresh spec/quality re-review.
+  The next Task 5 quality review found two further scope-alignment defects:
+  snapshot upsert lookup omits `source_page` despite preview/lock scoping by
+  page, and table replacement hard-deletes soft-deleted rows that are absent
+  from the frozen active-row preview/lock. Both are importer/test-only
+  fail-closed repairs; Task 5 remains `active` and `COMMIT BLOCKED` until their
+  RED/GREEN repair plus fresh reviews. No live operation, permit, database/MinIO
+  write, lifecycle action, staging, or commit is authorized.
+  At 2026-08-03 22:47 CST, the coordinator's fresh read-only Task 5 quality
+  pass found no new Critical, Important, or Minor defects after the serialized
+  scope repairs. The final scoped offline validation is `46/46` Node tests,
+  three importer/pipeline syntax checks, and clean `git diff --check`. Task 4
+  is checkpointed at `818a69bc`; Task 5 is checkpointed at `ff34c906`
+  (`fix(data): bind shimmer import to one manifest`). Task 6 is `active` and
+  `COMMIT BLOCKED` after independent review found that ambiguous title identities
+  could reach import/readiness, an exported apply API could bypass the private
+  contract, and Task 7's preview/contract sequence was circular. The repair is
+  serialized under Codex: fail closed at projection/readiness/apply/runner,
+  then add a dependency-injected read-only proposal path before any new contract
+  or request. A transient overlapping implementation agent was halted; no
+  concurrent writer remains. No Shimmer generation/import, packet, permit,
+  database/MinIO write, or lifecycle action ran.
   T1 request-path checkpoint: `canonical-npc-t1-acceptance` now freezes a
   private config/server fingerprint, Redis DB, run ID, NPC data bundle, and
   code bundle. Before it consumes a one-time permit, the child revalidates the
@@ -56,10 +198,92 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   temporary accounts, Redis DB 14 keys, and active transactions. No formal data
   write, crawler, shared-service action, or commit ran. Task 11 Step 5 is
   complete.
-  Current coordinator update: the user-directed full gate passed its data
-  workflow and automation stages, then correctly stopped at domain `43/1/1`
-  (pass/warning/blocked). Item image readiness is the only blocker and shimmer
-  is the only warning. Cross-DB quick is 10 pass; full is 8 pass / 2 warnings
+  Current coordinator update: a fresh read-only domain acceptance evaluation
+  is now `43/0/2` (pass/warning/blocked): item image readiness is pass after
+  the bounded legacy-origin accounting repair, while shimmer source and
+  blocking panels are blocked by their missing generation pointer/import
+  result. Cross-DB quick is 10 pass; full is 8 pass / 2 warnings. Shimmer
+  generation/import is now complete under ADMIN-05 plus independent import
+  ADMIN-02: final title resolution is `unresolved=0`, `ambiguous=0`, the import
+  result is `completed/apply=true`, and a fresh read-only domain evaluation is
+  `45 pass / 0 warning / 0 blocked`. The full quality gate now exits zero,
+  including backend `1523` tests with zero failures/errors, public frontend
+  checks/build plus `39/39` unit tests, admin checks/build, and isolated user-auth
+  smoke run `f90f039b9fc7945175ceddc1437144bf` with both outcome and cleanup
+  `passed`. The auth runner contract passes `41/41`; its Flyway baseline,
+  readiness POST, script mapping, Redis DB propagation, hydration waits,
+  accessible password locators, debug-code suppression, and logout navigation
+  are covered by the current implementation/evidence.
+  A fresh read-only first-L1 biomes preview exists as run
+  `biomes_l1_20260805_preview01`. ADMIN-01 was authorized and consumed, but its
+  child failed before transaction entry on a CLI lexical-shadowing TDZ; no run,
+  apply, fence, mutation generation, owned-table change, or result was written.
+  The regression is repaired RED/GREEN and the biomes suite passes `9/9`.
+  Because code bytes changed, ADMIN-01 is historical and cannot be reused. New
+  request `automation-biomes-first-l1-20260805-admin-02` is `AWAITING_OWNER` at
+  `sha256:ade166e7f4c1dc29e3c93300679b24d40427b0284c6d9db6f8dd943a3028e820`,
+  ADMIN-02 was signed and consumed, but the transaction rolled back before
+  completion because the Owner reason exceeded the MySQL `reason` column limit;
+  readback remains zero run/apply rows, zero transactions/fences, and unchanged
+  counts `48/14/1170/1519`. ADMIN-02 is consumed historical evidence. A new
+  request `automation-biomes-first-l1-20260805-admin-03` is `AWAITING_OWNER` at
+  `sha256:ef33142900fe9987bddeac9a944df391164b97d3e80126c93dc9edff75b76d86`,
+  with execution manifest hash
+  `sha256:ee3c3fcff3d6320a281c0604a95a11153aa5589d275c9df892ee54f1494795d2`.
+  ADMIN-03 was consumed and rolled back at the fence marker because the schema
+  stores `commit_marker` as `VARCHAR(64)`; readback remains zero run/apply rows,
+  zero transactions/fences, and counts `48/14/1170/1519`. The fix stores the
+  bare 64-hex marker while retaining the full bundle hash. Focused tests now pass
+  `61/61`. ADMIN-04 then completed once under packet
+  `sha256:be6623667a77d6ed5b06294768028894da8ab17d0f2da4acb682ecbb59d48451`.
+  Run `biomes_l1_20260805_preview01` and its apply read back as
+  `COMPLETED/COMMITTED` with `SINGLE_TXN`; all four mutation generations and
+  fences are generation 1, the four table counts are `48/14/1187/1519`, the
+  active policy remains `biomes v1 L1/ACTIVE`, and there is no open circuit or
+  active attempt. Post-apply cross-DB quick is `10/10 pass` and domain
+  acceptance is `45 pass / 0 warning / 0 blocked`.
+  A later independent second-L1 preview is now frozen as
+  `biomes_l1_20260805_preview02`, bundle
+  `sha256:bee53e2e004dd83e2db8a71377f639dfda9b6f067ea84cb8156ae6426bce57b4`.
+  Its private ADMIN request
+  `automation-biomes-second-l1-20260805-admin-01` is `AWAITING_OWNER` at
+  `sha256:b9d37ce763521640dc6772f737930ee3e0dcfc74b48cd718c97d9389347e12d3`.
+  ADMIN-01 was then confirmed and consumed under packet
+  `sha256:c7814c99ed825129e26ba048d17630a230ef3d0a573f9f549f5e089f29beead7`,
+  but failed closed before business DML because the lock path treated the
+  committed generation-1 first-L1 fence as active until its authorization
+  expiry. Independent readback proves no preview02 run/apply, generation still
+  1, no active attempt, and no leaked permit. The repaired fence classifier
+  permits only an exact committed-generation match and still rejects active or
+  drifted fences; biomes tests pass `11/11`. Fresh private ADMIN-02 request
+  `automation-biomes-second-l1-20260805-admin-02` is `AWAITING_OWNER` at
+  `sha256:8207aaf41a535e5705db9f2cc075c6a37d2e8c0e5642b8bb9229ab734340c255`.
+  ADMIN-02 completed once under packet
+  `sha256:4d380e089d4989c42a776af158faf39d2467991eeeab0014f68ade3abda4d316`.
+  Both independently hash-bound L1 runs now read back
+  `COMPLETED/COMMITTED/SINGLE_TXN`; successful L1 count is 2, all four mutation
+  generations and fences are 2, counts are `48/14/1204/1519`, policy remains
+  `biomes v1 L1/ACTIVE`, and there is no circuit or active attempt. Fresh
+  cross-DB quick is `10/10 pass` and domain acceptance is
+  `45 pass / 0 warning / 0 blocked`. Private L2 request
+  `automation-biomes-l2-promotion-20260805-admin-01` is `AWAITING_OWNER` at
+  `sha256:e5934af2ac8569e95e957719e5476805f7b9a8aefda89d0ee0be801d1dbf6f57`.
+  L2 promotion completed once under packet
+  `sha256:0bd56e9035bc9b98c6ea5bd6afeba894e33c969f738a1e6b9048ff441777efbf`.
+  Policy is now `biomes v1 L2/ACTIVE`; the append-only L2 decision binds two
+  successful L1 applies, actor `admin`, and the exact packet. Cross-DB quick
+  remains `10/10 pass` and domain acceptance remains
+  `45 pass / 0 warning / 0 blocked`. Scheduler activation then completed once
+  under decision `automation-biomes-scheduler-activation-20260805-admin-01`
+  and packet
+  `sha256:81c2e4ee6b51304ed4bfb3e8e08a1ef70df070726c251b5974da4fdf07713aa8`.
+  Readback finds exactly one append-only L2 decision and one scheduler
+  activation decision; policy remains `biomes v1 L2/ACTIVE`, successful L1
+  count remains 2, all four mutation generations remain 2, and there is no
+  circuit, active attempt/reservation, or retained permit. Focused backend
+  verification passes `224/224`. This is bounded eligibility only: no scheduler
+  daemon, crawler/network action, MinIO write, source flip, or business-table
+  mutation ran.
   for one relation-loot row without local output plus 4,316 legacy acquisition
   rows. Relation health remains 21 pass / 6 info / 0 blocked / 1 warning for
   287 unresolved NPC audits.
@@ -168,6 +392,8 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `verificationReportBytes: null`, so the merge path had zero coverage. Repaired
   RED-to-GREEN at commit `e11e2bc5`; promotion and candidate-audit suites 11/11
   with the within-report duplicate contract intact.
+  The following state is the earlier pre-retry-04 checkpoint retained for
+  audit history; the later item-image checkpoint below supersedes it.
   Current lane state is `total 6131 = existing 2119 + promoted 4003 +
   unresolved 0 + ambiguous 9 + duplicate 0 + conflict 0`. The bundle is still
   `null` because `ambiguous` must be zero, so the 9 are the collected
@@ -564,6 +790,20 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   `hashOrderedBundleBytes`, so no real packet could ever have matched. Repaired at
   `60567e0c`; the chain is now packet to contract bytes, contract to bundle hash,
   build to real bundle bytes.
+  Item-image Tasks 5-7 and Task 8 Steps 3-6 then completed within the approved
+  four-layer scope. Decision `canonical-item-image-lineage-apply-20260801-02`
+  consumed packet
+  `sha256:0f67aa00568fe355760f892654d013c4c325ab1c8842f1bc96b2b94adabf3d2c`
+  and published exact `6131` parity at landing, maint, relation, and local
+  with snapshot `21997` and landing ID `18630`. The post-apply report hash is
+  `sha256:49f095abc55ad39f1ebf07002fc89eef1297c85625e89dd2cf391dfee851613a`.
+  The report's only item-image gaps are on the ungoverned fifth surface:
+  `projection_items.image` still has `6129` dead `http://localhost:9000/...`
+  values and `2` blank rows with a core image. No item-owned preview/apply
+  operation exists, so this is a separate future Owner decision; no packet was
+  widened after the fact. The item readiness panel and cross-DB quick pass,
+  while relation health retains the existing 287-row NPC warning. MinIO
+  reachability on lane port `19100` remains unverified while stopped.
 
 - Crawler automated-ingestion readiness implementation remains active.
   Branch: `design/crawler-auto-ingestion-readiness`; worktree:
@@ -736,12 +976,17 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   without explicit operation-level authorization.
 - For automated-ingestion closure, read
   `entries/2026-07-27-crawler-automated-ingestion-closure.md`; the complete
-  result matrix is already fresh. Do not rerun the full chain until a source or
-  authorization input changes. Start from the 702-row candidate-only image
-  report, the 613/3,225 raw-backed local-only verification boundary, and the
-  missing coherent shimmer generation. Boss import and lineage retry-02 are
-  complete; keep both identities consumed and preserve retry-01's zero-byte
-  result as historical evidence only. Keep unverified image rows fail-closed.
+  result matrix is fresh at `45 pass / 0 warning / 0 blocked`; all quality-gate
+  stages pass. The first full invocation stopped only because the isolated auth
+  runner lacked `TERRAPEDIA_E2E_REDIS_PASSWORD`; the targeted auth smoke was
+  rerun with the local password and passed. Item image projection and Shimmer import are
+  completed runtime evidence. Both L1 applies, L2 promotion, and bounded
+  scheduler eligibility are completed runtime evidence. Task 16 durable-audit
+  alignment is complete; ownership lanes are checkpointed in focused commits
+  `0b689213`, `6f9ef484`, `92548a25`, `b88b26ef`, `4f3f7875`, `fa9d456e`, and
+  `c48a99b5`. Remaining work is devlog closeout and final verification. Do not start a recurring scheduler
+  daemon or crawler run unless a later plan and operation-level authorization
+  explicitly require it. Keep all consumed historical identities non-reusable.
   Do not reuse consumed identities or execute a formal
   crawler/import/backfill/image-sync/apply, L1/L2 promotion, source flip, or
   scheduler activation without the exact operation-level packet required by

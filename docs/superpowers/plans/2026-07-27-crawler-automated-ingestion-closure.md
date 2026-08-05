@@ -75,7 +75,20 @@ The stable operation IDs and dependency order are:
 22. `automation-biomes-first-l1`: first frozen L1 apply;
 23. `automation-biomes-second-l1`: second independently frozen L1 apply;
 24. `automation-biomes-l2-promotion`: L2 promotion; and
-25. `automation-biomes-scheduler-activation`: bounded scheduler activation.
+25. `automation-biomes-scheduler-activation`: bounded scheduler activation;
+26. `canonical-npc-base-maint-nontown-apply`: migrate only the non-town
+    `maint.maint_npcs.npcs` partition to the current `npcs_base_raw` landing; and
+27. `canonical-npc-base-maint-town-apply`: migrate only the town
+    `maint.maint_npcs.town` partition to the same current base landing; and
+28. `canonical-npc-item-relation-lineage-repair`: recompute only the NPC
+    crawler-derived `item_source_facts` and `item_source_details` rows from the
+    frozen maint facts, replacing their stale `maint_item_sources` trace with
+    exact `maint_npc_crawler_facts` lineage without overwriting the consumed
+    phase-2 result artifact; and
+29. `canonical-item-image-source-verification`: query only the frozen 877
+    ambiguous/unresolved item identities through the monitor-visible bounded
+    Wiki verifier, with one actual HTTP attempt per identity and no database
+    write.
 
 Operations 2-8 are independent after operation 1. Operations 9-11 may continue
 independently where their inputs are complete. Operations 13-20 form one strict
@@ -83,6 +96,33 @@ landing-plus-seven dependency chain after operation 11 has produced the frozen
 input; each still has its own transaction and exact authorization. A failure in
 one lane remains fail-closed and does not authorize, roll back, or suppress an
 unrelated lane. Operation 12 never dispatches.
+
+Operations 26-27 were added after the complete 2026-07-30 acceptance sweep
+proved that all 762 active `maint_npcs` rows still referenced the retired
+`generated.wiki_crawler_npc_bridge` landing while the current canonical base
+landing was `standardized.npcs`. They form a separate two-owner base migration
+after operation 13's landing result. Both bind the same frozen NPC input and
+landing-result bytes, preserve stable NPC identity fields, and update only their
+certified `maint_npcs` row partition plus landing/source lineage. A read-only
+base completion binds both results. Existing consumed landing, crawler-fact,
+owner-phase, completion, and isolated-T1 identities cannot authorize these new
+writes and remain historical evidence only for their original scope.
+
+Operation 28 was added after the complete acceptance sweep found exactly 329
+relation facts created by the consumed NPC phase-2 result with pre-repair
+lineage metadata. It binds the frozen NPC input plus the committed landing,
+maint-fact, and original phase-2 result bytes; owns only the two NPC-derived
+relation partitions; upserts the same deterministic record keys; and verifies
+inside one transaction that every repaired row joins an active
+`maint_npc_crawler_facts.record_key`. It must publish a distinct private result
+and must not replace or edit the historical phase-2 result. A new exact Owner
+decision is required before execution.
+
+Operation 29 was added by the item-image closure subplan after candidate schema
+v2 left 142 ambiguous and 735 unresolved identities. Its private frozen input,
+execution manifest, and `AWAITING_OWNER` request are complete, but it has no
+packet or result. It does not authorize the later standardized promotion,
+managed-image sync, database lineage apply, or any source-contract flip.
 
 Before any formal checkpoint, generate an authorization packet containing:
 
@@ -821,6 +861,12 @@ git commit -m "test(data): verify canonical item groups in T1"
 **Files:**
 - Modify: `scripts/data/audit/domain-readiness-audit.mjs`
 - Modify: `scripts/data/audit/domain-readiness-audit.test.mjs`
+- Create for the separately approved read-only image-source review:
+  `scripts/data/audit/item-image-source-candidate-audit.mjs`
+- Create:
+  `scripts/data/audit/item-image-source-candidate-audit.test.mjs`
+- Generate as candidate-only evidence:
+  `reports/audit/item-image-source-candidates-2026-07-30.json`
 - Modify only if its focused RED proves a producer defect:
   `scripts/data/workflow/run-image-sync.mjs`,
   `scripts/data/import/import-wiki-bosses-to-db.mjs`,
@@ -893,7 +939,7 @@ node scripts/data/audit/domain-readiness-audit.mjs --domain=armor_sets --panel=s
 
 Expected: `armor_sets/sourceReadiness` is `pass`; no threshold or warning rule changed.
 
-- [ ] **Step 5: Run each separately authorized producer and verify its real artifact**
+- [x] **Step 5: Run each separately authorized producer and verify its real artifact**
 
 Use only the exact command and hashes emitted by Task 12 for image, boss import,
 boss loot, projectile backfill, recipe crawl/import/audits, and shimmer import.
@@ -902,7 +948,52 @@ Each operation is independently dispatched; a failed operation records its
 failure and remains closed while the coordinator continues every lane whose
 packet and prerequisites are still valid.
 
-- [ ] **Step 6: Prove 45/45 pass after all required operation evidence exists**
+The 2026-07-30 complete-result sweep still leaves this step open on item images
+and shimmer. The approved candidate-only item-image audit proves 695 group
+pages have one exact normalized identity filename and 7 non-group pages have
+one safe exact image, for 702 review candidates. It writes only
+`reports/audit/item-image-source-candidates-2026-07-30.json`; standardized input
+hashes are unchanged and image sync is not rerun. A later read-only database/raw
+cross-check found all 6,131 standardized identities have local image rows, but
+only 2,906 have maint/relation lineage. Of the remaining 3,225 local-only rows,
+613 existing `source_file_title` values are independently supported by one
+identity-, page-, and URL-aligned parsed raw-page image; 2,612 cannot be promoted
+from that evidence. The 702 candidate report intersects 637 local-only rows:
+613 agree with the existing local title and 24 select different raw-backed
+files, so reverse DB-to-standardized copying remains prohibited.
+
+The item-image closure subplan has now completed Tasks 1-7 and Task 8 Steps
+1-6. The approved four-layer result is `COMPLETED` under decision
+`canonical-item-image-lineage-apply-20260801-02`, packet
+`sha256:0f67aa00568fe355760f892654d013c4c325ab1c8842f1bc96b2b94adabf3d2c`,
+with snapshot row count `21997`, landing ID `18630`, and exact
+`6131/6131/6131/6131` landing/maint/relation/local parity. The content-addressed
+lineage bundle hashes to
+`sha256:2c55c37a0fadaaafcaba3cb1fc4a0323fe6fbf76bc0cb9cf73ded8e6e0072f83`.
+The post-apply lineage report
+`reports/audit/image-source-lineage-2026-08-01.json` hashes to
+`sha256:49f095abc55ad39f1ebf07002fc89eef1297c85625e89dd2cf391dfee851613a`.
+The four applied layers are clean, and the items image readiness panel passes;
+the separate lineage report remains not contract-ready only because
+`projection_items.image` still has `6129` dead `http://localhost:9000/...`
+values and `2` blank rows with a core image. `projection_items` has no
+item-owned governed operation, preview, owned scope, or Owner decision, so its
+repair is a separate follow-up and is not covered by the consumed packet.
+Task 10 Step 5 remains open for Shimmer and the other non-green producer gates,
+not for the approved four-layer item-image scope.
+
+Boss loot no longer waits for authorization. Decision
+`canonical-boss-loot-import-20260730-01` consumed packet
+`sha256:ae0bc6de83fd290a3a780b441f85efb22287bf69aa3081a02ab86343e15edc1f`
+once and processed the frozen 33-boss/347-drop bundle. Report
+`reports/boss-loot-import-2026-07-30.json` hashes to
+`sha256:96c23c7a0f25a876db93cf60b1a20cf18245987c176dab2208a980c576dd0449`
+with no unresolved boss or item. Shimmer remains fail-closed because no
+byte-equivalent May raw snapshot exists locally; a July refetch has the same
+revision ID but a different rendered HTML length and cannot impersonate or mix
+with the missing May source generation.
+
+- [x] **Step 6: Prove 45/45 pass after all required operation evidence exists**
 
 ```bash
 node scripts/data/workflow/domain-acceptance-generate-reports.mjs \
@@ -1060,13 +1151,39 @@ TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED=1 node \
   --redis-db=<explicit-empty-db> --run-id=<unique-run-id>
 ```
 
-- [ ] **Step 5: Cross the real-data checkpoint only after crawler authorization**
+- [x] **Step 5: Cross the real-data checkpoint only after crawler authorization**
 
 Run the separately authorized crawler, freeze its normalized records and matching
 audit records, then run the isolated three-database T1. Require non-empty Buff,
 shop, and loot samples, exact landing/maint/relation/local hashes, rollback,
 restore, and zero leaked databases/accounts/Redis reservations. Only this step may
 record NPC `T1_VERIFIED`.
+
+The bounded repair plan
+`docs/superpowers/plans/2026-07-30-npc-t1-executor-repair.md` now supplies an
+NPC-specific T1 executor and private evidence input. It pre-reads the complete
+owner-phase chain before creating any temporary resource, binds that generation
+to the copied snapshot and verification hashes, checks the same completion again
+after cleanup, and keeps the shared 13-table contract in a cycle-free leaf
+module. The separately authorized isolated run now produced fresh private
+evidence and completed this parent step; the repair preserved its authorization
+boundary and did not permit a formal data write.
+
+The bounded request-path plan
+`docs/superpowers/plans/2026-07-30-npc-t1-operation-request.md` now also
+registers `canonical-npc-t1-acceptance`. It freezes a private config plus its
+normalized server fingerprint, Redis DB, run ID, current NPC data bundle, and
+code bundle; the child revalidates them and the current completion before it
+can consume a one-time permit. The freshly generated private request
+`sha256:4c8c760c78e8feeaa93c3028d11b08bfd390eb39a0d99a986ad5c2183752d1f5`
+was explicitly confirmed and produced private authorized packet
+`sha256:2ac59552d8b9346c92623c072596063f71a2b6ff12ff721491f4d9b9f27aacd3`.
+The explicitly authorized runner consumed its one-time decision and completed
+the isolated run `npc-t1-20260730-01` with private evidence
+`canonical_npc_isolated_t1_acceptance: passed`; its 13-table snapshot binding,
+rollback/commit/restore `0/1/0`, and cleanup proof passed. Independent readback
+found zero isolated databases, temporary accounts, Redis DB 14 keys, and active
+transactions. Task 11 Step 5 is complete; no formal data write occurred.
 
 - [x] **Step 6: Commit in schema, pipeline, capability, and evidence checkpoints**
 
@@ -1305,21 +1422,124 @@ no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
   `docs/audits/canonical-migration-boundary.md`
 - Modify only after facts become true:
   `docs/project-governance/00_CURRENT_SPEC.md`
+- Modify: `scripts/data/maint/sync-landing-to-maint.mjs`
+- Modify: `scripts/data/maint/sync-landing-to-maint.test.mjs`
+- Modify: `scripts/data/npc-canonical/npc-canonical-t0-acceptance.mjs`
+- Modify: `scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs`
+- Create: `scripts/data/npc-canonical/npc-base-maint-apply.mjs`
+- Create: `scripts/data/npc-canonical/npc-base-maint-apply.test.mjs`
+- Modify: `scripts/data/npc-canonical/npc-canonical-readiness.mjs`
+- Modify: `scripts/data/npc-canonical/npc-canonical-readiness.test.mjs`
+- Modify: `scripts/data/automation/canonical-operation-catalog.mjs`
+- Modify: `scripts/data/automation/canonical-operation-execution-manifest.mjs`
+- Modify: `scripts/data/automation/canonical-operation-execution-manifest.test.mjs`
+- Modify: `scripts/data/automation/build-canonical-cutover-authorization.test.mjs`
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
 
 - [x] **Step 1: Apply authorized V56/V57/V58 schema packet**
 - [x] **Step 2: Re-read schema and verify exact table/index fingerprints**
 - [x] **Step 3: Apply authorized frozen group bootstrap once**
 - [x] **Step 4: Run shadow parity, disable group JSON fallback, restart through standard scripts, and run read-only API/runtime smoke**
-- [ ] **Step 5: Execute separately authorized real NPC crawler and frozen NPC apply**
-- [ ] **Step 6: Generate fresh canonical group, canonical NPC, and bridge-retirement reports**
+- [x] **Step 5: Execute separately authorized real NPC crawler and frozen NPC apply**
+- [x] **Step 6: Generate fresh canonical group, canonical NPC, and bridge-retirement reports**
+
+  The NPC generator must re-read the private frozen input, one landing result,
+  seven ordered owner-result bytes, and `canonical-npc-apply.completion.json`,
+  then independently reconstruct the completion before it trusts any database
+  observation. It opens only `START TRANSACTION READ ONLY` against the exact
+  formal local/maint/relation database triplet, freezes landing/maint/relation/
+  local/runtime hashes, and probes one local-projection-backed admin and public
+  NPC sample. It atomically writes a private report even when evidence is
+  blocked, naming the exact missing T1 rollback/restore/cleanup, API, or T2
+  identity condition. It must never infer T1/T2 from completion alone, start a
+  backend, or execute crawler/import/apply work.
 - [ ] **Step 7: Flip each source contract only after its exact report passes**
 
-Batch 05 completed only the group slice of Step 6: the three deterministic
+The refreshed private 2026-07-30 NPC readiness report is `T1_VERIFIED` and
+passes its native 65/65 checks after both base partitions completed. Its admin
+and public GET probes match local snapshot
+`sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37`.
+The offline freshness audit classifies the report as fresh at age zero, but
+correctly keeps the acceptance panel blocked because that surface requires
+`T2_CUTOVER_VERIFIED`, not T1 evidence. Cross-DB quick is 10/10 pass; full is
+8 pass plus two warnings for one relation-loot row without local output and
+4,316 legacy local acquisition rows. Relation health is 21 pass / 6 info / 0
+blocked / 1 warning for 287 unresolved NPC audits. The latest read-only domain
+rerun is 43 pass / 1 warning / 1 blocked: only shimmer remains warning and item
+image readiness remains blocked. Source-contract flips stay closed because the
+full gate is non-green and the NPC acceptance surface has not reached T2.
+
+The separately authorized lineage retry is also complete. Decision
+`canonical-npc-item-relation-lineage-repair-20260730-02` consumed packet
+`sha256:f429552a9a8c4752eee5d5bbcaf68c1c52ac82b26184a297b1dc3cde8ce5b662`
+once. Its private 1,684-byte result hashes to
+`sha256:09930216cab4b834b2d67f6bb647bca9d023f47aae94d4e48e08888dd528a7fc`,
+reports `COMPLETED`, commits 329 source facts plus 329 details, and binds output
+`sha256:e6debec3292385315b3c683c1c3adb974765d624bf15acec8ace520e26444f84`.
+The retry-01 zero-byte result remains historical evidence only; neither
+decision identity may be reused. This closes the lineage evidence gap but does
+not grant NPC T2 or a source-contract flip.
+
+The complete acceptance sweep added a base-lineage prerequisite to this step.
+Before any NPC source flip, the readiness snapshot must prove that every active
+`maint_npcs` row binds the one current `npcs_base_raw` landing by exact landing
+ID, source key, and content hash, and that its active count matches the local NPC
+projection count. Formal repair requires independently authorized operations 26
+and 27 plus their two-result base completion. The already consumed 1+7 owner
+completion and `canonical-npc-t1-acceptance-20260730-01` do not cover this
+missing base-maint ownership surface and must not be reused.
+
+The code-only repair for that prerequisite is executed before another source
+flip or formal request is considered:
+
+1. Add a RED standardized-NPC extraction contract proving
+   `record.extras.townNPC` is projected to `flagsJson.townNpc`; fix only that
+   source-field lookup and preserve the legacy `flags` and top-level inputs.
+2. Extend the disposable NPC T0 fixture with one `maint_npcs` base row carrying
+   the exact base landing ID, source key, and content hash. Include that row in
+   rollback/commit/restore counts, restore cleanup, and `maint.base` readiness
+   evidence without changing the established isolated-T1 table snapshot.
+3. Add two governed executors and contracts for
+   `canonical-npc-base-maint-nontown-apply` and
+   `canonical-npc-base-maint-town-apply`. Each binds the same frozen NPC input,
+   current standardized base bytes, and committed landing-result bytes; writes
+   only its certified `maint_npcs` predicate; verifies transaction-local counts,
+   identity, and lineage; and publishes one private committed result.
+4. Add a read-only base completion that reconstructs both result files and
+   rejects missing, duplicate, stale-input, stale-landing, ownership-drifted,
+   or hash-drifted results. NPC readiness must reconstruct this completion
+   before trusting the formal base snapshot.
+5. Run the focused extraction, T0, base executor/completion, readiness,
+   operation-catalog, manifest, authorization, and formal-runner contracts.
+   Then regenerate only current-byte `AWAITING_OWNER` requests. Do not create a
+   packet or execute either formal write without new exact Owner fields and
+   decision identities.
+6. Repair the independently discovered 329-row relation-lineage drift only
+   through `canonical-npc-item-relation-lineage-repair`. Its RED contracts must
+   prove exact predecessor binding, two-table ownership, deterministic record
+   keys, transaction-local `maint_npc_crawler_facts` joins, rollback on readback
+   mismatch, and a distinct result path. Generate only an `AWAITING_OWNER`
+   request from current bytes; do not reuse the consumed phase-2 identity or
+   overwrite its result.
+
+The bounded real NPC crawler produced the 25 immutable normalized/audit pairs
+bound by `canonical-npc-apply.input.json`; the independently authorized landing
+and all seven single-owner phases then completed. The read-only completion
+aggregator is `COMPLETED` for `canonical-npc-apply`, binds one input hash, the
+landing result, and exactly seven ordered phase results, with completion hash
+`sha256:9252a6563b90d71d9868eb63875debbe13af58bdc0b9411f32140390b78ac79a`.
+This completes Task 13 Step 5 without re-running the crawler or any owner
+phase. The separate Task 11 isolated three-database T1 and the Task 13 Step 6
+report generation have since completed; neither result permits a source-contract
+flip without a passing API-backed readiness report.
+
+Batch 05 completed the group slice of Step 6: the three deterministic
 compatibility exports and `canonical-item-group-readiness.json` pass under export
-run `ig_export_20260729_01`. The combined step remains open because canonical NPC
-readiness is not yet available. No source contract flips while the complete
-repository gate is non-green.
+run `ig_export_20260729_01`. The refreshed private NPC report now reaches
+`T1_VERIFIED` and has all non-API checks passing, but its admin/public API probes
+remain blocked while the shared backend is absent. Step 6 is complete because the
+required reports are fresh; Step 7 remains fail-closed, and no source contract
+may flip while API evidence or the complete repository gate is non-green.
 
 The first authorized landing-prerequisite attempt consumed decision identity
 `canonical-npc-landing-apply-20260729-01` and stopped before its first row write:
@@ -1406,18 +1626,28 @@ completed on 2026-07-29 with policy v1 at `L1/ACTIVE`. It does not authorize a
 preview, apply, L2 promotion, scheduler activation, or network activity.
 
 - [x] **Step 2: Bootstrap exact `biomes` policy under that separately authorized decision**
-- [ ] **Step 3: Run full repository quality gate from the beginning**
-- [ ] **Step 4: Freeze and approve the first exact `biomes` preview bundle**
-- [ ] **Step 5: Execute first `biomes` L1 apply under its independent approval**
-- [ ] **Step 6: Verify latest-writer identity, table hashes, downstream API state, audit rows, and rollback eligibility**
-- [ ] **Step 7: Re-run full gate and record `AUTOMATION_PROVEN`**
-- [ ] **Step 8: Freeze a later independent preview and execute the second L1 apply only under a new request, decision identity, and packet**
-- [ ] **Step 9: Verify both committed L1 applies remain independently hash-bound before any L2 request is authorized**
+- [x] **Step 3: Run full repository quality gate from the beginning**
+- [x] **Step 4: Freeze and approve the first exact `biomes` preview bundle**
+- [x] **Step 5: Execute first `biomes` L1 apply under its independent approval**
+- [x] **Step 6: Verify latest-writer identity, table hashes, downstream API state, audit rows, and rollback eligibility**
+- [x] **Step 7: Re-run full gate and record `AUTOMATION_PROVEN`**
+- [x] **Step 8: Freeze a later independent preview and execute the second L1 apply only under a new request, decision identity, and packet**
+- [x] **Step 9: Verify both committed L1 applies remain independently hash-bound before any L2 request is authorized**
 
 Batch 05 reran Step 3 from the beginning. Data workflow passed 295/295 and
 automation contracts passed 177/177, but the gate stopped at the read-only
 domain stage with 40 pass / 4 warning / 1 blocked. The Step 3 checkbox remains
 open because an expected fail-close is not a passing full repository gate.
+
+The latest 2026-07-30 rerun started from the beginning and passed the data
+workflow and automation stages, then stopped at the improved but still
+non-green domain result of 43 pass / 1 warning / 1 blocked. The sole blocker is
+item image readiness and the sole warning is shimmer. Formal state remains
+`biomes` policy v1 `L1/ACTIVE`, zero automation runs, zero committed L1 applies,
+no open circuit, and zero L2/scheduler decisions. Step 3 remains unchecked:
+fail-close exit 1 is correct behavior, not a passing full gate. Steps 4-9 stay
+unavailable by dependency, and the technically complete first-L1 request is
+not authorization to bypass Step 3.
 
 ## Task 15: Gate L2 And Scheduler Availability
 
@@ -1459,9 +1689,20 @@ and remains untouched.
 cd back && mvn -Dtest=CrawlerAutomationPolicyServiceImplTest,CrawlerAutomationServiceImplTest,CrawlerMonitorServiceImplTest test
 ```
 
-- [ ] **Step 3: Promote only `biomes` if its exact L2 packet is separately authorized**
-- [ ] **Step 4: Enable only the bounded `biomes` schedule if its scheduler packet is separately authorized**
-- [ ] **Step 5: Prove change detection, dedupe, heartbeat, terminal state, failure downgrade, and notification behavior**
+- [x] **Step 3: Promote only `biomes` if its exact L2 packet is separately authorized**
+- [x] **Step 4: Enable only the bounded `biomes` schedule if its scheduler packet is separately authorized**
+- [x] **Step 5: Prove change detection, dedupe, heartbeat, terminal state, failure downgrade, and notification behavior**
+
+On 2026-08-05, the separately authorized `biomes` L2 promotion completed
+under packet
+`sha256:0bd56e9035bc9b98c6ea5bd6afeba894e33c969f738a1e6b9048ff441777efbf`,
+followed by bounded scheduler eligibility under packet
+`sha256:81c2e4ee6b51304ed4bfb3e8e08a1ef70df070726c251b5974da4fdf07713aa8`.
+Readback finds exactly one append-only decision of each kind, policy v1 remains
+`L2/ACTIVE`, successful L1 count remains 2, and no active attempt, reservation,
+permit, crawler process, or scheduler daemon was created. The focused backend
+suite passes `224/224`; activation records eligibility only and does not claim
+that an unbounded or recurring scheduler runtime was started.
 
 Absence of an L2/scheduler authorization does not invalidate
 `AUTOMATION_PROVEN`; it leaves the domain safely approval-gated.
@@ -1479,7 +1720,7 @@ Absence of an L2/scheduler authorization does not invalidate
 - Modify: `docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md`
 - Modify: `docs/devlog/current.md`
 
-- [ ] **Step 1: Run full verification**
+- [x] **Step 1: Run full verification**
 
 ```bash
 bash ./scripts/dev/quality-gate.sh
@@ -1490,10 +1731,15 @@ git status --short
 Also verify no temporary services, databases, accounts, Redis reservations,
 progress temp files, or unpublished projections remain.
 
-- [ ] **Step 2: Update durable facts only from fresh evidence**
+- [x] **Step 2: Update durable facts only from fresh evidence**
 
 Record actual migration versions, report hashes, cutover IDs, capability count,
 policy state, first L1 result, remaining L2 decisions, and rollback evidence.
+
+The 2026-08-05 durable-audit delta records V56-V58, the 24-action monitor
+baseline and 36-operation formal catalog, completed item-image/Shimmer chains,
+both L1 runs, the independent L2/scheduler decisions, fresh report hashes, and
+the no-daemon/no-crawler boundary. No L2 decision remains pending for `biomes`.
 
 - [ ] **Step 3: Close child and parent entries only when closure criteria pass**
 
@@ -1533,7 +1779,7 @@ credentials/identity, or a conflict with another active writer.
 | NPC CODE_READY | fixture source split, zero bridge fallback, relation/local contract tests pass |
 | NPC T1 | separately authorized real crawler evidence produces non-empty Buff/shop/loot chain with rollback/restore/cleanup pass |
 | Domain panels | 45 pass, 0 warning, 0 blocked |
-| Capability catalog | exact approved count: 21 after group, 23 after NPC; new pairs L0+DISABLED before activation |
+| Capability catalog | exact monitor action count: 21 after group, 23 after NPC, 24 after the item-image verifier; new pairs L0+DISABLED before activation |
 | Formal schema/data | separately authorized, exact hashes/fingerprints, verified after apply |
 | B1 closure | every identity canonical or retired with fresh T2 evidence |
 | Runtime | JSON fallback disabled; read-only API/admin/public smoke non-empty and hash-bound |

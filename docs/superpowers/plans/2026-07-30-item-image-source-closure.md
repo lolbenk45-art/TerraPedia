@@ -958,6 +958,29 @@ The pre-apply lineage report is kept at
 `reports/audit/image-source-lineage-2026-08-01.pre-lineage-apply.json`; the post-apply run wrote
 `reports/audit/image-source-lineage-2026-08-01.json`.
 
-- [ ] **Step 7: Record the exact image-lane handoff**
+- [x] **Step 7: Record the exact image-lane handoff**
 
 Update the active devlog and parent plan with actual hashes/counts/decision identities. Keep the entry active for Shimmer and final integration. Do not record anticipated success.
+
+Execution checkpoint (2026-08-01, Step 7 complete): the exact four-layer
+image-lane result is recorded in
+`docs/devlog/entries/2026-07-27-crawler-automated-ingestion-closure.md` and
+the parent closure plan. The authorized `-02` packet is
+`sha256:0f67aa00568fe355760f892654d013c4c325ab1c8842f1bc96b2b94adabf3d2c`
+for decision `canonical-item-image-lineage-apply-20260801-02`; its result is
+`COMPLETED`, with snapshot row count `21997`, landing ID `18630`, and
+`6131/6131/6131/6131` landing/maint/relation/local parity. The lineage bundle
+hash is `sha256:2c55c37a0fadaaafcaba3cb1fc4a0323fe6fbf76bc0cb9cf73ded8e6e0072f83`.
+
+The post-apply report
+`reports/audit/image-source-lineage-2026-08-01.json` hashes to
+`sha256:49f095abc55ad39f1ebf07002fc89eef1297c85625e89dd2cf391dfee851613a`.
+The four applied layers are clean, but the report remains not contract-ready
+for items because `projection_items.image` still has `6129` dead
+`http://localhost:9000/...` values and `2` blank rows with a core image. That
+fifth projection surface has no item-owned governed operation, preview, owned
+scope, or Owner decision. It is a separate follow-up and is intentionally not
+added to the consumed packet. The item readiness panel itself passes, the
+cross-DB quick report is `10/10` pass, and relation health retains the existing
+`287` unresolved NPC-audit warning. MinIO reachability on the lane's `19100`
+port remains unverified while that service is stopped.

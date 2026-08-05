@@ -91,7 +91,7 @@ The pure contract uses operation ID `canonical-item-image-projection-apply`, con
 }
 ```
 
-Each relation row is `{ recordKey, internalName, cachedUrl }`; each projection row is `{ id, relationRecordKey, internalName, image }`. Rows and keys are sorted by `internalName`, duplicate identities are rejected, the relation source must be active primary role `icon`, and every cached URL must satisfy the configured item managed-path prefixes. Relation `recordKey` values, projection IDs, and projection `relationRecordKey` values are individually unique. For every `internalName`, the projection row's `relationRecordKey` must equal the matching relation row's `recordKey`; a name-only match is never sufficient.
+Each relation-image row is `{ recordKey, internalName, cachedUrl }`; each projection row is `{ id, relationRecordKey, internalName, image }`. Rows and keys are sorted by `internalName`, duplicate identities are rejected, the relation-image source must be active primary role `icon`, and every cached URL must satisfy the configured item managed-path prefixes. Image `recordKey` values, projection IDs, and projection `relationRecordKey` values are individually unique. The projection `relationRecordKey` belongs to the independent `relation_items` base-entity lineage and is therefore not compared with the image row's own evidence `recordKey`; the exact stable join for this image-only operation is `internalName`, and the projection row itself remains frozen in before/after evidence.
 
 The lineage input contract is required because the existing lineage completed
 result records exact stage counts but does not repeat its bundle hash. The
@@ -173,7 +173,7 @@ assert.throws(() => buildItemImageProjectionProposal(duplicatePrimaryFixture), /
 assert.throws(() => buildItemImageProjectionProposal(unmanagedFixture), /managed/i);
 ```
 
-Also test `writeItemImageProjectionPrivateJson` rejects overwrite, symlink endpoint, symlink ancestor, directory endpoint, paths outside the repository, and non-private existing modes; `readItemImageProjectionInputContract` rejects unknown keys, expired input at an injected `now`, snapshot drift, policy drift, and hash drift. Add strict attempt tests: the attempt ID is derived from the read-only decision, all attempt-owned paths share its exact root, a failed result blocks reuse of that root, and a fresh decision produces a distinct writable retry root. Add duplicate relation record key, duplicate projection ID/record key, and `projection.relationRecordKey !== relation.recordKey` rejection tests.
+Also test `writeItemImageProjectionPrivateJson` rejects overwrite, symlink endpoint, symlink ancestor, directory endpoint, paths outside the repository, and non-private existing modes; `readItemImageProjectionInputContract` rejects unknown keys, expired input at an injected `now`, snapshot drift, policy drift, and hash drift. Add strict attempt tests: the attempt ID is derived from the read-only decision, all attempt-owned paths share its exact root, a failed result blocks reuse of that root, and a fresh decision produces a distinct writable retry root. Add duplicate image-evidence record key, duplicate projection ID/record key, and a regression fixture proving `projection.relationRecordKey` may differ from the image evidence `recordKey` because it references `relation_items`.
 
 - [x] **Step 2: Run RED**
 

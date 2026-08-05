@@ -165,3 +165,24 @@ This pass intentionally did **not** finish:
 - Standardized manifest and view split: `data/standardized/_manifest.standardized.json`, `data/standardized-view/_index.json`
 - Backend monitor direct reads: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
 - Item group runtime/admin direct reads: `back/src/main/java/com/terraria/skills/controller/AdminItemGroupController.java`, `back/src/main/java/com/terraria/skills/controller/AdminRecipeGroupController.java`, `back/src/main/java/com/terraria/skills/service/impl/RecipeTreeServiceImpl.java`
+
+## 2026-08-05 Consumer Delta
+
+This delta supersedes only the affected May observations; the original map
+remains the historical first-pass inventory.
+
+| Artifact or family | Current governed role | Consumer boundary | Current lifecycle |
+| --- | --- | --- | --- |
+| `data/standardized/items.standardized.json` | immutable input to governed item/image operations | may feed maint/relation lineage; cannot directly overwrite published projection state | `active-transitional` |
+| `data/generated/shimmer/generations/<generation-id>/` | immutable Shimmer generation bundle | exact proposal/import packet input only | `active-derived-governed` |
+| `data/generated/shimmer/wiki-shimmer-current-generation.json` | pointer to the current immutable generation | generation/proposal tooling; not an independent source | `active-derived-governed` |
+| `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | retired absent bridge | no current consumer is allowed to depend on it | `retired` |
+| canonical relation/projection rows | published runtime state for completed domains | backend/admin/public read paths | `canonical-runtime` |
+
+Fresh closure evidence records item-image lineage at
+`6131/6131/6131/6131`, Shimmer generation
+`2e231b3862a938a1ac3cd7f4266327e0a5867c8e4c1ae9f7db6ded98520276d4`,
+and domain acceptance at `45/45`. Generated and standardized files remain
+governed inputs or compatibility outputs; scheduler eligibility does not turn
+them into an unbounded mutable runtime source and does not authorize a crawler
+or recurring daemon.

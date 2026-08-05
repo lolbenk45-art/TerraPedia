@@ -2,19 +2,44 @@
 
 ## Date
 
-2026-07-29
+2026-08-05
 
 ## Current Phase
 
-Crawler reliability stabilization and approval-gated automated-ingestion closure.
+Automated-ingestion runtime closure and repository closeout.
 
 ## Active Sequence
 
-Document-level judgment: July work is focused on crawler monitor reliability, crawler resume/recovery hardening, and project documentation governance.
+Evidence-based judgment: the bounded automated-ingestion runtime chain is now
+green; the remaining work is repository review, durable-document alignment, and
+focused commits from the large dirty worktree.
 
 Current sequence:
 
-P0 governance/status synchronization -> P1 crawler monitor and resume/recovery stabilization -> P2 homepage aggregation and public UI polish.
+P0 repository/devlog closeout -> P1 crawler monitor and resume/recovery
+stabilization -> P2 homepage aggregation and public UI polish.
+
+Current automated-ingestion snapshot (fresh commands on 2026-08-05): item-image
+lineage is `6131/6131/6131/6131`; projection apply targeted 6,131 rows and
+changed 6,126 existing images. Shimmer generation/import is complete, domain
+acceptance passes `45/45`, and cross-DB quick passes `10/10`. Two independent
+`biomes` L1 runs are `COMPLETED/COMMITTED/SINGLE_TXN`; all four owned mutation
+generations and fences are 2, and counts are `48/14/1204/1519`. The separately
+authorized L2 promotion and scheduler activation each have exactly one
+append-only decision. Policy is `biomes v1 L2/ACTIVE`, with no circuit, active
+attempt/reservation, or retained permit. Scheduler activation records bounded
+eligibility only; no recurring daemon or crawler run was started.
+
+The full Bash quality gate exits zero from the beginning: backend `1523` tests
+with zero failures/errors (10 skipped), public frontend checks/build plus
+`39/39` unit tests, admin checks/build plus `405/405` unit tests, and isolated
+user-auth smoke run `be2913402d95f6ef2a02899c5da1f9bf` with outcome and cleanup
+both `passed`. Cleanup readback finds zero E2E databases/accounts, Redis DB 15
+size zero, no runner listeners, and no scheduler/crawler process. This is
+readiness and local closure evidence, not a release or production-deployment
+decision.
+
+Historical progression through 2026-07-29 (retained for context):
 
 The automated-ingestion closure branch has reached group `T2_CUTOVER_VERIFIED`,
 formal Flyway V58, and a committed governed NPC landing prerequisite: one base
@@ -83,9 +108,11 @@ Bash/WSL is the primary local automation path. The full local gate is:
 bash ./scripts/dev/quality-gate.sh
 ```
 
-No runtime/backend/frontend/data gate was run for the 2026-07-09 governance
-audit or the current status/risk synchronization task. Treat old May release
-evidence as historical until rerun.
+The 2026-07-30 full local gate was run from the beginning. Its data and
+automation contract stages passed, then the domain stage correctly failed
+closed at `43/1/1`; that result is historical. The fresh 2026-08-05 full gate
+passes from the beginning, including domain `45/45` and isolated E2E cleanup.
+Treat all local gate results as readiness evidence, not a release decision.
 
 ## Data Chain Boundary
 
@@ -130,12 +157,14 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
   Prettier/ESLint/Spotless and strong style gates remain staged until each
   maintained line has a clean baseline.
 - `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
-- Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
+- Release or staging still requires an explicit release decision even though
+  the fresh local Bash gate and data-readiness evidence are green.
 - Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
-- Automated ingestion remains fail-closed: the completed NPC owner runway does not
-  authorize a source-contract flip, NPC T1/T2, L1/L2, or scheduling; the first
-  biomes L1 apply still needs its own frozen preview bundle and decision;
-  item image readiness blocks on missing/unresolved source uploads.
+- Automated ingestion remains fail-closed by operation identity. The completed
+  L2 and scheduler decisions authorize only the recorded `biomes` policy state
+  and bounded eligibility; they do not start an unbounded crawler or recurring
+  daemon. The remaining immediate risk is the large mixed uncommitted worktree,
+  which must be reviewed and split into focused commits before branch closeout.
 
 ## Next Actions
 
@@ -146,8 +175,8 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
   baseline migrations before adding read-only style checks to the full gate.
 - Keep `docs/project-governance/00_CURRENT_SPEC.md`, `docs/devlog/current.md`, and project-management records synchronized when project facts or risks change.
 - Continue crawler monitor/resume stabilization from the current July plans before broad public feature expansion.
-- Preserve the completed NPC owner-phase evidence as read-only completion only;
-  prepare and review a frozen biomes L1 preview bundle before requesting its
-  separate exact authorization. Keep L2 and scheduler as later decisions.
+- Preserve all consumed operation identities and immutable evidence. Complete
+  Task 16 durable-audit alignment, review the dirty worktree by ownership lane,
+  then stage only explicit focused paths for each commit.
 - Decide whether to push or PR the local governance/status branches when the operator is ready.
 - Rerun runtime/backend/frontend/data gates before making any release, staging, or public-readiness claim.
