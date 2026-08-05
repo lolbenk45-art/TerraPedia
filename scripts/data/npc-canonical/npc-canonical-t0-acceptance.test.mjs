@@ -17,14 +17,18 @@ test('paired NPC fixture builds non-empty landing maint relation and local evide
 
   assert.deepEqual(projection.counts, {
     landing: { base: 1, crawlerFacts: 1, normalized: 1, audit: 1 },
-    maint: { facts: 1, matched: 1, unmatched: 0, ambiguous: 0, rejected: 0 },
+    maint: { base: 1, facts: 1, matched: 1, unmatched: 0, ambiguous: 0, rejected: 0 },
     relation: { npcBuff: 1, npcShop: 1, npcLoot: 1 },
     local: { npcBuff: 1, npcShop: 1, npcLoot: 1 },
   });
+  assert.equal(projection.maintBase.landingSourceId, projection.baseLanding.id);
+  assert.equal(projection.maintBase.landingSourceKey, projection.baseLanding.sourceKey);
+  assert.equal(projection.maintBase.landingContentHash, projection.baseLanding.contentHash);
   assert.equal(projection.maintFact.matchStatus, 'MATCHED');
   assert.equal(projection.evidence.normalizedContentHash, projection.maintFact.normalizedContentHash);
   assert.equal(projection.evidence.auditContentHash, projection.maintFact.crawlerAuditHash);
   assert.match(projection.hashes.landing, /^sha256:[a-f0-9]{64}$/);
+  assert.match(projection.hashes.maintBase, /^sha256:[a-f0-9]{64}$/);
   assert.match(projection.hashes.maint, /^sha256:[a-f0-9]{64}$/);
   assert.match(projection.hashes.relation, /^sha256:[a-f0-9]{64}$/);
   assert.match(projection.hashes.local, /^sha256:[a-f0-9]{64}$/);
@@ -64,6 +68,7 @@ test('NPC T0 SQL is isolated and proves rollback commit restore for fixture rows
   assert.match(sql, /'restore'/);
   for (const table of [
     'source_dataset_landings',
+    'maint_npcs',
     'maint_npc_crawler_facts',
     'item_npc_shop_relations',
     'item_npc_loot_relations',
@@ -74,17 +79,23 @@ test('NPC T0 SQL is isolated and proves rollback commit restore for fixture rows
   const detailInsert = sql.match(/INSERT INTO `[^`]+`\.`item_source_details`[\s\S]*?;/)?.[0] ?? '';
   assert.doesNotMatch(detailInsert, /`confidence`|`review_status`|`reason`/);
 
-  const zero = Array(9).fill(0).join('\t');
-  const one = Array(9).fill(1).join('\t');
+  const zero = Array(10).fill(0).join('\t');
+  const one = Array(10).fill(1).join('\t');
   const output = [
     `rollback\t${zero}`,
     `commit\t${one}`,
+    `base_identity\t${projection.maintBase.landingSourceId}\t${projection.maintBase.landingSourceKey}\t${projection.maintBase.landingContentHash}`,
     `identity\t${projection.evidence.normalizedContentHash}\t${projection.evidence.auditContentHash}\t${projection.maintFact.recordKey}`,
     `restore\t${zero}`,
   ].join('\n');
   const parsed = acceptance.parseNpcCanonicalT0Output(output, projection);
   assert.equal(parsed.status, 'passed');
-  assert.deepEqual(parsed.commit, Array(9).fill(1));
+  assert.deepEqual(parsed.commit, Array(10).fill(1));
+  assert.deepEqual(parsed.baseIdentity, [
+    String(projection.maintBase.landingSourceId),
+    projection.maintBase.landingSourceKey,
+    projection.maintBase.landingContentHash,
+  ]);
   assert.throws(
     () => acceptance.parseNpcCanonicalT0Output(output.replace(`restore\t${zero}`, `restore\t1\t${zero}`), projection),
     /restore/i,
@@ -96,13 +107,14 @@ test('NPC scoped T0 executor returns CODE_READY fixture evidence from database q
   const projection = acceptance.buildNpcCanonicalT0Projection({
     runKey: 'npc_0123456789abcdef',
   });
-  const zero = Array(9).fill(0).join('\t');
-  const one = Array(9).fill(1).join('\t');
+  const zero = Array(10).fill(0).join('\t');
+  const one = Array(10).fill(1).join('\t');
   const outputs = [
     acceptance.EXPECTED_NPC_T0_SCHEMA_EVIDENCE.map((entry) => entry.join('\t')).join('\n'),
     [
       `rollback\t${zero}`,
       `commit\t${one}`,
+      `base_identity\t${projection.maintBase.landingSourceId}\t${projection.maintBase.landingSourceKey}\t${projection.maintBase.landingContentHash}`,
       `identity\t${projection.evidence.normalizedContentHash}\t${projection.evidence.auditContentHash}\t${projection.maintFact.recordKey}`,
       `restore\t${zero}`,
     ].join('\n'),
@@ -124,6 +136,12 @@ test('NPC scoped T0 executor returns CODE_READY fixture evidence from database q
   assert.equal(result.status, 'passed');
   assert.equal(result.readiness.readinessLevel, 'CODE_READY');
   assert.equal(result.readiness.summary.status, 'pass');
+  assert.deepEqual(result.readiness.maint.base, {
+    count: 1,
+    currentCount: 1,
+    localCount: 1,
+    snapshotHash: projection.hashes.maintBase,
+  });
   assert.deepEqual(result.counts, projection.counts);
   assert.equal(calls[1].targetDatabase, DATABASES.local);
   await assert.rejects(

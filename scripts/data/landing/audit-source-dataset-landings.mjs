@@ -61,6 +61,17 @@ export function buildDomainAuditPlan(compareDatabase) {
   ];
 }
 
+export function resolveAuditDatabases(args = {}, env = process.env, databaseConfig = {}) {
+  const primaryDatabase = args.database
+    ?? env.TERRAPEDIA_DB_NAME
+    ?? databaseConfig.name
+    ?? 'terria_v1_local';
+  return {
+    primaryDatabase,
+    compareDatabase: args['compare-db'] ?? env.TERRAPEDIA_COMPARE_DB_NAME ?? primaryDatabase,
+  };
+}
+
 export function buildLandingIntegrityQueries() {
   return [
     {
@@ -189,7 +200,7 @@ async function queryCount(connection, databaseName, tableName) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const config = loadLocalStackConfig(repoRoot);
-  const compareDatabase = args['compare-db'] ?? 'terria_v1_item_staging_20260413_r2';
+  const { primaryDatabase, compareDatabase } = resolveAuditDatabases(args, process.env, config.database);
   const generatedAt = new Date().toISOString();
   const reportPath = path.resolve(
     repoRoot,
@@ -201,7 +212,7 @@ async function main() {
     port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
     user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
     password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
-    database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local',
+    database: primaryDatabase,
   });
 
   try {
@@ -225,7 +236,7 @@ async function main() {
     for (const planEntry of buildDomainAuditPlan(compareDatabase)) {
       businessTableCounts.push({
         ...planEntry,
-        localCount: await queryCount(connection, connection.config.database, planEntry.localTable),
+        localCount: await queryCount(connection, primaryDatabase, planEntry.localTable),
         compareCount: await queryCount(connection, compareDatabase, planEntry.compareTable),
       });
     }

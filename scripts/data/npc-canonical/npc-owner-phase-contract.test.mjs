@@ -7,6 +7,8 @@ import test from 'node:test';
 
 import { TABLE_OWNERSHIP_MATRIX } from '../automation/table-ownership-matrix.mjs';
 import { NPC_APPLY_OWNER_PHASES } from './npc-apply-ownership-preparation.mjs';
+import * as ownershipPreparation from './npc-apply-ownership-preparation.mjs';
+import * as ownerPhase from './npc-owner-phase-apply.mjs';
 import {
   buildCanonicalNpcApplyCompletion,
   buildNpcOwnerOperationPlan,
@@ -52,7 +54,10 @@ function operationDefinition(operationId) {
       requiredOperationIds: [],
     };
   }
-  return NPC_APPLY_OWNER_PHASES.find((phase) => phase.operationId === operationId);
+  return NPC_APPLY_OWNER_PHASES.find((phase) => phase.operationId === operationId)
+    ?? (operationId === 'canonical-npc-item-relation-lineage-repair'
+      ? ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION
+      : undefined);
 }
 
 function completedResult(operationId, inputHash, overrides = {}) {
@@ -105,6 +110,29 @@ test('landing ownership is partitioned explicitly and every downstream phase bin
   assert.equal(NPC_APPLY_OWNER_PHASES[6].requiredOperationIds.length, 7);
 });
 
+test('NPC item relation lineage repair is independent from the consumed seven-phase completion', () => {
+  assert.deepEqual(ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION, {
+    phaseIndex: 8,
+    operationId: 'canonical-npc-item-relation-lineage-repair',
+    capability: 'items',
+    ownershipKeys: [
+      'relation.item_source_facts.items',
+      'relation.item_source_details.items',
+    ],
+    requiredOperationIds: [
+      'canonical-npc-landing-apply',
+      'canonical-npc-facts-maint-apply',
+      'canonical-npc-item-relations-apply',
+    ],
+  });
+  assert.equal(
+    NPC_APPLY_OWNER_PHASES.some((phase) => (
+      phase.operationId === ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId
+    )),
+    false,
+  );
+});
+
 test('operation plan binds one raw input hash and rejects incomplete or drifted predecessors', async () => {
   const input = inputEnvelope();
   const inputHash = hashBytes(input.bytes);
@@ -154,6 +182,174 @@ test('operation plan binds one raw input hash and rejects incomplete or drifted 
       requiredResults: [{ ...maint.requiredResults[0], contentHash: `sha256:${'d'.repeat(64)}` }],
     }],
   }), /predecessor result hash mismatch/i);
+});
+
+test('lineage repair plan binds the original item-relation result without replacing it', async () => {
+  const input = inputEnvelope();
+  const inputHash = hashBytes(input.bytes);
+  const predecessors = completedChain(inputHash).slice(0, 3);
+  const plan = await buildNpcOwnerOperationPlan({
+    operationId: 'canonical-npc-item-relation-lineage-repair',
+    input,
+    requiredResults: predecessors,
+  });
+
+  assert.deepEqual(plan.requiredResults.map((entry) => entry.operationId), [
+    'canonical-npc-landing-apply',
+    'canonical-npc-facts-maint-apply',
+    'canonical-npc-item-relations-apply',
+  ]);
+  assert.deepEqual(plan.ownershipKeys, [
+    'relation.item_source_facts.items',
+    'relation.item_source_details.items',
+  ]);
+  await assert.rejects(
+    () => buildNpcOwnerOperationPlan({
+      operationId: plan.operationId,
+      input,
+      requiredResults: predecessors.slice(0, 2),
+    }),
+    /required predecessor.*canonical-npc-item-relations-apply/i,
+  );
+});
+
+test('lineage repair projection preserves deterministic keys and binds NPC maint ownership', () => {
+  assert.equal(typeof ownerPhase.buildNpcItemRelationLineageRepairProjection, 'function');
+  const projection = ownerPhase.buildNpcItemRelationLineageRepairProjection({
+    maintNpcCrawlerFactRows: [{
+      id: 901,
+      record_key: 'a'.repeat(64),
+      npc_source_id: 17,
+      npc_internal_name: 'Merchant',
+      npc_name: 'Merchant',
+      match_status: 'MATCHED',
+      shop_facts_json: JSON.stringify([{ itemName: 'Torch' }]),
+      loot_facts_json: JSON.stringify([{ itemName: 'Mining Helmet' }]),
+    }],
+    maintItems: [
+      { source_id: 8, internal_name: 'Torch', name: 'Torch' },
+      { source_id: 88, internal_name: 'MiningHelmet', name: 'Mining Helmet' },
+    ],
+    maintNpcs: [{ source_id: 17, internal_name: 'Merchant', name: 'Merchant' }],
+  });
+
+  assert.equal(projection.sourceFacts.length, 2);
+  assert.equal(projection.sourceDetails.length, 2);
+  assert.equal(new Set(projection.sourceFacts.map((row) => row.recordKey)).size, 2);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintTable === 'maint_npc_crawler_facts'), true);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintRecordKey === 'a'.repeat(64)), true);
+  assert.equal(projection.sourceDetails.every((row) => row.sourceMaintTable === 'maint_npc_crawler_facts'), true);
+});
+
+test('lineage repair adapter writes only two tables and rolls back on NPC maint readback drift', async () => {
+  const definition = ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION;
+  const normalizedHashes = Array.from({ length: 25 }, (_, index) => index.toString(16).padStart(64, '0'));
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.payload.evidencePairs = normalizedHashes.map((normalizedContentHash, index) => ({
+    entityId: `npc-${index + 1}`,
+    normalizedContentHash,
+  }));
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const plan = {
+    operationId: definition.operationId,
+    phaseIndex: definition.phaseIndex,
+    capability: definition.capability,
+    ownershipKeys: [...definition.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const facts = normalizedHashes.map((normalizedContentHash, index) => ({
+    id: index + 1,
+    record_key: (index + 1).toString(16).padStart(64, '0'),
+    normalized_content_hash: normalizedContentHash,
+    npc_source_id: 17,
+    npc_internal_name: 'Merchant',
+    npc_name: 'Merchant',
+    match_status: 'MATCHED',
+    shop_facts_json: index === 0 ? JSON.stringify([{ itemName: 'Torch' }]) : '[]',
+    loot_facts_json: index === 0 ? JSON.stringify([{ itemName: 'Mining Helmet' }]) : '[]',
+  }));
+  const buildConnection = ({ readbackCount = 2 } = {}) => {
+    const calls = [];
+    return {
+      calls,
+      connection: {
+        beginTransaction: async () => calls.push('begin'),
+        query: async (sql) => {
+          calls.push(sql);
+          if (sql.includes('`maint_items`')) {
+            return [[
+              { source_id: 8, internal_name: 'Torch', name: 'Torch' },
+              { source_id: 88, internal_name: 'MiningHelmet', name: 'Mining Helmet' },
+            ]];
+          }
+          if (sql.includes('`maint_npcs`')) {
+            return [[{ source_id: 17, internal_name: 'Merchant', name: 'Merchant' }]];
+          }
+          throw new Error(`unexpected query: ${sql}`);
+        },
+        execute: async (sql, params = []) => {
+          calls.push({ sql, params });
+          if (sql.startsWith('SELECT * FROM')) return [facts];
+          if (sql.startsWith('SELECT COUNT(*)')) return [[{ total: readbackCount }]];
+          if (sql.startsWith('INSERT INTO')) return [{}];
+          throw new Error(`unexpected execute: ${sql}`);
+        },
+        commit: async () => calls.push('commit'),
+        rollback: async () => calls.push('rollback'),
+        end: async () => calls.push('end'),
+      },
+    };
+  };
+
+  const passing = buildConnection();
+  const result = await executeNpcOwnerOperation({
+    plan,
+    adapter: createCanonicalNpcOwnerMysqlAdapter({
+      plan,
+      connectionFactory: async () => passing.connection,
+    }),
+    completedAt: COMPLETED_AT,
+  });
+  assert.deepEqual(result.rowCounts, {
+    'relation.item_source_facts.items': 2,
+    'relation.item_source_details.items': 2,
+  });
+  const writes = passing.calls.filter((entry) => entry && typeof entry === 'object'
+    && entry.sql.startsWith('INSERT INTO'));
+  assert.equal(writes.length, 4);
+  assert.equal(writes.every(({ sql }) => /`item_source_(?:facts|details)`/.test(sql)), true);
+  assert.equal(writes.every(({ sql }) => !/item_npc_(?:shop|loot)_relations/.test(sql)), true);
+  const readbacks = passing.calls.filter((entry) => entry && typeof entry === 'object'
+    && entry.sql.startsWith('SELECT COUNT(*)'));
+  assert.equal(readbacks.length, 2);
+  assert.equal(readbacks.every(({ sql }) => sql.includes('`maint_npc_crawler_facts`')), true);
+  assert.deepEqual(passing.calls.slice(-2), ['commit', 'end']);
+
+  const failing = buildConnection({ readbackCount: 1 });
+  await assert.rejects(
+    () => executeNpcOwnerOperation({
+      plan,
+      adapter: createCanonicalNpcOwnerMysqlAdapter({
+        plan,
+        connectionFactory: async () => failing.connection,
+      }),
+      completedAt: COMPLETED_AT,
+    }),
+    /readback counts do not match writes/i,
+  );
+  assert.deepEqual(failing.calls.slice(-2), ['rollback', 'end']);
+  assert.equal(failing.calls.includes('commit'), false);
 });
 
 test('production adapter executes only the selected local projection ownership', async () => {

@@ -1,0 +1,542 @@
+{
+  "schemaVersion": 1,
+  "reportKind": "canonical_npc_crawler_facts_readiness",
+  "generatedAt": "2026-07-31T09:54:13.918Z",
+  "readinessLevel": "T1_VERIFIED",
+  "evidenceScope": "t1-real-crawler",
+  "writesDatabase": false,
+  "databaseRole": "t1-readonly",
+  "crawlerRunIdentity": {
+    "runId": "canonical-npc-crawler:sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+    "normalizedArtifactHash": "sha256:1932364341bf56c49adb3d9bffeb324ab7a41636fbb4d1c9c1a213dc013d218d",
+    "auditArtifactHash": "sha256:1fc3ee38808c106de4535c93bd18f9f817b08b5e5758558ecebd75cb3dffe16d"
+  },
+  "t1Evidence": {
+    "rollbackPassed": true,
+    "restorePassed": true,
+    "cleanupPassed": true,
+    "ownerPhaseCompletion": {
+      "schemaVersion": 1,
+      "resultKind": "canonical_npc_apply_completion",
+      "operationId": "canonical-npc-apply",
+      "status": "COMPLETED",
+      "inputHash": "sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+      "landingResultHash": "sha256:f8f1ba0d2228d5fb3e7881b7f9ecb9591e464ef29e9d9d56b2125c0ee371c636",
+      "phaseResultHashes": [
+        "sha256:d23ecafb6b09926066b82523c540d3caf09a690944edf67ccf6ffce24c7e5346",
+        "sha256:7254d4bcb7ea72b4b3cd9a9f843f7d3585932a57a156a089845d25be91be2b58",
+        "sha256:97621fa46b4bf8889dc13c2aa168243579b83bd243155bc23b114e0ef3d28e8f",
+        "sha256:743a6b98669071b016d13aa91f222d3dcf54abc7df5362aeec913cf3f6bb7086",
+        "sha256:4f79f63237ef9d7d237b8c05eff67dcb8b75459ae0bf4a59c031772ba0f29b97",
+        "sha256:00c808c0d4d123233f112c3beb37ba02f0b0903865b0684b25635f9ee2aed985",
+        "sha256:bc0359117fb7d8a465f5c4370f79da1f09d2744946208263356e0737cf1c70d7"
+      ],
+      "operationResults": [
+        {
+          "operationId": "canonical-npc-landing-apply",
+          "path": "reports/authorization/canonical/canonical-npc-landing-apply.result.json",
+          "contentHash": "sha256:f8f1ba0d2228d5fb3e7881b7f9ecb9591e464ef29e9d9d56b2125c0ee371c636",
+          "sizeBytes": 863
+        },
+        {
+          "operationId": "canonical-npc-facts-maint-apply",
+          "path": "reports/authorization/canonical/canonical-npc-facts-maint-apply.result.json",
+          "contentHash": "sha256:d23ecafb6b09926066b82523c540d3caf09a690944edf67ccf6ffce24c7e5346",
+          "sizeBytes": 1039
+        },
+        {
+          "operationId": "canonical-npc-item-relations-apply",
+          "path": "reports/authorization/canonical/canonical-npc-item-relations-apply.result.json",
+          "contentHash": "sha256:7254d4bcb7ea72b4b3cd9a9f843f7d3585932a57a156a089845d25be91be2b58",
+          "sizeBytes": 1580
+        },
+        {
+          "operationId": "canonical-npc-buff-relations-apply",
+          "path": "reports/authorization/canonical/canonical-npc-buff-relations-apply.result.json",
+          "contentHash": "sha256:97621fa46b4bf8889dc13c2aa168243579b83bd243155bc23b114e0ef3d28e8f",
+          "sizeBytes": 1590
+        },
+        {
+          "operationId": "canonical-npc-town-shop-projection-apply",
+          "path": "reports/authorization/canonical/canonical-npc-town-shop-projection-apply.result.json",
+          "contentHash": "sha256:743a6b98669071b016d13aa91f222d3dcf54abc7df5362aeec913cf3f6bb7086",
+          "sizeBytes": 1947
+        },
+        {
+          "operationId": "canonical-npc-buff-projection-apply",
+          "path": "reports/authorization/canonical/canonical-npc-buff-projection-apply.result.json",
+          "contentHash": "sha256:4f79f63237ef9d7d237b8c05eff67dcb8b75459ae0bf4a59c031772ba0f29b97",
+          "sizeBytes": 2173
+        },
+        {
+          "operationId": "canonical-npc-nonboss-loot-projection-apply",
+          "path": "reports/authorization/canonical/canonical-npc-nonboss-loot-projection-apply.result.json",
+          "contentHash": "sha256:00c808c0d4d123233f112c3beb37ba02f0b0903865b0684b25635f9ee2aed985",
+          "sizeBytes": 2476
+        },
+        {
+          "operationId": "canonical-npc-boss-loot-projection-apply",
+          "path": "reports/authorization/canonical/canonical-npc-boss-loot-projection-apply.result.json",
+          "contentHash": "sha256:bc0359117fb7d8a465f5c4370f79da1f09d2744946208263356e0737cf1c70d7",
+          "sizeBytes": 2769
+        }
+      ],
+      "completedAt": "2026-07-29T10:10:27.920Z",
+      "completionHash": "sha256:9252a6563b90d71d9868eb63875debbe13af58bdc0b9411f32140390b78ac79a"
+    }
+  },
+  "cutoverIdentity": null,
+  "landing": {
+    "base": {
+      "fresh": true,
+      "currentCount": 1,
+      "snapshotHash": "sha256:550dfbc60d28887202abb08150217b27d0fdd05950fdc80c77b52ae206f946a1"
+    },
+    "crawlerFacts": {
+      "fresh": true,
+      "currentCount": 25,
+      "normalizedCount": 25,
+      "auditCount": 25,
+      "snapshotHash": "sha256:21a92573162ef285850054e63fd7eed8de21eb4b7b7e5192f0ddb0673fea27c2"
+    }
+  },
+  "maint": {
+    "base": {
+      "count": 762,
+      "currentCount": 762,
+      "localCount": 762,
+      "snapshotHash": "sha256:555b5eea9fcda14cc2f9707c8312dee7d1e0d83415996799e7489ade0ab5c479"
+    },
+    "factCount": 25,
+    "matchCounts": {
+      "MATCHED": 16,
+      "UNMATCHED": 0,
+      "AMBIGUOUS": 9,
+      "REJECTED": 0
+    },
+    "snapshotHash": "sha256:564aefa6d0191787c3433270f7229c2936e2c3ef128e38bf2978c241d38f1284",
+    "baseCompletion": {
+      "schemaVersion": 1,
+      "resultKind": "canonical_npc_base_maint_completion",
+      "operationId": "canonical-npc-base-maint-completion",
+      "status": "COMPLETED",
+      "inputHash": "sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+      "landingResultHash": "sha256:f8f1ba0d2228d5fb3e7881b7f9ecb9591e464ef29e9d9d56b2125c0ee371c636",
+      "standardizedHash": "sha256:b6cb15d97193a21817ba39de9b37405279307435d93cb9e2471ad414e65fe44f",
+      "landingLineage": {
+        "id": 12468,
+        "sourceKey": "standardized.npcs",
+        "contentHash": "926efe689bfdee1f8a6960e9bdbcf96ffc558f8e9a7641ddf896a706f3ce42c9"
+      },
+      "partitionCounts": {
+        "non_town": 723,
+        "town": 39
+      },
+      "totalCount": 762,
+      "operationResults": [
+        {
+          "operationId": "canonical-npc-base-maint-nontown-apply",
+          "path": "reports/authorization/canonical/canonical-npc-base-maint-nontown-apply.result.json",
+          "contentHash": "sha256:f49da627e0364d116eef133df613c030e082bda57279a54014d919075c17c19c",
+          "sizeBytes": 1399
+        },
+        {
+          "operationId": "canonical-npc-base-maint-town-apply",
+          "path": "reports/authorization/canonical/canonical-npc-base-maint-town-apply.result.json",
+          "contentHash": "sha256:67d0cea264f7c3113b341ba702245d0c15b35bbbaf2d45d685ec56fcb47cb79d",
+          "sizeBytes": 1407
+        }
+      ],
+      "completedAt": "2026-07-29T23:25:31.638Z",
+      "completionHash": "sha256:4cafccbb237b3514b2248ff48eb5cf4edb451e2377a3ec4112bca53bd6eaa831"
+    }
+  },
+  "relation": {
+    "npcBuff": {
+      "count": 1270,
+      "snapshotHash": "sha256:49515c135557825f1422c66906e9f074dbd6b3651a1c017a8aa19ae0c6bfa7b3"
+    },
+    "npcShop": {
+      "count": 1116,
+      "snapshotHash": "sha256:febae6ac333338d08ed8c592cfc8d7c2a4f646fda482f91e70ee6a0dbc2511ce"
+    },
+    "npcLoot": {
+      "count": 1544,
+      "snapshotHash": "sha256:92771a2b250c83717466896b168bdb5fbe770e2c01550e582bdada33c9e6cc09"
+    },
+    "snapshotHash": "sha256:4c105a5a1a325e2d2986502c3dd04cda360c94bd9cea0cf05db7bfe8ea644bd6"
+  },
+  "local": {
+    "npcBuff": {
+      "count": 1270,
+      "snapshotHash": "sha256:c35a4e2fb395fd395749a796c427732a638da39318b8e50e6160ab218e777bd4"
+    },
+    "npcShop": {
+      "count": 1116,
+      "snapshotHash": "sha256:6aba01425ca9e21c132e801c57da9aeb6a273fb994732736bc822c21fea4334a"
+    },
+    "npcLoot": {
+      "count": 1880,
+      "snapshotHash": "sha256:9c942e658b69e07a90120ea305ddc6dd2d15bc12449844884caa105736a0da52"
+    },
+    "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37"
+  },
+  "runtime": {
+    "sampleCount": 1,
+    "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37",
+    "sample": {
+      "id": -65,
+      "internalName": "BigHornetStingy"
+    }
+  },
+  "api": {
+    "admin": {
+      "sampleCount": 1,
+      "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37",
+      "error": null
+    },
+    "public": {
+      "sampleCount": 1,
+      "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37",
+      "error": null
+    }
+  },
+  "bridgeRetirement": {
+    "referenceCount": 0,
+    "snapshotHash": "sha256:bb9874dda52f277dc9af23b1308b9868bd7cd664b925224460cd692f2591db7b"
+  },
+  "checks": [
+    {
+      "id": "schema-version",
+      "status": "pass",
+      "message": "NPC canonical schemaVersion must be 1"
+    },
+    {
+      "id": "report-kind",
+      "status": "pass",
+      "message": "NPC canonical reportKind is invalid"
+    },
+    {
+      "id": "generated-at",
+      "status": "pass",
+      "message": "NPC canonical generatedAt must be a valid timestamp"
+    },
+    {
+      "id": "evidence-scope",
+      "status": "pass",
+      "message": "NPC canonical evidence scope is invalid"
+    },
+    {
+      "id": "readiness-level",
+      "status": "pass",
+      "message": "NPC canonical readiness level does not match evidence scope"
+    },
+    {
+      "id": "read-only",
+      "status": "pass",
+      "message": "NPC canonical readiness must declare writesDatabase=false"
+    },
+    {
+      "id": "database-role",
+      "status": "pass",
+      "message": "NPC T1 readiness databaseRole must be t1-readonly"
+    },
+    {
+      "id": "crawler-run-id",
+      "status": "pass",
+      "message": "NPC T1 requires a real crawler run identity"
+    },
+    {
+      "id": "crawler-normalized-hash",
+      "status": "pass",
+      "message": "NPC T1 normalized crawler artifact hash is missing"
+    },
+    {
+      "id": "crawler-audit-hash",
+      "status": "pass",
+      "message": "NPC T1 crawler audit artifact hash is missing"
+    },
+    {
+      "id": "t1-rollback",
+      "status": "pass",
+      "message": "NPC T1 rollback evidence must pass"
+    },
+    {
+      "id": "t1-restore",
+      "status": "pass",
+      "message": "NPC T1 restore evidence must pass"
+    },
+    {
+      "id": "t1-cleanup",
+      "status": "pass",
+      "message": "NPC T1 zero-leak cleanup evidence must pass"
+    },
+    {
+      "id": "owner-phase-completion-status",
+      "status": "pass",
+      "message": "NPC owner-phase completion must be COMPLETED for canonical-npc-apply"
+    },
+    {
+      "id": "owner-phase-completion-input",
+      "status": "pass",
+      "message": "NPC owner-phase completion input hash must be SHA-256"
+    },
+    {
+      "id": "owner-phase-completion-landing",
+      "status": "pass",
+      "message": "NPC owner-phase completion landing result hash must be SHA-256"
+    },
+    {
+      "id": "owner-phase-completion-results",
+      "status": "pass",
+      "message": "NPC owner-phase completion must bind exactly seven phase result hashes"
+    },
+    {
+      "id": "landing-base-fresh",
+      "status": "pass",
+      "message": "NPC base landing must be fresh"
+    },
+    {
+      "id": "landing-base-count",
+      "status": "pass",
+      "message": "NPC base landing must have exactly one current row"
+    },
+    {
+      "id": "landing-base-hash",
+      "status": "pass",
+      "message": "NPC base landing snapshot hash must be SHA-256"
+    },
+    {
+      "id": "landing-crawler-fresh",
+      "status": "pass",
+      "message": "NPC crawler-fact landing must be fresh"
+    },
+    {
+      "id": "landing-crawler-count",
+      "status": "pass",
+      "message": "NPC crawler-fact landing must be non-empty"
+    },
+    {
+      "id": "landing-crawler-paired",
+      "status": "pass",
+      "message": "NPC crawler normalized and audit evidence counts must match current landing facts"
+    },
+    {
+      "id": "landing-crawler-hash",
+      "status": "pass",
+      "message": "NPC crawler-fact landing snapshot hash must be SHA-256"
+    },
+    {
+      "id": "maint-base-count",
+      "status": "pass",
+      "message": "NPC maint base rows must be non-empty"
+    },
+    {
+      "id": "maint-base-current",
+      "status": "pass",
+      "message": "Every active NPC maint base row must bind the current canonical base landing"
+    },
+    {
+      "id": "maint-base-local-parity",
+      "status": "pass",
+      "message": "NPC maint base row count must match the active local NPC projection count"
+    },
+    {
+      "id": "maint-base-hash",
+      "status": "pass",
+      "message": "NPC maint base snapshot hash must be SHA-256"
+    },
+    {
+      "id": "maint-fact-count",
+      "status": "pass",
+      "message": "NPC maint crawler facts must be non-empty"
+    },
+    {
+      "id": "maint-matched-count",
+      "status": "pass",
+      "message": "NPC maint MATCHED count must be a non-negative integer"
+    },
+    {
+      "id": "maint-unmatched-count",
+      "status": "pass",
+      "message": "NPC maint UNMATCHED count must be a non-negative integer"
+    },
+    {
+      "id": "maint-ambiguous-count",
+      "status": "pass",
+      "message": "NPC maint AMBIGUOUS count must be a non-negative integer"
+    },
+    {
+      "id": "maint-rejected-count",
+      "status": "pass",
+      "message": "NPC maint REJECTED count must be a non-negative integer"
+    },
+    {
+      "id": "maint-matched-positive",
+      "status": "pass",
+      "message": "NPC maint requires at least one MATCHED crawler fact"
+    },
+    {
+      "id": "maint-four-state-total",
+      "status": "pass",
+      "message": "NPC maint four-state counts must equal the total fact count"
+    },
+    {
+      "id": "maint-hash",
+      "status": "pass",
+      "message": "NPC maint snapshot hash must be SHA-256"
+    },
+    {
+      "id": "maint-base-completion-status",
+      "status": "pass",
+      "message": "NPC base maint completion must be COMPLETED"
+    },
+    {
+      "id": "maint-base-completion-input",
+      "status": "pass",
+      "message": "NPC base maint completion input hash must match the owner-phase completion"
+    },
+    {
+      "id": "maint-base-completion-landing",
+      "status": "pass",
+      "message": "NPC base maint completion landing result hash must match the owner-phase completion"
+    },
+    {
+      "id": "maint-base-completion-standardized",
+      "status": "pass",
+      "message": "NPC base maint completion standardized hash must be SHA-256"
+    },
+    {
+      "id": "maint-base-completion-hash",
+      "status": "pass",
+      "message": "NPC base maint completion hash must be SHA-256"
+    },
+    {
+      "id": "maint-base-completion-partitions",
+      "status": "pass",
+      "message": "NPC base maint completion partition counts must match the formal maint base snapshot"
+    },
+    {
+      "id": "maint-base-completion-results",
+      "status": "pass",
+      "message": "NPC base maint completion must bind the exact two partition results"
+    },
+    {
+      "id": "relation-npcBuff-count",
+      "status": "pass",
+      "message": "NPC relation npcBuff rows must be non-empty"
+    },
+    {
+      "id": "relation-npcBuff-hash",
+      "status": "pass",
+      "message": "NPC relation npcBuff hash must be SHA-256"
+    },
+    {
+      "id": "relation-npcShop-count",
+      "status": "pass",
+      "message": "NPC relation npcShop rows must be non-empty"
+    },
+    {
+      "id": "relation-npcShop-hash",
+      "status": "pass",
+      "message": "NPC relation npcShop hash must be SHA-256"
+    },
+    {
+      "id": "relation-npcLoot-count",
+      "status": "pass",
+      "message": "NPC relation npcLoot rows must be non-empty"
+    },
+    {
+      "id": "relation-npcLoot-hash",
+      "status": "pass",
+      "message": "NPC relation npcLoot hash must be SHA-256"
+    },
+    {
+      "id": "relation-hash",
+      "status": "pass",
+      "message": "NPC relation snapshot hash must be SHA-256"
+    },
+    {
+      "id": "local-npcBuff-count",
+      "status": "pass",
+      "message": "NPC local npcBuff rows must be non-empty"
+    },
+    {
+      "id": "local-npcBuff-hash",
+      "status": "pass",
+      "message": "NPC local npcBuff hash must be SHA-256"
+    },
+    {
+      "id": "local-npcShop-count",
+      "status": "pass",
+      "message": "NPC local npcShop rows must be non-empty"
+    },
+    {
+      "id": "local-npcShop-hash",
+      "status": "pass",
+      "message": "NPC local npcShop hash must be SHA-256"
+    },
+    {
+      "id": "local-npcLoot-count",
+      "status": "pass",
+      "message": "NPC local npcLoot rows must be non-empty"
+    },
+    {
+      "id": "local-npcLoot-hash",
+      "status": "pass",
+      "message": "NPC local npcLoot hash must be SHA-256"
+    },
+    {
+      "id": "local-hash",
+      "status": "pass",
+      "message": "NPC local snapshot hash must be SHA-256"
+    },
+    {
+      "id": "runtime-positive",
+      "status": "pass",
+      "message": "NPC runtime requires a positive sample"
+    },
+    {
+      "id": "runtime-hash",
+      "status": "pass",
+      "message": "NPC runtime snapshot hash must match local"
+    },
+    {
+      "id": "api-admin-positive",
+      "status": "pass",
+      "message": "NPC admin API requires a positive sample"
+    },
+    {
+      "id": "api-admin-hash",
+      "status": "pass",
+      "message": "NPC admin API snapshot hash must match local"
+    },
+    {
+      "id": "api-public-positive",
+      "status": "pass",
+      "message": "NPC public API requires a positive sample"
+    },
+    {
+      "id": "api-public-hash",
+      "status": "pass",
+      "message": "NPC public API snapshot hash must match local"
+    },
+    {
+      "id": "bridge-reference-count",
+      "status": "pass",
+      "message": "NPC bridge production reference count must be zero"
+    },
+    {
+      "id": "bridge-hash",
+      "status": "pass",
+      "message": "NPC bridge retirement snapshot hash must be SHA-256"
+    }
+  ],
+  "blockingReasons": [],
+  "warningReasons": [],
+  "summary": {
+    "status": "pass",
+    "blockingCount": 0,
+    "warningCount": 0
+  }
+}

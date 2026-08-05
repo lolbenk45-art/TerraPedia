@@ -24,6 +24,7 @@ import { buildRelationCompatSyncSql } from '../relation/sync-relation-to-local-c
 import { buildNpcCrawlerFactMaintRow } from './npc-canonical-contract.mjs';
 import {
   NPC_APPLY_OWNER_PHASES,
+  NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION,
   buildNpcApplyOwnershipPreparation,
 } from './npc-apply-ownership-preparation.mjs';
 
@@ -50,6 +51,7 @@ const LANDING_DEFINITION = Object.freeze({
 const OPERATION_DEFINITIONS = new Map([
   [LANDING_OPERATION_ID, LANDING_DEFINITION],
   ...NPC_APPLY_OWNER_PHASES.map((phase) => [phase.operationId, phase]),
+  [NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId, NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION],
 ]);
 
 export async function buildNpcOwnerOperationPlan({
@@ -328,8 +330,9 @@ async function applyOwnedOperation({ connection, repoRoot, operationId, input, i
   if (operationId === 'canonical-npc-facts-maint-apply') {
     return applyMaintFactsOperation({ connection, input, ownershipKeys, databases });
   }
-  if (operationId === 'canonical-npc-item-relations-apply') {
-    return applyItemRelationsOperation({ connection, input, ownershipKeys, databases });
+  if (operationId === 'canonical-npc-item-relations-apply'
+      || operationId === NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId) {
+    return applyItemRelationsOperation({ connection, operationId, input, ownershipKeys, databases });
   }
   if (operationId === 'canonical-npc-buff-relations-apply') {
     return applyBuffRelationsOperation({ connection, input, ownershipKeys, databases });
@@ -423,24 +426,30 @@ async function loadFrozenMaintFacts(connection, input, maintDatabase) {
   return rows;
 }
 
-async function applyItemRelationsOperation({ connection, input, ownershipKeys, databases }) {
+async function applyItemRelationsOperation({ connection, operationId, input, ownershipKeys, databases }) {
   const facts = await loadFrozenMaintFacts(connection, input, databases.maint);
   const [[maintItems], [maintNpcs]] = await Promise.all([
     connection.query(`SELECT * FROM \`${databases.maint}\`.\`maint_items\` WHERE status = 1 AND deleted = 0`),
     connection.query(`SELECT * FROM \`${databases.maint}\`.\`maint_npcs\` WHERE status = 1 AND deleted = 0`),
   ]);
-  const relationInputs = buildNpcCrawlerFactRelationInputs({ maintNpcCrawlerFactRows: facts });
-  const projection = buildItemSourceRelations({
-    itemSourceRows: relationInputs.itemSourceRows,
-    itemIndex: buildLookupIndex(maintItems),
-    npcIndex: buildLookupIndex(maintNpcs),
+  const projection = buildNpcItemRelationLineageRepairProjection({
+    maintNpcCrawlerFactRows: facts,
+    maintItems,
+    maintNpcs,
   });
-  const groups = [
+  const allGroups = [
     ['item_source_facts', projection.sourceFacts],
     ['item_source_details', projection.sourceDetails],
     ['item_npc_shop_relations', projection.npcShopRelations],
     ['item_npc_loot_relations', projection.npcLootRelations],
   ];
+  const groups = operationId === NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId
+    ? allGroups.slice(0, 2)
+    : allGroups;
+  if (operationId === NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId
+      && groups.some(([, rows]) => rows.length === 0)) {
+    throw new Error('NPC item relation lineage repair requires non-empty source fact and detail rows');
+  }
   for (const [table, rows] of groups) await upsertRows(connection, databases.relation, table, rows);
   return {
     rowCounts: Object.fromEntries(ownershipKeys.map((key, index) => [key, groups[index][1].length])),
@@ -449,6 +458,26 @@ async function applyItemRelationsOperation({ connection, input, ownershipKeys, d
       groups[index][1].map((row) => row.recordKey).sort(),
     ])),
   };
+}
+
+export function buildNpcItemRelationLineageRepairProjection({
+  maintNpcCrawlerFactRows = [],
+  maintItems = [],
+  maintNpcs = [],
+} = {}) {
+  const relationInputs = buildNpcCrawlerFactRelationInputs({ maintNpcCrawlerFactRows });
+  const projection = buildItemSourceRelations({
+    itemSourceRows: relationInputs.itemSourceRows,
+    itemIndex: buildLookupIndex(maintItems),
+    npcIndex: buildLookupIndex(maintNpcs),
+  });
+  for (const row of [...projection.sourceFacts, ...projection.sourceDetails]) {
+    if (row.sourceMaintTable !== 'maint_npc_crawler_facts'
+        || !String(row.sourceMaintRecordKey ?? '').trim()) {
+      throw new Error('NPC item relation lineage repair projection lost maint_npc_crawler_facts ownership');
+    }
+  }
+  return projection;
 }
 
 async function applyBuffRelationsOperation({ connection, input, ownershipKeys, databases }) {
@@ -559,6 +588,19 @@ async function readOwnedOperationCounts({
       ),
     ])));
   }
+  if (operationId === NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId) {
+    const tables = ['item_source_facts', 'item_source_details'];
+    return Object.fromEntries(await Promise.all(ownershipKeys.map(async (ownershipKey, index) => [
+      ownershipKey,
+      await countNpcMaintLineageRecordKeys(
+        connection,
+        databases.relation,
+        databases.maint,
+        tables[index],
+        recordKeysByOwnershipKey[ownershipKey],
+      ),
+    ])));
+  }
   if (operationId === 'canonical-npc-buff-relations-apply') {
     return {
       [ownershipKeys[0]]: await countRecordKeys(
@@ -602,6 +644,21 @@ async function countRecordKeys(connection, database, table, recordKeys) {
   const [rows] = await connection.execute(
     `SELECT COUNT(*) AS total FROM \`${database}\`.\`${table}\`
      WHERE record_key IN (${recordKeys.map(() => '?').join(', ')})`,
+    recordKeys,
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
+async function countNpcMaintLineageRecordKeys(connection, relationDatabase, maintDatabase, table, recordKeys) {
+  if (!Array.isArray(recordKeys) || recordKeys.length === 0) return 0;
+  const [rows] = await connection.execute(
+    `SELECT COUNT(*) AS total
+     FROM \`${relationDatabase}\`.\`${table}\` r
+     INNER JOIN \`${maintDatabase}\`.\`maint_npc_crawler_facts\` n
+       ON r.source_maint_table = 'maint_npc_crawler_facts'
+      AND BINARY n.record_key = BINARY r.source_maint_record_key
+      AND n.status = 1 AND n.deleted = 0
+     WHERE r.record_key IN (${recordKeys.map(() => '?').join(', ')})`,
     recordKeys,
   );
   return Number(rows[0]?.total ?? 0);

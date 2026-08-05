@@ -40,6 +40,30 @@ test('buildDomainAuditPlan defines comparable landing datasets for local and r2'
   });
 });
 
+test('audit defaults its comparison database to the configured primary database', async () => {
+  const auditModule = await loadAuditModule();
+
+  assert.equal(typeof auditModule.resolveAuditDatabases, 'function');
+  assert.deepEqual(
+    auditModule.resolveAuditDatabases({}, {}, { name: 'terria_v1_local' }),
+    {
+      primaryDatabase: 'terria_v1_local',
+      compareDatabase: 'terria_v1_local',
+    },
+  );
+  assert.deepEqual(
+    auditModule.resolveAuditDatabases(
+      { database: 'terria_v1_local', 'compare-db': 'terria_v1_snapshot' },
+      {},
+      { name: 'ignored' },
+    ),
+    {
+      primaryDatabase: 'terria_v1_local',
+      compareDatabase: 'terria_v1_snapshot',
+    },
+  );
+});
+
 test('buildQualifiedCountSql qualifies database and table names safely', async () => {
   const { buildQualifiedCountSql } = await loadAuditModule();
   assert.equal(

@@ -5,13 +5,14 @@ import {
   buildNpcCrawlerFactMaintRow,
   verifyNpcBridgeRetirement,
 } from './npc-canonical-contract.mjs';
+import { EXPECTED_NPC_T0_SCHEMA_EVIDENCE } from './npc-canonical-t1-contract.mjs';
 import { buildNpcCanonicalReadinessReport } from './npc-canonical-readiness.mjs';
 import { buildItemSourceRelations } from '../relation/item-source-relation-processor.mjs';
 import { buildNpcCrawlerFactRelationInputs } from '../relation/sync-maint-to-relation.mjs';
 import { buildBuffRelationSyncPayload } from '../relation/sync-buffs-to-relation.mjs';
 
-const ZERO_COUNTS = Object.freeze(Array(9).fill(0));
-const COMMIT_COUNTS = Object.freeze(Array(9).fill(1));
+const ZERO_COUNTS = Object.freeze(Array(10).fill(0));
+const COMMIT_COUNTS = Object.freeze(Array(10).fill(1));
 const FIXTURE_IDS = Object.freeze({
   baseLanding: 910001,
   crawlerLanding: 910002,
@@ -24,23 +25,17 @@ const FIXTURE_IDS = Object.freeze({
   localBuff: 930003,
 });
 
-export const EXPECTED_NPC_T0_SCHEMA_EVIDENCE = Object.freeze([
-  ['local', 'source_dataset_landings'],
-  ['local', 'items'],
-  ['local', 'npcs'],
-  ['local', 'buffs'],
-  ['local', 'npc_buff_relations'],
-  ['local', 'npc_shop_entries'],
-  ['local', 'npc_loot_entries'],
-  ['maint', 'maint_npc_crawler_facts'],
-  ['relation', 'item_source_facts'],
-  ['relation', 'item_source_details'],
-  ['relation', 'item_npc_shop_relations'],
-  ['relation', 'item_npc_loot_relations'],
-  ['relation', 'npc_buff_relations'],
-]);
+export { EXPECTED_NPC_T0_SCHEMA_EVIDENCE };
 
 const INSERT_COLUMNS = Object.freeze({
+  maint_npcs: [
+    'sourceId', 'internalName', 'englishName', 'nameZh', 'subNameZh',
+    'sourceProvider', 'sourcePage', 'sourceRevisionTimestamp', 'landingSourceId',
+    'landingSourceKey', 'landingSourcePage', 'landingContentHash', 'landingFetchedAt',
+    'landingParsedAt', 'moduleGeneratedAt', 'terrariaVersion', 'majorValue',
+    'combatValue', 'defenseValue', 'useTime', 'stackSize', 'width', 'height',
+    'flagsJson', 'rawJson', 'status', 'deleted',
+  ],
   maint_npc_crawler_facts: [
     'recordKey', 'npcIdentityKey', 'npcSourceId', 'npcInternalName', 'npcName',
     'matchStatus', 'matchReason', 'sourcePage', 'sourceRevisionTimestamp', 'fetchedAt',
@@ -120,7 +115,14 @@ export function buildNpcCanonicalT0Projection({ runKey } = {}) {
     normalizedContentHash: hashJson(normalized, false),
   };
   const evidence = buildNpcCrawlerFactEvidence({ normalized, audit });
-  const basePayload = { records: [{ id: 477, internalName: 'Medusa', name: 'Medusa' }] };
+  const baseRecord = {
+    id: 477,
+    internalName: 'Medusa',
+    name: 'Medusa',
+    flags: { friendly: false, boss: false },
+    extras: { townNPC: false },
+  };
+  const basePayload = { records: [baseRecord] };
   const baseLanding = {
     id: FIXTURE_IDS.baseLanding,
     datasetType: 'npcs_base_raw',
@@ -160,6 +162,35 @@ export function buildNpcCanonicalT0Projection({ runKey } = {}) {
     producerVersion: '1',
     producerRunKey: runKey,
     isCurrent: 1,
+  };
+  const maintBase = {
+    sourceId: baseRecord.id,
+    internalName: baseRecord.internalName,
+    englishName: baseRecord.name,
+    nameZh: null,
+    subNameZh: null,
+    sourceProvider: baseLanding.provider,
+    sourcePage: baseLanding.sourcePage,
+    sourceRevisionTimestamp: baseLanding.sourceRevisionTimestamp,
+    landingSourceId: baseLanding.id,
+    landingSourceKey: baseLanding.sourceKey,
+    landingSourcePage: baseLanding.sourcePage,
+    landingContentHash: baseLanding.contentHash,
+    landingFetchedAt: baseLanding.fetchedAt,
+    landingParsedAt: baseLanding.parsedAt,
+    moduleGeneratedAt: null,
+    terrariaVersion: null,
+    majorValue: null,
+    combatValue: null,
+    defenseValue: null,
+    useTime: null,
+    stackSize: null,
+    width: null,
+    height: null,
+    flagsJson: JSON.stringify({ friendly: false, townNpc: false, boss: false }),
+    rawJson: JSON.stringify(baseRecord),
+    status: 1,
+    deleted: 0,
   };
   const maintFact = buildNpcCrawlerFactMaintRow({
     landingRow: {
@@ -220,17 +251,19 @@ export function buildNpcCanonicalT0Projection({ runKey } = {}) {
     evidence,
     baseLanding,
     crawlerLanding,
+    maintBase,
     maintFact,
     relation,
     local,
     counts: {
       landing: { base: 1, crawlerFacts: 1, normalized: 1, audit: 1 },
-      maint: { facts: 1, matched: 1, unmatched: 0, ambiguous: 0, rejected: 0 },
+      maint: { base: 1, facts: 1, matched: 1, unmatched: 0, ambiguous: 0, rejected: 0 },
       relation: { npcBuff: 1, npcShop: 1, npcLoot: 1 },
       local: { npcBuff: 1, npcShop: 1, npcLoot: 1 },
     },
     hashes: {
       landing: hashJson([baseLanding, crawlerLanding]),
+      maintBase: hashJson([maintBase]),
       maint: hashJson([maintFact]),
       relation: hashJson(relation),
       relationNpcBuff: hashJson(relation.npcBuff),
@@ -267,6 +300,7 @@ export function buildNpcCanonicalT0Sql({ databases, projection } = {}) {
   return [
     'START TRANSACTION', apply, 'ROLLBACK', countSql('rollback', names),
     'START TRANSACTION', apply, 'COMMIT', countSql('commit', names),
+    `SELECT 'base_identity', \`landing_source_id\`, \`landing_source_key\`, \`landing_content_hash\` FROM \`${names.maint}\`.\`maint_npcs\` WHERE \`source_id\` = ${projection.maintBase.sourceId}`,
     `SELECT 'identity', \`normalized_content_hash\`, \`crawler_audit_hash\`, \`record_key\` FROM \`${names.maint}\`.\`maint_npc_crawler_facts\` WHERE \`record_key\` = ${sqlValue(projection.maintFact.recordKey)}`,
     'START TRANSACTION', restore, 'COMMIT', countSql('restore', names),
   ].join(';\n') + ';\n';
@@ -289,7 +323,19 @@ export function parseNpcCanonicalT0Output(output, projection) {
     || identity[3] !== projection.maintFact.recordKey) {
     throw new Error('NPC canonical T0 paired evidence identity is invalid');
   }
-  return { status: 'passed', ...counts, identity: identity.slice(1) };
+  const baseIdentity = rows.find(([label]) => label === 'base_identity');
+  if (!baseIdentity
+      || baseIdentity[1] !== String(projection.maintBase.landingSourceId)
+      || baseIdentity[2] !== projection.maintBase.landingSourceKey
+      || baseIdentity[3] !== projection.maintBase.landingContentHash) {
+    throw new Error('NPC canonical T0 base landing lineage is invalid');
+  }
+  return {
+    status: 'passed',
+    ...counts,
+    baseIdentity: baseIdentity.slice(1),
+    identity: identity.slice(1),
+  };
 }
 
 export async function runNpcCanonicalT0Acceptance({
@@ -334,6 +380,12 @@ export async function runNpcCanonicalT0Acceptance({
         },
       },
       maint: {
+        base: {
+          count: 1,
+          currentCount: 1,
+          localCount: 1,
+          snapshotHash: projection.hashes.maintBase,
+        },
         factCount: 1,
         matchCounts: { MATCHED: 1, UNMATCHED: 0, AMBIGUOUS: 0, REJECTED: 0 },
         snapshotHash: projection.hashes.maint,
@@ -386,6 +438,7 @@ function buildApplySql(databases, projection) {
   const buff = projection.relation.npcBuff[0];
   return [
     insertRows(local, 'source_dataset_landings', [projection.baseLanding, projection.crawlerLanding]),
+    insertRows(maint, 'maint_npcs', [projection.maintBase], INSERT_COLUMNS.maint_npcs),
     insertRows(maint, 'maint_npc_crawler_facts', [projection.maintFact], INSERT_COLUMNS.maint_npc_crawler_facts),
     `INSERT INTO \`${local}\`.\`items\` (\`id\`, \`name\`, \`internal_name\`) VALUES (${FIXTURE_IDS.torch}, 'Torch', 'Torch'), (${FIXTURE_IDS.medusaHead}, 'Medusa Head', 'MedusaHead')`,
     `INSERT INTO \`${local}\`.\`npcs\` (\`id\`, \`source_id\`, \`internal_name\`, \`name\`) VALUES (${FIXTURE_IDS.medusa}, 477, 'Medusa', 'Medusa')`,
@@ -413,6 +466,7 @@ function buildRestoreSql(databases, projection) {
     `DELETE FROM \`${databases.relation}\`.\`item_source_details\` WHERE \`source_fact_key\` IN (${factKeys})`,
     `DELETE FROM \`${databases.relation}\`.\`item_source_facts\` WHERE \`record_key\` IN (${factKeys})`,
     `DELETE FROM \`${databases.maint}\`.\`maint_npc_crawler_facts\` WHERE \`record_key\` = ${sqlValue(projection.maintFact.recordKey)}`,
+    `DELETE FROM \`${databases.maint}\`.\`maint_npcs\` WHERE \`source_id\` = ${projection.maintBase.sourceId}`,
     `DELETE FROM \`${databases.local}\`.\`source_dataset_landings\` WHERE \`id\` IN (${FIXTURE_IDS.baseLanding}, ${FIXTURE_IDS.crawlerLanding})`,
     `DELETE FROM \`${databases.local}\`.\`buffs\` WHERE \`id\` = ${FIXTURE_IDS.stoned}`,
     `DELETE FROM \`${databases.local}\`.\`npcs\` WHERE \`id\` = ${FIXTURE_IDS.medusa}`,
@@ -424,6 +478,7 @@ function countSql(label, databases) {
   const tables = [
     [databases.local, 'source_dataset_landings', "dataset_type = 'npcs_base_raw'"],
     [databases.local, 'source_dataset_landings', "dataset_type = 'npc_crawler_facts_raw'"],
+    [databases.maint, 'maint_npcs', 'source_id = 477'],
     [databases.maint, 'maint_npc_crawler_facts'],
     [databases.relation, 'npc_buff_relations'],
     [databases.relation, 'item_npc_shop_relations'],

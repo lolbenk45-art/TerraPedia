@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-07-27T16:27:10.505Z",
+  "generatedAt": "2026-07-29T10:50:11.727Z",
   "reportId": "npcBridgeRetirement",
   "retiredPath": "data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json",
   "status": "pass",
   "requiresDatabase": false,
   "writesDatabase": false,
-  "scannedFileCount": 3023,
+  "scannedFileCount": 3295,
   "allowedReferenceCount": 29,
   "allowedReferences": [
     {
