@@ -119,6 +119,7 @@ export async function runNpcT2CutoverVerification({
   repoRoot = process.cwd(),
   outputPath,
   readinessOutputPath = 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json',
+  apiBaseUrl = null,
   verifiedAt = new Date().toISOString(),
   authorizationContext,
 } = {}, dependencies = {}) {
@@ -144,6 +145,7 @@ export async function runNpcT2CutoverVerification({
     repoRoot: root,
     localSnapshotHash: snapshot.local?.snapshotHash ?? null,
     runtimeSample: snapshot.runtime?.sample ?? null,
+    apiBaseUrl,
   });
   const bridgeRetirement = await loadBridgeRetirement(root);
   const result = buildNpcT2CutoverResult({
@@ -340,6 +342,7 @@ async function main() {
     repoRoot,
     outputPath: args.output,
     readinessOutputPath: args['readiness-output'],
+    apiBaseUrl: args.apiBase,
     verifiedAt: args['verified-at'] ?? new Date().toISOString(),
     authorizationContext,
   });

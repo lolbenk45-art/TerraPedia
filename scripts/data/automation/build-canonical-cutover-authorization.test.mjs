@@ -279,7 +279,7 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes all 36 stable governed IDs', () => {
+test('operation request builder exposes all 37 stable governed IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
@@ -300,6 +300,7 @@ test('operation request builder exposes all 36 stable governed IDs', () => {
     'canonical-item-group-bootstrap',
     'canonical-npc-crawler',
     'canonical-npc-t1-acceptance',
+    'canonical-npc-t2-cutover-verification',
     'canonical-npc-apply',
     'canonical-npc-landing-apply',
     'canonical-npc-facts-maint-apply',
@@ -483,6 +484,7 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
       expiresAt: EXPIRES_AT,
     });
     const expectedPaths = operationId === 'canonical-npc-t1-acceptance'
+      || operationId === 'canonical-npc-t2-cutover-verification'
       || operationId === 'canonical-npc-apply'
       || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
       || operationId === 'canonical-npc-item-relation-lineage-repair'

@@ -424,6 +424,122 @@ test('manifest command rejects failed and dry-run canonical result outputs', asy
   }
 });
 
+test('manifest command validates the NPC T2 no-write terminal result', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t2-runner-'));
+  const attemptRoot = `reports/authorization/canonical/canonical-npc-t2-cutover-verification/${'d'.repeat(64)}`;
+  const resultPath = `${attemptRoot}/result.json`;
+  const readinessPath = 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json';
+  const resultOutput = path.join(repoRoot, resultPath);
+  const readinessOutput = path.join(repoRoot, readinessPath);
+  const manifest = {
+    operationId: 'canonical-npc-t2-cutover-verification',
+    command: [
+      'node',
+      'scripts/data/npc-canonical/npc-canonical-t2-cutover.mjs',
+      '--no-write=true',
+      '--apiBase=http://127.0.0.1:18191',
+      `--output=${resultPath}`,
+      `--readiness-output=${readinessPath}`,
+    ],
+    outputPaths: [resultPath, readinessPath],
+    npcT2Attempt: {
+      attemptRoot,
+      packetPath: `${attemptRoot}/packet.json`,
+      permitPath: `${attemptRoot}/permit.json`,
+      resultPath,
+    },
+    noWrite: true,
+    databaseWrites: false,
+  };
+  fs.mkdirSync(path.dirname(resultOutput), { recursive: true, mode: 0o700 });
+  fs.mkdirSync(path.dirname(readinessOutput), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(readinessOutput, '{"summary":{"status":"pass"}}\n', { mode: 0o600 });
+
+  try {
+    for (const [result, error] of [
+      [{
+        operationId: manifest.operationId,
+        resultKind: 'canonical_npc_t2_cutover_result',
+        status: 'completed',
+        noWrite: false,
+        cutoverState: 'T2_CUTOVER_VERIFIED',
+      }, /noWrite.*true/i],
+      [{
+        operationId: manifest.operationId,
+        resultKind: 'canonical_npc_t2_cutover_result',
+        status: 'failed',
+        noWrite: true,
+        cutoverState: 'T2_CUTOVER_VERIFIED',
+      }, /status.*completed/i],
+    ]) {
+      fs.writeFileSync(resultOutput, `${JSON.stringify(result)}\n`, { mode: 0o600 });
+      fs.chmodSync(resultOutput, 0o600);
+      await assert.rejects(() => runExecutionManifestCommand({
+        cwd: repoRoot,
+        manifest,
+        authorizationPacketPath: path.join(repoRoot, `${attemptRoot}/packet.json`),
+        authorizationDispatchPermit: {
+          path: path.join(repoRoot, `${attemptRoot}/permit.json`),
+          nonce: 'nonce',
+        },
+        spawnImpl: async () => ({ exitCode: 0 }),
+      }), error);
+    }
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('NPC T2 dispatch rejects cross-attempt packet and permit paths', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t2-preflight-'));
+  const attemptRoot = `reports/authorization/canonical/canonical-npc-t2-cutover-verification/${'d'.repeat(64)}`;
+  const siblingRoot = `reports/authorization/canonical/canonical-npc-t2-cutover-verification/${'e'.repeat(64)}`;
+  const resultPath = `${attemptRoot}/result.json`;
+  const manifest = {
+    operationId: 'canonical-npc-t2-cutover-verification',
+    command: [
+      'node',
+      'scripts/data/npc-canonical/npc-canonical-t2-cutover.mjs',
+      '--no-write=true',
+      '--apiBase=http://127.0.0.1:18191',
+      `--output=${resultPath}`,
+      '--readiness-output=reports/canonical-migration/canonical-npc-crawler-facts-readiness.json',
+    ],
+    outputPaths: [
+      resultPath,
+      'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json',
+    ],
+    npcT2Attempt: {
+      attemptRoot,
+      packetPath: `${attemptRoot}/packet.json`,
+      permitPath: `${attemptRoot}/permit.json`,
+      resultPath,
+    },
+  };
+  try {
+    assert.throws(() => assertExecutionManifestDispatchPreflight({
+      manifest,
+      cwd: repoRoot,
+      authorizationPacketPath: path.join(repoRoot, `${siblingRoot}/packet.json`),
+      authorizationDispatchPermit: {
+        path: path.join(repoRoot, `${attemptRoot}/permit.json`),
+        nonce: 'nonce',
+      },
+    }), /NPC T2.*packet|attempt/i);
+    assert.throws(() => assertExecutionManifestDispatchPreflight({
+      manifest,
+      cwd: repoRoot,
+      authorizationPacketPath: path.join(repoRoot, `${attemptRoot}/packet.json`),
+      authorizationDispatchPermit: {
+        path: path.join(repoRoot, `${siblingRoot}/permit.json`),
+        nonce: 'nonce',
+      },
+    }), /NPC T2.*permit|attempt/i);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
 test('projection dispatch rejects cross-attempt packet and permit paths before child spawn', async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-runner-'));
   const attemptId = '1'.repeat(64);

@@ -1806,6 +1806,19 @@
   post-commit contracts pass `72/72`; E2E temporary database and Redis DB 15
   counts are zero, and ports 18122/13022 are unbound. Scheduler daemon
   deployment remains explicitly out of scope.
+- The Owner selected the separate NPC T2/source-contract cutover design in
+  `docs/superpowers/specs/2026-08-06-npc-t2-source-contract-cutover-design.md`
+  and its executable plan. Task 1 is committed at `e1727ac1`: the verifier
+  reconstructs owner/base/T1/database/API/bridge evidence and publishes formal
+  T2 readiness only after a private no-overwrite terminal result exists. Task 2
+  now registers operation 37 as
+  `canonical-npc-t2-cutover-verification`, binds its four immutable NPC inputs,
+  complete static code closure, exact formal database/API identity, no-write
+  command, and decision-derived attempt packet/permit/result paths. Focused
+  verification passes `104/104`, four syntax checks, and `git diff --check`.
+  No request, packet, decision consumption, T2 runtime, source flip, DB write,
+  crawler, scheduler daemon, or service lifecycle action ran. See git for
+  code-level diff details.
 
 ## Commits
 
@@ -1834,3 +1847,6 @@
 - `c48a99b5` `data(crawler): harden boss loot bundle ingestion`
 - `06a0b861` `data(shimmer): archive historical generation evidence`
 - `0d953f0e` `data(reports): archive ingestion audit snapshots`
+- `fb113247` `docs(data): define npc t2 source cutover`
+- `b44b413b` `docs(data): plan npc t2 source cutover`
+- `e1727ac1` `feat(npc): verify canonical t2 cutover`

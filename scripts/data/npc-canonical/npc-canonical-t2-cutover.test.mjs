@@ -125,6 +125,7 @@ test('runner creates one private terminal result before publishing readiness', a
     const result = await runNpcT2CutoverVerification({
       repoRoot,
       outputPath,
+      apiBaseUrl: 'http://127.0.0.1:18191',
       verifiedAt: VERIFIED_AT,
       authorizationContext: value.authorizationContext,
     }, {
@@ -132,7 +133,10 @@ test('runner creates one private terminal result before publishing readiness', a
       loadBaseCompletion: async () => value.baseCompletionContext,
       loadT1Evidence: async () => value.t1Evidence,
       loadSnapshot: async () => value.snapshot,
-      probeApi: async () => value.api,
+      probeApi: async ({ apiBaseUrl }) => {
+        assert.equal(apiBaseUrl, 'http://127.0.0.1:18191');
+        return value.api;
+      },
       loadBridgeRetirement: () => value.bridgeRetirement,
       writeReadiness: async ({ cutoverResult }) => {
         events.push(fs.existsSync(path.join(repoRoot, outputPath)) ? 'result-first' : 'readiness-first');

@@ -72,13 +72,20 @@ function manifestOptions(operationId) {
         `reports/authorization/canonical/item-canonical-base-entity-restoration/${'c'.repeat(64)}`,
     };
   }
+  if (operationId === 'canonical-npc-t2-cutover-verification') {
+    return {
+      backendApiBase: 'http://127.0.0.1:18191',
+      npcT2AttemptRoot:
+        `reports/authorization/canonical/canonical-npc-t2-cutover-verification/${'d'.repeat(64)}`,
+    };
+  }
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 36 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 37 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 36);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 35);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 37);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 36);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -127,6 +134,39 @@ test('manifest builder covers 36 governed operations and keeps NPC apply explici
   } finally {
     shimmerFixture.cleanup();
   }
+});
+
+test('NPC T2 manifest binds one no-write attempt and the exact formal evidence', () => {
+  const attemptRoot = `reports/authorization/canonical/canonical-npc-t2-cutover-verification/${'d'.repeat(64)}`;
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-npc-t2-cutover-verification',
+    artifactDate: '2026-08-06',
+    backendApiBase: 'http://127.0.0.1:18191',
+    npcT2AttemptRoot: attemptRoot,
+  });
+
+  assert.equal(manifest.noWrite, true);
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.networkAccess, false);
+  assert.deepEqual(manifest.databases, {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  });
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-apply.completion.json',
+    'reports/authorization/canonical/canonical-npc-base-maint.completion.json',
+    'reports/canonical-migration/canonical-npc-t1-acceptance.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    `${attemptRoot}/result.json`,
+    'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json',
+  ]);
+  assert.ok(manifest.command.includes('--no-write=true'));
+  assert.ok(manifest.command.includes('--apiBase=http://127.0.0.1:18191'));
+  assert.ok(manifest.command.includes(`--output=${attemptRoot}/result.json`));
 });
 
 test('image sync manifest freezes the local reuse evidence bundle and managed origin', () => {

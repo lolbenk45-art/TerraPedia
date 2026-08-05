@@ -20,6 +20,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-item-group-bootstrap',
   'canonical-npc-crawler',
   'canonical-npc-t1-acceptance',
+  'canonical-npc-t2-cutover-verification',
   'canonical-npc-apply',
   'canonical-npc-landing-apply',
   'canonical-npc-facts-maint-apply',
@@ -91,6 +92,12 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'canonical-npc-t1-acceptance': Object.freeze([
     'reports/authorization/canonical/canonical-npc-apply.input.json',
     'reports/authorization/canonical/canonical-npc-apply.completion.json',
+  ]),
+  'canonical-npc-t2-cutover-verification': Object.freeze([
+    'reports/authorization/canonical/canonical-npc-apply.input.json',
+    'reports/authorization/canonical/canonical-npc-apply.completion.json',
+    'reports/authorization/canonical/canonical-npc-base-maint.completion.json',
+    'reports/canonical-migration/canonical-npc-t1-acceptance.json',
   ]),
   'canonical-npc-apply': Object.freeze([
     'reports/authorization/canonical/canonical-npc-apply.input.json',
@@ -202,6 +209,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-item-group-bootstrap': 'scripts/data/item-groups/item-group-canonical-action.mjs',
   'canonical-npc-crawler': 'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
   'canonical-npc-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
+  'canonical-npc-t2-cutover-verification': 'scripts/data/npc-canonical/npc-canonical-t2-cutover.mjs',
   'canonical-npc-apply': null,
   'canonical-npc-landing-apply': 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
   'canonical-npc-facts-maint-apply': 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',

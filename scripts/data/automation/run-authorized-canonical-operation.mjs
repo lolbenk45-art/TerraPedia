@@ -20,6 +20,7 @@ import {
 } from '../relation/item-image-projection-contract.mjs';
 
 const ITEM_IMAGE_PROJECTION_OPERATION_ID = 'canonical-item-image-projection-apply';
+const NPC_T2_CUTOVER_OPERATION_ID = 'canonical-npc-t2-cutover-verification';
 
 export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity, dispatchPermitHash = null } = {}) {
   const identity = requireText(decisionIdentity, 'decision identity');
@@ -165,6 +166,15 @@ function assertExecutionManifestPreflight({
       requireAuthorizationPaths: requireProjectionAuthorizationPaths,
     });
   }
+  if (manifest?.operationId === NPC_T2_CUTOVER_OPERATION_ID) {
+    assertNpcT2AttemptDispatch({
+      manifest,
+      root,
+      authorizationPacketPath,
+      authorizationDispatchPermit,
+      requireAuthorizationPaths: requireProjectionAuthorizationPaths,
+    });
+  }
   for (const { relativePath, output } of outputs) {
     assertRepositoryPathConfinement({
       repoRoot: root,
@@ -230,6 +240,24 @@ function verifyDeclaredManifestOutputs({ manifest, cwd, now, projectionContract 
         });
         continue;
       }
+      if (manifest.operationId === NPC_T2_CUTOVER_OPERATION_ID) {
+        if (manifest.noWrite !== true || manifest.databaseWrites !== false) {
+          throw new Error(`authorized NPC T2 manifest must remain noWrite=true: ${relativePath}`);
+        }
+        if (result?.resultKind !== 'canonical_npc_t2_cutover_result') {
+          throw new Error(`authorized NPC T2 canonical result kind drifted: ${relativePath}`);
+        }
+        if (result?.status !== 'completed') {
+          throw new Error(`authorized NPC T2 canonical result status must be completed: ${relativePath}`);
+        }
+        if (result?.noWrite !== true) {
+          throw new Error(`authorized NPC T2 canonical result noWrite must be true: ${relativePath}`);
+        }
+        if (result?.cutoverState !== 'T2_CUTOVER_VERIFIED') {
+          throw new Error(`authorized NPC T2 canonical result cutover state drifted: ${relativePath}`);
+        }
+        continue;
+      }
       const requiresAppliedCompletion = manifest.operationId === 'canonical-shimmer-import';
       if (requiresAppliedCompletion && result?.status !== 'completed') {
         throw new Error(`authorized operation canonical result status must be completed: ${relativePath}`);
@@ -245,7 +273,9 @@ function isCanonicalResultPath(manifest, relativePath) {
   if (!relativePath.startsWith('reports/authorization/canonical/')) return false;
   return relativePath.endsWith('.result.json')
     || (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
-      && relativePath === manifest?.itemImageProjectionAttempt?.resultPath);
+      && relativePath === manifest?.itemImageProjectionAttempt?.resultPath)
+    || (manifest?.operationId === NPC_T2_CUTOVER_OPERATION_ID
+      && relativePath === manifest?.npcT2Attempt?.resultPath);
 }
 
 function assertItemImageProjectionAttemptDispatch({
@@ -294,6 +324,47 @@ function assertItemImageProjectionAttemptDispatch({
   }
   if (permit !== path.resolve(root, permitPath)) {
     throw new Error('projection authorization dispatch permit must use the exact attempt path');
+  }
+}
+
+function assertNpcT2AttemptDispatch({
+  manifest,
+  root,
+  authorizationPacketPath,
+  authorizationDispatchPermit,
+  requireAuthorizationPaths,
+}) {
+  const attempt = manifest?.npcT2Attempt;
+  const attemptRoot = String(attempt?.attemptRoot ?? '').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/canonical-npc-t2-cutover-verification/';
+  if (!attemptRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('NPC T2 dispatch attempt root is invalid');
+  }
+  const packetPath = `${attemptRoot}/packet.json`;
+  const permitPath = `${attemptRoot}/permit.json`;
+  const resultPath = `${attemptRoot}/result.json`;
+  if (attempt.packetPath !== packetPath
+      || attempt.permitPath !== permitPath
+      || attempt.resultPath !== resultPath
+      || !manifest.command?.includes(`--output=${resultPath}`)
+      || manifest.outputPaths?.[0] !== resultPath) {
+    throw new Error('NPC T2 dispatch manifest paths drifted across attempts');
+  }
+  if (!requireAuthorizationPaths) return;
+  const packet = resolveFromRoot(root, requireText(
+    authorizationPacketPath,
+    'NPC T2 authorization packet path',
+  ));
+  const permit = resolveFromRoot(root, requireText(
+    authorizationDispatchPermit?.path,
+    'NPC T2 authorization dispatch permit path',
+  ));
+  if (packet !== path.resolve(root, packetPath)) {
+    throw new Error('NPC T2 authorization packet must use the exact attempt path');
+  }
+  if (permit !== path.resolve(root, permitPath)) {
+    throw new Error('NPC T2 authorization permit must use the exact attempt path');
   }
 }
 
@@ -536,12 +607,14 @@ async function main() {
       cwd: repoRoot,
     }),
     consumeDecisionIdentity: (decisionIdentity) => {
-      const projectionPermitPath = packet.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
-        ? path.join(repoRoot, packet.executionManifest.itemImageProjectionAttempt.permitPath)
-        : null;
+      const attemptPermitPath = packet.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
+        ? packet.executionManifest.itemImageProjectionAttempt.permitPath
+        : packet.operationId === NPC_T2_CUTOVER_OPERATION_ID
+          ? packet.executionManifest.npcT2Attempt.permitPath
+          : null;
       dispatchPermit = createAuthorizedOperationDispatchPermit({
         directory: path.join(repoRoot, 'reports/authorization/canonical'),
-        outputPath: projectionPermitPath,
+        outputPath: attemptPermitPath == null ? null : path.join(repoRoot, attemptPermitPath),
         packet,
       });
       try {

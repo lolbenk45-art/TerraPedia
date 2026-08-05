@@ -195,6 +195,17 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/lib/mysql-module.mjs',
     'scripts/lib/local-runtime-config.mjs',
   ]),
+  'canonical-npc-t2-cutover-verification': Object.freeze([
+    'scripts/data/npc-canonical/npc-canonical-t2-cutover.mjs',
+    'scripts/data/npc-canonical/npc-canonical-readiness.mjs',
+    'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
+    'scripts/data/npc-canonical/npc-apply-ownership-preparation.mjs',
+    'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
+    'scripts/data/npc-canonical/npc-canonical-t1-acceptance.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'scripts/data/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
   'canonical-schema-v56-v58': Object.freeze([
     'scripts/data/automation/run-canonical-schema-migration.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
@@ -284,6 +295,7 @@ export function buildCanonicalOperationExecutionManifest({
   itemImageProjectionAttemptRoot = null,
   itemImageProjectionMissingRowInsertAttemptRoot = null,
   itemCanonicalBaseEntityRestorationAttemptRoot = null,
+  npcT2AttemptRoot = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -302,6 +314,7 @@ export function buildCanonicalOperationExecutionManifest({
     itemImageProjectionAttemptRoot,
     itemImageProjectionMissingRowInsertAttemptRoot,
     itemCanonicalBaseEntityRestorationAttemptRoot,
+    npcT2AttemptRoot,
     npcT1ConfigPath,
     npcT1RedisDb,
     npcT1RunId,
@@ -342,6 +355,7 @@ export function buildCanonicalOperationExecutionContract({
   itemImageProjectionAttemptRoot = null,
   itemImageProjectionMissingRowInsertAttemptRoot = null,
   itemCanonicalBaseEntityRestorationAttemptRoot = null,
+  npcT2AttemptRoot = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -389,6 +403,7 @@ export function buildCanonicalOperationExecutionContract({
     itemImageProjectionAttemptRoot,
     itemImageProjectionMissingRowInsertAttemptRoot,
     itemCanonicalBaseEntityRestorationAttemptRoot,
+    npcT2AttemptRoot,
   );
   return {
     schemaVersion: 1,
@@ -437,6 +452,7 @@ export function assertCanonicalOperationExecutionManifestContract({
       manifest?.itemImageProjectionMissingRowInsertAttempt?.attemptRoot ?? null,
     itemCanonicalBaseEntityRestorationAttemptRoot:
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
+    npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
   });
   if (operationId === 'canonical-npc-t1-acceptance'
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -750,6 +766,7 @@ function buildDefinition(
   itemImageProjectionAttemptRoot,
   itemImageProjectionMissingRowInsertAttemptRoot,
   itemCanonicalBaseEntityRestorationAttemptRoot,
+  npcT2AttemptRoot,
 ) {
   const definitions = {
     'automation-biomes-l0-bootstrap': {
@@ -1034,6 +1051,9 @@ function buildDefinition(
     },
     ...(operationId === 'canonical-npc-t1-acceptance'
       ? { [operationId]: npcT1AcceptanceDefinition(operationId, npcT1Acceptance) }
+      : {}),
+    ...(operationId === 'canonical-npc-t2-cutover-verification'
+      ? { [operationId]: npcT2Definition({ operationId, attemptRoot: npcT2AttemptRoot, backendApiBase }) }
       : {}),
     'canonical-schema-v56-v58': {
       executionClass: 'formal_schema_migration',
@@ -1361,6 +1381,51 @@ function npcT1AcceptanceDefinition(operationId, isolatedAcceptance) {
   };
 }
 
+function npcT2Definition({ operationId, attemptRoot, backendApiBase }) {
+  const normalizedRoot = requireText(attemptRoot, 'NPC T2 attempt root').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/canonical-npc-t2-cutover-verification/';
+  if (path.isAbsolute(normalizedRoot)
+      || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('NPC T2 attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const resultPath = `${normalizedRoot}/result.json`;
+  const readinessPath = 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json';
+  return {
+    executionClass: 'formal_read_only_cutover_verification',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      '--no-write=true',
+      `--apiBase=${requireBackendApiBase(operationId, backendApiBase)}`,
+      `--output=${resultPath}`,
+      `--readiness-output=${readinessPath}`,
+    ],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: [resultPath, readinessPath],
+    reportPaths: [resultPath, readinessPath],
+    progressPaths: [],
+    npcT2Attempt: {
+      attemptId: normalizedRoot.slice(prefix.length),
+      attemptRoot: normalizedRoot,
+      manifestPath: `${normalizedRoot}/execution-manifest.json`,
+      requestPath: `${normalizedRoot}/request.json`,
+      packetPath: `${normalizedRoot}/packet.json`,
+      permitPath: `${normalizedRoot}/permit.json`,
+      resultPath,
+      readinessPath,
+    },
+    databases: {
+      local: 'terria_v1_local',
+      maint: 'terria_v1_maint',
+      relation: 'terria_v1_relation',
+    },
+    noWrite: true,
+    databaseWrites: false,
+    networkAccess: false,
+  };
+}
+
 function npcOwnerDefinition({ operationId, resultLabel = null }) {
   const resultPath = resultLabel
     ? `reports/authorization/canonical/${operationId}.${resultLabel}.result.json`
@@ -1479,7 +1544,11 @@ function requireExpectedLegacyCount(operationId, value) {
 }
 
 function requireBackendApiBase(operationId, value) {
-  if (!['canonical-image-sync', 'canonical-boss-import'].includes(operationId)) return '';
+  if (![
+    'canonical-image-sync',
+    'canonical-boss-import',
+    'canonical-npc-t2-cutover-verification',
+  ].includes(operationId)) return '';
   const text = String(value ?? '').trim();
   if (!text) throw new Error(`${operationId} backendApiBase is required`);
   let url;
@@ -1592,6 +1661,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         args['item-image-projection-missing-row-insert-attempt-root'] ?? null,
       itemCanonicalBaseEntityRestorationAttemptRoot:
         args['item-canonical-base-entity-restoration-attempt-root'] ?? null,
+      npcT2AttemptRoot: args['npc-t2-attempt-root'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

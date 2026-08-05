@@ -281,6 +281,7 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     readCanonicalShimmerImportInputContract({ repoRoot: root });
   }
   if (operationId === 'canonical-npc-t1-acceptance'
+      || operationId === 'canonical-npc-t2-cutover-verification'
       || operationId === 'canonical-npc-apply'
       || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
       || operationId === 'canonical-npc-item-relation-lineage-repair') {
