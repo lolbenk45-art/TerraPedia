@@ -8,6 +8,7 @@ import test from 'node:test';
 import { NPC_APPLY_OWNER_PHASES } from './npc-apply-ownership-preparation.mjs';
 import { buildCanonicalNpcApplyCompletion } from './npc-owner-phase-apply.mjs';
 import { EXPECTED_NPC_T0_SCHEMA_EVIDENCE } from './npc-canonical-t0-acceptance.mjs';
+import { buildNpcT2CutoverResult } from './npc-canonical-t2-cutover.mjs';
 import {
   NPC_CANONICAL_READINESS_SCHEMA_VERSION,
   buildNpcCanonicalReadinessReport,
@@ -175,21 +176,26 @@ test('NPC T2 requires exact cutover run decision and technical hashes', () => {
   evidence.databaseRole = 't2-readonly';
   evidence.cutoverIdentity = {
     state: 'T2_CUTOVER_VERIFIED',
-    operationId: 'canonical-npc-apply',
+    operationId: 'canonical-npc-t2-cutover-verification',
   };
 
   let report = buildNpcCanonicalReadinessReport({ evidence });
   assert.equal(report.summary.status, 'blocked');
   assert.ok(report.blockingReasons.some((reason) => /cutover runId/i.test(reason)));
-  assert.ok(report.blockingReasons.some((reason) => /policy set hash/i.test(reason)));
+  assert.ok(report.blockingReasons.some((reason) => /packet hash/i.test(reason)));
 
   Object.assign(evidence.cutoverIdentity, {
     runId: 'canonical-npc-t2-001',
     decisionIdentity: 'canonical-npc-decision-001',
-    schemaBundleSha256: HASH,
+    packetHash: HASH,
+    inputHash: HASH,
+    ownerCompletionHash: HASH,
+    baseCompletionHash: HASH,
+    databaseSnapshotHash: HASH,
+    apiEvidenceHash: HASH,
+    executionManifestHash: HASH,
     dataBundleSha256: HASH,
     serverFingerprint: HASH,
-    policySetHash: HASH,
     ownerPhaseCompletion: validOwnerPhaseCompletion(),
   });
   attachBaseMaintCompletion(evidence, evidence.cutoverIdentity.ownerPhaseCompletion);
@@ -362,7 +368,7 @@ test('NPC readiness writer accepts only matching private isolated T1 evidence', 
     assert.equal(report.t1Evidence.rollbackPassed, true);
     assert.equal(report.t1Evidence.restorePassed, true);
     assert.equal(report.t1Evidence.cleanupPassed, true);
-    assert.equal(report.summary.status, 'pass');
+    assert.equal(report.summary.status, 'pass', report.blockingReasons.join('\n'));
 
     const evidencePath = path.join(repoRoot, 'reports/canonical-migration/canonical-npc-t1-acceptance.json');
     const missingNpcSnapshot = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
@@ -398,6 +404,84 @@ test('NPC readiness writer accepts only matching private isolated T1 evidence', 
     });
     assert.equal(bindingBlocked.t1Evidence.rollbackPassed, false);
     assert.equal(bindingBlocked.summary.status, 'blocked');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('NPC readiness writer publishes formal T2 only from matching terminal evidence', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-readiness-t2-'));
+  try {
+    const completion = writeCompletionFixture(repoRoot);
+    const baseCompletion = validBaseCompletionContext(completion.ownerCompletion);
+    const snapshot = validReadOnlySnapshot();
+    const api = {
+      admin: { sampleCount: 1, snapshotHash: HASH, error: null },
+      public: { sampleCount: 1, snapshotHash: HASH, error: null },
+    };
+    const bridgeRetirement = { status: 'pass', referenceCount: 0, snapshotHash: HASH };
+    const t1Evidence = {
+      rollbackPassed: true,
+      restorePassed: true,
+      cleanupPassed: true,
+      ownerPhaseCompletion: completion.ownerCompletion,
+    };
+    const cutoverResult = buildNpcT2CutoverResult({
+      authorizationContext: {
+        operationId: 'canonical-npc-t2-cutover-verification',
+        decisionIdentity: 'canonical-npc-t2-cutover-verification-20260806-admin-01',
+        packetHash: HASH,
+        executionManifestHash: HASH,
+        dataBundleSha256: HASH,
+        serverFingerprint: HASH,
+        executionManifest: { noWrite: true },
+      },
+      ownerCompletionContext: {
+        completion: completion.ownerCompletion,
+        completionHash: completion.completionHash,
+        inputHash: completion.inputHash,
+      },
+      baseCompletionContext: baseCompletion,
+      t1Evidence,
+      snapshot,
+      api,
+      bridgeRetirement,
+      verifiedAt: '2026-08-06T01:00:00.000Z',
+    });
+
+    const report = await writeNpcCanonicalReadinessReport({
+      repoRoot,
+      generatedAt: '2026-08-06T01:00:01.000Z',
+      cutoverResult,
+      loadBaseCompletion: async () => baseCompletion,
+      loadSnapshot: async () => snapshot,
+      probeApi: async () => api,
+      loadT1Evidence: async () => t1Evidence,
+      loadBridgeRetirement: () => bridgeRetirement,
+    });
+
+    assert.equal(report.evidenceScope, 'formal-t2');
+    assert.equal(report.readinessLevel, 'T2_CUTOVER_VERIFIED');
+    assert.equal(report.databaseRole, 't2-readonly');
+    assert.equal(report.cutoverIdentity.packetHash, HASH);
+    assert.equal(report.summary.status, 'pass', report.blockingReasons.join('\n'));
+
+    const drifted = structuredClone(cutoverResult);
+    drifted.databaseSnapshotHash = `sha256:${'b'.repeat(64)}`;
+    await assert.rejects(
+      () => writeNpcCanonicalReadinessReport({
+        repoRoot,
+        outputPath: 'reports/canonical-migration/drifted-t2.json',
+        cutoverResult: drifted,
+        loadBaseCompletion: async () => baseCompletion,
+        loadSnapshot: async () => snapshot,
+        probeApi: async () => api,
+        loadT1Evidence: async () => t1Evidence,
+        loadBridgeRetirement: () => bridgeRetirement,
+      }),
+      /T2.*(hash|snapshot|result)/i,
+    );
+    assert.equal(fs.existsSync(path.join(repoRoot, 'reports/canonical-migration/drifted-t2.json')), false);
   } finally {
     fs.rmSync(repoRoot, { recursive: true, force: true });
   }

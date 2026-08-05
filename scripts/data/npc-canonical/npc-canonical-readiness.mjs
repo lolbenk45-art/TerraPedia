@@ -14,6 +14,11 @@ import {
   validateNpcCanonicalT1Snapshot,
   validateNpcCanonicalT1SnapshotBinding,
 } from './npc-canonical-t1-acceptance.mjs';
+import {
+  buildNpcT2DatabaseSnapshotEvidence,
+  hashNpcT2Evidence,
+  validateNpcT2CutoverResult,
+} from './npc-canonical-t2-cutover.mjs';
 
 export const NPC_CANONICAL_READINESS_SCHEMA_VERSION = 1;
 
@@ -122,14 +127,23 @@ function evaluate(report, { requiredLevel = null } = {}) {
   } else if (report.evidenceScope === 'formal-t2') {
     check('database-role', report.databaseRole === 't2-readonly', 'NPC T2 readiness databaseRole must be t2-readonly');
     check('cutover-state', report.cutoverIdentity?.state === 'T2_CUTOVER_VERIFIED', 'NPC canonical cutover is not T2_CUTOVER_VERIFIED');
-    check('cutover-operation', hasText(report.cutoverIdentity?.operationId), 'NPC canonical cutover operationId is missing');
+    check(
+      'cutover-operation',
+      report.cutoverIdentity?.operationId === 'canonical-npc-t2-cutover-verification',
+      'NPC canonical cutover operationId is invalid',
+    );
     check('cutover-run', hasText(report.cutoverIdentity?.runId), 'NPC canonical cutover runId is missing');
     check('cutover-decision', hasText(report.cutoverIdentity?.decisionIdentity), 'NPC canonical cutover decision identity is missing');
     for (const [field, label] of [
-      ['schemaBundleSha256', 'schema bundle hash'],
+      ['packetHash', 'packet hash'],
+      ['inputHash', 'input hash'],
+      ['ownerCompletionHash', 'owner completion hash'],
+      ['baseCompletionHash', 'base completion hash'],
+      ['databaseSnapshotHash', 'database snapshot hash'],
+      ['apiEvidenceHash', 'API evidence hash'],
+      ['executionManifestHash', 'execution manifest hash'],
       ['dataBundleSha256', 'data bundle hash'],
       ['serverFingerprint', 'server fingerprint'],
-      ['policySetHash', 'policy set hash'],
     ]) {
       check(`cutover-${field}`, isHash(report.cutoverIdentity?.[field]), `NPC canonical ${label} must be SHA-256`);
     }
@@ -306,9 +320,12 @@ export async function writeNpcCanonicalReadinessReport({
   repoRoot = process.cwd(),
   outputPath = DEFAULT_OUTPUT_PATH,
   generatedAt = new Date().toISOString(),
+  cutoverResult = null,
   loadBaseCompletion = readCanonicalNpcBaseMaintCompletion,
   loadSnapshot = loadNpcCanonicalReadinessSnapshot,
   probeApi = probeNpcCanonicalReadinessApis,
+  loadT1Evidence = readNpcCanonicalT1Evidence,
+  loadBridgeRetirement = readNpcBridgeRetirementEvidence,
 } = {}) {
   const root = path.resolve(repoRoot);
   const completionContext = await readCanonicalNpcOwnerPhaseCompletion({ repoRoot: root });
@@ -364,7 +381,7 @@ export async function writeNpcCanonicalReadinessReport({
 
   let bridgeRetirement = {};
   try {
-    bridgeRetirement = readNpcBridgeRetirementEvidence(root);
+    bridgeRetirement = loadBridgeRetirement(root);
   } catch (error) {
     collectionErrors.push(`NPC bridge-retirement evidence failed: ${errorMessage(error)}`);
   }
@@ -376,19 +393,30 @@ export async function writeNpcCanonicalReadinessReport({
     ownerPhaseCompletion: completionContext.completion,
   };
   try {
-    t1Evidence = await readNpcCanonicalT1Evidence({ repoRoot: root, completionContext });
+    t1Evidence = await loadT1Evidence({ repoRoot: root, completionContext });
   } catch (error) {
     collectionErrors.push(`NPC T1 isolated evidence failed: ${errorMessage(error)}`);
   }
 
+  const cutoverIdentity = cutoverResult == null
+    ? null
+    : buildValidatedCutoverIdentity({
+        cutoverResult,
+        completionContext,
+        baseCompletionContext,
+        snapshot,
+        api,
+        bridgeRetirement,
+      });
   const report = buildNpcCanonicalReadinessReport({
     generatedAt,
     evidence: {
-      evidenceScope: 't1-real-crawler',
+      evidenceScope: cutoverIdentity == null ? 't1-real-crawler' : 'formal-t2',
       writesDatabase: false,
-      databaseRole: 't1-readonly',
+      databaseRole: cutoverIdentity == null ? 't1-readonly' : 't2-readonly',
       crawlerRunIdentity: completionContext.crawlerRunIdentity,
       t1Evidence,
+      cutoverIdentity,
       landing: snapshot.landing,
       maint: snapshot.maint,
       relation: snapshot.relation,
@@ -411,6 +439,49 @@ export async function writeNpcCanonicalReadinessReport({
   const resolvedOutput = resolveWithinCanonicalMigration(root, outputPath, 'NPC readiness output');
   await writePrivateJsonAtomically(resolvedOutput, report);
   return report;
+}
+
+function buildValidatedCutoverIdentity({
+  cutoverResult,
+  completionContext,
+  baseCompletionContext,
+  snapshot,
+  api,
+  bridgeRetirement,
+}) {
+  validateNpcT2CutoverResult(cutoverResult);
+  for (const [actual, expected, label] of [
+    [cutoverResult.inputHash, completionContext.inputHash, 'input'],
+    [cutoverResult.ownerCompletionHash, completionContext.completionHash, 'owner completion'],
+    [cutoverResult.baseCompletionHash, baseCompletionContext?.completionHash, 'base completion'],
+    [
+      cutoverResult.databaseSnapshotHash,
+      hashNpcT2Evidence(buildNpcT2DatabaseSnapshotEvidence(snapshot)),
+      'database snapshot',
+    ],
+    [cutoverResult.apiEvidenceHash, hashNpcT2Evidence(api), 'API evidence'],
+    [cutoverResult.bridgeRetirementHash, hashNpcT2Evidence(bridgeRetirement), 'bridge retirement'],
+  ]) {
+    if (actual !== expected) throw new Error(`NPC T2 ${label} hash drifted before readiness publication`);
+  }
+  return {
+    state: cutoverResult.cutoverState,
+    operationId: cutoverResult.operationId,
+    runId: cutoverResult.runId,
+    decisionIdentity: cutoverResult.decisionIdentity,
+    packetHash: cutoverResult.packetHash,
+    inputHash: cutoverResult.inputHash,
+    ownerCompletionHash: cutoverResult.ownerCompletionHash,
+    baseCompletionHash: cutoverResult.baseCompletionHash,
+    databaseSnapshotHash: cutoverResult.databaseSnapshotHash,
+    apiEvidenceHash: cutoverResult.apiEvidenceHash,
+    executionManifestHash: cutoverResult.executionManifestHash,
+    dataBundleSha256: cutoverResult.dataBundleSha256,
+    serverFingerprint: cutoverResult.serverFingerprint,
+    verifiedAt: cutoverResult.verifiedAt,
+    resultHash: cutoverResult.resultHash,
+    ownerPhaseCompletion: completionContext.completion,
+  };
 }
 
 function validateBaseMaintCompletionContext(baseCompletionContext, ownerCompletionContext) {
@@ -487,7 +558,7 @@ export async function readCanonicalNpcOwnerPhaseCompletion({ repoRoot = process.
   };
 }
 
-async function readNpcCanonicalT1Evidence({ repoRoot, completionContext }) {
+export async function readNpcCanonicalT1Evidence({ repoRoot, completionContext }) {
   const bytes = await readPrivateArtifact(repoRoot, T1_EVIDENCE_PATH, 'NPC T1 isolated evidence');
   const evidence = parseJson(bytes, 'NPC T1 isolated evidence');
   if (evidence?.schemaVersion !== 1
@@ -730,7 +801,7 @@ function emptyApiEvidence() {
   };
 }
 
-function readNpcBridgeRetirementEvidence(repoRoot) {
+export function readNpcBridgeRetirementEvidence(repoRoot) {
   const bytes = fs.readFileSync(resolveWithinCanonicalMigration(repoRoot, 'reports/canonical-migration/npc-bridge-retirement.json', 'NPC bridge-retirement evidence'));
   const report = parseJson(bytes, 'NPC bridge-retirement evidence');
   if (report?.status !== 'pass' || report?.writesDatabase !== false || report?.requiresDatabase !== false) {
