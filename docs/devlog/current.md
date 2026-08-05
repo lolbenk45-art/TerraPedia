@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-06 01:25 CST by Codex
+Last updated: 2026-08-06 01:29 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -1000,7 +1000,13 @@ Active branch: `design/crawler-auto-ingestion-readiness`
   proves unchanged DB snapshot `sha256:d89271e0...945e6`, zero active
   attempts/reservations, and no result or retained permit. The reader contract
   repair passes focused tests `105/105`; ADMIN-01 is consumed historical
-  evidence and a new current-code ADMIN-02 request is required. The four source-contract flips and
+  evidence. Fresh current-code request
+  `canonical-npc-t2-cutover-verification-20260806-admin-02` is
+  `AWAITING_OWNER` at
+  `sha256:4b80aa90a52f2fee6ce538cd6f6a3d10b5465feb4a8eafa97ea78e6b76fb2234`,
+  with manifest hash
+  `sha256:dfd9a2afd5e6c8a45d1b62436c622fe4ee1492ceb5e5765dd0e9b9eeab0fda9e`.
+  Exact Owner confirmation is required before packet creation. The four source-contract flips and
   final closeout remain pending, so the branch is not ready for integration.
   Do not start a recurring scheduler
   daemon or crawler run unless a later plan and operation-level authorization

@@ -1846,6 +1846,17 @@
   ADMIN-01 is consumed historical evidence. A new current-code ADMIN-02 request
   is required before any replacement dispatch. See git for code-level diff
   details.
+- The bridge reader repair is committed at `ebda1fb1`. Fresh post-fix preflight
+  confirms bridge evidence `pass/0`, matching admin/public API snapshot hashes,
+  and zero active attempts/reservations. Private current-code request
+  `canonical-npc-t2-cutover-verification-20260806-admin-02` is
+  `AWAITING_OWNER` at
+  `sha256:4b80aa90a52f2fee6ce538cd6f6a3d10b5465feb4a8eafa97ea78e6b76fb2234`,
+  with execution manifest hash
+  `sha256:dfd9a2afd5e6c8a45d1b62436c622fe4ee1492ceb5e5765dd0e9b9eeab0fda9e`.
+  Its `0600` attempt contains only manifest, request, and owner input; no
+  packet, permit, result, decision consumption, T2 publication, source flip,
+  or DB write exists. Exact Owner confirmation is the next gate.
 
 ## Commits
 
@@ -1878,3 +1889,4 @@
 - `b44b413b` `docs(data): plan npc t2 source cutover`
 - `e1727ac1` `feat(npc): verify canonical t2 cutover`
 - `65c0b0d2` `feat(automation): govern npc t2 verification`
+- `ebda1fb1` `fix(npc): preserve bridge retirement status`
