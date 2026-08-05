@@ -36,7 +36,7 @@
 - Modify: `scripts/data/npc-canonical/npc-canonical-readiness.mjs`
 - Modify: `scripts/data/npc-canonical/npc-canonical-readiness.test.mjs`
 
-- [ ] **Step 1: Write failing verifier tests**
+- [x] **Step 1: Write failing verifier tests**
 
 Add fixtures that bind an ADMIN authorization context, owner completion, base completion, T1 evidence, formal snapshot, and API evidence. Require the result shape:
 
@@ -63,7 +63,7 @@ Add fixtures that bind an ADMIN authorization context, owner completion, base co
 
 Test exact rejection of predecessor hash drift, incomplete T1 cleanup, database/API mismatch, non-read-only adapters, reused output paths, and an authorization context for another operation.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -74,7 +74,7 @@ node --test scripts/data/npc-canonical/npc-canonical-t2-cutover.test.mjs \
 
 Expected: FAIL because the T2 module/export and formal T2 publication path do not exist.
 
-- [ ] **Step 3: Implement deterministic verification**
+- [x] **Step 3: Implement deterministic verification**
 
 Export focused functions:
 
@@ -102,13 +102,13 @@ Extend `writeNpcCanonicalReadinessReport` with an optional validated T2 result.
 Only a completed matching result may set `evidenceScope: 'formal-t2'` and
 `cutoverIdentity`; otherwise retain the T1 report behavior.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the Task 1 command again.
 
 Expected: all tests pass with zero failures.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```bash
 git add scripts/data/npc-canonical/npc-canonical-t2-cutover.mjs \
@@ -129,7 +129,7 @@ git commit -m "feat(npc): verify canonical t2 cutover"
 - Modify: `scripts/data/automation/build-canonical-cutover-authorization.test.mjs`
 - Modify: `scripts/data/automation/run-authorized-canonical-operation.test.mjs`
 
-- [ ] **Step 1: Write failing operation-contract tests**
+- [x] **Step 1: Write failing operation-contract tests**
 
 Require operation 37 with frozen inputs:
 
@@ -148,7 +148,7 @@ attempt output, formal database names, backend API origin, and `--no-write=true`
 Require the generic runner to reject command, code, input, output, or API drift
 before consuming the decision.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 node --test \
@@ -159,7 +159,7 @@ node --test \
 
 Expected: FAIL on the missing operation and manifest.
 
-- [ ] **Step 3: Implement catalog, manifest, and authorization binding**
+- [x] **Step 3: Implement catalog, manifest, and authorization binding**
 
 Add `canonical-npc-t2-cutover-verification` to the catalog and manifest maps.
 Bind the verifier plus all static imports in the code bundle. Declare no
@@ -170,7 +170,7 @@ The authorization builder must require `noWrite: true`, the exact formal
 database triplet, backend API origin, and the manifest hash. Do not add a second
 runner; use `run-authorized-canonical-operation.mjs`.
 
-- [ ] **Step 4: Run GREEN and syntax checks**
+- [x] **Step 4: Run GREEN and syntax checks**
 
 Run the Task 2 test command, then:
 
@@ -182,7 +182,7 @@ node --check scripts/data/automation/build-canonical-cutover-authorization.mjs
 
 Expected: all commands exit zero.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```bash
 git add scripts/data/automation/canonical-operation-catalog.mjs \
@@ -229,13 +229,16 @@ T2 result, no retained permit, no database mutation, and a maintained NPC report
 with `status: pass`, `readinessLevel: T2_CUTOVER_VERIFIED`, and fresh API-backed
 evidence.
 
-- [ ] **Step 6: Commit maintained T2 evidence**
+- [x] **Step 6: Commit maintained T2 evidence**
 
 ```bash
 git add reports/canonical-migration/canonical-npc-crawler-facts-readiness.json
 git diff --cached --stat
 git commit -m "data(npc): record canonical t2 cutover"
 ```
+
+Completed in `0ad73c20`. ADMIN-02 published the maintained
+`pass/formal-t2/T2_CUTOVER_VERIFIED` report without changing the database.
 
 ### Task 4: Promote The Four Source Contracts
 
@@ -284,7 +287,7 @@ node scripts/data/audit/cross-db-referential-integrity.mjs --mode=quick
 Expected: source contracts pass, domain acceptance is `45/45`, and cross-DB is
 `10/10`.
 
-- [ ] **Step 5: Commit the source flip**
+- [x] **Step 5: Commit the source flip**
 
 ```bash
 git add scripts/data/audit/canonical-source-contract-registry.test.mjs \
@@ -293,6 +296,9 @@ git add scripts/data/audit/canonical-source-contract-registry.test.mjs \
 git diff --cached --stat
 git commit -m "docs(data): promote canonical source contracts"
 ```
+
+Completed in `9c3dfbf0`. The three item-group contracts and the standardized
+NPC contract are canonical; the generated NPC bridge remains retired.
 
 ### Task 5: Full Verification And Closeout
 
@@ -306,7 +312,7 @@ git commit -m "docs(data): promote canonical source contracts"
 - Modify: `docs/project-management/current-status.md`
 - Modify: `docs/project-management/risk-register.md`
 
-- [ ] **Step 1: Run the full gate with explicit isolated E2E credentials**
+- [x] **Step 1: Run the full gate with explicit isolated E2E credentials**
 
 ```bash
 TERRAPEDIA_E2E_ENABLED=1 \
@@ -326,20 +332,20 @@ bash ./scripts/dev/quality-gate.sh
 
 Expected: exit zero and isolated E2E cleanup passes.
 
-- [ ] **Step 2: Verify cleanup and immutable runtime state**
+- [x] **Step 2: Verify cleanup and immutable runtime state**
 
 Require ports 18122/13022 unbound, zero disposable E2E databases, Redis DB 15
 empty, zero active attempts/reservations/permits, policy still `biomes v1
 L2/ACTIVE`, and no scheduler daemon/crawler process started.
 
-- [ ] **Step 3: Close plan and devlog entries**
+- [x] **Step 3: Close plan and devlog entries**
 
 Mark Task 13 Step 7 and Task 16 Steps 3-4 complete. Record exact T2 decision,
 packet, result, readiness report, source flip, validation, residual risks, and
 commit SHAs. Remove the closed branch entries from `docs/devlog/current.md`
 Open Work and retain only relevant historical links.
 
-- [ ] **Step 4: Commit closeout**
+- [x] **Step 4: Commit closeout**
 
 ```bash
 git add docs/superpowers/plans/2026-07-27-crawler-automated-ingestion-closure.md \
@@ -354,7 +360,7 @@ git diff --cached --stat
 git commit -m "docs(devlog): close automated ingestion readiness"
 ```
 
-- [ ] **Step 5: Final branch checks**
+- [x] **Step 5: Final branch checks**
 
 ```bash
 git status --short --branch -uall

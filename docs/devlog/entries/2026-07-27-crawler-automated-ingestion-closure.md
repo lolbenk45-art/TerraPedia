@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -1877,6 +1877,23 @@
   See git for code- and contract-level diff details.
 
 ## Commits
+
+Final closeout on 2026-08-06: ADMIN-02 NPC T2 verification completed under
+packet
+`sha256:1d30a768e7ce18dde32c3f05181101539685581d0dd4dfcf88861d38042fde5d`
+with result
+`sha256:583292f85cacc32fe146bf1815b5af292f066f5e600a10af07d293da0d8f7356`.
+The no-write snapshot remained
+`sha256:d89271e0cb222c9896694c19f2e8abccac4a6e9f6bdc9de4df6e481ddde945e6`;
+the maintained report is `pass/formal-t2/T2_CUTOVER_VERIFIED`. Commit
+`0ad73c20` records T2 evidence and `9c3dfbf0` promotes the four remaining
+source contracts while keeping the generated NPC bridge retired. Fresh full
+quality-gate evidence is backend `1523` tests with zero failures/errors and 10
+explicit skips, public `39/39`, admin `405/405`, and isolated E2E run
+`5588e137a806de4a2dd417fe8319954d` with outcome/cleanup both passed. Cleanup
+readback found no runtime residue. Scheduler activation is bounded eligibility,
+not authority for a daemon, crawler run, release, or deployment. Follow-up is
+P1 crawler monitor/resume stabilization. commit SHA pending in final response.
 
 - `7c43c439` `docs(plan): define automated ingestion closure`
 - `4d279ad6` `test(data): lock canonical group consumers`

@@ -1453,7 +1453,21 @@ no-shell, current-hash, transitive-code-hash, and one-time decision tests pass.
   blocked, naming the exact missing T1 rollback/restore/cleanup, API, or T2
   identity condition. It must never infer T1/T2 from completion alone, start a
   backend, or execute crawler/import/apply work.
-- [ ] **Step 7: Flip each source contract only after its exact report passes**
+- [x] **Step 7: Flip each source contract only after its exact report passes**
+
+Final 2026-08-06 evidence supersedes the historical T1 blocker narrative
+below. NPC decision
+`canonical-npc-t2-cutover-verification-20260806-admin-02` consumed packet
+`sha256:1d30a768e7ce18dde32c3f05181101539685581d0dd4dfcf88861d38042fde5d`
+once and produced result
+`sha256:583292f85cacc32fe146bf1815b5af292f066f5e600a10af07d293da0d8f7356`.
+The maintained report is `pass/formal-t2/T2_CUTOVER_VERIFIED`, the database
+snapshot remained
+`sha256:d89271e0cb222c9896694c19f2e8abccac4a6e9f6bdc9de4df6e481ddde945e6`,
+and no permit was retained. The three item-group contracts plus the NPC
+standardized contract are canonical; the generated NPC bridge remains retired.
+Fresh registry/domain tests pass `84/84`, domain acceptance is `45/0/0`, and
+cross-DB quick is `10/10 pass`.
 
 The refreshed private 2026-07-30 NPC readiness report is `T1_VERIFIED` and
 passes its native 65/65 checks after both base partitions completed. Its admin
@@ -1741,12 +1755,12 @@ baseline and 36-operation formal catalog, completed item-image/Shimmer chains,
 both L1 runs, the independent L2/scheduler decisions, fresh report hashes, and
 the no-daemon/no-crawler boundary. No L2 decision remains pending for `biomes`.
 
-- [ ] **Step 3: Close child and parent entries only when closure criteria pass**
+- [x] **Step 3: Close child and parent entries only when closure criteria pass**
 
 If authorization is the only remaining condition, keep entries `active` with
 the exact packet and named owner; do not call the project complete.
 
-- [ ] **Step 4: Commit closeout**
+- [x] **Step 4: Commit closeout**
 
 ```bash
 git commit -m "docs(devlog): close automated ingestion readiness"

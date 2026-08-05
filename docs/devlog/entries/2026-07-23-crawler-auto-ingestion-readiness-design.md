@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -201,6 +201,17 @@
   crawler execution remain outside this task.
 
 ## Commits
+
+Final closeout on 2026-08-06: the automated-ingestion design has been executed
+through canonical item-group and NPC T2 ownership, item-image and Shimmer
+closure, two `biomes` L1 applies, L2 promotion, and bounded scheduler
+eligibility. The full gate passed with E2E run
+`5588e137a806de4a2dd417fe8319954d`; cleanup found no disposable database,
+Redis DB 15 state, runner listeners, active automation attempt/reservation, or
+retained permit. Recurring scheduler startup, crawler execution, release,
+deployment, push, merge, and worktree cleanup remain outside this task.
+Follow-up moves to P1 crawler monitor/resume stabilization. The closeout uses
+`commit SHA pending in final response`.
 
 - `8ca00f9d` — initial automated-ingestion readiness design checkpoint.
 - `d110fbb7` — database-purpose isolation correction checkpoint.

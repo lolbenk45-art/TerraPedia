@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -287,6 +287,15 @@
   remains the only warning before source-flip/L1/L2/scheduler work.
 
 ## Commits
+
+Final closeout on 2026-08-06: image lineage remains
+`6131/6131/6131/6131`, the governed projection apply targeted 6,131 rows and
+changed 6,126 existing image values, and the item image gate is pass. The later
+NPC T2/source-contract closeout and full repository gate introduce no image
+write or lineage regression; domain acceptance is `45/0/0` and cross-DB quick
+is `10/10 pass`. No INSERT/DELETE, crawler, network, MinIO write, scheduler
+daemon, release, or deployment is authorized by this closure. No image-specific
+follow-up remains. commit SHA pending in final response.
 
 - Legacy-origin implementation: `3c93bcd1`.
 - Manifest CLI binding: `fd3d92eb`.
