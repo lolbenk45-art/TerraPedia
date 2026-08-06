@@ -111,12 +111,12 @@ require_env TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ROOT
 require_env TERRAPEDIA_ADMIN_TOKEN
 require_env TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_REDIS_DB
 
-[[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE" == terrapedia:crawler:wiki-monitor:v2:test:* ]] \
-  || die 'fixture test namespace must start with terrapedia:crawler:wiki-monitor:v2:test:'
+[[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE" =~ ^terrapedia:crawler:wiki-monitor:v2:test:[A-Za-z0-9._-]+:$ ]] \
+  || die 'fixture namespace must include a unique suffix under terrapedia:crawler:wiki-monitor:v2:test:'
 [[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE" == *: ]] \
   || die 'fixture test namespace must end with a colon'
-[[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE" == *:test:* ]] \
-  || die 'fixture legacy namespace must contain :test:'
+[[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE" =~ ^terrapedia:crawler:wiki-monitor:v1:test:[A-Za-z0-9._-]+:$ ]] \
+  || die 'fixture namespace must include a unique suffix under terrapedia:crawler:wiki-monitor:v1:test:'
 [[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE" == *: ]] \
   || die 'fixture legacy namespace must end with a colon'
 [[ "$TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_REDIS_DB" =~ ^[0-9]+$ ]] \
@@ -128,6 +128,7 @@ case "$FIXTURE_ROOT" in
   *) die 'fixture root must be a temporary directory or reports/crawler-monitor/v2/fixtures child' ;;
 esac
 [[ "$FIXTURE_ROOT" != /tmp && "$FIXTURE_ROOT" != / ]] || die 'fixture root is not a removable child directory'
+ROOT_MARKER="$FIXTURE_ROOT/.terrapedia-crawler-v2-fixture-root"
 
 TERRAPEDIA_API_BASE="${TERRAPEDIA_API_BASE:-http://127.0.0.1:${APP_PORT:-18088}/api}"
 TERRAPEDIA_REDIS_HOST="${TERRAPEDIA_REDIS_HOST:-127.0.0.1}"
@@ -136,9 +137,23 @@ require_command curl
 require_command node
 require_command redis-cli
 
-GUARDS_PASSED=true
+GUARDS_PASSED=false
 trap cleanup EXIT INT TERM
-mkdir -p "$FIXTURE_ROOT"
+[[ -d "$FIXTURE_ROOT" ]] || die 'fixture root must be prepared before smoke'
+[[ -f "$ROOT_MARKER" ]] || die 'fixture root ownership marker required'
+[[ "$(<"$ROOT_MARKER")" == terrapedia-crawler-v2-fixture-root-v1 ]] \
+  || die 'fixture root ownership marker is invalid'
+while IFS= read -r child; do
+  case "$(basename "$child")" in
+    .terrapedia-crawler-v2-fixture-root|logs|reports) ;;
+    *) die 'fixture root contains unowned files' ;;
+  esac
+done < <(find "$FIXTURE_ROOT" -mindepth 1 -maxdepth 1 -print)
+[[ -z "$(redis_cli --scan --pattern "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE}*" | head -n 1)" ]] \
+  || die 'fixture V2 namespace is already in use'
+[[ -z "$(redis_cli --scan --pattern "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE}*" | head -n 1)" ]] \
+  || die 'fixture legacy namespace is already in use'
+GUARDS_PASSED=true
 mkdir -p "$FIXTURE_ROOT/reports/crawler-monitor"
 cat >"$FIXTURE_ROOT/reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json" <<EOF
 {"items":[{"queueId":"legacy-${RUN_ID}","dispatchId":"legacy-${RUN_ID}","domain":"crawler_queue_v2_fixture","actionId":"crawler-queue-v2-fixture","status":"queued","requestedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","message":"isolated legacy fixture evidence"}]}
@@ -150,28 +165,28 @@ printf '{}\n' >"$FIXTURE_ROOT/reports/crawler-monitor/wiki-monitor-dispatch.lock
 redis_cli SET "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE}running:${RUN_ID}" "fixture" >/dev/null
 redis_cli SET "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE}dedupe:${RUN_ID}" "fixture" >/dev/null
 redis_cli SET "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE}lock:${RUN_ID}" "fixture" >/dev/null
-pass '1/14 seeded only exact legacy fixture keys'
+pass '1/15 seeded only exact legacy fixture keys'
 
 # 2. Cut over the isolated namespace; no V1 work is copied into the V2 queue.
 CUTOVER_ID="fixture-v2-${RUN_ID}"
 CUTOVER_GIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 CUTOVER="$(api_post /admin/crawler-monitor/cutover "{\"cutoverId\":\"${CUTOVER_ID}\",\"confirmation\":\"CUTOVER_CRAWLER_QUEUE_V2\",\"gitSha\":\"${CUTOVER_GIT_SHA}\"}")"
 json_equals "$CUTOVER" data.engineMode v2
-pass '2/14 completed isolated V1 to V2 cutover'
+pass '2/15 completed isolated V1 to V2 cutover'
 
 # 3. V2 overview is empty and legacy evidence is history-only.
 OVERVIEW="$(api_get /admin/crawler-monitor/overview)"
 json_equals "$OVERVIEW" data.queueContractVersion 2
 json_equals "$OVERVIEW" data.liveQueue '[]'
 json_array_length_at_least "$OVERVIEW" data.legacyHistory 1 || die 'legacy fixture evidence was not exposed as history'
-pass '3/14 observed empty V2 live queue and immutable legacy history'
+pass '3/15 observed empty V2 live queue and immutable legacy history'
 
 # 4. Dispatch the only permitted no-network fixture and capture exact identity.
 FIRST="$(api_post /admin/crawler-monitor/dispatch '{"domain":"crawler_queue_v2_fixture","actionId":"crawler-queue-v2-fixture","resumeMode":"fresh"}')"
 QUEUE_ID="$(json_nonempty "$FIRST" data.queueId)"
 ATTEMPT_ID="$(json_nonempty "$FIRST" data.attemptId)"
 STATE_VERSION="$(json_nonempty "$FIRST" data.stateVersion)"
-pass '4/14 dispatched no-network fixture with exact V2 identity'
+pass '4/15 dispatched no-network fixture with exact V2 identity'
 
 # 5. An authenticated bounded SSE replay includes that exact attempt identity.
 SSE_OUTPUT="$FIXTURE_ROOT/events-${RUN_ID}.log"
@@ -185,7 +200,7 @@ for _ in $(seq 1 20); do
   sleep 0.25
 done
 grep -Fq "$ATTEMPT_ID" "$SSE_OUTPUT" || die 'SSE did not include the dispatched attemptId'
-pass '5/14 authenticated SSE exposed the same attempt identity'
+pass '5/15 authenticated SSE exposed the same attempt identity'
 
 # 6. The incremental log cursor must move forward, never by an arbitrary path.
 LOG_ONE=''
@@ -199,12 +214,12 @@ OFFSET_ONE="$(json_nonempty "$LOG_ONE" data.nextOffset)"
 LOG_TWO="$(api_get "/admin/crawler-monitor/attempts/${ATTEMPT_ID}/log?offset=${OFFSET_ONE}&maxBytes=262144")"
 OFFSET_TWO="$(json_nonempty "$LOG_TWO" data.nextOffset)"
 [[ "$OFFSET_TWO" -ge "$OFFSET_ONE" ]] || die 'incremental attempt-log nextOffset moved backwards'
-pass '6/14 read attempt-keyed incremental logs'
+pass '6/15 read attempt-keyed incremental logs'
 
 # 7. Same action while active returns the first active attempt through dedupe.
 SECOND="$(api_post /admin/crawler-monitor/dispatch '{"domain":"crawler_queue_v2_fixture","actionId":"crawler-queue-v2-fixture","resumeMode":"fresh"}')"
 json_equals "$SECOND" data.attemptId "$ATTEMPT_ID"
-pass '7/14 verified active-attempt dedupe'
+pass '7/15 verified active-attempt dedupe'
 
 # 8. Exact cancel reports request-before-terminal and releases ownership.
 CURRENT_FOR_CANCEL="$(api_get /admin/crawler-monitor/overview)"
@@ -212,7 +227,7 @@ STATE_VERSION="$(json_attempt_state_version "$CURRENT_FOR_CANCEL" "$ATTEMPT_ID")
   || die 'current live attempt version is unavailable for exact cancellation'
 CANCEL="$(api_post /admin/crawler-monitor/dispatch/control "{\"queueId\":\"${QUEUE_ID}\",\"attemptId\":\"${ATTEMPT_ID}\",\"expectedStateVersion\":${STATE_VERSION},\"controlAction\":\"cancel\"}")"
 json_equals "$CANCEL" data.attemptId "$ATTEMPT_ID"
-pass '8/14 issued exact V2 cancellation request'
+pass '8/15 issued exact V2 cancellation request'
 
 # 9. Stop SSE locally and confirm overview polling observes the state change.
 kill "$SSE_PID" >/dev/null 2>&1 || true
@@ -221,10 +236,12 @@ SSE_PID=''
 sleep 3
 AFTER_CANCEL="$(api_get /admin/crawler-monitor/overview)"
 grep -Fq "$ATTEMPT_ID" <<<"$AFTER_CANCEL" || die 'overview lost the cancelled attempt history'
-pass '9/14 three-second overview fallback observed cancellation state'
+pass '9/15 three-second overview fallback observed cancellation state'
 
-# 9b. Run a bounded items-domain fixture against the tracked standardized file.
-ITEMS_FIXTURE="$(api_post /admin/crawler-monitor/dispatch '{"domain":"items","actionId":"crawler-queue-v2-items-fixture","resumeMode":"fresh"}')"
+# 10. Run a bounded items-domain fixture against the tracked standardized file.
+# The sample is a registered non-default operation, so use the domain-start
+# contract instead of the generic default-operation dispatch route.
+ITEMS_FIXTURE="$(api_post /admin/crawler-monitor/domains/items/start '{"operationId":"sample","resumeMode":"fresh"}')"
 ITEMS_ATTEMPT="$(json_nonempty "$ITEMS_FIXTURE" data.attemptId)"
 ITEMS_OUTPUT=''
 for _ in $(seq 1 40); do
@@ -240,9 +257,9 @@ if (payload.entity !== 'items' || payload.readOnly !== true || payload.sampleCou
   process.exit(1);
 }
 NODE
-pass '9b/14 completed bounded real items fixture without network or database writes'
+pass '10/15 completed bounded real items fixture without network or database writes'
 
-# 10. Start one more fixture, then delete only its selected V2 epoch key.
+# 11. Start one more fixture, then delete only its selected V2 epoch key.
 LONG="$(api_post /admin/crawler-monitor/dispatch '{"domain":"crawler_queue_v2_fixture","actionId":"crawler-queue-v2-fixture","resumeMode":"fresh"}')"
 LONG_ATTEMPT="$(json_nonempty "$LONG" data.attemptId)"
 for _ in $(seq 1 20); do
@@ -251,16 +268,16 @@ for _ in $(seq 1 20); do
   sleep 0.25
 done
 redis_cli DEL "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE}meta:epoch" >/dev/null
-pass '10/14 simulated epoch loss by deleting only the fixture epoch key'
+pass '11/15 simulated epoch loss by deleting only the fixture epoch key'
 
-# 11. A missing epoch is visible maintenance, never an automatic V1 fallback.
+# 12. A missing epoch is visible maintenance, never an automatic V1 fallback.
 RESET_OVERVIEW="$(api_get /admin/crawler-monitor/overview)"
 grep -Fq 'STATE_STORE_RESET' <<<"$RESET_OVERVIEW" || die 'missing fixture epoch was not exposed as STATE_STORE_RESET'
 [[ "$(redis_cli EXISTS "${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE}meta:epoch")" == 0 ]] \
   || die 'overview recreated a missing epoch automatically'
-pass '11/14 verified fail-closed maintenance without automatic epoch creation'
+pass '12/15 verified fail-closed maintenance without automatic epoch creation'
 
-# 12. Explicit reset creates a new empty epoch and preserves interrupted history.
+# 13. Explicit reset creates a new empty epoch and preserves interrupted history.
 RESET_ID="fixture-reset-${RUN_ID}"
 RESET="$(api_post /admin/crawler-monitor/cutover/recover-state-store-reset "{\"cutoverId\":\"${CUTOVER_ID}\",\"resetId\":\"${RESET_ID}\",\"confirmation\":\"RESET_CRAWLER_QUEUE_V2_EPOCH\",\"gitSha\":\"${CUTOVER_GIT_SHA}\"}")"
 json_equals "$RESET" data.stateStoreReset true
@@ -269,13 +286,13 @@ RESET_AFTER="$(api_get /admin/crawler-monitor/overview)"
 json_equals "$RESET_AFTER" data.stateStoreEpoch "$NEW_EPOCH"
 json_equals "$RESET_AFTER" data.liveQueue '[]'
 grep -Fq "$LONG_ATTEMPT" <<<"$RESET_AFTER" || die 'reset did not retain the interrupted attempt as history'
-pass '12/14 reset only the isolated epoch and preserved interrupted history'
+pass '13/15 reset only the isolated epoch and preserved interrupted history'
 
-# 13. Old-epoch ownership cannot block a new V2 fixture attempt.
+# 14. Old-epoch ownership cannot block a new V2 fixture attempt.
 AFTER_RESET="$(api_post /admin/crawler-monitor/dispatch '{"domain":"crawler_queue_v2_fixture","actionId":"crawler-queue-v2-fixture","resumeMode":"fresh"}')"
 NEW_ATTEMPT="$(json_nonempty "$AFTER_RESET" data.attemptId)"
 [[ "$NEW_ATTEMPT" != "$LONG_ATTEMPT" ]] || die 'new epoch dispatch reused old attempt identity'
-pass '13/14 admitted a fresh V2 attempt after old-epoch isolation'
+pass '14/15 admitted a fresh V2 attempt after old-epoch isolation'
 
-# 14. EXIT trap removes only the two fixture prefixes and fixture root.
-pass '14/14 cleanup trap is armed for exact fixture prefixes and root'
+# 15. EXIT trap removes only the two fixture prefixes and fixture root.
+pass '15/15 cleanup trap is armed for exact fixture prefixes and root'

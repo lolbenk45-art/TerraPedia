@@ -1,16 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-06 20:04 CST by Codex
+Last updated: 2026-08-06 21:14 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-P1 crawler monitor interruption, recovery, and isolated runtime acceptance.
+P1 crawler monitor runtime acceptance is complete; scheduler design remains separately authorized follow-up.
 
 ## Open Work
 
-- No additional open entry for the focused V2 monitor simplification commit.
+- No open work in this runtime-acceptance checkpoint. Scheduler daemon design and enablement remain a separately authorized follow-up.
 
 ## Current State
 
@@ -28,13 +28,14 @@ P1 crawler monitor interruption, recovery, and isolated runtime acceptance.
 
 ## Next Agent Start Point
 
-Run the isolated V2 fixture-stack smoke with a fixture-only Redis namespace,
-explicit Redis DB, and administrator token. Preserve the live Redis V2 attempt
-contract, destructive-operation confirmation, and `notGateEvidence=true`.
+Create a separate plan and authorization request for any V2 scheduler daemon;
+do not infer recurring automation from scheduler eligibility.
 
 ## Current Risks
 
 - Scheduler eligibility is not authority to start a recurring daemon or crawler.
+- The normal admin frontend login proxy needs a separate runtime-config review;
+  final page acceptance used an authenticated backend token cookie.
 - Release, deployment, push, merge, and worktree cleanup require separate user
   direction.
 - Before any new runtime or release claim, rerun the relevant current gates.
