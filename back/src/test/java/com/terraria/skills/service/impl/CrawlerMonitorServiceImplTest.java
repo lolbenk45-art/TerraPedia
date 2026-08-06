@@ -250,6 +250,36 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void dedicatedDomainStartSubmitsTheRegisteredItemsSampleOperation() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-sample", "attempt-sample", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerMonitorDispatchResultDTO result = service.startCrawlerDomain(
+            "items",
+            "sample",
+            "fresh",
+            false,
+            "admin"
+        );
+
+        assertEquals("attempt-sample", result.getAttemptId());
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("items", command.getValue().domain());
+        assertEquals("crawler-queue-v2-items-fixture", command.getValue().actionId());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
     void v2FixtureDispatchReachesTheV2ApplicationWithoutEnteringTheLegacyRegistry() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
@@ -273,6 +303,26 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("crawler_queue_v2_fixture", command.getValue().domain());
         assertEquals("crawler-queue-v2-fixture", command.getValue().actionId());
         verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void legacyDispatchRejectsTheItemsSampleAndRequiresDedicatedV2Start() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        IllegalArgumentException error = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.dispatchWikiMonitorTask(dispatchRequest(
+                "items",
+                "crawler-queue-v2-items-fixture"
+            ))
+        );
+
+        assertTrue(error.getMessage().contains("不允许用于域 items"));
+        verifyNoInteractions(v2Service, legacyQueue);
     }
 
     @Test
@@ -2236,6 +2286,10 @@ class CrawlerMonitorServiceImplTest {
             "attemptId", "attempt-123",
             "status", "completed"
         ));
+        writeJson(attemptDirectory.resolve("progress.json.items-sample.json"), Map.of(
+            "entity", "items",
+            "sampleCount", 3
+        ));
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
 
@@ -2248,10 +2302,15 @@ class CrawlerMonitorServiceImplTest {
                 "reports/crawler-monitor/v2/2026-07-14/attempt-123/progress.json"
             )
         );
+        CrawlerMonitorReportDetailDTO sample = service.getReportDetail(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-123/progress.json.items-sample.json"
+        );
 
         assertTrue(detail.isFound());
         assertTrue(detail.isReadable());
         assertTrue(detail.getContent().contains("\"completedActions\" : 1"));
+        assertTrue(sample.isReadable());
+        assertTrue(sample.getContent().contains("\"sampleCount\" : 3"));
         assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
     }
 

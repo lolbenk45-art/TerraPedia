@@ -166,7 +166,7 @@ class CrawlerQueueV2ApplicationServiceTest {
             .filter(state -> "items".equals(state.domain()))
             .findFirst()
             .orElseThrow();
-        assertEquals(List.of("check", "force", "verify"), items.operations().stream()
+        assertEquals(List.of("check", "force", "verify", "sample"), items.operations().stream()
             .map(CrawlerQueueV2OverviewDTO.OperationDTO::operationId)
             .toList());
         verify(repository, never()).createQueue(any());
@@ -256,6 +256,39 @@ class CrawlerQueueV2ApplicationServiceTest {
         assertEquals(CrawlerQueueV2ReasonCode.CUTOVER_NOT_ENABLED, exception.reasonCode());
         assertTrue(exception.getMessage().contains("fixture"));
         verify(repository, never()).createQueue(any());
+    }
+
+    @Test
+    void admitsTheRegisteredItemsSampleWithoutFixtureExecutionEnabled() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(),
+                command.attempt().attemptId(),
+                command.attempt().stateVersion(),
+                null,
+                NOW.minusSeconds(1)
+            );
+        });
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "items",
+                "crawler-queue-v2-items-fixture",
+                "standard",
+                "fresh",
+                "admin",
+                null
+            )
+        );
+
+        assertTrue(result.accepted());
+        verify(repository).createQueue(argThat(command ->
+            "items".equals(command.queue().domain())
+                && "crawler-queue-v2-items-fixture".equals(command.attempt().actionId())
+        ));
     }
 
     @Test

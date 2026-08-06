@@ -13,11 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CrawlerMonitorActionRegistryTest {
 
     @Test
-    void exposesTwentyFourOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
+    void exposesTwentyFiveOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(24, registry.all().size());
-        assertEquals(List.of("check", "force", "verify"), registry.operations("items").stream()
+        assertEquals(25, registry.all().size());
+        assertEquals(List.of("check", "force", "verify", "sample"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
         assertEquals("check", registry.requireDefaultOperation("items").operationId());
@@ -70,6 +70,7 @@ class CrawlerMonitorActionRegistryTest {
             "wiki-items-refresh",
             "wiki-items-force-refresh",
             "item-image-source-verification",
+            "crawler-queue-v2-items-fixture",
             "wiki-npcs-refresh",
             "wiki-npcs-force-refresh",
             "wiki-projectiles-refresh",
@@ -128,6 +129,15 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals("none", itemImageVerification.databaseAccess());
         assertEquals("fresh", itemImageVerification.restartBehavior());
         assertEquals(9L, itemImageVerification.estimatedRequests());
+
+        CrawlerMonitorActionDefinition itemsSample = registry.requireOperation("items", "sample");
+        assertEquals("crawler-queue-v2-items-fixture", itemsSample.actionId());
+        assertEquals("模拟物品爬取（真实样本）", itemsSample.labelZh());
+        assertFalse(itemsSample.defaultOperation());
+        assertFalse(itemsSample.networkAccess());
+        assertEquals("none", itemsSample.databaseAccess());
+        assertEquals(0L, itemsSample.estimatedRequests());
+        assertEquals(3L, itemsSample.estimatedRecords());
 
         CrawlerMonitorActionDefinition itemGroupPreview = registry.require(
             "item_groups", "item-group-canonical-preview"
@@ -294,7 +304,7 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void shouldExposeFixtureOnlyOutsideTheApprovedProductionActionSet() {
+    void shouldKeepOnlyTheHeartbeatFixtureOutsideTheApprovedProductionActionSet() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
         assertFalse(registry.all().stream()
@@ -320,12 +330,10 @@ class CrawlerMonitorActionRegistryTest {
             fixture.command()
         );
 
-        CrawlerMonitorActionDefinition itemsFixture = CrawlerMonitorActionRegistry.itemsFixture();
-        assertEquals("items", itemsFixture.domain());
-        assertEquals("crawler-queue-v2-items-fixture", itemsFixture.actionId());
-        assertFalse(registry.all().stream()
-            .map(CrawlerMonitorActionDefinition::actionId)
-            .anyMatch("crawler-queue-v2-items-fixture"::equals));
+        CrawlerMonitorActionDefinition itemsSample = registry.require(
+            "items",
+            "crawler-queue-v2-items-fixture"
+        );
         assertEquals(
             List.of(
                 "node",
@@ -334,7 +342,7 @@ class CrawlerMonitorActionRegistryTest {
                 "--progress-path=<progressPath>",
                 "--output-path=<progressPath>.items-sample.json"
             ),
-            itemsFixture.command()
+            itemsSample.command()
         );
     }
 }

@@ -64,6 +64,24 @@ test('items fixture records failed progress when a real input cannot be parsed',
   assert.match(progress.message, /items fixture failed/);
 });
 
+test('items fixture records failed progress when the read-only input is missing', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'crawler-v2-items-missing-'));
+  const progressPath = path.join(root, 'progress.json');
+  const result = runFixture([
+    `--items-input=${path.join(root, 'items.missing.json')}`,
+    `--progress-path=${progressPath}`,
+    `--output-path=${path.join(root, 'output.json')}`,
+  ]);
+
+  assert.notEqual(result.status, 0);
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assert.equal(progress.actionId, 'crawler-queue-v2-items-fixture');
+  assert.equal(progress.status, 'failed');
+  assert.equal(progress.phase, 'failed');
+  assert.match(progress.message, /items fixture failed/);
+  assert.match(progress.message, /ENOENT|no such file/i);
+});
+
 function runFixture(args) {
   return spawnSync(process.execPath, [scriptPath, ...args], {
     env: {

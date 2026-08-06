@@ -76,6 +76,9 @@ button is required.
   with an explanatory progress message and process log.
 - Registry mismatches remain rejected before enqueue or launch.
 - Output is forbidden from replacing the input path.
+- The report-preview boundary allows only the exact attempt-scoped sample JSON
+  alongside the existing `report.json`; progress and log files remain blocked
+  from generic report preview.
 - V2 dedupe, deadlines, stale-attempt rejection, cancellation, and retry keep
   their existing behavior; this feature adds no alternate state authority.
 

@@ -9,18 +9,18 @@ import {
 } from '../workflow/backend-refresh-runtime-state.mjs';
 
 const options = parseArgs(process.argv.slice(2));
-const inputPath = requireExistingFile(options.itemsInput, '--items-input');
+const inputPath = requirePath(options.itemsInput, '--items-input');
 const progressPath = requirePath(options.progressPath, '--progress-path');
 const outputPath = requirePath(options.outputPath, '--output-path');
-if (path.resolve(inputPath) === path.resolve(outputPath)) {
-  throw new Error('--output-path must not replace --items-input');
-}
 
 const startedAt = new Date().toISOString();
 const sequence = createCrawlerAttemptProgressSequencer();
 writeProgress('running', 'read_input', 'reading read-only items input', 0, 3);
 
 try {
+  if (path.resolve(inputPath) === path.resolve(outputPath)) {
+    throw new Error('--output-path must not replace --items-input');
+  }
   const sourceBytes = fs.readFileSync(inputPath);
   const source = JSON.parse(sourceBytes.toString('utf8'));
   if (source?.entity !== 'items' || !Array.isArray(source.records)) {
@@ -88,12 +88,4 @@ function parseArgs(args) {
 function requirePath(value, option) {
   if (!value) throw new Error(`${option} is required`);
   return path.resolve(value);
-}
-
-function requireExistingFile(value, option) {
-  const resolved = requirePath(value, option);
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
-    throw new Error(`${option} must reference an existing file`);
-  }
-  return resolved;
 }

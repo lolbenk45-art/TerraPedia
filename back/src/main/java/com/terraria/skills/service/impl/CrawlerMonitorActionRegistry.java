@@ -139,16 +139,12 @@ public class CrawlerMonitorActionRegistry {
         );
     }
 
-    /**
-     * Fixture-only items action that reads a bounded sample from the tracked
-     * standardized payload. It is never included in the production registry.
-     */
-    public static CrawlerMonitorActionDefinition itemsFixture() {
+    private static CrawlerMonitorActionDefinition itemsSample() {
         return new CrawlerMonitorActionDefinition(
             "items",
-            "Items real-data fixture",
+            "模拟物品爬取（真实样本）",
             "fixture.items.standardized",
-            "read-only tracked items sample",
+            "data/standardized/items.standardized.json",
             "crawler-queue-v2-items-fixture",
             "<progressPath>",
             List.of(
@@ -163,7 +159,20 @@ public class CrawlerMonitorActionRegistry {
             false,
             "fresh",
             null,
-            "fresh"
+            "fresh",
+            "sample",
+            "direct_crawl",
+            "fresh",
+            "读取最多三条真实标准化物品记录，模拟完整 V2 任务状态与产物链路。",
+            false,
+            "仅写入当前 attempt 的进度、日志和样本 JSON",
+            "none",
+            0L,
+            3L,
+            true,
+            false,
+            "summary",
+            false
         );
     }
 
@@ -191,6 +200,7 @@ public class CrawlerMonitorActionRegistry {
                 "写入图片来源核验证据和进度", "none", 9L, false,
                 "summary", false, true, true
             ),
+            itemsSample(),
             backend(
                 "npcs", "检查 NPC 模块更新", "wiki.module.npcinfo", "Module:Npcinfo/data",
                 "wiki-npcs-refresh", "check", "check_sync", "check",

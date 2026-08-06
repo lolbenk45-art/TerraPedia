@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-06 10:16 CST by Codex
+Last updated: 2026-08-06 10:42 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,14 +11,8 @@ with normal attempt progress and output visibility.
 
 ## Open Work
 
-- `entries/2026-08-06-crawler-v2-items-sample-operation.md`
-  - owner: Codex
-  - status: active
-  - branch: `design/crawler-auto-ingestion-readiness`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`
-  - relationship: standalone follow-up to the closed V2 automation-controls entry
-  - dependencies: written-spec approval before implementation planning
-  - contract handoff: registry-owned `items` / `sample` V2 operation
+- No open work in this entry. Manual acceptance remains available at the admin
+  crawler monitor page and is intentionally user-triggered.
 
 ## Current State
 
@@ -36,8 +30,9 @@ with normal attempt progress and output visibility.
 
 ## Next Agent Start Point
 
-Review the items sample operation spec, then write and execute its implementation
-plan. Preserve the live Redis V2 attempt contract and `notGateEvidence=true`.
+Manual acceptance only: open the admin crawler monitor and run the bounded
+`items/sample` operation when ready. Preserve the live Redis V2 attempt
+contract and `notGateEvidence=true`.
 
 ## Current Risks
 
@@ -48,6 +43,7 @@ plan. Preserve the live Redis V2 attempt contract and `notGateEvidence=true`.
 
 ## Recently Closed
 
+- `entries/2026-08-06-crawler-v2-items-sample-operation.md`
 - `entries/2026-08-06-crawler-v2-automation-controls.md`
 - `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`
 - `entries/2026-07-27-crawler-automated-ingestion-closure.md`

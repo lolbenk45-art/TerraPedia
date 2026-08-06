@@ -614,7 +614,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (relative.getNameCount() != 3
                 || !relative.getName(0).toString().matches("\\d{4}-\\d{2}-\\d{2}")
                 || !relative.getName(1).toString().startsWith("attempt-")
-                || !"report.json".equals(relative.getName(2).toString())) {
+                || !("report.json".equals(relative.getName(2).toString())
+                    || "progress.json.items-sample.json".equals(relative.getName(2).toString()))) {
                 return false;
             }
             if (!Files.exists(resolved)) {
@@ -700,7 +701,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (permit.mode() != CrawlerQueueEngineMode.V2) {
                 throw legacyWriteBlocked(permit.mode());
             }
-            return dispatchV2WikiMonitorTask(request, requestedBy);
+            return dispatchV2WikiMonitorTask(request, requestedBy, rule);
         });
     }
 
@@ -708,7 +709,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorDispatchRequestDTO request,
         String requestedBy
     ) {
-        CrawlerMonitorActionDefinition rule = resolveV2WikiMonitorRule(request);
+        return dispatchV2WikiMonitorTask(request, requestedBy, resolveV2WikiMonitorRule(request));
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchV2WikiMonitorTask(
+        CrawlerMonitorDispatchRequestDTO request,
+        String requestedBy,
+        CrawlerMonitorActionDefinition rule
+    ) {
         CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
             queueV2ApplicationService,
             "V2 router requires CrawlerQueueV2ApplicationService"
@@ -2881,9 +2889,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private CrawlerMonitorActionDefinition resolveV2WikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
         String domain = AdminTextUtils.trimToNull(request == null ? null : request.getDomain());
         String actionId = AdminTextUtils.trimToNull(request == null ? null : request.getActionId());
-        if ("items".equals(domain) && "crawler-queue-v2-items-fixture".equals(actionId)) {
-            return CrawlerMonitorActionRegistry.itemsFixture();
-        }
         if ("crawler_queue_v2_fixture".equals(domain) && "crawler-queue-v2-fixture".equals(actionId)) {
             return CrawlerMonitorActionRegistry.fixture();
         }
