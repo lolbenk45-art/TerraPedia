@@ -1,18 +1,24 @@
 # Current Devlog
 
-Last updated: 2026-08-06 10:42 CST by Codex
+Last updated: 2026-08-06 11:18 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Expose the bounded real-items fixture as a manually operated V2 catalog action
-with normal attempt progress and output visibility.
+Keep completed V2 crawler progress and data freshness visible after a domain
+returns to idle, starting with `town_npc_maintenance`.
 
 ## Open Work
 
-- No open work in this entry. Manual acceptance remains available at the admin
-  crawler monitor page and is intentionally user-triggered.
+- `entries/2026-08-06-crawler-v2-domain-freshness-card.md`
+  - owner: Codex
+  - status: active
+  - branch: `design/crawler-auto-ingestion-readiness`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`
+  - relationship: standalone crawler monitor UI follow-up
+  - dependencies: written-spec review before implementation planning
+  - contract handoff: separate local-data update and upstream source-check labels
 
 ## Current State
 
@@ -30,9 +36,9 @@ with normal attempt progress and output visibility.
 
 ## Next Agent Start Point
 
-Manual acceptance only: open the admin crawler monitor and run the bounded
-`items/sample` operation when ready. Preserve the live Redis V2 attempt
-contract and `notGateEvidence=true`.
+Review the domain freshness card specification, then write and execute its
+implementation plan with TDD. Preserve the live Redis V2 attempt contract and
+`notGateEvidence=true`.
 
 ## Current Risks
 
