@@ -1,17 +1,24 @@
 # Current Devlog
 
-Last updated: 2026-08-06 09:52 CST by Codex
+Last updated: 2026-08-06 10:16 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-No open implementation task. Crawler V2 automation controls and the isolated
-items fixture are ready for handoff.
+Expose the bounded real-items fixture as a manually operated V2 catalog action
+with normal attempt progress and output visibility.
 
 ## Open Work
 
-- none
+- `entries/2026-08-06-crawler-v2-items-sample-operation.md`
+  - owner: Codex
+  - status: active
+  - branch: `design/crawler-auto-ingestion-readiness`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`
+  - relationship: standalone follow-up to the closed V2 automation-controls entry
+  - dependencies: written-spec approval before implementation planning
+  - contract handoff: registry-owned `items` / `sample` V2 operation
 
 ## Current State
 
@@ -29,8 +36,8 @@ items fixture are ready for handoff.
 
 ## Next Agent Start Point
 
-Start from the current crawler monitor/resume plans. Re-read the live Redis V2
-attempt contract and preserve `notGateEvidence=true` for monitor diagnostics.
+Review the items sample operation spec, then write and execute its implementation
+plan. Preserve the live Redis V2 attempt contract and `notGateEvidence=true`.
 
 ## Current Risks
 
