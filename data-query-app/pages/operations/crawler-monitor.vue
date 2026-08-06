@@ -295,6 +295,7 @@ import {
 import {
   buildDomainDetailViewModel,
   buildTriageWorkbench,
+  localDataUpdateLabel,
   shortCrawlerIdentity,
   sourceFreshnessLabel,
   v2DomainDisplayStatus,
@@ -328,7 +329,7 @@ import {
   resultKindLabel,
 } from '~/utils/crawlerMonitorOperationCatalog.mjs'
 import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, executeV2ControlRequest, isV2AuthFailure, shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel, v2ControlPendingKey } from './crawler-monitor.control.mjs'
-import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
+import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestSuccessfulV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
 import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import { unwrapAutomationEnvelope } from './crawler-automation.state.mjs'
@@ -664,6 +665,10 @@ const latestV2TerminalAttemptByDomain = computed(() => latestV2TerminalAttemptsB
   v2State.value?.attemptHistory || [],
   overview.value?.stateStoreEpoch,
 ))
+const latestSuccessfulV2AttemptByDomain = computed(() => latestSuccessfulV2AttemptsByDomain(
+  v2State.value?.attemptHistory || [],
+  overview.value?.stateStoreEpoch,
+))
 const operationGroups = computed(() => groupOperationCatalog(v2State.value?.domainStates || []))
 const operationCatalogCount = computed(() => operationGroups.value.reduce((total, group) => total + group.operations.length, 0))
 const wikiDomainFreshnessByKey = computed(() => {
@@ -677,6 +682,7 @@ const wikiDomainFreshnessByKey = computed(() => {
 const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((domainState: any) => {
   const attempt = v2State.value?.currentByDomain.get(domainState.domain) || null
   const latestResult = latestV2TerminalAttemptByDomain.value.get(domainState.domain) || null
+  const latestSuccessfulAttempt = latestSuccessfulV2AttemptByDomain.value.get(domainState.domain) || null
   const actionableAttempt = attempt || latestActionableV2AttemptByDomain.value.get(domainState.domain) || null
   const controlAttempt = actionableAttempt ? { ...actionableAttempt, v2Attempt: true } : null
   const current = Number(attempt?.current ?? domainState.current)
@@ -697,6 +703,9 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
   const allowedActions = Array.isArray(domainState?.allowedActions)
     ? domainState.allowedActions
     : (Array.isArray(attempt?.allowedActions) ? attempt.allowedActions : [])
+  const freshnessKey = String(domainState.domain || '').toLowerCase().replace(/-/g, '_')
+  const sourceFreshness = wikiDomainFreshnessByKey.value.get(freshnessKey) || null
+  const upstreamCheckSummary = sourceFreshnessLabel(sourceFreshness)
   return {
     v2Attempt: true,
     domain: domainState.domain,
@@ -706,6 +715,12 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
     currentStatusLabel,
     latestResult,
     latestResultLabel,
+    latestSuccessfulAttempt,
+    localDataSummary: localDataUpdateLabel(
+      latestSuccessfulAttempt,
+      lastOverviewRefreshAt.value ? new Date(lastOverviewRefreshAt.value) : new Date(),
+    ),
+    upstreamCheckSummary,
     diagnosisTitle: crawlerStatusDisplayLabel(status),
     risk: status,
     queueStatus: attempt?.status || status,
@@ -736,9 +751,9 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
     rankReason: attempt?.messageZh || displayStatus.note || domainState.messageZh || '',
     nextActionLabel: controlAttempt?.suggestedAction || domainState.suggestedAction || '查看详情',
     queueSummary: attempt ? `队列 ${shortCrawlerIdentity(attempt.queueId)} · 尝试 ${shortCrawlerIdentity(attempt.attemptId)}` : '无当前 V2 尝试',
-    // 新鲜度=真实 wiki revision 对比; 没有检查记录就诚实置空, 不用 phase 冒充
-    sourceSummary: sourceFreshnessLabel(wikiDomainFreshnessByKey.value.get(String(domainState.domain || '').toLowerCase().replace(/-/g, '_'))) || '',
-    sourceFreshness: wikiDomainFreshnessByKey.value.get(String(domainState.domain || '').toLowerCase().replace(/-/g, '_')) || null,
+    // 上游检查=真实 wiki revision 对比; 没有检查记录就明确显示未检查, 不用 phase 冒充
+    sourceSummary: upstreamCheckSummary,
+    sourceFreshness,
     log: attempt?.log || null,
   }
 }))

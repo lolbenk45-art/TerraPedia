@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-06 11:18 CST by Codex
+Last updated: 2026-08-06 11:31 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
@@ -11,14 +11,8 @@ returns to idle, starting with `town_npc_maintenance`.
 
 ## Open Work
 
-- `entries/2026-08-06-crawler-v2-domain-freshness-card.md`
-  - owner: Codex
-  - status: active
-  - branch: `design/crawler-auto-ingestion-readiness`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`
-  - relationship: standalone crawler monitor UI follow-up
-  - dependencies: written-spec review before implementation planning
-  - contract handoff: separate local-data update and upstream source-check labels
+- No open work in this entry. The freshness card implementation is complete;
+  the user only needs to refresh the running admin page for acceptance.
 
 ## Current State
 
@@ -36,9 +30,9 @@ returns to idle, starting with `town_npc_maintenance`.
 
 ## Next Agent Start Point
 
-Review the domain freshness card specification, then write and execute its
-implementation plan with TDD. Preserve the live Redis V2 attempt contract and
-`notGateEvidence=true`.
+Refresh the admin crawler monitor and verify `town_npc_maintenance` shows the
+latest successful count/time separately from current idle state and latest
+result. Preserve the live Redis V2 attempt contract and `notGateEvidence=true`.
 
 ## Current Risks
 
@@ -49,6 +43,7 @@ implementation plan with TDD. Preserve the live Redis V2 attempt contract and
 
 ## Recently Closed
 
+- `entries/2026-08-06-crawler-v2-domain-freshness-card.md`
 - `entries/2026-08-06-crawler-v2-items-sample-operation.md`
 - `entries/2026-08-06-crawler-v2-automation-controls.md`
 - `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`

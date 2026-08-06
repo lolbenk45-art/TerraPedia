@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -28,11 +28,21 @@
 
 ## Validation
 
-- Pending implementation plan and TDD execution.
+- TDD RED/GREEN covered the latest-success selector, final progress label,
+  missing completion/counts, and missing upstream probe.
+- Crawler monitor utility/page contracts: `127/127` passed.
+- Full admin unit suite: `410/410` passed; Nuxt typecheck and production build
+  passed.
+- Runtime authenticated read-only page check found the target row with:
+  `空闲正常 / 已取消 / 39 / 39 · 完成于 08-06 08:40 · 距今约 3 小时 / 上游尚未检查`.
+  Desktop and mobile card views had no document-level horizontal overflow.
+- Existing target evidence was current epoch and completed `39/39`; a later
+  cancelled `4/39` attempt remains visible as the latest result without
+  replacing the latest successful data summary.
 
 ## Result
 
-- Written design approved conversationally; implementation pending.
+- Completed V2 idle-domain freshness display and focused validation.
 
 ## Residual Risks
 
@@ -41,8 +51,8 @@
 
 ## Follow-up
 
-- Write and execute the focused implementation plan after written-spec review.
+- User should refresh the running admin page to load the updated card and table.
 
 ## Commits
 
-- Design checkpoint pending in final response.
+- Implementation commit SHA pending in final response.

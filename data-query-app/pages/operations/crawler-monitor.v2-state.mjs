@@ -1,9 +1,14 @@
 import {
   latestActionableV2AttemptsByDomain,
+  latestSuccessfulV2AttemptsByDomain,
   latestV2TerminalAttemptsByDomain,
 } from '../../utils/crawlerMonitorV2Attempts.mjs'
 
-export { latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain } from '../../utils/crawlerMonitorV2Attempts.mjs'
+export {
+  latestActionableV2AttemptsByDomain,
+  latestSuccessfulV2AttemptsByDomain,
+  latestV2TerminalAttemptsByDomain,
+} from '../../utils/crawlerMonitorV2Attempts.mjs'
 
 function asArray(value) {
   return Array.isArray(value) ? value : []

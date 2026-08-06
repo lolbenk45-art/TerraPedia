@@ -8,11 +8,66 @@ import {
   buildDomainOperationModel,
   buildTriageWorkbench,
   filterLogLines,
+  localDataUpdateLabel,
   shortCrawlerIdentity,
   mergeDomainTaskHistory,
+  sourceFreshnessLabel,
   v2DomainDisplayStatus,
   wikiDomainManualDispatchBlockReason,
 } from '../utils/crawlerMonitorTriageWorkbench.mjs'
+import { latestSuccessfulV2AttemptsByDomain } from '../utils/crawlerMonitorV2Attempts.mjs'
+
+test('latest successful V2 attempts stay visible after a newer failure', () => {
+  const latest = latestSuccessfulV2AttemptsByDomain([
+    {
+      attemptId: 'attempt-success',
+      stateStoreEpoch: 'epoch-current',
+      status: 'completed',
+      completedAt: '2026-08-06T02:00:00Z',
+      coveredDomains: ['town_npc_maintenance', 'npcs'],
+    },
+    {
+      attemptId: 'attempt-failed',
+      stateStoreEpoch: 'epoch-current',
+      status: 'failed',
+      completedAt: '2026-08-06T03:00:00Z',
+      coveredDomains: ['town_npc_maintenance'],
+    },
+    {
+      attemptId: 'attempt-old-epoch',
+      stateStoreEpoch: 'epoch-old',
+      status: 'completed',
+      completedAt: '2026-08-06T04:00:00Z',
+      coveredDomains: ['town_npc_maintenance'],
+    },
+  ], 'epoch-current')
+
+  assert.equal(latest.get('town_npc_maintenance')?.attemptId, 'attempt-success')
+  assert.equal(latest.get('npcs')?.attemptId, 'attempt-success')
+})
+
+test('local data update label retains final progress and completion age', () => {
+  const label = localDataUpdateLabel({
+    status: 'completed',
+    completedAt: '2026-08-06T02:00:00Z',
+    current: 20,
+    total: 24,
+    result: { actualCount: 24, plannedCount: 24 },
+  }, '2026-08-06T03:00:00Z')
+
+  assert.match(label, /24 \/ 24/)
+  assert.match(label, /完成于/)
+  assert.match(label, /距今 1小时/)
+  assert.equal(localDataUpdateLabel(null, '2026-08-06T03:00:00Z'), '尚无成功爬取记录')
+  assert.equal(sourceFreshnessLabel(null), '上游尚未检查')
+})
+
+test('local data update label does not invent counts or completion time', () => {
+  assert.equal(
+    localDataUpdateLabel({ status: 'completed' }, '2026-08-06T03:00:00Z'),
+    '完成时间未记录',
+  )
+})
 
 test('crawler identities keep their prefix and only expose the final five characters', () => {
   assert.equal(shortCrawlerIdentity('queue-4f42c893-5969-4eae-8784-02da0f653728'), 'queue-…53728')
@@ -1514,7 +1569,7 @@ test('V1 抽屉 overview 同样分组且不引入 V2 字段', () => {
   assert.equal(Object.hasOwn(overview, '开始时间'), false)
 })
 
-test('抽屉数据新鲜度来自真实 wiki revision 对比, 不再显示 phase 假数据', () => {
+test('抽屉上游检查来自真实 wiki revision 对比, 不再显示 phase 假数据', () => {
   const checked = buildDomainDetailViewModel({
     row: {
       v2Attempt: true,
@@ -1546,13 +1601,13 @@ test('抽屉数据新鲜度来自真实 wiki revision 对比, 不再显示 phase
 
   const checkedOverview = Object.fromEntries(checked.overviewFields.map((field) => [field.label, field.value]))
   const uncheckedOverview = Object.fromEntries(unchecked.overviewFields.map((field) => [field.label, field.value]))
-  assert.match(checkedOverview['数据新鲜度'], /有变化/)
-  assert.match(checkedOverview['数据新鲜度'], /07-17/)
+  assert.match(checkedOverview['上游检查'], /有变化/)
+  assert.match(checkedOverview['上游检查'], /07-17/)
   // 未检查过时诚实说明, 不显示 "当前 未记录 · 上次 未记录" 这类噪音
-  assert.equal(uncheckedOverview['数据新鲜度'], '尚未执行过源检查')
+  assert.equal(uncheckedOverview['上游检查'], '上游尚未检查')
 })
 
-test('V2 行无 sourceFreshness 时数据新鲜度字段不渲染而非显示 phase', () => {
+test('V2 行无 sourceFreshness 时明确显示上游尚未检查而非 phase', () => {
   const detail = buildDomainDetailViewModel({
     row: {
       v2Attempt: true,
@@ -1566,7 +1621,8 @@ test('V2 行无 sourceFreshness 时数据新鲜度字段不渲染而非显示 ph
   })
 
   const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
-  assert.equal(Object.hasOwn(overview, '数据新鲜度'), false)
+  assert.equal(overview['上游检查'], '上游尚未检查')
+  assert.equal(overview['最近数据'], '尚无成功爬取记录')
 })
 
 test('V1 domain detail does not gain V2-only detail fields', () => {
