@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -26,16 +26,22 @@
 
 ## Validation
 
-- Pending focused backend and admin-page tests plus two read-only V2 overview checks.
+- `mvn -Dtest=CrawlerDomainStateReducerTest,CrawlerMonitorServiceImplTest test`: 208/208 passed.
+- `node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-engine-mode-notice.test.mjs`: 60/60 passed.
+- `bash scripts/dev/crawler-v2-cutover.sh`: cutover `crawler-v2-20260806T000353Z`, epoch `epoch-c87fd828-9295-4fc9-b84c-49ab72e1519b`; two overview reads stable.
+- Post-restart authenticated overview: `queueContractVersion=2`, same epoch and stream cursor on both reads, `liveCount=0`.
+- V2 overview exposes three prior V1 records only under `legacyHistory`; no V1 live queue is reported.
+- Normal stack restart passed backend compile, frontend checks, admin typecheck, and local stack verification.
 
 ## Residual Risks
 
-- Cutover is blocked if durable V2 state, Redis epoch, or exact V1 process evidence is inconsistent.
+- V2-native automatic scheduling remains unavailable; the legacy V1 auto-dispatch controls are hidden and guarded in V2 mode.
 
 ## Follow-up
 
-- none
+- V2-native scheduler design is a separate follow-up before any automatic crawler dispatch is enabled.
 
 ## Commits
 
-- Pending.
+- `422ee9f9` (source, tests, plan, spec, and active devlog checkpoint).
+- Closeout commit pending.

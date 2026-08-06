@@ -17,13 +17,13 @@
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerDomainStateReducer.java`
 
-- [ ] Add a reducer test with `queueStatus=timed_out` and
+- [x] Add a reducer test with `queueStatus=timed_out` and
   `progressStatus=force_reclaimed` that expects `ready` and `recrawl`.
-- [ ] Run `cd back && mvn -Dtest=CrawlerDomainStateReducerTest test`; observe
+- [x] Run `cd back && mvn -Dtest=CrawlerDomainStateReducerTest test`; observe
   the new test fail because the stale queue status wins.
-- [ ] Evaluate force reclaim before terminal historical queue status in
+- [x] Evaluate force reclaim before terminal historical queue status in
   `reduce`, retaining terminal priority when no force reclaim is present.
-- [ ] Run `cd back && mvn -Dtest=CrawlerDomainStateReducerTest,CrawlerMonitorServiceImplTest test`.
+- [x] Run `cd back && mvn -Dtest=CrawlerDomainStateReducerTest,CrawlerMonitorServiceImplTest test`.
 
 ### Task 2: Remove V1 automation from the V2 control surface
 
@@ -32,12 +32,12 @@
 - Modify: `data-query-app/components/crawler-monitor/SystemDrawer.vue`
 - Modify: `data-query-app/tests/crawler-monitor-page-contract.test.mjs`
 
-- [ ] Add a frontend contract test asserting the auto-dispatch settings are
+- [x] Add a frontend contract test asserting the auto-dispatch settings are
   rendered only for non-V2 overview state.
-- [ ] Run the targeted Node test and observe the assertion fail.
-- [ ] Gate the V1 auto-dispatch trigger and settings panel by `!v2Mode`, and
+- [x] Run the targeted Node test and observe the assertion fail.
+- [x] Gate the V1 auto-dispatch trigger and settings panel by `!v2Mode`, and
   show no replacement control because V2-native automation does not exist.
-- [ ] Run `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-engine-mode-notice.test.mjs`.
+- [x] Run `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-engine-mode-notice.test.mjs`.
 
 ### Task 3: Controlled V2 cutover
 
@@ -45,12 +45,12 @@
 - Create: `reports/crawler-monitor/v2/cutovers/<cutover-id>/cutover-manifest.json` (runtime evidence, generated only)
 - Create: `reports/crawler-monitor/v2/cutover-state.json` (runtime evidence, generated only)
 
-- [ ] Confirm no V1 crawler process is alive by exact PID/start-time evidence
+- [x] Confirm no V1 crawler process is alive by exact PID/start-time evidence
   and inspect the durable V2 state before mutation.
-- [ ] Start the backend with the runbook-scoped V2 cutover permission, submit
+- [x] Start the backend with the runbook-scoped V2 cutover permission, submit
   the authenticated `POST /api/admin/crawler-monitor/cutover` confirmation,
   and retain the generated immutable V1 snapshot.
-- [ ] Read overview twice without dispatching work; verify
+- [x] Read overview twice without dispatching work; verify
   `queueContractVersion=2`, unchanged epoch/cursor/live count, and no V1 live
   queue exposure.
 
@@ -60,9 +60,9 @@
 - Modify: `docs/devlog/entries/2026-08-06-crawler-monitor-v2-cutover-and-reclaim.md`
 - Modify: `docs/devlog/current.md`
 
-- [ ] Record cutover ID, test results, non-mutating runtime reads, and that
+- [x] Record cutover ID, test results, non-mutating runtime reads, and that
   V2-native scheduling remains out of scope.
-- [ ] Run `git diff --check`, focused backend tests, frontend contract tests,
+- [x] Run `git diff --check`, focused backend tests, frontend contract tests,
   and `git status --short`.
-- [ ] Commit only the scoped source, test, plan, spec, and devlog paths after
+- [x] Commit only the scoped source, test, plan, spec, and devlog paths after
   staged-scope review.

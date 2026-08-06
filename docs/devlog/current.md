@@ -6,11 +6,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Crawler monitor V2 cutover and force-reclaim state stabilization.
+No open crawler-monitor stabilization entry on this branch.
 
 ## Open Work
 
-- `entries/2026-08-06-crawler-monitor-v2-cutover-and-reclaim.md`
+None for this cutover and reclaim fix. V2-native scheduler remains a future
+follow-up and must not be inferred as enabled.
 
 ## Current State
 
