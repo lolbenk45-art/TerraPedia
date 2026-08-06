@@ -366,6 +366,10 @@ public class CrawlerAttemptSupervisor {
      * can reach this supervisor path.
      */
     private CrawlerMonitorActionDefinition resolveLaunchAction(CrawlerQueueV2Attempt attempt) {
+        if ("items".equals(attempt.domain())
+            && "crawler-queue-v2-items-fixture".equals(attempt.actionId())) {
+            return CrawlerMonitorActionRegistry.itemsFixture();
+        }
         if ("crawler_queue_v2_fixture".equals(attempt.domain())
             && "crawler-queue-v2-fixture".equals(attempt.actionId())) {
             return CrawlerMonitorActionRegistry.fixture();

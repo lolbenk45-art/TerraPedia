@@ -139,6 +139,34 @@ public class CrawlerMonitorActionRegistry {
         );
     }
 
+    /**
+     * Fixture-only items action that reads a bounded sample from the tracked
+     * standardized payload. It is never included in the production registry.
+     */
+    public static CrawlerMonitorActionDefinition itemsFixture() {
+        return new CrawlerMonitorActionDefinition(
+            "items",
+            "Items real-data fixture",
+            "fixture.items.standardized",
+            "read-only tracked items sample",
+            "crawler-queue-v2-items-fixture",
+            "<progressPath>",
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-items-fixture.mjs",
+                "--items-input=data/standardized/items.standardized.json",
+                "--progress-path=<progressPath>",
+                "--output-path=<progressPath>.items-sample.json"
+            ),
+            false,
+            false,
+            false,
+            "fresh",
+            null,
+            "fresh"
+        );
+    }
+
     private static List<CrawlerMonitorActionDefinition> defaultActions() {
         return List.of(
             backend(

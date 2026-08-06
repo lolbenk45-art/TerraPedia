@@ -46,6 +46,34 @@
         </div>
       </section>
 
+      <section v-if="v2Mode" class="system-section system-section--automation">
+        <header>
+          <SlidersHorizontal :size="17" />
+          <h3>V2 自动化</h3>
+        </header>
+        <div class="settings-card">
+          <label>
+            <span>检测后自动派发</span>
+            <span class="settings-card__state">{{ v2AutomationForm?.enabled ? '已开启' : '已暂停' }}</span>
+            <input type="checkbox" :checked="v2AutomationForm?.enabled === true" @change="updateV2Enabled" />
+          </label>
+          <label>
+            <span>扫描间隔</span>
+            <input type="number" min="5" step="5" :value="v2AutomationIntervalValue" @change="updateV2Interval" />
+          </label>
+          <div class="settings-actions">
+            <button type="button" class="btn btn-secondary" :disabled="v2SweepLoading" @click="$emit('run-v2-sweep')">
+              <RefreshCw :size="15" />
+              <span>{{ v2SweepLoading ? '扫描中' : '立即扫描' }}</span>
+            </button>
+            <button type="button" class="btn btn-primary" :disabled="v2Saving" @click="$emit('save-v2-automation')">
+              <Save :size="15" />
+              <span>{{ v2Saving ? '保存中' : '保存控制' }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section v-if="!v2Mode" class="system-section">
         <header>
           <SlidersHorizontal :size="17" />
@@ -80,7 +108,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Files, Save, ShieldAlert, SlidersHorizontal, X } from 'lucide-vue-next'
+import { Files, RefreshCw, Save, ShieldAlert, SlidersHorizontal, X } from 'lucide-vue-next'
 
 const props = defineProps<{
   open: boolean
@@ -89,7 +117,10 @@ const props = defineProps<{
   reports: Array<Record<string, any>>
   autoDispatchForm: Record<string, any>
   v2Mode: boolean
+  v2AutomationForm?: Record<string, any>
   saving?: boolean
+  v2Saving?: boolean
+  v2SweepLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -97,6 +128,9 @@ const emit = defineEmits<{
   preview: [path: string]
   'update-auto-dispatch': [settings: Record<string, any>]
   'save-auto-dispatch': []
+  'update-v2-automation': [settings: Record<string, any>]
+  'save-v2-automation': []
+  'run-v2-sweep': []
 }>()
 
 const autoDispatchStateLabel = computed(() => {
@@ -107,6 +141,11 @@ const autoDispatchStateLabel = computed(() => {
 
 const autoDispatchIntervalValue = computed(() => {
   const value = Number(props.autoDispatchForm?.sweepIntervalMinutes)
+  return Number.isFinite(value) && value > 0 ? value : ''
+})
+
+const v2AutomationIntervalValue = computed(() => {
+  const value = Number(props.v2AutomationForm?.sweepIntervalMinutes)
   return Number.isFinite(value) && value > 0 ? value : ''
 })
 
@@ -125,6 +164,16 @@ function updateInterval(event: Event) {
     sweepIntervalMinutes: raw && Number.isFinite(value) && value > 0 ? value : undefined,
   })
 }
+
+function updateV2Enabled(event: Event) {
+  emit('update-v2-automation', { ...props.v2AutomationForm, enabled: Boolean((event.target as HTMLInputElement | null)?.checked) })
+}
+
+function updateV2Interval(event: Event) {
+  const raw = String((event.target as HTMLInputElement | null)?.value || '').trim()
+  const value = Number(raw)
+  emit('update-v2-automation', { ...props.v2AutomationForm, sweepIntervalMinutes: raw && Number.isFinite(value) && value > 0 ? value : undefined })
+}
 </script>
 
 <style scoped>
@@ -139,15 +188,16 @@ function updateInterval(event: Event) {
   position: fixed;
   inset: 0 0 0 auto;
   z-index: calc(var(--z-modal) + 1);
-  width: min(620px, 100vw);
+  width: min(720px, 100vw);
+  height: 100dvh;
   display: grid;
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 16px;
   background: var(--color-bg);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-xl);
   padding: 18px;
-  overflow: auto;
+  overflow: hidden;
   animation: drawer-in var(--transition-base) var(--ease-emphasis);
 }
 
@@ -188,12 +238,18 @@ function updateInterval(event: Event) {
 }
 
 .system-section {
+  min-height: 0;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-1);
   padding: 12px;
+}
+
+.system-section--automation {
+  grid-template-rows: auto auto;
 }
 
 .system-section header {
@@ -233,6 +289,18 @@ function updateInterval(event: Event) {
 .report-list,
 .settings-card {
   display: grid;
+  gap: 8px;
+}
+
+.report-list,
+.system-grid {
+  min-height: 0;
+  overflow: auto;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 

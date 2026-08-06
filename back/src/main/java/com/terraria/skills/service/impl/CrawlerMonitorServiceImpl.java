@@ -9,6 +9,7 @@ import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
@@ -35,6 +36,9 @@ import java.io.IOException;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -56,6 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -85,6 +90,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path SOURCE_UPDATE_MONITOR_PROGRESS_FILE = Path.of("data", "generated", "source-update-monitor-progress.latest.json");
     private static final Path AUTO_DISPATCH_CONFIG_FILE = Path.of("reports", "crawler-monitor", "auto-dispatch.config.json");
     private static final Path AUTO_DISPATCH_LAST_SWEEP_FILE = Path.of("reports", "crawler-monitor", "auto-dispatch.last-sweep.json");
+    private static final Path V2_AUTOMATION_CONFIG_FILE = Path.of("reports", "crawler-monitor", "v2", "automation-config.json");
+    private static final Path V2_AUTOMATION_LAST_SWEEP_FILE = Path.of("reports", "crawler-monitor", "v2", "automation-last-sweep.json");
+    private static final Path V2_AUTOMATION_SWEEP_LOCK_FILE = Path.of("reports", "crawler-monitor", "v2", "automation-sweep.lock");
     private static final Path WIKI_MONITOR_DISPATCH_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.latest.json");
     private static final Path WIKI_MONITOR_DISPATCH_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.lock.json");
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke-progress.latest.json");
@@ -574,6 +582,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setDomainStates(snapshot.domainStates());
         overview.setAttemptHistory(snapshot.attemptHistory());
         overview.setLegacyHistory(snapshot.legacyHistory());
+        overview.setV2Automation(readV2AutomationSettings(resolveRepoRoot()));
     }
 
     @Override
@@ -2669,8 +2678,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "npcs",
             "projectiles",
             "armor_sets",
-            "buffs",
-            "biomes"
+            "buffs"
         ).contains(rule.domain());
     }
 
@@ -2873,6 +2881,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private CrawlerMonitorActionDefinition resolveV2WikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
         String domain = AdminTextUtils.trimToNull(request == null ? null : request.getDomain());
         String actionId = AdminTextUtils.trimToNull(request == null ? null : request.getActionId());
+        if ("items".equals(domain) && "crawler-queue-v2-items-fixture".equals(actionId)) {
+            return CrawlerMonitorActionRegistry.itemsFixture();
+        }
         if ("crawler_queue_v2_fixture".equals(domain) && "crawler-queue-v2-fixture".equals(actionId)) {
             return CrawlerMonitorActionRegistry.fixture();
         }
@@ -4218,6 +4229,163 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return withLegacyMutationPermit("V1 auto-dispatch settings update", () -> updateAutoDispatchSettingsUnderPermit(settings));
     }
 
+    @Override
+    public CrawlerV2AutomationDTO getV2AutomationSettings() {
+        return queueEngineRouter.withMutationPermit(permit -> {
+            permit.requireMode(CrawlerQueueEngineMode.V2);
+            return readV2AutomationSettings(resolveRepoRoot());
+        });
+    }
+
+    @Override
+    public CrawlerV2AutomationDTO updateV2AutomationSettings(CrawlerV2AutomationDTO settings) {
+        return queueEngineRouter.withMutationPermit(permit -> {
+            permit.requireMode(CrawlerQueueEngineMode.V2);
+            CrawlerV2AutomationDTO normalized = normalizeV2AutomationSettings(settings);
+            Path repoRoot = resolveRepoRoot();
+            writeJsonFile(repoRoot.resolve(V2_AUTOMATION_CONFIG_FILE).normalize(), Map.of(
+                "enabled", normalized.isEnabled(),
+                "mode", normalized.getMode(),
+                "sweepIntervalMinutes", normalized.getSweepIntervalMinutes(),
+                "updatedAt", Instant.now(clock).toString()
+            ));
+            invalidateCachedOverview();
+            return normalized;
+        });
+    }
+
+    @Override
+    public CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runV2AutomationSweepOnce() {
+        queueEngineRouter.withMutationPermit(permit -> {
+            permit.requireMode(CrawlerQueueEngineMode.V2);
+            return null;
+        });
+        return withV2AutomationSweepClaim(
+            this::runV2AutomationSweepClaimed,
+            busyV2AutomationSweep()
+        );
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runV2AutomationSweepClaimed() {
+        Path repoRoot = resolveRepoRoot();
+        CrawlerV2AutomationDTO settings = readV2AutomationSettings(repoRoot);
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        sweep.setCheckedAt(Instant.now(clock).toString());
+        SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
+        if (!sourceUpdateCheck.success()) {
+            sweep.setStatus("error");
+            sweep.getSkipped().add(Map.of("domain", "all", "reason", "source_update_check_failed", "message", sourceUpdateCheck.message()));
+            writeV2AutomationLastSweep(repoRoot, sweep);
+            return sweep;
+        }
+        ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+        Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
+        Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
+        for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
+            if (!rule.wikiDomain() || !isAutoEligibleRule(rule)) continue;
+            Map<String, Object> source = sourceByKey.get(rule.sourceKey());
+            boolean changed = asBoolean(source == null ? null : source.get("changed"));
+            sweep.getDetected().add(Map.of("domain", rule.domain(), "sourceKey", rule.sourceKey(), "actionId", rule.actionId(), "changed", changed));
+            if (changed) changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
+        }
+        for (Map.Entry<String, List<CrawlerMonitorActionDefinition>> entry : changedByAction.entrySet()) {
+            List<CrawlerMonitorActionDefinition> rules = entry.getValue();
+            if (!settings.isEnabled()) {
+                sweep.getSkipped().add(Map.of("actionId", entry.getKey(), "reason", "automation_disabled", "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()));
+                continue;
+            }
+            CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+            request.setDomain(rules.get(0).domain());
+            request.setActionId(entry.getKey());
+            request.setResumeMode("fresh");
+            CrawlerMonitorDispatchResultDTO result = queueEngineRouter.withMutationPermit(permit -> {
+                if (permit.mode() != CrawlerQueueEngineMode.V2
+                    || !readV2AutomationSettings(resolveRepoRoot()).isEnabled()) {
+                    return null;
+                }
+                return dispatchV2WikiMonitorTask(request, "v2-automation");
+            });
+            if (result == null) {
+                sweep.getSkipped().add(Map.of("actionId", entry.getKey(), "reason", "automation_disabled", "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()));
+                continue;
+            }
+            sweep.getDispatched().add(Map.of("actionId", entry.getKey(), "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList(), "accepted", result.isAccepted(), "attemptId", result.getAttemptId() == null ? "" : result.getAttemptId(), "status", result.getStatus() == null ? "" : result.getStatus()));
+        }
+        sweep.setStatus(settings.isEnabled() ? "completed" : "observed");
+        writeV2AutomationLastSweep(repoRoot, sweep);
+        invalidateCachedOverview();
+        return sweep;
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO busyV2AutomationSweep() {
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        sweep.setCheckedAt(Instant.now(clock).toString());
+        sweep.setStatus("busy");
+        sweep.getSkipped().add(Map.of("domain", "all", "reason", "automation_sweep_in_progress"));
+        return sweep;
+    }
+
+    private <T> T withV2AutomationSweepClaim(Supplier<T> operation, T busyResult) {
+        Path lockPath = resolveRepoRoot().resolve(V2_AUTOMATION_SWEEP_LOCK_FILE).normalize();
+        try {
+            Files.createDirectories(lockPath.getParent());
+            try (FileChannel channel = FileChannel.open(lockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+                FileLock lock;
+                try {
+                    lock = channel.tryLock();
+                } catch (OverlappingFileLockException ignored) {
+                    return busyResult;
+                }
+                if (lock == null) {
+                    return busyResult;
+                }
+                try (lock) {
+                    return operation.get();
+                }
+            }
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to claim V2 automation sweep", exception);
+        }
+    }
+
+    private CrawlerV2AutomationDTO readV2AutomationSettings(Path repoRoot) {
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        ReadResult config = readJsonMap(repoRoot.resolve(V2_AUTOMATION_CONFIG_FILE).normalize());
+        if (config.readable()) {
+            settings.setEnabled(asBoolean(config.payload().get("enabled")));
+            settings.setMode("changed-only");
+            settings.setSweepIntervalMinutes(Math.max(1, asInt(config.payload().get("sweepIntervalMinutes"), 60)));
+        }
+        settings.setLastSweep(readV2AutomationLastSweep(repoRoot));
+        return settings;
+    }
+
+    private CrawlerV2AutomationDTO normalizeV2AutomationSettings(CrawlerV2AutomationDTO input) {
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(input != null && input.isEnabled());
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(Math.max(1, input == null ? 60 : input.getSweepIntervalMinutes()));
+        return settings;
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO readV2AutomationLastSweep(Path repoRoot) {
+        ReadResult payload = readJsonMap(repoRoot.resolve(V2_AUTOMATION_LAST_SWEEP_FILE).normalize());
+        if (!payload.readable()) return null;
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        sweep.setCheckedAt(asString(payload.payload().get("checkedAt")));
+        sweep.setStatus(asString(payload.payload().get("status")));
+        sweep.setDetected(asMapList(payload.payload().get("detected")));
+        sweep.setDispatched(asMapList(payload.payload().get("dispatched")));
+        sweep.setSkipped(asMapList(payload.payload().get("skipped")));
+        return sweep;
+    }
+
+    private void writeV2AutomationLastSweep(Path repoRoot, CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep) {
+        writeJsonFile(repoRoot.resolve(V2_AUTOMATION_LAST_SWEEP_FILE).normalize(), Map.of(
+            "checkedAt", sweep.getCheckedAt(), "status", sweep.getStatus(), "detected", sweep.getDetected(), "dispatched", sweep.getDispatched(), "skipped", sweep.getSkipped()
+        ));
+    }
+
     private CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettingsUnderPermit(CrawlerMonitorAutoDispatchDTO settings) {
         CrawlerMonitorAutoDispatchDTO normalized = normalizeAutoDispatchSettings(settings);
         Path repoRoot = resolveRepoRoot();
@@ -4368,6 +4536,52 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             runAutoDispatchSweepOnce();
         } catch (RuntimeException exception) {
             log.warn("Crawler monitor auto-dispatch sweep failed: {}", exception.getMessage(), exception);
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${terrapedia.crawler-monitor.v2-automation.poll-ms:60000}")
+    public void scheduledV2AutomationSweep() {
+        try {
+            boolean due = queueEngineRouter.withMutationPermit(permit -> {
+                if (permit.mode() != CrawlerQueueEngineMode.V2) {
+                    return false;
+                }
+                Path repoRoot = resolveRepoRoot();
+                CrawlerV2AutomationDTO settings = readV2AutomationSettings(repoRoot);
+                return settings.isEnabled() && isV2AutomationSweepDue(settings);
+            });
+            if (!due) {
+                return;
+            }
+            withV2AutomationSweepClaim(() -> {
+                boolean stillDue = queueEngineRouter.withMutationPermit(permit -> {
+                    if (permit.mode() != CrawlerQueueEngineMode.V2) {
+                        return false;
+                    }
+                    CrawlerV2AutomationDTO settings = readV2AutomationSettings(resolveRepoRoot());
+                    return settings.isEnabled() && isV2AutomationSweepDue(settings);
+                });
+                if (stillDue) {
+                    runV2AutomationSweepClaimed();
+                }
+                return null;
+            }, null);
+        } catch (RuntimeException exception) {
+            log.warn("Crawler monitor V2 automation sweep failed: {}", exception.getMessage(), exception);
+        }
+    }
+
+    private boolean isV2AutomationSweepDue(CrawlerV2AutomationDTO settings) {
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO lastSweep = settings.getLastSweep();
+        if (lastSweep == null || lastSweep.getCheckedAt() == null || lastSweep.getCheckedAt().isBlank()) {
+            return true;
+        }
+        try {
+            Instant checkedAt = Instant.parse(lastSweep.getCheckedAt());
+            Duration interval = Duration.ofMinutes(Math.max(1, settings.getSweepIntervalMinutes()));
+            return !Instant.now(clock).isBefore(checkedAt.plus(interval));
+        } catch (RuntimeException ignored) {
+            return true;
         }
     }
 

@@ -7,6 +7,7 @@ import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
@@ -625,6 +626,35 @@ class AdminCrawlerMonitorControllerTest {
                 && "changed-only".equals(settings.getMode())
                 && settings.getSweepIntervalMinutes() == 15
         ));
+    }
+
+    @Test
+    void shouldGetUpdateAndRunV2Automation() throws Exception {
+        CrawlerV2AutomationDTO current = new CrawlerV2AutomationDTO();
+        current.setEnabled(false);
+        CrawlerV2AutomationDTO updated = new CrawlerV2AutomationDTO();
+        updated.setEnabled(true);
+        updated.setSweepIntervalMinutes(15);
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        sweep.setStatus("completed");
+
+        when(crawlerMonitorService.getV2AutomationSettings()).thenReturn(current);
+        when(crawlerMonitorService.updateV2AutomationSettings(argThat(settings ->
+            settings.isEnabled() && settings.getSweepIntervalMinutes() == 15
+        ))).thenReturn(updated);
+        when(crawlerMonitorService.runV2AutomationSweepOnce()).thenReturn(sweep);
+
+        mockMvc.perform(get("/admin/crawler-monitor/v2/automation"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.enabled").value(false));
+        mockMvc.perform(put("/admin/crawler-monitor/v2/automation")
+                .contentType("application/json")
+                .content("{\"enabled\":true,\"mode\":\"changed-only\",\"sweepIntervalMinutes\":15}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.enabled").value(true));
+        mockMvc.perform(post("/admin/crawler-monitor/v2/automation/sweep"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("completed"));
     }
 
     @Test

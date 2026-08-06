@@ -1,17 +1,17 @@
 # Current Devlog
 
-Last updated: 2026-08-06 01:54 CST by Codex
+Last updated: 2026-08-06 09:52 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-No open crawler-monitor stabilization entry on this branch.
+No open implementation task. Crawler V2 automation controls and the isolated
+items fixture are ready for handoff.
 
 ## Open Work
 
-None for this cutover and reclaim fix. V2-native scheduler remains a future
-follow-up and must not be inferred as enabled.
+- none
 
 ## Current State
 
@@ -41,6 +41,7 @@ attempt contract and preserve `notGateEvidence=true` for monitor diagnostics.
 
 ## Recently Closed
 
+- `entries/2026-08-06-crawler-v2-automation-controls.md`
 - `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`
 - `entries/2026-07-27-crawler-automated-ingestion-closure.md`
 - `entries/2026-08-04-item-image-projection-apply-runtime.md`

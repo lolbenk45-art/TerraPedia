@@ -127,11 +127,17 @@
       :reports="recentReportRows"
       :auto-dispatch-form="autoDispatchForm"
       :v2-mode="Boolean(v2State)"
+      :v2-automation-form="v2AutomationForm"
       :saving="autoDispatchSaving"
+      :v2-saving="v2AutomationSaving"
+      :v2-sweep-loading="v2AutomationSweepLoading"
       @close="systemDrawerOpen = false"
       @preview="openReportPreview"
       @update-auto-dispatch="updateAutoDispatchDraft"
       @save-auto-dispatch="saveAutoDispatchSettings"
+      @update-v2-automation="updateV2AutomationDraft"
+      @save-v2-automation="saveV2AutomationSettings"
+      @run-v2-sweep="runV2AutomationSweep"
     />
 
     <section
@@ -382,9 +388,12 @@ const progressControlLoading = ref('')
 const queueControlLoading = ref('')
 const forceReclaimAllLoading = ref(false)
 const autoDispatchSaving = ref(false)
+const v2AutomationSaving = ref(false)
+const v2AutomationSweepLoading = ref(false)
 const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   mode: 'changed-only',
 })
+const v2AutomationForm = reactive({ enabled: false, mode: 'changed-only', sweepIntervalMinutes: 60 })
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const visibleQueueLogKeys = ref<Set<string>>(new Set())
 const selectedWikiDomainKey = ref('')
@@ -1025,6 +1034,13 @@ watch(() => ({
   autoDispatchForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? Math.max(1, interval) : undefined
 }, { immediate: true })
 
+watch(() => overview.value?.v2Automation, (settings: any) => {
+  v2AutomationForm.enabled = settings?.enabled === true
+  v2AutomationForm.mode = settings?.mode || 'changed-only'
+  const interval = Number(settings?.sweepIntervalMinutes)
+  v2AutomationForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? interval : 60
+}, { immediate: true })
+
 onMounted(async () => {
   await loadAutomationWorkbench()
   if (!overview.value) {
@@ -1212,6 +1228,44 @@ async function saveAutoDispatchSettings() {
     showToast(error?.data?.message || error?.message || '保存自动派发设置失败', 'error')
   } finally {
     autoDispatchSaving.value = false
+  }
+}
+
+function updateV2AutomationDraft(settings: Record<string, any>) {
+  v2AutomationForm.enabled = settings.enabled === true
+  v2AutomationForm.mode = 'changed-only'
+  const interval = Number(settings.sweepIntervalMinutes)
+  v2AutomationForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? interval : 60
+}
+
+async function saveV2AutomationSettings() {
+  v2AutomationSaving.value = true
+  try {
+    await put('/admin/crawler-monitor/v2/automation', {
+      enabled: v2AutomationForm.enabled,
+      mode: 'changed-only',
+      sweepIntervalMinutes: v2AutomationForm.sweepIntervalMinutes,
+    })
+    showToast(v2AutomationForm.enabled ? 'V2 自动派发已开启' : 'V2 自动派发已暂停', 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '保存 V2 自动化控制失败', 'error')
+  } finally {
+    v2AutomationSaving.value = false
+  }
+}
+
+async function runV2AutomationSweep() {
+  v2AutomationSweepLoading.value = true
+  try {
+    const response: any = await post('/admin/crawler-monitor/v2/automation/sweep', {})
+    const sweep = response?.data ?? response
+    showToast(sweep?.status === 'observed' ? '扫描完成，自动派发仍处于暂停状态' : 'V2 自动化扫描完成', 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '运行 V2 自动化扫描失败', 'error')
+  } finally {
+    v2AutomationSweepLoading.value = false
   }
 }
 

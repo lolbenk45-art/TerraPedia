@@ -7,6 +7,7 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerDomainStartRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
@@ -184,6 +185,29 @@ public class AdminCrawlerMonitorController {
     ) {
         requireAdminRole(httpRequest);
         return ApiResponse.success(crawlerMonitorService.updateAutoDispatchSettings(settings));
+    }
+
+    @GetMapping("/v2/automation")
+    @Operation(summary = "Get V2 crawler automation settings")
+    public ApiResponse<CrawlerV2AutomationDTO> getV2AutomationSettings() {
+        return ApiResponse.success(crawlerMonitorService.getV2AutomationSettings());
+    }
+
+    @PutMapping("/v2/automation")
+    @Operation(summary = "Update V2 crawler automation settings")
+    public ApiResponse<CrawlerV2AutomationDTO> updateV2AutomationSettings(
+        HttpServletRequest httpRequest,
+        @RequestBody CrawlerV2AutomationDTO settings
+    ) {
+        requireAdminRole(httpRequest);
+        return ApiResponse.success(crawlerMonitorService.updateV2AutomationSettings(settings));
+    }
+
+    @PostMapping("/v2/automation/sweep")
+    @Operation(summary = "Run one V2 crawler automation sweep")
+    public ApiResponse<CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO> runV2AutomationSweep(HttpServletRequest httpRequest) {
+        requireAdminRole(httpRequest);
+        return ApiResponse.success(crawlerMonitorService.runV2AutomationSweepOnce());
     }
 
     @GetMapping("/test-state")

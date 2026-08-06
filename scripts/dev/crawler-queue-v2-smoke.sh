@@ -223,6 +223,25 @@ AFTER_CANCEL="$(api_get /admin/crawler-monitor/overview)"
 grep -Fq "$ATTEMPT_ID" <<<"$AFTER_CANCEL" || die 'overview lost the cancelled attempt history'
 pass '9/14 three-second overview fallback observed cancellation state'
 
+# 9b. Run a bounded items-domain fixture against the tracked standardized file.
+ITEMS_FIXTURE="$(api_post /admin/crawler-monitor/dispatch '{"domain":"items","actionId":"crawler-queue-v2-items-fixture","resumeMode":"fresh"}')"
+ITEMS_ATTEMPT="$(json_nonempty "$ITEMS_FIXTURE" data.attemptId)"
+ITEMS_OUTPUT=''
+for _ in $(seq 1 40); do
+  ITEMS_OUTPUT="$(find "$FIXTURE_ROOT" -type f -name '*.items-sample.json' -print -quit)"
+  [[ -n "$ITEMS_OUTPUT" ]] && break
+  sleep 0.25
+done
+[[ -n "$ITEMS_OUTPUT" ]] || die "items fixture output was not created for attempt $ITEMS_ATTEMPT"
+ITEMS_OUTPUT_PATH="$ITEMS_OUTPUT" node --input-type=module <<'NODE'
+import fs from 'node:fs';
+const payload = JSON.parse(fs.readFileSync(process.env.ITEMS_OUTPUT_PATH, 'utf8'));
+if (payload.entity !== 'items' || payload.readOnly !== true || payload.sampleCount < 1 || payload.sampleCount > 3) {
+  process.exit(1);
+}
+NODE
+pass '9b/14 completed bounded real items fixture without network or database writes'
+
 # 10. Start one more fixture, then delete only its selected V2 epoch key.
 LONG="$(api_post /admin/crawler-monitor/dispatch '{"domain":"crawler_queue_v2_fixture","actionId":"crawler-queue-v2-fixture","resumeMode":"fresh"}')"
 LONG_ATTEMPT="$(json_nonempty "$LONG" data.attemptId)"

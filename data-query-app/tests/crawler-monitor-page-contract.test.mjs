@@ -566,6 +566,18 @@ test('V2 mode removes legacy auto-dispatch controls', () => {
   assert.match(systemDrawer, /v2Mode:\s*boolean/)
 })
 
+test('system drawer exposes V2 automation controls with bounded dimensions', () => {
+  assert.match(systemDrawer, /V2 自动化/)
+  assert.match(systemDrawer, /run-v2-sweep/)
+  assert.match(systemDrawer, /save-v2-automation/)
+  assert.match(systemDrawer, /width:\s*min\(720px,\s*100vw\)/)
+  assert.match(systemDrawer, /height:\s*100dvh/)
+  assert.match(systemDrawer, /overflow:\s*hidden/)
+  assert.match(systemDrawer, /grid-template-rows:\s*auto minmax\(0, 1fr\) minmax\(0, 1fr\) auto/)
+  assert.match(page, /\/admin\/crawler-monitor\/v2\/automation/)
+  assert.match(page, /\/admin\/crawler-monitor\/v2\/automation\/sweep/)
+})
+
 test('report preview opened from the domain drawer sits above the domain drawer only in that context', () => {
   assert.match(page, /reportPreviewOpen/)
   assert.match(page, /reportPreviewOverDomainDrawer/)

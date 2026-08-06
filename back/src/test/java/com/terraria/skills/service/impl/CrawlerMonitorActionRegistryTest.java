@@ -319,5 +319,22 @@ class CrawlerMonitorActionRegistryTest {
             ),
             fixture.command()
         );
+
+        CrawlerMonitorActionDefinition itemsFixture = CrawlerMonitorActionRegistry.itemsFixture();
+        assertEquals("items", itemsFixture.domain());
+        assertEquals("crawler-queue-v2-items-fixture", itemsFixture.actionId());
+        assertFalse(registry.all().stream()
+            .map(CrawlerMonitorActionDefinition::actionId)
+            .anyMatch("crawler-queue-v2-items-fixture"::equals));
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-items-fixture.mjs",
+                "--items-input=data/standardized/items.standardized.json",
+                "--progress-path=<progressPath>",
+                "--output-path=<progressPath>.items-sample.json"
+            ),
+            itemsFixture.command()
+        );
     }
 }

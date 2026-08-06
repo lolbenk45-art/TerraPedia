@@ -10,6 +10,7 @@ import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineMode;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Repository;
@@ -671,10 +672,10 @@ class CrawlerMonitorServiceImplTest {
             assertEquals(expected, permit.mode());
             return null;
         }).when(permit).requireMode(any());
-        when(router.withMutationPermit(any())).thenAnswer(invocation -> {
+        org.mockito.Mockito.doAnswer(invocation -> {
             java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
             return operation.apply(permit);
-        });
+        }).when(router).withMutationPermit(any());
     }
 
     private static void awaitLatch(CountDownLatch latch) {
@@ -792,6 +793,95 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(Arrays.stream(CrawlerMonitorServiceImpl.class.getDeclaredMethods())
             .anyMatch(method -> method.isAnnotationPresent(Scheduled.class)
                 && method.getName().contains("AutoDispatch")));
+    }
+
+    @Test
+    void shouldEnableScheduledV2AutomationSweep() {
+        assertTrue(Arrays.stream(CrawlerMonitorServiceImpl.class.getDeclaredMethods())
+            .anyMatch(method -> method.isAnnotationPresent(Scheduled.class)
+                && method.getName().equals("scheduledV2AutomationSweep")));
+    }
+
+    @Test
+    void shouldKeepBiomePreviewOutOfChangedOnlyAutomation() throws Exception {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        Method method = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "isAutoEligibleRule",
+            CrawlerMonitorActionDefinition.class
+        );
+        method.setAccessible(true);
+
+        boolean eligible = (boolean) method.invoke(
+            service,
+            CrawlerMonitorActionRegistry.defaults().require("biomes", "biome-preview")
+        );
+
+        assertFalse(eligible);
+    }
+
+    @Test
+    void shouldCheckDisabledV2AutomationInsideTheMutationPermit() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            mock(CrawlerQueueV2ApplicationService.class),
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+
+        service.scheduledV2AutomationSweep();
+
+        verify(router).withMutationPermit(any());
+        verifyNoInteractions(launcher);
+    }
+
+    @Test
+    void shouldReleaseTheGlobalMutationPermitBeforeV2SourceDetection() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        AtomicBoolean insidePermit = new AtomicBoolean(false);
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        when(permit.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            insidePermit.set(true);
+            try {
+                return operation.apply(permit);
+            } finally {
+                insidePermit.set(false);
+            }
+        }).when(router).withMutationPermit(any());
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of("checkedAt", "2026-06-20T03:00:00Z", "sources", List.of())
+        ) {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+                assertFalse(insidePermit.get(), "source checker must not hold the global V2 mutation permit");
+                return super.launch(request);
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            mock(CrawlerQueueV2ApplicationService.class),
+            mock(WikiMonitorDispatchQueueRepository.class)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("observed", sweep.getStatus());
     }
 
     @Test
@@ -3467,6 +3557,126 @@ class CrawlerMonitorServiceImplTest {
         Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("queueId"));
         assertEquals("auto-dispatch", latest.get("dispatchSource"));
+    }
+
+    @Test
+    void shouldObserveChangedSourcesWithoutV2EnqueueWhenAutomationIsDisabled() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+
+        CrawlerV2AutomationDTO settings = service.getV2AutomationSettings();
+        assertFalse(settings.isEnabled());
+        assertEquals("changed-only", settings.getMode());
+        assertEquals(60, settings.getSweepIntervalMinutes());
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("observed", sweep.getStatus());
+        assertEquals(1, launcher.launchCount);
+        assertTrue(sweep.getSkipped().stream()
+            .anyMatch(item -> "automation_disabled".equals(item.get("reason"))));
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void shouldEnqueueChangedEligibleSourceThroughV2WhenAutomationIsEnabled() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-auto", "attempt-auto", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("items", command.getValue().domain());
+        assertEquals("wiki-items-refresh", command.getValue().actionId());
+        assertEquals("v2-automation", command.getValue().requestedBy());
+    }
+
+    @Test
+    void shouldRecheckAutomationEnabledInTheSamePermitAsV2Enqueue() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO enabled = new CrawlerV2AutomationDTO();
+        enabled.setEnabled(true);
+        enabled.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(enabled);
+
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        when(permit.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        AtomicInteger permitCalls = new AtomicInteger();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            if (permitCalls.incrementAndGet() == 2) {
+                writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
+                    "enabled", false,
+                    "mode", "changed-only",
+                    "sweepIntervalMinutes", 60
+                ));
+            }
+            return operation.apply(permit);
+        }).when(router).withMutationPermit(any());
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertTrue(sweep.getSkipped().stream()
+            .anyMatch(item -> "automation_disabled".equals(item.get("reason"))));
+        verify(v2Service, never()).enqueue(any());
     }
 
     @Test

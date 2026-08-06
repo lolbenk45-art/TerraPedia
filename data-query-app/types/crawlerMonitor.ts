@@ -461,6 +461,13 @@ export interface CrawlerQueueV2LegacyAttempt {
   log?: CrawlerQueueV2LogMetadata | null
 }
 
+export interface CrawlerV2Automation {
+  enabled?: boolean
+  mode?: 'changed-only' | string | null
+  sweepIntervalMinutes?: number | null
+  lastSweep?: CrawlerMonitorWikiLastSweep | null
+}
+
 export interface CrawlerMonitorOverview {
   queueContractVersion?: number | null
   stateStoreEpoch?: string | null
@@ -471,6 +478,7 @@ export interface CrawlerMonitorOverview {
   domainStates?: CrawlerQueueV2DomainState[]
   attemptHistory?: CrawlerQueueV2Attempt[]
   legacyHistory?: CrawlerQueueV2LegacyAttempt[]
+  v2Automation?: CrawlerV2Automation | null
   generatedAt?: string | null
   repoRoot?: string | null
   daemon?: CrawlerMonitorFile | null
