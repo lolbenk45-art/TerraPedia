@@ -126,6 +126,7 @@
       :data-quality-signals="dataQualitySignals"
       :reports="recentReportRows"
       :auto-dispatch-form="autoDispatchForm"
+      :v2-mode="Boolean(v2State)"
       :saving="autoDispatchSaving"
       @close="systemDrawerOpen = false"
       @preview="openReportPreview"
@@ -1187,6 +1188,10 @@ function handleV2StreamEvent(frame: any) {
 }
 
 async function saveAutoDispatchSettings() {
+  if (v2State.value) {
+    showToast('V2 已接管 live 队列，V1 自动派发不可用', 'warning')
+    return
+  }
   autoDispatchSaving.value = true
   try {
     const interval = Number(autoDispatchForm.sweepIntervalMinutes)

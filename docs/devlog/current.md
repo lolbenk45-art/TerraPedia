@@ -6,12 +6,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-P1 crawler monitor and resume/recovery stabilization. The automated-ingestion
-readiness chain has no open entry on this branch.
+Crawler monitor V2 cutover and force-reclaim state stabilization.
 
 ## Open Work
 
-None for automated-ingestion readiness.
+- `entries/2026-08-06-crawler-monitor-v2-cutover-and-reclaim.md`
 
 ## Current State
 

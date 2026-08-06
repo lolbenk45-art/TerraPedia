@@ -560,6 +560,12 @@ test('V2 mode hides the legacy force-reclaim-all control outside backend allowed
   assert.match(triageBoard, /v-if="!v2Mode"[\s\S]*force-reclaim-all/)
 })
 
+test('V2 mode removes legacy auto-dispatch controls', () => {
+  assert.match(page, /:v2-mode="Boolean\(v2State\)"/)
+  assert.match(systemDrawer, /v-if="!v2Mode"[\s\S]*自动派发/)
+  assert.match(systemDrawer, /v2Mode:\s*boolean/)
+})
+
 test('report preview opened from the domain drawer sits above the domain drawer only in that context', () => {
   assert.match(page, /reportPreviewOpen/)
   assert.match(page, /reportPreviewOverDomainDrawer/)

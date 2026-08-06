@@ -6692,8 +6692,8 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO overview = service.getOverview();
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
-        assertEquals("failed", recipes.getState().getStatus());
-        assertEquals("terminate_and_recrawl", recipes.getState().getNextAction());
+        assertEquals("ready", recipes.getState().getStatus());
+        assertEquals("recrawl", recipes.getState().getNextAction());
     }
 
     @Test
@@ -7074,7 +7074,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void overviewDomainStateKeepsFailedQueueWhenProgressWasForceReclaimed() throws Exception {
+    void overviewDomainStateClearsFailedQueueWhenProgressWasForceReclaimed() throws Exception {
         Path recipeProgressPath = repoRoot.resolve("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json");
         writeJson(recipeProgressPath, Map.of(
             "actionId", "recipe-reference-sync",
@@ -7113,8 +7113,8 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
 
-        assertEquals("failed", recipes.getState().getStatus());
-        assertEquals("terminate_and_recrawl", recipes.getState().getNextAction());
+        assertEquals("ready", recipes.getState().getStatus());
+        assertEquals("recrawl", recipes.getState().getNextAction());
         assertEquals("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json", recipes.getState().getEvidence());
     }
 

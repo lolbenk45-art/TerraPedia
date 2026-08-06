@@ -46,7 +46,7 @@
         </div>
       </section>
 
-      <section class="system-section">
+      <section v-if="!v2Mode" class="system-section">
         <header>
           <SlidersHorizontal :size="17" />
           <h3>自动派发</h3>
@@ -88,6 +88,7 @@ const props = defineProps<{
   dataQualitySignals: Array<Record<string, any>>
   reports: Array<Record<string, any>>
   autoDispatchForm: Record<string, any>
+  v2Mode: boolean
   saving?: boolean
 }>()
 
