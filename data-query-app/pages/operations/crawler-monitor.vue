@@ -22,21 +22,6 @@
         <small v-if="lastOverviewRefreshAt">最后一次快照：{{ lastOverviewRefreshAt }}</small>
       </div>
     </section>
-    <section class="crawler-automation-workbench" aria-label="爬虫自动入库工作台">
-      <CrawlerAutomationRiskConsole
-        :overview="automationOverview"
-        :read-only="Boolean(automationProfile?.readOnly)"
-        :loading="automationLoading"
-        @refresh="loadAutomationWorkbench"
-      />
-      <nav class="automation-tabs" aria-label="自动入库视图">
-        <button type="button" :aria-current="automationTab === 'pipeline' ? 'page' : undefined" @click="automationTab = 'pipeline'">运行管线</button>
-        <button type="button" :aria-current="automationTab === 'domains' ? 'page' : undefined" @click="automationTab = 'domains'">域矩阵</button>
-      </nav>
-      <CrawlerAutomationPipeline v-if="automationTab === 'pipeline'" :runs="automationRuns" @open-evidence="openAutomationEvidence" />
-      <CrawlerAutomationDomainMatrix v-else :domains="automationOverview?.domains" />
-      <CrawlerAutomationEvidenceDrawer :open="Boolean(selectedAutomationRun)" :run="selectedAutomationRun" @close="selectedAutomationRun = null" />
-    </section>
     <CrawlerTriageBoard
       :view-model="triageWorkbench"
       :loading="loading"
@@ -55,12 +40,21 @@
       <header class="operation-catalog__head">
         <div>
           <small>操作目录</small>
-          <h2 id="operation-catalog-title">全部 {{ operationCatalogCount }} 个可选操作</h2>
-          <p>按检查同步、直接抓取、数据处理与入库、数据回填与差异检查分组；点击后先看真实执行摘要。</p>
+          <h2 id="operation-catalog-title">{{ operationCatalogCount }} 个可选操作</h2>
+          <p>其中 {{ writeOperationCatalogCount }} 个写库操作需要二次确认；也可进入域详情直接操作。</p>
         </div>
-        <span class="operation-catalog__count">4 组 · {{ operationCatalogCount }} 项</span>
+        <button
+          type="button"
+          class="operation-catalog__toggle"
+          :aria-expanded="operationCatalogExpanded"
+          aria-controls="operation-catalog-groups"
+          @click="operationCatalogExpanded = !operationCatalogExpanded"
+        >
+          <span>{{ operationCatalogExpanded ? '收起目录' : '展开目录' }}</span>
+          <ChevronDown :size="18" :class="{ 'operation-catalog__toggle-icon--expanded': operationCatalogExpanded }" aria-hidden="true" />
+        </button>
       </header>
-      <div class="operation-catalog__groups">
+      <div v-if="operationCatalogExpanded" id="operation-catalog-groups" class="operation-catalog__groups">
         <section v-for="group in operationGroups" :key="group.key" class="operation-catalog__group">
           <header>
             <h3>{{ group.label }}</h3>
@@ -132,7 +126,7 @@
       :v2-saving="v2AutomationSaving"
       :v2-sweep-loading="v2AutomationSweepLoading"
       @close="systemDrawerOpen = false"
-      @preview="openReportPreview"
+      @preview="(path) => openReportPreview(path, 'system-drawer')"
       @update-auto-dispatch="updateAutoDispatchDraft"
       @save-auto-dispatch="saveAutoDispatchSettings"
       @update-v2-automation="updateV2AutomationDraft"
@@ -234,7 +228,7 @@
       class="report-drawer-backdrop"
       :class="{
         open: reportPreviewOpen,
-        'report-drawer-backdrop--over-domain': reportPreviewOverDomainDrawer,
+        'report-drawer-backdrop--over-modal': reportPreviewOverModalDrawer,
       }"
       @click="closeReportPreview"
     ></div>
@@ -242,7 +236,7 @@
       class="report-drawer"
       :class="{
         open: reportPreviewOpen,
-        'report-drawer--over-domain': reportPreviewOverDomainDrawer,
+        'report-drawer--over-modal': reportPreviewOverModalDrawer,
       }"
       role="dialog"
       aria-modal="true"
@@ -274,6 +268,7 @@
 import {
   Activity,
   AlertTriangle,
+  ChevronDown,
   CircleStop,
   Eye,
   FileJson,
@@ -332,12 +327,7 @@ import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, ex
 import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestSuccessfulV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
 import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
-import { unwrapAutomationEnvelope } from './crawler-automation.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
-import CrawlerAutomationDomainMatrix from '~/components/crawler-monitor/CrawlerAutomationDomainMatrix.vue'
-import CrawlerAutomationEvidenceDrawer from '~/components/crawler-monitor/CrawlerAutomationEvidenceDrawer.vue'
-import CrawlerAutomationPipeline from '~/components/crawler-monitor/CrawlerAutomationPipeline.vue'
-import CrawlerAutomationRiskConsole from '~/components/crawler-monitor/CrawlerAutomationRiskConsole.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
 import CrawlerQueueHealthBanner from '~/components/crawler-monitor/CrawlerQueueHealthBanner.vue'
 import DomainDetailDrawer from '~/components/crawler-monitor/DomainDetailDrawer.vue'
@@ -368,19 +358,14 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
 const route = useRoute()
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
-const automationOverview = ref<any>(null)
-const automationProfile = ref<any>({ readOnly: true })
-const automationRuns = ref<any[]>([])
-const automationLoading = ref(false)
-const automationTab = ref<'pipeline' | 'domains'>('pipeline')
-const selectedAutomationRun = ref<any>(null)
+const operationCatalogExpanded = ref(false)
 const loading = ref(false)
 const autoRefresh = ref(true)
 const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
 const reportPreviewError = ref('')
-const reportPreviewLayer = ref<'page' | 'domain-drawer'>('page')
+const reportPreviewLayer = ref<'page' | 'domain-drawer' | 'system-drawer'>('page')
 const reportPreviewRequestFence = createAttemptLogRequestFence()
 const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
@@ -442,7 +427,10 @@ const v2Transport = createCrawlerMonitorV2Transport({
 })
 
 const reportPreviewOpen = computed(() => Boolean(selectedReportPath.value || reportPreview.value || reportPreviewError.value))
-const reportPreviewOverDomainDrawer = computed(() => reportPreviewOpen.value && domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
+const reportPreviewOverModalDrawer = computed(() => reportPreviewOpen.value && (
+  (domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
+  || (systemDrawerOpen.value && reportPreviewLayer.value === 'system-drawer')
+))
 
 async function fetchCrawlerMonitorOverview() {
   const response: any = await get('/admin/crawler-monitor/overview')
@@ -671,6 +659,10 @@ const latestSuccessfulV2AttemptByDomain = computed(() => latestSuccessfulV2Attem
 ))
 const operationGroups = computed(() => groupOperationCatalog(v2State.value?.domainStates || []))
 const operationCatalogCount = computed(() => operationGroups.value.reduce((total, group) => total + group.operations.length, 0))
+const writeOperationCatalogCount = computed(() => operationGroups.value.reduce(
+  (total, group) => total + group.operations.filter((operation) => operation.databaseAccess === 'write').length,
+  0,
+))
 const wikiDomainFreshnessByKey = computed(() => {
   const map = new Map<string, any>()
   for (const domain of wikiDomainRows.value) {
@@ -1057,7 +1049,6 @@ watch(() => overview.value?.v2Automation, (settings: any) => {
 }, { immediate: true })
 
 onMounted(async () => {
-  await loadAutomationWorkbench()
   if (!overview.value) {
     await refreshOverview()
     overview.value = initialOverview.value
@@ -1073,30 +1064,6 @@ onMounted(async () => {
     document.addEventListener('visibilitychange', handleVisibilityChange)
   }
 })
-
-async function loadAutomationWorkbench() {
-  if (automationLoading.value) return
-  automationLoading.value = true
-  try {
-    const [overviewResponse, runsResponse, profileResponse]: any[] = await Promise.all([
-      get('/admin/crawler-automation/overview'),
-      get('/admin/crawler-automation/runs?limit=20'),
-      get('/admin/crawler-automation/profile'),
-    ])
-    automationOverview.value = unwrapAutomationEnvelope(overviewResponse)
-    automationRuns.value = unwrapAutomationEnvelope(runsResponse)
-    automationProfile.value = unwrapAutomationEnvelope(profileResponse)
-  } catch (error: any) {
-    automationProfile.value = { readOnly: true }
-    showToast(error?.data?.message || error?.message || '加载自动入库工作台失败', 'error')
-  } finally {
-    automationLoading.value = false
-  }
-}
-
-function openAutomationEvidence(run: any) {
-  selectedAutomationRun.value = run
-}
 
 onUnmounted(() => {
   clearRefreshTimer()
@@ -1438,7 +1405,7 @@ watch(() => {
   }
 })
 
-async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' = 'page') {
+async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' | 'system-drawer' = 'page') {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
   const request = reportPreviewRequestFence.begin(`report:${path}`)
   reportPreviewLayer.value = layer
@@ -3840,13 +3807,39 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   color: var(--color-text-secondary);
 }
 
-.operation-catalog__count {
+.operation-catalog__toggle {
+  min-height: 44px;
   flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--color-info-muted);
-  color: var(--color-info);
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  padding: 0 14px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.operation-catalog__toggle:hover,
+.operation-catalog__toggle:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
+
+.operation-catalog__toggle:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.operation-catalog__toggle svg {
+  transition: transform 180ms ease-out;
+}
+
+.operation-catalog__toggle-icon--expanded {
+  transform: rotate(180deg);
 }
 
 .operation-catalog__groups {
@@ -4180,7 +4173,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   opacity: 1;
 }
 
-.report-drawer-backdrop--over-domain {
+.report-drawer-backdrop--over-modal {
   inset: 0;
   z-index: calc(var(--z-modal) + 2);
 }
@@ -4205,7 +4198,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   transform: translateX(0);
 }
 
-.report-drawer--over-domain {
+.report-drawer--over-modal {
   inset: 0 0 0 auto;
   z-index: calc(var(--z-modal) + 3);
 }
@@ -4298,7 +4291,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
     grid-template-columns: 1fr;
   }
 
-  .operation-catalog__count {
+  .operation-catalog__toggle {
     justify-self: start;
   }
 
@@ -4309,6 +4302,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 @media (prefers-reduced-motion: reduce) {
   .inline-report-button,
+  .operation-catalog__toggle svg,
   .report-drawer,
   .report-drawer-backdrop {
     transition: none;

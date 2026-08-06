@@ -1,18 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-06 11:31 CST by Codex
+Last updated: 2026-08-06 20:04 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Keep completed V2 crawler progress and data freshness visible after a domain
-returns to idle, starting with `town_npc_maintenance`.
+P1 crawler monitor interruption, recovery, and isolated runtime acceptance.
 
 ## Open Work
 
-- No open work in this entry. The freshness card implementation is complete;
-  the user only needs to refresh the running admin page for acceptance.
+- No additional open entry for the focused V2 monitor simplification commit.
 
 ## Current State
 
@@ -30,9 +28,9 @@ returns to idle, starting with `town_npc_maintenance`.
 
 ## Next Agent Start Point
 
-Refresh the admin crawler monitor and verify `town_npc_maintenance` shows the
-latest successful count/time separately from current idle state and latest
-result. Preserve the live Redis V2 attempt contract and `notGateEvidence=true`.
+Run the isolated V2 fixture-stack smoke with a fixture-only Redis namespace,
+explicit Redis DB, and administrator token. Preserve the live Redis V2 attempt
+contract, destructive-operation confirmation, and `notGateEvidence=true`.
 
 ## Current Risks
 
@@ -49,3 +47,4 @@ result. Preserve the live Redis V2 attempt contract and `notGateEvidence=true`.
 - `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`
 - `entries/2026-07-27-crawler-automated-ingestion-closure.md`
 - `entries/2026-08-04-item-image-projection-apply-runtime.md`
+- `entries/2026-08-06-crawler-v2-monitor-simplification.md`

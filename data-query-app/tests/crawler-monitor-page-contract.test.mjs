@@ -38,6 +38,22 @@ test('crawler monitor mounts the triage workbench and drawers instead of old top
   assert.doesNotMatch(page, /v-show="activeMonitorPanel === 'diagnostics'"/)
 })
 
+test('V2 monitor does not mount or request the legacy automation workbench', () => {
+  assert.doesNotMatch(page, /crawler-automation-workbench/)
+  assert.doesNotMatch(page, /CrawlerAutomation(?:RiskConsole|Pipeline|DomainMatrix|EvidenceDrawer)/)
+  assert.doesNotMatch(page, /\/admin\/crawler-automation\//)
+  assert.doesNotMatch(page, /loadAutomationWorkbench/)
+})
+
+test('V2 global operation catalog is compact by default and explicitly expandable', () => {
+  assert.match(page, /const operationCatalogExpanded = ref\(false\)/)
+  assert.match(page, /:aria-expanded="operationCatalogExpanded"/)
+  assert.match(page, /aria-controls="operation-catalog-groups"/)
+  assert.match(page, /v-if="operationCatalogExpanded"/)
+  assert.match(page, /id="operation-catalog-groups"/)
+  assert.match(page, /其中 \{\{ writeOperationCatalogCount \}\} 个写库/)
+})
+
 test('crawler monitor keeps the existing backend endpoints and control actions wired', () => {
   for (const marker of [
     "get('/admin/crawler-monitor/overview')",
@@ -308,8 +324,9 @@ test('operation catalog renders all four backend-owned groups and truthful pause
   assert.doesNotMatch(domainDrawer, /重新排队/)
 })
 
-test('main monitor page renders the complete four-group operation catalog', () => {
+test('main monitor page renders the complete backend-grouped operation catalog after expansion', () => {
   assert.match(page, /class="operation-catalog"/)
+  assert.match(page, /v-if="operationCatalogExpanded"/)
   assert.match(page, /v-for="group in operationGroups"/)
   assert.match(page, /v-for="operation in group\.operations"/)
   assert.match(page, /operationCatalogCount/)
@@ -318,9 +335,7 @@ test('main monitor page renders the complete four-group operation catalog', () =
   assert.match(page, /catalogOperationDisabledReason\(operation\)/)
   assert.match(page, /min-height:\s*44px/)
   assert.match(page, /overflow-wrap:\s*anywhere/)
-  for (const label of ['检查同步', '直接抓取', '数据处理与入库', '数据回填与差异检查']) {
-    assert.match(page, new RegExp(label))
-  }
+  assert.match(page, /groupOperationCatalog\(v2State\.value\?\.domainStates \|\| \[\]\)/)
 })
 
 test('operation catalog disables starts while the domain is not startable and explains why', () => {
@@ -578,22 +593,30 @@ test('system drawer exposes V2 automation controls with bounded dimensions', () 
   assert.match(systemDrawer, /V2 自动化/)
   assert.match(systemDrawer, /run-v2-sweep/)
   assert.match(systemDrawer, /save-v2-automation/)
-  assert.match(systemDrawer, /width:\s*min\(720px,\s*100vw\)/)
+  assert.match(systemDrawer, /width:\s*min\(820px,\s*100vw\)/)
   assert.match(systemDrawer, /height:\s*100dvh/)
   assert.match(systemDrawer, /overflow:\s*hidden/)
-  assert.match(systemDrawer, /grid-template-rows:\s*auto minmax\(0, 1fr\) minmax\(0, 1fr\) auto/)
+  assert.match(systemDrawer, /grid-template-rows:\s*auto minmax\(0, 1fr\)/)
+  assert.match(systemDrawer, /class="system-drawer__body"/)
+  assert.match(systemDrawer, /\.system-drawer__body\s*\{[\s\S]*overflow-y:\s*auto/)
+  assert.match(systemDrawer, /\.system-card small,[\s\S]*\.system-card strong,[\s\S]*\.system-card span\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(systemDrawer, /report\.path/)
+  assert.match(systemDrawer, /formatReportSize\(report\.sizeBytes\)/)
+  assert.match(systemDrawer, /formatReportTime\(report\.updatedAt\)/)
+  assert.match(systemDrawer, /<Eye :size="16"/)
   assert.match(page, /\/admin\/crawler-monitor\/v2\/automation/)
   assert.match(page, /\/admin\/crawler-monitor\/v2\/automation\/sweep/)
 })
 
-test('report preview opened from the domain drawer sits above the domain drawer only in that context', () => {
+test('report preview opened from a modal drawer sits above its origin drawer', () => {
   assert.match(page, /reportPreviewOpen/)
-  assert.match(page, /reportPreviewOverDomainDrawer/)
-  assert.match(page, /'report-drawer-backdrop--over-domain':\s*reportPreviewOverDomainDrawer/)
-  assert.match(page, /'report-drawer--over-domain':\s*reportPreviewOverDomainDrawer/)
-  assert.match(page, /\.report-drawer-backdrop--over-domain\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 2\)/)
-  assert.match(page, /\.report-drawer--over-domain\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 3\)/)
-  assert.match(page, /\.report-drawer--over-domain\s*\{[\s\S]*inset:\s*0 0 0 auto/)
+  assert.match(page, /reportPreviewOverModalDrawer/)
+  assert.match(page, /openReportPreview\(path, 'system-drawer'\)/)
+  assert.match(page, /'report-drawer-backdrop--over-modal':\s*reportPreviewOverModalDrawer/)
+  assert.match(page, /'report-drawer--over-modal':\s*reportPreviewOverModalDrawer/)
+  assert.match(page, /\.report-drawer-backdrop--over-modal\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 2\)/)
+  assert.match(page, /\.report-drawer--over-modal\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 3\)/)
+  assert.match(page, /\.report-drawer--over-modal\s*\{[\s\S]*inset:\s*0 0 0 auto/)
 })
 
 test('report preview fences stale A/B responses and invalidates requests on close', () => {
@@ -629,7 +652,7 @@ test('crawler monitor constrains long status text and paths instead of stretchin
   assert.match(triageBoard, /\.domain-table-shell\s*\{[\s\S]*overflow-x:\s*auto/)
   assert.match(activityDrawer, /\.activity-item\s*>\s*div\s*\{[\s\S]*min-width:\s*0/)
   assert.match(activityDrawer, /\.activity-item header strong,\s*\.activity-item small,\s*\.activity-item p\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
-  assert.match(systemDrawer, /\.report-row strong\s*\{[\s\S]*min-width:\s*0[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(systemDrawer, /\.report-row__main strong\s*\{[\s\S]*min-width:\s*0[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
   assert.match(triageBoard, /\.kpi-card small,\s*\.kpi-card span,\s*\.kpi-card strong\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
   assert.match(triageBoard, /\.attention-card\s*\{[\s\S]*min-width:\s*0/)
   assert.match(triageBoard, /\.attention-card p,\s*\.attention-card dd\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
