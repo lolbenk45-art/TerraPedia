@@ -1,18 +1,19 @@
 # Current Devlog
 
-Last updated: 2026-08-08 03:33 CST by Codex
+Last updated: 2026-08-08 by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
 Boss + Boss Loot Batch 1, Projectile item-only Batch 2, Buff Batch 3, and Biome
-Batch 4 passed exact isolated acceptance and cleaned to zero. Next is formal
-Recipe Apply design-only; no formal apply is authorized.
+Batch 4 passed exact isolated acceptance and cleaned to zero. Recipe formal
+apply already completed on 2026-07-29; current work is a read-only evidence
+verification and readiness repair, not another apply.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate formal Recipe Apply design-only entry.
+- `entries/2026-08-08-recipe-formal-read-only-verification.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: none.
 
 ## Current State
 
@@ -46,9 +47,9 @@ Recipe Apply design-only; no formal apply is authorized.
 
 ## Next Agent Start Point
 
-Start a separate formal Recipe Apply design-only entry. Audit the 3,663-record
-input, ownership, rollback, batching, and authorization boundaries; do not run
-the apply from the existing Recipe T1 permit or this acceptance parent.
+Continue the Recipe formal read-only verification entry. Do not replay the
+3,663-row apply: bind current input bytes, the embedded original pipeline
+result, and current formal database scope, then harden source readiness.
 
 ## Current Risks
 
