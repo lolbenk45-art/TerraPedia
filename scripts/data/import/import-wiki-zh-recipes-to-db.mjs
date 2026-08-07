@@ -42,6 +42,7 @@ if (isDirectExecution()) {
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
   const apply = booleanOption(args.apply, false);
+  const offline = booleanOption(args.offline, false);
   const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-zh-recipe-pages.latest.json'));
   const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-zh-recipe-import-${new Date().toISOString().slice(0, 10)}.json`));
 
@@ -107,7 +108,9 @@ async function main() {
 
   const itemLookup = await loadItemLookup(conn);
   const stationLookup = await loadCraftingStationLookup(conn);
-  const metadataMap = await buildMetadataMap(rawRecipes, itemLookup, stationLookup);
+  const metadataMap = await buildMetadataMap(rawRecipes, itemLookup, stationLookup, {
+    allowNetwork: !offline,
+  });
   const state = createImportState({ apply, itemLookup, stationLookup, metadataMap, summary });
 
   if (apply) {
@@ -264,7 +267,7 @@ function inferStationRequirementMode(explicitMode, caption, stations) {
   return 'alternative';
 }
 
-async function buildMetadataMap(rawRecipes, itemLookup, stationLookup) {
+export async function buildMetadataMap(rawRecipes, itemLookup, stationLookup, { allowNetwork = true } = {}) {
   const unresolvedNames = new Set();
 
   for (const recipe of rawRecipes) {
@@ -294,8 +297,15 @@ async function buildMetadataMap(rawRecipes, itemLookup, stationLookup) {
   }
 
   const metadataMap = new Map();
-  for (const title of unresolvedNames) {
-    metadataMap.set(title, await fetchNameMetadata(title));
+  const titles = [...unresolvedNames];
+  if (!allowNetwork && titles.length > 0) {
+    throw new Error(`offline recipe import requires all names to exist in the target snapshot: ${titles.join(', ')}`);
+  }
+  const concurrency = 16;
+  for (let offset = 0; offset < titles.length; offset += concurrency) {
+    const batch = titles.slice(offset, offset + concurrency);
+    const metadata = await Promise.all(batch.map((title) => fetchNameMetadata(title)));
+    batch.forEach((title, index) => metadataMap.set(title, metadata[index]));
   }
   return metadataMap;
 }
@@ -813,44 +823,37 @@ async function importRecipes(connection, recipes, summary, apply) {
     );
     const recipeId = Number(insertResult.insertId);
 
-    for (const ingredient of recipe.ingredients) {
+    if (recipe.ingredients.length > 0) {
+      const placeholders = recipe.ingredients.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values = recipe.ingredients.flatMap((ingredient) => [
+        recipeId, ingredient.ingredientItemId, ingredient.ingredientInternalName,
+        ingredient.ingredientNameRaw, ingredient.ingredientGroupType,
+        ingredient.quantityMin, ingredient.quantityMax, ingredient.quantityText,
+        ingredient.sortOrder,
+      ]);
       await connection.execute(
         `INSERT INTO recipe_ingredients
           (recipe_id, ingredient_item_id, ingredient_internal_name, ingredient_name_raw, ingredient_group_type, quantity_min, quantity_max, quantity_text, sort_order)
-         VALUES
-          (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          recipeId,
-          ingredient.ingredientItemId,
-          ingredient.ingredientInternalName,
-          ingredient.ingredientNameRaw,
-          ingredient.ingredientGroupType,
-          ingredient.quantityMin,
-          ingredient.quantityMax,
-          ingredient.quantityText,
-          ingredient.sortOrder
-        ]
+         VALUES ${placeholders}`,
+        values,
       );
-      summary.insertedIngredientRows += 1;
+      summary.insertedIngredientRows += recipe.ingredients.length;
     }
 
-    for (const station of recipe.stations) {
+    if (recipe.stations.length > 0) {
+      const placeholders = recipe.stations.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values = recipe.stations.flatMap((station) => [
+        recipeId, station.stationId, station.stationItemId,
+        station.stationInternalName, station.stationNameRaw,
+        station.isAlternative ? 1 : 0, station.sortOrder,
+      ]);
       await connection.execute(
         `INSERT INTO recipe_stations
           (recipe_id, station_id, station_item_id, station_internal_name, station_name_raw, is_alternative, sort_order)
-         VALUES
-          (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          recipeId,
-          station.stationId,
-          station.stationItemId,
-          station.stationInternalName,
-          station.stationNameRaw,
-          station.isAlternative ? 1 : 0,
-          station.sortOrder
-        ]
+         VALUES ${placeholders}`,
+        values,
       );
-      summary.insertedStationRows += 1;
+      summary.insertedStationRows += recipe.stations.length;
     }
   }
 }

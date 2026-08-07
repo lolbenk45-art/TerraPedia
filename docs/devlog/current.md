@@ -1,16 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-07 09:40 CST by Codex
+Last updated: 2026-08-07 12:09 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Recipe T1 isolated pipeline acceptance is in implementation; formal apply remains out of scope.
+Recipe T1 isolated pipeline acceptance passed with a two-recipe offline fixture; formal apply remains out of scope.
 
 ## Open Work
 
-- `entries/2026-08-07-recipe-t1-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: isolated recipe pipeline only, no formal writes.
+- None. Recipe T1 acceptance is closed pending commit SHA in the final response.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Recipe T1 isolated pipeline acceptance is in implementation; formal apply remain
 
 ## Next Agent Start Point
 
-Continue the recipe T1 plan with failing manifest and executor tests; preserve
-the formal recipe apply boundary.
+Design the boss + boss-loot joint isolated T1 acceptance; preserve the formal
+recipe apply boundary.
 
 ## Current Risks
 

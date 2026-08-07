@@ -88,9 +88,17 @@ test('live acceptance resolves only explicit registered scopes', () => {
   const executor = () => {};
   assert.equal(resolveAcceptanceScope('item-groups', executor), executor);
   assert.equal(resolveAcceptanceScope('npc-canonical', executor), executor);
+  assert.equal(resolveAcceptanceScope('recipe-canonical', executor), executor);
   assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
   assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
   assert.throws(() => resolveAcceptanceScope('npc-canonical'), /executor/i);
+});
+
+test('live acceptance passes the run identity to the scoped executor', () => {
+  const source = fs.readFileSync(new URL('./run-live-automation-acceptance.mjs', import.meta.url), 'utf8');
+  assert.match(source, /scopedExecutor\(\{[\s\S]*?profile,\s*runId,\s*repoRoot:/);
+  assert.match(source, /username:\s*resources\.accounts\.provisioner/);
+  assert.match(source, /password:\s*accountPasswords\.provisioner/);
 });
 
 test('NPC canonical selects a distinct T1 executor instead of the fixture executor', () => {

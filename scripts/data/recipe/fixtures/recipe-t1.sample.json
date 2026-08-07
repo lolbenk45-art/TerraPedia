@@ -1,0 +1,87 @@
+{
+  "entity": "wiki_zh_recipe_pages",
+  "generatedAt": "2026-07-27T23:49:47.847Z",
+  "sourceApi": "https://terraria.wiki.gg/zh/api.php",
+  "requestedPages": [
+    "配方/熔炉",
+    "配方/困难模式前的砧"
+  ],
+  "expandChildPages": false,
+  "maxDepth": 0,
+  "summary": {
+    "crawledPages": 2,
+    "requestedPages": 2,
+    "discoveredPages": 0,
+    "recipePages": 2,
+    "recipeTableCount": 2,
+    "recipeRowCount": 2
+  },
+  "records": [
+    {
+      "requestedPageTitle": "配方/熔炉",
+      "pageTitle": "配方/熔炉",
+      "crawlDepth": 0,
+      "requested": true,
+      "revisionTimestamp": "2026-02-12T16:54:37Z",
+      "recipeTables": [
+        {
+          "tableIndex": 0,
+          "caption": "熔炉",
+          "stations": ["熔炉"],
+          "stationRequirementMode": "single",
+          "rowCount": 1,
+          "rows": [
+            {
+              "rowIndex": 56,
+              "resultName": "铁锭",
+              "resultQuantity": 5,
+              "versionScope": null,
+              "ingredients": [
+                {
+                  "ingredientIndex": 0,
+                  "text": "铁矿 x3",
+                  "quantity": 3,
+                  "linkedTitles": ["铁矿"]
+                }
+              ],
+              "ingredientsText": "铁矿 x3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "requestedPageTitle": "配方/困难模式前的砧",
+      "pageTitle": "配方/困难模式前的砧",
+      "crawlDepth": 0,
+      "requested": true,
+      "revisionTimestamp": "2026-02-12T16:54:37Z",
+      "recipeTables": [
+        {
+          "tableIndex": 0,
+          "caption": "铁砧 / 铅砧",
+          "stations": ["铁砧", "铅砧"],
+          "stationRequirementMode": "alternative",
+          "rowCount": 1,
+          "rows": [
+            {
+              "rowIndex": 213,
+              "resultName": "铁短剑",
+              "resultQuantity": 4,
+              "versionScope": null,
+              "ingredients": [
+                {
+                  "ingredientIndex": 0,
+                  "text": "铁锭 x7",
+                  "quantity": 7,
+                  "linkedTitles": ["铁锭"]
+                }
+              ],
+              "ingredientsText": "铁锭 x7"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

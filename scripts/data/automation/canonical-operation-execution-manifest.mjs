@@ -160,6 +160,14 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/lib/project-root.mjs',
     'scripts/data/lib/wiki-item-utils.mjs',
   ]),
+  'canonical-recipe-t1-acceptance': Object.freeze([
+    'scripts/data/automation/run-live-automation-acceptance.mjs',
+    'scripts/data/recipe/recipe-canonical-t1-acceptance.mjs',
+    'scripts/data/pipeline/run-wiki-zh-recipe-sync-pipeline.mjs',
+    'scripts/data/import/import-wiki-zh-recipes-to-db.mjs',
+    'scripts/data/backfill/backfill-recipe-zh-display-names.mjs',
+    'scripts/data/sync/consolidate-recipe-provider-priority.mjs',
+  ]),
   'canonical-shimmer-generation': Object.freeze([
     'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
@@ -373,7 +381,7 @@ export function buildCanonicalOperationExecutionContract({
   if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
     throw new Error('result label is supported only for an NPC owner operation');
   }
-  const npcT1Acceptance = operationId === 'canonical-npc-t1-acceptance'
+  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance'].includes(operationId)
     ? buildNpcT1AcceptanceIdentity({
       configPath: npcT1ConfigPath,
       redisLogicalDb: npcT1RedisDb,
@@ -454,7 +462,7 @@ export function assertCanonicalOperationExecutionManifestContract({
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
     npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
   });
-  if (operationId === 'canonical-npc-t1-acceptance'
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
     throw new Error('NPC T1 config hash drifted from the execution manifest');
   }
@@ -978,6 +986,17 @@ function buildDefinition(
       databaseWrites: true,
       networkAccess: false,
     },
+    'canonical-recipe-t1-acceptance': {
+      executionClass: 'isolated_read_only_acceptance',
+      command: ['node', 'scripts/data/automation/run-live-automation-acceptance.mjs', '--profile=t1', '--scope=recipe-canonical', '--config-path=<private-recipe-t1-config>', '--config-sha256=<private-config-sha256>', '--redis-db=<isolated-redis-db>', '--run-id=<recipe-t1-run-id>', '--output=reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+      inputPaths: ['scripts/data/recipe/fixtures/recipe-t1.sample.json'],
+      outputPaths: ['reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+      reportPaths: ['reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+      progressPaths: [],
+      databaseWrites: false,
+      isolatedResourceWrites: true,
+      networkAccess: false,
+    },
     'canonical-shimmer-generation': {
       executionClass: 'bounded_network_crawler',
       actionId: 'domain-source-shimmer',
@@ -1051,6 +1070,9 @@ function buildDefinition(
     },
     ...(operationId === 'canonical-npc-t1-acceptance'
       ? { [operationId]: npcT1AcceptanceDefinition(operationId, npcT1Acceptance) }
+      : {}),
+    ...(operationId === 'canonical-recipe-t1-acceptance'
+      ? { [operationId]: recipeT1AcceptanceDefinition(operationId, npcT1Acceptance) }
       : {}),
     ...(operationId === 'canonical-npc-t2-cutover-verification'
       ? { [operationId]: npcT2Definition({ operationId, attemptRoot: npcT2AttemptRoot, backendApiBase }) }
@@ -1378,6 +1400,18 @@ function npcT1AcceptanceDefinition(operationId, isolatedAcceptance) {
     databaseWrites: false,
     isolatedResourceWrites: true,
     networkAccess: false,
+  };
+}
+
+function recipeT1AcceptanceDefinition(operationId, isolatedAcceptance) {
+  if (isolatedAcceptance == null) throw new Error('recipe T1 isolated acceptance identity is required');
+  return {
+    executionClass: 'isolated_read_only_acceptance',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=recipe-canonical', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--max-rows=25', '--output=reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+    inputPaths: ['scripts/data/recipe/fixtures/recipe-t1.sample.json'],
+    outputPaths: ['reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+    reportPaths: ['reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+    progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
   };
 }
 

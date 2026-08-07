@@ -49,11 +49,11 @@ const CANONICAL_STATION_NAME_MAP = new Map([
 ]);
 
 const db = {
-  host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
-  port: Number(process.env.TERRAPEDIA_DB_PORT || '3306'),
-  user: process.env.TERRAPEDIA_DB_USERNAME || 'root',
-  password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
-  database: resolveDefaultDatabaseName(),
+  host: args.host || process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
+  port: Number(args.port || process.env.TERRAPEDIA_DB_PORT || '3306'),
+  user: args.user || process.env.TERRAPEDIA_DB_USERNAME || 'root',
+  password: args.password || process.env.TERRAPEDIA_DB_PASSWORD || 'root',
+  database: args.database || resolveDefaultDatabaseName(),
 };
 
 assertPrimaryDb(db.database, apply, allowNonPrimaryDb);

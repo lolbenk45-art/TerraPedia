@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { syncWikiZhRecipeScopeIfChanged } from './import-wiki-zh-recipes-to-db.mjs';
+import { buildMetadataMap, syncWikiZhRecipeScopeIfChanged } from './import-wiki-zh-recipes-to-db.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 
 const repoRoot = getProjectRoot();
@@ -108,6 +108,20 @@ test('import-wiki-zh-recipes-to-db rejects non-local apply before connecting to 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Refusing to write to non-primary database/);
   assert.doesNotMatch(result.stderr, /Cannot find module 'mysql2\/promise'|ECONNREFUSED/i);
+});
+
+test('offline recipe import rejects names missing from the isolated snapshot', async () => {
+  const rawRecipes = [{
+    resultName: '未知成品',
+    ingredients: [{ name: '未知材料' }],
+    stations: ['未知制作站'],
+  }];
+  const emptyLookup = { byAny: new Map() };
+
+  await assert.rejects(
+    buildMetadataMap(rawRecipes, emptyLookup, emptyLookup, { allowNetwork: false }),
+    /offline recipe import requires all names to exist in the target snapshot.*未知成品/s,
+  );
 });
 
 test('syncWikiZhRecipeScopeIfChanged skips provider rewrite when recipe projection is unchanged', async () => {
