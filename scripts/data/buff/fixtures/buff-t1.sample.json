@@ -1,0 +1,922 @@
+{
+  "entity": "buffs",
+  "schemaVersion": "1.0.0",
+  "sourceFile": "data/standardized/buffs.standardized.json",
+  "totalRecords": 2,
+  "records": [
+    {
+      "englishName": "Shadowflame",
+      "id": 153,
+      "image": "Shadowflame.png",
+      "immuneNpcCount": 30,
+      "immuneNpcSample": [
+        {
+          "npcId": null,
+          "name": "Ancient Vision",
+          "pageTitle": "Ancient Vision",
+          "internalName": "AncientVision",
+          "source": "buff-page-immunities",
+          "sourceOrder": 1
+        },
+        {
+          "npcId": null,
+          "name": "Phantasm Dragon",
+          "pageTitle": "Phantasm Dragon",
+          "internalName": "PhantasmDragon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 2
+        },
+        {
+          "npcId": null,
+          "name": "Pirate's Curse",
+          "pageTitle": "Pirate's Curse",
+          "internalName": "PirateSCurse",
+          "source": "buff-page-immunities",
+          "sourceOrder": 3
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer",
+          "pageTitle": "Martian Saucer",
+          "internalName": "MartianSaucer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 4
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Cannon",
+          "pageTitle": "Martian Saucer Cannon",
+          "internalName": "MartianSaucerCannon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 5
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Turret",
+          "pageTitle": "Martian Saucer Turret",
+          "internalName": "MartianSaucerTurret",
+          "source": "buff-page-immunities",
+          "sourceOrder": 6
+        },
+        {
+          "npcId": null,
+          "name": "Bubble Shield",
+          "pageTitle": "Bubble Shield",
+          "internalName": "BubbleShield",
+          "source": "buff-page-immunities",
+          "sourceOrder": 7
+        },
+        {
+          "npcId": null,
+          "name": "Poltergeist",
+          "pageTitle": "Poltergeist",
+          "internalName": "Poltergeist",
+          "source": "buff-page-immunities",
+          "sourceOrder": 8
+        },
+        {
+          "npcId": null,
+          "name": "Reaper",
+          "pageTitle": "Reaper",
+          "internalName": "Reaper",
+          "source": "buff-page-immunities",
+          "sourceOrder": 9
+        },
+        {
+          "npcId": null,
+          "name": "The Destroyer",
+          "pageTitle": "The Destroyer",
+          "internalName": "TheDestroyer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 10
+        }
+      ],
+      "internalName": "ShadowFlame",
+      "localized": {
+        "en": {
+          "name": "Shadowflame",
+          "namesub": null,
+          "page": "Shadowflame",
+          "tooltip": "Losing life"
+        },
+        "zh": {
+          "name": "暗影焰",
+          "namesub": null,
+          "page": "Shadowflame",
+          "tooltip": "正在损失生命值"
+        }
+      },
+      "sourceItemCount": 4,
+      "sourceItems": [
+        {
+          "name": "Dark Lance",
+          "pageTitle": "Dark Lance",
+          "internalName": "DarkLance",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 1,
+          "itemId": 274
+        },
+        {
+          "name": "Shadowflame Knife",
+          "pageTitle": "Shadowflame Knife",
+          "internalName": "ShadowFlameKnife",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 2,
+          "itemId": 3054
+        },
+        {
+          "name": "Shadowflame Bow",
+          "pageTitle": "Shadowflame Bow",
+          "internalName": "ShadowFlameBow",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 3,
+          "itemId": 3052
+        },
+        {
+          "name": "Shadowflame Hex Doll",
+          "pageTitle": "Shadowflame Hex Doll",
+          "internalName": "ShadowFlameHexDoll",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 4,
+          "itemId": 3053
+        }
+      ],
+      "type": "debuff",
+      "imageFileTitle": "Shadowflame.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7f41cddfb0ec4cf6b1663db707aed0f5.png",
+      "inflictingNpcs": [
+        {
+          "name": "Clothier",
+          "pageTitle": "Clothier",
+          "internalName": "Clothier",
+          "source": "buff-page-causes",
+          "sourceKind": "enemy",
+          "sourceSection": "From NPCs",
+          "sourceOrder": 1
+        }
+      ],
+      "immuneNpcs": [
+        {
+          "npcId": null,
+          "name": "Ancient Vision",
+          "pageTitle": "Ancient Vision",
+          "internalName": "AncientVision",
+          "source": "buff-page-immunities",
+          "sourceOrder": 1
+        },
+        {
+          "npcId": null,
+          "name": "Phantasm Dragon",
+          "pageTitle": "Phantasm Dragon",
+          "internalName": "PhantasmDragon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 2
+        },
+        {
+          "npcId": null,
+          "name": "Pirate's Curse",
+          "pageTitle": "Pirate's Curse",
+          "internalName": "PirateSCurse",
+          "source": "buff-page-immunities",
+          "sourceOrder": 3
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer",
+          "pageTitle": "Martian Saucer",
+          "internalName": "MartianSaucer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 4
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Cannon",
+          "pageTitle": "Martian Saucer Cannon",
+          "internalName": "MartianSaucerCannon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 5
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Turret",
+          "pageTitle": "Martian Saucer Turret",
+          "internalName": "MartianSaucerTurret",
+          "source": "buff-page-immunities",
+          "sourceOrder": 6
+        },
+        {
+          "npcId": null,
+          "name": "Bubble Shield",
+          "pageTitle": "Bubble Shield",
+          "internalName": "BubbleShield",
+          "source": "buff-page-immunities",
+          "sourceOrder": 7
+        },
+        {
+          "npcId": null,
+          "name": "Poltergeist",
+          "pageTitle": "Poltergeist",
+          "internalName": "Poltergeist",
+          "source": "buff-page-immunities",
+          "sourceOrder": 8
+        },
+        {
+          "npcId": null,
+          "name": "Reaper",
+          "pageTitle": "Reaper",
+          "internalName": "Reaper",
+          "source": "buff-page-immunities",
+          "sourceOrder": 9
+        },
+        {
+          "npcId": null,
+          "name": "The Destroyer",
+          "pageTitle": "The Destroyer",
+          "internalName": "TheDestroyer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 10
+        },
+        {
+          "npcId": null,
+          "name": "Probe",
+          "pageTitle": "Probe",
+          "internalName": "Probe",
+          "source": "buff-page-immunities",
+          "sourceOrder": 11
+        },
+        {
+          "npcId": null,
+          "name": "Statue (enemy)",
+          "pageTitle": "Statue (enemy)",
+          "internalName": "Statue",
+          "source": "buff-page-immunities",
+          "sourceOrder": 12
+        },
+        {
+          "npcId": null,
+          "name": "Red Devil",
+          "pageTitle": "Red Devil",
+          "internalName": "RedDevil",
+          "source": "buff-page-immunities",
+          "sourceOrder": 13
+        },
+        {
+          "npcId": null,
+          "name": "Shadowflame Apparition",
+          "pageTitle": "Shadowflame Apparition",
+          "internalName": "ShadowflameApparition",
+          "source": "buff-page-immunities",
+          "sourceOrder": 14
+        },
+        {
+          "npcId": null,
+          "name": "Voodoo Demon",
+          "pageTitle": "Voodoo Demon",
+          "internalName": "VoodooDemon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 15
+        },
+        {
+          "npcId": null,
+          "name": "Lunatic Cultist",
+          "pageTitle": "Lunatic Cultist",
+          "internalName": "LunaticCultist",
+          "source": "buff-page-immunities",
+          "sourceOrder": 16
+        },
+        {
+          "npcId": null,
+          "name": "Ghost (enemy)",
+          "pageTitle": "Ghost (enemy)",
+          "internalName": "Ghost",
+          "source": "buff-page-immunities",
+          "sourceOrder": 17
+        },
+        {
+          "npcId": null,
+          "name": "Vortex Pillar",
+          "pageTitle": "Vortex Pillar",
+          "internalName": "VortexPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 18
+        },
+        {
+          "npcId": null,
+          "name": "Clumsy Balloon Slime",
+          "pageTitle": "Clumsy Balloon Slime",
+          "internalName": "ClumsyBalloonSlime",
+          "source": "buff-page-immunities",
+          "sourceOrder": 19
+        },
+        {
+          "npcId": null,
+          "name": "Stardust Pillar",
+          "pageTitle": "Stardust Pillar",
+          "internalName": "StardustPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 20
+        },
+        {
+          "npcId": null,
+          "name": "Nebula Pillar",
+          "pageTitle": "Nebula Pillar",
+          "internalName": "NebulaPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 21
+        },
+        {
+          "npcId": null,
+          "name": "Solar Pillar",
+          "pageTitle": "Solar Pillar",
+          "internalName": "SolarPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 22
+        },
+        {
+          "npcId": null,
+          "name": "Goblin Warlock",
+          "pageTitle": "Goblin Warlock",
+          "internalName": "GoblinWarlock",
+          "source": "buff-page-immunities",
+          "sourceOrder": 23
+        },
+        {
+          "npcId": null,
+          "name": "Demon",
+          "pageTitle": "Demon",
+          "internalName": "Demon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 24
+        },
+        {
+          "npcId": null,
+          "name": "Dungeon Guardian",
+          "pageTitle": "Dungeon Guardian",
+          "internalName": "DungeonGuardian",
+          "source": "buff-page-immunities",
+          "sourceOrder": 25
+        },
+        {
+          "npcId": null,
+          "name": "Dutchman Cannon",
+          "pageTitle": "Dutchman Cannon",
+          "internalName": "DutchmanCannon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 26
+        },
+        {
+          "npcId": null,
+          "name": "Desert Spirit",
+          "pageTitle": "Desert Spirit",
+          "internalName": "DesertSpirit",
+          "source": "buff-page-immunities",
+          "sourceOrder": 27
+        },
+        {
+          "npcId": null,
+          "name": "Flying Dutchman",
+          "pageTitle": "Flying Dutchman",
+          "internalName": "FlyingDutchman",
+          "source": "buff-page-immunities",
+          "sourceOrder": 28
+        },
+        {
+          "npcId": null,
+          "name": "Dungeon Spirit",
+          "pageTitle": "Dungeon Spirit",
+          "internalName": "DungeonSpirit",
+          "source": "buff-page-immunities",
+          "sourceOrder": 29
+        },
+        {
+          "npcId": null,
+          "name": "Wraith",
+          "pageTitle": "Wraith",
+          "internalName": "Wraith",
+          "source": "buff-page-immunities",
+          "sourceOrder": 30
+        }
+      ],
+      "immuneNpcSource": "buff-page-immunities",
+      "immuneNpcSampleSemantics": "first 10 entries from the rendered buff page immunities list; immuneNpcCount is the full rendered list size",
+      "sourceEvidence": {
+        "provider": "terraria.wiki.gg",
+        "pageTitle": "Shadowflame",
+        "canonicalPageTitle": "Shadowflame",
+        "revisionId": null,
+        "revisionTimestamp": "2026-05-09T09:44:15Z",
+        "sectionAnchors": [
+          "Causes",
+          "From_player",
+          "From_NPCs",
+          "Immune_NPCs",
+          "Notes",
+          "History"
+        ],
+        "sourceSections": [
+          "From player",
+          "From NPCs",
+          "Immune NPCs"
+        ],
+        "parseStatus": "parsed",
+        "factGroups": {
+          "sourceItems": {
+            "status": "parsed",
+            "count": 4,
+            "sections": [
+              "From player"
+            ]
+          },
+          "inflictingNpcs": {
+            "status": "parsed",
+            "count": 1,
+            "sections": [
+              "From NPCs"
+            ]
+          },
+          "immuneNpcs": {
+            "status": "parsed",
+            "count": 30,
+            "sections": [
+              "Immune NPCs"
+            ]
+          }
+        },
+        "unresolvedFacts": []
+      }
+    },
+    {
+      "englishName": "Acid Venom",
+      "id": 70,
+      "image": "Acid Venom.png",
+      "immuneNpcCount": 26,
+      "immuneNpcSample": [
+        {
+          "npcId": null,
+          "name": "Ancient Vision",
+          "pageTitle": "Ancient Vision",
+          "internalName": "AncientVision",
+          "source": "buff-page-immunities",
+          "sourceOrder": 1
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer",
+          "pageTitle": "Martian Saucer",
+          "internalName": "MartianSaucer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 2
+        },
+        {
+          "npcId": null,
+          "name": "Phantasm Dragon",
+          "pageTitle": "Phantasm Dragon",
+          "internalName": "PhantasmDragon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 3
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Turret",
+          "pageTitle": "Martian Saucer Turret",
+          "internalName": "MartianSaucerTurret",
+          "source": "buff-page-immunities",
+          "sourceOrder": 4
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Cannon",
+          "pageTitle": "Martian Saucer Cannon",
+          "internalName": "MartianSaucerCannon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 5
+        },
+        {
+          "npcId": null,
+          "name": "Bubble Shield",
+          "pageTitle": "Bubble Shield",
+          "internalName": "BubbleShield",
+          "source": "buff-page-immunities",
+          "sourceOrder": 6
+        },
+        {
+          "npcId": null,
+          "name": "Pirate's Curse",
+          "pageTitle": "Pirate's Curse",
+          "internalName": "PirateSCurse",
+          "source": "buff-page-immunities",
+          "sourceOrder": 7
+        },
+        {
+          "npcId": null,
+          "name": "Probe",
+          "pageTitle": "Probe",
+          "internalName": "Probe",
+          "source": "buff-page-immunities",
+          "sourceOrder": 8
+        },
+        {
+          "npcId": null,
+          "name": "The Destroyer",
+          "pageTitle": "The Destroyer",
+          "internalName": "TheDestroyer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 9
+        },
+        {
+          "npcId": null,
+          "name": "Poltergeist",
+          "pageTitle": "Poltergeist",
+          "internalName": "Poltergeist",
+          "source": "buff-page-immunities",
+          "sourceOrder": 10
+        }
+      ],
+      "internalName": "Venom",
+      "localized": {
+        "en": {
+          "name": "Acid Venom",
+          "namesub": null,
+          "page": "Acid Venom",
+          "tooltip": "Losing life"
+        },
+        "zh": {
+          "name": "酸性毒液",
+          "namesub": null,
+          "page": "Acid Venom",
+          "tooltip": "正在损失生命值"
+        }
+      },
+      "sourceItemCount": 7,
+      "sourceItems": [
+        {
+          "name": "Venom Bullet",
+          "pageTitle": "Venom Bullet",
+          "internalName": "VenomBullet",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 1,
+          "itemId": 1342
+        },
+        {
+          "name": "Venom Arrow",
+          "pageTitle": "Venom Arrow",
+          "internalName": "VenomArrow",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 2,
+          "itemId": 1341
+        },
+        {
+          "name": "Venom Staff",
+          "pageTitle": "Venom Staff",
+          "internalName": "VenomStaff",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 3,
+          "itemId": 2188
+        },
+        {
+          "name": "Spider Staff",
+          "pageTitle": "Spider Staff",
+          "internalName": "SpiderStaff",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 4,
+          "itemId": 2551
+        },
+        {
+          "name": "Queen Spider Staff",
+          "pageTitle": "Queen Spider Staff",
+          "internalName": "QueenSpiderStaff",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 5,
+          "itemId": 2366
+        },
+        {
+          "name": "Flask of Venom",
+          "pageTitle": "Flask of Venom",
+          "internalName": "FlaskofVenom",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 6,
+          "itemId": 1340
+        },
+        {
+          "name": "Pygmy Staff",
+          "pageTitle": "Pygmy Staff",
+          "internalName": "PygmyStaff",
+          "source": "buff-page-causes",
+          "sourceKind": "player",
+          "sourceSection": "From player",
+          "sourceOrder": 7,
+          "itemId": 1157
+        }
+      ],
+      "type": "debuff",
+      "imageFileTitle": "Acid Venom.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9d7abbfd5af14f1d9ed9dd69767d45ae.png",
+      "inflictingNpcs": [
+        {
+          "name": "Black Recluse",
+          "pageTitle": "Black Recluse",
+          "internalName": "BlackRecluse",
+          "source": "buff-page-causes",
+          "sourceKind": "enemy",
+          "sourceSection": "From enemy",
+          "sourceOrder": 1
+        },
+        {
+          "name": "Jungle Creeper",
+          "pageTitle": "Jungle Creeper",
+          "internalName": "JungleCreeper",
+          "source": "buff-page-causes",
+          "sourceKind": "enemy",
+          "sourceSection": "From enemy",
+          "sourceOrder": 2
+        },
+        {
+          "name": "Sand Poacher",
+          "pageTitle": "Sand Poacher",
+          "internalName": "SandPoacher",
+          "source": "buff-page-causes",
+          "sourceKind": "enemy",
+          "sourceSection": "From enemy",
+          "sourceOrder": 3
+        }
+      ],
+      "immuneNpcs": [
+        {
+          "npcId": null,
+          "name": "Ancient Vision",
+          "pageTitle": "Ancient Vision",
+          "internalName": "AncientVision",
+          "source": "buff-page-immunities",
+          "sourceOrder": 1
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer",
+          "pageTitle": "Martian Saucer",
+          "internalName": "MartianSaucer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 2
+        },
+        {
+          "npcId": null,
+          "name": "Phantasm Dragon",
+          "pageTitle": "Phantasm Dragon",
+          "internalName": "PhantasmDragon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 3
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Turret",
+          "pageTitle": "Martian Saucer Turret",
+          "internalName": "MartianSaucerTurret",
+          "source": "buff-page-immunities",
+          "sourceOrder": 4
+        },
+        {
+          "npcId": null,
+          "name": "Martian Saucer Cannon",
+          "pageTitle": "Martian Saucer Cannon",
+          "internalName": "MartianSaucerCannon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 5
+        },
+        {
+          "npcId": null,
+          "name": "Bubble Shield",
+          "pageTitle": "Bubble Shield",
+          "internalName": "BubbleShield",
+          "source": "buff-page-immunities",
+          "sourceOrder": 6
+        },
+        {
+          "npcId": null,
+          "name": "Pirate's Curse",
+          "pageTitle": "Pirate's Curse",
+          "internalName": "PirateSCurse",
+          "source": "buff-page-immunities",
+          "sourceOrder": 7
+        },
+        {
+          "npcId": null,
+          "name": "Probe",
+          "pageTitle": "Probe",
+          "internalName": "Probe",
+          "source": "buff-page-immunities",
+          "sourceOrder": 8
+        },
+        {
+          "npcId": null,
+          "name": "The Destroyer",
+          "pageTitle": "The Destroyer",
+          "internalName": "TheDestroyer",
+          "source": "buff-page-immunities",
+          "sourceOrder": 9
+        },
+        {
+          "npcId": null,
+          "name": "Poltergeist",
+          "pageTitle": "Poltergeist",
+          "internalName": "Poltergeist",
+          "source": "buff-page-immunities",
+          "sourceOrder": 10
+        },
+        {
+          "npcId": null,
+          "name": "Statue",
+          "pageTitle": "Statue (enemy)",
+          "internalName": "Statue",
+          "source": "buff-page-immunities",
+          "sourceOrder": 11
+        },
+        {
+          "npcId": null,
+          "name": "Reaper",
+          "pageTitle": "Reaper",
+          "internalName": "Reaper",
+          "source": "buff-page-immunities",
+          "sourceOrder": 12
+        },
+        {
+          "npcId": null,
+          "name": "Toxic Sludge",
+          "pageTitle": "Toxic Sludge",
+          "internalName": "ToxicSludge",
+          "source": "buff-page-immunities",
+          "sourceOrder": 13
+        },
+        {
+          "npcId": null,
+          "name": "Lunatic Cultist",
+          "pageTitle": "Lunatic Cultist",
+          "internalName": "LunaticCultist",
+          "source": "buff-page-immunities",
+          "sourceOrder": 14
+        },
+        {
+          "npcId": null,
+          "name": "Dutchman Cannon",
+          "pageTitle": "Dutchman Cannon",
+          "internalName": "DutchmanCannon",
+          "source": "buff-page-immunities",
+          "sourceOrder": 15
+        },
+        {
+          "npcId": null,
+          "name": "Stardust Pillar",
+          "pageTitle": "Stardust Pillar",
+          "internalName": "StardustPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 16
+        },
+        {
+          "npcId": null,
+          "name": "Vortex Pillar",
+          "pageTitle": "Vortex Pillar",
+          "internalName": "VortexPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 17
+        },
+        {
+          "npcId": null,
+          "name": "Solar Pillar",
+          "pageTitle": "Solar Pillar",
+          "internalName": "SolarPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 18
+        },
+        {
+          "npcId": null,
+          "name": "Nebula Pillar",
+          "pageTitle": "Nebula Pillar",
+          "internalName": "NebulaPillar",
+          "source": "buff-page-immunities",
+          "sourceOrder": 19
+        },
+        {
+          "npcId": null,
+          "name": "Ghost",
+          "pageTitle": "Ghost (enemy)",
+          "internalName": "Ghost",
+          "source": "buff-page-immunities",
+          "sourceOrder": 20
+        },
+        {
+          "npcId": null,
+          "name": "Clumsy Balloon Slime",
+          "pageTitle": "Clumsy Balloon Slime",
+          "internalName": "ClumsyBalloonSlime",
+          "source": "buff-page-immunities",
+          "sourceOrder": 21
+        },
+        {
+          "npcId": null,
+          "name": "Dungeon Guardian",
+          "pageTitle": "Dungeon Guardian",
+          "internalName": "DungeonGuardian",
+          "source": "buff-page-immunities",
+          "sourceOrder": 22
+        },
+        {
+          "npcId": null,
+          "name": "Desert Spirit",
+          "pageTitle": "Desert Spirit",
+          "internalName": "DesertSpirit",
+          "source": "buff-page-immunities",
+          "sourceOrder": 23
+        },
+        {
+          "npcId": null,
+          "name": "Flying Dutchman",
+          "pageTitle": "Flying Dutchman",
+          "internalName": "FlyingDutchman",
+          "source": "buff-page-immunities",
+          "sourceOrder": 24
+        },
+        {
+          "npcId": null,
+          "name": "Dungeon Spirit",
+          "pageTitle": "Dungeon Spirit",
+          "internalName": "DungeonSpirit",
+          "source": "buff-page-immunities",
+          "sourceOrder": 25
+        },
+        {
+          "npcId": null,
+          "name": "Wraith",
+          "pageTitle": "Wraith",
+          "internalName": "Wraith",
+          "source": "buff-page-immunities",
+          "sourceOrder": 26
+        }
+      ],
+      "immuneNpcSource": "buff-page-immunities",
+      "immuneNpcSampleSemantics": "first 10 entries from the rendered buff page immunities list; immuneNpcCount is the full rendered list size",
+      "sourceEvidence": {
+        "provider": "terraria.wiki.gg",
+        "pageTitle": "Acid Venom",
+        "canonicalPageTitle": "Acid Venom",
+        "revisionId": null,
+        "revisionTimestamp": "2026-05-09T07:35:36Z",
+        "sectionAnchors": [
+          "Causes",
+          "From_player",
+          "From_enemy",
+          "Other",
+          "Immune_NPCs",
+          "History"
+        ],
+        "sourceSections": [
+          "From player",
+          "From enemy",
+          "Immune NPCs"
+        ],
+        "parseStatus": "parsed",
+        "factGroups": {
+          "sourceItems": {
+            "status": "parsed",
+            "count": 7,
+            "sections": [
+              "From player"
+            ]
+          },
+          "inflictingNpcs": {
+            "status": "parsed",
+            "count": 3,
+            "sections": [
+              "From enemy"
+            ]
+          },
+          "immuneNpcs": {
+            "status": "parsed",
+            "count": 26,
+            "sections": [
+              "Immune NPCs"
+            ]
+          }
+        },
+        "unresolvedFacts": []
+      }
+    }
+  ]
+}
