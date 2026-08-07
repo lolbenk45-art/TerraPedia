@@ -119,6 +119,11 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   transaction probes were `0/1/0`, and independent cleanup returned every B2
   resource to zero. Redis DB 3 was intentionally preserved because runtime
   preflight proved it owns current application/crawler state.
+- Batch 3 is active in
+  `docs/devlog/entries/2026-08-08-buff-t1-isolated-acceptance.md`. Its fixed
+  fixture is `ShadowFlame` plus `Venom`, with eleven source-item relations,
+  four resolved inflicting-NPC relations after the existing alias mapping, and
+  complete ordered immune-NPC payloads of 30 and 26 rows.
 
 ## Validation
 

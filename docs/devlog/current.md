@@ -1,17 +1,18 @@
 # Current Devlog
 
-Last updated: 2026-08-07 22:33 CST by Codex
+Last updated: 2026-08-08 00:00 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
 Boss + Boss Loot Batch 1 and Projectile item-only Batch 2 passed exact isolated
-acceptance and cleaned to zero. The next serialized lane is Batch 3 Buff T1.
+acceptance and cleaned to zero. Batch 3 Buff T1 is active.
 
 ## Open Work
 
 - `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate Buff T1 child and keep Biome serialized behind it.
+- `entries/2026-08-08-buff-t1-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: implementation, review, and fresh ADMIN authorization; contract handoff: exact two-Buff fixture, full immune payload readback, isolated resources, and cleanup to zero.
 
 ## Current State
 
@@ -36,9 +37,9 @@ acceptance and cleaned to zero. The next serialized lane is Batch 3 Buff T1.
 
 ## Next Agent Start Point
 
-Create the Batch 3 Buff T1 child plan and devlog. Audit full `immuneNpcs`
-payload ownership before selecting the offline fixture or generating ADMIN
-authorization.
+Write and audit the Batch 3 implementation plan, then execute TDD against the
+fixed `ShadowFlame` and `Venom` fixture. Do not authorize until review and
+focused validation pass.
 
 ## Current Risks
 
