@@ -457,7 +457,7 @@ export async function createLiveAutomationAdapter({
     },
     async createDatabase({ name }) {
       requireIdentifier(name, 'isolated database');
-      await provisioner.query(`CREATE DATABASE \`${name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      await bootstrap.query(`CREATE DATABASE \`${name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     },
     async migrateDatabase({ name, role, runKey, profile }) {
       requireIdentifier(name, 'migration database');

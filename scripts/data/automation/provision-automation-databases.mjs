@@ -166,6 +166,13 @@ export async function provisionAutomationDatabases({
     });
     writeManifestAtomic(manifestReservation, withProvisioningState(manifest, 'provisioning', createdDatabases));
     for (const database of Object.values(manifest.databases)) {
+      createdDatabases.push(database);
+      writeManifestAtomic(manifestReservation, withProvisioningState(manifest, 'provisioning', createdDatabases));
+      await adapter.createDatabase({ ...database, runKey: manifest.runKey, profile });
+    }
+    // MySQL may not apply a database-level grant issued before CREATE DATABASE.
+    // Create all run-owned schemas first, then grant and verify their exact scope.
+    for (const database of Object.values(manifest.databases)) {
       await adapter.grantProvisioner({
         credentialRole: manifest.provisioner.credentialRole,
         allowedPrefix: manifest.provisioner.allowedPrefix,
@@ -189,9 +196,6 @@ export async function provisionAutomationDatabases({
       throw new Error('observed provisioner grants do not enforce the runKey/T2 boundary');
     }
     for (const database of Object.values(manifest.databases)) {
-      createdDatabases.push(database);
-      writeManifestAtomic(manifestReservation, withProvisioningState(manifest, 'provisioning', createdDatabases));
-      await adapter.createDatabase({ ...database, runKey: manifest.runKey, profile });
       await adapter.migrateDatabase({ name: database.name, role: database.role, runKey: manifest.runKey, profile });
     }
     if (profile === 't1') {

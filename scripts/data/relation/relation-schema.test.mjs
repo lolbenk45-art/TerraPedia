@@ -109,6 +109,14 @@ test('buildRelationSchemaStatements returns split statements in stable order', (
   }
 });
 
+test('buildRelationSchemaStatements confines every qualifier to an explicit isolated database', () => {
+  const database = 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation';
+  const statements = buildRelationSchemaStatements(database);
+  assert.ok(statements.every((statement) => !statement.includes('`terria_v1_relation`')));
+  assert.ok(statements.every((statement) => statement.includes(`\`${database}\``)));
+  assert.throws(() => buildRelationSchemaStatements('terria_v1_relation`; DROP DATABASE x; --'), /database/i);
+});
+
 test('buildRelationSchemaSql joins the statement list', () => {
   const sql = buildRelationSchemaSql();
   const statements = buildRelationSchemaStatements();

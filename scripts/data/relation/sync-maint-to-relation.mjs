@@ -1631,10 +1631,10 @@ export async function runSync(options, dependencies = {}) {
       const mysql = loadMysqlModule();
       const adminConnection = await mysql.createConnection(mysqlOptions);
       try {
-        for (const statement of buildRelationSchemaStatements()) {
+        for (const statement of buildRelationSchemaStatements(options.relationDatabase)) {
           await adminConnection.query(statement);
         }
-        for (const statement of buildProjectionSchemaStatements()) {
+        for (const statement of buildProjectionSchemaStatements(options.relationDatabase)) {
           await adminConnection.query(statement);
         }
         await ensureRelationMigrations(adminConnection, options.relationDatabase);
@@ -1644,10 +1644,10 @@ export async function runSync(options, dependencies = {}) {
       }
     } else {
       await executeRelation(async (connection) => {
-        for (const statement of buildRelationSchemaStatements().slice(1)) {
+        for (const statement of buildRelationSchemaStatements(options.relationDatabase).slice(1)) {
           await connection.query(statement);
         }
-        for (const statement of buildProjectionSchemaStatements()) {
+        for (const statement of buildProjectionSchemaStatements(options.relationDatabase)) {
           await connection.query(statement);
         }
         await ensureRelationMigrations(connection, options.relationDatabase);

@@ -58,6 +58,11 @@ test('provisioning creates exactly three runKey-bound databases through an injec
   assert.equal(value.calls.filter(([kind]) => kind === 'migrateDatabase').length, 3);
   assert.equal(value.calls.filter(([kind]) => kind === 'grantProvisioner').length, 3);
   assert.equal(value.calls.some(([kind]) => kind === 'copyReadOnlySnapshot'), false);
+  const firstGrant = value.calls.findIndex(([kind]) => kind === 'grantProvisioner');
+  const lastCreate = value.calls.map(([kind]) => kind).lastIndexOf('createDatabase');
+  const firstMigration = value.calls.findIndex(([kind]) => kind === 'migrateDatabase');
+  assert.ok(firstGrant > lastCreate, 'all isolated schemas must exist before grants are applied');
+  assert.ok(firstMigration > firstGrant, 'schema migration must run after grant verification');
   assert.deepEqual(JSON.parse(fs.readFileSync(value.manifestPath, 'utf8')), manifest);
 });
 
@@ -89,7 +94,7 @@ test('provisioning compensates created databases and Redis after a partial migra
     manifestPath: value.manifestPath, environmentId: 'env-t0',
     expectedServerIdentity: { host: '127.0.0.1', port: 3306, serverUuid: 'server-t0', redisHost: '127.0.0.1', redisPort: 6379, environmentId: 'env-t0' }
   }), /migration failed/);
-  assert.equal(value.calls.filter(([kind]) => kind === 'dropDatabase').length, 2);
+  assert.equal(value.calls.filter(([kind]) => kind === 'dropDatabase').length, 3);
   assert.equal(value.calls.filter(([kind]) => kind === 'releaseRedisLogicalDb').length, 1);
   const released = value.calls.find(([kind]) => kind === 'releaseRedisLogicalDb')[1];
   assert.equal(released.epoch, `epoch-${JSON.parse(fs.readFileSync(value.manifestPath, 'utf8')).runKey}`);
@@ -144,7 +149,8 @@ test('provisioning rejects manifest collisions and unverified grants or Redis re
     manifestPath: grants.manifestPath, environmentId: 'env-t0',
     expectedServerIdentity: { host: '127.0.0.1', port: 3306, serverUuid: 'server-t0', redisHost: '127.0.0.1', redisPort: 6379, environmentId: 'env-t0' }
   }), /grant|boundary/i);
-  assert.equal(grants.calls.some(([kind]) => kind === 'createDatabase'), false);
+  assert.equal(grants.calls.filter(([kind]) => kind === 'createDatabase').length, 3);
+  assert.equal(grants.calls.filter(([kind]) => kind === 'dropDatabase').length, 3);
   assert.equal(grants.calls.filter(([kind]) => kind === 'releaseRedisLogicalDb').length, 1);
 
   const redis = setup(t);

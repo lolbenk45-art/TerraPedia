@@ -1,5 +1,13 @@
 export const RELATION_DATABASE_NAME = 'terria_v1_relation';
 
+export function requireRelationDatabaseName(value = RELATION_DATABASE_NAME) {
+  const databaseName = String(value ?? '');
+  if (!/^[a-z0-9_]+$/.test(databaseName)) {
+    throw new Error('relation database name is invalid');
+  }
+  return databaseName;
+}
+
 export const RELATION_TABLE_NAMES = [
   'relation_runs',
   'relation_run_reports',
@@ -921,15 +929,16 @@ function buildTableStatements() {
   ];
 }
 
-export function buildRelationSchemaStatements() {
+export function buildRelationSchemaStatements(databaseName = RELATION_DATABASE_NAME) {
+  const targetDatabase = requireRelationDatabaseName(databaseName);
   return [
     `CREATE DATABASE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
     ...buildTableStatements()
-  ];
+  ].map((statement) => statement.replaceAll(RELATION_DATABASE_NAME, targetDatabase));
 }
 
-export function buildRelationSchemaSql() {
-  return `${buildRelationSchemaStatements().join('\n\n')}\n`;
+export function buildRelationSchemaSql(databaseName = RELATION_DATABASE_NAME) {
+  return `${buildRelationSchemaStatements(databaseName).join('\n\n')}\n`;
 }
 
 export function buildRelationMigrationStatements() {

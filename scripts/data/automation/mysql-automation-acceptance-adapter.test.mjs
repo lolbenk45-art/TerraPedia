@@ -9,6 +9,7 @@ import {
   buildSnapshotTargetRow,
   buildSchemaDumpArgs,
   buildUnavailableSourceSnapshotEntry,
+  createLiveAutomationAdapter,
   createMysqlCommandClient,
   defaultExecute,
   requiresBootstrapMigrationSession,
@@ -130,6 +131,33 @@ test('mysql command client passes SQL on stdin and keeps credentials out of argv
   assert.equal(calls[0].stdin, 'SELECT 1');
   assert.equal(calls[0].args.some((value) => value.includes('top-secret')), false);
   assert.equal(calls[0].env.MYSQL_PWD, 'top-secret');
+});
+
+test('isolated databases are created by bootstrap before provisioner-scoped migration', async () => {
+  const calls = [];
+  const adapter = await createLiveAutomationAdapter({
+    repoRoot: process.cwd(),
+    mysql: { host: '127.0.0.1', port: 13306, username: 'bootstrap', password: 'bootstrap-secret' },
+    redis: { host: '127.0.0.1', port: 16380, password: 'redis-secret', logicalDb: 2 },
+    environmentId: 'test',
+    accountNames: { provisioner: 'automation_prov_test', readonly: 'automation_ro_test' },
+    accountPasswords: { provisioner: 'provisioner-secret', readonly: 'readonly-secret' },
+    execute: async (input) => {
+      calls.push(input);
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+  });
+
+  await adapter.createDatabase({
+    name: 'terria_v1_automation_acceptance_abc_0123456789abcdef_local'
+  });
+
+  const create = calls.find(({ stdin }) => stdin.startsWith('CREATE DATABASE'));
+  assert.ok(create);
+  assert.deepEqual(create.args.slice(create.args.indexOf('--user'), create.args.indexOf('--user') + 2), [
+    '--user', 'bootstrap'
+  ]);
+  await adapter.cleanupAccounts();
 });
 
 test('command execution preserves child stderr when a large stdin hits EPIPE', async () => {

@@ -36,6 +36,14 @@ test('buildProjectionSchemaStatements emits schema-qualified create statements',
   }
 });
 
+test('buildProjectionSchemaStatements confines every qualifier to an explicit isolated database', () => {
+  const database = 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation';
+  const statements = buildProjectionSchemaStatements(database);
+  assert.ok(statements.every((statement) => !statement.includes('`terria_v1_relation`')));
+  assert.ok(statements.every((statement) => statement.includes(`\`${database}\``)));
+  assert.throws(() => buildProjectionSchemaStatements('terria_v1_relation`; DROP DATABASE x; --'), /database/i);
+});
+
 test('projection npc and projectile schemas include wiki image url columns', () => {
   const statements = buildProjectionSchemaStatements();
   const itemStatement = statements.find((sql) => sql.includes('`projection_items`'));

@@ -1,4 +1,4 @@
-import { RELATION_DATABASE_NAME } from './relation-schema.mjs';
+import { RELATION_DATABASE_NAME, requireRelationDatabaseName } from './relation-schema.mjs';
 
 export const PROJECTION_TABLE_NAMES = [
   'projection_items',
@@ -284,6 +284,8 @@ function buildProjectionStatements() {
   ];
 }
 
-export function buildProjectionSchemaStatements() {
-  return buildProjectionStatements();
+export function buildProjectionSchemaStatements(databaseName = RELATION_DATABASE_NAME) {
+  const targetDatabase = requireRelationDatabaseName(databaseName);
+  return buildProjectionStatements()
+    .map((statement) => statement.replaceAll(RELATION_DATABASE_NAME, targetDatabase));
 }

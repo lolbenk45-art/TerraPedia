@@ -137,9 +137,9 @@ async function ensureBuffRelationMigrations(connection, databaseName) {
 }
 
 async function ensureBuffRelationSchema(connection, databaseName = 'terria_v1_relation') {
-  const relationStatements = buildRelationSchemaStatements()
+  const relationStatements = buildRelationSchemaStatements(databaseName)
     .filter((statement) => BUFF_RELATION_TABLES.some((tableName) => statement.includes(`\`${tableName}\``)));
-  const projectionStatements = buildProjectionSchemaStatements()
+  const projectionStatements = buildProjectionSchemaStatements(databaseName)
     .filter((statement) => statement.includes('`projection_buffs`'));
   for (const statement of [...relationStatements, ...projectionStatements]) {
     await connection.query(statement);

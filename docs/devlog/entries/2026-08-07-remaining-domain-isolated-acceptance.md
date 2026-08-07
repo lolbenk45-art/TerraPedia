@@ -59,6 +59,26 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   selects the four exact formal dependency rows, while the temporary
   provisioner writes parameterized copies only to isolated local. No grant is
   widened. Focused validation remains `112/112`.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-03` was consumed
+  once and failed closed when relation consolidation attempted schema DDL
+  without an effective isolated relation grant. Independent cleanup returned
+  databases, accounts, Redis DB 2, and processes to zero.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-04` was consumed
+  once after changing provisioning order, but failed closed because the
+  temporary provisioner correctly lacks global `CREATE DATABASE`. Cleanup
+  again returned all disposable resources to zero.
+- The provisioning repair now uses the controlled bootstrap account only to
+  create the three disposable schemas, then grants the temporary provisioner
+  exact privileges on those existing schemas before migration. A regression
+  test freezes this account boundary.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-05` was consumed
+  once and reached the domain executor, where consolidation exposed a separate
+  formal qualifier in relation/projection schema builders. The formal write was
+  denied and cleanup returned all disposable resources to zero.
+- Relation and projection schema builders now accept and validate an explicit
+  target database. The consolidation path passes the isolated relation name to
+  every schema statement, while the default formal behavior remains unchanged.
+  The expanded focused suite passes `145/145`.
 
 ## Validation
 
@@ -70,16 +90,14 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 ## Residual Risks
 
-- Boss T1 must not begin live execution until its local fixture closes all item,
-  NPC, and loot relationships offline.
-- The first two ADMIN decisions are consumed and cannot be reused. A fresh
-  post-fix manifest/request is required; no live resource or acceptance
-  evidence remains.
+- Boss T1 remains unproven until a fresh current-hash authorization completes;
+  decisions `admin-01` through `admin-05` are consumed and cannot be reused.
+- No live resource or acceptance evidence remains from the failed decisions.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Commit the split readonly/provisioner dependency repair and generate a fresh
-  manifest and AWAITING_OWNER request. Never reuse either consumed decision.
+- Commit the isolated schema creation and explicit relation-target repair, then
+  generate a fresh manifest and ADMIN decision. Never reuse a consumed decision.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.
