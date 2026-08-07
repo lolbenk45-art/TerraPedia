@@ -47,12 +47,17 @@ separate governed formal activation contract.
   embedded applied pipeline, and final formal hash `582c415...f20e`. Source
   and blocking readiness are both pass; the overwritten two-row standalone
   report is classified `superseded-invalid`.
+- Scheduler lifecycle contracts and offline fixture probe pass, but runtime T1
+  remains open: no derived backend/Redis runtime was available, so
+  `scheduledTickObserved=false` and formal activation proposal generation is
+  fail-closed.
 
 ## Next Agent Start Point
 
-Review the scheduler lifecycle design, then write and audit the implementation
-plan. Do not start the fixture stack or enable formal V2 automation before the
-written-spec gate and a fresh isolated T1 ADMIN decision.
+Provide an isolated derived backend/Redis runtime, then rerun the live
+Scheduler Lifecycle T1 under fresh ADMIN authorization. Do not enable formal
+V2 automation or generate its activation proposal until the runtime report
+passes.
 
 ## Current Risks
 

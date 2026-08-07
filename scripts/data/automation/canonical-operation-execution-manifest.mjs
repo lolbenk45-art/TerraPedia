@@ -256,6 +256,16 @@ const CODE_PATHS = Object.freeze({
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'scripts/data/lib/mysql-module.mjs',
   ]),
+  'canonical-crawler-v2-scheduler-t1-acceptance': Object.freeze([
+    'scripts/data/monitor/crawler-queue-v2-scheduler-lifecycle.mjs',
+    'scripts/data/monitor/crawler-queue-v2-fixture.mjs',
+    'scripts/data/workflow/backend-refresh-runtime-state.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-crawler-v2-scheduler-activation': Object.freeze([
+    'scripts/data/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
   'automation-biomes-l2-promotion': Object.freeze([
     'scripts/data/automation/run-automation-policy-decision.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
@@ -410,7 +420,7 @@ export function buildCanonicalOperationExecutionContract({
   if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
     throw new Error('result label is supported only for an NPC owner operation');
   }
-  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance'].includes(operationId)
+  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'].includes(operationId)
     ? buildNpcT1AcceptanceIdentity({
       configPath: npcT1ConfigPath,
       redisLogicalDb: npcT1RedisDb,
@@ -491,7 +501,7 @@ export function assertCanonicalOperationExecutionManifestContract({
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
     npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
   });
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance'].includes(operationId)
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
     throw new Error('NPC T1 config hash drifted from the execution manifest');
   }
@@ -1115,6 +1125,12 @@ function buildDefinition(
     ...(operationId === 'canonical-biome-t1-acceptance'
       ? { [operationId]: biomeT1AcceptanceDefinition(operationId, npcT1Acceptance) }
       : {}),
+    ...(operationId === 'canonical-crawler-v2-scheduler-t1-acceptance'
+      ? { [operationId]: schedulerT1AcceptanceDefinition(operationId, npcT1Acceptance) }
+      : {}),
+    ...(operationId === 'canonical-crawler-v2-scheduler-activation'
+      ? { [operationId]: schedulerActivationProposalDefinition(operationId) }
+      : {}),
     ...(operationId === 'canonical-npc-t2-cutover-verification'
       ? { [operationId]: npcT2Definition({ operationId, attemptRoot: npcT2AttemptRoot, backendApiBase }) }
       : {}),
@@ -1501,6 +1517,29 @@ function biomeT1AcceptanceDefinition(operationId, isolatedAcceptance) {
     outputPaths: ['reports/canonical-migration/canonical-biome-t1-acceptance.json'],
     reportPaths: ['reports/canonical-migration/canonical-biome-t1-acceptance.json'],
     progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
+  };
+}
+
+function schedulerT1AcceptanceDefinition(operationId, isolatedAcceptance) {
+  if (isolatedAcceptance == null) throw new Error('scheduler T1 isolated acceptance identity is required');
+  return {
+    executionClass: 'isolated_scheduler_lifecycle_acceptance',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=crawler-v2-scheduler', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--offline=true', '--output=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json'],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: ['reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json'],
+    reportPaths: ['reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json'],
+    progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
+  };
+}
+
+function schedulerActivationProposalDefinition(operationId) {
+  return {
+    executionClass: 'formal_activation_proposal_only',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--proposal-only=true', '--enabled=false'],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: ['reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json'],
+    reportPaths: ['reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json'],
+    progressPaths: [], databaseWrites: false, isolatedResourceWrites: false, networkAccess: false,
   };
 }
 

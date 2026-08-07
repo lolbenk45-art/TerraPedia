@@ -53,21 +53,38 @@
 
 ## Validation
 
-- Read-only chain audit completed; no crawler, scheduler, Redis mutation, or
+- Read-only chain audit completed; no formal crawler, scheduler, Redis, or
   database write executed.
-- Plan consistency scan and `git diff --check` pending plan commit.
+- Implementation contract/manifest tests pass (`41/41`), fixture and lifecycle
+  Node tests pass (`5/5`), and the offline fixture probe publishes terminal
+  progress and exact identity.
+- Focused Spring scheduler/reconciler/recovery/supervisor/Redis/controller
+  suite passes (`471/471`).
+- Offline report:
+  `reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json`
+  is intentionally `status=probe-passed`, `scheduledTickObserved=false`, and
+  `runtimeAssertionsDeferred=true`.
+- Formal activation proposal generation is correctly rejected until a passed
+  runtime T1 report exists; no activation proposal or permit was retained.
+- `git diff --check` pending implementation checkpoint.
 
 ## Residual Risks
 
 - Formal activation can create real crawler work and remains a separate owner
   checkpoint after isolated acceptance.
+- Runtime T1 is not closed: this environment lacks an isolated derived backend
+  and Redis runtime that can be started without touching formal services. The
+  next run must provide those resources and prove scheduled tick, two live
+  renewals, restart adoption/rejection, lease-loss reap, and zero cleanup.
 - Town NPC generated data and `data/generated/resume/` are unrelated user
   artifacts and must remain untouched and unstaged.
 
 ## Follow-up
 
-- Commit the audited plan, then execute Tasks 1-6 under fresh isolated ADMIN
-  authorization; formal activation remains proposal-only.
+- Provide a derived backend/Redis runtime, then execute the live Scheduler
+  Lifecycle T1 under fresh ADMIN authorization. Do not generate formal
+  activation proposal until `scheduledTickObserved=true` and all runtime
+  assertions pass.
 
 ## Commits
 

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-scheduler-t1-acceptance",
+  "status": "probe-passed",
+  "cleanupPassed": true,
+  "offline": true,
+  "scheduledTickObserved": false,
+  "runtimeAssertionsDeferred": true,
+  "identity": {
+    "runId": "crawler-v2-scheduler-20260808-02",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:test:crawler-v2-scheduler-20260808-02:",
+    "redisDb": 14,
+    "epoch": "epoch-97b01e8edf84",
+    "fenceToken": "f422f737aaf58229",
+    "domain": "crawler_queue_v2_fixture",
+    "actionId": "crawler-queue-v2-fixture"
+  },
+  "progress": {
+    "status": "completed",
+    "actionId": "crawler-queue-v2-fixture"
+  },
+  "leaseRenewals": 2,
+  "concurrentDispatches": 1,
+  "restart": {
+    "adopted": true,
+    "mismatchRejected": true,
+    "epochRecreated": false
+  },
+  "leaseLoss": {
+    "childReaped": true,
+    "nextReadyClaimed": false
+  },
+  "cleanup": {
+    "backendProcesses": 0,
+    "childProcesses": 0,
+    "redisKeys": 0,
+    "credentials": 0,
+    "files": 0,
+    "permits": 0
+  },
+  "generatedAt": "2026-08-07T22:57:55.911Z"
+}

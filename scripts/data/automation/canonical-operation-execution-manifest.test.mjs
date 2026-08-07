@@ -53,7 +53,7 @@ const IMAGE_SYNC_OPTIONS = Object.freeze({
 });
 
 function manifestOptions(operationId) {
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance'].includes(operationId)) {
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'].includes(operationId)) {
     return {
       npcT1ConfigPath,
       npcT1RedisDb: 9,
@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 42 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 44 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 42);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 41);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 44);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 43);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
