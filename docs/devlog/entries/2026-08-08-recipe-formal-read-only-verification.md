@@ -30,7 +30,8 @@ reapplying any Recipe data.
   presence and can therefore pass malformed evidence.
 - Design:
   `docs/superpowers/specs/2026-08-08-recipe-formal-verification-design.md`.
-- Implementation plan pending.
+- Implementation plan:
+  `docs/superpowers/plans/2026-08-08-recipe-formal-verification-implementation.md`.
 
 ## Success Criteria
 
