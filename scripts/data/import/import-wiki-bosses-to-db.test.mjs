@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+import { reconcileBossMembers, shouldCreateBossImageUploader } from './import-wiki-bosses-to-db.mjs';
 
 test('boss importer resolves mysql2 through the repository module loader', () => {
   const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
@@ -19,6 +19,16 @@ test('boss image helpers receive managed URL prefixes explicitly', () => {
   assert.match(source, /await localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
   assert.match(source, /await reconcileBossMemberImages\(\s*memberMapping\.members,\s*generatedNpcMap,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
   assert.match(source, /const imageUrl = resolveBossImageUrl\(\s*\{[^}]*\},\s*memberMapping\.members,\s*managedUrlPrefixes,?\s*\)/);
+});
+
+test('offline boss import cannot create a backend image uploader', () => {
+  assert.equal(shouldCreateBossImageUploader({ dryRun: false, offline: true }), false);
+  assert.equal(shouldCreateBossImageUploader({ dryRun: true, offline: false }), false);
+  assert.equal(shouldCreateBossImageUploader({ dryRun: false, offline: false }), true);
+
+  const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
+  assert.match(source, /requiredPassword:\s*!dryRun\s*&&\s*!offline/);
+  assert.match(source, /offline,\s*\n\s*strictMode/);
 });
 
 test('reconcileBossMembers skips unchanged existing boss member assignments', async () => {

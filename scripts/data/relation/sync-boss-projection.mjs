@@ -3,16 +3,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
-
 const repoRoot = getProjectRoot();
+const mysql = loadMysqlModule({ repoRoot });
 const DEFAULT_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/bosses/',
   'http://127.0.0.1:9000/terrapedia-images/bosses/',

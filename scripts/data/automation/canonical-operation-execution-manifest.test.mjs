@@ -53,7 +53,7 @@ const IMAGE_SYNC_OPTIONS = Object.freeze({
 });
 
 function manifestOptions(operationId) {
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance'].includes(operationId)) {
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance'].includes(operationId)) {
     return {
       npcT1ConfigPath,
       npcT1RedisDb: 9,
@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 38 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 39 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 38);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 37);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 39);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 38);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -629,6 +629,25 @@ test('recipe T1 manifest freezes a bounded offline fixture', () => {
   assert.deepEqual(manifest.inputPaths, [
     'scripts/data/recipe/fixtures/recipe-t1.sample.json',
   ]);
+  assert.equal(manifest.networkAccess, false);
+});
+
+test('boss T1 manifest freezes joint boss and loot fixtures offline', () => {
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS['canonical-boss-t1-acceptance'], [
+    'scripts/data/boss/fixtures/boss-t1.sample.json',
+    'scripts/data/boss/fixtures/boss-loot-t1.sample.json',
+  ]);
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-boss-t1-acceptance',
+    artifactDate: '2026-08-07',
+    ...manifestOptions('canonical-boss-t1-acceptance'),
+  });
+
+  assert.ok(manifest.command.includes('--scope=boss-canonical'));
+  assert.ok(manifest.command.includes('--max-rows=100'));
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.isolatedResourceWrites, true);
   assert.equal(manifest.networkAccess, false);
 });
 

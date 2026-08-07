@@ -11,6 +11,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-image-sync',
   'canonical-boss-import',
   'canonical-boss-loot-import',
+  'canonical-boss-t1-acceptance',
   'canonical-projectile-backfill',
   'canonical-recipe-crawler',
   'canonical-recipe-apply',
@@ -65,6 +66,10 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   ]),
   'canonical-boss-loot-import': Object.freeze([
     'data/wiki-crawler/normalized/boss-loot.bundle.json',
+  ]),
+  'canonical-boss-t1-acceptance': Object.freeze([
+    'scripts/data/boss/fixtures/boss-t1.sample.json',
+    'scripts/data/boss/fixtures/boss-loot-t1.sample.json',
   ]),
   'canonical-projectile-backfill': Object.freeze([
     'data/standardized/projectiles.standardized.json',
@@ -202,6 +207,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-image-sync': 'scripts/data/workflow/run-image-sync.mjs',
   'canonical-boss-import': 'scripts/data/import/import-wiki-bosses-to-db.mjs',
   'canonical-boss-loot-import': 'scripts/data/import/import-boss-loot-to-db.mjs',
+  'canonical-boss-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
   'canonical-projectile-backfill': 'scripts/data/backfill/backfill-projectile-zh-and-images.mjs',
   'canonical-recipe-crawler': 'scripts/data/fetch/fetch-wiki-zh-recipe-pages.mjs',
   'canonical-recipe-apply': 'scripts/data/pipeline/run-wiki-zh-recipe-sync-pipeline.mjs',

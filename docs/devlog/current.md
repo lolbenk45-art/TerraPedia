@@ -1,16 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-07 12:09 CST by Codex
+Last updated: 2026-08-07 12:46 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Recipe T1 isolated pipeline acceptance passed with a two-recipe offline fixture; formal apply remains out of scope.
+Remaining domain isolated acceptance is planned in batches; Batch 0 contract checks pass, while the full quality gate is blocked only by stale B1 readiness evidence. Recipe and formal apply boundaries remain unchanged.
 
 ## Open Work
 
-- None. Recipe T1 acceptance is closed pending commit SHA in the final response.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: stale B1 readiness reports for existing support contracts; contract handoff: Batch 1 design and narrow Boss/Boss Loot validation may proceed without formal writes.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Recipe T1 isolated pipeline acceptance passed with a two-recipe offline fixture;
 
 ## Next Agent Start Point
 
-Design the boss + boss-loot joint isolated T1 acceptance; preserve the formal
-recipe apply boundary.
+Commit the validated Batch 1 implementation, then generate its current-hash
+manifest and AWAITING_OWNER request; preserve all formal database boundaries.
 
 ## Current Risks
 
@@ -43,6 +43,9 @@ recipe apply boundary.
   direction.
 - Before any new runtime or release claim, rerun the relevant current gates.
 - Passing NPC T1 isolation does not authorize formal writes or another domain.
+- Current full-gate blocker: four B1 exemption panels report 35-hour-old
+  readiness evidence; this is independent of the Boss T1 isolated lane and
+  requires a separate evidence refresh task.
 
 ## Recently Closed
 

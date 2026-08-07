@@ -128,13 +128,14 @@ async function main() {
   const dateTag = new Date().toISOString().slice(0, 10);
   const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
   const dryRun = booleanOption(args['dry-run'], false);
+  const offline = booleanOption(args.offline, false);
   const strictMode = booleanOption(args.strict, false);
   const apiBase = resolveBackendApiBase(args, { repoRoot });
   const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
     usernameKey: 'adminUsername',
     passwordKey: 'adminPassword',
     repoRoot,
-    requiredPassword: !dryRun,
+    requiredPassword: !dryRun && !offline,
   });
   const managedUrlPrefixes = [args.managedUrlPrefix ?? DEFAULT_MANAGED_URL_PREFIX];
   const generatedNpcMapPath = path.resolve(args['generated-npc-map'] ?? path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json'));
@@ -146,14 +147,14 @@ async function main() {
   }
   const generatedNpcMap = loadGeneratedNpcMap(generatedNpcMapPath);
   let generatedNpcMapDirty = false;
-  const uploader = dryRun
-    ? null
-    : await createMinioImageUploader({
+  const uploader = shouldCreateBossImageUploader({ dryRun, offline })
+    ? await createMinioImageUploader({
         apiBase,
         adminUsername,
         adminPassword,
         managedUrlPrefixes,
-      });
+      })
+    : null;
 
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -173,6 +174,7 @@ async function main() {
     database: conn.config.database,
     apiBase,
     dryRun,
+    offline,
     strictMode,
     generatedNpcMapPath,
     totalBosses: records.length,
@@ -770,6 +772,10 @@ function booleanOption(value, fallback) {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return fallback;
+}
+
+export function shouldCreateBossImageUploader({ dryRun, offline } = {}) {
+  return !dryRun && !offline;
 }
 
 function toText(value) {

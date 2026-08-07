@@ -138,6 +138,13 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/lib/wiki-item-utils.mjs',
     'scripts/lib/local-runtime-config.mjs',
   ]),
+  'canonical-boss-t1-acceptance': Object.freeze([
+    'scripts/data/automation/run-live-automation-acceptance.mjs',
+    'scripts/data/boss/boss-canonical-t1-acceptance.mjs',
+    'scripts/data/import/import-wiki-bosses-to-db.mjs',
+    'scripts/data/import/import-boss-loot-to-db.mjs',
+    'scripts/data/relation/sync-maint-to-relation.mjs',
+  ]),
   'canonical-projectile-backfill': Object.freeze([
     'scripts/data/backfill/backfill-projectile-zh-and-images.mjs',
     'scripts/data/lib/projectile-name-resolver.mjs',
@@ -381,7 +388,7 @@ export function buildCanonicalOperationExecutionContract({
   if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
     throw new Error('result label is supported only for an NPC owner operation');
   }
-  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance'].includes(operationId)
+  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance'].includes(operationId)
     ? buildNpcT1AcceptanceIdentity({
       configPath: npcT1ConfigPath,
       redisLogicalDb: npcT1RedisDb,
@@ -462,7 +469,7 @@ export function assertCanonicalOperationExecutionManifestContract({
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
     npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
   });
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance'].includes(operationId)
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
     throw new Error('NPC T1 config hash drifted from the execution manifest');
   }
@@ -1074,6 +1081,9 @@ function buildDefinition(
     ...(operationId === 'canonical-recipe-t1-acceptance'
       ? { [operationId]: recipeT1AcceptanceDefinition(operationId, npcT1Acceptance) }
       : {}),
+    ...(operationId === 'canonical-boss-t1-acceptance'
+      ? { [operationId]: bossT1AcceptanceDefinition(operationId, npcT1Acceptance) }
+      : {}),
     ...(operationId === 'canonical-npc-t2-cutover-verification'
       ? { [operationId]: npcT2Definition({ operationId, attemptRoot: npcT2AttemptRoot, backendApiBase }) }
       : {}),
@@ -1411,6 +1421,18 @@ function recipeT1AcceptanceDefinition(operationId, isolatedAcceptance) {
     inputPaths: ['scripts/data/recipe/fixtures/recipe-t1.sample.json'],
     outputPaths: ['reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
     reportPaths: ['reports/canonical-migration/canonical-recipe-t1-acceptance.json'],
+    progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
+  };
+}
+
+function bossT1AcceptanceDefinition(operationId, isolatedAcceptance) {
+  if (isolatedAcceptance == null) throw new Error('boss T1 isolated acceptance identity is required');
+  return {
+    executionClass: 'isolated_read_only_acceptance',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=boss-canonical', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--max-rows=100', '--output=reports/canonical-migration/canonical-boss-t1-acceptance.json'],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: ['reports/canonical-migration/canonical-boss-t1-acceptance.json'],
+    reportPaths: ['reports/canonical-migration/canonical-boss-t1-acceptance.json'],
     progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
   };
 }
