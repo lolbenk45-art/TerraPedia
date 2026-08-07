@@ -101,6 +101,8 @@ test('live acceptance passes the run identity to the scoped executor', () => {
   assert.match(source, /scopedExecutor\(\{[\s\S]*?profile,\s*runId,\s*repoRoot:/);
   assert.match(source, /username:\s*resources\.accounts\.provisioner/);
   assert.match(source, /password:\s*accountPasswords\.provisioner/);
+  assert.match(source, /readonlyUsername:\s*resources\.accounts\.readonly/);
+  assert.match(source, /readonlyPassword:\s*accountPasswords\.readonly/);
 });
 
 test('NPC canonical selects a distinct T1 executor instead of the fixture executor', () => {

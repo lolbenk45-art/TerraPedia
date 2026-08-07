@@ -6,11 +6,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1 consumed its first ADMIN decision but failed closed on the 25-row snapshot cap; cleanup is zero and a bounded dependency-closure repair is ready for commit.
+Boss + Boss Loot Batch 1 consumed two ADMIN decisions; both failed closed and cleaned to zero. A least-privilege readonly/provisioner split repair is ready for commit.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: commit the 25-row dependency repair and generate a fresh Boss T1 request.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: commit the split-account dependency repair and generate a fresh Boss T1 request.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Boss + Boss Loot Batch 1 consumed its first ADMIN decision but failed closed on 
 
 ## Next Agent Start Point
 
-Commit the validated dependency-closure repair, then generate a new current-hash
-Boss T1 request; the consumed `-01` decision must not be reused.
+Commit the validated split-account repair, then generate a new current-hash
+Boss T1 request; consumed `admin-01` and `admin-02` must not be reused.
 
 ## Current Risks
 

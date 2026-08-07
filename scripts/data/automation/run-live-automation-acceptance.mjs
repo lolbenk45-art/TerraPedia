@@ -231,6 +231,8 @@ export async function runLiveAutomationAcceptance({
         port: mysql.port,
         username: resources.accounts.provisioner,
         password: accountPasswords.provisioner,
+        readonlyUsername: resources.accounts.readonly,
+        readonlyPassword: accountPasswords.readonly,
       } : mysql,
     }) : null;
     result = {

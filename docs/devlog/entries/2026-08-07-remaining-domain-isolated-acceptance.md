@@ -50,6 +50,15 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   and two real items from formal local via `INSERT ... SELECT` into isolated
   local using the temporary provisioner's formal read-only grants. No placeholder
   identities are created. Focused validation now passes `112/112`.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-02` was consumed
+  once after the 25-row repair. Snapshot provisioning completed, but dependency
+  seeding failed because the provisioner correctly has no formal-table SELECT
+  grant. Cleanup readback again returned databases/accounts/Redis/processes to
+  zero.
+- The second repair preserves least privilege: the temporary readonly account
+  selects the four exact formal dependency rows, while the temporary
+  provisioner writes parameterized copies only to isolated local. No grant is
+  widened. Focused validation remains `112/112`.
 
 ## Validation
 
@@ -63,13 +72,14 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 - Boss T1 must not begin live execution until its local fixture closes all item,
   NPC, and loot relationships offline.
-- The first ADMIN decision is consumed and cannot be reused. A fresh post-fix
-  manifest/request is required; no live resource or acceptance evidence remains.
+- The first two ADMIN decisions are consumed and cannot be reused. A fresh
+  post-fix manifest/request is required; no live resource or acceptance
+  evidence remains.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Commit the 25-row dependency-closure repair and generate a fresh manifest and
-  AWAITING_OWNER request. Never reuse decision `canonical-boss-t1-acceptance-20260807-admin-01`.
+- Commit the split readonly/provisioner dependency repair and generate a fresh
+  manifest and AWAITING_OWNER request. Never reuse either consumed decision.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.

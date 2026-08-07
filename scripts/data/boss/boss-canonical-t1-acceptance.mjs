@@ -52,22 +52,31 @@ export async function runBossCanonicalT1Acceptance({
       '--allow-non-primary-db=true',
     ];
 
-    const connection = await createConnectionImpl({
+    const sourceConnection = await createConnectionImpl({
+      host: mysql.host,
+      port: mysql.port,
+      user: mysql.readonlyUsername,
+      password: mysql.readonlyPassword,
+      database: 'terria_v1_local',
+    });
+    const targetConnection = await createConnectionImpl({
       host: mysql.host,
       port: mysql.port,
       user: mysql.username,
       password: mysql.password,
+      database: databases.local,
     });
     let dependencySeed;
     try {
       dependencySeed = await seedDependenciesImpl({
-        connection,
+        sourceConnection,
+        targetConnection,
         targetDatabase: databases.local,
         npcInternalNames: ['KingSlime', 'EyeofCthulhu'],
         itemInternalNames: ['LesserHealingPotion', 'CorruptSeeds'],
       });
     } finally {
-      await connection.end();
+      await Promise.all([sourceConnection.end(), targetConnection.end()]);
     }
     if (dependencySeed.npcRows !== 2 || dependencySeed.itemRows !== 2) {
       throw new Error(`boss T1 fixture dependency closure failed: ${JSON.stringify(dependencySeed)}`);
@@ -127,7 +136,8 @@ export async function runBossCanonicalT1Acceptance({
 }
 
 export async function seedBossFixtureDependencies({
-  connection,
+  sourceConnection,
+  targetConnection,
   targetDatabase,
   npcInternalNames,
   itemInternalNames,
@@ -138,11 +148,24 @@ export async function seedBossFixtureDependencies({
   const target = `\`${targetDatabase}\``;
   const copy = async (table, names) => {
     const placeholders = names.map(() => '?').join(', ');
-    await connection.query(
-      `INSERT IGNORE INTO ${target}.\`${table}\` SELECT * FROM \`terria_v1_local\`.\`${table}\` WHERE internal_name IN (${placeholders})`,
+    const [sourceRows] = await sourceConnection.query(
+      `SELECT * FROM \`terria_v1_local\`.\`${table}\` WHERE internal_name IN (${placeholders})`,
       names,
     );
-    const [rows] = await connection.query(
+    for (const row of sourceRows) {
+      const columns = Object.keys(row).sort();
+      if (columns.some((column) => !/^[a-z0-9_]+$/i.test(column))) {
+        throw new Error(`boss T1 dependency column is invalid for ${table}`);
+      }
+      const quoted = columns.map((column) => `\`${column}\``).join(', ');
+      const values = columns.map(() => '?').join(', ');
+      const updates = columns.map((column) => `\`${column}\` = VALUES(\`${column}\`)`).join(', ');
+      await targetConnection.query(
+        `INSERT INTO ${target}.\`${table}\` (${quoted}) VALUES (${values}) ON DUPLICATE KEY UPDATE ${updates}`,
+        columns.map((column) => row[column]),
+      );
+    }
+    const [rows] = await targetConnection.query(
       `SELECT COUNT(*) AS count FROM ${target}.\`${table}\` WHERE internal_name IN (${placeholders})`,
       names,
     );

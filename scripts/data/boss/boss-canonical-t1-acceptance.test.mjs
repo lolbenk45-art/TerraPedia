@@ -9,11 +9,17 @@ import { runBossCanonicalT1Acceptance, seedBossFixtureDependencies } from './bos
 test('boss T1 dependency seed copies only fixture identities from formal local to isolated local', async () => {
   const calls = [];
   const result = await seedBossFixtureDependencies({
-    connection: {
+    sourceConnection: {
+      async query(sql, params) {
+        calls.push({ sql, params });
+        return [[...params.map((internalName, index) => ({ id: index + 1, internal_name: internalName, name: internalName }))]];
+      },
+    },
+    targetConnection: {
       async query(sql, params) {
         calls.push({ sql, params });
         if (/COUNT\(\*\)/.test(sql)) return [[{ count: params.length }]];
-        return [{ affectedRows: params.length }];
+        return [{ affectedRows: 1 }];
       },
     },
     targetDatabase: 'terria_v1_automation_acceptance_npc_0123456789abcdef_local',
@@ -22,10 +28,10 @@ test('boss T1 dependency seed copies only fixture identities from formal local t
   });
 
   assert.deepEqual(result, { npcRows: 2, itemRows: 2 });
-  assert.equal(calls.length, 4);
-  assert.match(calls[0].sql, /INSERT IGNORE INTO `terria_v1_automation_acceptance_npc_0123456789abcdef_local`\.`npcs`/);
+  assert.equal(calls.length, 8);
   assert.match(calls[0].sql, /SELECT \* FROM `terria_v1_local`\.`npcs`/);
-  assert.doesNotMatch(calls[0].sql, /(?:UPDATE|DELETE|INSERT INTO) `terria_v1_local`/);
+  assert.match(calls[1].sql, /INSERT INTO `terria_v1_automation_acceptance_npc_0123456789abcdef_local`\.`npcs`/);
+  assert.doesNotMatch(calls[0].sql, /(?:UPDATE|DELETE|INSERT)/);
 });
 
 test('boss T1 rejects formal and non-local database targets', async () => {
@@ -54,7 +60,11 @@ test('boss T1 runs boss, loot, and consolidation stages offline', async () => {
         maint: 'terria_v1_automation_acceptance_npc_0123456789abcdef_maint',
         relation: 'terria_v1_automation_acceptance_npc_0123456789abcdef_relation',
       },
-      mysql: { host: '127.0.0.1', port: 13306, username: 'runner', password: 'secret' },
+      mysql: {
+        host: '127.0.0.1', port: 13306,
+        username: 'runner', password: 'secret',
+        readonlyUsername: 'reader', readonlyPassword: 'read-secret',
+      },
       spawnSyncImpl(_command, args) {
         invocations.push(args);
         const reportArg = args.find((arg) => arg.startsWith('--report-json='));
