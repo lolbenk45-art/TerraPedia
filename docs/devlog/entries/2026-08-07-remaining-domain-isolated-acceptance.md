@@ -2,7 +2,7 @@
 
 ## Status
 
-`blocked`
+`active`
 
 ## Goal
 
@@ -107,6 +107,18 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   stop condition applies; see
   `docs/devlog/entries/2026-08-07-projectile-t1-source-blocker.md` and
   `reports/canonical-migration/canonical-projectile-t1-blocker.json`.
+- Owner approved an item-only Batch 2 amendment after the missing NPC source
+  contract and uncovered-risk boundary were explained. The original
+  NPC-inclusive blocker is intentionally stopped; implementation continues in
+  `docs/devlog/entries/2026-08-07-projectile-item-only-t1-acceptance.md`.
+- Batch 2 completed under ADMIN decision
+  `canonical-projectile-t1-acceptance-20260807-admin-01`, run ID
+  `npc-t1-projectile-20260807-01`, and Redis DB 6. Exact closure was two
+  Projectile imports, two maint mappings, two item relations, and two
+  projections with NPC `not-covered/0`; snapshot verification was `129/129`,
+  transaction probes were `0/1/0`, and independent cleanup returned every B2
+  resource to zero. Redis DB 3 was intentionally preserved because runtime
+  preflight proved it owns current application/crawler state.
 
 ## Validation
 
@@ -115,18 +127,21 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 - Boss import/loot/projection focused tests: `22/22` passed after the mysql2
   module-resolution fix.
 - Boss/authorization/relation focused suite: `111/111` passed.
+- Projectile expanded authorization/import/relation suite: `273/274` passed,
+  with one pre-existing skipped shimmer test and zero failures.
+- Projectile exact runtime acceptance: passed with `cleanupPassed=true` and
+  independent resource readback all zero.
 
 ## Residual Risks
 
-- Projectile T1 is blocked by a missing real local NPC-projectile source
-  contract. No operation or authorization has been generated.
+- Projectile item-only T1 does not cover NPC-projectile relations; the missing
+  real maintained NPC-projectile source contract remains an explicit risk.
 - Boss T1 does not authorize formal Boss/Boss Loot apply or another domain.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Owner decision required: provide/repair a real NPC-projectile source contract,
-  or explicitly amend Batch 2 to item-only acceptance. Do not start Buff while
-  the current batch remains blocked under the approved sequence.
+- Open and execute Batch 3 Buff T1 as a separate child with a fresh fixture,
+  Redis DB, current-hash authorization, and cleanup evidence.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.

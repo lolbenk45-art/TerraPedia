@@ -58,9 +58,30 @@ Run the focused Node suite, generate fresh ADMIN artifacts, execute one isolated
 
 ### Batch 2: Projectile T1
 
-Select 2–5 local projectile fixtures with closed item/NPC/source relations. Add or reuse a projectile isolated executor and manifest. Prove offline name resolution, relation integrity, projection/consolidation, formal immutability, transaction probes, and cleanup using the same gates as Batch 1.
+Owner-approved amendment on 2026-08-07: run this batch as an item-only T1
+because the repository has no maintained NPC-projectile source contract. Select
+exactly two local projectile fixtures with closed item source relations. Add a
+projectile isolated executor and manifest that prove offline import, maint
+mapping, item-projectile relation integrity, projectile projection,
+formal immutability, transaction probes, and cleanup using the same gates as
+Batch 1.
 
-If the local source cannot close projectile relations without network data, produce an evidence-blocker report and stop; do not fabricate rows or broaden the fixture.
+The pass contract must require exactly two fixture projectiles, two resolved
+item-projectile relations, two projected projectiles, and zero unresolved
+fixture items/projectiles. It must report NPC-projectile coverage as
+`not-covered` with relation count `0`; it must not claim NPC relation closure,
+seed NPC projectile facts, or consume existing downstream
+`npc_projectile_relations` as source evidence.
+
+Use Redis DB 6 and a fresh run ID, current-hash manifest, request, packet, and
+one-time ADMIN decision. If the item relations cannot close without network
+data, produce a new evidence-blocker report and stop; do not fabricate rows or
+broaden the fixture.
+
+Runtime amendment on 2026-08-07: Redis DB 3 contains current crawler dispatch,
+V2 monitor, and auth refresh state, so it must not be cleared or reused. DB 6
+was verified empty immediately before authorization and is the dedicated B2
+logical database; it must return to zero after the run.
 
 ### Batch 3: Buff T1
 

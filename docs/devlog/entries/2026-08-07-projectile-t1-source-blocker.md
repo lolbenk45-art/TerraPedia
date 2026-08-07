@@ -2,7 +2,7 @@
 
 ## Status
 
-`blocked`
+`closed`
 
 ## Goal
 
@@ -40,3 +40,17 @@ before creating a Projectile T1 operation or ADMIN request.
   requires an explicit plan amendment.
 - Running the Wiki projectile backfill would require network access and would
   not create the missing NPC relationship evidence.
+
+## Stop Reason
+
+The original NPC-inclusive Projectile T1 lane is intentionally stopped and
+superseded by the owner-approved item-only lane. The owner instructed `do it`
+immediately after the item-only scope and uncovered NPC risk were presented;
+the parent plan now records that amendment. No NPC source contract was created
+or inferred.
+
+## Follow-Up
+
+Continue in `2026-08-07-projectile-item-only-t1-acceptance.md`. The missing
+NPC-projectile source remains a residual risk and requires a separate future
+source-contract task.

@@ -53,7 +53,7 @@ const IMAGE_SYNC_OPTIONS = Object.freeze({
 });
 
 function manifestOptions(operationId) {
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance'].includes(operationId)) {
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance'].includes(operationId)) {
     return {
       npcT1ConfigPath,
       npcT1RedisDb: 9,
@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 39 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 40 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 39);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 38);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 40);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 39);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -646,6 +646,28 @@ test('boss T1 manifest freezes joint boss and loot fixtures offline', () => {
 
   assert.ok(manifest.command.includes('--scope=boss-canonical'));
   assert.ok(manifest.command.includes('--max-rows=25'));
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.isolatedResourceWrites, true);
+  assert.equal(manifest.networkAccess, false);
+});
+
+test('projectile T1 manifest freezes the item-only fixture and explicit isolated boundary', () => {
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS['canonical-projectile-t1-acceptance'], [
+    'scripts/data/projectile/fixtures/projectile-t1.sample.json',
+  ]);
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-projectile-t1-acceptance',
+    artifactDate: '2026-08-07',
+    ...manifestOptions('canonical-projectile-t1-acceptance'),
+  });
+
+  assert.ok(manifest.command.includes('--scope=projectile-canonical'));
+  assert.ok(manifest.command.includes('--max-rows=25'));
+  assert.ok(manifest.command.includes('--output=reports/canonical-migration/canonical-projectile-t1-acceptance.json'));
+  assert.deepEqual(manifest.inputPaths, [
+    'scripts/data/projectile/fixtures/projectile-t1.sample.json',
+  ]);
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, true);
   assert.equal(manifest.networkAccess, false);

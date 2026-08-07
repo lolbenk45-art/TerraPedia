@@ -8,6 +8,7 @@ import path from 'node:path';
 import * as liveAcceptance from './run-live-automation-acceptance.mjs';
 import { runNpcCanonicalT0Acceptance } from '../npc-canonical/npc-canonical-t0-acceptance.mjs';
 import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptance.mjs';
+import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
 
 const npcT1Acceptance = await import('../npc-canonical/npc-canonical-t1-acceptance.mjs').catch(() => ({}));
 
@@ -91,6 +92,7 @@ test('live acceptance resolves only explicit registered scopes', () => {
   assert.equal(resolveAcceptanceScope('npc-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('recipe-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('boss-canonical', executor), executor);
+  assert.equal(resolveAcceptanceScope('projectile-canonical', executor), executor);
   assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
   assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
   assert.throws(() => resolveAcceptanceScope('npc-canonical'), /executor/i);
@@ -126,6 +128,17 @@ test('Boss canonical selects only the joint T1 executor', () => {
   assert.throws(
     () => liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'boss-canonical' }),
     /Boss canonical acceptance supports only T1/,
+  );
+});
+
+test('Projectile canonical selects only the item-only T1 executor', () => {
+  assert.equal(
+    liveAcceptance.resolveAcceptanceExecutor({ profile: 't1', scope: 'projectile-canonical' }),
+    runProjectileCanonicalT1Acceptance,
+  );
+  assert.throws(
+    () => liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'projectile-canonical' }),
+    /Projectile canonical acceptance supports only T1/,
   );
 });
 

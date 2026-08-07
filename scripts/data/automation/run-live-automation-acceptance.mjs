@@ -33,12 +33,14 @@ import {
 import { readCanonicalNpcOwnerPhaseCompletion } from '../npc-canonical/npc-canonical-readiness.mjs';
 import { runRecipeCanonicalT1Acceptance } from '../recipe/recipe-canonical-t1-acceptance.mjs';
 import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptance.mjs';
+import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PROBE_TABLE = '__automation_acceptance_probe';
 const NPC_T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-npc-t1-acceptance.json';
 const RECIPE_T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-recipe-t1-acceptance.json';
 const BOSS_T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-boss-t1-acceptance.json';
+const PROJECTILE_T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-projectile-t1-acceptance.json';
 const NPC_T1_OPERATION_ID = 'canonical-npc-t1-acceptance';
 const NPC_T1_INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
 const NPC_T1_COMPLETION_PATH = 'reports/authorization/canonical/canonical-npc-apply.completion.json';
@@ -112,7 +114,7 @@ export function parseProbeCounts(output) {
 
 export function resolveAcceptanceScope(scope, executor) {
   if (scope === undefined || scope === null || scope === '') return null;
-  if (!['item-groups', 'npc-canonical', 'recipe-canonical', 'boss-canonical'].includes(scope)) {
+  if (!['item-groups', 'npc-canonical', 'recipe-canonical', 'boss-canonical', 'projectile-canonical'].includes(scope)) {
     throw new Error(`unsupported live acceptance scope: ${scope}`);
   }
   if (typeof executor !== 'function') throw new Error(`${scope} acceptance executor is required`);
@@ -126,6 +128,8 @@ export function resolveAcceptanceExecutor({ profile, scope } = {}) {
   if (scope === 'npc-canonical' && profile === 't1') return runNpcCanonicalT1Acceptance;
   if (scope === 'recipe-canonical' && profile === 't1') return runRecipeCanonicalT1Acceptance;
   if (scope === 'boss-canonical' && profile === 't1') return runBossCanonicalT1Acceptance;
+  if (scope === 'projectile-canonical' && profile === 't1') return runProjectileCanonicalT1Acceptance;
+  if (scope === 'projectile-canonical') throw new Error('Projectile canonical acceptance supports only T1');
   if (scope === 'boss-canonical') throw new Error('Boss canonical acceptance supports only T1');
   if (scope === 'npc-canonical') throw new Error('NPC canonical acceptance supports only T0 or T1');
   throw new Error(`unsupported live acceptance scope: ${scope}`);
@@ -226,7 +230,7 @@ export async function runLiveAutomationAcceptance({
       snapshotVerification,
       completion: npcT1Completion,
       snapshotBinding,
-      mysql: ['recipe-canonical', 'boss-canonical'].includes(scope) ? {
+      mysql: ['recipe-canonical', 'boss-canonical', 'projectile-canonical'].includes(scope) ? {
         host: mysql.host,
         port: mysql.port,
         username: resources.accounts.provisioner,
@@ -381,6 +385,16 @@ export async function preflightBossT1AuthorizedCliInvocation(options = {}) {
   return preflightNpcT1AuthorizedCliInvocation({ ...options, operationId: 'canonical-boss-t1-acceptance', requireCompletion: false, resolveCurrentTechnicalInputImpl: resolver });
 }
 
+export async function preflightProjectileT1AuthorizedCliInvocation(options = {}) {
+  const resolver = options.resolveCurrentTechnicalInputImpl ?? (async ({ repoRoot, authorizationContext }) => {
+    return deriveCanonicalTechnicalIdentity({
+      ...resolveCanonicalOperationTechnicalInput({ repoRoot, operationId: authorizationContext.operationId, executionManifest: authorizationContext.executionManifest }),
+      serverFingerprint: authorizationContext.executionManifest.isolatedAcceptance.serverFingerprint,
+    });
+  });
+  return preflightNpcT1AuthorizedCliInvocation({ ...options, operationId: 'canonical-projectile-t1-acceptance', requireCompletion: false, resolveCurrentTechnicalInputImpl: resolver });
+}
+
 export function assertNpcT1PacketTechnicalIdentity({
   configPath,
   expectedConfigHash,
@@ -390,7 +404,7 @@ export function assertNpcT1PacketTechnicalIdentity({
   currentTechnicalInput,
 } = {}) {
   const operationId = authorizationContext?.operationId;
-  if (!['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance'].includes(operationId)) {
+  if (!['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance'].includes(operationId)) {
     throw new Error(`T1 packet operationId is unsupported: ${operationId}`);
   }
   const manifest = authorizationContext?.executionManifest;
@@ -516,7 +530,8 @@ async function main() {
   const npcT1Invocation = profile === 't1' && scope === 'npc-canonical';
   const recipeT1Invocation = profile === 't1' && scope === 'recipe-canonical';
   const bossT1Invocation = profile === 't1' && scope === 'boss-canonical';
-  if (!npcT1Invocation && !recipeT1Invocation && !bossT1Invocation && process.env.TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED !== '1') {
+  const projectileT1Invocation = profile === 't1' && scope === 'projectile-canonical';
+  if (!npcT1Invocation && !recipeT1Invocation && !bossT1Invocation && !projectileT1Invocation && process.env.TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED !== '1') {
     throw new Error('set TERRAPEDIA_AUTOMATION_ACCEPTANCE_ENABLED=1 for the authorized isolated run');
   }
   const configPath = path.resolve(args['config-path'] ?? '');
@@ -530,6 +545,8 @@ async function main() {
       ? path.resolve(ROOT, args.output === RECIPE_T1_EVIDENCE_PATH ? args.output : (() => { throw new Error(`recipe T1 evidence output must be ${RECIPE_T1_EVIDENCE_PATH}`); })())
     : bossT1Invocation
       ? path.resolve(ROOT, args.output === BOSS_T1_EVIDENCE_PATH ? args.output : (() => { throw new Error(`boss T1 evidence output must be ${BOSS_T1_EVIDENCE_PATH}`); })())
+    : projectileT1Invocation
+      ? path.resolve(ROOT, args.output === PROJECTILE_T1_EVIDENCE_PATH ? args.output : (() => { throw new Error(`projectile T1 evidence output must be ${PROJECTILE_T1_EVIDENCE_PATH}`); })())
     : preflightLiveAcceptanceInvocation({ profile, scope, output: args.output, repoRoot: ROOT });
   const npcT1Preflight = npcT1Invocation
     ? await preflightNpcT1AuthorizedCliInvocation({
@@ -543,6 +560,8 @@ async function main() {
       ? await preflightRecipeT1AuthorizedCliInvocation({ repoRoot: ROOT, configPath, expectedConfigHash: args['config-sha256'], redisLogicalDb, runId: requestedRunId })
       : bossT1Invocation
         ? await preflightBossT1AuthorizedCliInvocation({ repoRoot: ROOT, configPath, expectedConfigHash: args['config-sha256'], redisLogicalDb, runId: requestedRunId })
+      : projectileT1Invocation
+        ? await preflightProjectileT1AuthorizedCliInvocation({ repoRoot: ROOT, configPath, expectedConfigHash: args['config-sha256'], redisLogicalDb, runId: requestedRunId })
         : null;
   const npcT1Completion = npcT1Preflight?.completion ?? null;
   const config = npcT1Preflight?.config ?? JSON.parse(fs.readFileSync(configPath, 'utf8'));
