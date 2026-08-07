@@ -1,17 +1,18 @@
 # Current Devlog
 
-Last updated: 2026-08-08 02:20 CST by Codex
+Last updated: 2026-08-08 02:34 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
 Boss + Boss Loot Batch 1, Projectile item-only Batch 2, and Buff Batch 3 passed
-exact isolated acceptance and cleaned to zero. Batch 4 Biome is next.
+exact isolated acceptance and cleaned to zero. Batch 4 Biome T1 is active.
 
 ## Open Work
 
 - `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate Biome T1 child.
+- `entries/2026-08-08-biome-t1-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: implementation, review, and fresh ADMIN authorization; contract handoff: exact two-Biome fixture, local-owned source relations, consumer filtering, and cleanup to zero.
 
 ## Current State
 
@@ -40,8 +41,8 @@ exact isolated acceptance and cleaned to zero. Batch 4 Biome is next.
 
 ## Next Agent Start Point
 
-Open the Batch 4 Biome child, audit its source/consumer chain, and write the
-isolated T1 design and implementation plan before authorization.
+Audit and implement the Batch 4 Biome design. Repair the missing public-list
+deleted filter test-first, then authorize only after focused validation.
 
 ## Current Risks
 
