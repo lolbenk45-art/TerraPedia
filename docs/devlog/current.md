@@ -1,16 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-07 09:12 CST by Codex
+Last updated: 2026-08-07 09:40 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-NPC T1 current-schema isolated acceptance is complete; formal apply remains separately authorized follow-up.
+Recipe T1 isolated pipeline acceptance is in implementation; formal apply remains out of scope.
 
 ## Open Work
 
-- No open work in this isolated-acceptance checkpoint. Formal NPC apply and scheduler enablement remain separately authorized follow-ups.
+- `entries/2026-08-07-recipe-t1-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: isolated recipe pipeline only, no formal writes.
 
 ## Current State
 
@@ -31,8 +31,8 @@ NPC T1 current-schema isolated acceptance is complete; formal apply remains sepa
 
 ## Next Agent Start Point
 
-Audit the current `local.npc_loot_entries` count of `1880` versus the prior T1
-evidence count of `1890` before generating any formal NPC apply request.
+Continue the recipe T1 plan with failing manifest and executor tests; preserve
+the formal recipe apply boundary.
 
 ## Current Risks
 
