@@ -10,6 +10,7 @@ import { runNpcCanonicalT0Acceptance } from '../npc-canonical/npc-canonical-t0-a
 import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptance.mjs';
 import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
 import { runBuffCanonicalT1Acceptance } from '../buff/buff-canonical-t1-acceptance.mjs';
+import { runBiomeCanonicalT1Acceptance } from '../biome/biome-canonical-t1-acceptance.mjs';
 
 const npcT1Acceptance = await import('../npc-canonical/npc-canonical-t1-acceptance.mjs').catch(() => ({}));
 
@@ -94,6 +95,7 @@ test('live acceptance resolves only explicit registered scopes', () => {
   assert.equal(resolveAcceptanceScope('recipe-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('boss-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('projectile-canonical', executor), executor);
+  assert.equal(resolveAcceptanceScope('biome-canonical', executor), executor);
   assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
   assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
   assert.throws(() => resolveAcceptanceScope('npc-canonical'), /executor/i);
@@ -106,6 +108,7 @@ test('live acceptance passes the run identity to the scoped executor', () => {
   assert.match(source, /password:\s*accountPasswords\.provisioner/);
   assert.match(source, /readonlyUsername:\s*resources\.accounts\.readonly/);
   assert.match(source, /readonlyPassword:\s*accountPasswords\.readonly/);
+  assert.match(source, /\['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical'\]\.includes\(scope\)/);
 });
 
 test('NPC canonical selects a distinct T1 executor instead of the fixture executor', () => {
@@ -151,6 +154,17 @@ test('Buff canonical selects only the isolated T1 executor', () => {
   assert.throws(
     () => liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'buff-canonical' }),
     /Buff canonical acceptance supports only T1/,
+  );
+});
+
+test('Biome canonical selects only the isolated T1 executor', () => {
+  assert.equal(
+    liveAcceptance.resolveAcceptanceExecutor({ profile: 't1', scope: 'biome-canonical' }),
+    runBiomeCanonicalT1Acceptance,
+  );
+  assert.throws(
+    () => liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'biome-canonical' }),
+    /Biome canonical acceptance supports only T1/,
   );
 });
 

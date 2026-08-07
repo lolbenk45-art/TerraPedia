@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Goal
 
@@ -37,6 +37,30 @@ filters, and cleanup evidence.
 - Plan audit reserved Redis DB 9 after confirming it is empty; Redis DB 8 has
   35 unrelated keys and must remain untouched. It also corrected the Crimson
   NPC display contract: `Vicious Goldfish` resolves to `CrimsonGoldfish`.
+- Review repaired two consumer gaps: formal dependency seeding now requires
+  active item/NPC rows, and public detail/readback filters inactive linked
+  biome/item/NPC entities. Relation/resource tables have no lifecycle columns,
+  so filtering occurs at their owned entity joins.
+- `admin-01` and `admin-03` failed closed on credential-scope and decoy-schema
+  defects; both cleaned all resources to zero. `admin-02` passed the earlier
+  three-decoy contract but was superseded after review strengthened the gate.
+- Final ADMIN decision `canonical-biome-t1-acceptance-20260808-admin-04` and
+  run `npc-t1-biome-20260808-04` passed. Retained evidence is
+  `reports/canonical-migration/canonical-biome-t1-acceptance.json`.
+- Exact closure: 2 Biomes, 2 reciprocal relations, 4 resources, 4 item-biome
+  rows, 4 active biome-wikitext item sources, and 2 NPC-biome rows. Six stored
+  inactive/deleted decoys produced zero consumer leaks. Snapshot verification
+  was `129/129`; probes were `0/1/0`.
+- Independent cleanup: databases `0`, accounts `0`, Redis DB 9 keys `0`, and
+  Biome/authorization processes `0`.
+- Commit SHA pending in final response.
+
+## Validation
+
+- Focused Node suite: 205 passed, 1 existing shimmer skip, 0 failures.
+- Backend Biome consumer suite: 7/7 passed.
+- Read-only re-review: no remaining Critical or Important findings.
+- `git diff --check`: passed.
 
 ## Success Criteria
 
@@ -54,5 +78,5 @@ filters, and cleanup evidence.
 
 ## Follow-Up
 
-After a focused commit, continue with the formal Recipe Apply design-only
-batch; do not execute that apply.
+Continue with the formal Recipe Apply design-only batch; do not execute that
+apply without a separate plan and ADMIN authorization.

@@ -130,7 +130,14 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   maint/relation/projection rows, 11 item relations, 4 inflicting-NPC
   relations, 0 invented immune relations, full immune/evidence payload
   readback, snapshot `129/129`, probes `0/1/0`, and independent cleanup all
-  zero. Batch 4 Biome remains separate and unstarted.
+  zero.
+- Batch 4 completed under ADMIN decision
+  `canonical-biome-t1-acceptance-20260808-admin-04`, run ID
+  `npc-t1-biome-20260808-04`, and Redis DB 9. Exact closure was 2 Biomes, 2
+  reciprocal relations, 4 resource/item-biome/item-source rows, and 2
+  NPC-biome rows; all 6 inactive/deleted decoys were filtered. Snapshot
+  verification was `129/129`, probes were `0/1/0`, and independent cleanup
+  returned databases, accounts, Redis, and processes to zero.
 
 ## Validation
 
@@ -143,17 +150,20 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   with one pre-existing skipped shimmer test and zero failures.
 - Projectile exact runtime acceptance: passed with `cleanupPassed=true` and
   independent resource readback all zero.
+- Biome focused Node suite: 205 passed, 1 existing shimmer skip, 0 failures;
+  backend consumer suite: 7/7 passed.
 
 ## Residual Risks
 
 - Projectile item-only T1 does not cover NPC-projectile relations; the missing
   real maintained NPC-projectile source contract remains an explicit risk.
 - Boss T1 does not authorize formal Boss/Boss Loot apply or another domain.
+- Biome T1 proves only two fixtures and does not authorize formal Biome apply.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Open and execute Batch 4 Biome T1 as a separate child with a fresh fixture,
-  Redis DB, current-hash authorization, and cleanup evidence.
+- Design formal Recipe Apply as a separate no-execution task. Do not authorize
+  or run formal Recipe writes from this parent acceptance chain.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.

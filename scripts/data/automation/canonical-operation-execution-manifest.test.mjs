@@ -53,7 +53,7 @@ const IMAGE_SYNC_OPTIONS = Object.freeze({
 });
 
 function manifestOptions(operationId) {
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance'].includes(operationId)) {
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance'].includes(operationId)) {
     return {
       npcT1ConfigPath,
       npcT1RedisDb: 9,
@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 41 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 42 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 41);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 40);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 42);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 41);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -686,6 +686,25 @@ test('buff T1 manifest freezes the two-record fixture and explicit isolated boun
   assert.ok(manifest.command.includes('--scope=buff-canonical'));
   assert.ok(manifest.command.includes('--max-rows=25'));
   assert.ok(manifest.command.includes('--output=reports/canonical-migration/canonical-buff-t1-acceptance.json'));
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.isolatedResourceWrites, true);
+  assert.equal(manifest.networkAccess, false);
+});
+
+test('biome T1 manifest freezes the reciprocal two-biome fixture and isolated boundary', () => {
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS['canonical-biome-t1-acceptance'], [
+    'scripts/data/biome/fixtures/biome-t1.sample.json',
+  ]);
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-biome-t1-acceptance',
+    artifactDate: '2026-08-08',
+    ...manifestOptions('canonical-biome-t1-acceptance'),
+  });
+  assert.ok(manifest.command.includes('--scope=biome-canonical'));
+  assert.ok(manifest.command.includes('--max-rows=25'));
+  assert.ok(manifest.command.includes('--output=reports/canonical-migration/canonical-biome-t1-acceptance.json'));
+  assert.deepEqual(manifest.inputPaths, ['scripts/data/biome/fixtures/biome-t1.sample.json']);
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, true);
   assert.equal(manifest.networkAccess, false);

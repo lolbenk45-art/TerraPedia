@@ -1,18 +1,18 @@
 # Current Devlog
 
-Last updated: 2026-08-08 02:34 CST by Codex
+Last updated: 2026-08-08 03:33 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1, Projectile item-only Batch 2, and Buff Batch 3 passed
-exact isolated acceptance and cleaned to zero. Batch 4 Biome T1 is active.
+Boss + Boss Loot Batch 1, Projectile item-only Batch 2, Buff Batch 3, and Biome
+Batch 4 passed exact isolated acceptance and cleaned to zero. Next is formal
+Recipe Apply design-only; no formal apply is authorized.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate Biome T1 child.
-- `entries/2026-08-08-biome-t1-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: implementation, review, and fresh ADMIN authorization; contract handoff: exact two-Biome fixture, local-owned source relations, consumer filtering, and cleanup to zero.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate formal Recipe Apply design-only entry.
 
 ## Current State
 
@@ -38,11 +38,17 @@ exact isolated acceptance and cleaned to zero. Batch 4 Biome T1 is active.
   `canonical-buff-t1-acceptance-20260808-admin-06`: 2 imports, 11 item
   relations, 4 inflicting-NPC relations, 0 invented immune relations, complete
   payload readback, snapshot `129/129`, probes `0/1/0`, and cleanup all zero.
+- Biome run `npc-t1-biome-20260808-04` passed under ADMIN decision
+  `canonical-biome-t1-acceptance-20260808-admin-04`: 2 Biomes, 2 reciprocal
+  relations, 4 resource/item-biome/item-source rows, 2 NPC-biome rows, 6
+  stored decoys with 0 leaks, snapshot `129/129`, probes `0/1/0`, and cleanup
+  all zero.
 
 ## Next Agent Start Point
 
-Audit and implement the Batch 4 Biome design. Repair the missing public-list
-deleted filter test-first, then authorize only after focused validation.
+Start a separate formal Recipe Apply design-only entry. Audit the 3,663-record
+input, ownership, rollback, batching, and authorization boundaries; do not run
+the apply from the existing Recipe T1 permit or this acceptance parent.
 
 ## Current Risks
 
@@ -60,6 +66,8 @@ deleted filter test-first, then authorize only after focused validation.
 
 ## Recently Closed
 
+- `entries/2026-08-08-biome-t1-isolated-acceptance.md` - exact Biome T1 passed
+  and cleaned to zero; formal Biome apply remains unauthorized.
 - `entries/2026-08-08-buff-t1-isolated-acceptance.md` - exact Buff T1 passed
   and cleaned to zero; formal Buff apply remains unauthorized.
 - `entries/2026-08-07-projectile-item-only-t1-acceptance.md` - exact item-only

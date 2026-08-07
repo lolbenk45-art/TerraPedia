@@ -1,5 +1,8 @@
 package com.terraria.skills.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.terraria.skills.dto.BiomeDTO;
 import com.terraria.skills.entity.Biome;
 import com.terraria.skills.entity.BiomeResource;
@@ -18,8 +21,10 @@ import com.terraria.skills.mapper.NpcBiomeMapper;
 import com.terraria.skills.mapper.NpcMapper;
 import com.terraria.skills.service.ManagedItemImageResolver;
 import org.junit.jupiter.api.Test;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -27,8 +32,10 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class BiomeServiceImplTest {
@@ -61,6 +68,32 @@ class BiomeServiceImplTest {
     private ManagedItemImageResolver managedItemImageResolver;
 
     @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void shouldExcludeDeletedBiomesFromPublicListQuery() {
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), Biome.class);
+        when(biomeMapper.selectList(any())).thenReturn(List.of());
+        BiomeServiceImpl service = new BiomeServiceImpl(
+            biomeMapper,
+            biomeRelationMapper,
+            biomeResourceMapper,
+            itemMapper,
+            itemBiomeMapper,
+            npcBiomeMapper,
+            itemAcquisitionSourceMapper,
+            npcMapper,
+            managedItemImageResolver
+        );
+
+        service.getBiomes();
+
+        ArgumentCaptor<Wrapper<Biome>> captor = ArgumentCaptor.forClass((Class) Wrapper.class);
+        verify(biomeMapper).selectList(captor.capture());
+        String sqlSegment = captor.getValue().getSqlSegment();
+        assertTrue(sqlSegment.contains("status"));
+        assertTrue(sqlSegment.contains("deleted"));
+    }
+
+    @Test
     void shouldReturnPublicBiomeDetailWithItemNpcAndSourceRelations() {
         Biome biome = new Biome();
         biome.setId(10L);
@@ -76,6 +109,8 @@ class BiomeServiceImplTest {
         item.setNameZh("木材");
         item.setInternalName("Wood");
         item.setImage("https://terraria.wiki.gg/images/Wood.png");
+        item.setStatus(1);
+        item.setDeleted(0);
 
         Npc npc = new Npc();
         npc.setId(70L);
@@ -83,6 +118,7 @@ class BiomeServiceImplTest {
         npc.setNameZh("绿史莱姆");
         npc.setInternalName("GreenSlime");
         npc.setImageUrl("http://localhost:9000/terrapedia-images/npcs/green-slime.png");
+        npc.setStatus(1);
 
         BiomeResource resource = new BiomeResource();
         resource.setId(40L);
@@ -239,7 +275,7 @@ class BiomeServiceImplTest {
             rejectedTypeItemSource,
             rejectedRefTypeItemSource
         ));
-        when(itemMapper.selectBatchIds(List.of(50L))).thenReturn(List.of(item));
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
         when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(Map.of(50L, "http://localhost:9000/terrapedia-images/items/wood.png"));
         when(managedItemImageResolver.resolveManagedImage(any(), any())).thenReturn("http://localhost:9000/terrapedia-images/items/wood.png");
         when(npcMapper.selectList(any())).thenReturn(List.of(npc));
@@ -274,5 +310,11 @@ class BiomeServiceImplTest {
         assertEquals(1, detail.getNpcBiomes().size());
         assertEquals(6, detail.getItemSources().size());
         assertEquals("http://localhost:9000/terrapedia-images/items/wood.png", detail.getResources().get(0).getItemImage());
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        ArgumentCaptor<Wrapper<Item>> itemCaptor = ArgumentCaptor.forClass((Class) Wrapper.class);
+        verify(itemMapper).selectList(itemCaptor.capture());
+        assertTrue(itemCaptor.getValue().getSqlSegment().contains("status"));
+        assertTrue(itemCaptor.getValue().getSqlSegment().contains("deleted"));
     }
 }

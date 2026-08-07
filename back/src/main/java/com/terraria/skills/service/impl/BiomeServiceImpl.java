@@ -88,6 +88,7 @@ public class BiomeServiceImpl implements BiomeService {
     public List<BiomeDTO> getBiomes() {
         return biomeMapper.selectList(new LambdaQueryWrapper<Biome>()
                 .eq(Biome::getStatus, 1)
+                .eq(Biome::getDeleted, 0)
                 .orderByAsc(Biome::getId))
             .stream()
             .map(this::toSummaryDto)
@@ -141,7 +142,12 @@ public class BiomeServiceImpl implements BiomeService {
             .toList();
         Map<Long, Biome> relatedBiomeById = relatedBiomeIds.isEmpty()
             ? Collections.emptyMap()
-            : biomeMapper.selectBatchIds(relatedBiomeIds).stream().collect(Collectors.toMap(Biome::getId, Function.identity()));
+            : biomeMapper.selectList(new QueryWrapper<Biome>()
+                .in("id", relatedBiomeIds)
+                .eq("status", 1)
+                .eq("deleted", 0))
+                .stream()
+                .collect(Collectors.toMap(Biome::getId, Function.identity()));
 
         Set<Long> itemIdSet = new LinkedHashSet<>();
         resources.stream().map(BiomeResource::getItemId).filter(Objects::nonNull).forEach(itemIdSet::add);
@@ -150,7 +156,12 @@ public class BiomeServiceImpl implements BiomeService {
         List<Long> itemIds = List.copyOf(itemIdSet);
         Map<Long, Item> itemById = itemIds.isEmpty()
             ? Collections.emptyMap()
-            : itemMapper.selectBatchIds(itemIds).stream().collect(Collectors.toMap(Item::getId, Function.identity()));
+            : itemMapper.selectList(new QueryWrapper<Item>()
+                .in("id", itemIds)
+                .eq("status", 1)
+                .eq("deleted", 0))
+                .stream()
+                .collect(Collectors.toMap(Item::getId, Function.identity()));
         Map<Long, String> managedImagesByItemId = itemById.isEmpty()
             ? Collections.emptyMap()
             : managedItemImageResolver.resolveManagedImages(itemById.values());
@@ -168,7 +179,9 @@ public class BiomeServiceImpl implements BiomeService {
                 .stream()
                 .collect(Collectors.toMap(Npc::getId, Function.identity()));
 
-        dto.setRelations(relations.stream().map(relation -> {
+        dto.setRelations(relations.stream()
+            .filter(relation -> relatedBiomeById.containsKey(relation.getRelatedBiomeId()))
+            .map(relation -> {
             BiomeRelationDTO relationDto = new BiomeRelationDTO();
             BeanUtils.copyProperties(relation, relationDto);
             Biome related = relatedBiomeById.get(relation.getRelatedBiomeId());
@@ -180,7 +193,9 @@ public class BiomeServiceImpl implements BiomeService {
             return relationDto;
         }).toList());
 
-        dto.setResources(resources.stream().map(resource -> {
+        dto.setResources(resources.stream()
+            .filter(resource -> itemById.containsKey(resource.getItemId()))
+            .map(resource -> {
             BiomeResourceDTO resourceDto = new BiomeResourceDTO();
             BeanUtils.copyProperties(resource, resourceDto);
             Item item = itemById.get(resource.getItemId());
@@ -192,7 +207,9 @@ public class BiomeServiceImpl implements BiomeService {
             return resourceDto;
         }).toList());
 
-        dto.setItemBiomes(itemBiomes.stream().map(itemBiome -> {
+        dto.setItemBiomes(itemBiomes.stream()
+            .filter(itemBiome -> itemById.containsKey(itemBiome.getItemId()))
+            .map(itemBiome -> {
             BiomeItemRelationDTO itemBiomeDto = new BiomeItemRelationDTO();
             BeanUtils.copyProperties(itemBiome, itemBiomeDto);
             Item item = itemById.get(itemBiome.getItemId());
@@ -206,7 +223,9 @@ public class BiomeServiceImpl implements BiomeService {
             return itemBiomeDto;
         }).toList());
 
-        dto.setNpcBiomes(npcBiomes.stream().map(npcBiome -> {
+        dto.setNpcBiomes(npcBiomes.stream()
+            .filter(npcBiome -> npcById.containsKey(npcBiome.getNpcId()))
+            .map(npcBiome -> {
             BiomeNpcRelationDTO npcBiomeDto = new BiomeNpcRelationDTO();
             BeanUtils.copyProperties(npcBiome, npcBiomeDto);
             Npc npc = npcById.get(npcBiome.getNpcId());
@@ -220,7 +239,9 @@ public class BiomeServiceImpl implements BiomeService {
             return npcBiomeDto;
         }).toList());
 
-        dto.setItemSources(itemSources.stream().map(itemSource -> {
+        dto.setItemSources(itemSources.stream()
+            .filter(itemSource -> itemById.containsKey(itemSource.getItemId()))
+            .map(itemSource -> {
             BiomeItemSourceDTO itemSourceDto = new BiomeItemSourceDTO();
             BeanUtils.copyProperties(itemSource, itemSourceDto);
             Item item = itemById.get(itemSource.getItemId());

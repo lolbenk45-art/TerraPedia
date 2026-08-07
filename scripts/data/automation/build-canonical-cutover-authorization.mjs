@@ -343,7 +343,7 @@ function requiredTechnicalFieldsForOperation(operationId) {
   if (operationId === 'automation-biomes-l0-bootstrap') {
     return [...BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS];
   }
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance'].includes(operationId)) {
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance'].includes(operationId)) {
     return [...ISOLATED_T1_REQUIRED_TECHNICAL_FIELDS];
   }
   return [...EXECUTABLE_REQUIRED_TECHNICAL_FIELDS];
@@ -449,7 +449,7 @@ function deriveTechnicalIdentity(input) {
 }
 
 function assertNpcT1ManifestServerIdentity({ operationId, executionManifest, serverFingerprint } = {}) {
-  if (!['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance'].includes(operationId) || executionManifest == null || serverFingerprint == null) {
+  if (!['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance'].includes(operationId) || executionManifest == null || serverFingerprint == null) {
     return;
   }
   const frozen = canonicalServerFingerprint(executionManifest?.isolatedAcceptance?.serverFingerprint);

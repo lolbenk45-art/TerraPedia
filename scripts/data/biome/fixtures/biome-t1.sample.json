@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-08T02:35:00.000Z",
+  "sourceProvider": "biome-t1.fixture",
+  "biomes": [
+    {
+      "code": "corruption",
+      "nameEn": "The Corruption",
+      "nameZh": "腐化之地",
+      "aliasEn": "Corruption",
+      "aliasZh": "腐化",
+      "layerType": "surface",
+      "biomeType": "evil",
+      "description": "Offline T1 fixture for the Corruption biome.",
+      "iconUrl": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "The Corruption",
+      "sourceRevisionTimestamp": "2026-07-22T07:55:26Z",
+      "status": 1,
+      "relations": [
+        {
+          "relatedBiomeCode": "crimson",
+          "relationType": "counterpart",
+          "notes": null
+        }
+      ],
+      "resources": [],
+      "wikitext": "{{infocard/start}}\n{{infocard/mainheading|Characters}}\n{{infocard/box|title=[[Pre-Hardmode]]:}}\n{{dotlist|{{item|Corrupt Goldfish}}}}\n{{infocard/mainheading|Unique Drops}}\n{{infocard/box|title=From [[Shadow Orb]]s:}}\n{{dotlist|{{item|Musket}}|{{item|Vilethorn}}}}\n{{infocard/end}}"
+    },
+    {
+      "code": "crimson",
+      "nameEn": "The Crimson",
+      "nameZh": "猩红之地",
+      "aliasEn": "Crimson",
+      "aliasZh": "猩红",
+      "layerType": "surface",
+      "biomeType": "evil",
+      "description": "Offline T1 fixture for the Crimson biome.",
+      "iconUrl": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "The Crimson",
+      "sourceRevisionTimestamp": "2026-07-22T07:55:35Z",
+      "status": 1,
+      "relations": [
+        {
+          "relatedBiomeCode": "corruption",
+          "relationType": "counterpart",
+          "notes": null
+        }
+      ],
+      "resources": [],
+      "wikitext": "{{infocard/start}}\n{{infocard/mainheading|Characters}}\n{{infocard/box|title=[[Pre-Hardmode]]:}}\n{{dotlist|{{item|Vicious Goldfish}}}}\n{{infocard/mainheading|Unique Drops}}\n{{infocard/box|title=From [[Crimson Heart]]s:}}\n{{dotlist|{{item|The Undertaker}}|{{item|The Rotted Fork}}}}\n{{infocard/end}}"
+    }
+  ],
+  "dependencies": {
+    "items": [
+      "Musket",
+      "Vilethorn",
+      "TheUndertaker",
+      "TheRottedFork"
+    ],
+    "npcs": [
+      "CorruptGoldfish",
+      "CrimsonGoldfish"
+    ]
+  },
+  "expected": {
+    "biomes": 2,
+    "biomeRelations": 2,
+    "itemCandidates": 4,
+    "npcCandidates": 2,
+    "biomeResources": 4,
+    "itemBiomes": 4,
+    "itemSources": 4,
+    "npcBiomes": 2
+  }
+}

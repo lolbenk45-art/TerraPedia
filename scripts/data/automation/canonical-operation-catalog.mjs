@@ -15,6 +15,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-projectile-backfill',
   'canonical-projectile-t1-acceptance',
   'canonical-buff-t1-acceptance',
+  'canonical-biome-t1-acceptance',
   'canonical-recipe-crawler',
   'canonical-recipe-apply',
   'canonical-recipe-t1-acceptance',
@@ -81,6 +82,9 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   ]),
   'canonical-buff-t1-acceptance': Object.freeze([
     'scripts/data/buff/fixtures/buff-t1.sample.json',
+  ]),
+  'canonical-biome-t1-acceptance': Object.freeze([
+    'scripts/data/biome/fixtures/biome-t1.sample.json',
   ]),
   'canonical-recipe-crawler': Object.freeze([]),
   'canonical-recipe-apply': Object.freeze(['data/generated/wiki-zh-recipe-pages.latest.json']),
@@ -219,6 +223,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-projectile-backfill': 'scripts/data/backfill/backfill-projectile-zh-and-images.mjs',
   'canonical-projectile-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
   'canonical-buff-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
+  'canonical-biome-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
   'canonical-recipe-crawler': 'scripts/data/fetch/fetch-wiki-zh-recipe-pages.mjs',
   'canonical-recipe-apply': 'scripts/data/pipeline/run-wiki-zh-recipe-sync-pipeline.mjs',
   'canonical-recipe-t1-acceptance': 'scripts/data/automation/run-live-automation-acceptance.mjs',
