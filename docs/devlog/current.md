@@ -1,16 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-07 14:05 CST by Codex
+Last updated: 2026-08-07 14:28 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1 consumed five ADMIN decisions; all failed closed and cleaned to zero. The isolated schema creation and explicit relation-target repair passes the expanded focused suite.
+Boss + Boss Loot Batch 1 consumed six ADMIN decisions. `admin-06` completed technically and cleaned to zero, but its `25/0` relation counts exposed a semantic false positive. Exact fixture relation closure now passes the expanded suite.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: commit the current-hash schema-boundary repair and generate a fresh Boss T1 request.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: commit exact Boss fixture relation closure and generate a fresh Boss T1 request.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Boss + Boss Loot Batch 1 consumed five ADMIN decisions; all failed closed and cl
 
 ## Next Agent Start Point
 
-Commit the validated schema-boundary repair, then generate a new current-hash
-Boss T1 request; consumed `admin-01` through `admin-05` must not be reused.
+Commit the validated fixture relation-closure repair, then generate a new
+current-hash Boss T1 request; consumed `admin-01` through `admin-06` must not be reused.
 
 ## Current Risks
 

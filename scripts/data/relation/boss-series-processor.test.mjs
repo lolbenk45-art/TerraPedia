@@ -121,3 +121,21 @@ test('buildBossSeriesRelations maps bosses to npc identities, rewards, and expli
   assert.ok(meteoriteEffect);
   assert.equal(meteoriteEffect.targetType, 'world_event');
 });
+
+test('buildBossSeriesRelations maps boss-owned local loot without using generic NPC loot relations', () => {
+  const actual = buildBossSeriesRelations({
+    maintBossRows: [{
+      record_key: 'a'.repeat(64), title_en: 'King Slime', source_page: 'King Slime'
+    }],
+    relationNpcRows: [{
+      sourceId: 50, internalName: 'KingSlime', englishName: 'King Slime'
+    }],
+    bossLootRows: [{
+      npc_internal_name: 'KingSlime', item_internal_name: 'LesserHealingPotion',
+      chance_text: '100%', quantity_text: '5-15'
+    }]
+  });
+
+  assert.equal(actual.bossItemRewardRelations.length, 1);
+  assert.equal(actual.bossItemRewardRelations[0].itemInternalName, 'LesserHealingPotion');
+});

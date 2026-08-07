@@ -1343,6 +1343,7 @@ export async function runSync(options, dependencies = {}) {
     localProjectiles,
     maintNpcs,
     localBossGroupRows,
+    localBossLootRows,
     localBuffRows,
     itemImageRows,
     maintItemPages,
@@ -1376,6 +1377,17 @@ export async function runSync(options, dependencies = {}) {
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image_url FROM projectiles WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_npcs'),
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT code, image_url FROM boss_groups WHERE deleted = 0') : [],
+    options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, `
+      SELECT
+        n.internal_name AS npc_internal_name,
+        i.internal_name AS item_internal_name,
+        nle.quantity_text,
+        nle.chance_text
+      FROM npc_loot_entries nle
+      INNER JOIN npcs n ON n.id = nle.npc_id AND n.deleted = 0 AND n.status = 1
+      INNER JOIN items i ON i.id = nle.item_id AND i.deleted = 0 AND i.status = 1
+      WHERE nle.deleted = 0 AND nle.status = 1
+    `) : [],
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image, image_cached_url FROM buffs WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_item_images'),
     queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
@@ -1460,7 +1472,8 @@ export async function runSync(options, dependencies = {}) {
     maintBossRows,
     localBossGroupRows,
     relationNpcRows: baseEntities.relationNpcs,
-    itemNpcLootRelations: itemSource.npcLootRelations
+    itemNpcLootRelations: itemSource.npcLootRelations,
+    bossLootRows: localBossLootRows
   });
   const npcSeries = buildNpcSeriesRelations({
     relationNpcRows: baseEntities.relationNpcs,

@@ -79,6 +79,22 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   target database. The consolidation path passes the isolated relation name to
   every schema statement, while the default formal behavior remains unchanged.
   The expanded focused suite passes `145/145`.
+- Commit `17a659b8 fix(boss): isolate T1 schema bootstrap` records the schema
+  creation, grant-order, and explicit relation-target repair.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-06` completed its
+  technical process with `cleanupPassed=true`, snapshot verification `129/129`,
+  and transaction probes `0/1/0` for all three isolated roles. Independent
+  cleanup readback returned databases, accounts, Redis DB 2, and processes to
+  zero.
+- The `admin-06` domain evidence was rejected as a semantic false positive:
+  fixture import and loot were `2/2`, but consolidation reported 25 snapshot
+  bosses and zero boss rewards. It therefore does not close Batch 1.
+- The corrected executor now routes both actual ownership paths: Boss fixture
+  metadata uses the existing `bosses_raw` maint mapper, while boss-owned local
+  loot rows feed `boss_item_reward_relations` directly instead of depending on
+  the intentionally separated generic NPC-loot lane. The pass gate requires
+  exactly two resolved relation bosses and two boss reward relations. Expanded
+  validation passes `206`, with one pre-existing skipped shimmer test.
 
 ## Validation
 
@@ -91,13 +107,13 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 ## Residual Risks
 
 - Boss T1 remains unproven until a fresh current-hash authorization completes;
-  decisions `admin-01` through `admin-05` are consumed and cannot be reused.
+  decisions `admin-01` through `admin-06` are consumed and cannot be reused.
 - No live resource or acceptance evidence remains from the failed decisions.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Commit the isolated schema creation and explicit relation-target repair, then
-  generate a fresh manifest and ADMIN decision. Never reuse a consumed decision.
+- Commit the exact fixture relation-closure repair, then generate a fresh
+  manifest and ADMIN decision. Never reuse a consumed decision.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.
