@@ -8,12 +8,12 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 Boss + Boss Loot Batch 1, Projectile item-only Batch 2, Buff Batch 3, and Biome
 Batch 4 passed exact isolated acceptance and cleaned to zero. Recipe formal
-apply already completed on 2026-07-29; current work is a read-only evidence
-verification and readiness repair, not another apply.
+apply completed on 2026-07-29, and its read-only evidence verification and
+readiness repair now pass without replaying the apply.
 
 ## Open Work
 
-- `entries/2026-08-08-recipe-formal-read-only-verification.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: none.
+- None.
 
 ## Current State
 
@@ -44,12 +44,16 @@ verification and readiness repair, not another apply.
   relations, 4 resource/item-biome/item-source rows, 2 NPC-biome rows, 6
   stored decoys with 0 leaks, snapshot `129/129`, probes `0/1/0`, and cleanup
   all zero.
+- Recipe formal verification passes against input hash `3503bdd...aefc`, the
+  embedded applied pipeline, and final formal hash `582c415...f20e`. Source
+  and blocking readiness are both pass; the overwritten two-row standalone
+  report is classified `superseded-invalid`.
 
 ## Next Agent Start Point
 
-Continue the Recipe formal read-only verification entry. Do not replay the
-3,663-row apply: bind current input bytes, the embedded original pipeline
-result, and current formal database scope, then harden source readiness.
+The remaining-domain isolated batches and Recipe formal evidence repair are
+closed. Any scheduler daemon design/activation or new formal domain refresh
+must start as a separate scoped task with its own authority.
 
 ## Current Risks
 
@@ -67,6 +71,8 @@ result, and current formal database scope, then harden source readiness.
 
 ## Recently Closed
 
+- `entries/2026-08-08-recipe-formal-read-only-verification.md` - formal Recipe
+  state verified read-only; overwritten standalone evidence rejected.
 - `entries/2026-08-08-biome-t1-isolated-acceptance.md` - exact Biome T1 passed
   and cleaned to zero; formal Biome apply remains unauthorized.
 - `entries/2026-08-08-buff-t1-isolated-acceptance.md` - exact Buff T1 passed

@@ -352,7 +352,7 @@ const SUPPORT_DOMAIN_CONFIG = {
       evidence: [
         requiredJson('data/generated/recipe-material-reference.json'),
         optionalJson('data/generated/wiki-zh-recipe-pages.latest.json'),
-        optionalLatestJson('reports/wiki-zh-recipe-import*.json'),
+        requiredJson('reports/canonical-migration/canonical-recipe-formal-verification.json'),
       ],
     },
     blockingGate: {
@@ -762,7 +762,129 @@ function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId,
   if (domainId === 'support.recipe' && panelId === 'sourceReadiness' && pathKey === 'data/generated/wiki-zh-recipe-pages.latest.json') {
     return recipeCrawlerSnapshotSemantics(payload, reportPath);
   }
+  if (domainId === 'support.recipe'
+    && panelId === 'sourceReadiness'
+    && pathKey === 'reports/canonical-migration/canonical-recipe-formal-verification.json') {
+    return recipeFormalVerificationSemantics(payload, reportPath, repoRoot);
+  }
   return { status: 'pass', message: `Evidence present: ${resolvedPath}` };
+}
+
+function recipeFormalVerificationSemantics(payload, reportPath, repoRoot) {
+  const blocking = [];
+  requireGeneratedAt(payload, blocking);
+  if (payload?.schemaVersion !== 1) blocking.push('schemaVersion must be 1');
+  if (payload?.status !== 'passed') blocking.push('status is not passed');
+  if (payload?.mode !== 'read-only') blocking.push('mode is not read-only');
+  if (payload?.writesAttempted !== false) blocking.push('writesAttempted is not false');
+  if (payload?.decisionId !== 'canonical-recipe-apply-20260729-03') {
+    blocking.push('formal decision identity does not match the completed Recipe apply');
+  }
+
+  const inputArtifact = payload?.artifacts?.input;
+  const pipelineArtifact = payload?.artifacts?.appliedPipeline;
+  const standaloneArtifact = payload?.artifacts?.standaloneImport;
+  if (inputArtifact?.path !== 'data/generated/wiki-zh-recipe-pages.latest.json' || !isRecipeSha256(inputArtifact?.sha256)) {
+    blocking.push('canonical input artifact path or hash is invalid');
+  }
+  if (pipelineArtifact?.path !== 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json' || !isRecipeSha256(pipelineArtifact?.sha256)) {
+    blocking.push('applied pipeline artifact path or hash is invalid');
+  }
+  if (standaloneArtifact?.path !== 'reports/wiki-zh-recipe-import-2026-07-29.json' || !isRecipeSha256(standaloneArtifact?.sha256)) {
+    blocking.push('standalone import artifact path or hash is invalid');
+  }
+  for (const [label, artifact] of [
+    ['input', inputArtifact],
+    ['applied pipeline', pipelineArtifact],
+    ['standalone import', standaloneArtifact],
+  ]) {
+    if (!recipeArtifactHashMatches(repoRoot, artifact)) {
+      blocking.push(`${label} artifact bytes do not match the verification hash`);
+    }
+  }
+  if (payload?.input?.expectedSha256 !== inputArtifact?.sha256) {
+    blocking.push('input artifact hash does not match the expected input hash');
+  }
+
+  const appliedImport = payload?.appliedPipeline?.import ?? {};
+  const displayNameBackfill = payload?.appliedPipeline?.displayNameBackfill ?? {};
+  const consolidation = payload?.appliedPipeline?.consolidation ?? {};
+  const formal = payload?.formalScope ?? {};
+  if (payload?.appliedPipeline?.apply !== true || appliedImport.apply !== true) {
+    blocking.push('embedded Recipe import is not applied');
+  }
+  if (appliedImport.database !== 'terria_v1_local' || formal.database !== 'terria_v1_local') {
+    blocking.push('embedded or formal database identity is invalid');
+  }
+  if (consolidation.apply !== true || consolidation.dryRun !== false) {
+    blocking.push('embedded provider consolidation is not applied');
+  }
+  if (displayNameBackfill.apply !== true
+    || displayNameBackfill.database !== 'terria_v1_local'
+    || displayNameBackfill.groupIngredientsUpdated !== 124
+    || displayNameBackfill.stationsUpdated !== 239
+    || displayNameBackfill?.after?.groupIngredients?.needsSync !== 0
+    || displayNameBackfill?.after?.ingredients?.needsSync !== 0
+    || displayNameBackfill?.after?.stations?.needsSync !== 0) {
+    blocking.push('embedded display-name backfill evidence is incomplete');
+  }
+
+  for (const [left, right, label] of [
+    [payload?.input?.pageCount, appliedImport.inputPages, 'input page count'],
+    [payload?.input?.recipeCount, appliedImport.inputRecipes, 'input recipe count'],
+    [formal.wikiZhRecipes, appliedImport.importedRecipeCountInDb, 'wiki_zh recipe count'],
+    [formal.wikiZhIngredients, appliedImport.insertedIngredientRows, 'wiki_zh ingredient count'],
+    [formal.wikiZhStations, appliedImport.insertedStationRows, 'wiki_zh station count'],
+    [formal.totalRecipes, consolidation?.after?.recipeRows, 'formal total recipe count'],
+    [formal.consolidationRecipeRows, consolidation?.after?.recipeRows, 'consolidation recipe count'],
+    [formal.activeRecipeRows, consolidation?.after?.activeRecipeRows, 'active recipe count'],
+    [formal.resultItems, consolidation?.after?.resultItems, 'result item count'],
+    [formal.activeResultItems, consolidation?.after?.activeResultItems, 'active result item count'],
+  ]) {
+    if (!isNonNegativeNumber(left) || left !== right) blocking.push(`${label} does not match authoritative evidence`);
+  }
+  if (!isRecipeSha256(appliedImport.recipeScopeHashTarget)) {
+    blocking.push('import-stage projection hash is invalid');
+  }
+  if (!isRecipeSha256(payload?.expectedFinalProjectionHash)
+    || formal.projectionHash !== payload.expectedFinalProjectionHash) {
+    blocking.push('formal projection hash does not match the expected post-backfill scope');
+  }
+  if (formal.unresolvedItems !== 0 || formal.unresolvedStations !== 0) {
+    blocking.push('formal Recipe scope contains unresolved relations');
+  }
+  if (!Array.isArray(payload?.checks)
+    || payload.checks.length === 0
+    || payload.checks.some((check) => check?.status !== 'passed')) {
+    blocking.push('verification checks are missing or not all passed');
+  }
+  if (!Array.isArray(payload?.blockingReasons) || payload.blockingReasons.length !== 0) {
+    blocking.push('verification report contains blocking reasons');
+  }
+
+  return semanticResult({
+    reportPath,
+    cleanMessage: `Recipe formal read-only verification is clean in ${reportPath}; standalone import=${payload?.standaloneImport?.classification ?? 'unknown'}`,
+    blocking,
+    warnings: [],
+  });
+}
+
+function isRecipeSha256(value) {
+  return /^[a-f0-9]{64}$/.test(String(value ?? ''));
+}
+
+function recipeArtifactHashMatches(repoRoot, artifact) {
+  if (!artifact?.path || !isRecipeSha256(artifact?.sha256)) return false;
+  try {
+    const fullPath = path.resolve(repoRoot, artifact.path);
+    const root = path.resolve(repoRoot);
+    if (!fullPath.startsWith(`${root}${path.sep}`)) return false;
+    const actual = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+    return actual === artifact.sha256;
+  } catch {
+    return false;
+  }
 }
 
 function unresolvedAuditTrendSemantics(payload, reportPath) {

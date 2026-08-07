@@ -36,8 +36,16 @@ The current input hash must equal
 The embedded import must be `apply=true`, target `terria_v1_local`, reference
 the canonical input filename, report 3,663 raw and 3,571 imported recipes,
 match the expected row counts, contain no placeholders/unresolved relations,
-and expose the target scope hash. The current formal `wiki_zh` projection hash
-must equal that embedded target hash.
+and expose the import-stage target scope hash.
+
+Execution-time investigation confirmed that the subsequent applied
+display-name backfill changes `ingredient_name_raw` and `station_name_raw`,
+both of which participate in the projection hash. The import-stage target
+`b14dc414734cd3cac11f364039482eaa89594bae8277bfcae787955b0bdd2ee3`
+therefore cannot equal the final database hash. The verifier separately binds
+the applied backfill result (124 group ingredients, 239 station names, and zero
+remaining sync gaps) and freezes the audited post-backfill formal hash
+`582c4152aa4fe770bce41c431420230e82586d8322424edf877387e184ecf20e`.
 
 The standalone report is checked separately. It is valid only when its
 applied semantics and key counts match the embedded result. The known two-row
@@ -61,7 +69,8 @@ The report contains:
 - `schemaVersion`, `generatedAt`, `status`, and `mode=read-only`;
 - canonical relative paths and SHA-256 hashes for all three input artifacts;
 - input page/raw-row counts;
-- embedded formal decision identity and applied import/consolidation metrics;
+- embedded formal decision identity and applied import/backfill/consolidation
+  metrics;
 - formal total and `wiki_zh` scope counts, unresolved counts, and projection
   hash;
 - standalone classification and mismatch reasons;
@@ -74,9 +83,10 @@ passes. A failed run may emit a failed report for diagnosis but exits nonzero.
 
 `support.recipe/sourceReadiness` requires the new canonical verification report
 instead of treating the latest standalone import report as optional presence
-evidence. Semantic validation requires `status=passed`, `mode=read-only`, exact
-input/report hashes, matched embedded and formal scope hashes, expected counts,
-zero unresolved relations, and `writesAttempted=false`.
+evidence. Semantic validation requires `status=passed`, `mode=read-only`,
+hashes that match the current artifact bytes, valid import-stage and frozen
+post-backfill scope hashes, expected counts, zero unresolved relations, and
+`writesAttempted=false`.
 
 The crawler snapshot producer-shape validation remains. Recipe blocking
 consolidation/coverage checks remain separate. This change does not weaken any

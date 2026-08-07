@@ -13,6 +13,7 @@ const scriptPath = path.join(repoRoot, 'scripts', 'data', 'import', 'import-wiki
 test('recipe importer resolves mysql2 through the repository module loader', () => {
   const source = fs.readFileSync(scriptPath, 'utf8');
   assert.match(source, /import \{ loadMysqlModule \} from '\.\.\/lib\/mysql-module\.mjs'/);
+  assert.match(source, /from '\.\.\/recipe\/recipe-formal-contract\.mjs'/);
   assert.match(source, /const mysql = loadMysqlModule\(\)/);
   assert.doesNotMatch(source, /createRequire|require\('mysql2\/promise'\)/);
 });

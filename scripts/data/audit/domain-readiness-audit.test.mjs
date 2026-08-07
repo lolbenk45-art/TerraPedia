@@ -1713,10 +1713,14 @@ test('projectile readiness shares one completed applied backfill report', () => 
 test('recipe source readiness accepts only a producer-shaped crawler snapshot', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/generated/recipe-material-reference.json', { records: [{ id: 1 }] });
-  writeJson(repoRoot, 'reports/wiki-zh-recipe-import-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-import-2026-07-29.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: false,
+    inputRecipes: 2,
+  });
 
   const missing = buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' });
-  assert.equal(missing.status, 'warning');
+  assert.equal(missing.status, 'blocked');
   assert.ok(missing.warningReasons.some((reason) => /wiki-zh-recipe-pages/.test(reason)));
 
   writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {});
@@ -1751,8 +1755,114 @@ test('recipe source readiness accepts only a producer-shaped crawler snapshot', 
       }],
     }],
   });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  const verificationPath = 'reports/canonical-migration/canonical-recipe-formal-verification.json';
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json', { apply: true });
+  const verification = validRecipeFormalVerification(repoRoot);
+  writeJson(repoRoot, verificationPath, verification);
   assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  for (const mutate of [
+    (value) => { value.status = 'failed'; },
+    (value) => { value.mode = 'apply'; },
+    (value) => { value.writesAttempted = true; },
+    (value) => { value.artifacts.input.sha256 = 'f'.repeat(64); },
+    (value) => { value.input.recipeCount = 2; },
+    (value) => { value.formalScope.projectionHash = 'e'.repeat(64); },
+    (value) => { value.formalScope.wikiZhRecipes = 2; },
+    (value) => { value.formalScope.activeRecipeRows = 3; },
+    (value) => { value.formalScope.unresolvedStations = 1; },
+  ]) {
+    const invalid = structuredClone(verification);
+    mutate(invalid);
+    writeJson(repoRoot, verificationPath, invalid);
+    assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+  }
+
+  writeJson(repoRoot, verificationPath, verification);
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json', { apply: true, drifted: true });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
 });
+
+function validRecipeFormalVerification(repoRoot) {
+  const inputHash = sha256Path(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json');
+  const pipelineHash = sha256Path(repoRoot, 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json');
+  const standaloneHash = sha256Path(repoRoot, 'reports/wiki-zh-recipe-import-2026-07-29.json');
+  const scopeHash = 'b'.repeat(64);
+  return {
+    schemaVersion: 1,
+    generatedAt: '2026-08-08T00:00:00.000Z',
+    status: 'passed',
+    mode: 'read-only',
+    decisionId: 'canonical-recipe-apply-20260729-03',
+    writesAttempted: false,
+    expectedFinalProjectionHash: scopeHash,
+    artifacts: {
+      input: { path: 'data/generated/wiki-zh-recipe-pages.latest.json', sha256: inputHash },
+      appliedPipeline: { path: 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json', sha256: pipelineHash },
+      standaloneImport: { path: 'reports/wiki-zh-recipe-import-2026-07-29.json', sha256: standaloneHash },
+    },
+    input: { pageCount: 1, recipeCount: 1, expectedSha256: inputHash },
+    appliedPipeline: {
+      apply: true,
+      import: {
+        apply: true,
+        database: 'terria_v1_local',
+        inputPages: 1,
+        inputRecipes: 1,
+        insertedRecipes: 1,
+        insertedIngredientRows: 0,
+        insertedStationRows: 0,
+        createdPlaceholderItems: 0,
+        createdCraftingStations: 0,
+        unresolvedItemRowsAfterImport: 0,
+        unresolvedStationRowsAfterImport: 0,
+        importedRecipeCountInDb: 1,
+        recipeScopeHashTarget: 'f'.repeat(64),
+      },
+      displayNameBackfill: {
+        apply: true,
+        database: 'terria_v1_local',
+        groupIngredientsUpdated: 124,
+        stationsUpdated: 239,
+        after: {
+          groupIngredients: { needsSync: 0 },
+          ingredients: { needsSync: 0 },
+          stations: { needsSync: 0 },
+        },
+      },
+      consolidation: {
+        apply: true,
+        dryRun: false,
+        after: { recipeRows: 4, activeRecipeRows: 2, resultItems: 1, activeResultItems: 1 },
+      },
+    },
+    formalScope: {
+      database: 'terria_v1_local',
+      totalRecipes: 4,
+      totalIngredients: 0,
+      totalStations: 0,
+      consolidationRecipeRows: 4,
+      activeRecipeRows: 2,
+      resultItems: 1,
+      activeResultItems: 1,
+      wikiZhRecipes: 1,
+      wikiZhIngredients: 0,
+      wikiZhStations: 0,
+      unresolvedItems: 0,
+      unresolvedStations: 0,
+      projectionHash: scopeHash,
+    },
+    standaloneImport: { classification: 'superseded-invalid', reasons: ['apply is not true'] },
+    checks: [{ name: 'input-hash-and-counts', status: 'passed' }],
+    blockingReasons: [],
+  };
+}
+
+function sha256Path(repoRoot, relativePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(path.join(repoRoot, relativePath))).digest('hex');
+}
 
 test('recipe blocking readiness rejects empty shells and accepts all three producer report shapes', () => {
   const repoRoot = createTempRepo();

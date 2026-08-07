@@ -2,7 +2,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
@@ -11,10 +10,15 @@ import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { fetchWikiApiJson, parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { isRecipeGroupName } from '../lib/recipe-material-reference.mjs';
+import {
+  hashWikiZhRecipeProjection,
+  normalizeWikiZhExistingRecipeProjection,
+  RECIPE_SOURCE_PROVIDER,
+} from '../recipe/recipe-formal-contract.mjs';
 
 const repoRoot = getProjectRoot();
 
-const SOURCE_PROVIDER = 'wiki_zh';
+const SOURCE_PROVIDER = RECIPE_SOURCE_PROVIDER;
 const PLACEHOLDER_ITEM_PROVIDER = 'wiki_zh_recipe_import';
 const ZH_WIKI_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const VERSION_ONLY_SUFFIX = ' only';
@@ -979,62 +983,6 @@ function buildWikiZhTargetRecipeProjection(recipes) {
       sortOrder: toInt(station.sortOrder),
     })),
   }));
-}
-
-function normalizeWikiZhExistingRecipeProjection(recipeRows, ingredientRows, stationRows) {
-  const byRecipeId = new Map();
-  for (const row of recipeRows) {
-    const id = Number(row.id);
-    if (!Number.isFinite(id)) continue;
-    byRecipeId.set(id, {
-      resultItemId: toInt(row.result_item_id),
-      resultInternalName: toText(row.result_internal_name),
-      resultQuantity: toInt(row.result_quantity) ?? 1,
-      versionScope: toText(row.version_scope),
-      notes: toText(row.notes),
-      sourceProvider: toText(row.source_provider),
-      sourcePage: toText(row.source_page),
-      sourceRevisionTimestamp: toDateTime(row.source_revision_timestamp),
-      sortOrder: toInt(row.sort_order),
-      status: toInt(row.status) ?? 1,
-      deleted: toInt(row.deleted) ?? 0,
-      ingredients: [],
-      stations: [],
-    });
-  }
-  for (const row of ingredientRows) {
-    const recipe = byRecipeId.get(Number(row.recipe_id));
-    if (!recipe) continue;
-    recipe.ingredients.push({
-      ingredientItemId: toInt(row.ingredient_item_id),
-      ingredientInternalName: toText(row.ingredient_internal_name),
-      ingredientNameRaw: toText(row.ingredient_name_raw),
-      ingredientGroupType: toText(row.ingredient_group_type) ?? 'item',
-      quantityMin: toInt(row.quantity_min),
-      quantityMax: toInt(row.quantity_max),
-      quantityText: toText(row.quantity_text),
-      sortOrder: toInt(row.sort_order),
-    });
-  }
-  for (const row of stationRows) {
-    const recipe = byRecipeId.get(Number(row.recipe_id));
-    if (!recipe) continue;
-    recipe.stations.push({
-      stationId: toInt(row.station_id),
-      stationItemId: toInt(row.station_item_id),
-      stationInternalName: toText(row.station_internal_name),
-      stationNameRaw: toText(row.station_name_raw),
-      isAlternative: row.is_alternative ? 1 : 0,
-      sortOrder: toInt(row.sort_order),
-    });
-  }
-  return [...byRecipeId.values()];
-}
-
-function hashWikiZhRecipeProjection(projection) {
-  return crypto.createHash('sha256')
-    .update(`v1:recipes:${SOURCE_PROVIDER}:${JSON.stringify(projection)}`)
-    .digest('hex');
 }
 
 async function deleteRecipesByProvider(connection, sourceProvider, apply) {
