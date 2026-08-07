@@ -32,6 +32,11 @@ filters, and cleanup evidence.
 - Audit found `BiomeServiceImpl.getBiomes()` filters active status but not
   `deleted=0`; repair and regression coverage are part of this batch.
 - Design: `docs/superpowers/specs/2026-08-08-biome-t1-design.md`.
+- Implementation plan:
+  `docs/superpowers/plans/2026-08-08-biome-t1-implementation.md`.
+- Plan audit reserved Redis DB 9 after confirming it is empty; Redis DB 8 has
+  35 unrelated keys and must remain untouched. It also corrected the Crimson
+  NPC display contract: `Vicious Goldfish` resolves to `CrimsonGoldfish`.
 
 ## Success Criteria
 
