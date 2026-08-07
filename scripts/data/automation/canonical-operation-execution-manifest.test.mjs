@@ -645,7 +645,7 @@ test('boss T1 manifest freezes joint boss and loot fixtures offline', () => {
   });
 
   assert.ok(manifest.command.includes('--scope=boss-canonical'));
-  assert.ok(manifest.command.includes('--max-rows=100'));
+  assert.ok(manifest.command.includes('--max-rows=25'));
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, true);
   assert.equal(manifest.networkAccess, false);

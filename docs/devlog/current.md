@@ -6,11 +6,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1 is implemented and has a current-hash AWAITING_OWNER request; no live acceptance has run. Recipe and formal apply boundaries remain unchanged.
+Boss + Boss Loot Batch 1 consumed its first ADMIN decision but failed closed on the 25-row snapshot cap; cleanup is zero and a bounded dependency-closure repair is ready for commit.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: blocked; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: ADMIN decision for request hash `sha256:138081ffbc9bae74093bd57b20022b20e20710f8bb9faa0e74b3affabe079ccc`; contract handoff: authorize only the isolated Boss/Boss Loot T1 operation.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: commit the 25-row dependency repair and generate a fresh Boss T1 request.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Boss + Boss Loot Batch 1 is implemented and has a current-hash AWAITING_OWNER re
 
 ## Next Agent Start Point
 
-Review the Boss T1 AWAITING_OWNER request. If authorized, generate one packet
-and permit, run only `npc-t1-boss-20260807-01`, and independently verify cleanup.
+Commit the validated dependency-closure repair, then generate a new current-hash
+Boss T1 request; the consumed `-01` decision must not be reused.
 
 ## Current Risks
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-`blocked`
+`active`
 
 ## Goal
 
@@ -41,6 +41,15 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   request hash
   `sha256:138081ffbc9bae74093bd57b20022b20e20710f8bb9faa0e74b3affabe079ccc`,
   status `AWAITING_OWNER`, run ID `npc-t1-boss-20260807-01`, Redis DB 2.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-01` was consumed
+  once, but the run failed closed before snapshot copy because the manifest
+  requested 100 rows while the provisioner hard cap is 25. Independent readback
+  confirmed zero isolated databases, temporary accounts, Redis DB 2 keys, and
+  Boss T1 child processes.
+- The repair keeps the 25-row cap and copies only the fixture's two real NPCs
+  and two real items from formal local via `INSERT ... SELECT` into isolated
+  local using the temporary provisioner's formal read-only grants. No placeholder
+  identities are created. Focused validation now passes `112/112`.
 
 ## Validation
 
@@ -54,15 +63,13 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 - Boss T1 must not begin live execution until its local fixture closes all item,
   NPC, and loot relationships offline.
-- Boss T1 is blocked only on an ADMIN owner decision. No owner input, packet,
-  permit, live database, account, Redis state, or acceptance evidence has been
-  created.
+- The first ADMIN decision is consumed and cannot be reused. A fresh post-fix
+  manifest/request is required; no live resource or acceptance evidence remains.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- ADMIN reviews the request hash and either denies it or creates a fresh owner
-  decision limited to this isolated Boss T1 operation. Authorization and live
-  execution remain separate steps.
+- Commit the 25-row dependency-closure repair and generate a fresh manifest and
+  AWAITING_OWNER request. Never reuse decision `canonical-boss-t1-acceptance-20260807-admin-01`.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.

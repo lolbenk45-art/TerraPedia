@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { runSync } from '../relation/sync-maint-to-relation.mjs';
 
 const DEFAULT_BOSS_INPUT = 'scripts/data/boss/fixtures/boss-t1.sample.json';
@@ -19,6 +20,8 @@ export async function runBossCanonicalT1Acceptance({
   lootInputPath = DEFAULT_LOOT_INPUT,
   spawnSyncImpl = spawnSync,
   runSyncImpl = runSync,
+  seedDependenciesImpl = seedBossFixtureDependencies,
+  createConnectionImpl = (options) => loadMysqlModule().createConnection(options),
 } = {}) {
   if (profile !== 't1') throw new Error('boss T1 acceptance requires the T1 profile');
   if (!ISOLATED_LOCAL.test(databases?.local ?? '')) {
@@ -48,6 +51,27 @@ export async function runBossCanonicalT1Acceptance({
       `--database=${databases.local}`,
       '--allow-non-primary-db=true',
     ];
+
+    const connection = await createConnectionImpl({
+      host: mysql.host,
+      port: mysql.port,
+      user: mysql.username,
+      password: mysql.password,
+    });
+    let dependencySeed;
+    try {
+      dependencySeed = await seedDependenciesImpl({
+        connection,
+        targetDatabase: databases.local,
+        npcInternalNames: ['KingSlime', 'EyeofCthulhu'],
+        itemInternalNames: ['LesserHealingPotion', 'CorruptSeeds'],
+      });
+    } finally {
+      await connection.end();
+    }
+    if (dependencySeed.npcRows !== 2 || dependencySeed.itemRows !== 2) {
+      throw new Error(`boss T1 fixture dependency closure failed: ${JSON.stringify(dependencySeed)}`);
+    }
 
     runChild(spawnSyncImpl, repoRoot, 'scripts/data/import/import-wiki-bosses-to-db.mjs', [
       `--input=${bossInput}`,
@@ -88,6 +112,7 @@ export async function runBossCanonicalT1Acceptance({
       status: 'passed',
       databases,
       inputs: { boss: bossInputPath, loot: lootInputPath },
+      dependencySeed,
       bossImport: JSON.parse(fs.readFileSync(bossReport, 'utf8')),
       bossLootImport: JSON.parse(fs.readFileSync(lootReport, 'utf8')),
       consolidation: {
@@ -99,6 +124,34 @@ export async function runBossCanonicalT1Acceptance({
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
+}
+
+export async function seedBossFixtureDependencies({
+  connection,
+  targetDatabase,
+  npcInternalNames,
+  itemInternalNames,
+} = {}) {
+  if (!ISOLATED_LOCAL.test(targetDatabase ?? '')) {
+    throw new Error('boss T1 dependency seed requires an isolated local database');
+  }
+  const target = `\`${targetDatabase}\``;
+  const copy = async (table, names) => {
+    const placeholders = names.map(() => '?').join(', ');
+    await connection.query(
+      `INSERT IGNORE INTO ${target}.\`${table}\` SELECT * FROM \`terria_v1_local\`.\`${table}\` WHERE internal_name IN (${placeholders})`,
+      names,
+    );
+    const [rows] = await connection.query(
+      `SELECT COUNT(*) AS count FROM ${target}.\`${table}\` WHERE internal_name IN (${placeholders})`,
+      names,
+    );
+    return Number(rows[0]?.count ?? 0);
+  };
+  return {
+    npcRows: await copy('npcs', npcInternalNames),
+    itemRows: await copy('items', itemInternalNames),
+  };
 }
 
 function runChild(spawnSyncImpl, repoRoot, scriptPath, args, label) {

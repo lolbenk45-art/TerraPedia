@@ -1429,7 +1429,7 @@ function bossT1AcceptanceDefinition(operationId, isolatedAcceptance) {
   if (isolatedAcceptance == null) throw new Error('boss T1 isolated acceptance identity is required');
   return {
     executionClass: 'isolated_read_only_acceptance',
-    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=boss-canonical', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--max-rows=100', '--output=reports/canonical-migration/canonical-boss-t1-acceptance.json'],
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=boss-canonical', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--max-rows=25', '--output=reports/canonical-migration/canonical-boss-t1-acceptance.json'],
     inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
     outputPaths: ['reports/canonical-migration/canonical-boss-t1-acceptance.json'],
     reportPaths: ['reports/canonical-migration/canonical-boss-t1-acceptance.json'],

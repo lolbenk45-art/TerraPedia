@@ -4,7 +4,29 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { runBossCanonicalT1Acceptance } from './boss-canonical-t1-acceptance.mjs';
+import { runBossCanonicalT1Acceptance, seedBossFixtureDependencies } from './boss-canonical-t1-acceptance.mjs';
+
+test('boss T1 dependency seed copies only fixture identities from formal local to isolated local', async () => {
+  const calls = [];
+  const result = await seedBossFixtureDependencies({
+    connection: {
+      async query(sql, params) {
+        calls.push({ sql, params });
+        if (/COUNT\(\*\)/.test(sql)) return [[{ count: params.length }]];
+        return [{ affectedRows: params.length }];
+      },
+    },
+    targetDatabase: 'terria_v1_automation_acceptance_npc_0123456789abcdef_local',
+    npcInternalNames: ['KingSlime', 'EyeofCthulhu'],
+    itemInternalNames: ['LesserHealingPotion', 'CorruptSeeds'],
+  });
+
+  assert.deepEqual(result, { npcRows: 2, itemRows: 2 });
+  assert.equal(calls.length, 4);
+  assert.match(calls[0].sql, /INSERT IGNORE INTO `terria_v1_automation_acceptance_npc_0123456789abcdef_local`\.`npcs`/);
+  assert.match(calls[0].sql, /SELECT \* FROM `terria_v1_local`\.`npcs`/);
+  assert.doesNotMatch(calls[0].sql, /(?:UPDATE|DELETE|INSERT INTO) `terria_v1_local`/);
+});
 
 test('boss T1 rejects formal and non-local database targets', async () => {
   for (const database of ['terria_v1_local', 'terria_v1_maint', 'unrelated_local']) {
@@ -42,6 +64,12 @@ test('boss T1 runs boss, loot, and consolidation stages offline', async () => {
       async runSyncImpl(options, dependencies) {
         invocations.push(['runSync', options, dependencies.config]);
         return { apply: true, results: { relationBosses: [{ recordKey: 'boss:test' }] } };
+      },
+      async seedDependenciesImpl() {
+        return { npcRows: 2, itemRows: 2 };
+      },
+      async createConnectionImpl() {
+        return { async end() {} };
       },
     });
 
