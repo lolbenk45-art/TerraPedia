@@ -1,19 +1,18 @@
 # Current Devlog
 
-Last updated: 2026-08-08 by Codex
+Last updated: 2026-08-08 04:58 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1, Projectile item-only Batch 2, Buff Batch 3, and Biome
-Batch 4 passed exact isolated acceptance and cleaned to zero. Recipe formal
-apply completed on 2026-07-29, and its read-only evidence verification and
-readiness repair now pass without replaying the apply.
+Remaining-domain isolated acceptance and Recipe formal verification are closed.
+Current work designs the isolated V2 scheduler lifecycle acceptance and its
+separate governed formal activation contract.
 
 ## Open Work
 
-- None.
+- `entries/2026-08-08-crawler-v2-scheduler-lifecycle.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: written-spec review; contract handoff: lifecycle T1 evidence precedes the formal activation proposal.
 
 ## Current State
 
@@ -51,9 +50,9 @@ readiness repair now pass without replaying the apply.
 
 ## Next Agent Start Point
 
-The remaining-domain isolated batches and Recipe formal evidence repair are
-closed. Any scheduler daemon design/activation or new formal domain refresh
-must start as a separate scoped task with its own authority.
+Review the scheduler lifecycle design, then write and audit the implementation
+plan. Do not start the fixture stack or enable formal V2 automation before the
+written-spec gate and a fresh isolated T1 ADMIN decision.
 
 ## Current Risks
 
