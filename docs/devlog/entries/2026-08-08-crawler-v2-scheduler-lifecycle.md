@@ -46,13 +46,16 @@
   recovery as one live lifecycle.
 - Design:
   `docs/superpowers/specs/2026-08-08-crawler-v2-scheduler-lifecycle-design.md`.
-- Implementation plan pending written-spec review.
+- Implementation plan:
+  `docs/superpowers/plans/2026-08-08-crawler-v2-scheduler-lifecycle-implementation.md`.
+- Plan audit: execution-ready; Task 3 is intentionally gap-driven and permits
+  only the single Spring owner class exposed by the isolated runtime evidence.
 
 ## Validation
 
 - Read-only chain audit completed; no crawler, scheduler, Redis mutation, or
   database write executed.
-- `git diff --check` pending design closeout.
+- Plan consistency scan and `git diff --check` pending plan commit.
 
 ## Residual Risks
 
@@ -63,7 +66,8 @@
 
 ## Follow-up
 
-- Written spec review, then audited implementation plan and TDD execution.
+- Commit the audited plan, then execute Tasks 1-6 under fresh isolated ADMIN
+  authorization; formal activation remains proposal-only.
 
 ## Commits
 

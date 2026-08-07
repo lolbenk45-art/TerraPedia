@@ -12,7 +12,7 @@ separate governed formal activation contract.
 
 ## Open Work
 
-- `entries/2026-08-08-crawler-v2-scheduler-lifecycle.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: written-spec review; contract handoff: lifecycle T1 evidence precedes the formal activation proposal.
+- `entries/2026-08-08-crawler-v2-scheduler-lifecycle.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: audited implementation plan precedes lifecycle T1 evidence, which precedes the formal activation proposal.
 
 ## Current State
 
