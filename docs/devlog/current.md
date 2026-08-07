@@ -1,16 +1,17 @@
 # Current Devlog
 
-Last updated: 2026-08-07 14:55 CST by Codex
+Last updated: 2026-08-07 15:05 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1 passed exact isolated acceptance under `admin-07` and cleaned to zero. Batch 2 Projectile T1 is now the active lane.
+Boss + Boss Loot Batch 1 passed exact isolated acceptance under `admin-07` and cleaned to zero. Batch 2 Projectile T1 is blocked by missing real NPC-projectile source evidence.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: audit Projectile T1 entrypoints and fixture closure before implementation.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: blocked; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: `entries/2026-08-07-projectile-t1-source-blocker.md`; contract handoff: obtain a real NPC-projectile source contract or an explicit item-only plan amendment.
+- `entries/2026-08-07-projectile-t1-source-blocker.md` - owner: Codex; status: blocked; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: missing NPC-projectile source contract; contract handoff: re-audit after source evidence exists.
 
 ## Current State
 
@@ -31,8 +32,8 @@ Boss + Boss Loot Batch 1 passed exact isolated acceptance under `admin-07` and c
 
 ## Next Agent Start Point
 
-Audit Projectile import, maint, relation, and projection ownership; select a
-2-5 row offline fixture before generating any new authorization.
+Do not generate Projectile authorization or start Buff. Resolve the missing
+NPC-projectile source contract, or obtain an explicit item-only plan amendment.
 
 ## Current Risks
 

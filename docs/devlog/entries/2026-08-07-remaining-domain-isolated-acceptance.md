@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`blocked`
 
 ## Goal
 
@@ -102,6 +102,11 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   probes `0/1/0`. Built-in and independent cleanup both returned resources to
   zero. Batch 1 is closed; see
   `docs/devlog/entries/2026-08-07-boss-t1-isolated-acceptance.md`.
+- Batch 2 read-only chain audit found two closed projectile/item candidates but
+  zero NPC rows with a supported projectile source field. The plan's explicit
+  stop condition applies; see
+  `docs/devlog/entries/2026-08-07-projectile-t1-source-blocker.md` and
+  `reports/canonical-migration/canonical-projectile-t1-blocker.json`.
 
 ## Validation
 
@@ -113,13 +118,15 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 ## Residual Risks
 
-- Projectile T1 has not yet been designed or authorized.
+- Projectile T1 is blocked by a missing real local NPC-projectile source
+  contract. No operation or authorization has been generated.
 - Boss T1 does not authorize formal Boss/Boss Loot apply or another domain.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Start Batch 2 by auditing the Projectile import, maint, relation, and
-  projection entrypoints and selecting a closed 2-5 row offline fixture.
+- Owner decision required: provide/repair a real NPC-projectile source contract,
+  or explicitly amend Batch 2 to item-only acceptance. Do not start Buff while
+  the current batch remains blocked under the approved sequence.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.
