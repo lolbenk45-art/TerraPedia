@@ -9,6 +9,7 @@ import * as liveAcceptance from './run-live-automation-acceptance.mjs';
 import { runNpcCanonicalT0Acceptance } from '../npc-canonical/npc-canonical-t0-acceptance.mjs';
 import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptance.mjs';
 import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
+import { runBuffCanonicalT1Acceptance } from '../buff/buff-canonical-t1-acceptance.mjs';
 
 const npcT1Acceptance = await import('../npc-canonical/npc-canonical-t1-acceptance.mjs').catch(() => ({}));
 
@@ -139,6 +140,17 @@ test('Projectile canonical selects only the item-only T1 executor', () => {
   assert.throws(
     () => liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'projectile-canonical' }),
     /Projectile canonical acceptance supports only T1/,
+  );
+});
+
+test('Buff canonical selects only the isolated T1 executor', () => {
+  assert.equal(
+    liveAcceptance.resolveAcceptanceExecutor({ profile: 't1', scope: 'buff-canonical' }),
+    runBuffCanonicalT1Acceptance,
+  );
+  assert.throws(
+    () => liveAcceptance.resolveAcceptanceExecutor({ profile: 't0', scope: 'buff-canonical' }),
+    /Buff canonical acceptance supports only T1/,
   );
 });
 

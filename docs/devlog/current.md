@@ -1,18 +1,17 @@
 # Current Devlog
 
-Last updated: 2026-08-08 00:00 CST by Codex
+Last updated: 2026-08-08 02:20 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1 and Projectile item-only Batch 2 passed exact isolated
-acceptance and cleaned to zero. Batch 3 Buff T1 is active.
+Boss + Boss Loot Batch 1, Projectile item-only Batch 2, and Buff Batch 3 passed
+exact isolated acceptance and cleaned to zero. Batch 4 Biome is next.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate Buff T1 child and keep Biome serialized behind it.
-- `entries/2026-08-08-buff-t1-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: `entries/2026-08-07-remaining-domain-isolated-acceptance.md`; blocked by: implementation, review, and fresh ADMIN authorization; contract handoff: exact two-Buff fixture, full immune payload readback, isolated resources, and cleanup to zero.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: open a separate Biome T1 child.
 
 ## Current State
 
@@ -34,12 +33,15 @@ acceptance and cleaned to zero. Batch 3 Buff T1 is active.
   under `canonical-projectile-t1-acceptance-20260807-admin-01`: 2 imports, 2
   maint rows, 2 item relations, 2 projections, NPC `not-covered/0`, snapshot
   `129/129`, probes `0/1/0`, and independent cleanup all zero.
+- Buff run `npc-t1-buff-20260808-06` passed under ADMIN decision
+  `canonical-buff-t1-acceptance-20260808-admin-06`: 2 imports, 11 item
+  relations, 4 inflicting-NPC relations, 0 invented immune relations, complete
+  payload readback, snapshot `129/129`, probes `0/1/0`, and cleanup all zero.
 
 ## Next Agent Start Point
 
-Write and audit the Batch 3 implementation plan, then execute TDD against the
-fixed `ShadowFlame` and `Venom` fixture. Do not authorize until review and
-focused validation pass.
+Open the Batch 4 Biome child, audit its source/consumer chain, and write the
+isolated T1 design and implementation plan before authorization.
 
 ## Current Risks
 
@@ -57,6 +59,8 @@ focused validation pass.
 
 ## Recently Closed
 
+- `entries/2026-08-08-buff-t1-isolated-acceptance.md` - exact Buff T1 passed
+  and cleaned to zero; formal Buff apply remains unauthorized.
 - `entries/2026-08-07-projectile-item-only-t1-acceptance.md` - exact item-only
   Projectile T1 passed and cleaned to zero; NPC relation coverage remains
   explicitly out of scope.

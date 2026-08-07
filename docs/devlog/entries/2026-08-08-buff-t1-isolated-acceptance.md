@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Goal
 
@@ -36,7 +36,40 @@ cleanup evidence.
   be cleared before exact dependency seeding, and backend consumer validation
   is pinned to the three focused Buff test classes. No critical or Important
   plan defect remains.
-- Implementation and authorization have not started.
+- Final ADMIN decision: `canonical-buff-t1-acceptance-20260808-admin-06`;
+  packet hash `sha256:0b8c7c4d41d871366bee65c36aa8c9dd9579da01c91f6860ef3a6bcf1ae5458a`.
+- Authorized run `npc-t1-buff-20260808-06` completed with `status=passed` and
+  `cleanupPassed=true`; retained evidence is
+  `reports/canonical-migration/canonical-buff-t1-acceptance.json`.
+- Exact closure: 2 Buff imports, 2 maint rows, 2 relation rows, 2 projection
+  rows, 11 item relations, 4 canonical inflicting-NPC relations, 0 invented
+  immune relations, and 0 unresolved fixture identities.
+- Full ordered immune payloads (30/26) and source evidence passed deep
+  equality; normalized projection source-item/NPC identities passed exact
+  semantic equality.
+- Snapshot verification passed `129/129`; transaction probes were `0/1/0`.
+- Independent cleanup readback: databases `0`, accounts `0`, transactions `0`,
+  Redis DB 7 keys `0`, Buff processes `0`, and current permits `0`.
+- Commit SHA pending in final response.
+
+## Validation
+
+- Buff/import/maint/relation focused Node suite: 138 passed, 1 existing
+  shimmer skip, 0 failures.
+- Authorization/manifest/dispatch focused Node suite: 110 passed, 0 failures.
+- Backend Buff consumer tests: 48 passed, 0 failures.
+- `git diff --check`: passed.
+
+## Coordination
+
+- Coordinator and sole task-level writer: Codex (`/root`). Owns
+  `docs/devlog/current.md`, automation registration, authorization, runtime,
+  evidence, and final commit.
+- Implementation, review, authorization, execution, evidence, and cleanup are complete.
+- Reviewers: read-only spec/code review after each implementation task; no
+  file, database, Redis, authorization, or process writes.
+- Tasks 1–3 share the Buff executor/test files and are serialized. Expected
+  handoff is changed paths, tests/results, concerns, and next dependency.
 
 ## Success Criteria
 
@@ -57,5 +90,5 @@ cleanup evidence.
 
 ## Follow-Up
 
-After exact cleanup and a focused commit, continue the parent plan with Biome
-T1 in a separate child.
+Continue the parent plan with Biome T1 in a separate child. This result does
+not authorize formal Buff apply.

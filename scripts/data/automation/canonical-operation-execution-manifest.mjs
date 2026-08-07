@@ -159,6 +159,13 @@ const CODE_PATHS = Object.freeze({
     'scripts/data/maint/sync-landing-to-maint.mjs',
     'scripts/data/relation/sync-maint-to-relation.mjs',
   ]),
+  'canonical-buff-t1-acceptance': Object.freeze([
+    'scripts/data/automation/run-live-automation-acceptance.mjs',
+    'scripts/data/buff/buff-canonical-t1-acceptance.mjs',
+    'scripts/data/import/import-independent-entities-to-db.mjs',
+    'scripts/data/maint/sync-landing-to-maint.mjs',
+    'scripts/data/relation/sync-maint-to-relation.mjs',
+  ]),
   'canonical-recipe-crawler': Object.freeze([
     'scripts/data/fetch/fetch-wiki-zh-recipe-pages.mjs',
     'scripts/data/fetch/fetch-wiki-zh-recipe-pages-progress.mjs',
@@ -395,7 +402,7 @@ export function buildCanonicalOperationExecutionContract({
   if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
     throw new Error('result label is supported only for an NPC owner operation');
   }
-  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance'].includes(operationId)
+  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance'].includes(operationId)
     ? buildNpcT1AcceptanceIdentity({
       configPath: npcT1ConfigPath,
       redisLogicalDb: npcT1RedisDb,
@@ -476,7 +483,7 @@ export function assertCanonicalOperationExecutionManifestContract({
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
     npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
   });
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance'].includes(operationId)
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
     throw new Error('NPC T1 config hash drifted from the execution manifest');
   }
@@ -1094,6 +1101,9 @@ function buildDefinition(
     ...(operationId === 'canonical-projectile-t1-acceptance'
       ? { [operationId]: projectileT1AcceptanceDefinition(operationId, npcT1Acceptance) }
       : {}),
+    ...(operationId === 'canonical-buff-t1-acceptance'
+      ? { [operationId]: buffT1AcceptanceDefinition(operationId, npcT1Acceptance) }
+      : {}),
     ...(operationId === 'canonical-npc-t2-cutover-verification'
       ? { [operationId]: npcT2Definition({ operationId, attemptRoot: npcT2AttemptRoot, backendApiBase }) }
       : {}),
@@ -1455,6 +1465,18 @@ function projectileT1AcceptanceDefinition(operationId, isolatedAcceptance) {
     inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
     outputPaths: ['reports/canonical-migration/canonical-projectile-t1-acceptance.json'],
     reportPaths: ['reports/canonical-migration/canonical-projectile-t1-acceptance.json'],
+    progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
+  };
+}
+
+function buffT1AcceptanceDefinition(operationId, isolatedAcceptance) {
+  if (isolatedAcceptance == null) throw new Error('buff T1 isolated acceptance identity is required');
+  return {
+    executionClass: 'isolated_read_only_acceptance',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=buff-canonical', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--max-rows=25', '--output=reports/canonical-migration/canonical-buff-t1-acceptance.json'],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
+    outputPaths: ['reports/canonical-migration/canonical-buff-t1-acceptance.json'],
+    reportPaths: ['reports/canonical-migration/canonical-buff-t1-acceptance.json'],
     progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
   };
 }

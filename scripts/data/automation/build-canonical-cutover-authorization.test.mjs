@@ -279,7 +279,7 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes all 40 stable governed IDs', () => {
+test('operation request builder exposes all 41 stable governed IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
     'canonical-item-image-source-verification',
@@ -294,6 +294,7 @@ test('operation request builder exposes all 40 stable governed IDs', () => {
     'canonical-boss-t1-acceptance',
     'canonical-projectile-backfill',
     'canonical-projectile-t1-acceptance',
+    'canonical-buff-t1-acceptance',
     'canonical-recipe-crawler',
     'canonical-recipe-apply',
     'canonical-recipe-t1-acceptance',

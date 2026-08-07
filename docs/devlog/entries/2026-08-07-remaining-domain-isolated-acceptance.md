@@ -119,11 +119,18 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   transaction probes were `0/1/0`, and independent cleanup returned every B2
   resource to zero. Redis DB 3 was intentionally preserved because runtime
   preflight proved it owns current application/crawler state.
-- Batch 3 is active in
+- Batch 3 was executed in
   `docs/devlog/entries/2026-08-08-buff-t1-isolated-acceptance.md`. Its fixed
   fixture is `ShadowFlame` plus `Venom`, with eleven source-item relations,
   four resolved inflicting-NPC relations after the existing alias mapping, and
   complete ordered immune-NPC payloads of 30 and 26 rows.
+- Batch 3 completed under ADMIN decision
+  `canonical-buff-t1-acceptance-20260808-admin-06`, run ID
+  `npc-t1-buff-20260808-06`, and Redis DB 7. Exact closure was 2 imports, 2
+  maint/relation/projection rows, 11 item relations, 4 inflicting-NPC
+  relations, 0 invented immune relations, full immune/evidence payload
+  readback, snapshot `129/129`, probes `0/1/0`, and independent cleanup all
+  zero. Batch 4 Biome remains separate and unstarted.
 
 ## Validation
 
@@ -147,6 +154,6 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 ## Follow-Up
 
-- Open and execute Batch 3 Buff T1 as a separate child with a fresh fixture,
+- Open and execute Batch 4 Biome T1 as a separate child with a fresh fixture,
   Redis DB, current-hash authorization, and cleanup evidence.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.
