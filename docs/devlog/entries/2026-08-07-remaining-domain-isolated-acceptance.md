@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`blocked`
 
 ## Goal
 
@@ -33,6 +33,14 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   manifest, and live-acceptance routing. The executor writes only the isolated
   local/maint/relation database set and reuses the existing maint-to-relation
   consolidation path. No live acceptance has run yet.
+- Implementation commit: `f2150052 test(boss): prepare isolated T1 acceptance`.
+- Current-hash manifest:
+  `reports/authorization/canonical/canonical-boss-t1-acceptance-20260807-01.execution-manifest.json`.
+- ADMIN request:
+  `reports/authorization/canonical/canonical-boss-t1-acceptance-20260807-01.request.json`,
+  request hash
+  `sha256:138081ffbc9bae74093bd57b20022b20e20710f8bb9faa0e74b3affabe079ccc`,
+  status `AWAITING_OWNER`, run ID `npc-t1-boss-20260807-01`, Redis DB 2.
 
 ## Validation
 
@@ -46,14 +54,15 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 - Boss T1 must not begin live execution until its local fixture closes all item,
   NPC, and loot relationships offline.
-- Boss T1 still needs a post-commit current-hash manifest and request before it
-  can move to `awaiting-admin-authorization`; no live resources or ADMIN
-  artifacts were created.
+- Boss T1 is blocked only on an ADMIN owner decision. No owner input, packet,
+  permit, live database, account, Redis state, or acceptance evidence has been
+  created.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Commit the validated Batch 1 implementation, then generate the current-hash
-  execution manifest and AWAITING_OWNER request for ADMIN review.
+- ADMIN reviews the request hash and either denies it or creates a fresh owner
+  decision limited to this isolated Boss T1 operation. Authorization and live
+  execution remain separate steps.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.

@@ -6,11 +6,11 @@ Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Remaining domain isolated acceptance is planned in batches; Batch 0 contract checks pass, while the full quality gate is blocked only by stale B1 readiness evidence. Recipe and formal apply boundaries remain unchanged.
+Boss + Boss Loot Batch 1 is implemented and has a current-hash AWAITING_OWNER request; no live acceptance has run. Recipe and formal apply boundaries remain unchanged.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: stale B1 readiness reports for existing support contracts; contract handoff: Batch 1 design and narrow Boss/Boss Loot validation may proceed without formal writes.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: blocked; branch: `design/crawler-auto-ingestion-readiness`; parent: none; blocked by: ADMIN decision for request hash `sha256:138081ffbc9bae74093bd57b20022b20e20710f8bb9faa0e74b3affabe079ccc`; contract handoff: authorize only the isolated Boss/Boss Loot T1 operation.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Remaining domain isolated acceptance is planned in batches; Batch 0 contract che
 
 ## Next Agent Start Point
 
-Commit the validated Batch 1 implementation, then generate its current-hash
-manifest and AWAITING_OWNER request; preserve all formal database boundaries.
+Review the Boss T1 AWAITING_OWNER request. If authorized, generate one packet
+and permit, run only `npc-t1-boss-20260807-01`, and independently verify cleanup.
 
 ## Current Risks
 
