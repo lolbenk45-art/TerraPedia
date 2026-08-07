@@ -95,6 +95,13 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
   the intentionally separated generic NPC-loot lane. The pass gate requires
   exactly two resolved relation bosses and two boss reward relations. Expanded
   validation passes `206`, with one pre-existing skipped shimmer test.
+- ADMIN decision `canonical-boss-t1-acceptance-20260807-admin-07` completed with
+  exact fixture closure: two maint Boss rows, two Boss imports, two loot rows,
+  two resolved relation Bosses, two Boss reward relations, zero unresolved
+  Boss/item rows, snapshot verification `129/129`, and three-role transaction
+  probes `0/1/0`. Built-in and independent cleanup both returned resources to
+  zero. Batch 1 is closed; see
+  `docs/devlog/entries/2026-08-07-boss-t1-isolated-acceptance.md`.
 
 ## Validation
 
@@ -106,14 +113,13 @@ network fetches, scheduler activation, and V1 queue operations out of scope.
 
 ## Residual Risks
 
-- Boss T1 remains unproven until a fresh current-hash authorization completes;
-  decisions `admin-01` through `admin-06` are consumed and cannot be reused.
-- No live resource or acceptance evidence remains from the failed decisions.
+- Projectile T1 has not yet been designed or authorized.
+- Boss T1 does not authorize formal Boss/Boss Loot apply or another domain.
 - Stale B1 readiness evidence needs a separate refresh and must not be hidden by
   this domain acceptance work.
 
 ## Follow-Up
 
-- Commit the exact fixture relation-closure repair, then generate a fresh
-  manifest and ADMIN decision. Never reuse a consumed decision.
+- Start Batch 2 by auditing the Projectile import, maint, relation, and
+  projection entrypoints and selecting a closed 2-5 row offline fixture.
 - Refresh stale B1 evidence in a separate task before claiming a green full gate.

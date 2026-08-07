@@ -1,16 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-08-07 14:28 CST by Codex
+Last updated: 2026-08-07 14:55 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Boss + Boss Loot Batch 1 consumed six ADMIN decisions. `admin-06` completed technically and cleaned to zero, but its `25/0` relation counts exposed a semantic false positive. Exact fixture relation closure now passes the expanded suite.
+Boss + Boss Loot Batch 1 passed exact isolated acceptance under `admin-07` and cleaned to zero. Batch 2 Projectile T1 is now the active lane.
 
 ## Open Work
 
-- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: commit exact Boss fixture relation closure and generate a fresh Boss T1 request.
+- `entries/2026-08-07-remaining-domain-isolated-acceptance.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: audit Projectile T1 entrypoints and fixture closure before implementation.
 
 ## Current State
 
@@ -31,8 +31,8 @@ Boss + Boss Loot Batch 1 consumed six ADMIN decisions. `admin-06` completed tech
 
 ## Next Agent Start Point
 
-Commit the validated fixture relation-closure repair, then generate a new
-current-hash Boss T1 request; consumed `admin-01` through `admin-06` must not be reused.
+Audit Projectile import, maint, relation, and projection ownership; select a
+2-5 row offline fixture before generating any new authorization.
 
 ## Current Risks
 
@@ -49,6 +49,7 @@ current-hash Boss T1 request; consumed `admin-01` through `admin-06` must not be
 
 ## Recently Closed
 
+- `entries/2026-08-07-boss-t1-isolated-acceptance.md`
 - `entries/2026-08-07-npc-t1-isolated-acceptance-refresh.md`
 - `entries/2026-08-06-crawler-v2-domain-freshness-card.md`
 - `entries/2026-08-06-crawler-v2-items-sample-operation.md`
