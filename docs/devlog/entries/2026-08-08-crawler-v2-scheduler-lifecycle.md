@@ -60,6 +60,10 @@
   progress and exact identity.
 - Focused Spring scheduler/reconciler/recovery/supervisor/Redis/controller
   suite passes (`471/471`).
+- Isolated E2E resources were provisioned and fully cleaned: derived schema,
+  Redis port 16381/DB 15, backend port 18189, temporary root and credentials.
+  Backend startup and cutover/reset reached V2, but the scheduled sweep found
+  no fixture rule because `WIKI_MONITOR_RULES` has only formal Wiki domains.
 - Offline report:
   `reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json`
   is intentionally `status=probe-passed`, `scheduledTickObserved=false`, and
@@ -76,6 +80,9 @@
   and Redis runtime that can be started without touching formal services. The
   next run must provide those resources and prove scheduled tick, two live
   renewals, restart adoption/rejection, lease-loss reap, and zero cleanup.
+- A code gap remains: fixture action is registered for manual V2 dispatch but
+  not represented as an isolated scheduled source/rule. It must be added with
+  a failing regression test before another live run.
 - Town NPC generated data and `data/generated/resume/` are unrelated user
   artifacts and must remain untouched and unstaged.
 

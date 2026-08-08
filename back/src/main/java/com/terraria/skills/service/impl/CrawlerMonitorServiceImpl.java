@@ -26,6 +26,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -145,7 +146,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CRAWLER_MONITOR_ACTION_REGISTRY.defaultOperations();
 
     private final ObjectMapper objectMapper;
-    private final Path repoRootOverride;
+    private Path repoRootOverride;
+    @Value("${terrapedia.crawler.queue-v2.repo-root:}")
+    private String configuredRepoRoot;
     private final Clock clock;
     private final StringRedisTemplate redisTemplate;
     private final CrawlerStateRedisRepository redisRepository;
@@ -406,6 +409,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
      */
     @PostConstruct
     void reconcileActiveDispatchesOnStartup() {
+        if (repoRootOverride == null && configuredRepoRoot != null && !configuredRepoRoot.isBlank()) {
+            repoRootOverride = Path.of(configuredRepoRoot).toAbsolutePath().normalize();
+        }
         runLegacyBackgroundMutation("startup V1 dispatch recovery", this::reconcileActiveDispatchesOnStartupUnderPermit);
     }
 

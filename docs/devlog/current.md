@@ -51,13 +51,15 @@ separate governed formal activation contract.
   remains open: no derived backend/Redis runtime was available, so
   `scheduledTickObserved=false` and formal activation proposal generation is
   fail-closed.
+- A derived E2E backend/Redis run is now proven startable and cleaned to zero;
+  the remaining blocker is a fixture-only scheduled source/rule missing from
+  `WIKI_MONITOR_RULES`. Manual dispatch remains out of scope.
 
 ## Next Agent Start Point
 
-Provide an isolated derived backend/Redis runtime, then rerun the live
-Scheduler Lifecycle T1 under fresh ADMIN authorization. Do not enable formal
-V2 automation or generate its activation proposal until the runtime report
-passes.
+Add and test the fixture-only scheduled source/rule, then rerun live Scheduler
+Lifecycle T1 under fresh ADMIN authorization. Do not enable formal V2
+automation or generate its activation proposal until the runtime report passes.
 
 ## Current Risks
 
