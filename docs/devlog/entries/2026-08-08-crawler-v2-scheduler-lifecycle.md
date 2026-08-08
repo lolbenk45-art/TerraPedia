@@ -64,6 +64,12 @@
   Redis port 16381/DB 15, backend port 18189, temporary root and credentials.
   Backend startup and cutover/reset reached V2, but the scheduled sweep found
   no fixture rule because `WIKI_MONITOR_RULES` has only formal Wiki domains.
+- A second isolated run exposed formal-domain leakage when fixture scheduling
+  was enabled. The run was rejected and its backend, Redis namespace/port,
+  schema and root were cleaned to zero; no evidence was promoted.
+- Fixture scheduling now injects only `crawler-queue-v2-fixture` and excludes
+  every formal changed-domain rule. The regression test includes a changed
+  Items source and `CrawlerMonitorServiceImplTest` passes `197/197`.
 - Offline report:
   `reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json`
   is intentionally `status=probe-passed`, `scheduledTickObserved=false`, and
@@ -76,22 +82,17 @@
 
 - Formal activation can create real crawler work and remains a separate owner
   checkpoint after isolated acceptance.
-- Runtime T1 is not closed: this environment lacks an isolated derived backend
-  and Redis runtime that can be started without touching formal services. The
-  next run must provide those resources and prove scheduled tick, two live
-  renewals, restart adoption/rejection, lease-loss reap, and zero cleanup.
-- A code gap remains: fixture action is registered for manual V2 dispatch but
-  not represented as an isolated scheduled source/rule. It must be added with
-  a failing regression test before another live run.
+- Runtime T1 is not closed. The next fresh authorized run must prove scheduled
+  fixture-only tick, two live renewals, restart adoption/rejection, lease-loss
+  reap, and zero cleanup.
 - Town NPC generated data and `data/generated/resume/` are unrelated user
   artifacts and must remain untouched and unstaged.
 
 ## Follow-up
 
-- Provide a derived backend/Redis runtime, then execute the live Scheduler
-  Lifecycle T1 under fresh ADMIN authorization. Do not generate formal
-  activation proposal until `scheduledTickObserved=true` and all runtime
-  assertions pass.
+- Generate a fresh ADMIN decision and execute live Scheduler Lifecycle T1 with
+  a new isolated run ID. Do not generate formal activation proposal until
+  `scheduledTickObserved=true` and all runtime assertions pass.
 
 ## Commits
 

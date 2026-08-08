@@ -149,6 +149,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private Path repoRootOverride;
     @Value("${terrapedia.crawler.queue-v2.repo-root:}")
     private String configuredRepoRoot;
+    @Value("${terraria.crawler.queue-v2.fixture-enabled:false}")
+    private boolean fixtureScheduledAutomationEnabled;
     private final Clock clock;
     private final StringRedisTemplate redisTemplate;
     private final CrawlerStateRedisRepository redisRepository;
@@ -4292,12 +4294,24 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
         Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
         Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
-        for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
-            if (!rule.wikiDomain() || !isAutoEligibleRule(rule)) continue;
-            Map<String, Object> source = sourceByKey.get(rule.sourceKey());
-            boolean changed = asBoolean(source == null ? null : source.get("changed"));
-            sweep.getDetected().add(Map.of("domain", rule.domain(), "sourceKey", rule.sourceKey(), "actionId", rule.actionId(), "changed", changed));
-            if (changed) changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
+        if (!fixtureScheduledAutomationEnabled) {
+            for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
+                if (!rule.wikiDomain() || !isAutoEligibleRule(rule)) continue;
+                Map<String, Object> source = sourceByKey.get(rule.sourceKey());
+                boolean changed = asBoolean(source == null ? null : source.get("changed"));
+                sweep.getDetected().add(Map.of("domain", rule.domain(), "sourceKey", rule.sourceKey(), "actionId", rule.actionId(), "changed", changed));
+                if (changed) changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
+            }
+        }
+        if (fixtureScheduledAutomationEnabled) {
+            CrawlerMonitorActionDefinition fixture = CrawlerMonitorActionRegistry.fixture();
+            sweep.getDetected().add(Map.of(
+                "domain", fixture.domain(),
+                "sourceKey", fixture.sourceKey(),
+                "actionId", fixture.actionId(),
+                "changed", true
+            ));
+            changedByAction.put(fixture.actionId(), List.of(fixture));
         }
         for (Map.Entry<String, List<CrawlerMonitorActionDefinition>> entry : changedByAction.entrySet()) {
             List<CrawlerMonitorActionDefinition> rules = entry.getValue();

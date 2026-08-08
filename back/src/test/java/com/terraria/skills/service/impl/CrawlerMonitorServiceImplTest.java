@@ -3693,6 +3693,48 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldEnqueueOnlyTheFixtureActionFromFixtureScheduledAutomation() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-fixture", "attempt-fixture", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-08-08T00:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        Field fixtureEnabled = CrawlerMonitorServiceImpl.class.getDeclaredField("fixtureScheduledAutomationEnabled");
+        fixtureEnabled.setAccessible(true);
+        fixtureEnabled.set(service, true);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("crawler-queue-v2-fixture", sweep.getDispatched().get(0).get("actionId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("crawler_queue_v2_fixture", command.getValue().domain());
+        assertEquals("crawler-queue-v2-fixture", command.getValue().actionId());
+    }
+
+    @Test
     void shouldRecheckAutomationEnabledInTheSamePermitAsV2Enqueue() throws Exception {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);

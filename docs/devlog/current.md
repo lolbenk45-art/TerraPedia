@@ -54,12 +54,15 @@ separate governed formal activation contract.
 - A derived E2E backend/Redis run is now proven startable and cleaned to zero;
   the remaining blocker is a fixture-only scheduled source/rule missing from
   `WIKI_MONITOR_RULES`. Manual dispatch remains out of scope.
+- Fixture-only scheduled routing is now implemented and tested (`197/197`). A
+  rejected mixed-domain run exposed and fixed formal-domain leakage; all its
+  isolated resources were cleaned and it is not acceptance evidence.
 
 ## Next Agent Start Point
 
-Add and test the fixture-only scheduled source/rule, then rerun live Scheduler
-Lifecycle T1 under fresh ADMIN authorization. Do not enable formal V2
-automation or generate its activation proposal until the runtime report passes.
+Generate a fresh ADMIN decision and rerun live Scheduler Lifecycle T1 with a
+new isolated run ID. Do not enable formal V2 automation or generate its
+activation proposal until the runtime report passes.
 
 ## Current Risks
 
