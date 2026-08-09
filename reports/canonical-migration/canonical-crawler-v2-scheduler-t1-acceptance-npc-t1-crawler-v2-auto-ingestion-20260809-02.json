@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-scheduler-t1-acceptance",
+  "reportKind": "canonical_crawler_v2_scheduler_t1_acceptance",
+  "status": "passed",
+  "cleanupPassed": true,
+  "offline": false,
+  "scheduledTickObserved": true,
+  "runtimeAssertionsDeferred": false,
+  "identity": {
+    "runId": "npc-t1-crawler-v2-auto-ingestion-20260809-02",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:test:npc-t1-crawler-v2-auto-ingestion-20260809-02:",
+    "redisDb": 14,
+    "epoch": "epoch-npc_3b0b143be5d58c67",
+    "fenceToken": "fence-npc_3b0b143be5d58c67",
+    "domain": "crawler_queue_v2_fixture",
+    "actionId": "crawler-queue-v2-fixture",
+    "operationId": "canonical-crawler-v2-scheduler-t1-acceptance"
+  },
+  "progress": {
+    "status": "completed",
+    "sequence": 22,
+    "actionId": "crawler-queue-v2-fixture",
+    "itemIngestion": null,
+    "itemDbReadback": null
+  },
+  "leaseRenewals": 2,
+  "concurrentDispatches": 1,
+  "restart": {
+    "adopted": true,
+    "mismatchRejected": true,
+    "epochRecreated": false
+  },
+  "leaseLoss": {
+    "childReaped": true,
+    "nextReadyClaimed": false,
+    "attemptId": "attempt-05cc36dc-ac99-4ec5-8e43-324cbd5a3a5c",
+    "reasonCode": "LEASE_RENEW_FAILED"
+  },
+  "cleanup": {
+    "backendProcesses": 0,
+    "childProcesses": 0,
+    "redisKeys": 0,
+    "credentials": 0,
+    "files": 0,
+    "permits": 0,
+    "ports": 0,
+    "databases": 0
+  },
+  "generatedAt": "2026-08-09T10:50:57.093Z"
+}

@@ -6,8 +6,43 @@ import test from 'node:test';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import { resolveRecordedItemConfig, resolveRecordedRecipeConfig } from './crawler-queue-v2-recorded-config.mjs';
 
 const scriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'crawler-queue-v2-fixture.mjs');
+
+test('recorded Recipe mode requires explicit isolated database and marker inputs', () => {
+  assert.equal(resolveRecordedRecipeConfig({}), null);
+  assert.throws(() => resolveRecordedRecipeConfig({ TERRAPEDIA_RECORDED_RECIPE: 'true' }), /requires TERRAPEDIA_RECORDED_RECIPE_REPO_ROOT/);
+  const config = resolveRecordedRecipeConfig({
+    TERRAPEDIA_RECORDED_RECIPE: 'true',
+    TERRAPEDIA_RECORDED_RECIPE_REPO_ROOT: '/repo',
+    TERRAPEDIA_RECORDED_RECIPE_MARKER_ROOT: '/tmp/marker',
+    TERRAPEDIA_RECORDED_RECIPE_DB: 'terria_v1_automation_acceptance_ab_0123456789abcdef_local',
+    TERRAPEDIA_RECORDED_RECIPE_MYSQL_HOST: '127.0.0.1',
+    TERRAPEDIA_RECORDED_RECIPE_MYSQL_PORT: '13306',
+    TERRAPEDIA_RECORDED_RECIPE_MYSQL_USER: 'prov',
+    TERRAPEDIA_RECORDED_RECIPE_MYSQL_PASSWORD: 'secret',
+  });
+  assert.equal(config.mysql.port, 13306);
+  assert.equal(config.limit, 2);
+});
+
+test('recorded Item mode requires isolated three-schema identities and readonly access', () => {
+  assert.equal(resolveRecordedItemConfig({}), null);
+  assert.throws(() => resolveRecordedItemConfig({ TERRAPEDIA_RECORDED_ITEM: 'true' }), /requires TERRAPEDIA_RECORDED_ITEM_REPO_ROOT/);
+  const config = resolveRecordedItemConfig({
+    TERRAPEDIA_RECORDED_ITEM: 'true', TERRAPEDIA_RECORDED_ITEM_REPO_ROOT: '/repo', TERRAPEDIA_RECORDED_ITEM_MARKER_ROOT: '/tmp/marker',
+    TERRAPEDIA_RECORDED_ITEM_LOCAL_DB: 'terria_v1_automation_acceptance_itm_0123456789abcdef_local',
+    TERRAPEDIA_RECORDED_ITEM_MAINT_DB: 'terria_v1_automation_acceptance_itm_0123456789abcdef_maint',
+    TERRAPEDIA_RECORDED_ITEM_RELATION_DB: 'terria_v1_automation_acceptance_itm_0123456789abcdef_relation',
+    TERRAPEDIA_RECORDED_ITEM_MYSQL_HOST: '127.0.0.1', TERRAPEDIA_RECORDED_ITEM_MYSQL_PORT: '13306',
+    TERRAPEDIA_RECORDED_ITEM_MYSQL_USER: 'prov', TERRAPEDIA_RECORDED_ITEM_MYSQL_PASSWORD: 'secret',
+    TERRAPEDIA_RECORDED_ITEM_READONLY_USER: 'ro', TERRAPEDIA_RECORDED_ITEM_READONLY_PASSWORD: 'ro-secret',
+  });
+  assert.equal(config.mysql.port, 13306);
+  assert.equal(config.limit, 100);
+  assert.equal(config.databases.relation.endsWith('_relation'), true);
+});
 
 test('fixture writes monotonic V2 progress without network or database access', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'crawler-v2-fixture-'));

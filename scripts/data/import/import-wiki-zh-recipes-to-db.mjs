@@ -167,7 +167,7 @@ async function main() {
 }
 }
 
-function collectRawRecipes(payload) {
+export function collectRawRecipes(payload) {
   const recipes = [];
   for (const page of Array.isArray(payload?.records) ? payload.records : []) {
     for (const table of Array.isArray(page?.recipeTables) ? page.recipeTables : []) {

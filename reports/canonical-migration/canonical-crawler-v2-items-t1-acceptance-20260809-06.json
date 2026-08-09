@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-items-t1-acceptance",
+  "reportKind": "canonical_crawler_v2_items_t1_acceptance",
+  "status": "passed",
+  "cleanupPassed": true,
+  "offline": false,
+  "scheduledTickObserved": true,
+  "runtimeAssertionsDeferred": false,
+  "identity": {
+    "runId": "item-t1-live-20260809-06",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:test:item-t1-live-20260809-06:",
+    "redisDb": 14,
+    "epoch": "epoch-ite_669628263b4572d3",
+    "fenceToken": "fence-ite_669628263b4572d3",
+    "domain": "crawler_queue_v2_fixture",
+    "actionId": "crawler-queue-v2-fixture",
+    "operationId": "canonical-crawler-v2-items-t1-acceptance"
+  },
+  "progress": {
+    "status": "completed",
+    "sequence": 22,
+    "actionId": "crawler-queue-v2-fixture",
+    "itemIngestion": {
+      "itemCount": 3,
+      "maintCount": 3,
+      "relationCount": 3,
+      "unresolvedIdentities": 0,
+      "internalNames": [
+        "IronPickaxe",
+        "DirtBlock",
+        "StoneBlock"
+      ],
+      "sourceHash": "sha256:fdb1d2a73c9816dc7ac705e736a4525333f7805253d758fa76eb103643f4756c"
+    },
+    "itemDbReadback": {
+      "itemRows": 3,
+      "maintRows": 3,
+      "relationRows": 5,
+      "unresolvedIdentities": 0
+    }
+  },
+  "leaseRenewals": 2,
+  "concurrentDispatches": 1,
+  "restart": {
+    "adopted": true,
+    "mismatchRejected": true,
+    "epochRecreated": false
+  },
+  "leaseLoss": {
+    "childReaped": true,
+    "nextReadyClaimed": false,
+    "attemptId": "attempt-7629d183-ec88-4b5c-b167-0923e9933d6a",
+    "reasonCode": "LEASE_RENEW_FAILED"
+  },
+  "cleanup": {
+    "backendProcesses": 0,
+    "childProcesses": 0,
+    "redisKeys": 0,
+    "credentials": 0,
+    "files": 0,
+    "permits": 0,
+    "ports": 0,
+    "databases": 0
+  },
+  "itemIngestion": {
+    "itemCount": 3,
+    "maintCount": 3,
+    "relationCount": 3,
+    "unresolvedIdentities": 0,
+    "internalNames": [
+      "IronPickaxe",
+      "DirtBlock",
+      "StoneBlock"
+    ],
+    "sourceHash": "sha256:fdb1d2a73c9816dc7ac705e736a4525333f7805253d758fa76eb103643f4756c"
+  },
+  "itemDbReadback": {
+    "itemRows": 3,
+    "maintRows": 3,
+    "relationRows": 5,
+    "unresolvedIdentities": 0
+  },
+  "generatedAt": "2026-08-09T00:08:32.073Z"
+}

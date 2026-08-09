@@ -2,11 +2,69 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Prove the existing Spring-owned V2 changed-only scheduler, lease renewal, and restart recovery in an isolated fixture runtime, then produce (but do not consume) a current-hash ADMIN activation proposal.
+**Goal:** Prove recorded-response automatic ingestion end to end in an isolated runtime: the Spring-owned V2 changed-only scheduler must trigger a bounded importer fed by previously downloaded JSON responses, write only derived acceptance databases, prove lease/restart/cleanup behavior, then produce (but do not consume) a current-hash ADMIN activation proposal.
 
-**Architecture:** Extend the existing V2 fixture and monitor acceptance conventions with a marker-owned lifecycle harness. The harness starts an isolated backend and fixture child, enables automation only through the authenticated loopback API, observes scheduled dispatch and Redis/manifest/progress identity, restarts the same backend, and performs exact cleanup. Add a separate canonical operation contract for the formal scheduler activation; this batch only builds its manifest/request/proposal and leaves production `enabled=false`.
+**Architecture:** Extend the existing V2 fixture and monitor acceptance conventions with a marker-owned lifecycle harness whose scheduled action invokes a recorded-response adapter. The adapter reads only a bounded slice of approved downloaded JSON files and exposes request/response metadata to the real importer; it never performs network I/O. The harness enables automation only through the authenticated loopback API, observes scheduled dispatch and Redis/manifest/progress identity, verifies derived local/maint/relation writes and relationship counts, restarts the same backend, and performs exact cleanup. Add a separate canonical operation contract for the formal scheduler activation; this batch only builds its manifest/request/proposal and leaves production `enabled=false`.
 
 **Tech Stack:** Node.js ESM scripts/tests, Bash harnesses, Spring Boot/Maven focused tests, Redis CLI/API readback, existing canonical ADMIN authorization helpers.
+
+## Execution Contract And Final Approval Gate
+
+This plan is split into a fully automatic preparation phase and one explicit
+ADMIN gate. Agents must complete and verify every preparation item before
+creating a final request for approval. The user is asked for no runtime,
+database, Redis, port, fixture, or scope decisions.
+
+Preparation must finish with all of the following facts recorded:
+
+- The real Spring-owned scheduled tick is bound to the recorded-response
+  executor. The action reads bounded slices from approved downloaded JSON only;
+  network access is denied at the adapter and process level.
+- Recipe, Boss + Boss-loot, Projectile, Buff, Biome, and NPC runner bindings
+  are present. Each runner writes only run-derived local/maint/relation
+  databases and returns row/relation/consolidation counts.
+- The isolated runtime preflight has provisioned and then cleaned a derived
+  three-database set, dedicated Redis logical DB, marker-owned root, loopback
+  backend, temporary credentials, and scheduler child processes. Independent
+  readback is all zero and formal databases are unchanged.
+- Scheduler evidence is ready to collect for disabled tick, authenticated
+  enable, one scheduled dispatch, progress identity, two lease renewals,
+  restart adopt/reject, forced lease-loss reap, and exact cleanup. Manual sweep,
+  production daemon, V1 queue, Wiki request, and formal DB writes are rejected
+  by contract tests.
+- Focused Node tests, focused Spring tests, report schema/hash validation, and
+  `git diff --check` pass. The Town NPC generated file and `data/generated/resume/`
+  remain untouched and unstaged.
+
+Only after these checks pass may the preparation phase emit:
+
+1. a fresh current-hash execution manifest;
+2. an owner-facing authorization request containing no secret material; and
+3. a concise ADMIN decision summary naming the exact run ID, isolated target
+   boundary, report path, and allowed action.
+
+The sole user checkpoint is then: authorize that exact request. After
+authorization, the agent creates the one-time private dispatch permit, starts
+the isolated run, consumes/revokes the permit, performs independent cleanup
+readback, and retains the report. Any hash, scope, or runtime drift aborts
+before writes and requires a new run ID and regenerated request; no follow-up
+user question is needed.
+
+## Batch Continuation Policy
+
+All remaining domain batches use this same preparation and approval contract:
+
+- Use only the approved downloaded JSON bindings in the manifest; network
+  fallback is forbidden.
+- Prepare a fresh marker-owned isolated runtime, run the real scheduled action,
+  verify domain rows/relations and cleanup-to-zero before presenting approval.
+- Repair failures and rerun with a new run ID; failed or superseded reports are
+  diagnostics, never acceptance evidence.
+- Present one consolidated ADMIN request per batch. After authorization,
+  execution, cleanup, and readback proceed automatically without asking for
+  confirmation between domains or verification phases.
+- Formal databases, production scheduler configuration, V1 queue, Wiki network,
+  and unbounded imports remain out of scope for every batch.
 
 ---
 
@@ -38,6 +96,18 @@
 - [ ] **Step 3: Implement the harness as explicit phases:** allocate run ID, namespace, empty Redis DB, ports, fixture root and ephemeral credential; start backend with an isolated env; poll disabled scheduled ticks; enable only via authenticated loopback PUT; wait for a real scheduled tick; collect renewal/recovery evidence; stop/restart only the harness-owned backend; exercise mismatch and lease-loss branches; stop children; exact-prefix cleanup; independent readback; write `reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json` without secrets.
 - [ ] **Step 4: Run the lifecycle unit tests and existing `scripts/data/monitor/crawler-queue-v2-fixture.test.mjs`; expect PASS.**
 
+### Task 2A: Add recorded-response source and Recipe auto-ingestion executor
+
+- [ ] **Step 1:** Add failing tests for bounded selection from downloaded JSON,
+  request metadata, offline/network denial, marker-owned materialization, and
+  rejection of formal paths.
+- [ ] **Step 2:** Implement the adapter and a Recipe executor that materializes
+  a selected response slice, runs the existing offline Recipe pipeline against
+  the derived local database, and emits import/consolidation counts.
+- [ ] **Step 3:** Run focused adapter, Recipe T1, and database readback tests.
+- [ ] **Step 4:** Bind the executor to the scheduler lifecycle action before
+  starting a fresh authorized live acceptance.
+
 ### Task 3: Add backend observability/guards only for gaps exposed by T1 tests
 
 **Files:**
@@ -53,6 +123,27 @@
 - [ ] **Step 3: Implement the minimal guard/telemetry change** while preserving Spring scheduler ownership and fail-closed semantics.
 - [ ] **Step 4: Run the focused Maven class set:** `cd back && mvn -Dtest=CrawlerMonitorServiceImplTest,CrawlerQueueV2ReconcilerTest,CrawlerQueueV2RecoveryServiceTest,CrawlerAttemptSupervisorTest,RedisCrawlerQueueV2RepositoryTest,CrawlerQueueV2ApplicationServiceTest,AdminCrawlerMonitorControllerTest,CrawlerQueueV2ConfigurationTest test`.
 
+### Task 3A: Bind the real isolated runtime driver before authorization
+
+- [ ] **Step 1:** Reuse the proven `run-live-automation-acceptance` provisioning
+  and cleanup adapters to allocate marker-owned derived local/maint/relation
+  databases, a dedicated Redis process/logical DB, loopback backend port,
+  temporary credentials, and a private run root.
+- [ ] **Step 2:** Implement the lifecycle driver phases (`prepare`, disabled
+  tick observation, authenticated enable, scheduled tick wait, lease renewal,
+  restart recovery, forced lease loss, progress readback, cleanup, and
+  independent zero-resource readback). The scheduled action must invoke the
+  recorded-response importer; terminal progress and the retained report must
+  include the bounded Recipe summary plus an independent pre-cleanup count of
+  persisted `recipes`, `recipe_ingredients`, and `recipe_stations`. Manual
+  sweep calls are forbidden.
+- [ ] **Step 3:** Run the driver in a dry isolated environment with no ADMIN
+  packet and prove it reaches every phase, writes only derived databases, and
+  cleans all resources to zero. A missing driver or failed phase blocks the
+  authorization step.
+- [ ] **Step 4:** Run focused Node tests and the relevant Spring scheduler
+  suite; record the driver report hash in the devlog.
+
 ### Task 4: Execute isolated Scheduler Lifecycle T1 under fresh ADMIN authorization
 
 **Files:**
@@ -63,8 +154,11 @@
 - Create: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance.permit.json` (private, consumed/revoked during run)
 - Create: `reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json`
 
-- [ ] **Step 1: Generate fresh current-hash manifest/request/packet/permit** using the canonical authorization builder; record no bearer token, password, or permit secret in tracked evidence.
+- [ ] **Step 1: Only after Task 3A passes, generate fresh current-hash manifest/request/packet** using the canonical authorization builder; record no bearer token, password, or permit secret in tracked evidence. Create the one-time dispatch permit immediately before launch, and revoke/read back its zero state during cleanup.
 - [ ] **Step 2: Run only the isolated lifecycle harness** with offline/local fixtures, derived test namespace, empty Redis logical DB, marker-owned root, temporary backend port and credential. The harness must prove all ten lifecycle assertions from the design and must never call the manual sweep endpoint or write formal DB/Redis namespaces.
+  The generic Scheduler/Recipe path must also reject a passed report unless the
+  persisted Recipe and ingredient/station relationship counts exactly match
+  the terminal recorded-response summary.
 - [ ] **Step 3: Run independent cleanup readback** for exact Redis prefixes, child/backend PIDs, ports, fixture root, temporary credentials, leases, dedupe and ready/live membership; require all zero and `cleanupPassed=true`.
 - [ ] **Step 4: Validate the retained JSON schema/hash and run focused Node plus Maven tests.** On any failure, classify the gap in the devlog, repair the plan/implementation, and rerun from a fresh isolated run ID.
 
@@ -86,8 +180,17 @@
 
 ### Task 6: Final verification and handoff
 
-- [ ] **Step 1:** Run all focused Node contract/lifecycle/fixture tests and the focused Maven suite.
-- [ ] **Step 2:** Validate the retained T1 report and activation proposal against current hashes; run independent zero-resource readback again.
+- [ ] **Step 0 (pre-authorization only):** Run the complete preparation gate
+  from the execution contract. If any item is missing, repair and rerun it;
+  do not ask the user to choose a workaround and do not generate a permit.
+- [ ] **Step 0A (the only user checkpoint):** Present the generated request
+  path, request hash, decision identity, exact isolated run ID, and explicit
+  no-write boundaries. Wait only for ADMIN authorization of that exact request.
+- [ ] **Step 0B (post-authorization):** Create the one-time private permit,
+  execute the live isolated scheduler run, consume/revoke the permit, and
+  perform the mandatory independent zero-resource readback.
+- [ ] **Step 1:** Before presenting the ADMIN request, run all focused Node contract/lifecycle/fixture tests and the focused Maven suite.
+- [ ] **Step 2:** After the authorized run, validate the retained T1 report against current hashes and run independent zero-resource readback again.
 - [ ] **Step 3:** Run `git status --short`, `git diff --check`, and `git diff --cached --stat`; verify `data/generated/wiki-town-npc-maintenance.latest.json` and `data/generated/resume/` remain unstaged and untouched.
 - [ ] **Step 4:** Leave formal activation disabled, do not run a real scheduled Wiki sweep, do not push/merge, and report the T1 decision/report plus the exact next activation checkpoint.
 

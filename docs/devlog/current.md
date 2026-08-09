@@ -1,18 +1,20 @@
 # Current Devlog
 
-Last updated: 2026-08-08 04:58 CST by Codex
+Last updated: 2026-08-09 20:20 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Remaining-domain isolated acceptance and Recipe formal verification are closed.
-Current work designs the isolated V2 scheduler lifecycle acceptance and its
-separate governed formal activation contract.
+The isolated Scheduler T1 and Item 100-row acceptance are closed. Active work
+prepares a read-only, current-hash formal Scheduler enablement plan. Formal
+Scheduler activation remains disabled and is not authorized.
 
 ## Open Work
 
-- `entries/2026-08-08-crawler-v2-scheduler-lifecycle.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: none; blocked by: none; contract handoff: audited implementation plan precedes lifecycle T1 evidence, which precedes the formal activation proposal.
+- `entries/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: scheduler lifecycle; blocked by: future fresh ADMIN authorization for enablement only; contract handoff: preparation is proposal-only and must first replace representative production constants with a fresh read-only preflight binding control state, epoch, namespace, readiness, T1 report, and code hashes.
+- Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
+- Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.
 
 ## Current State
 
@@ -47,22 +49,67 @@ separate governed formal activation contract.
   embedded applied pipeline, and final formal hash `582c415...f20e`. Source
   and blocking readiness are both pass; the overwritten two-row standalone
   report is classified `superseded-invalid`.
-- Scheduler lifecycle contracts and offline fixture probe pass, but runtime T1
-  remains open: no derived backend/Redis runtime was available, so
-  `scheduledTickObserved=false` and formal activation proposal generation is
-  fail-closed.
+- Historical pre-final dry-run failures remain diagnostic only. The final
+  isolated Scheduler T1 is closed by run
+  `npc-t1-crawler-v2-auto-ingestion-20260809-04`; its separately authorized
+  production activation path remains disabled and unauthorized.
 - A derived E2E backend/Redis run is now proven startable and cleaned to zero;
   the remaining blocker is a fixture-only scheduled source/rule missing from
   `WIKI_MONITOR_RULES`. Manual dispatch remains out of scope.
 - Fixture-only scheduled routing is now implemented and tested (`197/197`). A
   rejected mixed-domain run exposed and fixed formal-domain leakage; all its
   isolated resources were cleaned and it is not acceptance evidence.
+- The system driver now provisions marker-owned derived resources, starts an
+  owned Spring child, binds authenticated loopback automation enable/cutover,
+  snapshots/restores scheduler files, and cleans exact owned resources. Its
+  default path observes Redis renewals, owned backend restart, and terminal
+  progress, while lease-loss remains a dedicated observer boundary so the
+  primary attempt is not invalidated; a fresh authorized live run remains open. Focused
+  scheduler/fixture/recorded-response/domain validation is `68/68`; the full
+  monitor Node lane is `57/57`; combined manifest + monitor validation is now
+  `96/96` after the lifecycle-order and lease-loss work.
+- Task 3A dry run `scheduler-dry-20260808-01` reached real provisioning but
+  backend startup failed at Flyway V9 duplicate `review_status`; exact
+  compensation and independent readback returned derived DBs, temporary
+  accounts, Redis DB14, and marker root to zero. The driver now disables
+  Spring Flyway because the provisioning adapter already applied migrations.
+- Dry run `scheduler-dry-20260808-02` reached authenticated loopback startup
+  but observed V2 automation before cutover, returning HTTP 409. Cutover now
+  occurs in `prepare` after login and before disabled-tick observation; its
+  automatic cleanup/readback returned zero.
+- Dry run `scheduler-dry-20260808-03` reached the loopback cutover call but
+  received HTTP 409. Exact manual compensation removed its owned backend,
+  schemas, temporary accounts, DB14 keys, marker root, and restored the
+  backed-up durable artifacts. Current work adds a safe response reason to
+  the driver and traces the backend cutover branch before another fresh run.
+- Dry runs `scheduler-dry-20260808-05` through `-08` proved marker-root legacy
+  evidence, fresh fixture cutover, and automatic zero cleanup. Run `-05`
+  rejected a stale pre-routing backend JAR after it leaked an owned Buff child;
+  the exact child and DB14 key were stopped/cleared. The driver now rejects a
+  JAR older than `CrawlerMonitorServiceImpl.java`; a current JAR was rebuilt.
+  Run `-08` reaches fixture-only V2 dispatch but its recorded Recipe child
+  exits nonzero before lease renewal. No Wiki child remains and DB14 is zero.
+- Scheduler T1 run `scheduler-dry-20260808-17` passed recorded Recipe
+  ingestion, scheduled tick, two renewals, restart adoption, lease-loss reap,
+  and independent all-zero cleanup. Canonical evidence and the current-hash
+  request were refreshed; formal activation remains disabled.
+- Final Scheduler T1 run `npc-t1-crawler-v2-auto-ingestion-20260809-04` passed
+  under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07` with
+  a real scheduled tick, two renewals, restart adopt/reject, lease-loss reap,
+  and matching Recipe persistence/readback: `947` recipes, `1256` ingredient
+  relations, `1015` station relations, unresolved `0/0`. Its report hash is
+  `bb3493ea5fb09da518f1d8a6b2db8712a86cf6a9784c17b5241288be5ed5a8d6`.
+  Independent cleanup found derived schemas/accounts, Redis DB14, port 18189,
+  marker root, processes, and dispatch permit all at zero.
 
 ## Next Agent Start Point
 
-Generate a fresh ADMIN decision and rerun live Scheduler Lifecycle T1 with a
-new isolated run ID. Do not enable formal V2 automation or generate its
-activation proposal until the runtime report passes.
+Close the T1 evidence with a focused commit and implement the read-only
+preflight/proposal hardening in
+`docs/superpowers/plans/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md`.
+Do not generate a proposal/request/packet/permit, enable production V2
+automation, write formal stores, or access Wiki network without a new explicit
+owner authorization.
 
 ## Current Risks
 

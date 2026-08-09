@@ -53,7 +53,7 @@ const IMAGE_SYNC_OPTIONS = Object.freeze({
 });
 
 function manifestOptions(operationId) {
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'].includes(operationId)) {
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)) {
     return {
       npcT1ConfigPath,
       npcT1RedisDb: 9,
@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 44 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 45 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 44);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 43);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 45);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 44);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -708,6 +708,36 @@ test('biome T1 manifest freezes the reciprocal two-biome fixture and isolated bo
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, true);
   assert.equal(manifest.networkAccess, false);
+});
+
+test('scheduler T1 manifests dispatch the live driver into run-specific reports', () => {
+  for (const [operationId, reportStem] of [
+    ['canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'],
+    ['canonical-crawler-v2-items-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'],
+  ]) {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      ...manifestOptions(operationId),
+    });
+    const output = `reports/canonical-migration/${reportStem}-npc-t1-20260730-01.json`;
+    const scope = operationId === 'canonical-crawler-v2-items-t1-acceptance'
+      ? 'crawler-v2-items'
+      : 'crawler-v2-scheduler';
+    assert.equal(manifest.command.includes('--live=true'), true);
+    assert.equal(manifest.command.includes('--offline=true'), false);
+    assert.equal(
+      manifest.command.includes('--driver-module=scripts/data/monitor/crawler-queue-v2-scheduler-system-driver.mjs'),
+      true,
+    );
+    assert.equal(manifest.command.includes(`--output=${output}`), true);
+    assert.equal(
+      manifest.command.includes(`--marker-root=/tmp/terrapedia-${scope}-npc-t1-20260730-01`),
+      true,
+    );
+    assert.deepEqual(manifest.outputPaths, [output]);
+    assert.ok(manifest.codeBundleEntries.some((entry) => entry.path === 'scripts/data/monitor/crawler-queue-v2-scheduler-system-driver.mjs'));
+  }
 });
 
 test('manifest CLI accepts the exact NPC T1 private-config arguments', () => {

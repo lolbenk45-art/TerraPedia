@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-items-t1-acceptance",
+  "reportKind": "canonical_crawler_v2_items_t1_acceptance",
+  "status": "passed",
+  "cleanupPassed": true,
+  "offline": false,
+  "scheduledTickObserved": true,
+  "runtimeAssertionsDeferred": false,
+  "identity": {
+    "runId": "item-t1-live-20260809-07",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:test:item-t1-live-20260809-07:",
+    "redisDb": 14,
+    "epoch": "epoch-ite_fe8eef1dcdd99cf9",
+    "fenceToken": "fence-ite_fe8eef1dcdd99cf9",
+    "domain": "crawler_queue_v2_fixture",
+    "actionId": "crawler-queue-v2-fixture",
+    "operationId": "canonical-crawler-v2-items-t1-acceptance"
+  },
+  "progress": {
+    "status": "completed",
+    "sequence": 22,
+    "actionId": "crawler-queue-v2-fixture",
+    "itemIngestion": {
+      "itemCount": 3,
+      "maintCount": 3,
+      "relationCount": 3,
+      "unresolvedIdentities": 0,
+      "internalNames": [
+        "IronPickaxe",
+        "DirtBlock",
+        "StoneBlock"
+      ],
+      "recordKeys": [
+        "e59319157271c8d49ff9b45f6f365c5d856d9c04fe3d41accb17ef570487f7cc",
+        "14cc84200dea21c97752ecfc23802cc252659c25aa522aba390ff093a468d8d1",
+        "767e93fb766c635457535458b5151c0fda109ac697674c099dc06816bfa44228"
+      ],
+      "sourceHash": "sha256:fdb1d2a73c9816dc7ac705e736a4525333f7805253d758fa76eb103643f4756c"
+    },
+    "itemDbReadback": {
+      "itemRows": 3,
+      "maintRows": 3,
+      "relationRows": 3,
+      "unresolvedIdentities": 0
+    }
+  },
+  "leaseRenewals": 2,
+  "concurrentDispatches": 1,
+  "restart": {
+    "adopted": true,
+    "mismatchRejected": true,
+    "epochRecreated": false
+  },
+  "leaseLoss": {
+    "childReaped": true,
+    "nextReadyClaimed": false,
+    "attemptId": "attempt-69f887df-761e-4959-ab76-e3b1f2cb2ded",
+    "reasonCode": "LEASE_RENEW_FAILED"
+  },
+  "cleanup": {
+    "backendProcesses": 0,
+    "childProcesses": 0,
+    "redisKeys": 0,
+    "credentials": 0,
+    "files": 0,
+    "permits": 0,
+    "ports": 0,
+    "databases": 0
+  },
+  "itemIngestion": {
+    "itemCount": 3,
+    "maintCount": 3,
+    "relationCount": 3,
+    "unresolvedIdentities": 0,
+    "internalNames": [
+      "IronPickaxe",
+      "DirtBlock",
+      "StoneBlock"
+    ],
+    "recordKeys": [
+      "e59319157271c8d49ff9b45f6f365c5d856d9c04fe3d41accb17ef570487f7cc",
+      "14cc84200dea21c97752ecfc23802cc252659c25aa522aba390ff093a468d8d1",
+      "767e93fb766c635457535458b5151c0fda109ac697674c099dc06816bfa44228"
+    ],
+    "sourceHash": "sha256:fdb1d2a73c9816dc7ac705e736a4525333f7805253d758fa76eb103643f4756c"
+  },
+  "itemDbReadback": {
+    "itemRows": 3,
+    "maintRows": 3,
+    "relationRows": 3,
+    "unresolvedIdentities": 0
+  },
+  "generatedAt": "2026-08-09T00:13:17.258Z"
+}

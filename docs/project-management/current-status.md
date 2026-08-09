@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-08-06
+2026-08-09
 
 ## Current Phase
 
@@ -28,6 +28,11 @@ active focus moves to P1 crawler monitor and resume/recovery reliability.
   `5588e137a806de4a2dd417fe8319954d` with outcome and cleanup both passed.
 - Cleanup readback found no disposable E2E database, Redis DB 15 state, runner
   listener, retained permit, scheduler daemon, or crawler process.
+- Isolated Scheduler T1 run `npc-t1-crawler-v2-auto-ingestion-20260809-04`
+  passed with a real scheduled recorded-Recipe tick, two lease renewals,
+  restart adopt/reject, lease-loss reap, matching `947/1256/1015` Recipe and
+  relation readback, and independent cleanup to zero. This evidence is local
+  acceptance only; formal Scheduler V2 automation remains disabled.
 
 ## Gate Boundary
 
@@ -36,11 +41,18 @@ authority. Scheduler activation records bounded eligibility only; it does not
 authorize a recurring daemon or crawler run. Monitor projections remain
 read-only and `notGateEvidence=true`.
 
+Formal Scheduler enablement preparation must use a fresh read-only preflight
+and current-hash proposal before a separate ADMIN request. No prior T1 report,
+eligible-domain result, or consumed decision authorizes a production mutation.
+
 ## Current Risks
 
 - Crawler monitor and resume/recovery reliability remains the main P1 area.
 - Release, staging, recurring scheduler startup, crawler execution, push,
   merge, and worktree cleanup require separate decisions.
+- A proposal built from representative control values is not production-ready;
+  it must bind a fresh observed disabled/changed-only state, zero activity,
+  reconciler health, epoch/namespace, readiness, and code/report hashes.
 - Current companion docs and gate evidence must remain synchronized with future
   workflow, API, runtime, and data-chain changes.
 

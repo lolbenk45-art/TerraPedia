@@ -258,8 +258,22 @@ const CODE_PATHS = Object.freeze({
   ]),
   'canonical-crawler-v2-scheduler-t1-acceptance': Object.freeze([
     'scripts/data/monitor/crawler-queue-v2-scheduler-lifecycle.mjs',
+    'scripts/data/monitor/crawler-queue-v2-scheduler-system-driver.mjs',
+    'scripts/data/monitor/recorded-http-fixture-source.mjs',
+    'scripts/data/monitor/recorded-recipe-auto-ingestion.mjs',
+    'scripts/data/monitor/recorded-domain-auto-ingestion.mjs',
     'scripts/data/monitor/crawler-queue-v2-fixture.mjs',
     'scripts/data/workflow/backend-refresh-runtime-state.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-crawler-v2-items-t1-acceptance': Object.freeze([
+    'scripts/data/monitor/crawler-queue-v2-scheduler-lifecycle.mjs',
+    'scripts/data/monitor/crawler-queue-v2-scheduler-system-driver.mjs',
+    'scripts/data/monitor/recorded-item-auto-ingestion.mjs',
+    'scripts/data/monitor/recorded-http-fixture-source.mjs',
+    'scripts/data/monitor/crawler-queue-v2-fixture.mjs',
+    'scripts/data/workflow/backend-refresh-runtime-state.mjs',
+    'scripts/data/lib/mysql-module.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
   'canonical-crawler-v2-scheduler-activation': Object.freeze([
@@ -420,7 +434,7 @@ export function buildCanonicalOperationExecutionContract({
   if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
     throw new Error('result label is supported only for an NPC owner operation');
   }
-  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'].includes(operationId)
+  const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
     ? buildNpcT1AcceptanceIdentity({
       configPath: npcT1ConfigPath,
       redisLogicalDb: npcT1RedisDb,
@@ -501,7 +515,7 @@ export function assertCanonicalOperationExecutionManifestContract({
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
     npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
   });
-  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance'].includes(operationId)
+  if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
     throw new Error('NPC T1 config hash drifted from the execution manifest');
   }
@@ -1128,6 +1142,9 @@ function buildDefinition(
     ...(operationId === 'canonical-crawler-v2-scheduler-t1-acceptance'
       ? { [operationId]: schedulerT1AcceptanceDefinition(operationId, npcT1Acceptance) }
       : {}),
+    ...(operationId === 'canonical-crawler-v2-items-t1-acceptance'
+      ? { [operationId]: schedulerT1AcceptanceDefinition(operationId, npcT1Acceptance, { itemMode: true }) }
+      : {}),
     ...(operationId === 'canonical-crawler-v2-scheduler-activation'
       ? { [operationId]: schedulerActivationProposalDefinition(operationId) }
       : {}),
@@ -1520,14 +1537,20 @@ function biomeT1AcceptanceDefinition(operationId, isolatedAcceptance) {
   };
 }
 
-function schedulerT1AcceptanceDefinition(operationId, isolatedAcceptance) {
+function schedulerT1AcceptanceDefinition(operationId, isolatedAcceptance, { itemMode = false } = {}) {
   if (isolatedAcceptance == null) throw new Error('scheduler T1 isolated acceptance identity is required');
+  const item = itemMode || operationId === 'canonical-crawler-v2-items-t1-acceptance';
+  const scope = item ? 'crawler-v2-items' : 'crawler-v2-scheduler';
+  const markerRoot = `/tmp/terrapedia-${scope}-${isolatedAcceptance.runId}`;
+  const output = item
+    ? `reports/canonical-migration/canonical-crawler-v2-items-t1-acceptance-${isolatedAcceptance.runId}.json`
+    : `reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-${isolatedAcceptance.runId}.json`;
   return {
     executionClass: 'isolated_scheduler_lifecycle_acceptance',
-    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', '--scope=crawler-v2-scheduler', `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, '--offline=true', '--output=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json'],
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--profile=t1', `--scope=${scope}`, `--config-path=${isolatedAcceptance.configPath}`, `--config-sha256=${isolatedAcceptance.configSha256}`, `--redis-db=${isolatedAcceptance.redisLogicalDb}`, `--run-id=${isolatedAcceptance.runId}`, `--marker-root=${markerRoot}`, '--live=true', '--driver-module=scripts/data/monitor/crawler-queue-v2-scheduler-system-driver.mjs', ...(item ? ['--item-mode=true', '--item-limit=100'] : []), `--output=${output}`],
     inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
-    outputPaths: ['reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json'],
-    reportPaths: ['reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json'],
+    outputPaths: [output],
+    reportPaths: [output],
     progressPaths: [], isolatedAcceptance, databaseWrites: false, isolatedResourceWrites: true, networkAccess: false,
   };
 }

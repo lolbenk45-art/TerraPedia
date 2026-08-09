@@ -3724,6 +3724,7 @@ class CrawlerMonitorServiceImplTest {
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
+        assertEquals(0, launcher.launchCount);
         assertEquals(1, sweep.getDispatched().size());
         assertEquals("crawler-queue-v2-fixture", sweep.getDispatched().get(0).get("actionId"));
         ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(

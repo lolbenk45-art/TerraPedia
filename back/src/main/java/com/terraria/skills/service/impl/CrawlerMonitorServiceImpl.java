@@ -4284,17 +4284,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerV2AutomationDTO settings = readV2AutomationSettings(repoRoot);
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
         sweep.setCheckedAt(Instant.now(clock).toString());
-        SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
-        if (!sourceUpdateCheck.success()) {
-            sweep.setStatus("error");
-            sweep.getSkipped().add(Map.of("domain", "all", "reason", "source_update_check_failed", "message", sourceUpdateCheck.message()));
-            writeV2AutomationLastSweep(repoRoot, sweep);
-            return sweep;
-        }
-        ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
-        Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
         Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
         if (!fixtureScheduledAutomationEnabled) {
+            SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
+            if (!sourceUpdateCheck.success()) {
+                sweep.setStatus("error");
+                sweep.getSkipped().add(Map.of("domain", "all", "reason", "source_update_check_failed", "message", sourceUpdateCheck.message()));
+                writeV2AutomationLastSweep(repoRoot, sweep);
+                return sweep;
+            }
+            ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+            Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
             for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
                 if (!rule.wikiDomain() || !isAutoEligibleRule(rule)) continue;
                 Map<String, Object> source = sourceByKey.get(rule.sourceKey());
