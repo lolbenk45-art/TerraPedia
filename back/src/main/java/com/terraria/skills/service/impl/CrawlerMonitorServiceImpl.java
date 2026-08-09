@@ -41,6 +41,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
@@ -4251,6 +4252,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     @Override
+    public int getV2AutomationSweepClaimCount() {
+        Path lockPath = resolveRepoRoot().resolve(V2_AUTOMATION_SWEEP_LOCK_FILE).normalize();
+        if (!Files.isRegularFile(lockPath, LinkOption.NOFOLLOW_LINKS)) return 0;
+        try (FileChannel channel = FileChannel.open(lockPath, StandardOpenOption.READ)) {
+            try (FileLock lock = channel.tryLock(0, Long.MAX_VALUE, true)) {
+                return lock == null ? 1 : 0;
+            }
+        } catch (OverlappingFileLockException exception) {
+            return 1;
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to read V2 automation sweep claim", exception);
+        }
+    }
+
+    @Override
     public CrawlerV2AutomationDTO updateV2AutomationSettings(CrawlerV2AutomationDTO settings) {
         return queueEngineRouter.withMutationPermit(permit -> {
             permit.requireMode(CrawlerQueueEngineMode.V2);
@@ -4376,6 +4392,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private CrawlerV2AutomationDTO readV2AutomationSettings(Path repoRoot) {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         ReadResult config = readJsonMap(repoRoot.resolve(V2_AUTOMATION_CONFIG_FILE).normalize());
+        settings.setConfigPresent(config.readable());
         if (config.readable()) {
             settings.setEnabled(asBoolean(config.payload().get("enabled")));
             settings.setMode("changed-only");

@@ -145,6 +145,28 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void readingV2AutomationSweepClaimsDoesNotCreateAClaimFile() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class),
+            router,
+            v2Service,
+            legacyQueue
+        );
+
+        Path claimPath = repoRoot.resolve("reports/crawler-monitor/v2/automation-sweep.lock");
+        assertFalse(Files.exists(claimPath));
+        assertEquals(0, service.getV2AutomationSweepClaimCount());
+        assertFalse(Files.exists(claimPath));
+    }
+
+    @Test
     void v2EventSubscriptionPreservesStateStoreUnavailableInsteadOfDowngradingToConflict() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);

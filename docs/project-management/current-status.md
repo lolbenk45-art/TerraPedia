@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-08-09
+2026-08-10
 
 ## Current Phase
 
@@ -33,6 +33,13 @@ active focus moves to P1 crawler monitor and resume/recovery reliability.
   restart adopt/reject, lease-loss reap, matching `947/1256/1015` Recipe and
   relation readback, and independent cleanup to zero. This evidence is local
   acceptance only; formal Scheduler V2 automation remains disabled.
+- Preparation Tasks 1-3 are implemented: the backend exposes a read-only
+  `GET /admin/crawler-monitor/v2/automation/preflight`, the Node collector
+  binds disabled/changed-only control, zero attempts/claims, reconciler health,
+  epoch/namespace, domain evidence, T1 hash, and code hashes, and the proposal
+  builder rejects representative current-state constants and byte drift.
+  No real preflight artifact was generated because no backend listener was
+  available; starting one would cross the no-daemon/formal-store boundary.
 
 ## Gate Boundary
 
@@ -53,6 +60,10 @@ eligible-domain result, or consumed decision authorizes a production mutation.
 - A proposal built from representative control values is not production-ready;
   it must bind a fresh observed disabled/changed-only state, zero activity,
   reconciler health, epoch/namespace, readiness, and code/report hashes.
+- The preparation implementation is now fail-closed for evidence paths outside
+  the repository and for code bundle bytes changed after preflight. A future
+  request still requires a fresh production read-only GET and owner decision;
+  this branch has generated no proposal, request, packet, or permit.
 - Current companion docs and gate evidence must remain synchronized with future
   workflow, API, runtime, and data-chain changes.
 

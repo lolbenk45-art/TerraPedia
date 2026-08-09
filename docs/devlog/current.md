@@ -1,18 +1,19 @@
 # Current Devlog
 
-Last updated: 2026-08-09 20:20 CST by Codex
+Last updated: 2026-08-10 05:15 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
 The isolated Scheduler T1 and Item 100-row acceptance are closed. Active work
-prepares a read-only, current-hash formal Scheduler enablement plan. Formal
-Scheduler activation remains disabled and is not authorized.
+has completed Tasks 1-4 of the read-only, current-hash formal Scheduler
+enablement preparation. Formal Scheduler activation remains disabled and is
+not authorized.
 
 ## Open Work
 
-- `entries/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md` - owner: Codex; status: active; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: scheduler lifecycle; blocked by: future fresh ADMIN authorization for enablement only; contract handoff: preparation is proposal-only and must first replace representative production constants with a fresh read-only preflight binding control state, epoch, namespace, readiness, T1 report, and code hashes.
+- Future Task 5 owner checkpoint - owner: repository owner; status: blocked; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: scheduler lifecycle; blocked by: fresh ADMIN authorization for enablement only; contract handoff: run a new authenticated read-only preflight and proposal first, then stop for owner approval before request/packet/permit.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
 - Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.
 
@@ -126,6 +127,8 @@ owner authorization.
   requires a separate evidence refresh task.
 
 ## Recently Closed
+
+- `entries/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md` - Tasks 1-4 committed as proposal-only, current-hash-bound preparation; no production preflight artifact or authorization identity generated.
 
 - `entries/2026-08-08-recipe-formal-read-only-verification.md` - formal Recipe
   state verified read-only; overwritten standalone evidence rejected.

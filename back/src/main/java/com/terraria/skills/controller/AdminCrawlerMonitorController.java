@@ -17,6 +17,7 @@ import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.CrawlerV2SchedulerActivationPreflightService;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -45,6 +46,7 @@ import java.util.Map;
 public class AdminCrawlerMonitorController {
 
     private final CrawlerMonitorService crawlerMonitorService;
+    private final CrawlerV2SchedulerActivationPreflightService schedulerActivationPreflightService;
     private final WikiImageLocalizationService wikiImageLocalizationService;
 
     @GetMapping("/overview")
@@ -191,6 +193,15 @@ public class AdminCrawlerMonitorController {
     @Operation(summary = "Get V2 crawler automation settings")
     public ApiResponse<CrawlerV2AutomationDTO> getV2AutomationSettings() {
         return ApiResponse.success(crawlerMonitorService.getV2AutomationSettings());
+    }
+
+    @GetMapping("/v2/automation/preflight")
+    @Operation(summary = "Read V2 scheduler activation preflight")
+    public ApiResponse<com.terraria.skills.dto.CrawlerV2SchedulerActivationPreflightDTO> getV2AutomationPreflight(
+        HttpServletRequest httpRequest
+    ) {
+        requireAdminRole(httpRequest);
+        return ApiResponse.success(schedulerActivationPreflightService.getPreflight());
     }
 
     @PutMapping("/v2/automation")

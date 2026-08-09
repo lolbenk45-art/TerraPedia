@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -28,28 +28,69 @@
 
 ## Validation
 
-- Commands run: docs whitespace check, staged-scope check, protected-artifact status check, devlog-status scan, and targeted plan-boundary consistency scan.
-- Results: whitespace check passed and staged scope is empty. Read-only inspection found no `reports/crawler-monitor/v2/automation-config.json`; existing `cutover-state.json` is V2. Protected artifacts remain unstaged. The final isolated Scheduler T1 report remains recorded as passed with SHA-256 `bb3493ea5fb09da518f1d8a6b2db8712a86cf6a9784c17b5241288be5ed5a8d6`.
-- Not run: no proposal/request/packet/permit generation; no production API mutation; no Wiki/network request.
+- Task 1 evidence recheck: the final isolated Scheduler T1 report remains
+  `status=passed` with SHA-256
+  `bb3493ea5fb09da518f1d8a6b2db8712a86cf6a9784c17b5241288be5ed5a8d6`; its
+  scheduled tick, two renewals, restart adopt/reject, lease-loss reap,
+  `947/1256/1015` Recipe counts, unresolved `0/0`, and cleanup-zero fields are
+  unchanged. The focused lifecycle/manifest/monitor lane was previously
+  recorded as `118/118`.
+- Task 2 implementation: backend `GET
+  /admin/crawler-monitor/v2/automation/preflight` and the Node preflight
+  collector are read-only and hash-bound. Service tests cover a fresh eligible
+  domain report, repository path escape rejection, and no-lock sweep claim
+  reads. The Node preflight lane passes `7/7`.
+- Task 3 implementation: proposal construction requires the exact preflight
+  hash, T1 identity, current code bundle bytes, disabled changed-only control,
+  zero attempts/claims, healthy reconciler, and no-write flags. The CLI now
+  rejects missing/escaped inputs and writes only proposal-only output under the
+  canonical authorization root. The proposal/manifest/cutover lane passed
+  `76/76` before the final additions; the proposal CLI test now also verifies
+  current T1/code bytes in a subprocess.
+- Fresh verification in this handoff: Node preflight + proposal tests pass
+  `11/11`; backend preflight + monitor implementation tests pass `201/201`,
+  and the prior controller-inclusive focused run passed `234/234`.
+- `git diff --check` and the T1 `sha256sum` check pass. Protected generated
+  data, resume artifacts, and logs remain unstaged.
+- Not run by design: no real preflight artifact, proposal, request, packet, or
+  permit generation; no production API mutation; no formal database/Redis
+  write; no manual sweep, daemon, or Wiki/network request. No backend listener
+  was available for a safe read-only GET, and starting one would violate this
+  preparation boundary.
 
 ## Result
 
-- Completed: planned the distinct closeout, current-state preflight, proposal-only, authorization, enablement, rollback, and postcondition phases.
-- Not completed: execution of that plan remains intentionally blocked at the future owner authorization checkpoint.
+- Completed: Tasks 1-4 preparation code, tests, manifest hardening, and review
+  notes. The source chain is proposal-only and current-hash-bound.
+- Not completed: Task 5/6 remain intentionally gated. A fresh production
+  preflight and owner authorization are still required before any request,
+  packet, permit, enablement, or rollback observation.
 
 ## Residual Risks
 
-- The existing proposal CLI's representative control state must be replaced with fresh read-only preflight evidence before it can support formal authorization.
+- No real production preflight was observed in this window because the backend
+  listener was absent; the code path is tested but not operational evidence.
 - Any current-hash or runtime-state drift invalidates a future request.
 - The two passed isolated acceptance lanes are not production scheduler authorization.
 
 ## Follow-up
 
-- Owner: Codex. Complete Tasks 1-4 of the preparation plan, then stop before Task 5 until the owner authorizes the exact fresh request.
+- Owner: Codex. Commit the focused Task 1-4 preparation change, then stop before
+  Task 5 until the owner authorizes a fresh exact request.
 
 ## Commits
 
-- Pending.
+- `commit SHA pending in final response`
+
+### 2026-08-10
+
+- Change: completed read-only preflight and proposal hardening through Task 4.
+- Decision: production state must be observed through the authenticated
+  preflight GET immediately before any future request; representative constants,
+  escaped evidence paths, stale T1 bytes, and changed code bundle bytes fail
+  closed.
+- Evidence: Node `11/11`, backend `201/201` plus controller-inclusive `234/234`,
+  T1 report hash, and `git diff --check`; see git for code-level diff details.
 
 ### 2026-08-09 19:34
 

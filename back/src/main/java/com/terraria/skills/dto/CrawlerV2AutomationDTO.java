@@ -9,5 +9,6 @@ public class CrawlerV2AutomationDTO {
     private boolean enabled;
     private String mode = "changed-only";
     private int sweepIntervalMinutes = 60;
+    private Boolean configPresent;
     private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO lastSweep;
 }

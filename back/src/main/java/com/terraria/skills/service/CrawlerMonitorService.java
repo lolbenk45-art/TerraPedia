@@ -75,6 +75,8 @@ public interface CrawlerMonitorService {
 
     CrawlerV2AutomationDTO getV2AutomationSettings();
 
+    int getV2AutomationSweepClaimCount();
+
     CrawlerV2AutomationDTO updateV2AutomationSettings(CrawlerV2AutomationDTO settings);
 
     CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runV2AutomationSweepOnce();

@@ -106,8 +106,8 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
     'data/standardized/items.standardized.json',
   ]),
   'canonical-crawler-v2-scheduler-activation': Object.freeze([
-    'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance.json',
-    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.input.json',
+    'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.preflight.json',
   ]),
   'canonical-recipe-crawler': Object.freeze([]),
   'canonical-recipe-apply': Object.freeze(['data/generated/wiki-zh-recipe-pages.latest.json']),

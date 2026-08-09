@@ -1002,6 +1002,33 @@ test('formal cutover and activation manifests freeze exact safety-critical argum
   }), /no governed executor.*canonical-npc-apply/i);
 });
 
+test('scheduler activation manifest consumes explicit preflight and T1 paths without writes', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-crawler-v2-scheduler-activation',
+    artifactDate: '2026-08-10',
+  });
+  assert.deepEqual(manifest.command, [
+    'node',
+    'scripts/data/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
+    '--preflight=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.preflight.json',
+    '--t1-report=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    '--output=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.preflight.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json',
+  ]);
+  assert.equal(manifest.executionClass, 'formal_activation_proposal_only');
+  assert.equal(manifest.databaseWrites, false);
+  assert.equal(manifest.isolatedResourceWrites, false);
+  assert.equal(manifest.networkAccess, false);
+  assert.ok(manifest.codeBundleEntries.some((entry) => entry.path.endsWith('crawler-v2-scheduler-activation-preflight.mjs')));
+});
+
 test('image and boss manifests require and freeze the active backend API base', () => {
   assert.throws(
     () => buildCanonicalOperationExecutionManifest({

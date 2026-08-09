@@ -278,6 +278,7 @@ const CODE_PATHS = Object.freeze({
   ]),
   'canonical-crawler-v2-scheduler-activation': Object.freeze([
     'scripts/data/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
+    'scripts/data/automation/crawler-v2-scheduler-activation-preflight.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
   'automation-biomes-l2-promotion': Object.freeze([
@@ -1558,7 +1559,13 @@ function schedulerT1AcceptanceDefinition(operationId, isolatedAcceptance, { item
 function schedulerActivationProposalDefinition(operationId) {
   return {
     executionClass: 'formal_activation_proposal_only',
-    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--proposal-only=true', '--enabled=false'],
+    command: [
+      'node',
+      CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      '--preflight=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.preflight.json',
+      '--t1-report=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+      '--output=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json',
+    ],
     inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
     outputPaths: ['reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json'],
     reportPaths: ['reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json'],
