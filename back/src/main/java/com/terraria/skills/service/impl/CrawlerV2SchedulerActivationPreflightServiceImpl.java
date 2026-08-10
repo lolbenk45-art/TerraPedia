@@ -118,6 +118,14 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
             .collect(Collectors.toMap(DomainAcceptanceOverviewDTO.DomainDTO::getDomainId, Function.identity(), (left, right) -> left));
         List<CrawlerV2SchedulerActivationPreflightDTO.DomainReadinessDTO> result = new ArrayList<>();
         for (CrawlerQueueV2OverviewDTO.DomainStateDTO state : safeList(overview.getDomainStates())) {
+            // The enablement gate covers only the domains the scheduler will
+            // actually auto-dispatch (the auto-ingestion set). Domains outside
+            // it are never triggered by automation, so requiring their
+            // acceptance panels here would block enablement on evidence the
+            // scheduler never consumes. See CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.
+            if (!CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains(state.domain())) {
+                continue;
+            }
             for (CrawlerQueueV2OverviewDTO.OperationDTO operation : safeList(state.operations())) {
                 DomainAcceptanceOverviewDTO.DomainDTO accepted = acceptanceByDomain.get(state.domain());
                 DomainAcceptanceOverviewDTO.DomainPanelDTO panel = firstPanel(accepted);

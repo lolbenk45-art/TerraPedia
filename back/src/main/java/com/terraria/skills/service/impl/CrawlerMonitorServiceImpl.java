@@ -2690,13 +2690,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private boolean isAutoEligibleRule(CrawlerMonitorActionDefinition rule) {
-        return Set.of(
-            "items",
-            "npcs",
-            "projectiles",
-            "armor_sets",
-            "buffs"
-        ).contains(rule.domain());
+        return CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains(rule.domain());
     }
 
     private CrawlerMonitorAutoDispatchDTO readAutoDispatchSettings(Path repoRoot) {

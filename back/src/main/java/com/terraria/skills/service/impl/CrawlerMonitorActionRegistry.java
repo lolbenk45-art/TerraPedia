@@ -4,9 +4,31 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Component
 public class CrawlerMonitorActionRegistry {
+
+    /**
+     * The single source of truth for which crawler domains the scheduler is
+     * allowed to auto-dispatch under changed-only automation. This is the
+     * "auto-ingestion set": {@code isAutoEligibleRule} in the monitor service
+     * and the scheduler-activation preflight both key off this set, so the
+     * enablement gate covers exactly the domains the scheduler will actually
+     * act on — no wider (which would block on domains it never touches) and no
+     * narrower (which would let an uncovered domain slip past the gate).
+     *
+     * <p>Deliberately narrow. Expanding it is a governance decision: any domain
+     * added here must have a fresh, passing domain-acceptance panel before the
+     * preflight will report it eligible.
+     */
+    public static final Set<String> AUTO_DISPATCH_DOMAINS = Set.of(
+        "items",
+        "npcs",
+        "projectiles",
+        "armor_sets",
+        "buffs"
+    );
 
     private static final String TOWN_NPC_RESUME =
         "data/generated/resume/domain-source-town-npc-maintenance.resume.json";

@@ -72,7 +72,7 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
     @Test
     void marksFreshReadOnlyDomainEvidenceEligibleAndHashesItsReport() throws Exception {
         Path repoRoot = Files.createTempDirectory("crawler-preflight-repo");
-        Path report = repoRoot.resolve("reports/domain/recipes/recipes-20260810.json");
+        Path report = repoRoot.resolve("reports/domain/items/items-20260810.json");
         Files.createDirectories(report.getParent());
         Files.writeString(report, "{\"status\":\"pass\"}\n");
 
@@ -83,9 +83,9 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         overview.setRepoRoot(repoRoot.toString());
         overview.setStateStoreEpoch("epoch-current");
         overview.setDomainStates(List.of(new CrawlerQueueV2OverviewDTO.DomainStateDTO(
-            "recipes", null, 0L, "idle", null, 0L, 0L, null, null, null, null, null, List.of(),
+            "items", null, 0L, "idle", null, 0L, 0L, null, null, null, null, null, List.of(),
             List.of(new CrawlerQueueV2OverviewDTO.OperationDTO(
-                "recipes-refresh", "wiki-recipes-refresh", "Recipes", "wiki", "changed-only",
+                "items-refresh", "wiki-items-refresh", "Items", "wiki", "changed-only",
                 "refresh", false, "fixture", "none", "none", 0L, 0L, true, true, true,
                 null, "read-only", true
             ))
@@ -103,7 +103,7 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
 
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
-        domain.setDomainId("recipes");
+        domain.setDomainId("items");
         domain.setStatus("pass");
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
         panel.setFound(true);
@@ -111,7 +111,7 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         panel.setStatus("pass");
         panel.setFreshnessStatus("fresh");
         panel.setWritesDatabase(false);
-        panel.setReportPath("reports/domain/recipes/recipes-20260810.json");
+        panel.setReportPath("reports/domain/items/items-20260810.json");
         panel.setGeneratedAt(Instant.parse("2026-08-10T01:00:00Z"));
         domain.setPanels(List.of(panel));
         DomainAcceptanceOverviewDTO acceptance = new DomainAcceptanceOverviewDTO();
@@ -138,9 +138,9 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         overview.setRepoRoot(repoRoot.toString());
         overview.setStateStoreEpoch("epoch-current");
         overview.setDomainStates(List.of(new CrawlerQueueV2OverviewDTO.DomainStateDTO(
-            "recipes", null, 0L, "idle", null, 0L, 0L, null, null, null, null, null, List.of(),
+            "items", null, 0L, "idle", null, 0L, 0L, null, null, null, null, null, List.of(),
             List.of(new CrawlerQueueV2OverviewDTO.OperationDTO(
-                "recipes-refresh", "wiki-recipes-refresh", "Recipes", "wiki", "changed-only",
+                "items-refresh", "wiki-items-refresh", "Items", "wiki", "changed-only",
                 "refresh", false, "fixture", "none", "none", 0L, 0L, true, true, true,
                 null, "read-only", true
             ))
@@ -156,7 +156,7 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         when(monitor.getV2AutomationSettings()).thenReturn(automation);
         when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
-        domain.setDomainId("recipes");
+        domain.setDomainId("items");
         domain.setStatus("pass");
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
         panel.setFound(true);
@@ -174,5 +174,51 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
 
         assertEquals("blocked", result.getDomains().get(0).getReadinessStatus());
         assertNull(result.getDomains().get(0).getSourceHash());
+    }
+
+    @Test
+    void emitsReadinessOnlyForAutoDispatchDomains() {
+        CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+        DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setStateStoreEpoch("epoch-current");
+        // Two domains the scheduler never auto-dispatches (recipes, biomes) and
+        // one it does (items). The gate must only report the auto-ingestion one.
+        overview.setDomainStates(List.of(
+            domainState("recipes", "recipes-refresh", "wiki-recipes-refresh"),
+            domainState("biomes", "biome-preview", "biome-preview"),
+            domainState("items", "items-refresh", "wiki-items-refresh")
+        ));
+        overview.setLiveQueue(List.of());
+        overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.now(), Instant.now(), 0L, 0L, 0L, null, null, null
+        ));
+        CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+        automation.setEnabled(false);
+        automation.setMode("changed-only");
+        when(monitor.getOverview()).thenReturn(overview);
+        when(monitor.getV2AutomationSettings()).thenReturn(automation);
+        when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+        when(domainAcceptance.getOverview()).thenReturn(new DomainAcceptanceOverviewDTO());
+
+        var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(monitor, domainAcceptance, properties)
+            .getPreflight();
+
+        assertEquals(1, result.getDomains().size());
+        assertEquals("items", result.getDomains().get(0).getDomain());
+    }
+
+    private static CrawlerQueueV2OverviewDTO.DomainStateDTO domainState(
+        String domain, String operationId, String actionId
+    ) {
+        return new CrawlerQueueV2OverviewDTO.DomainStateDTO(
+            domain, null, 0L, "idle", null, 0L, 0L, null, null, null, null, null, List.of(),
+            List.of(new CrawlerQueueV2OverviewDTO.OperationDTO(
+                operationId, actionId, domain, "wiki", "changed-only",
+                "refresh", false, "fixture", "none", "none", 0L, 0L, true, true, true,
+                null, "read-only", true
+            ))
+        );
     }
 }
