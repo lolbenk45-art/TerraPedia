@@ -77,7 +77,12 @@ function assertSnapshot(snapshot, { nowMs, maxAgeMs }) {
   const epoch = requireText(v2?.stateStoreEpoch, 'preflight V2 epoch');
   const namespace = requireText(v2?.namespace, 'preflight V2 namespace');
   if (!V2_NAMESPACE_PATTERN.test(namespace)) throw new Error('preflight namespace is not V2');
-  requireText(v2?.queueContractVersion, 'preflight queue contract version');
+  // The backend DTO emits queueContractVersion as an integer; accept a finite
+  // number or a non-empty string, but require it to be present.
+  const contractVersion = v2?.queueContractVersion;
+  const contractOk = (typeof contractVersion === 'number' && Number.isFinite(contractVersion))
+    || (typeof contractVersion === 'string' && contractVersion.trim() !== '');
+  if (!contractOk) throw new Error('preflight queue contract version is required');
 
   if (Number(snapshot.counts?.liveAttempts) !== 0) throw new Error('preflight requires zero live attempts');
   if (Number(snapshot.counts?.sweepClaims) !== 0) throw new Error('preflight requires zero sweep claims');
@@ -193,12 +198,23 @@ function parseArgs(argv) {
   return args;
 }
 
-async function readPreflightEndpoint(apiBase) {
+const PREFLIGHT_ENDPOINT_PATH = 'admin/crawler-monitor/v2/automation/preflight';
+
+// The backend serves under a servlet context-path (e.g. /api). A leading-slash
+// (absolute) URL join discards that base path and silently 404s, so the endpoint
+// path is joined as RELATIVE to a base that always ends in a slash — preserving
+// whatever context-path the caller supplied in --api-base.
+export function buildPreflightEndpointUrl(apiBase) {
   const base = new URL(apiBase);
   if (!['127.0.0.1', 'localhost', '::1', '[::1]'].includes(base.hostname)) {
     throw new Error('preflight API base must be loopback');
   }
-  const url = new URL('/admin/crawler-monitor/v2/automation/preflight', `${base.toString().replace(/\/$/, '')}/`);
+  const baseWithSlash = base.toString().endsWith('/') ? base.toString() : `${base.toString()}/`;
+  return new URL(PREFLIGHT_ENDPOINT_PATH, baseWithSlash).toString();
+}
+
+async function readPreflightEndpoint(apiBase) {
+  const url = buildPreflightEndpointUrl(apiBase);
   const headers = { accept: 'application/json' };
   if (process.env.TERRAPEDIA_ADMIN_TOKEN) headers.authorization = `Bearer ${process.env.TERRAPEDIA_ADMIN_TOKEN}`;
   const response = await fetch(url, { method: 'GET', headers });

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildCrawlerV2SchedulerActivationPreflight,
+  buildPreflightEndpointUrl,
   canonicalJson,
   resolveSchedulerActivationCodeBundlePaths,
   sha256Json,
@@ -31,7 +32,8 @@ function validSnapshot(overrides = {}) {
     v2: {
       stateStoreEpoch: 'epoch-current',
       namespace: 'terrapedia:crawler:wiki-monitor:v2:production:',
-      queueContractVersion: 'v2',
+      // The real backend DTO emits this as an integer (2), not a string.
+      queueContractVersion: 2,
     },
     counts: {
       liveAttempts: 0,
@@ -82,6 +84,26 @@ test('code bundle is derived from the operation manifest, not an operator-suppli
   assert.ok(paths.length > 5, 'manifest bundle must expand transitive imports');
 });
 
+test('endpoint URL preserves the api-base context-path (does not drop /api)', () => {
+  // The backend serves under a context-path (server.servlet.context-path: /api),
+  // so an absolute-path URL join silently 404s. The base path must be preserved.
+  assert.equal(
+    buildPreflightEndpointUrl('http://127.0.0.1:18201/api'),
+    'http://127.0.0.1:18201/api/admin/crawler-monitor/v2/automation/preflight',
+  );
+  assert.equal(
+    buildPreflightEndpointUrl('http://127.0.0.1:18201/api/'),
+    'http://127.0.0.1:18201/api/admin/crawler-monitor/v2/automation/preflight',
+  );
+  // A bare origin (no context-path) must still work.
+  assert.equal(
+    buildPreflightEndpointUrl('http://127.0.0.1:8080'),
+    'http://127.0.0.1:8080/admin/crawler-monitor/v2/automation/preflight',
+  );
+  // Loopback-only guard still holds.
+  assert.throws(() => buildPreflightEndpointUrl('http://example.com/api'), /loopback/i);
+});
+
 test('builds a disabled, no-write preflight bound to T1 and code hashes', () => {
   const preflight = buildCrawlerV2SchedulerActivationPreflight({
     snapshot: validSnapshot(),
@@ -102,6 +124,27 @@ test('builds a disabled, no-write preflight bound to T1 and code hashes', () => 
   assert.deepEqual(preflight.t1Report, validT1());
   assert.deepEqual(preflight.codeBundle, [{ path: 'scripts/data/automation/preflight.mjs', sha256: CODE_HASH }]);
   assert.match(preflight.preflightHash, /^sha256:[a-f0-9]{64}$/);
+});
+
+test('accepts a numeric queueContractVersion from the real backend DTO', () => {
+  const preflight = buildCrawlerV2SchedulerActivationPreflight({
+    snapshot: validSnapshot({ v2: { stateStoreEpoch: 'epoch-current', namespace: 'terrapedia:crawler:wiki-monitor:v2:production:', queueContractVersion: 2 } }),
+    t1Report: validT1(),
+    codeBundle: [{ path: 'scripts/data/automation/preflight.mjs', sha256: CODE_HASH }],
+    now: '2026-08-10T01:05:00.000Z',
+  });
+  assert.equal(preflight.v2.queueContractVersion, 2);
+});
+
+test('rejects a missing queueContractVersion', () => {
+  assert.throws(
+    () => buildCrawlerV2SchedulerActivationPreflight({
+      snapshot: validSnapshot({ v2: { stateStoreEpoch: 'epoch-current', namespace: 'terrapedia:crawler:wiki-monitor:v2:production:' } }),
+      t1Report: validT1(),
+      now: '2026-08-10T01:05:00.000Z',
+    }),
+    /queue contract version/i,
+  );
 });
 
 test('rejects an enabled or non-changed-only control state', () => {
