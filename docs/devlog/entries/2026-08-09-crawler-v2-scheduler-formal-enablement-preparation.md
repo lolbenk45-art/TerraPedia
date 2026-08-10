@@ -82,6 +82,30 @@
 
 - `commit SHA pending in final response`
 
+### 2026-08-10 (handoff plan review + boundary hardening)
+
+- Change: reviewed the plan's authority/boundary closure against the committed
+  code and found three defects. Fixed A in the plan (Task 6 Step 2) and
+  implemented B/C in code under TDD.
+- Finding A (TOCTOU, plan): enablement re-used a request-time preflight whose
+  freshness window is 15 minutes while the owner-approval gap is unbounded.
+  Task 6 now requires a fresh read-only preflight immediately before the enable
+  `PUT`, aborting on any epoch/namespace/config/attempt/claim/reconciler/domain
+  drift. Still gated; no code written for enablement.
+- Finding B (code): the code bundle was operator-chosen via `--code-bundle` and
+  never bound to the operation manifest. The preflight now derives its bundle
+  from `buildCanonicalOperationExecutionManifest(...).codeBundleEntries` (19
+  transitively-expanded files) and dropped `--code-bundle`; the proposal CLI
+  rejects a preflight whose bundle path set drifts from the manifest.
+- Finding C (code): `assertCodeBundle(codeBundle ?? expected)` let a missing
+  bundle vouch for itself. The builder now requires an explicit non-empty
+  `codeBundle`.
+- Evidence: scheduler preflight + proposal `14/14`, +manifest +cutover `80/80`,
+  whole automation lane `315/315`, `git diff --check` clean. Java untouched.
+- Boundary preserved: B/C are proposal-only preparation hardening (no DB/Redis/
+  Wiki/daemon/permit). No preflight/proposal/request/packet/permit was generated
+  and the Scheduler remains disabled and unauthorized.
+
 ### 2026-08-10
 
 - Change: completed read-only preflight and proposal hardening through Task 4.

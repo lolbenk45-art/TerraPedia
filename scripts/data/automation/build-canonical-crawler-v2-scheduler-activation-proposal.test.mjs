@@ -8,7 +8,17 @@ import {
   buildCrawlerV2SchedulerActivationProposal,
   sha256File,
 } from './build-canonical-crawler-v2-scheduler-activation-proposal.mjs';
-import { sha256Json } from './crawler-v2-scheduler-activation-preflight.mjs';
+import {
+  resolveSchedulerActivationCodeBundlePaths,
+  sha256Json,
+} from './crawler-v2-scheduler-activation-preflight.mjs';
+
+function manifestCodeBundle(repoRoot) {
+  return resolveSchedulerActivationCodeBundlePaths(repoRoot).map((relativePath) => ({
+    path: relativePath,
+    sha256: sha256File(path.resolve(repoRoot, relativePath)),
+  }));
+}
 
 const T1_HASH = `sha256:${'a'.repeat(64)}`;
 const CODE_HASH = `sha256:${'b'.repeat(64)}`;
@@ -106,19 +116,25 @@ test('proposal rejects preflight hash, code bundle, control, queue, reconciler, 
   );
 });
 
+test('proposal builder requires an explicit code bundle and never vouches for the preflight bundle itself', () => {
+  const preflight = validPreflight();
+  assert.throws(
+    () => buildCrawlerV2SchedulerActivationProposal({ t1Report, preflight, now: '2026-08-10T01:05:00.000Z' }),
+    /explicit code bundle is required|vouch/i,
+  );
+});
+
 test('proposal CLI verifies current T1 and code bytes before writing under the authorization root', () => {
   const repoRoot = process.cwd();
   const t1Path = 'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json';
-  const codePath = 'scripts/data/automation/crawler-v2-scheduler-activation-preflight.mjs';
   const t1Hash = sha256File(path.resolve(repoRoot, t1Path));
-  const codeHash = sha256File(path.resolve(repoRoot, codePath));
   const observedAt = new Date().toISOString();
   const preflightPayload = {
     ...validPreflight({
       observedAt,
       domains: [{ ...validPreflight().domains[0], observedAt }],
       t1Report: { ...t1Report, sha256: t1Hash, contentSha256: t1Hash },
-      codeBundle: [{ path: codePath, sha256: codeHash }],
+      codeBundle: manifestCodeBundle(repoRoot),
     }),
   };
   const inputPath = 'reports/authorization/canonical/.test-scheduler-activation.preflight.json';
@@ -135,6 +151,40 @@ test('proposal CLI verifies current T1 and code bytes before writing under the a
     const proposal = JSON.parse(fs.readFileSync(path.resolve(repoRoot, outputPath), 'utf8'));
     assert.equal(proposal.proposalOnly, true);
     assert.equal(proposal.current.enabled, false);
+    assert.equal(proposal.codeBundle.length, manifestCodeBundle(repoRoot).length);
+  } finally {
+    fs.rmSync(path.resolve(repoRoot, inputPath), { force: true });
+    fs.rmSync(path.resolve(repoRoot, outputPath), { force: true });
+  }
+});
+
+test('proposal CLI rejects a preflight whose code bundle path set drifts from the operation manifest', () => {
+  const repoRoot = process.cwd();
+  const t1Path = 'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json';
+  const t1Hash = sha256File(path.resolve(repoRoot, t1Path));
+  const observedAt = new Date().toISOString();
+  const truncatedBundle = manifestCodeBundle(repoRoot).slice(0, -1);
+  const preflightPayload = {
+    ...validPreflight({
+      observedAt,
+      domains: [{ ...validPreflight().domains[0], observedAt }],
+      t1Report: { ...t1Report, sha256: t1Hash, contentSha256: t1Hash },
+      codeBundle: truncatedBundle,
+    }),
+  };
+  const inputPath = 'reports/authorization/canonical/.test-scheduler-activation-drift.preflight.json';
+  const outputPath = 'reports/authorization/canonical/.test-scheduler-activation-drift.proposal.json';
+  fs.writeFileSync(path.resolve(repoRoot, inputPath), `${JSON.stringify(preflightPayload, null, 2)}\n`, { flag: 'wx' });
+  try {
+    const result = spawnSync(process.execPath, [
+      'scripts/data/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
+      `--preflight=${inputPath}`,
+      `--t1-report=${t1Path}`,
+      `--output=${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /path set does not match the operation manifest/i);
+    assert.equal(fs.existsSync(path.resolve(repoRoot, outputPath)), false);
   } finally {
     fs.rmSync(path.resolve(repoRoot, inputPath), { force: true });
     fs.rmSync(path.resolve(repoRoot, outputPath), { force: true });

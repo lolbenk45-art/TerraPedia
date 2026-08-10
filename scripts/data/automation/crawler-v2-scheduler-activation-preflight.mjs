@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
+
 const OPERATION_ID = 'canonical-crawler-v2-scheduler-activation';
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const V2_NAMESPACE_PATTERN = /^terrapedia:crawler:wiki-monitor:v2:/;
@@ -157,12 +159,35 @@ export function buildCrawlerV2SchedulerActivationPreflight({
 
 export const CRAWLER_V2_SCHEDULER_ACTIVATION_PREFLIGHT_MAX_AGE_MS = DEFAULT_MAX_AGE_MS;
 
+// The code bundle must be the operation's manifest-declared governing code
+// set, not an operator-supplied list. Deriving it from the execution manifest
+// (which transitively expands static imports and fails closed on any missing
+// file) is what makes "freeze the exact current code bundle" a real guarantee.
+export function resolveSchedulerActivationCodeBundlePaths(repoRoot) {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: OPERATION_ID,
+  });
+  const paths = (manifest.codeBundleEntries ?? []).map((entry) => entry.path);
+  if (paths.length === 0) throw new Error('manifest declared an empty code bundle');
+  return paths;
+}
+
+function resolveSchedulerActivationCodeBundle(repoRoot) {
+  return resolveSchedulerActivationCodeBundlePaths(repoRoot).map((relativePath) => {
+    const bytes = fs.readFileSync(
+      assertInsideRepo(path.resolve(repoRoot, relativePath), repoRoot, `code bundle ${relativePath}`),
+    );
+    return { path: relativePath, sha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}` };
+  });
+}
+
 function parseArgs(argv) {
   const args = Object.fromEntries(argv.filter((arg) => arg.startsWith('--')).map((arg) => {
     const [key, ...rest] = arg.slice(2).split('=');
     return [key, rest.join('=')];
   }));
-  for (const key of ['api-base', 't1-report', 'code-bundle', 'output']) {
+  for (const key of ['api-base', 't1-report', 'output']) {
     if (!args[key]) throw new Error(`--${key}=<path> is required`);
   }
   return args;
@@ -193,17 +218,6 @@ function readT1Report(reportPath, repoRoot) {
     sha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
     contentSha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
   };
-}
-
-function readCodeBundle(bundlePath, repoRoot) {
-  const bundleFile = assertInsideRepo(path.resolve(repoRoot, bundlePath), repoRoot, 'code bundle list');
-  const entries = JSON.parse(fs.readFileSync(bundleFile, 'utf8'));
-  if (!Array.isArray(entries) || entries.length === 0) throw new Error('code bundle file must contain a non-empty array');
-  return entries.map((entry) => {
-    const relativePath = requireText(entry?.path, 'code bundle path');
-    const bytes = fs.readFileSync(assertInsideRepo(path.resolve(repoRoot, relativePath), repoRoot, `code bundle ${relativePath}`));
-    return { path: relativePath, sha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}` };
-  });
 }
 
 function assertInsideRepo(filePath, repoRoot, label) {
@@ -241,7 +255,7 @@ async function main() {
   const repoRoot = process.cwd();
   const snapshot = await readPreflightEndpoint(args['api-base']);
   const t1Report = readT1Report(args['t1-report'], repoRoot);
-  const codeBundle = readCodeBundle(args['code-bundle'], repoRoot);
+  const codeBundle = resolveSchedulerActivationCodeBundle(repoRoot);
   const preflight = buildCrawlerV2SchedulerActivationPreflight({
     snapshot,
     t1Report,

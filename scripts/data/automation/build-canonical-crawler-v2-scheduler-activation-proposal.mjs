@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+  resolveSchedulerActivationCodeBundlePaths,
   sha256Json,
 } from './crawler-v2-scheduler-activation-preflight.mjs';
 
@@ -56,7 +57,13 @@ function assertT1(t1Report, preflight) {
 function assertCodeBundle(codeBundle, preflight) {
   const expected = preflight.codeBundle;
   if (!Array.isArray(expected) || expected.length === 0) throw new Error('preflight code bundle is required');
-  if (JSON.stringify(codeBundle ?? expected) !== JSON.stringify(expected)) throw new Error('code bundle drifted from preflight');
+  // A missing codeBundle must fail closed. Defaulting to preflight.codeBundle
+  // would compare the expected set to itself and make the drift check a no-op,
+  // so the caller must supply the independently observed bundle.
+  if (!Array.isArray(codeBundle) || codeBundle.length === 0) {
+    throw new Error('explicit code bundle is required; the preflight bundle cannot vouch for itself');
+  }
+  if (JSON.stringify(codeBundle) !== JSON.stringify(expected)) throw new Error('code bundle drifted from preflight');
   const seen = new Set();
   for (const entry of expected) {
     const entryPath = requireText(entry?.path, 'code bundle path');
@@ -169,6 +176,16 @@ function assertInsideRepo(filePath, repoRoot, label) {
   return normalized;
 }
 
+function assertPreflightBundleMatchesManifest(preflight, repoRoot) {
+  const expectedPaths = resolveSchedulerActivationCodeBundlePaths(repoRoot);
+  const actualPaths = (preflight?.codeBundle ?? []).map((entry) => entry?.path);
+  const expectedSet = [...expectedPaths].sort();
+  const actualSet = [...actualPaths].sort();
+  if (JSON.stringify(expectedSet) !== JSON.stringify(actualSet)) {
+    throw new Error('preflight code bundle path set does not match the operation manifest');
+  }
+}
+
 function readAndVerifyCodeBundle(preflight, repoRoot) {
   if (!Array.isArray(preflight?.codeBundle) || preflight.codeBundle.length === 0) {
     throw new Error('preflight code bundle is required');
@@ -190,6 +207,7 @@ function main() {
   const outputPath = path.resolve(args.output);
   const t1Report = JSON.parse(fs.readFileSync(t1Path, 'utf8'));
   const preflight = JSON.parse(fs.readFileSync(preflightPath, 'utf8'));
+  assertPreflightBundleMatchesManifest(preflight, repoRoot);
   const fileT1 = {
     ...t1Report,
     path: args['t1-report'],

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildCrawlerV2SchedulerActivationPreflight,
   canonicalJson,
+  resolveSchedulerActivationCodeBundlePaths,
   sha256Json,
 } from './crawler-v2-scheduler-activation-preflight.mjs';
 
@@ -70,6 +71,15 @@ function validT1() {
 test('canonicalJson sorts object keys but preserves array order', () => {
   assert.equal(canonicalJson({ b: 1, a: [{ d: 2, c: 3 }] }), '{"a":[{"c":3,"d":2}],"b":1}');
   assert.match(sha256Json({ a: 1 }), /^sha256:[a-f0-9]{64}$/);
+});
+
+test('code bundle is derived from the operation manifest, not an operator-supplied list', () => {
+  const paths = resolveSchedulerActivationCodeBundlePaths(process.cwd());
+  assert.ok(paths.length >= 2, 'manifest must declare the governing code set');
+  assert.ok(paths.includes('scripts/data/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs'));
+  assert.ok(paths.includes('scripts/data/automation/crawler-v2-scheduler-activation-preflight.mjs'));
+  // The set is transitively expanded, so it must be far larger than a hand-typed pair.
+  assert.ok(paths.length > 5, 'manifest bundle must expand transitive imports');
 });
 
 test('builds a disabled, no-write preflight bound to T1 and code hashes', () => {
