@@ -1,19 +1,20 @@
 # Current Devlog
 
-Last updated: 2026-08-10 05:15 CST by Codex
+Last updated: 2026-08-11 12:39 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-The isolated Scheduler T1 and Item 100-row acceptance are closed. Active work
-has completed Tasks 1-4 of the read-only, current-hash formal Scheduler
-enablement preparation. Formal Scheduler activation remains disabled and is
-not authorized.
+Tasks 1–6 complete. Task 6 (formal scheduler activation evidence run) executed
+and rolled back cleanly on 2026-08-11. Scheduler is currently **disabled**.
+Next step is an independent owner decision: keep enabled permanently (new auth
+cycle required) or push/merge the branch as-is.
 
 ## Open Work
 
-- Future Task 5 owner checkpoint - owner: repository owner; status: blocked; branch: `design/crawler-auto-ingestion-readiness`; worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness`; parent: scheduler lifecycle; blocked by: fresh ADMIN authorization for enablement only; contract handoff: run a new authenticated read-only preflight and proposal first, then stop for owner approval before request/packet/permit.
+- **Permanent scheduler enablement**: independent owner decision; requires a new Task 5/6 authorization cycle (this run's packet was the evidence run; rollback closes it).
+- **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
 - Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.
 
@@ -127,6 +128,10 @@ owner authorization.
   requires a separate evidence refresh task.
 
 ## Recently Closed
+
+- `entries/2026-08-11-scheduler-activation-task6.md` - Task 6 formal activation evidence run: enable→sweep→rollback completed 2026-08-11T12:36Z; 5 authorized domains dispatched (items/npcs/projectiles/buffs/armor_sets); rollback clean; 28/28 tests pass; scheduler is disabled.
+
+- `entries/2026-08-11-scheduler-preflight-domain-mapping-decision.md` - Task 5 preflight domain gap analysis; owner chose Approach C (narrow to 5 auto-dispatch domains); preflight now 10/10 eligible.
 
 - `entries/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md` - Tasks 1-4 committed as proposal-only, current-hash-bound preparation; no production preflight artifact or authorization identity generated.
 

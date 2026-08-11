@@ -64,6 +64,7 @@ reports/domain/staleness-history.jsonl
 # contract modes require these reports on disk, and an ignored evidence file would
 # recreate exactly the defect this migration retires.
 !reports/canonical-migration/
+!reports/authorization/
 !reports/item-groups/
 !reports/item-groups/any-item-group-source-audit-2026-05-23.json
 !reports/item-groups/any-item-group-source-audit-2026-05-23.md
