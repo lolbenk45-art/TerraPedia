@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "canonical_npc_isolated_t1_acceptance",
+  "status": "passed",
+  "generatedAt": "2026-08-07T01:10:45.399Z",
+  "runId": "npc-t1-20260807-01",
+  "runKey": "npc_c17caf46f16a50e2",
+  "profile": "t1",
+  "inputHash": "sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+  "completionHash": "sha256:02aaab79b51a8f1e7886cd8cd5d96fba0b5f0bf042529c97eecf163623a56d6a",
+  "snapshot": {
+    "snapshotId": "npc-t1-20260807-01-readonly-snapshot",
+    "snapshotHash": "sha256:6c0173826905a142774ae077a83f868db689f6f09d1634a51d35fbf71f9e93c0",
+    "verificationHash": "sha256:f47ffdddf7d4e2a48b48487d2526a7aec5529eaffb9a9ecede9c396a0aff3267"
+  },
+  "snapshotBinding": {
+    "inputHash": "sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+    "completionHash": "sha256:02aaab79b51a8f1e7886cd8cd5d96fba0b5f0bf042529c97eecf163623a56d6a",
+    "snapshotHash": "sha256:6c0173826905a142774ae077a83f868db689f6f09d1634a51d35fbf71f9e93c0",
+    "verificationHash": "sha256:f47ffdddf7d4e2a48b48487d2526a7aec5529eaffb9a9ecede9c396a0aff3267"
+  },
+  "npcSnapshot": {
+    "requiredTableCount": 13,
+    "sourceCounts": {
+      "local.source_dataset_landings": 12459,
+      "local.items": 6159,
+      "local.npcs": 762,
+      "local.buffs": 388,
+      "local.npc_buff_relations": 1270,
+      "local.npc_shop_entries": 1116,
+      "local.npc_loot_entries": 1880,
+      "maint.maint_npc_crawler_facts": 25,
+      "relation.item_source_facts": 5651,
+      "relation.item_source_details": 5651,
+      "relation.item_npc_shop_relations": 1116,
+      "relation.item_npc_loot_relations": 1544,
+      "relation.npc_buff_relations": 1270
+    }
+  },
+  "probeCounts": {
+    "rollback": [
+      0,
+      0,
+      0
+    ],
+    "commit": [
+      1,
+      1,
+      1
+    ],
+    "restore": [
+      0,
+      0,
+      0
+    ]
+  },
+  "rollbackPassed": true,
+  "restorePassed": true,
+  "cleanupPassed": true
+}

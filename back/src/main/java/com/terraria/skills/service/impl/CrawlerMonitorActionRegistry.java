@@ -4,9 +4,31 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Component
 public class CrawlerMonitorActionRegistry {
+
+    /**
+     * The single source of truth for which crawler domains the scheduler is
+     * allowed to auto-dispatch under changed-only automation. This is the
+     * "auto-ingestion set": {@code isAutoEligibleRule} in the monitor service
+     * and the scheduler-activation preflight both key off this set, so the
+     * enablement gate covers exactly the domains the scheduler will actually
+     * act on — no wider (which would block on domains it never touches) and no
+     * narrower (which would let an uncovered domain slip past the gate).
+     *
+     * <p>Deliberately narrow. Expanding it is a governance decision: any domain
+     * added here must have a fresh, passing domain-acceptance panel before the
+     * preflight will report it eligible.
+     */
+    public static final Set<String> AUTO_DISPATCH_DOMAINS = Set.of(
+        "items",
+        "npcs",
+        "projectiles",
+        "armor_sets",
+        "buffs"
+    );
 
     private static final String TOWN_NPC_RESUME =
         "data/generated/resume/domain-source-town-npc-maintenance.resume.json";
@@ -139,6 +161,43 @@ public class CrawlerMonitorActionRegistry {
         );
     }
 
+    private static CrawlerMonitorActionDefinition itemsSample() {
+        return new CrawlerMonitorActionDefinition(
+            "items",
+            "模拟物品爬取（真实样本）",
+            "fixture.items.standardized",
+            "data/standardized/items.standardized.json",
+            "crawler-queue-v2-items-fixture",
+            "<progressPath>",
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-items-fixture.mjs",
+                "--items-input=data/standardized/items.standardized.json",
+                "--progress-path=<progressPath>",
+                "--output-path=<progressPath>.items-sample.json"
+            ),
+            false,
+            false,
+            false,
+            "fresh",
+            null,
+            "fresh",
+            "sample",
+            "direct_crawl",
+            "fresh",
+            "读取最多三条真实标准化物品记录，模拟完整 V2 任务状态与产物链路。",
+            false,
+            "仅写入当前 attempt 的进度、日志和样本 JSON",
+            "none",
+            0L,
+            3L,
+            true,
+            false,
+            "summary",
+            false
+        );
+    }
+
     private static List<CrawlerMonitorActionDefinition> defaultActions() {
         return List.of(
             backend(
@@ -155,6 +214,15 @@ public class CrawlerMonitorActionRegistry {
                 "覆盖物品模块来源和标准化文件", "none", 1L, false,
                 "destructive", false, true, true
             ),
+            backend(
+                "items", "核验未解析物品图片来源", "wiki.item.image_source_verification",
+                "Frozen unresolved item image identity set",
+                "item-image-source-verification", "verify", "direct_crawl", "fresh",
+                "仅核验冻结列表中的未解析物品图片来源。",
+                "写入图片来源核验证据和进度", "none", 9L, false,
+                "summary", false, true, true
+            ),
+            itemsSample(),
             backend(
                 "npcs", "检查 NPC 模块更新", "wiki.module.npcinfo", "Module:Npcinfo/data",
                 "wiki-npcs-refresh", "check", "check_sync", "check",
@@ -290,21 +358,21 @@ public class CrawlerMonitorActionRegistry {
             ),
             direct(
                 "shimmer",
-                "重新抓取 Shimmer 页面",
+                "生成 Shimmer 内容寻址数据包",
                 "wiki.domain.shimmer",
                 "Shimmer source page",
                 "domain-source-shimmer",
                 "fresh",
                 "direct_crawl",
                 "fresh",
-                "直接重新抓取一个 Shimmer 页面及其 revision。",
-                "更新 Shimmer 来源文件和报告",
-                3L,
-                true,
+                "抓取、解析并校验一个完整的 Shimmer 内容寻址 generation。",
+                "更新 Shimmer generation pointer、原始证据和报告",
+                null,
+                false,
                 "data/generated/domain-source-shimmer-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/fetch/fetch-wiki-shimmer-page.mjs",
+                    "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
                     "--progress-path=data/generated/domain-source-shimmer-progress.latest.json"
                 )
             ),
@@ -334,6 +402,38 @@ public class CrawlerMonitorActionRegistry {
                 "boss-loot-apply", "apply", "backfill", "apply",
                 "通过既有 import lane 正式写入 Boss 掉落。",
                 "写入导入结果和审计报告", "write", null, false,
+                "destructive", false, false, false
+            ),
+            backend(
+                "item_groups", "预览规范物品组入库", "canonical.item_groups",
+                "规范物品组 landing、maint、relation 和 local projection",
+                "item-group-canonical-preview", "preview", "data_process", "preview",
+                "校验并冻结来源派生物品组差异，不写入数据库。",
+                "写入规范物品组预览和进度证据", "read", null, false,
+                "summary", true, false, false
+            ),
+            backend(
+                "item_groups", "正式写入规范物品组", "canonical.item_groups",
+                "规范物品组 landing、maint、relation 和 local projection",
+                "item-group-canonical-apply", "apply", "data_process", "apply",
+                "通过受治理执行器写入来源派生物品组及 projection state。",
+                "写入规范物品组、快照、审计和进度证据", "write", null, false,
+                "destructive", false, false, false
+            ),
+            backend(
+                "npc_crawler_facts", "预览 NPC crawler facts 入库", "canonical.npc_crawler_facts",
+                "NPC base landing、crawler fact landing 与 maint/relation/local projection",
+                "npc-crawler-facts-preview", "preview", "data_process", "preview",
+                "校验并冻结 NPC crawler facts 差异，不运行 crawler、不写入数据库。",
+                "写入 NPC crawler facts 预览和进度证据", "read", null, false,
+                "summary", true, false, false
+            ),
+            backend(
+                "npc_crawler_facts", "正式写入 NPC crawler facts", "canonical.npc_crawler_facts",
+                "NPC base landing、crawler fact landing 与 maint/relation/local projection",
+                "npc-crawler-facts-apply", "apply", "data_process", "apply",
+                "通过受治理执行器写入已冻结且审核通过的 NPC crawler facts。",
+                "写入 NPC crawler facts、快照、审计和进度证据", "write", null, false,
                 "destructive", false, false, false
             )
         );

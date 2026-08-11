@@ -15,7 +15,7 @@ const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.jso
 const mysql = require('mysql2/promise');
 
 const DEFAULTS = {
-  landingDatabase: 'terria_v1_maint',
+  landingDatabase: 'terria_v1_local',
   maintDatabase: 'terria_v1_maint',
   relationDatabase: 'terria_v1_relation',
   localDatabase: 'terria_v1_local',
@@ -61,6 +61,8 @@ export function buildCrossDbReferentialIntegrityQueries(options = {}) {
   };
 
   const landingTable = table(settings.landingDatabase, 'source_dataset_landings');
+  const maintItemSources = table(settings.maintDatabase, 'maint_item_sources');
+  const maintNpcCrawlerFacts = table(settings.maintDatabase, 'maint_npc_crawler_facts');
   const relationItemFacts = table(settings.relationDatabase, 'item_source_facts');
   const relationShopRelations = table(settings.relationDatabase, 'item_npc_shop_relations');
   const relationLootRelations = table(settings.relationDatabase, 'item_npc_loot_relations');
@@ -106,7 +108,7 @@ WHERE ${maintRecencyFilter('m', settings)}
       expectation: { type: 'zero', field: 'count' },
       description: 'Maint item source rows must materialize into relation item_source_facts.',
       sql: `SELECT COUNT(*) AS count
-FROM ${table(settings.maintDatabase, 'maint_item_sources')} m
+FROM ${maintItemSources} m
 LEFT JOIN ${relationItemFacts} r
   ON r.source_maint_table = 'maint_item_sources'
  AND BINARY r.source_maint_record_key = BINARY m.record_key
@@ -120,14 +122,22 @@ WHERE ${maintRecencyFilter('m', settings)}
       description: 'Relation item_source_facts must remain traceable back to maint item sources.',
       sql: `SELECT COUNT(*) AS count
 FROM ${relationItemFacts} r
-LEFT JOIN ${table(settings.maintDatabase, 'maint_item_sources')} m
+LEFT JOIN ${maintItemSources} m
   ON r.source_maint_table = 'maint_item_sources'
  AND BINARY m.record_key = BINARY r.source_maint_record_key
+ AND m.status = 1
+ AND m.deleted = 0
+LEFT JOIN ${maintNpcCrawlerFacts} n
+  ON r.source_maint_table = 'maint_npc_crawler_facts'
+ AND BINARY n.record_key = BINARY r.source_maint_record_key
+ AND n.status = 1
+ AND n.deleted = 0
 WHERE ${relationRecencyFilter('r', settings)}
   AND (
-    r.source_maint_table <> 'maint_item_sources'
-    OR r.source_maint_record_key IS NULL
-    OR m.record_key IS NULL
+    r.source_maint_record_key IS NULL
+    OR r.source_maint_table NOT IN ('maint_item_sources', 'maint_npc_crawler_facts')
+    OR (r.source_maint_table = 'maint_item_sources' AND m.record_key IS NULL)
+    OR (r.source_maint_table = 'maint_npc_crawler_facts' AND n.record_key IS NULL)
   )`,
     }),
     check({
@@ -139,7 +149,7 @@ WHERE ${relationRecencyFilter('r', settings)}
 FROM ${relationShopRelations} r
 LEFT JOIN ${localItems} li
   ON li.deleted = 0
- AND li.source_id = r.item_source_id
+ AND BINARY li.internal_name = BINARY r.item_internal_name
 LEFT JOIN ${localNpcs} ln
   ON ln.deleted = 0
  AND ln.source_id = r.npc_source_id
@@ -162,7 +172,7 @@ WHERE ${relationRecencyFilter('r', settings)}
 FROM ${relationLootRelations} r
 LEFT JOIN ${localItems} li
   ON li.deleted = 0
- AND li.source_id = r.item_source_id
+ AND BINARY li.internal_name = BINARY r.item_internal_name
 LEFT JOIN ${localNpcs} ln
   ON ln.deleted = 0
  AND ln.source_id = r.npc_source_id
@@ -187,13 +197,15 @@ LEFT JOIN ${relationItemFacts} r
   ON r.deleted = 0
  AND (
       (r.item_source_id IS NOT NULL AND r.item_source_id = l.item_id)
-      OR (r.source_provider IS NOT NULL AND r.source_provider = l.source_provider AND COALESCE(r.source_page, '') = COALESCE(l.source_page, ''))
+      OR (r.source_provider IS NOT NULL
+          AND BINARY r.source_provider = BINARY l.source_provider
+          AND BINARY COALESCE(r.source_page, '') = BINARY COALESCE(l.source_page, ''))
  )
-LEFT JOIN ${table(settings.maintDatabase, 'maint_item_sources')} m
+LEFT JOIN ${maintItemSources} m
   ON m.status = 1
  AND m.deleted = 0
- AND m.source_provider = l.source_provider
- AND COALESCE(m.source_page, '') = COALESCE(l.source_page, '')
+ AND BINARY m.source_provider = BINARY l.source_provider
+ AND BINARY COALESCE(m.source_page, '') = BINARY COALESCE(l.source_page, '')
 WHERE ${localRecencyFilter('l', settings)}
   AND l.deleted = 0
   AND l.status = 1
@@ -245,7 +257,6 @@ LEFT JOIN ${localShop} s
   ON s.id = c.shop_entry_id
  AND s.deleted = 0
 WHERE ${localRecencyFilter('c', settings)}
-  AND c.deleted = 0
   AND s.id IS NULL`,
     }),
   ];
@@ -258,11 +269,12 @@ export function buildCrossDbReferentialIntegrityReport({
   checks = [],
 } = {}) {
   const normalizedChecks = checks.map((entry) => buildReportCheck(entry));
-  const blockingCount = normalizedChecks.filter((check) => check.status === 'fail').length;
+  const failedCount = normalizedChecks.filter((check) => check.status === 'fail').length;
   const warningCount = normalizedChecks.filter((check) => check.status === 'warn').length;
   const passCount = normalizedChecks.filter((check) => check.status === 'pass').length;
   const infoCount = normalizedChecks.filter((check) => check.status === 'info').length;
   const missingCount = normalizedChecks.filter((check) => check.status === 'missing').length;
+  const blockingCount = failedCount + missingCount;
 
   return {
     generatedAt,
@@ -283,7 +295,9 @@ export function buildCrossDbReferentialIntegrityReport({
       missingCount,
     },
     checks: normalizedChecks,
-    blockingReasons: normalizedChecks.filter((check) => check.status === 'fail').map((check) => check.message),
+    blockingReasons: normalizedChecks
+      .filter((check) => check.status === 'fail' || check.status === 'missing')
+      .map((check) => check.message),
     warningReasons: normalizedChecks.filter((check) => check.status === 'warn').map((check) => check.message),
   };
 }
@@ -408,7 +422,11 @@ function quoteIdentifier(value) {
 }
 
 function currentLandingClause() {
-  return 'AND l.is_current = 1 AND l.deleted = 0';
+  return 'AND l.current_slot = 1';
+}
+
+export function crossDbAuditExitCode(report) {
+  return report?.summary?.status === 'blocked' ? 1 : 0;
 }
 
 function maintRecencyFilter(alias, options) {
@@ -454,4 +472,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const options = parseArgs(process.argv.slice(2));
   const result = await runCrossDbReferentialIntegrityAudit(options);
   process.stdout.write(`${JSON.stringify(result.report, null, 2)}\n`);
+  process.exitCode = crossDbAuditExitCode(result.report);
 }

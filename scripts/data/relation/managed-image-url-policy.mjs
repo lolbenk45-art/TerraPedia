@@ -105,6 +105,36 @@ export function isManagedImageUrl(value, prefixes) {
   });
 }
 
+// The managed store is addressed two ways: an absolute URL, whose origin must be
+// one we are configured for, and the origin-free path the backend returns for an
+// upload. A path carries no origin to distrust, so it is matched on path alone
+// against the configured prefixes; `isManagedImageUrl` stays strict and is the
+// right predicate whenever the origin itself is the question.
+export function isManagedImagePath(value, prefixes) {
+  const text = toText(value);
+  if (!text) {
+    return false;
+  }
+  if (!text.startsWith('/') || text.startsWith('//')) {
+    return isManagedImageUrl(text, prefixes);
+  }
+  const candidatePath = text.split(/[?#]/, 1)[0];
+  return managedImagePathPrefixes(prefixes).some((prefix) => startsWithPath(candidatePath, prefix));
+}
+
+// The origin-free path prefixes the configured URL prefixes resolve to. Callers
+// that match stored values textually — SQL `LIKE`, for one — need both forms.
+export function managedImagePathPrefixes(prefixes) {
+  const paths = new Set();
+  for (const prefix of normalizeManagedImageUrlPrefixes(prefixes)) {
+    const parsed = parseHttpUrl(prefix);
+    if (parsed) {
+      paths.add(parsed.pathname);
+    }
+  }
+  return [...paths];
+}
+
 function normalizePrefix(value) {
   const text = toText(value);
   if (!text) {

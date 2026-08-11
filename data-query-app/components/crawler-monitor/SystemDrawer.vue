@@ -12,7 +12,8 @@
         </button>
       </header>
 
-      <section class="system-section">
+      <div class="system-drawer__body">
+        <section class="system-section">
         <header>
           <ShieldAlert :size="17" />
           <h3>诊断</h3>
@@ -29,9 +30,9 @@
             <span>{{ signal.detail || signal.message || '暂无补充' }}</span>
           </article>
         </div>
-      </section>
+        </section>
 
-      <section class="system-section">
+        <section class="system-section">
         <header>
           <Files :size="17" />
           <h3>报告库</h3>
@@ -39,14 +40,49 @@
         <div class="report-list">
           <button v-for="report in reports" :key="report.path || report.name" type="button" class="report-row" :disabled="!report.path" @click="$emit('preview', report.path)">
             <span>{{ report.category || '报告' }}</span>
-            <strong>{{ report.name || report.path || '未命名报告' }}</strong>
-            <small>{{ report.updatedAt || '暂无时间' }}</small>
+            <span class="report-row__main">
+              <strong>{{ report.name || report.path || '未命名报告' }}</strong>
+              <small :title="report.path || ''">{{ report.path || '暂无路径' }}</small>
+            </span>
+            <span class="report-row__meta">
+              <small>{{ formatReportTime(report.updatedAt) }}</small>
+              <small>{{ formatReportSize(report.sizeBytes) }}</small>
+            </span>
+            <Eye :size="16" aria-hidden="true" />
           </button>
           <p v-if="!reports.length" class="empty-line">暂无报告</p>
         </div>
-      </section>
+        </section>
 
-      <section class="system-section">
+        <section v-if="v2Mode" class="system-section system-section--automation">
+        <header>
+          <SlidersHorizontal :size="17" />
+          <h3>V2 自动化</h3>
+        </header>
+        <div class="settings-card">
+          <label>
+            <span>检测后自动派发</span>
+            <span class="settings-card__state">{{ v2AutomationForm?.enabled ? '已开启' : '已暂停' }}</span>
+            <input type="checkbox" :checked="v2AutomationForm?.enabled === true" @change="updateV2Enabled" />
+          </label>
+          <label>
+            <span>扫描间隔</span>
+            <input type="number" min="5" step="5" :value="v2AutomationIntervalValue" @change="updateV2Interval" />
+          </label>
+          <div class="settings-actions">
+            <button type="button" class="btn btn-secondary" :disabled="v2SweepLoading" @click="$emit('run-v2-sweep')">
+              <RefreshCw :size="15" />
+              <span>{{ v2SweepLoading ? '扫描中' : '立即扫描' }}</span>
+            </button>
+            <button type="button" class="btn btn-primary" :disabled="v2Saving" @click="$emit('save-v2-automation')">
+              <Save :size="15" />
+              <span>{{ v2Saving ? '保存中' : '保存控制' }}</span>
+            </button>
+          </div>
+        </div>
+        </section>
+
+        <section v-if="!v2Mode" class="system-section">
         <header>
           <SlidersHorizontal :size="17" />
           <h3>自动派发</h3>
@@ -73,14 +109,15 @@
             <span>{{ saving ? '保存中' : '保存设置' }}</span>
           </button>
         </div>
-      </section>
+        </section>
+      </div>
     </aside>
   </Teleport>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Files, Save, ShieldAlert, SlidersHorizontal, X } from 'lucide-vue-next'
+import { Eye, Files, RefreshCw, Save, ShieldAlert, SlidersHorizontal, X } from 'lucide-vue-next'
 
 const props = defineProps<{
   open: boolean
@@ -88,7 +125,11 @@ const props = defineProps<{
   dataQualitySignals: Array<Record<string, any>>
   reports: Array<Record<string, any>>
   autoDispatchForm: Record<string, any>
+  v2Mode: boolean
+  v2AutomationForm?: Record<string, any>
   saving?: boolean
+  v2Saving?: boolean
+  v2SweepLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -96,6 +137,9 @@ const emit = defineEmits<{
   preview: [path: string]
   'update-auto-dispatch': [settings: Record<string, any>]
   'save-auto-dispatch': []
+  'update-v2-automation': [settings: Record<string, any>]
+  'save-v2-automation': []
+  'run-v2-sweep': []
 }>()
 
 const autoDispatchStateLabel = computed(() => {
@@ -108,6 +152,26 @@ const autoDispatchIntervalValue = computed(() => {
   const value = Number(props.autoDispatchForm?.sweepIntervalMinutes)
   return Number.isFinite(value) && value > 0 ? value : ''
 })
+
+const v2AutomationIntervalValue = computed(() => {
+  const value = Number(props.v2AutomationForm?.sweepIntervalMinutes)
+  return Number.isFinite(value) && value > 0 ? value : ''
+})
+
+function formatReportTime(value?: unknown) {
+  if (!value) return '暂无时间'
+  const date = new Date(String(value))
+  if (Number.isNaN(date.getTime())) return '时间未知'
+  return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+function formatReportSize(value?: unknown) {
+  const bytes = Number(value)
+  if (!Number.isFinite(bytes) || bytes < 0) return '大小未知'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 function updateEnabled(event: Event) {
   emit('update-auto-dispatch', {
@@ -124,6 +188,16 @@ function updateInterval(event: Event) {
     sweepIntervalMinutes: raw && Number.isFinite(value) && value > 0 ? value : undefined,
   })
 }
+
+function updateV2Enabled(event: Event) {
+  emit('update-v2-automation', { ...props.v2AutomationForm, enabled: Boolean((event.target as HTMLInputElement | null)?.checked) })
+}
+
+function updateV2Interval(event: Event) {
+  const raw = String((event.target as HTMLInputElement | null)?.value || '').trim()
+  const value = Number(raw)
+  emit('update-v2-automation', { ...props.v2AutomationForm, sweepIntervalMinutes: raw && Number.isFinite(value) && value > 0 ? value : undefined })
+}
 </script>
 
 <style scoped>
@@ -138,16 +212,26 @@ function updateInterval(event: Event) {
   position: fixed;
   inset: 0 0 0 auto;
   z-index: calc(var(--z-modal) + 1);
-  width: min(620px, 100vw);
+  width: min(820px, 100vw);
+  height: 100dvh;
   display: grid;
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
   background: var(--color-bg);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-xl);
   padding: 18px;
-  overflow: auto;
+  overflow: hidden;
   animation: drawer-in var(--transition-base) var(--ease-emphasis);
+}
+
+.system-drawer__body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .drawer-head,
@@ -187,16 +271,22 @@ function updateInterval(event: Event) {
 }
 
 .system-section {
-  display: grid;
-  gap: 10px;
+  min-height: 0;
+  flex: 0 0 auto;
+  display: block;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-1);
   padding: 12px;
 }
 
+.system-section--automation {
+  display: block;
+}
+
 .system-section header {
   gap: 8px;
+  margin-bottom: 10px;
 }
 
 .system-grid {
@@ -219,19 +309,33 @@ function updateInterval(event: Event) {
 }
 
 .system-card small,
+.system-card strong,
 .system-card span {
   display: block;
   color: var(--color-text-secondary);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .system-card strong {
-  display: block;
+  color: var(--color-text);
   margin: 6px 0;
 }
 
 .report-list,
 .settings-card {
   display: grid;
+  gap: 8px;
+}
+
+.report-list,
+.system-grid {
+  min-height: 0;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -247,23 +351,42 @@ function updateInterval(event: Event) {
   cursor: pointer;
 }
 
-.report-row span {
+.report-row > span:first-child {
   flex: 0 0 auto;
   color: var(--color-primary-dark);
   font-weight: 700;
 }
 
-.report-row strong {
+.report-row__main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.report-row__main strong {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.report-row small {
-  flex: 0 0 auto;
-  margin-left: auto;
+.report-row__main small,
+.report-row__meta small {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text-muted);
+}
+
+.report-row__meta {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  white-space: nowrap;
+}
+
+.report-row > svg {
+  flex: 0 0 auto;
+  color: var(--color-primary);
 }
 
 .settings-card label {

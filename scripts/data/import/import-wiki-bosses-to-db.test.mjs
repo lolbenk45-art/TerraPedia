@@ -1,47 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
-import { reconcileBossNameZh, reconcileBossNotes, reconcileBossMembers } from './import-wiki-bosses-to-db.mjs';
+import { reconcileBossNameZh, reconcileBossNotes, reconcileBossMembers, shouldCreateBossImageUploader } from './import-wiki-bosses-to-db.mjs';
 
-test('reconcileBossNameZh keeps the stored Chinese name when the source carries none', () => {
-  assert.equal(reconcileBossNameZh({ titleZh: null }, '日耀柱'), '日耀柱');
-  assert.equal(reconcileBossNameZh({ titleZh: '   ' }, '日耀柱'), '日耀柱');
+test('boss importer resolves mysql2 through the repository module loader', () => {
+  const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
+  assert.match(source, /import \{ loadMysqlModule \} from '\.\.\/lib\/mysql-module\.mjs'/);
+  assert.match(source, /const mysql = loadMysqlModule\(\)/);
+  assert.doesNotMatch(source, /createRequire|require\('mysql2\/promise'\)/);
 });
 
-test('reconcileBossNameZh takes the source name when it has one', () => {
-  assert.equal(reconcileBossNameZh({ titleZh: '史莱姆王' }, null), '史莱姆王');
-  assert.equal(reconcileBossNameZh({ titleZh: '史莱姆王' }, '旧名'), '史莱姆王');
-  assert.equal(reconcileBossNameZh({ titleZh: null }, null), null);
+test('boss image helpers receive managed URL prefixes explicitly', () => {
+  const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
+  assert.match(source, /async function localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /async function reconcileBossMemberImages\(\s*members,\s*generatedNpcMap,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /function resolveBossImageUrl\(\s*record,\s*members,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /await localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /await reconcileBossMemberImages\(\s*memberMapping\.members,\s*generatedNpcMap,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /const imageUrl = resolveBossImageUrl\(\s*\{[^}]*\},\s*memberMapping\.members,\s*managedUrlPrefixes,?\s*\)/);
 });
 
-test('reconcileBossNotes prefers the Chinese intro the source carries', () => {
-  assert.equal(
-    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: '史莱姆王是个 Boss。' }, null),
-    '史莱姆王是个 Boss。'
-  );
-});
+test('offline boss import cannot create a backend image uploader', () => {
+  assert.equal(shouldCreateBossImageUploader({ dryRun: false, offline: true }), false);
+  assert.equal(shouldCreateBossImageUploader({ dryRun: true, offline: false }), false);
+  assert.equal(shouldCreateBossImageUploader({ dryRun: false, offline: false }), true);
 
-test('reconcileBossNotes keeps Chinese already in the row when the source has none', () => {
-  assert.equal(
-    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, '史莱姆王是个 Boss。'),
-    '史莱姆王是个 Boss。'
-  );
-});
-
-test('reconcileBossNotes falls back to English for rows that have no Chinese yet', () => {
-  assert.equal(
-    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, null),
-    'King Slime is a boss.'
-  );
-  assert.equal(
-    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, 'King Slime is an old boss.'),
-    'King Slime is a boss.'
-  );
-});
-
-test('reconcileBossNotes keeps the existing text when the source carries nothing', () => {
-  assert.equal(reconcileBossNotes({ notes: null, notesZh: null }, '史莱姆王是个 Boss。'), '史莱姆王是个 Boss。');
-  assert.equal(reconcileBossNotes({ notes: null, notesZh: null }, null), null);
+  const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
+  assert.match(source, /requiredPassword:\s*!dryRun\s*&&\s*!offline/);
+  assert.match(source, /offline,\s*\n\s*strictMode/);
 });
 
 test('reconcileBossMembers skips unchanged existing boss member assignments', async () => {
@@ -86,6 +73,47 @@ test('reconcileBossMembers clears removed members and updates changed roles', as
   assert.equal(stats.clearedMemberAssignments, 1);
   assert.equal(conn.calls.filter((call) => /\bSET boss_group_id = NULL\b/i.test(call.sql)).length, 1);
   assert.equal(conn.calls.filter((call) => /\bSET is_boss = 1\b/i.test(call.sql)).length, 2);
+});
+
+test('reconcileBossNameZh keeps the stored Chinese name when the source carries none', () => {
+  assert.equal(reconcileBossNameZh({ titleZh: null }, '日耀柱'), '日耀柱');
+  assert.equal(reconcileBossNameZh({ titleZh: '   ' }, '日耀柱'), '日耀柱');
+});
+
+test('reconcileBossNameZh takes the source name when it has one', () => {
+  assert.equal(reconcileBossNameZh({ titleZh: '史莱姆王' }, null), '史莱姆王');
+  assert.equal(reconcileBossNameZh({ titleZh: '史莱姆王' }, '旧名'), '史莱姆王');
+  assert.equal(reconcileBossNameZh({ titleZh: null }, null), null);
+});
+
+test('reconcileBossNotes prefers the Chinese intro the source carries', () => {
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: '史莱姆王是个 Boss。' }, null),
+    '史莱姆王是个 Boss。'
+  );
+});
+
+test('reconcileBossNotes keeps Chinese already in the row when the source has none', () => {
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, '史莱姆王是个 Boss。'),
+    '史莱姆王是个 Boss。'
+  );
+});
+
+test('reconcileBossNotes falls back to English for rows that have no Chinese yet', () => {
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, null),
+    'King Slime is a boss.'
+  );
+  assert.equal(
+    reconcileBossNotes({ notes: 'King Slime is a boss.', notesZh: null }, 'King Slime is an old boss.'),
+    'King Slime is a boss.'
+  );
+});
+
+test('reconcileBossNotes keeps the existing text when the source carries nothing', () => {
+  assert.equal(reconcileBossNotes({ notes: null, notesZh: null }, '史莱姆王是个 Boss。'), '史莱姆王是个 Boss。');
+  assert.equal(reconcileBossNotes({ notes: null, notesZh: null }, null), null);
 });
 
 function createFakeConnection({ existingMembers = [] } = {}) {

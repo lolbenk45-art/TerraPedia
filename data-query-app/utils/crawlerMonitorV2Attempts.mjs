@@ -41,6 +41,22 @@ export function latestV2TerminalAttemptsByDomain(rows, currentEpoch) {
   return latestByDomain
 }
 
+export function latestSuccessfulV2AttemptsByDomain(rows, currentEpoch) {
+  const latestByDomain = new Map()
+  const attempts = asArray(rows)
+    .filter((attempt) => String(attempt?.stateStoreEpoch || '') === String(currentEpoch || ''))
+    .filter((attempt) => String(attempt?.status || '').toLowerCase() === 'completed')
+    .sort(compareV2TerminalAttempts)
+
+  for (const attempt of attempts) {
+    const domains = asArray(attempt?.coveredDomains).length ? attempt.coveredDomains : [attempt?.domain]
+    for (const domain of domains) {
+      if (domain && !latestByDomain.has(domain)) latestByDomain.set(domain, attempt)
+    }
+  }
+  return latestByDomain
+}
+
 export function latestActionableV2AttemptsByDomain(rows, currentEpoch) {
   return new Map([...latestV2TerminalAttemptsByDomain(rows, currentEpoch)].filter(([, attempt]) =>
     asArray(attempt?.allowedActions).includes('retry'),

@@ -1,0 +1,781 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+
+import { TABLE_OWNERSHIP_MATRIX } from '../automation/table-ownership-matrix.mjs';
+import { NPC_APPLY_OWNER_PHASES } from './npc-apply-ownership-preparation.mjs';
+import * as ownershipPreparation from './npc-apply-ownership-preparation.mjs';
+import * as ownerPhase from './npc-owner-phase-apply.mjs';
+import {
+  buildCanonicalNpcApplyCompletion,
+  buildNpcOwnerOperationPlan,
+  createCanonicalNpcOwnerMysqlAdapter,
+  executeNpcOwnerOperation,
+  writeCanonicalNpcApplyResult,
+} from './npc-owner-phase-apply.mjs';
+import { buildRelationCompatSyncSql } from '../relation/sync-relation-to-local-compat-tables.mjs';
+
+const INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
+const COMPLETED_AT = '2026-07-29T05:30:00.000Z';
+const REPO_ROOT = path.resolve(import.meta.dirname, '../../..');
+
+function hashBytes(bytes) {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}
+
+function frozenInput(marker = 'same') {
+  return {
+    schemaVersion: 1,
+    operationId: 'canonical-npc-apply',
+    pairCount: 25,
+    evidencePairs: Array.from({ length: 25 }, (_, index) => ({ entityId: `npc-${index + 1}` })),
+    marker,
+  };
+}
+
+function inputEnvelope(marker = 'same') {
+  const payload = frozenInput(marker);
+  const bytes = Buffer.from(`${JSON.stringify(payload)}\n`);
+  return { payload, bytes, path: INPUT_PATH };
+}
+
+function operationDefinition(operationId) {
+  if (operationId === 'canonical-npc-landing-apply') {
+    return {
+      phaseIndex: 0,
+      capability: 'landing',
+      ownershipKeys: [
+        'local.source_dataset_landings.npcs_base',
+        'local.source_dataset_landings.npc_crawler_facts',
+      ],
+      requiredOperationIds: [],
+    };
+  }
+  return NPC_APPLY_OWNER_PHASES.find((phase) => phase.operationId === operationId)
+    ?? (operationId === 'canonical-npc-item-relation-lineage-repair'
+      ? ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION
+      : undefined);
+}
+
+function completedResult(operationId, inputHash, overrides = {}) {
+  const definition = operationDefinition(operationId);
+  return {
+    schemaVersion: 1,
+    resultKind: 'canonical_npc_owner_operation_result',
+    operationId,
+    phaseIndex: definition.phaseIndex,
+    capability: definition.capability,
+    status: 'COMPLETED',
+    input: { path: INPUT_PATH, contentHash: inputHash, sizeBytes: 123 },
+    requiredResults: definition.requiredOperationIds.map((requiredOperationId) => ({
+      operationId: requiredOperationId,
+      path: `reports/authorization/canonical/${requiredOperationId}.result.json`,
+      contentHash: `sha256:${requiredOperationId.padEnd(64, 'a').slice(0, 64).replace(/[^a-f0-9]/g, 'a')}`,
+      sizeBytes: 100,
+    })),
+    ownershipKeys: [...definition.ownershipKeys],
+    transactionCommitted: true,
+    rowCounts: Object.fromEntries(definition.ownershipKeys.map((key) => [key, 1])),
+    outputHash: `sha256:${'b'.repeat(64)}`,
+    completedAt: COMPLETED_AT,
+    ...overrides,
+  };
+}
+
+function completedChain(inputHash) {
+  const results = [];
+  for (const operationId of ['canonical-npc-landing-apply', ...NPC_APPLY_OWNER_PHASES.map((phase) => phase.operationId)]) {
+    const requiredResults = results.map((result) => {
+      const bytes = Buffer.from(`${JSON.stringify(result)}\n`);
+      return {
+        operationId: result.operationId,
+        path: `reports/authorization/canonical/${result.operationId}.result.json`,
+        contentHash: hashBytes(bytes),
+        sizeBytes: bytes.length,
+      };
+    });
+    results.push(completedResult(operationId, inputHash, { requiredResults }));
+  }
+  return results;
+}
+
+test('landing ownership is partitioned explicitly and every downstream phase binds all predecessors', () => {
+  const byKey = new Map(TABLE_OWNERSHIP_MATRIX.map((row) => [row.key, row]));
+  assert.equal(byKey.get('local.source_dataset_landings.npcs_base')?.capability, 'landing');
+  assert.equal(byKey.get('local.source_dataset_landings.npc_crawler_facts')?.capability, 'landing');
+  assert.deepEqual(NPC_APPLY_OWNER_PHASES[0].requiredOperationIds, ['canonical-npc-landing-apply']);
+  assert.equal(NPC_APPLY_OWNER_PHASES[6].requiredOperationIds.length, 7);
+});
+
+test('NPC item relation lineage repair is independent from the consumed seven-phase completion', () => {
+  assert.deepEqual(ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION, {
+    phaseIndex: 8,
+    operationId: 'canonical-npc-item-relation-lineage-repair',
+    capability: 'items',
+    ownershipKeys: [
+      'relation.item_source_facts.items',
+      'relation.item_source_details.items',
+    ],
+    requiredOperationIds: [
+      'canonical-npc-landing-apply',
+      'canonical-npc-facts-maint-apply',
+      'canonical-npc-item-relations-apply',
+    ],
+  });
+  assert.equal(
+    NPC_APPLY_OWNER_PHASES.some((phase) => (
+      phase.operationId === ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION.operationId
+    )),
+    false,
+  );
+});
+
+test('operation plan binds one raw input hash and rejects incomplete or drifted predecessors', async () => {
+  const input = inputEnvelope();
+  const inputHash = hashBytes(input.bytes);
+  const landing = completedResult('canonical-npc-landing-apply', inputHash);
+  const landingBytes = Buffer.from(`${JSON.stringify(landing)}\n`);
+  const maint = completedResult('canonical-npc-facts-maint-apply', inputHash, {
+    requiredResults: [{
+      operationId: landing.operationId,
+      path: `reports/authorization/canonical/${landing.operationId}.result.json`,
+      contentHash: hashBytes(landingBytes),
+      sizeBytes: landingBytes.length,
+    }],
+  });
+  const plan = await buildNpcOwnerOperationPlan({
+    operationId: 'canonical-npc-item-relations-apply',
+    input,
+    requiredResults: [landing, maint],
+  });
+
+  assert.equal(plan.input.contentHash, inputHash);
+  assert.deepEqual(plan.requiredResults.map((result) => result.operationId), [
+    'canonical-npc-landing-apply',
+    'canonical-npc-facts-maint-apply',
+  ]);
+  assert.deepEqual(plan.ownershipKeys, operationDefinition(plan.operationId).ownershipKeys);
+
+  await assert.rejects(() => buildNpcOwnerOperationPlan({
+    operationId: plan.operationId,
+    input,
+    requiredResults: [landing],
+  }), /required predecessor.*canonical-npc-facts-maint-apply/i);
+  await assert.rejects(() => buildNpcOwnerOperationPlan({
+    operationId: plan.operationId,
+    input,
+    requiredResults: [landing, { ...maint, input: { ...maint.input, contentHash: hashBytes(inputEnvelope('drift').bytes) } }],
+  }), /input hash mismatch/i);
+  await assert.rejects(() => buildNpcOwnerOperationPlan({
+    operationId: plan.operationId,
+    input,
+    requiredResults: [landing, { ...maint, transactionCommitted: false }],
+  }), /committed predecessor/i);
+  await assert.rejects(() => buildNpcOwnerOperationPlan({
+    operationId: plan.operationId,
+    input,
+    requiredResults: [landing, {
+      ...maint,
+      requiredResults: [{ ...maint.requiredResults[0], contentHash: `sha256:${'d'.repeat(64)}` }],
+    }],
+  }), /predecessor result hash mismatch/i);
+});
+
+test('lineage repair plan binds the original item-relation result without replacing it', async () => {
+  const input = inputEnvelope();
+  const inputHash = hashBytes(input.bytes);
+  const predecessors = completedChain(inputHash).slice(0, 3);
+  const plan = await buildNpcOwnerOperationPlan({
+    operationId: 'canonical-npc-item-relation-lineage-repair',
+    input,
+    requiredResults: predecessors,
+  });
+
+  assert.deepEqual(plan.requiredResults.map((entry) => entry.operationId), [
+    'canonical-npc-landing-apply',
+    'canonical-npc-facts-maint-apply',
+    'canonical-npc-item-relations-apply',
+  ]);
+  assert.deepEqual(plan.ownershipKeys, [
+    'relation.item_source_facts.items',
+    'relation.item_source_details.items',
+  ]);
+  await assert.rejects(
+    () => buildNpcOwnerOperationPlan({
+      operationId: plan.operationId,
+      input,
+      requiredResults: predecessors.slice(0, 2),
+    }),
+    /required predecessor.*canonical-npc-item-relations-apply/i,
+  );
+});
+
+test('lineage repair projection preserves deterministic keys and binds NPC maint ownership', () => {
+  assert.equal(typeof ownerPhase.buildNpcItemRelationLineageRepairProjection, 'function');
+  const projection = ownerPhase.buildNpcItemRelationLineageRepairProjection({
+    maintNpcCrawlerFactRows: [{
+      id: 901,
+      record_key: 'a'.repeat(64),
+      npc_source_id: 17,
+      npc_internal_name: 'Merchant',
+      npc_name: 'Merchant',
+      match_status: 'MATCHED',
+      shop_facts_json: JSON.stringify([{ itemName: 'Torch' }]),
+      loot_facts_json: JSON.stringify([{ itemName: 'Mining Helmet' }]),
+    }],
+    maintItems: [
+      { source_id: 8, internal_name: 'Torch', name: 'Torch' },
+      { source_id: 88, internal_name: 'MiningHelmet', name: 'Mining Helmet' },
+    ],
+    maintNpcs: [{ source_id: 17, internal_name: 'Merchant', name: 'Merchant' }],
+  });
+
+  assert.equal(projection.sourceFacts.length, 2);
+  assert.equal(projection.sourceDetails.length, 2);
+  assert.equal(new Set(projection.sourceFacts.map((row) => row.recordKey)).size, 2);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintTable === 'maint_npc_crawler_facts'), true);
+  assert.equal(projection.sourceFacts.every((row) => row.sourceMaintRecordKey === 'a'.repeat(64)), true);
+  assert.equal(projection.sourceDetails.every((row) => row.sourceMaintTable === 'maint_npc_crawler_facts'), true);
+});
+
+test('lineage repair adapter writes only two tables and rolls back on NPC maint readback drift', async () => {
+  const definition = ownershipPreparation.NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION;
+  const normalizedHashes = Array.from({ length: 25 }, (_, index) => index.toString(16).padStart(64, '0'));
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.payload.evidencePairs = normalizedHashes.map((normalizedContentHash, index) => ({
+    entityId: `npc-${index + 1}`,
+    normalizedContentHash,
+  }));
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const plan = {
+    operationId: definition.operationId,
+    phaseIndex: definition.phaseIndex,
+    capability: definition.capability,
+    ownershipKeys: [...definition.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const facts = normalizedHashes.map((normalizedContentHash, index) => ({
+    id: index + 1,
+    record_key: (index + 1).toString(16).padStart(64, '0'),
+    normalized_content_hash: normalizedContentHash,
+    npc_source_id: 17,
+    npc_internal_name: 'Merchant',
+    npc_name: 'Merchant',
+    match_status: 'MATCHED',
+    shop_facts_json: index === 0 ? JSON.stringify([{ itemName: 'Torch' }]) : '[]',
+    loot_facts_json: index === 0 ? JSON.stringify([{ itemName: 'Mining Helmet' }]) : '[]',
+  }));
+  const buildConnection = ({ readbackCount = 2 } = {}) => {
+    const calls = [];
+    return {
+      calls,
+      connection: {
+        beginTransaction: async () => calls.push('begin'),
+        query: async (sql) => {
+          calls.push(sql);
+          if (sql.includes('`maint_items`')) {
+            return [[
+              { source_id: 8, internal_name: 'Torch', name: 'Torch' },
+              { source_id: 88, internal_name: 'MiningHelmet', name: 'Mining Helmet' },
+            ]];
+          }
+          if (sql.includes('`maint_npcs`')) {
+            return [[{ source_id: 17, internal_name: 'Merchant', name: 'Merchant' }]];
+          }
+          throw new Error(`unexpected query: ${sql}`);
+        },
+        execute: async (sql, params = []) => {
+          calls.push({ sql, params });
+          if (sql.startsWith('SELECT * FROM')) return [facts];
+          if (sql.startsWith('SELECT COUNT(*)')) return [[{ total: readbackCount }]];
+          if (sql.startsWith('INSERT INTO')) return [{}];
+          throw new Error(`unexpected execute: ${sql}`);
+        },
+        commit: async () => calls.push('commit'),
+        rollback: async () => calls.push('rollback'),
+        end: async () => calls.push('end'),
+      },
+    };
+  };
+
+  const passing = buildConnection();
+  const result = await executeNpcOwnerOperation({
+    plan,
+    adapter: createCanonicalNpcOwnerMysqlAdapter({
+      plan,
+      connectionFactory: async () => passing.connection,
+    }),
+    completedAt: COMPLETED_AT,
+  });
+  assert.deepEqual(result.rowCounts, {
+    'relation.item_source_facts.items': 2,
+    'relation.item_source_details.items': 2,
+  });
+  const writes = passing.calls.filter((entry) => entry && typeof entry === 'object'
+    && entry.sql.startsWith('INSERT INTO'));
+  assert.equal(writes.length, 4);
+  assert.equal(writes.every(({ sql }) => /`item_source_(?:facts|details)`/.test(sql)), true);
+  assert.equal(writes.every(({ sql }) => !/item_npc_(?:shop|loot)_relations/.test(sql)), true);
+  const readbacks = passing.calls.filter((entry) => entry && typeof entry === 'object'
+    && entry.sql.startsWith('SELECT COUNT(*)'));
+  assert.equal(readbacks.length, 2);
+  assert.equal(readbacks.every(({ sql }) => sql.includes('`maint_npc_crawler_facts`')), true);
+  assert.deepEqual(passing.calls.slice(-2), ['commit', 'end']);
+
+  const failing = buildConnection({ readbackCount: 1 });
+  await assert.rejects(
+    () => executeNpcOwnerOperation({
+      plan,
+      adapter: createCanonicalNpcOwnerMysqlAdapter({
+        plan,
+        connectionFactory: async () => failing.connection,
+      }),
+      completedAt: COMPLETED_AT,
+    }),
+    /readback counts do not match writes/i,
+  );
+  assert.deepEqual(failing.calls.slice(-2), ['rollback', 'end']);
+  assert.equal(failing.calls.includes('commit'), false);
+});
+
+test('production adapter executes only the selected local projection ownership', async () => {
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const phase = operationDefinition('canonical-npc-buff-projection-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const calls = [];
+  const connection = {
+    beginTransaction: async () => calls.push('begin'),
+    query: async (sql) => {
+      calls.push(sql);
+      return /^SELECT COUNT\(\*\)/.test(sql.trim()) ? [[{ total: 9 }]] : [[]];
+    },
+    commit: async () => calls.push('commit'),
+    rollback: async () => calls.push('rollback'),
+    end: async () => calls.push('end'),
+  };
+  const adapter = createCanonicalNpcOwnerMysqlAdapter({
+    plan,
+    connectionFactory: async () => connection,
+  });
+  const result = await executeNpcOwnerOperation({ plan, adapter, completedAt: COMPLETED_AT });
+  assert.equal(result.rowCounts['local.npc_buff_relations.buffs'], 9);
+  const sql = calls.filter((call) => typeof call === 'string').join('\n');
+  assert.match(sql, /npc_buff_relations/);
+  assert.doesNotMatch(sql, /npc_shop_entries|npc_loot_entries|item_source_facts/);
+  assert.deepEqual(calls.slice(-2), ['commit', 'end']);
+});
+
+test('production adapter re-reads the owned partition before commit', async () => {
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const phase = operationDefinition('canonical-npc-buff-projection-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  let countReads = 0;
+  const connection = {
+    beginTransaction: async () => {},
+    query: async (sql) => {
+      if (/^SELECT COUNT\(\*\)/.test(sql.trim())) {
+        countReads += 1;
+        return [[{ total: countReads === 1 ? 9 : 8 }]];
+      }
+      return [[]];
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+  const adapter = createCanonicalNpcOwnerMysqlAdapter({
+    plan,
+    connectionFactory: async () => connection,
+  });
+
+  await assert.rejects(
+    () => executeNpcOwnerOperation({ plan, adapter, completedAt: COMPLETED_AT }),
+    /readback counts do not match writes/i,
+  );
+  assert.equal(countReads, 2);
+});
+
+test('canonical town shop projection selects and verifies only the town NPC partition', async () => {
+  const townSql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation',
+    npcShopScope: 'town',
+  });
+  for (const statement of [
+    townSql.npc_shop_entries.deleteSql,
+    townSql.npc_shop_entries.countSql,
+    townSql.npc_shop_entries.insertSql,
+    townSql.npc_shop_conditions.deleteSql,
+    townSql.npc_shop_conditions.countSql,
+    townSql.npc_shop_conditions.insertSql,
+  ]) {
+    assert.match(statement, /COALESCE\(n\.is_town_npc, 0\) = 1/);
+    assert.doesNotMatch(statement, /COALESCE\(n\.is_town_npc, 0\) <> 1/);
+  }
+  assert.match(
+    buildRelationCompatSyncSql().npc_shop_entries.countSql,
+    /COALESCE\(n\.is_town_npc, 0\) <> 1/,
+  );
+
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const phase = operationDefinition('canonical-npc-town-shop-projection-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const calls = [];
+  const connection = {
+    beginTransaction: async () => calls.push('begin'),
+    query: async (sql) => {
+      calls.push(sql);
+      return /^SELECT COUNT\(\*\)/.test(sql.trim()) ? [[{ total: 9 }]] : [[]];
+    },
+    commit: async () => calls.push('commit'),
+    rollback: async () => calls.push('rollback'),
+    end: async () => calls.push('end'),
+  };
+  const adapter = createCanonicalNpcOwnerMysqlAdapter({
+    plan,
+    connectionFactory: async () => connection,
+  });
+  const result = await executeNpcOwnerOperation({ plan, adapter, completedAt: COMPLETED_AT });
+  assert.deepEqual(result.rowCounts, {
+    'local.npc_shop_entries': 9,
+    'local.npc_shop_conditions': 9,
+  });
+  const sql = calls.filter((call) => typeof call === 'string').join('\n');
+  assert.match(sql, /SELECT COUNT\(\*\) AS total\s+FROM `terria_v1_local`\.`npc_shop_entries` se\s+INNER JOIN `terria_v1_local`\.`npcs` n\s+ON n\.id = se\.npc_id\s+WHERE COALESCE\(n\.is_town_npc, 0\) = 1/);
+  assert.match(sql, /SELECT COUNT\(\*\) AS total\s+FROM `terria_v1_local`\.`npc_shop_conditions` sc\s+INNER JOIN `terria_v1_local`\.`npc_shop_entries` se\s+ON se\.id = sc\.shop_entry_id\s+INNER JOIN `terria_v1_local`\.`npcs` n\s+ON n\.id = se\.npc_id\s+WHERE COALESCE\(n\.is_town_npc, 0\) = 1/);
+  assert.deepEqual(calls.slice(-2), ['commit', 'end']);
+});
+
+test('canonical town shop projection counts condition rows after duplicate entry projection joins', async () => {
+  const input = inputEnvelope();
+  input.payload.databases = {
+    local: 'terria_v1_local',
+    maint: 'terria_v1_maint',
+    relation: 'terria_v1_relation',
+  };
+  input.bytes = Buffer.from(`${JSON.stringify(input.payload)}\n`);
+  const phase = operationDefinition('canonical-npc-town-shop-projection-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: hashBytes(input.bytes),
+      sizeBytes: input.bytes.length,
+      payload: input.payload,
+    },
+  };
+  const connection = {
+    beginTransaction: async () => {},
+    query: async (sql) => {
+      if (/FROM `terria_v1_local`\.`npc_shop_conditions` sc/.test(sql)) return [[{ total: 257 }]];
+      if (/FROM `terria_v1_local`\.`npc_shop_entries` se/.test(sql)) return [[{ total: 936 }]];
+      if (/projected_shop_entries/.test(sql)) return [[{ total: 257 }]];
+      if (/condition_events_json IS NOT NULL/.test(sql)) return [[{ total: 129 }]];
+      if (/^SELECT COUNT\(\*\)/.test(sql.trim())) return [[{ total: 936 }]];
+      return [[]];
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+  const adapter = createCanonicalNpcOwnerMysqlAdapter({
+    plan,
+    connectionFactory: async () => connection,
+  });
+
+  const result = await executeNpcOwnerOperation({ plan, adapter, completedAt: COMPLETED_AT });
+
+  assert.deepEqual(result.rowCounts, {
+    'local.npc_shop_entries': 936,
+    'local.npc_shop_conditions': 257,
+  });
+});
+
+test('production landing adapter supplies governed source-evidence metadata', async () => {
+  const plan = await buildNpcOwnerOperationPlan({
+    repoRoot: REPO_ROOT,
+    operationId: 'canonical-npc-landing-apply',
+  });
+  const inserts = [];
+  const connection = {
+    beginTransaction: async () => {},
+    execute: async (sql, params = []) => {
+      if (/^SELECT COUNT\(\*\)/.test(sql.trim())) return [[{ total: 1 }]];
+      if (/^SELECT id, content_hash, source_page/.test(sql.trim())) return [[]];
+      if (/^INSERT INTO source_dataset_landings/.test(sql.trim())) {
+        inserts.push(params);
+        return [{}];
+      }
+      throw new Error(`unexpected landing SQL: ${sql.trim().split('\n')[0]}`);
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+  const result = await executeNpcOwnerOperation({
+    plan,
+    adapter: createCanonicalNpcOwnerMysqlAdapter({
+      repoRoot: REPO_ROOT,
+      plan,
+      connectionFactory: async () => connection,
+    }),
+    completedAt: COMPLETED_AT,
+  });
+
+  assert.equal(result.rowCounts['local.source_dataset_landings.npcs_base'], 1);
+  assert.equal(result.rowCounts['local.source_dataset_landings.npc_crawler_facts'], 25);
+  assert.equal(inserts.length, 26);
+  assert.equal(inserts.every((params) => params[12] === 'source_evidence'), true);
+  assert.equal(inserts.every((params) => params[13] === 'canonical-npc-landing-bundle'), true);
+  assert.equal(inserts.every((params) => params[14] === '1'), true);
+  assert.equal(inserts.every((params) => /^canonical-npc-landing:sha256:[a-f0-9]{64}$/.test(params[15])), true);
+  assert.equal(inserts.every((params) => /^[a-f0-9]{64}$/.test(params[17])), true);
+  assert.equal(inserts.every((params) => Number.isSafeInteger(params[18]) && params[18] > 0), true);
+});
+
+test('production maint adapter persists only physical maint crawler-fact columns', async () => {
+  const normalized = {
+    entityId: 'medusa',
+    source: { pageTitle: 'Medusa' },
+    sourceMetadata: {
+      revisionTimestamp: '2026-07-29T00:00:00Z',
+      fetchedAt: '2026-07-29T00:01:02Z',
+      parsedAt: '2026-07-29T00:03:04',
+    },
+    display: { name: 'Medusa' },
+    buffInflictions: [],
+    shop: { normalizedRows: [] },
+    loot: [],
+  };
+  const audit = { status: 'pass' };
+  const normalizedContentHash = createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
+  const phase = operationDefinition('canonical-npc-facts-maint-apply');
+  const plan = {
+    operationId: phase.operationId,
+    phaseIndex: phase.phaseIndex,
+    capability: phase.capability,
+    ownershipKeys: [...phase.ownershipKeys],
+    requiredResults: [],
+    input: {
+      path: INPUT_PATH,
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      sizeBytes: 1,
+      payload: {
+        databases: {
+          local: 'terria_v1_local',
+          maint: 'terria_v1_maint',
+          relation: 'terria_v1_relation',
+        },
+        pairCount: 1,
+        evidencePairs: [{ normalizedContentHash }],
+      },
+    },
+  };
+  const landingRows = [{
+    id: 1,
+    source_key: 'wiki.npc.crawler_fact:medusa',
+    source_page: 'Medusa',
+    content_hash: 'landing-1',
+    payload_json: JSON.stringify({ normalized, audit }),
+  }];
+  const inserts = [];
+  const connection = {
+    beginTransaction: async () => {},
+    query: async (sql) => {
+      if (sql.includes('source_dataset_landings')) return [landingRows];
+      if (sql.includes('maint_npcs')) {
+        return [[{ source_id: 477, internal_name: 'Medusa', english_name: 'Medusa' }]];
+      }
+      throw new Error(`unexpected maint query: ${sql.trim().split('\n')[0]}`);
+    },
+    execute: async (sql, params = []) => {
+      if (sql.startsWith('INSERT INTO')) {
+        inserts.push({ sql, params });
+        return [{}];
+      }
+      if (sql.startsWith('SELECT COUNT(*)')) return [[{ total: params.length }]];
+      throw new Error(`unexpected maint execute: ${sql.trim().split('\n')[0]}`);
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    end: async () => {},
+  };
+
+  const result = await executeNpcOwnerOperation({
+    plan,
+    adapter: createCanonicalNpcOwnerMysqlAdapter({
+      plan,
+      connectionFactory: async () => connection,
+    }),
+    completedAt: COMPLETED_AT,
+  });
+
+  assert.equal(result.rowCounts['maint.maint_npc_crawler_facts.canonical'], 1);
+  assert.equal(inserts.length, 1);
+  assert.equal(inserts.every(({ sql }) => !sql.includes('`scope`')), true);
+  assert.equal(inserts.every(({ sql }) => !sql.includes('`table_name`')), true);
+  assert.deepEqual(inserts[0].params.filter((value) => typeof value === 'string' && value.startsWith('2026-07-29')), [
+    '2026-07-29 00:00:00',
+    '2026-07-29 00:01:02',
+    '2026-07-29 00:03:04',
+  ]);
+});
+
+test('operation executor commits one exact ownership set and rolls back without success evidence on failure', async () => {
+  const input = inputEnvelope();
+  const plan = await buildNpcOwnerOperationPlan({
+    operationId: 'canonical-npc-landing-apply',
+    input,
+    requiredResults: [],
+  });
+  const calls = [];
+  const result = await executeNpcOwnerOperation({
+    plan,
+    completedAt: COMPLETED_AT,
+    adapter: {
+      begin: async () => calls.push('begin'),
+      apply: async (actual) => {
+        calls.push(['apply', actual.ownershipKeys]);
+        return Object.fromEntries(actual.ownershipKeys.map((key) => [key, 25]));
+      },
+      verify: async ({ rowCounts }) => {
+        calls.push('verify');
+        return { rowCounts, outputHash: `sha256:${'c'.repeat(64)}` };
+      },
+      commit: async () => calls.push('commit'),
+      rollback: async () => calls.push('rollback'),
+    },
+  });
+  assert.deepEqual(calls, [
+    'begin',
+    ['apply', plan.ownershipKeys],
+    'verify',
+    'commit',
+  ]);
+  assert.equal(result.status, 'COMPLETED');
+  assert.equal(result.transactionCommitted, true);
+  assert.deepEqual(result.ownershipKeys, plan.ownershipKeys);
+
+  const failedCalls = [];
+  await assert.rejects(() => executeNpcOwnerOperation({
+    plan,
+    adapter: {
+      begin: async () => failedCalls.push('begin'),
+      apply: async () => { throw new Error('write failed'); },
+      verify: async () => { throw new Error('must not verify'); },
+      commit: async () => failedCalls.push('commit'),
+      rollback: async () => failedCalls.push('rollback'),
+    },
+  }), /write failed/);
+  assert.deepEqual(failedCalls, ['begin', 'rollback']);
+});
+
+test('completion requires landing plus all seven ordered results for one frozen input', () => {
+  const input = inputEnvelope();
+  const inputHash = hashBytes(input.bytes);
+  const results = completedChain(inputHash);
+  const completion = buildCanonicalNpcApplyCompletion({ input, results, completedAt: COMPLETED_AT });
+  assert.equal(completion.status, 'COMPLETED');
+  assert.equal(completion.inputHash, inputHash);
+  assert.match(completion.landingResultHash, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(completion.phaseResultHashes.length, 7);
+
+  assert.throws(
+    () => buildCanonicalNpcApplyCompletion({ input, results: results.slice(0, -1) }),
+    /missing.*canonical-npc-boss-loot-projection-apply/i,
+  );
+  const drifted = structuredClone(results);
+  drifted[4].input.contentHash = hashBytes(inputEnvelope('drift').bytes);
+  assert.throws(
+    () => buildCanonicalNpcApplyCompletion({ input, results: drifted }),
+    /input hash mismatch/i,
+  );
+});
+
+test('result writer publishes one private atomic JSON file', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-owner-result-'));
+  const input = inputEnvelope();
+  const result = completedResult('canonical-npc-landing-apply', hashBytes(input.bytes));
+  try {
+    const outputPath = 'reports/authorization/canonical/canonical-npc-landing-apply.result.json';
+    await writeCanonicalNpcApplyResult({ repoRoot: root, outputPath, result });
+    const fullPath = path.join(root, outputPath);
+    assert.equal(JSON.parse(fs.readFileSync(fullPath, 'utf8')).status, 'COMPLETED');
+    assert.equal(fs.statSync(fullPath).mode & 0o777, 0o600);
+    assert.deepEqual(fs.readdirSync(path.dirname(fullPath)).filter((name) => name.endsWith('.tmp')), []);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

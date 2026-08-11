@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { resolveRecipeMaterialReferenceOutputPath } from '../generate/generate-recipe-material-reference.mjs';
 import { buildRecipeReferenceImportArgs } from './recipe-reference-import-args.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +27,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
 function main() {
   const options = parseCliArgs(process.argv.slice(2));
   const relationsOutputPath = resolvePathOption(options['relations-output'] ?? options.output, sharedDataPath('normalized', 'item-relations.bundle.json'));
-  const recipeReferencePath = resolvePathOption(options['recipe-reference'], path.join(repoRoot, 'data', 'generated', 'recipe-material-reference.json'));
+  const recipeReferencePath = resolvePathOption(
+    options['recipe-reference'],
+    resolveRecipeMaterialReferenceOutputPath(repoRoot),
+  );
   const explicitInput = typeof options.input === 'string' && options.input.trim() !== '';
   const itemsInput = ensureRecipeReferenceItemsInput({
     inputPath: explicitInput ? options.input.trim() : sharedDataPath('normalized', 'items.wiki.json'),

@@ -3,9 +3,36 @@ import assert from 'node:assert/strict';
 
 import {
   buildBuffRelationSyncPayload,
+  mergeNpcCrawlerFactsIntoMaintBuffRows,
   parseArgs,
   runBuffRelationSync,
 } from './sync-buffs-to-relation.mjs';
+
+test('mergeNpcCrawlerFactsIntoMaintBuffRows reconstructs MATCHED NPC buff evidence', () => {
+  const rows = mergeNpcCrawlerFactsIntoMaintBuffRows({
+    maintBuffRows: [{
+      source_id: 156,
+      internal_name: 'Stoned',
+      english_name: 'Stoned',
+      raw_json: JSON.stringify({ inflictingNpcs: [] }),
+    }],
+    maintNpcCrawlerFactRows: [{
+      record_key: 'a'.repeat(64),
+      npc_source_id: 477,
+      npc_internal_name: 'Medusa',
+      npc_name: 'Medusa',
+      match_status: 'MATCHED',
+      buff_inflictions_json: JSON.stringify([{ buffName: 'Stoned', durationText: '1 second' }]),
+      landing_source_key: 'wiki.npc.crawler.fact:medusa',
+    }],
+  });
+
+  const raw = JSON.parse(rows[0].raw_json);
+  assert.equal(raw.inflictingNpcs.length, 1);
+  assert.equal(raw.inflictingNpcs[0].internalName, 'Medusa');
+  assert.equal(raw.inflictingNpcs[0].crawlerFactRecordKey, 'a'.repeat(64));
+  assert.equal(raw.inflictingNpcs[0].durationText, '1 second');
+});
 
 test('parseArgs defaults to dry-run buff relation sync', () => {
   const actual = parseArgs([
@@ -265,6 +292,37 @@ test('runBuffRelationSync dry-run does not mutate relation tables', async () => 
   assert.equal(result.rows.relationBuffs, 1);
   assert.equal(result.writes.total, 0);
   assert.ok(relationQueries.some((sql) => sql.includes('relation_buff_images')));
+});
+
+test('runBuffRelationSync reads MATCHED crawler facts before building NPC buff relations', async () => {
+  const maintQueries = [];
+  const result = await runBuffRelationSync({ apply: false }, {
+    config: { database: {} },
+    queryMaint: async (sql) => {
+      maintQueries.push(sql);
+      if (sql.includes('maint_npc_crawler_facts')) return [{
+        record_key: 'a'.repeat(64),
+        npc_source_id: 477,
+        npc_internal_name: 'Medusa',
+        npc_name: 'Medusa',
+        match_status: 'MATCHED',
+        buff_inflictions_json: JSON.stringify([{ buffName: 'Stoned' }]),
+      }];
+      if (sql.includes('maint_buffs')) return [{
+        source_id: 156,
+        internal_name: 'Stoned',
+        english_name: 'Stoned',
+        raw_json: JSON.stringify({ inflictingNpcs: [] }),
+      }];
+      if (sql.includes('maint_npcs')) return [{ source_id: 477, internal_name: 'Medusa', english_name: 'Medusa' }];
+      return [];
+    },
+    queryRelation: async () => [],
+    writeReport: async () => 'reports/relation/test.json',
+  });
+
+  assert.ok(maintQueries.some((sql) => sql.includes('maint_npc_crawler_facts')));
+  assert.equal(result.rows.npcBuffRelations, 1);
 });
 
 test('runBuffRelationSync apply only clears and writes buff relation tables', async () => {

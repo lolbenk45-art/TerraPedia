@@ -2,21 +2,23 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { fetchWikiApiJson, parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { isRecipeGroupName } from '../lib/recipe-material-reference.mjs';
-
-const require = createRequire(import.meta.url);
+import {
+  hashWikiZhRecipeProjection,
+  normalizeWikiZhExistingRecipeProjection,
+  RECIPE_SOURCE_PROVIDER,
+} from '../recipe/recipe-formal-contract.mjs';
 
 const repoRoot = getProjectRoot();
 
-const SOURCE_PROVIDER = 'wiki_zh';
+const SOURCE_PROVIDER = RECIPE_SOURCE_PROVIDER;
 const PLACEHOLDER_ITEM_PROVIDER = 'wiki_zh_recipe_import';
 const ZH_WIKI_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const VERSION_ONLY_SUFFIX = ' only';
@@ -44,6 +46,7 @@ if (isDirectExecution()) {
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
   const apply = booleanOption(args.apply, false);
+  const offline = booleanOption(args.offline, false);
   const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-zh-recipe-pages.latest.json'));
   const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-zh-recipe-import-${new Date().toISOString().slice(0, 10)}.json`));
 
@@ -76,7 +79,7 @@ async function main() {
     return;
   }
 
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const conn = await mysql.createConnection(db);
   try {
   await conn.query('SET NAMES utf8mb4');
@@ -109,7 +112,9 @@ async function main() {
 
   const itemLookup = await loadItemLookup(conn);
   const stationLookup = await loadCraftingStationLookup(conn);
-  const metadataMap = await buildMetadataMap(rawRecipes, itemLookup, stationLookup);
+  const metadataMap = await buildMetadataMap(rawRecipes, itemLookup, stationLookup, {
+    allowNetwork: !offline,
+  });
   const state = createImportState({ apply, itemLookup, stationLookup, metadataMap, summary });
 
   if (apply) {
@@ -162,7 +167,7 @@ async function main() {
 }
 }
 
-function collectRawRecipes(payload) {
+export function collectRawRecipes(payload) {
   const recipes = [];
   for (const page of Array.isArray(payload?.records) ? payload.records : []) {
     for (const table of Array.isArray(page?.recipeTables) ? page.recipeTables : []) {
@@ -266,7 +271,7 @@ function inferStationRequirementMode(explicitMode, caption, stations) {
   return 'alternative';
 }
 
-async function buildMetadataMap(rawRecipes, itemLookup, stationLookup) {
+export async function buildMetadataMap(rawRecipes, itemLookup, stationLookup, { allowNetwork = true } = {}) {
   const unresolvedNames = new Set();
 
   for (const recipe of rawRecipes) {
@@ -296,8 +301,15 @@ async function buildMetadataMap(rawRecipes, itemLookup, stationLookup) {
   }
 
   const metadataMap = new Map();
-  for (const title of unresolvedNames) {
-    metadataMap.set(title, await fetchNameMetadata(title));
+  const titles = [...unresolvedNames];
+  if (!allowNetwork && titles.length > 0) {
+    throw new Error(`offline recipe import requires all names to exist in the target snapshot: ${titles.join(', ')}`);
+  }
+  const concurrency = 16;
+  for (let offset = 0; offset < titles.length; offset += concurrency) {
+    const batch = titles.slice(offset, offset + concurrency);
+    const metadata = await Promise.all(batch.map((title) => fetchNameMetadata(title)));
+    batch.forEach((title, index) => metadataMap.set(title, metadata[index]));
   }
   return metadataMap;
 }
@@ -815,44 +827,37 @@ async function importRecipes(connection, recipes, summary, apply) {
     );
     const recipeId = Number(insertResult.insertId);
 
-    for (const ingredient of recipe.ingredients) {
+    if (recipe.ingredients.length > 0) {
+      const placeholders = recipe.ingredients.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values = recipe.ingredients.flatMap((ingredient) => [
+        recipeId, ingredient.ingredientItemId, ingredient.ingredientInternalName,
+        ingredient.ingredientNameRaw, ingredient.ingredientGroupType,
+        ingredient.quantityMin, ingredient.quantityMax, ingredient.quantityText,
+        ingredient.sortOrder,
+      ]);
       await connection.execute(
         `INSERT INTO recipe_ingredients
           (recipe_id, ingredient_item_id, ingredient_internal_name, ingredient_name_raw, ingredient_group_type, quantity_min, quantity_max, quantity_text, sort_order)
-         VALUES
-          (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          recipeId,
-          ingredient.ingredientItemId,
-          ingredient.ingredientInternalName,
-          ingredient.ingredientNameRaw,
-          ingredient.ingredientGroupType,
-          ingredient.quantityMin,
-          ingredient.quantityMax,
-          ingredient.quantityText,
-          ingredient.sortOrder
-        ]
+         VALUES ${placeholders}`,
+        values,
       );
-      summary.insertedIngredientRows += 1;
+      summary.insertedIngredientRows += recipe.ingredients.length;
     }
 
-    for (const station of recipe.stations) {
+    if (recipe.stations.length > 0) {
+      const placeholders = recipe.stations.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values = recipe.stations.flatMap((station) => [
+        recipeId, station.stationId, station.stationItemId,
+        station.stationInternalName, station.stationNameRaw,
+        station.isAlternative ? 1 : 0, station.sortOrder,
+      ]);
       await connection.execute(
         `INSERT INTO recipe_stations
           (recipe_id, station_id, station_item_id, station_internal_name, station_name_raw, is_alternative, sort_order)
-         VALUES
-          (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          recipeId,
-          station.stationId,
-          station.stationItemId,
-          station.stationInternalName,
-          station.stationNameRaw,
-          station.isAlternative ? 1 : 0,
-          station.sortOrder
-        ]
+         VALUES ${placeholders}`,
+        values,
       );
-      summary.insertedStationRows += 1;
+      summary.insertedStationRows += recipe.stations.length;
     }
   }
 }
@@ -978,62 +983,6 @@ function buildWikiZhTargetRecipeProjection(recipes) {
       sortOrder: toInt(station.sortOrder),
     })),
   }));
-}
-
-function normalizeWikiZhExistingRecipeProjection(recipeRows, ingredientRows, stationRows) {
-  const byRecipeId = new Map();
-  for (const row of recipeRows) {
-    const id = Number(row.id);
-    if (!Number.isFinite(id)) continue;
-    byRecipeId.set(id, {
-      resultItemId: toInt(row.result_item_id),
-      resultInternalName: toText(row.result_internal_name),
-      resultQuantity: toInt(row.result_quantity) ?? 1,
-      versionScope: toText(row.version_scope),
-      notes: toText(row.notes),
-      sourceProvider: toText(row.source_provider),
-      sourcePage: toText(row.source_page),
-      sourceRevisionTimestamp: toDateTime(row.source_revision_timestamp),
-      sortOrder: toInt(row.sort_order),
-      status: toInt(row.status) ?? 1,
-      deleted: toInt(row.deleted) ?? 0,
-      ingredients: [],
-      stations: [],
-    });
-  }
-  for (const row of ingredientRows) {
-    const recipe = byRecipeId.get(Number(row.recipe_id));
-    if (!recipe) continue;
-    recipe.ingredients.push({
-      ingredientItemId: toInt(row.ingredient_item_id),
-      ingredientInternalName: toText(row.ingredient_internal_name),
-      ingredientNameRaw: toText(row.ingredient_name_raw),
-      ingredientGroupType: toText(row.ingredient_group_type) ?? 'item',
-      quantityMin: toInt(row.quantity_min),
-      quantityMax: toInt(row.quantity_max),
-      quantityText: toText(row.quantity_text),
-      sortOrder: toInt(row.sort_order),
-    });
-  }
-  for (const row of stationRows) {
-    const recipe = byRecipeId.get(Number(row.recipe_id));
-    if (!recipe) continue;
-    recipe.stations.push({
-      stationId: toInt(row.station_id),
-      stationItemId: toInt(row.station_item_id),
-      stationInternalName: toText(row.station_internal_name),
-      stationNameRaw: toText(row.station_name_raw),
-      isAlternative: row.is_alternative ? 1 : 0,
-      sortOrder: toInt(row.sort_order),
-    });
-  }
-  return [...byRecipeId.values()];
-}
-
-function hashWikiZhRecipeProjection(projection) {
-  return crypto.createHash('sha256')
-    .update(`v1:recipes:${SOURCE_PROVIDER}:${JSON.stringify(projection)}`)
-    .digest('hex');
 }
 
 async function deleteRecipesByProvider(connection, sourceProvider, apply) {

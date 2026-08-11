@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   DEFAULT_WIKI_API_URL,
@@ -22,11 +23,55 @@ const repoRoot = getProjectRoot();
 const ACTION_ID = 'domain-source-shimmer';
 const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'domain-source-shimmer-progress.latest.json');
 const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-shimmer.latest.json');
-
-await main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+const PHASE_LABELS = Object.freeze({
+  fetch_revision: 'revision',
+  fetch_sections: 'sections',
+  fetch_html: 'html'
 });
+
+export async function fetchWikiShimmerRaw(
+  { pageTitle, apiUrl, generatedAt, onPhase } = {},
+  { fetchJson = fetchWikiApiJson } = {}
+) {
+  const title = String(pageTitle ?? '').trim();
+  if (!title) {
+    throw new Error('shimmer raw fetch requires a page title');
+  }
+  const fetchedAt = generatedAt ?? new Date().toISOString();
+
+  onPhase?.({ phase: 'fetch_revision', current: 0, total: 3 });
+  const revision = await fetchRevision(title, apiUrl, fetchJson);
+  onPhase?.({ phase: 'fetch_sections', current: 1, total: 3 });
+  const sections = await fetchSections(title, apiUrl, fetchJson);
+  onPhase?.({ phase: 'fetch_html', current: 2, total: 3 });
+  const html = await fetchRenderedHtml(title, apiUrl, fetchJson);
+
+  return {
+    entity: 'wiki_shimmer_page',
+    generatedAt: fetchedAt,
+    sourceApi: String(apiUrl ?? ''),
+    requestedPageTitle: title,
+    pageTitle: revision.pageTitle,
+    pageId: revision.pageId,
+    revisionId: revision.revisionId,
+    revisionTimestamp: revision.revisionTimestamp,
+    fetchedAt,
+    sections,
+    wikitext: revision.wikitext,
+    html
+  };
+}
+
+if (isDirectExecution()) {
+  await main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+function isDirectExecution() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+}
 
 async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -70,48 +115,22 @@ async function main(argv = process.argv.slice(2)) {
   });
 
   try {
-    const revision = await fetchRevision(pageTitle, apiUrl);
-    lastProgressCurrent = 1;
-    progressHeartbeat.publish({
-      status: 'running',
-      phase: 'revision',
-      message: `fetched shimmer revision for ${revision.pageTitle}`,
-      current: 1,
-      total: 3
-    });
-    const sections = await fetchSections(pageTitle, apiUrl);
-    lastProgressCurrent = 2;
-    progressHeartbeat.publish({
-      status: 'running',
-      phase: 'sections',
-      message: `fetched shimmer sections for ${pageTitle}`,
-      current: 2,
-      total: 3
-    });
-    const html = await fetchRenderedHtml(pageTitle, apiUrl);
-    lastProgressCurrent = 3;
-    progressHeartbeat.publish({
-      status: 'running',
-      phase: 'html',
-      message: `fetched shimmer rendered HTML for ${pageTitle}`,
-      current: 3,
-      total: 3
-    });
-
-    const payload = {
-      entity: 'wiki_shimmer_page',
+    const payload = await fetchWikiShimmerRaw({
+      pageTitle,
+      apiUrl,
       generatedAt,
-      sourceApi: apiUrl,
-      requestedPageTitle: pageTitle,
-      pageTitle: revision.pageTitle,
-      pageId: revision.pageId,
-      revisionId: revision.revisionId,
-      revisionTimestamp: revision.revisionTimestamp,
-      fetchedAt: generatedAt,
-      sections,
-      wikitext: revision.wikitext,
-      html
-    };
+      onPhase: ({ phase, current, total }) => {
+        lastProgressCurrent = current;
+        progressHeartbeat.publish({
+          status: 'running',
+          phase: PHASE_LABELS[phase] ?? phase,
+          message: `${phase} for ${pageTitle}`,
+          current,
+          total
+        });
+      }
+    });
+    lastProgressCurrent = 3;
 
     writeJson(outputPath, payload);
     ensureDir(path.dirname(reportPath));
@@ -195,7 +214,7 @@ function shouldMirrorProgressPath(progressPath, canonicalProgressPath) {
   return process.env.NODE_ENV !== 'test' || Boolean(process.env.WORKTREE_ROOT);
 }
 
-async function fetchRevision(title, wikiApiUrl) {
+async function fetchRevision(title, wikiApiUrl, fetchJson = fetchWikiApiJson) {
   const url = new URL(wikiApiUrl);
   url.searchParams.set('action', 'query');
   url.searchParams.set('titles', title);
@@ -205,7 +224,7 @@ async function fetchRevision(title, wikiApiUrl) {
   url.searchParams.set('formatversion', '2');
   url.searchParams.set('format', 'json');
 
-  const body = await fetchWikiApiJson({ url, profile: 'revision', sourceKey: title });
+  const body = await fetchJson({ url, profile: 'revision', sourceKey: title });
   const page = body?.query?.pages?.[0];
   const revision = page?.revisions?.[0];
   if (!page || page.missing || !revision || typeof revision.content !== 'string') {
@@ -221,7 +240,7 @@ async function fetchRevision(title, wikiApiUrl) {
   };
 }
 
-async function fetchSections(title, wikiApiUrl) {
+async function fetchSections(title, wikiApiUrl, fetchJson = fetchWikiApiJson) {
   const url = new URL(wikiApiUrl);
   url.searchParams.set('action', 'parse');
   url.searchParams.set('page', title);
@@ -230,11 +249,11 @@ async function fetchSections(title, wikiApiUrl) {
   url.searchParams.set('formatversion', '2');
   url.searchParams.set('format', 'json');
 
-  const body = await fetchWikiApiJson({ url, profile: 'parse', sourceKey: `${title}:sections` });
+  const body = await fetchJson({ url, profile: 'parse', sourceKey: `${title}:sections` });
   return Array.isArray(body?.parse?.sections) ? body.parse.sections : [];
 }
 
-async function fetchRenderedHtml(title, wikiApiUrl) {
+async function fetchRenderedHtml(title, wikiApiUrl, fetchJson = fetchWikiApiJson) {
   const url = new URL(wikiApiUrl);
   url.searchParams.set('action', 'parse');
   url.searchParams.set('page', title);
@@ -243,7 +262,7 @@ async function fetchRenderedHtml(title, wikiApiUrl) {
   url.searchParams.set('formatversion', '2');
   url.searchParams.set('format', 'json');
 
-  const body = await fetchWikiApiJson({ url, profile: 'parse', sourceKey: `${title}:html` });
+  const body = await fetchJson({ url, profile: 'parse', sourceKey: `${title}:html` });
   const html = body?.parse?.text;
   if (typeof html !== 'string' || html.trim() === '') {
     throw new Error(`Wiki rendered HTML missing for ${title}`);

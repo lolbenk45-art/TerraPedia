@@ -90,7 +90,7 @@
       "generatorPanel": "b1-exemption-compliance",
       "chainStage": "source",
       "maintenanceLane": "domain-acceptance-evidence",
-      "generatorCommand": "node scripts/data/audit/b1-exemption-compliance.mjs --domain={domainId}",
+      "generatorCommand": "node scripts/data/audit/canonical-source-contract-registry.mjs --domain={domainId}",
       "autoMaintenanceAllowed": true,
       "blockingBeforePublic": true,
       "requiresDatabase": false,

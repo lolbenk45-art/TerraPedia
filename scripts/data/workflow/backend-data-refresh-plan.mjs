@@ -92,6 +92,19 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'item-image-source-verification',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/fetch/fetch-item-image-source-verification.mjs',
+        '--input=reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+        '--output=reports/audit/item-image-source-verification.round-04-2026-08-01.json',
+        '--batch-size=8',
+        '--max-requests=9'
+      ]
+    },
+    {
       id: 'recipe-reference-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 15 * 60 * 1000,
@@ -164,6 +177,46 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'item-group-canonical-preview',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/item-groups/item-group-canonical-action.mjs',
+        '--action-id=item-group-canonical-preview'
+      ]
+    },
+    {
+      id: 'item-group-canonical-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/item-groups/item-group-canonical-action.mjs',
+        '--action-id=item-group-canonical-apply'
+      ]
+    },
+    {
+      id: 'npc-crawler-facts-preview',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+        '--action-id=npc-crawler-facts-preview'
+      ]
+    },
+    {
+      id: 'npc-crawler-facts-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+        '--action-id=npc-crawler-facts-apply'
+      ]
+    },
+    {
       id: 'boss-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
@@ -214,8 +267,8 @@ export function buildBackendDataRefreshPlan(options = {}) {
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
-        'scripts/data/pipeline/run-shimmer-sync-pipeline.mjs',
-        '--apply=true'
+        'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+        '--progress-path=data/generated/domain-source-shimmer-progress.latest.json'
       ]
     },
     {

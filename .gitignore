@@ -60,6 +60,11 @@ reports/relation/relation-audit-*.json
 !reports/audit/image-source-lineage-2026-05-24.json
 !reports/domain/
 reports/domain/staleness-history.jsonl
+# Source contract evidence must survive a clean clone: the retired and b1_migrating
+# contract modes require these reports on disk, and an ignored evidence file would
+# recreate exactly the defect this migration retires.
+!reports/canonical-migration/
+!reports/authorization/
 !reports/item-groups/
 !reports/item-groups/any-item-group-source-audit-2026-05-23.json
 !reports/item-groups/any-item-group-source-audit-2026-05-23.md

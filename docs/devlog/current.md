@@ -1,8 +1,8 @@
 # Current Devlog
 
-Last updated: 2026-07-31 18:23 CST by Codex
+Last updated: 2026-08-11 12:39 CST by Codex
 
-Active branch: `ux/detail-pages-redesign`
+Active branch: `main` (merged `design/crawler-auto-ingestion-readiness`)
 
 ## Open Work
 
@@ -19,22 +19,17 @@ Active branch: `ux/detail-pages-redesign`
 
 ## Active Focus
 
-- Front P2 WP-11.2..WP-14, its closed P1-tail/WP10 dependencies,
-  post-acceptance repairs, and the approved Mist Workbench/Linen Paper button
-  systems are locally integrated into `main`. Focused contracts, the full
-  frontend gate, both preview copies, and the 16-case runtime matrix passed for
-  button scope. The blocked data-audit compatibility commits remain excluded;
-  no push or local worktree cleanup was performed.
+Tasks 1–6 complete. Task 6 (formal scheduler activation evidence run) executed
+and rolled back cleanly on 2026-08-11. Scheduler is currently **disabled**.
+Next step is an independent owner decision: keep enabled permanently (new auth
+cycle required) or push/merge the branch as-is.
 
-- Admin/backend P1+P2 batch is closed and locally integrated into `main` at
-  `b778e57f`. The task branch and worktree are intentionally preserved; no push
-  or cleanup has been performed.
+## Open Work
 
-- V2 queue engine activated on this worktree
-  (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
-  from checkpoint 147/388 after a V1-era stuck-domain incident.
-- V1 code deletion is deferred until V2 survives several full crawl cycles;
-  boundary audit recorded in the entry above.
+- **Permanent scheduler enablement**: independent owner decision; requires a new Task 5/6 authorization cycle (this run's packet was the evidence run; rollback closes it).
+- **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
+- Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
+- Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.
 
 ## Current State
 
@@ -44,13 +39,7 @@ Active branch: `ux/detail-pages-redesign`
   the focused public armor/recipe backend suite (16/16). The source integration
   worktree remains available with two unstaged HTML acceptance auxiliaries.
 
-- C2 commits `b825ecc`, `02ee0a7`, `635f5ba`, and `fd3689e` keep table overflow
-  local, action buttons on one row, and article filters readable across widths.
-  Focused contracts pass 11/11 and admin typecheck passes. Fresh browser geometry
-  at 1280/1130/1024/900/800/761/760 confirms every toolbar control has computed
-  and actual height 44px, stays inside its toolbar, and causes no document,
-  command-bar, or toolbar overflow. Specification and quality re-review have no
-  findings; temporary ports 3010/9223/18088 are closed.
+## Next Agent Start Point
 
 - C3 commits `c20d7b2` and `dcf214c` repair all seven classification-audit tokens
   and add a transactional shared five-section pager. The final behavior suite
@@ -184,47 +173,28 @@ Active branch: `ux/detail-pages-redesign`
   - commit: `466146c1`; two approved light button systems and byte-identical
     interactive previews complete
 
-- `docs/devlog/entries/2026-07-22-front-p2-local-integration.md`
-  - branch: `main` from `feat/front-p2-integration`
-  - status: `closed`
-  - commit: `8dedd321`; curated local integration complete
+- `entries/2026-08-11-scheduler-preflight-domain-mapping-decision.md` - Task 5 preflight domain gap analysis; owner chose Approach C (narrow to 5 auto-dispatch domains); preflight now 10/10 eligible.
 
-- `docs/devlog/entries/2026-07-18-admin-p1-p2-batch.md`
-  - branch: `fix/admin-p1-p2-batch`
-  - status: `closed`
-  - commit: `b778e57f`; integrated into local `main`
+- `entries/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md` - Tasks 1-4 committed as proposal-only, current-hash-bound preparation; no production preflight artifact or authorization identity generated.
 
-- `docs/devlog/entries/2026-07-18-front-p1-tail-refactor.md`
-  - branch: `refactor/front-p1-tail`
-  - status: `closed`
-  - integration commit: `8dedd321`
-
-- `docs/devlog/entries/2026-07-17-admin-p0-security-batch.md`
-  - branch: `dev/post-merge-acceptance`
-  - status: `closed`
-  - commits: `e6cda9c` `f750425` `4db4df8` `462e483` `7a0a82e` `f8f9b3a` `cc287de` `ad8e9bd`
-
-- `docs/devlog/entries/2026-07-17-v2-main-merge-integration.md`
-  - branch: `main`
-  - status: `closed`
-  - commit: `518d9a04`
-
-- `docs/devlog/entries/2026-07-16-crawler-monitor-operation-semantics.md`
-  - branch: `fix/crawler-queue-v2-runtime`
-  - status: `closed`
-  - commit: `3234cc0`
-
-- `docs/devlog/entries/2026-07-14-crawler-monitor-registered-idle-domains.md`
-  - branch: `fix/crawler-queue-v2-runtime`
-  - status: `closed`
-  - commit: `3234cc0`
-
-- `docs/devlog/entries/2026-07-16-public-category-navigation.md`
-  - branch: `codex/continue-dev-20260715`
-  - status: `closed`
-  - commit: `4a744dc`
-
-- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
-  - branch: `fix/crawler-queue-v2-runtime`
-  - status: `closed`
-  - commit: `0bad80d`
+- `entries/2026-08-08-recipe-formal-read-only-verification.md` - formal Recipe
+  state verified read-only; overwritten standalone evidence rejected.
+- `entries/2026-08-08-biome-t1-isolated-acceptance.md` - exact Biome T1 passed
+  and cleaned to zero; formal Biome apply remains unauthorized.
+- `entries/2026-08-08-buff-t1-isolated-acceptance.md` - exact Buff T1 passed
+  and cleaned to zero; formal Buff apply remains unauthorized.
+- `entries/2026-08-07-projectile-item-only-t1-acceptance.md` - exact item-only
+  Projectile T1 passed and cleaned to zero; NPC relation coverage remains
+  explicitly out of scope.
+- `entries/2026-08-07-projectile-t1-source-blocker.md` - original NPC-inclusive
+  lane intentionally stopped and transferred to the owner-approved item-only
+  child.
+- `entries/2026-08-07-boss-t1-isolated-acceptance.md`
+- `entries/2026-08-07-npc-t1-isolated-acceptance-refresh.md`
+- `entries/2026-08-06-crawler-v2-domain-freshness-card.md`
+- `entries/2026-08-06-crawler-v2-items-sample-operation.md`
+- `entries/2026-08-06-crawler-v2-automation-controls.md`
+- `entries/2026-07-23-crawler-auto-ingestion-readiness-design.md`
+- `entries/2026-07-27-crawler-automated-ingestion-closure.md`
+- `entries/2026-08-04-item-image-projection-apply-runtime.md`
+- `entries/2026-08-06-crawler-v2-monitor-simplification.md`

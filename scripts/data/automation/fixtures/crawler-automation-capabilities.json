@@ -1,0 +1,809 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-27",
+  "note": "Canonical 23-operation capability matrix. All operations default to L0 + DISABLED. No operation has L1/L2 eligibility until explicitly activated with Owner approval.",
+  "operations": [
+    {
+      "actionId": "wiki-items-refresh",
+      "domain": "items",
+      "mode": "check",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-items-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.items_module_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "wiki-items-force-refresh",
+      "domain": "items",
+      "mode": "force",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-items-force-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.items_module_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "wiki-npcs-refresh",
+      "domain": "npcs",
+      "mode": "check",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-npcs-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.npcs_module_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "wiki-npcs-force-refresh",
+      "domain": "npcs",
+      "mode": "force",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-npcs-force-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.npcs_module_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "wiki-projectiles-refresh",
+      "domain": "projectiles",
+      "mode": "check",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-projectiles-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.projectiles_module_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "wiki-projectiles-force-refresh",
+      "domain": "projectiles",
+      "mode": "force",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/wiki-projectiles-force-refresh.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.projectiles_module_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "buff-page-immunity-refresh",
+      "domain": "buffs",
+      "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-buffs.mjs",
+        "canonicalPath": "data/generated/fetch-wiki-buffs-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-buffs.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.buffs_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "domain-source-armor-sets",
+      "domain": "armor_sets",
+      "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs",
+        "canonicalPath": "data/generated/domain-source-armor-sets-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-armorsetbonuses.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.armor_sets_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "recipe-reference-sync",
+      "domain": "recipes",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/recipe-reference-sync.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.items",
+        "local.recipes"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "recipe-reference-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "recipe-reference-apply",
+      "domain": "recipes",
+      "mode": "apply",
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "local",
+          "table": "recipes",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "recipe_ingredients",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "recipe_stations",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.items",
+        "maint.recipes_source"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "recipe-reference-sync"
+    },
+    {
+      "actionId": "biome-preview",
+      "domain": "biomes",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/biome-preview.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.biomes_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "biome-sync",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "biome-sync",
+      "domain": "biomes",
+      "mode": "apply",
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "local",
+          "table": "biomes",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "biome_relations",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "biome_resources",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_biomes",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        }
+      ],
+      "readDependencies": [
+        "maint.biomes_source"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "biome-preview"
+    },
+    {
+      "actionId": "domain-source-bosses",
+      "domain": "bosses",
+      "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-bosses.mjs",
+        "canonicalPath": "data/generated/domain-source-bosses-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-bosses-progress.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.bosses_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "domain-source-town-npc-maintenance",
+      "domain": "town_npc_maintenance",
+      "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs",
+        "canonicalPath": "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
+        "isolatedTestPath": "scripts/data/fetch/fetch-wiki-town-npc-maintenance-progress.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.town_npc_maintenance_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "domain-source-shimmer",
+      "domain": "shimmer",
+      "mode": "fresh",
+      "progressContract": {
+        "ownerScript": "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+        "canonicalPath": "data/generated/domain-source-shimmer-progress.latest.json",
+        "isolatedTestPath": "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "maint.shimmer_source"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": null,
+      "applyPairOf": null
+    },
+    {
+      "actionId": "npc-loot-backfill",
+      "domain": "npc_loot",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/npc-loot-backfill.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.npcs",
+        "local.npc_loot_entries"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "npc-loot-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "npc-loot-apply",
+      "domain": "npc_loot",
+      "mode": "apply",
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "local",
+          "table": "npc_loot_entries",
+          "fieldGroup": "non_boss_loot_columns",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "npc_loot_parent_kind",
+            "partition": "non_boss"
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.npcs",
+        "maint.npc_loot_source"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "npc-loot-backfill"
+    },
+    {
+      "actionId": "boss-loot-backfill",
+      "domain": "boss_loot",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/workflow/run-backend-data-refresh.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/boss-loot-backfill.child-status.json",
+        "isolatedTestPath": "scripts/data/workflow/run-backend-data-refresh.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.npcs",
+        "local.npc_loot_entries"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "boss-loot-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "boss-loot-apply",
+      "domain": "boss_loot",
+      "mode": "apply",
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "local",
+          "table": "npc_loot_entries",
+          "fieldGroup": "boss_loot_columns",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "npc_loot_parent_kind",
+            "partition": "boss"
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.npcs",
+        "maint.boss_loot_source"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "boss-loot-backfill"
+    },
+    {
+      "actionId": "item-group-canonical-preview",
+      "domain": "item_groups",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/item-groups/item-group-canonical-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/item-group-canonical-preview.child-status.json",
+        "isolatedTestPath": "scripts/data/item-groups/item-group-canonical-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.item_groups_raw_landings",
+        "maint.item_group_projection",
+        "relation.item_group_projection"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "item-group-canonical-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "item-group-canonical-apply",
+      "domain": "item_groups",
+      "mode": "apply",
+      "progressContract": {
+        "ownerScript": "scripts/data/item-groups/item-group-canonical-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/item-group-canonical-apply.child-status.json",
+        "isolatedTestPath": "scripts/data/item-groups/item-group-canonical-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "maint",
+          "table": "maint_item_groups",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_item_group_members",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_item_group_aliases",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_item_groups",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_item_group_members",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_item_group_aliases",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_groups",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_group_members",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_group_aliases",
+          "fieldGroup": "source_derived_rows",
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "item_group_source_layer",
+            "partition": "source_derived",
+            "resolver": "resolveItemGroupSourceLayer",
+            "resolverVersion": 1
+          }
+        },
+        {
+          "databaseRole": "local",
+          "table": "item_group_projection_state",
+          "fieldGroup": "projection_state",
+          "logicalPredicate": {
+            "kind": "serialized_singleton",
+            "mutex": "item_group_projection_state",
+            "singletonKey": 1,
+            "resolverVersion": 1
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.item_groups_raw_landings",
+        "maint.item_group_projection",
+        "relation.item_group_projection"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "item-group-canonical-preview"
+    },
+    {
+      "actionId": "npc-crawler-facts-preview",
+      "domain": "npc_crawler_facts",
+      "mode": "preview",
+      "progressContract": {
+        "ownerScript": "scripts/data/npc-canonical/npc-crawler-fact-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/npc-crawler-facts-preview.child-status.json",
+        "isolatedTestPath": "scripts/data/npc-canonical/npc-crawler-fact-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": false,
+      "ownedTables": [],
+      "readDependencies": [
+        "local.npcs_base_raw_landings",
+        "local.npc_crawler_facts_raw_landings",
+        "maint.npc_crawler_fact_projection",
+        "relation.npc_crawler_fact_projection"
+      ],
+      "snapshotRequired": false,
+      "rollbackMode": "none",
+      "previewPairOf": "npc-crawler-facts-apply",
+      "applyPairOf": null
+    },
+    {
+      "actionId": "npc-crawler-facts-apply",
+      "domain": "npc_crawler_facts",
+      "mode": "apply",
+      "progressContract": {
+        "ownerScript": "scripts/data/npc-canonical/npc-crawler-fact-action.mjs",
+        "canonicalPath": "reports/backend-refresh/history/<run>.runtime/npc-crawler-facts-apply.child-status.json",
+        "isolatedTestPath": "scripts/data/npc-canonical/npc-crawler-fact-action.test.mjs",
+        "initialBeforeWork": true,
+        "heartbeat": true,
+        "terminalStatuses": [
+          "completed",
+          "failed"
+        ]
+      },
+      "automationLevel": "L0",
+      "operationalState": "DISABLED",
+      "writesDatabase": true,
+      "ownedTables": [
+        {
+          "databaseRole": "maint",
+          "table": "maint_npc_crawler_facts",
+          "fieldGroup": "all_columns",
+          "logicalPredicate": {
+            "kind": "all"
+          }
+        }
+      ],
+      "readDependencies": [
+        "local.npcs_base_raw_landings",
+        "local.npc_crawler_facts_raw_landings",
+        "maint.npc_crawler_fact_projection",
+        "relation.npc_crawler_fact_projection"
+      ],
+      "snapshotRequired": true,
+      "rollbackMode": "scope_snapshot_latest_writer",
+      "previewPairOf": null,
+      "applyPairOf": "npc-crawler-facts-preview"
+    }
+  ]
+}

@@ -5,6 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { buildDataSourceAcceptanceReportManifest } from './data-source-acceptance-report-manifest.mjs';
+import { validateItemGroupReadinessReport } from '../item-groups/item-group-readiness.mjs';
+import { validateNpcCanonicalReadinessReport } from '../npc-canonical/npc-canonical-readiness.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -64,6 +66,8 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
     requiresDatabase: entry.requiresDatabase,
     writesDatabase: entry.writesDatabase,
     commandRisk,
+    blocking: false,
+    blockingReason: null,
   };
 
   if (entry.freshnessSource === 'crawler-monitor') {
@@ -80,6 +84,7 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
       ...base,
       freshnessStatus: 'missing',
       freshnessReason: 'No matching acceptance report evidence found.',
+      ...canonicalBlocking(entry, `${canonicalLabel(entry)} evidence is missing.`),
     };
   }
 
@@ -90,6 +95,7 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
       latestReportPath: latestReport.relativePath,
       freshnessStatus: 'unknown',
       freshnessReason: 'Acceptance report JSON is unreadable or invalid.',
+      ...canonicalBlocking(entry, `${canonicalLabel(entry)} evidence is unreadable or malformed.`),
     };
   }
   if (!reportTime.generatedAt) {
@@ -104,6 +110,14 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
   const ageHours = Math.max(0, Math.floor((now.getTime() - reportTime.generatedAt.getTime()) / 3_600_000));
   const staleAfterHours = Number(entry.staleAfterHours);
   const isStale = Number.isFinite(staleAfterHours) && ageHours > staleAfterHours;
+  const canonicalValidation = entry.statusImpact === 'invalid-to-blocked'
+    ? validateCanonicalReport(entry, reportTime.payload)
+    : null;
+  const blockingReason = isStale && canonicalValidation
+    ? `${canonicalLabel(entry)} evidence is stale.`
+    : canonicalValidation && !canonicalValidation.valid
+      ? `${canonicalLabel(entry)} evidence is invalid: ${canonicalValidation.blockingReasons.join('; ')}`
+      : null;
   return {
     ...base,
     latestReportPath: latestReport.relativePath,
@@ -114,8 +128,29 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
         ? 'Using file modified time because generatedAt is unavailable.'
         : null,
     ageHours,
-    nextEvidenceCommand: isStale ? entry.generatorCommand : null,
+    nextEvidenceCommand: isStale || blockingReason ? entry.generatorCommand : null,
+    blocking: Boolean(blockingReason),
+    blockingReason,
   };
+}
+
+function validateCanonicalReport(entry, payload) {
+  if (entry.panelId === 'npcCanonicalReadiness') {
+    return validateNpcCanonicalReadinessReport(payload, { requiredLevel: 'T2_CUTOVER_VERIFIED' });
+  }
+  return validateItemGroupReadinessReport(payload);
+}
+
+function canonicalLabel(entry) {
+  return entry.panelId === 'npcCanonicalReadiness'
+    ? 'Canonical NPC readiness'
+    : 'Canonical item-group readiness';
+}
+
+function canonicalBlocking(entry, reason) {
+  return entry.statusImpact === 'invalid-to-blocked'
+    ? { blocking: true, blockingReason: reason }
+    : { blocking: false, blockingReason: null };
 }
 
 function summarizePanels(panels) {
@@ -131,10 +166,18 @@ function summarizePanels(panels) {
 }
 
 function summarizeGate(panels) {
-  const blockingReasons = panels
-    .filter((panel) => panel.commandRisk === 'unsafe')
-    .map((panel) => `${panel.panelId} generator command is unsafe`);
+  const blockingReasons = panels.flatMap((panel) => {
+    const reasons = [];
+    if (panel.commandRisk === 'unsafe') {
+      reasons.push(`${panel.panelId} generator command is unsafe`);
+    }
+    if (panel.blocking) {
+      reasons.push(`${panel.panelId}: ${panel.blockingReason}`);
+    }
+    return reasons;
+  });
   const warningReasons = panels
+    .filter((panel) => !panel.blocking)
     .filter((panel) => ['missing', 'stale', 'unknown'].includes(panel.freshnessStatus))
     .map((panel) => `${panel.panelId} evidence is ${panel.freshnessStatus}`);
   return {
@@ -201,14 +244,14 @@ function compareReportCandidates(left, right) {
 function readReportTime(fullPath) {
   const report = readJsonReport(fullPath);
   if (!report.readable) {
-    return { generatedAt: null, source: null, unreadable: true };
+    return { generatedAt: null, source: null, unreadable: true, payload: null };
   }
   const generatedAt = parseDate(report.payload?.generatedAt);
   if (generatedAt) {
-    return { generatedAt, source: 'generatedAt' };
+    return { generatedAt, source: 'generatedAt', payload: report.payload };
   }
   const stat = fs.statSync(fullPath);
-  return { generatedAt: new Date(stat.mtimeMs), source: 'mtime' };
+  return { generatedAt: new Date(stat.mtimeMs), source: 'mtime', payload: report.payload };
 }
 
 function readJsonReport(fullPath) {

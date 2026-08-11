@@ -24,6 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Locale;
@@ -251,11 +254,44 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
     }
 
     private UserAvatarValidator.AvatarImage validateManagedImage(MultipartFile file) {
+        if ("image/gif".equals(normalizeContentType(file.getContentType()))) {
+            return validateGifImage(file);
+        }
         try {
             return UserAvatarValidator.validateAndResolve(file);
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("仅支持有效的 JPEG、PNG 或 WebP 图片文件");
+            throw invalidManagedImage();
         }
+    }
+
+    private UserAvatarValidator.AvatarImage validateGifImage(MultipartFile file) {
+        try {
+            byte[] bytes = file.getBytes();
+            if (!hasGifSignature(bytes) || ImageIO.read(new ByteArrayInputStream(bytes)) == null) {
+                throw invalidManagedImage();
+            }
+            return new UserAvatarValidator.AvatarImage("image/gif", ".gif");
+        } catch (IOException exception) {
+            throw invalidManagedImage();
+        }
+    }
+
+    private boolean hasGifSignature(byte[] bytes) {
+        return bytes.length >= 6
+            && bytes[0] == 'G'
+            && bytes[1] == 'I'
+            && bytes[2] == 'F'
+            && bytes[3] == '8'
+            && (bytes[4] == '7' || bytes[4] == '9')
+            && bytes[5] == 'a';
+    }
+
+    private String normalizeContentType(String contentType) {
+        return StringUtils.hasText(contentType) ? contentType.trim().toLowerCase(Locale.ROOT) : "";
+    }
+
+    private IllegalArgumentException invalidManagedImage() {
+        return new IllegalArgumentException("仅支持有效的 JPEG、PNG、WebP 或 GIF 图片文件");
     }
 
     private String normalizeReadableObjectKey(String objectKey) {

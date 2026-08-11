@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  PROJECTION_TABLE_CATALOG,
   PROJECTION_TABLE_NAMES,
   buildProjectionSchemaStatements
 } from './projection-schema.mjs';
+
+test('PROJECTION_TABLE_CATALOG exposes stable automation ownership metadata', () => {
+  assert.deepEqual(PROJECTION_TABLE_CATALOG.map((entry) => entry.table), PROJECTION_TABLE_NAMES);
+  assert.equal(PROJECTION_TABLE_CATALOG.every((entry) => entry.databaseRole === 'relation'), true);
+  assert.equal(PROJECTION_TABLE_CATALOG.every((entry) => entry.tableKind === 'projection'), true);
+});
 
 test('PROJECTION_TABLE_NAMES stays ordered and complete', () => {
   assert.deepEqual(PROJECTION_TABLE_NAMES, [
@@ -27,6 +34,14 @@ test('buildProjectionSchemaStatements emits schema-qualified create statements',
     assert.ok(statement, `missing statement for ${tableName}`);
     assert.match(statement, /^CREATE TABLE IF NOT EXISTS `terria_v1_relation`\.`projection_/);
   }
+});
+
+test('buildProjectionSchemaStatements confines every qualifier to an explicit isolated database', () => {
+  const database = 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation';
+  const statements = buildProjectionSchemaStatements(database);
+  assert.ok(statements.every((statement) => !statement.includes('`terria_v1_relation`')));
+  assert.ok(statements.every((statement) => statement.includes(`\`${database}\``)));
+  assert.throws(() => buildProjectionSchemaStatements('terria_v1_relation`; DROP DATABASE x; --'), /database/i);
 });
 
 test('projection npc and projectile schemas include wiki image url columns', () => {

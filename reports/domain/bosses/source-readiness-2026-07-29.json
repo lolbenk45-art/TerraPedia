@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-07-29T21:17:24.360Z",
+  "domainId": "bosses",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/bosses/source-readiness-2026-07-29.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_generated_wiki_bosses_latest_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/wiki-bosses.latest.json",
+      "latestReportPath": null,
+      "recordCount": 33,
+      "status": "pass",
+      "message": "Boss source semantic gates are clean in data/generated/wiki-bosses.latest.json"
+    },
+    {
+      "id": "reports_wiki_bosses_fetchlatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/wiki-bosses-fetch-2026-05-24.json",
+      "latestReportPath": "reports/wiki-bosses-fetch-2026-05-24.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: reports/wiki-bosses-fetch-2026-05-24.json"
+    },
+    {
+      "id": "reports_wiki_bosses_importlatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/wiki-bosses-import-2026-07-29.json",
+      "latestReportPath": "reports/wiki-bosses-import-2026-07-29.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "boss import semantic gates are clean in reports/wiki-bosses-import-2026-07-29.json"
+    }
+  ]
+}

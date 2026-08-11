@@ -1,4 +1,5 @@
 import test from 'node:test';
+import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
@@ -11,6 +12,7 @@ import {
   buildDomainReadinessReport,
   resolveDomainReportPath,
 } from './domain-readiness-audit.mjs';
+import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -238,7 +240,21 @@ test('buildDomainReadinessReport applies boss source semantic gates', () => {
     ],
   });
   writeJson(repoRoot, 'reports/wiki-bosses-fetch-2026-04-21.json', { ok: true });
-  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-04-21.json', { ok: true });
+  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-04-21.json', {
+    generatedAt: '2026-04-21T00:00:00Z',
+    dryRun: false,
+    totalBosses: 2,
+    createdBossGroups: 2,
+    updatedBossGroups: 0,
+    mappedBosses: 2,
+    unmappedBosses: 0,
+    unresolvedBosses: [],
+    remainingWikiBossImages: 0,
+    remainingWikiBossMemberImages: 0,
+    bossMemberImageMissingSource: 0,
+    failedBossImages: 0,
+    failedBossMemberImages: 0,
+  });
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -637,6 +653,9 @@ test('buildDomainReadinessReport applies projectile source and image semantic ga
     },
   });
   writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-04-22.json', {
+    generatedAt: '2026-04-22T00:00:00Z',
+    apply: true,
+    sourceMapCount: 2,
     total: 2,
     totalAvailable: 2,
     imageResolved: 2,
@@ -685,6 +704,9 @@ test('buildDomainReadinessReport warns when projectile unresolved zh exceeds bas
     },
   });
   writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-04-22.json', {
+    generatedAt: '2026-04-22T00:00:00Z',
+    apply: true,
+    sourceMapCount: 1,
     total: 1,
     totalAvailable: 1,
     imageResolved: 1,
@@ -734,7 +756,11 @@ test('buildDomainReadinessReport applies armor set source and image semantic gat
         name: 'Unknown armor',
         internalCode: 'Unknown armor',
         itemIds: [999],
-        status: 'placeholder',
+        status: 'expected_placeholder',
+        review: {
+          status: 'accepted_expected_placeholder',
+          reason: 'nonstandard single-piece equipped display',
+        },
         definition: {
           textKey: null,
           textZh: 'Unknown armor',
@@ -829,7 +855,11 @@ test('buildDomainReadinessReport accepts audited armor definition placeholder ex
         name: '空桶',
         internalCode: '空桶',
         itemIds: [205],
-        status: 'placeholder',
+        status: 'expected_placeholder',
+        review: {
+          status: 'accepted_expected_placeholder',
+          reason: 'nonstandard single-piece equipped display',
+        },
         definition: {
           textKey: null,
           textZh: '空桶',
@@ -921,7 +951,11 @@ test('buildDomainReadinessReport rejects audited armor placeholder exception wit
         name: '空桶',
         internalCode: '空桶',
         itemIds: [999],
-        status: 'placeholder',
+        status: 'expected_placeholder',
+        review: {
+          status: 'accepted_expected_placeholder',
+          reason: 'nonstandard single-piece equipped display',
+        },
         definition: {
           textKey: null,
           textZh: '空桶',
@@ -1361,18 +1395,27 @@ test('buildDomainReadinessReport warns when support gate reports do not expose k
 test('buildDomainReadinessReport applies recipe support gate semantics', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-04-19.json', {
-    after: { activeResultItems: 2, resultItems: 2 },
+    generatedAt: '2026-04-19T00:00:00Z',
+    apply: true,
+    dryRun: false,
+    before: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
+    after: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
     changes: { suppressedOverlapRecipeRows: 1, gapOnlyResultItems: 3 },
   });
   writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-04-09.json', {
-    summary: { candidateCount: 2 },
+    generatedAt: '2026-04-09T00:00:00Z',
+    summary: { totalRecipeCount: 10, activeRecipeCount: 8, recipeItemCount: 4, focusProviderItemCount: 3, candidateCount: 2 },
+    topCandidates: [{ itemId: 1 }],
   });
   writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-04-09.json', {
+    generatedAt: '2026-04-09T00:00:00Z',
     sourceRecipes: 10,
     wikiZhDbRecipes: 10,
+    activeDbRecipes: 10,
     comparison: {
       missingFromWikiZhDbCount: 0,
       extraInWikiZhDbCount: 0,
+      missingFromActiveDbCount: 0,
       trulyMissingEverywhereCount: 0,
       suppressedButPresentCount: 5,
     },
@@ -1394,18 +1437,27 @@ test('buildDomainReadinessReport applies recipe support gate semantics', () => {
 test('buildDomainReadinessReport warns when recipe non-blocking metrics exceed baseline', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-04-19.json', {
-    after: { activeResultItems: 2, resultItems: 2 },
+    generatedAt: '2026-04-19T00:00:00Z',
+    apply: true,
+    dryRun: false,
+    before: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
+    after: { recipeRows: 2, activeRecipeRows: 2, activeResultItems: 2, resultItems: 2 },
     changes: { suppressedOverlapRecipeRows: 9999, gapOnlyResultItems: 3060, gapOnlyRecipeRows: 6751 },
   });
   writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-04-09.json', {
-    summary: { candidateCount: 245 },
+    generatedAt: '2026-04-09T00:00:00Z',
+    summary: { totalRecipeCount: 10, activeRecipeCount: 8, recipeItemCount: 4, focusProviderItemCount: 3, candidateCount: 245 },
+    topCandidates: [{ itemId: 1 }],
   });
   writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-04-09.json', {
+    generatedAt: '2026-04-09T00:00:00Z',
     sourceRecipes: 10,
     wikiZhDbRecipes: 10,
+    activeDbRecipes: 10,
     comparison: {
       missingFromWikiZhDbCount: 0,
       extraInWikiZhDbCount: 0,
+      missingFromActiveDbCount: 0,
       trulyMissingEverywhereCount: 0,
       suppressedButPresentCount: 2557,
     },
@@ -1445,54 +1497,6 @@ test('buildDomainReadinessReport blocks recipe support gate when source coverage
   assert.ok(report.blockingReasons.some((reason) => /missingFromWikiZhDbCount=2/.test(reason)));
   assert.ok(report.blockingReasons.some((reason) => /extraInWikiZhDbCount=1/.test(reason)));
   assert.ok(report.blockingReasons.some((reason) => /trulyMissingEverywhereCount=1/.test(reason)));
-});
-
-test('buildDomainReadinessReport applies shimmer support gate semantics', () => {
-  const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-04-22.json', {
-    counts: {
-      itemTransforms: 279,
-      decraftRules: 248,
-      entityTransforms: 121,
-      npcTransforms: 29,
-      unresolvedTitles: 0,
-    },
-  });
-
-  const report = buildDomainReadinessReport({
-    repoRoot,
-    domainId: 'support.shimmer',
-    panel: 'blocking',
-    generatedAt: '2026-05-03T12:00:00Z',
-  });
-
-  assert.equal(report.status, 'warning');
-  assert.equal(report.summary.blockedCount, 0);
-  assert.ok(report.warningReasons.some((reason) => reason.includes('Missing optional evidence: back/src/main/java/com/terraria/skills/controller/AdminShimmerController.java')));
-  assert.ok(report.checks.some((check) => check.status === 'pass' && /shimmer import semantic gates are clean/.test(check.message)));
-});
-
-test('buildDomainReadinessReport blocks shimmer support gate unresolved titles', () => {
-  const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'reports/wiki-shimmer-db-import-2026-04-22.json', {
-    counts: {
-      itemTransforms: 279,
-      decraftRules: 248,
-      entityTransforms: 121,
-      npcTransforms: 29,
-      unresolvedTitles: 2,
-    },
-  });
-
-  const report = buildDomainReadinessReport({
-    repoRoot,
-    domainId: 'support.shimmer',
-    panel: 'blocking',
-    generatedAt: '2026-05-03T12:00:00Z',
-  });
-
-  assert.equal(report.status, 'blocked');
-  assert.ok(report.blockingReasons.some((reason) => /unresolvedTitles=2/.test(reason)));
 });
 
 test('buildDomainReadinessReport applies item group support gate semantics', () => {
@@ -1564,6 +1568,630 @@ test('buildDomainReadinessReport blocks item group support gate unresolved membe
 
   assert.equal(report.status, 'blocked');
   assert.ok(report.blockingReasons.some((reason) => /unresolvedMemberReferences=2/.test(reason)));
+});
+
+test('items image readiness accepts only a completed applied image-sync report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/items.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'CopperShortsword', imageUrl: 'https://cdn.example.test/copper.png' }],
+  });
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java', 'class PublicItemRelationController {}');
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /workflow-image-sync/.test(reason)));
+
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', { apply: false, modules: {} });
+  const incomplete = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  assert.notEqual(incomplete.status, 'pass');
+
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', {
+    apply: true,
+    generatedAt: '2026-07-27T00:00:00Z',
+    scopes: ['items'],
+    modules: {
+      items: { apply: true, total: 1, candidates: 1, alreadyManaged: 0, uploaded: 1, changed: 1, missingSource: 0 },
+    },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', {
+    apply: true,
+    generatedAt: '2026-07-27T00:00:00Z',
+    scopes: ['items'],
+    modules: {
+      items: { apply: true, total: 1, candidates: 1, alreadyManaged: 1, uploaded: 0, changed: 0, missingSource: 0 },
+    },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+});
+
+test('boss source readiness accepts only a completed formal boss import report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-bosses.latest.json', {
+    overview: { bossCount: 1 },
+    records: [{
+      status: 'ok',
+      titleEn: 'King Slime',
+      pageTitleEn: 'King Slime',
+      sourceUrl: 'https://example.test/King_Slime',
+      titleZh: '史莱姆王',
+      imageUrl: 'https://example.test/king-slime.png',
+    }],
+  });
+  writeJson(repoRoot, 'reports/wiki-bosses-fetch-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /wiki-bosses-import/.test(reason)));
+
+  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-07-27.json', { dryRun: true });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    dryRun: false,
+    totalBosses: 1,
+    createdBossGroups: 1,
+    updatedBossGroups: 0,
+    mappedBosses: 1,
+    unmappedBosses: 0,
+    unresolvedBosses: [],
+    remainingWikiBossImages: 0,
+    remainingWikiBossMemberImages: 0,
+    bossMemberImageMissingSource: 0,
+    failedBossImages: 0,
+    failedBossMemberImages: 0,
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' }).status, 'pass');
+});
+
+test('boss relation readiness accepts only a completed formal boss-loot import report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'relation' });
+  assert.equal(missing.status, 'warning');
+  assert.ok(missing.warningReasons.some((reason) => /boss-loot-import/.test(reason)));
+
+  writeJson(repoRoot, 'reports/boss-loot-import-2026-07-27.json', { dryRun: true });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'relation' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/boss-loot-import-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    dryRun: false,
+    totalBossRecords: 1,
+    totalDropRecords: 1,
+    targetedBossGroups: 1,
+    importedBosses: 1,
+    skippedBosses: 0,
+    insertedLootRows: 1,
+    updatedLootRows: 0,
+    removedLootRows: 0,
+    skippedLootRows: 0,
+    unresolvedBosses: [],
+    unresolvedItems: [],
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'relation' }).status, 'pass');
+});
+
+test('projectile readiness shares one completed applied backfill report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/projectiles.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow', imageUrl: 'https://cdn.example.test/arrow.png' }],
+  });
+  writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-07-27.json', {
+    domains: { projectiles: { localTotal: 1, maintTotal: 1, relationTotal: 1 } },
+    fieldAudit: { domains: { projectiles: { fields: { nameZh: { gap: 0 }, image: { gap: 0 } } } } },
+  });
+
+  const relationMissing = buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'relation' });
+  const imageMissing = buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'image' });
+  assert.equal(relationMissing.status, 'warning');
+  assert.equal(imageMissing.status, 'warning');
+
+  writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-07-27.json', { apply: false });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'relation' }).status, 'pass');
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'image' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: true,
+    sourceMapCount: 1,
+    total: 1,
+    totalAvailable: 1,
+    imageResolved: 1,
+    unresolvedImage: 0,
+    unresolvedZh: 0,
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'relation' }).status, 'pass');
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'projectiles', panel: 'image' }).status, 'pass');
+});
+
+test('recipe source readiness accepts only a producer-shaped crawler snapshot', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/recipe-material-reference.json', { records: [{ id: 1 }] });
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-import-2026-07-29.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: false,
+    inputRecipes: 2,
+  });
+
+  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' });
+  assert.equal(missing.status, 'blocked');
+  assert.ok(missing.warningReasons.some((reason) => /wiki-zh-recipe-pages/.test(reason)));
+
+  writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {});
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {
+    entity: 'wiki_zh_recipe_pages',
+    generatedAt: '2026-07-27T00:00:00Z',
+    sourceApi: 'https://terraria.wiki.gg/zh/api.php',
+    requestedPages: ['配方'],
+    summary: { crawledPages: 1, requestedPages: 1, discoveredPages: 0, recipePages: 1, recipeTableCount: 1, recipeRowCount: 1 },
+    records: [{ pageTitle: '配方', requested: true, sourceUrl: 'https://terraria.wiki.gg/zh/wiki/配方', recipeTableCount: 1, recipeRowCount: 1, recipeTables: [{ rows: [{}] }] }],
+  });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  writeJson(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json', {
+    entity: 'wiki_zh_recipe_pages',
+    generatedAt: '2026-07-27T00:00:00Z',
+    sourceApi: 'https://terraria.wiki.gg/zh/api.php',
+    requestedPages: ['配方'],
+    summary: { crawledPages: 1, requestedPages: 1, discoveredPages: 0, recipePages: 1, recipeTableCount: 1, recipeRowCount: 1 },
+    records: [{
+      pageTitle: '配方',
+      requested: true,
+      sourceUrl: 'https://terraria.wiki.gg/zh/wiki/配方',
+      recipeTableCount: 1,
+      recipeRowCount: 1,
+      recipeTables: [{
+        tableIndex: 0,
+        rowCount: 1,
+        rows: [{ rowIndex: 0, resultName: '木剑', resultQuantity: 1, ingredients: [{ ingredientIndex: 0, text: '木材', quantity: 7 }] }],
+      }],
+    }],
+  });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  const verificationPath = 'reports/canonical-migration/canonical-recipe-formal-verification.json';
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json', { apply: true });
+  const verification = validRecipeFormalVerification(repoRoot);
+  writeJson(repoRoot, verificationPath, verification);
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+
+  for (const mutate of [
+    (value) => { value.status = 'failed'; },
+    (value) => { value.mode = 'apply'; },
+    (value) => { value.writesAttempted = true; },
+    (value) => { value.artifacts.input.sha256 = 'f'.repeat(64); },
+    (value) => { value.input.recipeCount = 2; },
+    (value) => { value.formalScope.projectionHash = 'e'.repeat(64); },
+    (value) => { value.formalScope.wikiZhRecipes = 2; },
+    (value) => { value.formalScope.activeRecipeRows = 3; },
+    (value) => { value.formalScope.unresolvedStations = 1; },
+  ]) {
+    const invalid = structuredClone(verification);
+    mutate(invalid);
+    writeJson(repoRoot, verificationPath, invalid);
+    assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+  }
+
+  writeJson(repoRoot, verificationPath, verification);
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json', { apply: true, drifted: true });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'source' }).status, 'pass');
+});
+
+function validRecipeFormalVerification(repoRoot) {
+  const inputHash = sha256Path(repoRoot, 'data/generated/wiki-zh-recipe-pages.latest.json');
+  const pipelineHash = sha256Path(repoRoot, 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json');
+  const standaloneHash = sha256Path(repoRoot, 'reports/wiki-zh-recipe-import-2026-07-29.json');
+  const scopeHash = 'b'.repeat(64);
+  return {
+    schemaVersion: 1,
+    generatedAt: '2026-08-08T00:00:00.000Z',
+    status: 'passed',
+    mode: 'read-only',
+    decisionId: 'canonical-recipe-apply-20260729-03',
+    writesAttempted: false,
+    expectedFinalProjectionHash: scopeHash,
+    artifacts: {
+      input: { path: 'data/generated/wiki-zh-recipe-pages.latest.json', sha256: inputHash },
+      appliedPipeline: { path: 'reports/wiki-zh-recipe-sync-summary-2026-07-29.json', sha256: pipelineHash },
+      standaloneImport: { path: 'reports/wiki-zh-recipe-import-2026-07-29.json', sha256: standaloneHash },
+    },
+    input: { pageCount: 1, recipeCount: 1, expectedSha256: inputHash },
+    appliedPipeline: {
+      apply: true,
+      import: {
+        apply: true,
+        database: 'terria_v1_local',
+        inputPages: 1,
+        inputRecipes: 1,
+        insertedRecipes: 1,
+        insertedIngredientRows: 0,
+        insertedStationRows: 0,
+        createdPlaceholderItems: 0,
+        createdCraftingStations: 0,
+        unresolvedItemRowsAfterImport: 0,
+        unresolvedStationRowsAfterImport: 0,
+        importedRecipeCountInDb: 1,
+        recipeScopeHashTarget: 'f'.repeat(64),
+      },
+      displayNameBackfill: {
+        apply: true,
+        database: 'terria_v1_local',
+        groupIngredientsUpdated: 124,
+        stationsUpdated: 239,
+        after: {
+          groupIngredients: { needsSync: 0 },
+          ingredients: { needsSync: 0 },
+          stations: { needsSync: 0 },
+        },
+      },
+      consolidation: {
+        apply: true,
+        dryRun: false,
+        after: { recipeRows: 4, activeRecipeRows: 2, resultItems: 1, activeResultItems: 1 },
+      },
+    },
+    formalScope: {
+      database: 'terria_v1_local',
+      totalRecipes: 4,
+      totalIngredients: 0,
+      totalStations: 0,
+      consolidationRecipeRows: 4,
+      activeRecipeRows: 2,
+      resultItems: 1,
+      activeResultItems: 1,
+      wikiZhRecipes: 1,
+      wikiZhIngredients: 0,
+      wikiZhStations: 0,
+      unresolvedItems: 0,
+      unresolvedStations: 0,
+      projectionHash: scopeHash,
+    },
+    standaloneImport: { classification: 'superseded-invalid', reasons: ['apply is not true'] },
+    checks: [{ name: 'input-hash-and-counts', status: 'passed' }],
+    blockingReasons: [],
+  };
+}
+
+function sha256Path(repoRoot, relativePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(path.join(repoRoot, relativePath))).digest('hex');
+}
+
+test('recipe blocking readiness rejects empty shells and accepts all three producer report shapes', () => {
+  const repoRoot = createTempRepo();
+  for (const reportName of [
+    'recipe-provider-consolidation-2026-07-27.json',
+    'recipe-provider-suppression-2026-07-27.json',
+    'wiki-zh-recipe-source-coverage-2026-07-27.json',
+  ]) {
+    writeJson(repoRoot, `reports/${reportName}`, {});
+  }
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'blocking' }).status, 'pass');
+
+  writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    apply: true,
+    dryRun: false,
+    before: { recipeRows: 1, activeRecipeRows: 1, resultItems: 1, activeResultItems: 1 },
+    after: { recipeRows: 1, activeRecipeRows: 1, resultItems: 1, activeResultItems: 1 },
+    changes: { gapOnlyResultItems: 0, gapOnlyRecipeRows: 0 },
+  });
+  writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    summary: { totalRecipeCount: 1, activeRecipeCount: 1, recipeItemCount: 1, focusProviderItemCount: 1, candidateCount: 0 },
+    topCandidates: [],
+  });
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-07-27.json', {
+    generatedAt: '2026-07-27T00:00:00Z',
+    sourceRecipes: 1,
+    wikiZhDbRecipes: 1,
+    activeDbRecipes: 1,
+    comparison: {
+      missingFromWikiZhDbCount: 0,
+      extraInWikiZhDbCount: 0,
+      missingFromActiveDbCount: 0,
+      suppressedButPresentCount: 0,
+      trulyMissingEverywhereCount: 0,
+    },
+  });
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'support.recipe', panel: 'blocking' }).status, 'pass');
+});
+
+test('shimmer readiness requires the current verified generation and an exact completed private import result', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
+  const pointerBytes = fs.readFileSync(pointerPath);
+
+  try {
+    writeJson(repoRoot, 'data/generated/wiki-shimmer.latest.json', { legacy: true });
+    fs.rmSync(pointerPath);
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+      'raw-only evidence must not satisfy shimmer source readiness',
+    );
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+      'generation-only evidence must not satisfy shimmer source readiness',
+    );
+    fs.writeFileSync(pointerPath, pointerBytes, { mode: 0o600 });
+
+    const completed = buildCompletedShimmerImportResult(publication.manifest);
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      completed,
+      { mode: 0o600 },
+    );
+    const source = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'source',
+      generatedAt: '2026-08-03T00:00:00Z',
+    });
+    assert.equal(source.status, 'pass');
+
+    const blocking = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'blocking',
+      generatedAt: '2026-08-03T00:00:00Z',
+    });
+    assert.equal(blocking.status, 'pass');
+
+    const canonicalResultPath = path.join(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+    );
+    fs.chmodSync(canonicalResultPath, 0o644);
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+      'a completed import result must remain private',
+    );
+    fs.chmodSync(canonicalResultPath, 0o600);
+
+    const preservedSnapshots = buildCompletedShimmerImportResult(publication.manifest, {
+      priorSnapshotLogicalKeys: [{
+        entityType: 'wiki_shimmer_legacy',
+        provider: 'wiki_zh',
+        sourceKind: 'generated_json',
+        sourceLocator: 'data/generated/shimmer/generations/legacy/wiki-shimmer-legacy.json',
+      }],
+    });
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      preservedSnapshots,
+      { mode: 0o600 },
+    );
+    assert.equal(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+      'a completed import must retain frozen prior provider snapshots outside the current generation',
+    );
+
+    const droppedFrozenSnapshot = buildCompletedShimmerImportResult(publication.manifest, {
+      priorSnapshotLogicalKeys: preservedSnapshots.snapshots.before.logicalKeys,
+      afterSnapshotLogicalKeys: shimmerSnapshotLogicalKeys(publication.manifest),
+    });
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      droppedFrozenSnapshot,
+      { mode: 0o600 },
+    );
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+      'a completed import must not omit a frozen prior provider snapshot',
+    );
+
+    for (const [field, value] of [
+      ['apply', false],
+      ['status', 'failed'],
+      ['generationId', 'b'.repeat(64)],
+      ['dataBundleSha256', sha256('wrong-bundle')],
+      ['manifestSha256', sha256('wrong-manifest')],
+      ['previewSha256', sha256('wrong-preview')],
+      ['targetFingerprintSha256', sha256('wrong-target')],
+      ['providerScope', { ...completed.providerScope, provider: 'other' }],
+    ]) {
+      writeJson(
+        repoRoot,
+        'reports/authorization/canonical/canonical-shimmer-import.result.json',
+        { ...completed, [field]: value },
+        { mode: 0o600 },
+      );
+      assert.notEqual(
+        buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+        'pass',
+        `wrong ${field} must fail closed`,
+      );
+    }
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer readiness rejects noncanonical title-resolution evidence', () => {
+  for (const kind of ['ambiguous', 'unresolved', 'mixed', 'unreported', 'other']) {
+    const repoRoot = createTempRepo();
+    const publication = publishShimmerReadinessGeneration(repoRoot, {
+      titleResolutionRecords: [{ kind, nameZh: '木剑' }],
+    });
+    try {
+      writeJson(
+        repoRoot,
+        'reports/authorization/canonical/canonical-shimmer-import.result.json',
+        buildCompletedShimmerImportResult(publication.manifest),
+        { mode: 0o600 },
+      );
+      const report = buildDomainReadinessReport({
+        repoRoot,
+        domainId: 'support.shimmer',
+        panel: 'blocking',
+        generatedAt: '2026-08-03T00:00:00Z',
+      });
+      assert.notEqual(report.status, 'pass', `${kind} title-resolution evidence must block readiness`);
+      assert.match(report.blockingReasons.join('\n'), /title|reference|identity/i);
+    } finally {
+      fs.rmSync(repoRoot, { recursive: true, force: true });
+    }
+  }
+});
+
+test('shimmer readiness accepts the explicit none title-resolution kind', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot, {
+    titleResolutionRecords: [{ kind: 'none', nameZh: '无', nameEn: null, internalName: null }],
+  });
+  try {
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      buildCompletedShimmerImportResult(publication.manifest),
+      { mode: 0o600 },
+    );
+    const report = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'blocking',
+      generatedAt: '2026-08-03T00:00:00Z',
+    });
+    assert.equal(report.status, 'pass');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects a generation directory symlink that resolves outside its canonical root', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const generationPath = path.dirname(publication.manifestPath);
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-outside-generation-'));
+
+  try {
+    const outsideGenerationPath = path.join(outsideRoot, path.basename(generationPath));
+    fs.cpSync(generationPath, outsideGenerationPath, { recursive: true });
+    fs.rmSync(generationPath, { recursive: true, force: true });
+    fs.symlinkSync(outsideGenerationPath, generationPath, 'dir');
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects a canonical generation root symlink outside the repository', () => {
+  const repoRoot = createTempRepo();
+  publishShimmerReadinessGeneration(repoRoot);
+  const generationRoot = path.join(repoRoot, 'data', 'generated', 'shimmer', 'generations');
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-outside-generation-root-'));
+  const outsideGenerationRoot = path.join(outsideRoot, 'generations');
+
+  try {
+    fs.renameSync(generationRoot, outsideGenerationRoot);
+    fs.symlinkSync(outsideGenerationRoot, generationRoot, 'dir');
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects an external transit symlink before its in-repository generation root', () => {
+  const repoRoot = createTempRepo();
+  publishShimmerReadinessGeneration(repoRoot);
+  const shimmerPath = path.join(repoRoot, 'data', 'generated', 'shimmer');
+  const internalShimmerPath = path.join(repoRoot, 'data', 'generated', 'shimmer-internal');
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-transit-root-'));
+  const outsideShimmerPath = path.join(outsideRoot, 'shimmer');
+
+  try {
+    fs.renameSync(shimmerPath, internalShimmerPath);
+    fs.mkdirSync(outsideShimmerPath, { recursive: true });
+    fs.symlinkSync(outsideShimmerPath, shimmerPath, 'dir');
+    fs.symlinkSync(path.join(internalShimmerPath, 'generations'), path.join(outsideShimmerPath, 'generations'), 'dir');
+    fs.copyFileSync(
+      path.join(internalShimmerPath, 'wiki-shimmer-current-generation.json'),
+      path.join(outsideShimmerPath, 'wiki-shimmer-current-generation.json'),
+    );
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer source readiness rejects a symbolic-link current-generation pointer', () => {
+  const repoRoot = createTempRepo();
+  publishShimmerReadinessGeneration(repoRoot);
+  const pointerPath = path.join(repoRoot, 'data', 'generated', 'shimmer', 'wiki-shimmer-current-generation.json');
+  const replacementPath = path.join(repoRoot, 'data', 'generated', 'shimmer', 'pointer-source.json');
+
+  try {
+    fs.renameSync(pointerPath, replacementPath);
+    fs.symlinkSync(replacementPath, pointerPath);
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'source' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('shimmer readiness rejects a canonical result beneath an ancestor symlink outside the repository', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-result-outside-'));
+
+  try {
+    const canonicalDirectory = path.join(repoRoot, 'reports/authorization/canonical');
+    const outsideCanonicalDirectory = path.join(outsideRoot, 'canonical');
+    fs.mkdirSync(path.dirname(canonicalDirectory), { recursive: true });
+    fs.mkdirSync(outsideCanonicalDirectory, { recursive: true });
+    fs.symlinkSync(outsideCanonicalDirectory, canonicalDirectory, 'dir');
+    const resultPath = path.join(outsideCanonicalDirectory, 'canonical-shimmer-import.result.json');
+    fs.writeFileSync(
+      resultPath,
+      `${JSON.stringify(buildCompletedShimmerImportResult(publication.manifest))}\n`,
+      { mode: 0o600 },
+    );
+    fs.chmodSync(resultPath, 0o600);
+
+    assert.notEqual(
+      buildDomainReadinessReport({ repoRoot, domainId: 'support.shimmer', panel: 'blocking' }).status,
+      'pass',
+    );
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
 });
 
 test('resolveDomainReportPath matches domain acceptance report patterns', () => {
@@ -1666,7 +2294,7 @@ test('source stays read-only and does not execute child commands', () => {
 
   assert.doesNotMatch(source, /\bspawn\b|\bexec\b|execFile|spawnSync/);
   assert.doesNotMatch(source, /\bcreateConnection\b|\bmysql\b/i);
-  assert.doesNotMatch(source, /\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b/i);
+  assert.doesNotMatch(source, /^\s*(?:INSERT(?:\s+IGNORE)?\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|DROP\s+(?:TABLE|DATABASE|SCHEMA))\b/im);
 });
 
 function createTempRepo() {
@@ -1676,10 +2304,14 @@ function createTempRepo() {
   return repoRoot;
 }
 
-function writeJson(repoRoot, relativePath, payload) {
+function writeJson(repoRoot, relativePath, payload, options = {}) {
   const fullPath = path.join(repoRoot, relativePath);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-  fs.writeFileSync(fullPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(fullPath, `${JSON.stringify(payload, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: options.mode ?? 0o644,
+  });
+  if (options.mode != null) fs.chmodSync(fullPath, options.mode);
   return fullPath;
 }
 
@@ -1692,3 +2324,236 @@ function writeText(repoRoot, relativePath, text) {
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, text, 'utf8');
 }
+
+function publishShimmerReadinessGeneration(repoRoot, { titleResolutionRecords = [{ kind: 'item', nameZh: '木剑' }] } = {}) {
+  return publishShimmerGeneration({
+    rawBytes: Buffer.from(JSON.stringify({
+      pageTitle: 'Shimmer',
+      pageId: 4242,
+      revisionTimestamp: '2026-08-03T00:00:00.000Z',
+      html: '<table></table>',
+    })),
+    shards: {
+      context: { entity: 'wiki_shimmer_context_importable', records: [{ code: 'SHIMMER' }] },
+      itemTransforms: { entity: 'wiki_shimmer_item_transforms_importable', records: [{ key: 'item' }] },
+      decraftRules: { entity: 'wiki_shimmer_decraft_rules_importable', records: [{ key: 'decraft' }] },
+      entityTransforms: { entity: 'wiki_shimmer_entity_transforms_importable', records: [{ key: 'entity' }] },
+      npcTransforms: { entity: 'wiki_shimmer_npc_transforms_importable', records: [{ key: 'npc' }] },
+      titleResolution: { entity: 'wiki_shimmer_title_resolution', records: titleResolutionRecords },
+    },
+    standardizedInputs: {
+      items: { path: 'data/standardized/items.standardized.json', sha256: sha256('items') },
+      npcs: { path: 'data/standardized/npcs.standardized.json', sha256: sha256('npcs') },
+    },
+    langlinkEvidenceBytes: Buffer.from(JSON.stringify({ records: [] })),
+    producerCodeSha256: sha256('producer'),
+    tableRoleVersion: 'shimmer-table-roles/1',
+    generatedAt: '2026-08-03T00:00:00.000Z',
+    generationRoot: path.join(repoRoot, 'data/generated/shimmer/generations'),
+    pointerPath: path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json'),
+    runId: 'domain-readiness-test',
+  });
+}
+
+function buildCompletedShimmerImportResult(manifest, {
+  priorSnapshotLogicalKeys = [],
+  afterSnapshotLogicalKeys = null,
+} = {}) {
+  const tableNames = [
+    'shimmer_item_transforms',
+    'shimmer_decraft_rules',
+    'shimmer_entity_transforms',
+    'shimmer_npc_transforms',
+  ];
+  const providerScope = { provider: 'wiki_zh', sourcePage: '微光', tables: tableNames };
+  const target = {
+    host: '127.0.0.1',
+    port: 13306,
+    database: 'terria_v1_local',
+    serverUuid: 'shimmer-readiness-server',
+  };
+  const empty = (tableName) => descriptor(tableName, 0);
+  const after = (tableName, count) => descriptor(tableName, count);
+  const tables = Object.fromEntries(tableNames.map((tableName, index) => [tableName, {
+    before: empty(tableName),
+    after: after(tableName, manifest.files[index + 2].recordCount),
+  }]));
+  const worldContext = { before: empty('world_contexts'), after: after('world_contexts', 1) };
+  const currentSnapshotLogicalKeys = shimmerSnapshotLogicalKeys(manifest);
+  const snapshots = {
+    before: snapshotDescriptor(priorSnapshotLogicalKeys),
+    after: snapshotDescriptor(afterSnapshotLogicalKeys ?? [
+      ...priorSnapshotLogicalKeys,
+      ...currentSnapshotLogicalKeys,
+    ]),
+  };
+  const previewPayload = {
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    providerScope,
+    generationId: manifest.generationId,
+    dataBundleSha256: manifest.dataBundleSha256,
+    manifestSha256: manifest.manifestSha256,
+    target,
+    targetFingerprintSha256: sha256Canonical(target),
+    tables,
+    worldContext,
+    snapshots,
+  };
+  return {
+    ...previewPayload,
+    previewSha256: sha256Canonical(previewPayload),
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    status: 'completed',
+    apply: true,
+    generatedAt: '2026-08-03T00:00:00.000Z',
+    transaction: { status: 'completed' },
+  };
+}
+
+function descriptor(tableName, count) {
+  const logicalKeys = Array.from({ length: count }, (_, index) => ({ key: `${tableName}-${index}` }));
+  return {
+    count,
+    keySha256: sha256Canonical({ tableName, rows: logicalKeys }),
+    logicalKeys,
+    sha256: sha256Canonical({ tableName, rows: logicalKeys }),
+  };
+}
+
+function shimmerSnapshotLogicalKeys(manifest) {
+  const generationPath = `data/generated/shimmer/generations/${manifest.generationId}`;
+  return [
+    ['wiki_shimmer_page', 'wiki_page', 'wiki-shimmer.raw.json'],
+    ['wiki_shimmer_context', 'generated_json', 'wiki-shimmer-context.importable.json'],
+    ['wiki_shimmer_item_transforms', 'generated_json', 'wiki-shimmer-item-transforms.importable.json'],
+    ['wiki_shimmer_decraft_rules', 'generated_json', 'wiki-shimmer-decraft-rules.importable.json'],
+    ['wiki_shimmer_entity_transforms', 'generated_json', 'wiki-shimmer-entity-transforms.importable.json'],
+    ['wiki_shimmer_npc_transforms', 'generated_json', 'wiki-shimmer-npc-transforms.importable.json'],
+    ['wiki_shimmer_manifest', 'generated_json', 'wiki-shimmer-manifest.json'],
+  ].map(([entityType, sourceKind, fileName]) => ({
+    entityType,
+    provider: 'wiki_zh',
+    sourceKind,
+    sourceLocator: `${generationPath}/${fileName}`,
+  }));
+}
+
+function snapshotDescriptor(logicalKeys) {
+  const rows = logicalKeys.map(stableValue).sort((left, right) => (
+    JSON.stringify(left).localeCompare(JSON.stringify(right))
+  ));
+  return {
+    count: rows.length,
+    keySha256: sha256Canonical({ tableName: 'entity_source_snapshots', rows }),
+    logicalKeys: rows,
+    sha256: sha256Canonical({ tableName: 'entity_source_snapshots', rows }),
+    descriptors: rows.map((logicalKey) => ({
+      logicalKey,
+      payloadSha256: sha256(JSON.stringify(logicalKey)),
+      sourcePage: '微光',
+      sourceRevisionTimestamp: '2026-08-03 00:00:00',
+      fetchedAt: '2026-08-03 00:00:00',
+      isCurrent: 1,
+      parseStatus: 'parsed',
+    })),
+  };
+}
+
+function sha256Canonical(value) {
+  return sha256(JSON.stringify(stableValue(value)));
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+
+function sha256(value) {
+  return `sha256:${crypto.createHash('sha256').update(String(value), 'utf8').digest('hex')}`;
+}
+
+
+test('items image readiness accounts for reused objects and refuses a failed sync', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/items.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'CopperShortsword', imageUrl: '/terrapedia-images/items/copper.png' }],
+  });
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java', 'class C {}');
+
+  const applied = (items) => {
+    writeJson(repoRoot, 'reports/workflow-image-sync-2026-08-01.json', {
+      apply: true,
+      status: 'completed',
+      generatedAt: '2026-08-01T00:00:00Z',
+      scopes: ['items'],
+      modules: { items: { apply: true, ...items } },
+    });
+    return buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  };
+
+  // A run that reused most objects must still satisfy the completion equation.
+  assert.equal(applied({
+    total: 6131,
+    candidates: 6131,
+    alreadyManaged: 2119,
+    reused: 3914,
+    uploaded: 98,
+    changed: 4012,
+    missingSource: 0,
+    failedKeys: [],
+  }).status, 'pass');
+
+  // A bounded legacy-origin repair reports only its 331 repair candidates;
+  // the remaining 5800 identities are already-managed and complete the total.
+  assert.equal(applied({
+    total: 6131,
+    candidates: 331,
+    alreadyManaged: 5800,
+    reused: 0,
+    uploaded: 0,
+    changed: 331,
+    missingSource: 0,
+    failedKeys: [],
+    normalizedKeys: Array.from({ length: 331 }, (_, index) => `Legacy${index}`),
+  }).status, 'pass');
+
+  // Dropping reuse from the accounting must break the equation, not pass silently.
+  assert.notEqual(applied({
+    total: 6131,
+    candidates: 6131,
+    alreadyManaged: 2119,
+    reused: 0,
+    uploaded: 98,
+    changed: 4012,
+    missingSource: 0,
+    failedKeys: [],
+  }).status, 'pass');
+
+  // A partially applied run must never satisfy the panel.
+  writeJson(repoRoot, 'reports/workflow-image-sync-2026-08-01.json', {
+    apply: true,
+    status: 'failed',
+    generatedAt: '2026-08-01T00:00:00Z',
+    scopes: ['items'],
+    modules: {
+      items: {
+        apply: true,
+        total: 6131,
+        candidates: 6131,
+        alreadyManaged: 2119,
+        reused: 3914,
+        uploaded: 94,
+        changed: 4008,
+        missingSource: 0,
+        failedKeys: ['RainbowMoss'],
+      },
+    },
+  });
+  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+});

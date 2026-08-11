@@ -11,61 +11,116 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const scriptPath = path.join(__dirname, 'transform-wiki-shimmer-to-importable.mjs');
 
-test('shimmer transform does not require mysql2 when db lookup is disabled', () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-transform-no-db-'));
-  const inputPath = path.join(tempDir, 'wiki-shimmer.latest.json');
-  const outputDir = path.join(tempDir, 'out');
-  const reportPath = path.join(tempDir, 'summary.md');
-  const itemsPath = path.join(tempDir, 'items.standardized.json');
-  const npcsPath = path.join(tempDir, 'npcs.standardized.json');
-  const mockApiPath = path.join(tempDir, 'mock-api.json');
+test('shimmer transform carries no implicit database or live langlink coupling', () => {
+  const source = fs.readFileSync(scriptPath, 'utf8');
 
-  fs.writeFileSync(inputPath, JSON.stringify({
+  for (const forbidden of [
+    'createRequire',
+    'loadLocalStackConfig',
+    'enrichLookupsFromDb',
+    'fetchEnglishLanglinks'
+  ]) {
+    assert.equal(
+      source.includes(forbidden),
+      false,
+      `offline shimmer transform must not reference ${forbidden}`
+    );
+  }
+});
+
+test('shimmer transform rejects the removed db lookup switch', () => {
+  const fixture = writeFixture('reject-db-lookup');
+
+  const result = runTransform(fixture, ['--use-db-lookup=true']);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr || result.stdout, /use-db-lookup|database lookup/i);
+});
+
+test('shimmer transform requires frozen langlink evidence', () => {
+  const fixture = writeFixture('require-langlinks');
+
+  const result = runTransform(fixture, [], { includeLanglinks: false });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr || result.stdout, /langlink/i);
+});
+
+test('shimmer transform runs offline from frozen langlink evidence', () => {
+  const fixture = writeFixture('offline-run');
+
+  const result = runTransform(fixture, []);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(fixture.outputDir, 'wiki-shimmer-manifest.latest.json'), 'utf8')
+  );
+  assert.equal(manifest.outputs.contextRecords, 1);
+  for (const shard of [
+    'wiki-shimmer-context.importable.latest.json',
+    'wiki-shimmer-item-transforms.importable.latest.json',
+    'wiki-shimmer-decraft-rules.importable.latest.json',
+    'wiki-shimmer-entity-transforms.importable.latest.json',
+    'wiki-shimmer-npc-transforms.importable.latest.json'
+  ]) {
+    assert.ok(fs.existsSync(path.join(fixture.outputDir, shard)), `missing shard ${shard}`);
+  }
+});
+
+function writeFixture(label) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-shimmer-${label}-`));
+  const fixture = {
+    tempDir,
+    inputPath: path.join(tempDir, 'wiki-shimmer.latest.json'),
+    outputDir: path.join(tempDir, 'out'),
+    reportPath: path.join(tempDir, 'summary.md'),
+    itemsPath: path.join(tempDir, 'items.standardized.json'),
+    npcsPath: path.join(tempDir, 'npcs.standardized.json'),
+    langlinksPath: path.join(tempDir, 'langlinks.frozen.json')
+  };
+  fs.writeFileSync(fixture.inputPath, JSON.stringify({
     pageTitle: 'Shimmer',
     pageId: 123,
     revisionTimestamp: '2026-05-20T00:00:00Z',
     html: buildMinimalShimmerHtml()
   }), 'utf8');
-  fs.writeFileSync(itemsPath, JSON.stringify({
+  fs.writeFileSync(fixture.itemsPath, JSON.stringify({
     records: [
       { name: 'Stone Block', internalName: 'StoneBlock' },
       { name: 'Dirt Block', internalName: 'DirtBlock' },
       { name: 'Gel', internalName: 'Gel' }
     ]
   }), 'utf8');
-  fs.writeFileSync(npcsPath, JSON.stringify({
+  fs.writeFileSync(fixture.npcsPath, JSON.stringify({
     records: [
       { name: 'Blue Slime', internalName: 'BlueSlime' },
       { name: 'Guide', internalName: 'Guide' }
     ]
   }), 'utf8');
-  fs.writeFileSync(mockApiPath, JSON.stringify({ query: { pages: [] } }), 'utf8');
+  fs.writeFileSync(fixture.langlinksPath, JSON.stringify({
+    records: [
+      { nameZh: 'Stone Block', nameEn: 'Stone Block' },
+      { nameZh: 'Dirt Block', nameEn: 'Dirt Block' },
+      { nameZh: 'Blue Slime', nameEn: 'Blue Slime' },
+      { nameZh: 'Guide', nameEn: 'Guide' }
+    ]
+  }), 'utf8');
+  return fixture;
+}
 
-  const result = spawnSync(process.execPath, [
+function runTransform(fixture, extraArgs, { includeLanglinks = true } = {}) {
+  return spawnSync(process.execPath, [
     scriptPath,
-    `--input=${inputPath}`,
-    `--output=${outputDir}`,
-    `--report-output=${reportPath}`,
-    `--items=${itemsPath}`,
-    `--npcs=${npcsPath}`,
-    '--use-db-lookup=false'
-  ], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
-    }
-  });
-
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  const manifestPath = path.join(outputDir, 'wiki-shimmer-manifest.latest.json');
-  assert.ok(fs.existsSync(manifestPath));
-  assert.ok(fs.existsSync(reportPath));
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.outputs.contextRecords, 1);
-});
+    `--input=${fixture.inputPath}`,
+    `--output=${fixture.outputDir}`,
+    `--report-output=${fixture.reportPath}`,
+    `--items=${fixture.itemsPath}`,
+    `--npcs=${fixture.npcsPath}`,
+    ...(includeLanglinks ? [`--langlinks=${fixture.langlinksPath}`] : []),
+    '--generated-at=2026-07-30T12:00:00.000Z',
+    ...extraArgs
+  ], { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, NODE_ENV: 'test' } });
+}
 
 function buildMinimalShimmerHtml() {
   const item = '<span class="i"><a title="Stone Block">Stone Block</a></span>';

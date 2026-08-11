@@ -1178,12 +1178,28 @@ function displayTime(value) {
   return timeLabel || raw
 }
 
-// 真实的数据新鲜度 = wiki revision 对比结果(wikiMonitor.domains),不是执行阶段。
-// V2 行此前把 phase 塞进 sourceSummary 当新鲜度显示,属于假数据。
+export function localDataUpdateLabel(attempt, now = new Date()) {
+  if (!attempt || lower(attempt.status) !== 'completed') return '尚无成功爬取记录'
+  const actual = progressNumber(attempt?.result?.actualCount ?? attempt.current)
+  const planned = progressNumber(attempt?.result?.plannedCount ?? attempt.total)
+  const completedAt = normalize(attempt.completedAt)
+  const parts = []
+  if (actual != null && planned != null && planned > 0) parts.push(`${actual} / ${planned}`)
+  else if (actual != null) parts.push(`完成 ${actual}`)
+  parts.push(completedAt ? `完成于 ${displayTime(completedAt)}` : '完成时间未记录')
+  const completedMs = Date.parse(completedAt)
+  const nowMs = now instanceof Date ? now.getTime() : Date.parse(String(now || ''))
+  if (Number.isFinite(completedMs) && Number.isFinite(nowMs) && nowMs >= completedMs) {
+    parts.push(`距今 ${durationLabel(nowMs - completedMs)}`)
+  }
+  return parts.join(' · ')
+}
+
+// 上游检查只来自 wiki revision 对比，不用执行阶段或本地文件时间冒充。
 export function sourceFreshnessLabel(freshness) {
-  if (!freshness || typeof freshness !== 'object') return null
+  if (!freshness || typeof freshness !== 'object') return '上游尚未检查'
   const checkedAt = displayTime(freshness.checkedAt)
-  if (!checkedAt && !normalize(freshness.currentValue)) return '尚未执行过源检查'
+  if (!checkedAt && !normalize(freshness.currentValue)) return '上游尚未检查'
   const changed = freshness.changed === true ? '有变化' : freshness.changed === false ? '无变化' : '未判断变化'
   const parts = [changed]
   if (checkedAt) parts.push(`检查于 ${checkedAt}`)
@@ -1238,13 +1254,19 @@ export function buildDomainDetailViewModel({
   const hasLiveAttempt = v2 && Boolean(normalize(row.attemptId))
   const lastAttempt = !hasLiveAttempt && v2 ? (row.latestResult || null) : null
   const field = (label, value) => ({ label, value })
-  const freshnessLabel = v2 ? sourceFreshnessLabel(row.sourceFreshness) : null
+  const localDataLabel = v2
+    ? normalize(row.localDataSummary) || localDataUpdateLabel(row.latestSuccessfulAttempt)
+    : null
+  const upstreamCheckLabel = v2
+    ? normalize(row.upstreamCheckSummary) || sourceFreshnessLabel(row.sourceFreshness)
+    : null
   const currentFields = [
     field('当前状态', normalize(row.currentStatusLabel || row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))),
     field('进度', normalize(row.progressLabel || '--')),
-    ...(v2
-      ? (freshnessLabel ? [field('数据新鲜度', freshnessLabel)] : [])
-      : [field('数据新鲜度', normalize(row.sourceSummary || '未记录'))]),
+    ...(v2 ? [
+      field('最近数据', localDataLabel),
+      field('上游检查', upstreamCheckLabel),
+    ] : [field('数据新鲜度', normalize(row.sourceSummary || '未记录'))]),
     ...(hasLiveAttempt ? [field('阶段', v2Display.phaseLabel || '未记录')] : []),
     field('最近心跳', displayTime(row.heartbeatAt) || '未记录'),
     ...(hasLiveAttempt ? [

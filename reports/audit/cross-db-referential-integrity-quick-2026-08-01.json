@@ -1,0 +1,173 @@
+{
+  "generatedAt": "2026-08-01T00:00:00.000Z",
+  "mode": "quick",
+  "databases": {
+    "landingDatabase": "terria_v1_local",
+    "maintDatabase": "terria_v1_maint",
+    "relationDatabase": "terria_v1_relation",
+    "localDatabase": "terria_v1_local"
+  },
+  "summary": {
+    "status": "pass",
+    "checkCount": 10,
+    "blockingCount": 0,
+    "warningCount": 0,
+    "passCount": 10,
+    "infoCount": 0,
+    "missingCount": 0
+  },
+  "checks": [
+    {
+      "id": "maint_items_missing_current_landing",
+      "title": "maint items missing current landing rows",
+      "status": "pass",
+      "message": "maint items missing current landing rows: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "maint_npcs_missing_current_landing",
+      "title": "maint npcs missing current landing rows",
+      "status": "pass",
+      "message": "maint npcs missing current landing rows: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "maint_item_sources_missing_relation_facts",
+      "title": "maint item sources missing relation facts",
+      "status": "pass",
+      "message": "maint item sources missing relation facts: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "relation_item_source_facts_missing_maint",
+      "title": "relation item source facts missing maint rows",
+      "status": "pass",
+      "message": "relation item source facts missing maint rows: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "relation_shop_missing_local_entries",
+      "title": "relation shop relations missing local shop entries",
+      "status": "pass",
+      "message": "relation shop relations missing local shop entries: 0",
+      "expectation": {
+        "type": "warn_if_nonzero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "relation_loot_missing_local_entries",
+      "title": "relation loot relations missing local loot entries",
+      "status": "pass",
+      "message": "relation loot relations missing local loot entries: 0",
+      "expectation": {
+        "type": "warn_if_nonzero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "local_item_source_rows_missing_relation_trace",
+      "title": "local item acquisition rows without relation/maint trace",
+      "status": "pass",
+      "message": "local item acquisition rows without relation/maint trace: 0",
+      "expectation": {
+        "type": "warn_if_nonzero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "local_npc_loot_orphans",
+      "title": "local npc loot rows with missing local item or npc",
+      "status": "pass",
+      "message": "local npc loot rows with missing local item or npc: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "local_npc_shop_orphans",
+      "title": "local npc shop rows with missing local item or npc",
+      "status": "pass",
+      "message": "local npc shop rows with missing local item or npc: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "local_npc_shop_conditions_orphans",
+      "title": "local npc shop conditions with missing shop entry",
+      "status": "pass",
+      "message": "local npc shop conditions with missing shop entry: 0",
+      "expectation": {
+        "type": "zero",
+        "field": "count"
+      },
+      "rows": [
+        {
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "blockingReasons": [],
+  "warningReasons": []
+}

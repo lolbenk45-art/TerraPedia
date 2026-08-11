@@ -16,6 +16,8 @@ export default defineNuxtConfig({
 
   srcDir: '.',
 
+  ignore: ['**/*.test.mjs'],
+
   modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxtjs/tailwindcss'],
 
   alias: {

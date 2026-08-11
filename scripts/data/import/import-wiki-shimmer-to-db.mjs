@@ -2,17 +2,109 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import {
+  consumeAuthorizedOperationDispatchPermit,
+  loadAuthorizedOperationContext
+} from '../automation/authorized-operation-context.mjs';
+import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
+import {
+  CANONICAL_SHIMMER_IMPORT_RESULT_PATH,
+  assertCanonicalShimmerImportInputContract,
+  readCanonicalShimmerImportInputContract,
+  shimmerImportBindingFromInputContract,
+} from '../automation/canonical-shimmer-import-input-contract.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
+import {
+  assertRepositoryOrdinaryDirectory,
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
-
-const require = createRequire(import.meta.url);
+import { verifyShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const repoRoot = getProjectRoot();
+const OPERATION_ID = 'canonical-shimmer-import';
+const DECISION_LEDGER_PATH = 'reports/authorization/canonical/used-decisions.json';
+const GENERATION_MANIFEST_FILE = 'wiki-shimmer-manifest.json';
+const SHIMMER_PROVIDER = 'wiki_zh';
+const SHIMMER_SOURCE_PAGE = '微光';
+const SHIMMER_TABLE_NAMES = Object.freeze([
+  'shimmer_item_transforms',
+  'shimmer_decraft_rules',
+  'shimmer_entity_transforms',
+  'shimmer_npc_transforms'
+]);
+const AUTHORIZED_SHIMMER_IMPORT_BINDING_FIELDS = Object.freeze([
+  'operationId',
+  'generationId',
+  'manifestSha256',
+  'dataBundleSha256',
+  'previewSha256',
+  'targetFingerprintSha256',
+  'providerScope'
+]);
+const SHIMMER_SCOPE_KEY_FIELDS = Object.freeze({
+  world_contexts: ['code'],
+  entity_source_snapshots: ['entityType', 'provider', 'sourceKind', 'sourceLocator'],
+  shimmer_item_transforms: [
+    'contextCode',
+    'inputKind',
+    'inputNameEn',
+    'inputNameZh',
+    'inputInternalName',
+    'outputKind',
+    'outputNameEn',
+    'outputNameZh',
+    'outputInternalName',
+    'sortOrder'
+  ],
+  shimmer_decraft_rules: [
+    'contextCode',
+    'ruleType',
+    'groupLabel',
+    'inputKind',
+    'inputNameEn',
+    'inputNameZh',
+    'inputInternalName',
+    'sortOrder'
+  ],
+  shimmer_entity_transforms: [
+    'contextCode',
+    'transformGroup',
+    'inputEntityType',
+    'inputNameEn',
+    'inputNameZh',
+    'inputInternalName',
+    'outputEntityType',
+    'outputNameEn',
+    'outputNameZh',
+    'outputInternalName',
+    'sortOrder'
+  ],
+  shimmer_npc_transforms: [
+    'contextCode',
+    'npcNameEn',
+    'npcNameZh',
+    'npcInternalName',
+    'appearanceVariant',
+    'effectType',
+    'sortOrder'
+  ]
+});
+const IMPORTABLE_PAYLOAD_FILES = Object.freeze({
+  rawPayload: 'wiki-shimmer.raw.json',
+  contextPayload: 'wiki-shimmer-context.importable.json',
+  itemTransformsPayload: 'wiki-shimmer-item-transforms.importable.json',
+  decraftRulesPayload: 'wiki-shimmer-decraft-rules.importable.json',
+  entityTransformsPayload: 'wiki-shimmer-entity-transforms.importable.json',
+  npcTransformsPayload: 'wiki-shimmer-npc-transforms.importable.json',
+  titleResolutionPayload: 'wiki-shimmer-title-resolution.evidence.json'
+});
 
 if (isDirectExecution()) {
   main().catch((error) => {
@@ -23,310 +115,757 @@ if (isDirectExecution()) {
 }
 
 async function main() {
-  const mysql = require('mysql2/promise');
   const args = parseCliArgs(process.argv.slice(2));
-  const apply = booleanOption(args.apply, false);
-  const allowNonPrimaryDb = booleanOption(
-    args['allow-non-primary-db'] ?? args.allowNonPrimaryDb ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB,
-    false
-  );
-  const dateTag = new Date().toISOString().slice(0, 10);
-  const shimmerRawPath = path.resolve(args.raw ?? path.join(repoRoot, 'data', 'generated', 'wiki-shimmer.latest.json'));
-  const shimmerDir = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'shimmer'));
-  const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-shimmer-db-import-${dateTag}.json`));
-
-  const config = loadLocalStackConfig(repoRoot);
-  const db = {
-    host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
-    port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
-    user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
-    password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
-    database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
-  };
-
-  assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
-
-  const requiredFiles = {
-    raw: shimmerRawPath,
-    context: path.join(shimmerDir, 'wiki-shimmer-context.importable.latest.json'),
-    itemTransforms: path.join(shimmerDir, 'wiki-shimmer-item-transforms.importable.latest.json'),
-    decraftRules: path.join(shimmerDir, 'wiki-shimmer-decraft-rules.importable.latest.json'),
-    entityTransforms: path.join(shimmerDir, 'wiki-shimmer-entity-transforms.importable.latest.json'),
-    npcTransforms: path.join(shimmerDir, 'wiki-shimmer-npc-transforms.importable.latest.json'),
-    manifest: path.join(shimmerDir, 'wiki-shimmer-manifest.latest.json')
-  };
-
-  for (const [label, filePath] of Object.entries(requiredFiles)) {
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`Missing ${label} file: ${filePath}`);
-    }
+  if (args['bundle-manifest'] != null || args.bundleManifest != null || args.raw != null || args.input != null) {
+    throw new Error('Shimmer import accepts only --input-contract; direct manifest, raw, and input arguments are forbidden');
   }
-
-  const rawPayload = readJson(requiredFiles.raw);
-  const contextPayload = readJson(requiredFiles.context);
-  const itemTransformsPayload = readJson(requiredFiles.itemTransforms);
-  const decraftRulesPayload = readJson(requiredFiles.decraftRules);
-  const entityTransformsPayload = readJson(requiredFiles.entityTransforms);
-  const npcTransformsPayload = readJson(requiredFiles.npcTransforms);
-  const manifestPayload = readJson(requiredFiles.manifest);
-
-  const conn = await mysql.createConnection(db);
-  try {
-  await conn.query('SET NAMES utf8mb4');
-
-  const summary = {
-    generatedAt: new Date().toISOString(),
+  const apply = booleanOption(args.apply, false);
+  const result = await runShimmerImport({
     apply,
-    database: db.database,
-    reportPath,
-    input: {
-      raw: path.relative(repoRoot, requiredFiles.raw).replaceAll('\\', '/'),
-      directory: path.relative(repoRoot, shimmerDir).replaceAll('\\', '/')
+    inputContractPath: args['input-contract'] ?? args.inputContract,
+    database: args.database,
+    dbOverrides: {
+      host: args.host,
+      password: args.password,
+      port: args.port,
+      user: args.user
     },
-    counts: {
-      itemTransforms: Array.isArray(itemTransformsPayload.records) ? itemTransformsPayload.records.length : 0,
-      decraftRules: Array.isArray(decraftRulesPayload.records) ? decraftRulesPayload.records.length : 0,
-      entityTransforms: Array.isArray(entityTransformsPayload.records) ? entityTransformsPayload.records.length : 0,
-      npcTransforms: Array.isArray(npcTransformsPayload.records) ? npcTransformsPayload.records.length : 0,
-      unresolvedTitles: Number(manifestPayload?.resolution?.unresolvedCount ?? 0)
+    env: process.env,
+    outputPath: args.output,
+    repoRoot
+  });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+function buildDatabaseConfig({ config, env, overrides = {}, database } = {}) {
+  const db = {
+    host: overrides.host ?? env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(overrides.port ?? env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: overrides.user ?? env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: overrides.password ?? env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: database ?? env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
+  };
+  return db;
+}
+
+export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: suppliedRepoRoot = repoRoot } = {}) {
+  const root = path.resolve(suppliedRepoRoot);
+  const manifestPath = requireContentAddressedManifestPath({ bundleManifestPath, repoRoot: root });
+  const verified = verifyShimmerGeneration({ manifestPath });
+  const generationDirectoryName = path.basename(verified.generationPath);
+  if (generationDirectoryName !== verified.manifest.generationId) {
+    throw new Error('bundle manifest generation ID does not match its content-addressed directory');
+  }
+  const descriptorsByName = new Map(verified.manifest.files.map((descriptor) => [descriptor.name, descriptor]));
+  const payloads = Object.fromEntries(Object.entries(IMPORTABLE_PAYLOAD_FILES).map(([key, fileName]) => [
+    key,
+    readVerifiedShimmerGenerationPayload({
+      generationPath: verified.generationPath,
+      fileName,
+      expectedDescriptor: descriptorsByName.get(fileName)
+    })
+  ]));
+  requireVerifiedShimmerWorldContext(payloads.contextPayload);
+  assertImportableReferenceKinds(payloads);
+  return Object.freeze({
+    ...payloads,
+    dataBundleSha256: verified.manifest.dataBundleSha256,
+    generationId: verified.manifest.generationId,
+    generationPath: verified.generationPath,
+    manifest: verified.manifest,
+    manifestPath: verified.manifestPath,
+    manifestSha256: verified.manifest.manifestSha256,
+    repoRoot: root
+  });
+}
+
+export function loadVerifiedShimmerImportBundleFromInputContract({
+  inputContractPath,
+  repoRoot: suppliedRepoRoot = repoRoot,
+} = {}) {
+  const root = path.resolve(suppliedRepoRoot);
+  const inputContract = readCanonicalShimmerImportInputContract({
+    repoRoot: root,
+    inputContractPath,
+  });
+  const bundle = loadVerifiedShimmerImportBundle({
+    bundleManifestPath: inputContract.manifestPath,
+    repoRoot: root,
+  });
+  assertInputContractMatchesBundle({ inputContract, bundle });
+  return Object.freeze({ ...bundle, inputContract });
+}
+
+export function buildShimmerImportPreview({ bundle, target, existing = {} } = {}) {
+  const projection = buildShimmerImportProjection({ bundle });
+  const normalizedBundle = requireVerifiedBundle(bundle);
+  const targetFingerprint = normalizeTargetFingerprint(target);
+  const existingSnapshots = normalizeSnapshotRows(existing?.snapshots);
+  const tables = Object.fromEntries(SHIMMER_TABLE_NAMES.map((tableName) => {
+    const existingRows = Array.isArray(existing?.shimmerTables?.[tableName])
+      ? existing.shimmerTables[tableName]
+      : [];
+    const nextRows = projection.shimmerTables[tableName];
+    return [tableName, {
+      before: describeRows(tableName, existingRows),
+      after: describeRows(tableName, nextRows)
+    }];
+  }));
+  const preview = {
+    schemaVersion: 1,
+    operationId: OPERATION_ID,
+    providerScope: {
+      provider: SHIMMER_PROVIDER,
+      sourcePage: SHIMMER_SOURCE_PAGE,
+      tables: [...SHIMMER_TABLE_NAMES]
     },
-    before: {
-      shimmerWorldContext: await loadWorldContextByCode(conn, 'SHIMMER'),
-      shimmerSnapshots: await loadSnapshotStats(conn, rawPayload.pageTitle ?? '\u5fae\u5149'),
-      shimmerTables: await loadShimmerTableStats(conn)
-    },
+    generationId: normalizedBundle.generationId,
+    dataBundleSha256: normalizedBundle.dataBundleSha256,
+    manifestSha256: normalizedBundle.manifestSha256,
+    target: targetFingerprint,
+    targetFingerprintSha256: hashCanonical(targetFingerprint),
+    tables,
     worldContext: {
-      created: 0,
-      updated: 0,
-      id: null
+      before: describeRows(
+        'world_contexts',
+        existing?.worldContext == null ? [] : [normalizeWorldContext(existing.worldContext)]
+      ),
+      after: describeRows('world_contexts', [projection.worldContext])
     },
     snapshots: {
-      created: 0,
-      updated: 0,
-      entries: []
-    },
-    shimmerTables: {
-      itemTransforms: { created: 0, replaced: 0 },
-      decraftRules: { created: 0, replaced: 0 },
-      entityTransforms: { created: 0, replaced: 0 },
-      npcTransforms: { created: 0, replaced: 0 }
+      before: describeRows('entity_source_snapshots', existingSnapshots),
+      after: describeRows(
+        'entity_source_snapshots',
+        mergeSnapshotProjectionRows(existingSnapshots, projection.snapshots)
+      )
     }
   };
+  return freezeDeep({
+    ...preview,
+    previewSha256: hashCanonical(preview)
+  });
+}
 
-  if (apply) {
-    await conn.beginTransaction();
+function normalizeSnapshotRows(rows) {
+  return Array.isArray(rows) ? rows.map(normalizeSnapshotProjectionRow) : [];
+}
+
+function mergeSnapshotProjectionRows(existingRows, nextRows) {
+  const rowsByKey = new Map();
+  for (const row of [...existingRows, ...nextRows]) {
+    const normalized = normalizeShimmerDbRow(row);
+    rowsByKey.set(JSON.stringify(scopeKeyForRow('entity_source_snapshots', normalized)), normalized);
   }
+  return [...rowsByKey.values()];
+}
 
-  await ensureShimmerTables(conn, apply);
+export function buildShimmerImportProjection({ bundle } = {}) {
+  const normalizedBundle = requireVerifiedBundle(bundle);
+  assertBundleProviderScope(normalizedBundle);
+  assertImportableReferenceKinds(normalizedBundle);
+  const worldContext = requireVerifiedShimmerWorldContext(normalizedBundle.contextPayload);
+  const shimmerTables = buildShimmerTableProjectionRows(normalizedBundle, worldContext.code);
+  const snapshots = buildShimmerSnapshotDefinitions(normalizedBundle)
+    .map(snapshotDefinitionToProjection);
+  return Object.freeze({
+    worldContext,
+    shimmerTables: Object.freeze(shimmerTables),
+    snapshots: Object.freeze(snapshots)
+  });
+}
 
-  const worldContextId = await upsertWorldContext(conn, contextPayload.worldContext, summary.worldContext, apply);
-  summary.worldContext.id = worldContextId;
+function assertBundleProviderScope(bundle) {
+  for (const tableName of SHIMMER_TABLE_NAMES) {
+    for (const record of importRecordsForTable(bundle, tableName)) {
+      if (toText(record?.sourceProvider) != null && toText(record.sourceProvider) !== SHIMMER_PROVIDER) {
+        throw new Error(`verified shimmer import record provider is outside ${SHIMMER_PROVIDER}: ${tableName}`);
+      }
+      if (toText(record?.sourcePage) !== SHIMMER_SOURCE_PAGE) {
+        throw new Error(`verified shimmer import record source page is outside ${SHIMMER_SOURCE_PAGE}: ${tableName}`);
+      }
+    }
+  }
+}
 
-  const snapshotDefinitions = [
-    buildSnapshotDefinition('wiki_shimmer_page', rawPayload, requiredFiles.raw, rawPayload, 'wiki_page'),
-    buildSnapshotDefinition('wiki_shimmer_context', contextPayload, requiredFiles.context, contextPayload, 'generated_json'),
-    buildSnapshotDefinition('wiki_shimmer_item_transforms', itemTransformsPayload, requiredFiles.itemTransforms, contextPayload, 'generated_json'),
-    buildSnapshotDefinition('wiki_shimmer_decraft_rules', decraftRulesPayload, requiredFiles.decraftRules, contextPayload, 'generated_json'),
-    buildSnapshotDefinition('wiki_shimmer_entity_transforms', entityTransformsPayload, requiredFiles.entityTransforms, contextPayload, 'generated_json'),
-    buildSnapshotDefinition('wiki_shimmer_npc_transforms', npcTransformsPayload, requiredFiles.npcTransforms, contextPayload, 'generated_json'),
-    buildSnapshotDefinition('wiki_shimmer_manifest', manifestPayload, requiredFiles.manifest, contextPayload, 'generated_json')
-  ];
+export async function runShimmerImport(options = {}, dependencies = {}) {
+  const root = path.resolve(options.repoRoot ?? repoRoot);
+  if (options.bundleManifestPath != null) {
+    throw new Error('Shimmer import requires a private input contract and cannot accept a bundle manifest directly');
+  }
+  const apply = booleanOption(options.apply, false);
+  const outputPath = resolveShimmerImportOutputPath({
+    apply,
+    outputPath: options.outputPath,
+    repoRoot: root
+  });
 
-  for (const definition of snapshotDefinitions) {
-    const result = await upsertSnapshot(conn, definition, apply);
-    summary.snapshots[result.action] += 1;
-    summary.snapshots.entries.push({
-      entityType: definition.entityType,
-      action: result.action,
-      sourceLocator: definition.sourceLocator,
-      parseStatus: definition.parseStatus
+  const loadAuthorizationContext = dependencies.loadAuthorizationContext ?? loadAuthorizedOperationContext;
+  const consumeDispatchPermit = dependencies.consumeDispatchPermit ?? consumeAuthorizedOperationDispatchPermit;
+  const loadCurrentScope = dependencies.loadCurrentScope ?? loadCurrentShimmerScope;
+  const loadTarget = dependencies.loadTarget ?? loadTargetFingerprint;
+  const buildPreview = dependencies.buildPreview ?? buildShimmerImportPreview;
+  const applyVerified = dependencies.applyVerified ?? applyVerifiedShimmerImport;
+  const writeCanonicalResult = dependencies.writeCanonicalResult ?? writeCanonicalShimmerImportResult;
+  const loadInputContractBundle = dependencies.loadInputContractBundle
+    ?? loadVerifiedShimmerImportBundleFromInputContract;
+  let inputContract = null;
+  let bundle = null;
+  let preview = null;
+  let connection = null;
+  let committed = null;
+  let phase = 'preflight';
+  let primaryError = null;
+  try {
+    bundle = loadInputContractBundle({
+      inputContractPath: options.inputContractPath,
+      repoRoot: root
     });
+    inputContract = bundle.inputContract;
+    const config = dependencies.loadLocalStackConfig?.(root) ?? loadLocalStackConfig(root);
+    const db = buildDatabaseConfig({
+      config,
+      env: options.env ?? process.env,
+      overrides: options.dbOverrides,
+      database: options.database
+    });
+    assertPrimaryDb(db.database, apply, false);
+    const authorizedContext = apply
+      ? loadAuthorizationContext({ env: options.env ?? process.env, operationId: OPERATION_ID })
+      : null;
+    const authorizedBinding = apply
+      ? assertAuthorizedBundle({ authorizedContext, bundle, inputContract })
+      : null;
+    const mysql = loadMysqlModule();
+    const mysqlClient = dependencies.mysql ?? mysql;
+    phase = 'connect';
+    connection = await mysqlClient.createConnection({ ...db, dateStrings: true });
+    phase = 'load_current_scope';
+    await connection.query('SET NAMES utf8mb4');
+    const existing = await loadCurrentScope(connection, bundle);
+    preview = buildPreview({
+      bundle,
+      existing,
+      target: await loadTarget(connection, db)
+    });
+    if (apply) {
+      assertAuthorizedShimmerImportBindingMatchesPreview({
+        binding: authorizedBinding,
+        bundle,
+        preview
+      });
+    }
+    if (!apply) {
+      phase = 'write_preview';
+      const result = buildShimmerImportResult({ bundle, preview, apply: false, status: 'preview' });
+      await writeImportReport(outputPath, root, result);
+      return result;
+    }
+    phase = 'verify_target';
+    const currentTarget = await loadTarget(connection, db);
+    phase = 'apply';
+    const result = await applyVerified({
+      authorizedContext,
+      bundle,
+      inputContract,
+      connection,
+      consumeDispatchPermit: () => consumeDispatchPermit({
+        env: options.env ?? process.env,
+        authorizedContext,
+        decisionLedgerPath: path.join(root, DECISION_LEDGER_PATH)
+      }),
+      preview,
+      readLockedBefore: () => loadCurrentShimmerScope(connection, bundle, { forUpdate: true }),
+      currentTargetFingerprintSha256: hashCanonical(normalizeTargetFingerprint(currentTarget)),
+      applyChanges: () => applyBundleChanges({ bundle, connection }),
+      verifyAfter: async () => {
+        const after = await loadCurrentShimmerScope(connection, bundle);
+        assertShimmerImportScopeMatchesPreview({ after, preview });
+      }
+    });
+    if (result?.status !== 'completed') {
+      throw new Error(`verified shimmer import apply did not complete: ${result?.status ?? 'unknown'}`);
+    }
+    committed = true;
+    phase = 'write_completed_result';
+    const completed = buildShimmerImportResult({ bundle, preview, apply: true, status: 'completed', result });
+    await writeCanonicalResult(outputPath, root, completed);
+    return completed;
+  } catch (error) {
+    primaryError = error;
+    if (apply && committed !== true) {
+      const failed = buildShimmerImportResult({
+        bundle,
+        preview,
+        apply: true,
+        status: 'failed',
+        result: { phase, reason: error?.message ?? String(error) }
+      });
+      try {
+        await writeCanonicalResult(outputPath, root, failed);
+      } catch {
+        // Preserve the operation failure when its private failure report cannot be written.
+      }
+    }
+    throw error;
+  } finally {
+    if (connection != null && typeof connection.end === 'function') {
+      try {
+        await connection.end();
+      } catch (closeError) {
+        if (primaryError == null) throw closeError;
+      }
+    }
   }
-
-  await importShimmerItemTransforms(
-    conn,
-    contextPayload.worldContext.code,
-    itemTransformsPayload.records ?? [],
-    summary.shimmerTables.itemTransforms,
-    apply
-  );
-  await importShimmerDecraftRules(
-    conn,
-    contextPayload.worldContext.code,
-    decraftRulesPayload.records ?? [],
-    summary.shimmerTables.decraftRules,
-    apply
-  );
-  await importShimmerEntityTransforms(
-    conn,
-    contextPayload.worldContext.code,
-    entityTransformsPayload.records ?? [],
-    summary.shimmerTables.entityTransforms,
-    apply
-  );
-  await importShimmerNpcTransforms(
-    conn,
-    contextPayload.worldContext.code,
-    npcTransformsPayload.records ?? [],
-    summary.shimmerTables.npcTransforms,
-    apply
-  );
-
-  if (apply) {
-    await conn.commit();
-  }
-
-  summary.after = {
-    shimmerWorldContext: await loadWorldContextByCode(conn, 'SHIMMER'),
-    shimmerSnapshots: await loadSnapshotStats(conn, rawPayload.pageTitle ?? '\u5fae\u5149'),
-    shimmerTables: await loadShimmerTableStats(conn)
-  };
-
-  await fs.promises.mkdir(path.dirname(reportPath), { recursive: true });
-  await fs.promises.writeFile(reportPath, JSON.stringify(summary, null, 2), 'utf8');
-  console.log(JSON.stringify(summary, null, 2));
-} catch (error) {
-  if (apply) {
-    await conn.rollback();
-  }
-  throw error;
-} finally {
-  await conn.end();
 }
+
+export function resolveShimmerImportOutputPath({ apply = false, outputPath, repoRoot: suppliedRepoRoot = repoRoot } = {}) {
+  const root = path.resolve(suppliedRepoRoot);
+  if (apply) {
+    const fallbackPath = path.join(root, CANONICAL_SHIMMER_IMPORT_RESULT_PATH);
+    return requireCanonicalReportPath(outputPath ?? fallbackPath, root);
+  }
+  const fallbackPath = path.join(root, 'reports', 'wiki-shimmer-db-import-preview.json');
+  return requirePreviewReportPath(outputPath ?? fallbackPath, root);
 }
 
-async function ensureShimmerTables(connection, shouldApply) {
-  if (!shouldApply) {
-    return;
+export async function applyVerifiedShimmerImport({
+  authorizedContext,
+  bundle,
+  inputContract,
+  connection,
+  consumeDispatchPermit,
+  currentTargetFingerprintSha256,
+  preview,
+  readLockedBefore,
+  applyChanges,
+  verifyAfter
+} = {}) {
+  const normalizedBundle = requireVerifiedBundle(bundle);
+  requireApplyInputContract(inputContract);
+  const authorizedBinding = assertAuthorizedBundle({
+    authorizedContext,
+    bundle: normalizedBundle,
+    inputContract,
+  });
+  requireMatchingPreview({ bundle: normalizedBundle, preview });
+  if (currentTargetFingerprintSha256 !== undefined
+      && currentTargetFingerprintSha256 !== preview.targetFingerprintSha256) {
+    throw new Error('verified shimmer import target fingerprint drifted after preview');
+  }
+  if (!connection || typeof connection.beginTransaction !== 'function'
+      || typeof connection.commit !== 'function' || typeof connection.rollback !== 'function') {
+    throw new TypeError('transactional shimmer import connection is required');
+  }
+  if (typeof consumeDispatchPermit !== 'function') {
+    throw new TypeError('shimmer import dispatch permit consumer is required');
+  }
+  if (typeof applyChanges !== 'function' || typeof verifyAfter !== 'function') {
+    throw new TypeError('shimmer import apply and verification functions are required');
   }
 
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS shimmer_item_transforms (
-      id BIGINT NOT NULL AUTO_INCREMENT,
-      context_code VARCHAR(100) NOT NULL,
-      input_kind VARCHAR(32) NOT NULL,
-      input_name_en VARCHAR(255) DEFAULT NULL,
-      input_name_zh VARCHAR(255) DEFAULT NULL,
-      input_internal_name VARCHAR(255) DEFAULT NULL,
-      output_kind VARCHAR(32) NOT NULL,
-      output_name_en VARCHAR(255) DEFAULT NULL,
-      output_name_zh VARCHAR(255) DEFAULT NULL,
-      output_internal_name VARCHAR(255) DEFAULT NULL,
-      conditions_json LONGTEXT DEFAULT NULL,
-      notes TEXT DEFAULT NULL,
-      source_provider VARCHAR(64) DEFAULT NULL,
-      source_page VARCHAR(255) DEFAULT NULL,
-      source_revision_timestamp DATETIME DEFAULT NULL,
-      sort_order INT NOT NULL DEFAULT 0,
-      status INT NOT NULL DEFAULT 1,
-      deleted TINYINT NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      INDEX idx_shimmer_item_transforms_source (source_provider, source_page),
-      INDEX idx_shimmer_item_transforms_context (context_code)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `);
-
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS shimmer_decraft_rules (
-      id BIGINT NOT NULL AUTO_INCREMENT,
-      context_code VARCHAR(100) NOT NULL,
-      rule_type VARCHAR(64) NOT NULL,
-      group_label VARCHAR(255) DEFAULT NULL,
-      input_kind VARCHAR(32) NOT NULL,
-      input_name_en VARCHAR(255) DEFAULT NULL,
-      input_name_zh VARCHAR(255) DEFAULT NULL,
-      input_internal_name VARCHAR(255) DEFAULT NULL,
-      outputs_json LONGTEXT DEFAULT NULL,
-      conditions_json LONGTEXT DEFAULT NULL,
-      notes TEXT DEFAULT NULL,
-      source_provider VARCHAR(64) DEFAULT NULL,
-      source_page VARCHAR(255) DEFAULT NULL,
-      source_revision_timestamp DATETIME DEFAULT NULL,
-      sort_order INT NOT NULL DEFAULT 0,
-      status INT NOT NULL DEFAULT 1,
-      deleted TINYINT NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      INDEX idx_shimmer_decraft_rules_source (source_provider, source_page),
-      INDEX idx_shimmer_decraft_rules_context (context_code)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `);
-
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS shimmer_entity_transforms (
-      id BIGINT NOT NULL AUTO_INCREMENT,
-      context_code VARCHAR(100) NOT NULL,
-      transform_group VARCHAR(64) NOT NULL,
-      input_entity_type VARCHAR(32) DEFAULT NULL,
-      input_name_en VARCHAR(255) DEFAULT NULL,
-      input_name_zh VARCHAR(255) DEFAULT NULL,
-      input_internal_name VARCHAR(255) DEFAULT NULL,
-      output_entity_type VARCHAR(32) DEFAULT NULL,
-      output_name_en VARCHAR(255) DEFAULT NULL,
-      output_name_zh VARCHAR(255) DEFAULT NULL,
-      output_internal_name VARCHAR(255) DEFAULT NULL,
-      source_provider VARCHAR(64) DEFAULT NULL,
-      source_page VARCHAR(255) DEFAULT NULL,
-      source_revision_timestamp DATETIME DEFAULT NULL,
-      sort_order INT NOT NULL DEFAULT 0,
-      status INT NOT NULL DEFAULT 1,
-      deleted TINYINT NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      INDEX idx_shimmer_entity_transforms_source (source_provider, source_page),
-      INDEX idx_shimmer_entity_transforms_context (context_code)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `);
-
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS shimmer_npc_transforms (
-      id BIGINT NOT NULL AUTO_INCREMENT,
-      context_code VARCHAR(100) NOT NULL,
-      npc_name_en VARCHAR(255) DEFAULT NULL,
-      npc_name_zh VARCHAR(255) DEFAULT NULL,
-      npc_internal_name VARCHAR(255) DEFAULT NULL,
-      appearance_variant VARCHAR(64) DEFAULT NULL,
-      effect_type VARCHAR(64) DEFAULT NULL,
-      variant_image_url VARCHAR(500) DEFAULT NULL,
-      variant_image_alt VARCHAR(255) DEFAULT NULL,
-      notes TEXT DEFAULT NULL,
-      source_provider VARCHAR(64) DEFAULT NULL,
-      source_page VARCHAR(255) DEFAULT NULL,
-      source_revision_timestamp DATETIME DEFAULT NULL,
-      sort_order INT NOT NULL DEFAULT 0,
-      status INT NOT NULL DEFAULT 1,
-      deleted TINYINT NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      INDEX idx_shimmer_npc_transforms_source (source_provider, source_page),
-      INDEX idx_shimmer_npc_transforms_context (context_code)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `);
+  assertAuthorizedShimmerImportBindingMatchesPreview({
+    binding: authorizedBinding,
+    bundle: normalizedBundle,
+    preview
+  });
+  if (typeof readLockedBefore !== 'function') {
+    throw new TypeError('shimmer import locked scope reader is required');
+  }
+  let begun = false;
+  try {
+    await connection.beginTransaction();
+    begun = true;
+    const lockedBefore = await readLockedBefore();
+    assertLockedShimmerImportScopeMatchesPreview({ before: lockedBefore, preview });
+    consumeDispatchPermit();
+    await applyChanges();
+    await verifyAfter();
+    await connection.commit();
+    return Object.freeze({ status: 'completed' });
+  } catch (error) {
+    if (begun) await connection.rollback();
+    throw error;
+  }
 }
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-function buildSnapshotDefinition(entityType, payload, absolutePath, sourceMetaPayload, sourceKind) {
+function requireContentAddressedManifestPath({ bundleManifestPath, repoRoot: root }) {
+  const supplied = String(bundleManifestPath ?? '').trim();
+  if (!supplied) throw new Error('bundle manifest is required');
+  const manifestPath = path.resolve(root, supplied);
+  const relativePath = path.relative(root, manifestPath).replaceAll('\\', '/');
+  const segments = relativePath.split('/');
+  if (path.basename(manifestPath) !== GENERATION_MANIFEST_FILE
+      || segments.length !== 6
+      || segments[0] !== 'data'
+      || segments[1] !== 'generated'
+      || segments[2] !== 'shimmer'
+      || segments[3] !== 'generations'
+      || !/^[a-f0-9]{64}$/.test(segments[4] ?? '')
+      || segments[5] !== GENERATION_MANIFEST_FILE) {
+    throw new Error('bundle manifest must be a content-addressed generation manifest');
+  }
+  if (relativePath.startsWith('../') || path.posix.isAbsolute(relativePath)) {
+    throw new Error('bundle manifest must be inside the repository root');
+  }
+  const canonicalGenerationRoot = path.join(root, 'data', 'generated', 'shimmer', 'generations');
+  assertRepositoryOrdinaryDirectory({
+    repoRoot: root,
+    filePath: canonicalGenerationRoot,
+    label: 'canonical generation root',
+  });
+  assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: manifestPath,
+    label: 'bundle manifest',
+  });
+  const realRepoRoot = fs.realpathSync(root);
+  const realGenerationRoot = fs.realpathSync(canonicalGenerationRoot);
+  if (!isPathInside(realRepoRoot, realGenerationRoot)) {
+    throw new Error('canonical generation root must resolve inside the repository root');
+  }
+  const realManifestPath = fs.realpathSync(manifestPath);
+  if (!isPathInside(realGenerationRoot, realManifestPath)) {
+    throw new Error('bundle manifest must resolve inside the canonical generation root');
+  }
+  return manifestPath;
+}
+
+export function readVerifiedShimmerGenerationPayload({ generationPath, fileName, expectedDescriptor } = {}) {
+  const normalizedFileName = String(fileName ?? '').trim();
+  if (!normalizedFileName || expectedDescriptor?.name !== normalizedFileName
+      || expectedDescriptor?.path !== normalizedFileName
+      || !isSha256(expectedDescriptor?.sha256)
+      || !Number.isSafeInteger(expectedDescriptor?.byteLength)
+      || expectedDescriptor.byteLength < 0) {
+    throw new Error('verified generation payload descriptor is invalid');
+  }
+  const payloadPath = path.resolve(generationPath, fileName);
+  if (!payloadPath.startsWith(`${path.resolve(generationPath)}${path.sep}`)) {
+    throw new Error(`generation payload escapes its directory: ${fileName}`);
+  }
+  const stat = fs.lstatSync(payloadPath);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error(`generation payload must be an ordinary file: ${fileName}`);
+  }
+  const bytes = fs.readFileSync(payloadPath);
+  const actualSha256 = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+  if (actualSha256 !== expectedDescriptor.sha256) {
+    throw new Error(`generation payload hash mismatch: ${fileName}`);
+  }
+  if (bytes.length !== expectedDescriptor.byteLength) {
+    throw new Error(`generation payload byte length mismatch: ${fileName}`);
+  }
+  return JSON.parse(bytes.toString('utf8'));
+}
+
+function requireVerifiedBundle(bundle) {
+  if (!bundle || typeof bundle !== 'object') throw new Error('verified shimmer import bundle is required');
+  if (!/^[a-f0-9]{64}$/.test(String(bundle.generationId ?? ''))
+      || !isSha256(bundle.dataBundleSha256)
+      || !isSha256(bundle.manifestSha256)) {
+    throw new Error('verified shimmer import bundle identity is invalid');
+  }
+  return bundle;
+}
+
+function requireApplyInputContract(inputContract) {
+  if (!inputContract || typeof inputContract !== 'object' || Array.isArray(inputContract)
+      || !Buffer.isBuffer(inputContract.bytes)
+      || inputContract.relativePath !== 'reports/authorization/canonical/canonical-shimmer-import.input.json') {
+    throw new Error('private input contract is required for verified shimmer apply');
+  }
+  assertCanonicalShimmerImportInputContract(inputContract.contract ?? inputContract);
+  return inputContract;
+}
+
+function assertImportableReferenceKinds(bundle) {
+  const allowed = new Set(['item', 'item_group', 'npc', 'none']);
+  const assertKind = (kind, label) => {
+    if (!allowed.has(kind)) {
+      throw new Error(`verified shimmer import ${label} has an unsupported reference kind: ${kind ?? 'missing'}`);
+    }
+  };
+  for (const [index, record] of (bundle.itemTransformsPayload?.records ?? []).entries()) {
+    assertKind(record?.inputKind, `itemTransforms[${index}].inputKind`);
+    assertKind(record?.outputKind, `itemTransforms[${index}].outputKind`);
+  }
+  for (const [index, record] of (bundle.decraftRulesPayload?.records ?? []).entries()) {
+    assertKind(record?.input?.kind, `decraftRules[${index}].input.kind`);
+    for (const [outputIndex, output] of (record?.outputs ?? []).entries()) {
+      assertKind(output?.kind, `decraftRules[${index}].outputs[${outputIndex}].kind`);
+    }
+  }
+  for (const [index, record] of (bundle.entityTransformsPayload?.records ?? []).entries()) {
+    assertKind(record?.input?.kind, `entityTransforms[${index}].input.kind`);
+    assertKind(record?.output?.kind, `entityTransforms[${index}].output.kind`);
+  }
+  for (const [index, record] of (bundle.npcTransformsPayload?.records ?? []).entries()) {
+    assertKind(record?.npc?.kind, `npcTransforms[${index}].npc.kind`);
+  }
+  for (const [index, record] of (bundle.titleResolutionPayload?.records ?? []).entries()) {
+    assertKind(record?.kind, `titleResolution[${index}].kind`);
+  }
+}
+
+function normalizeTargetFingerprint(target) {
+  const host = String(target?.host ?? '').trim();
+  const database = String(target?.database ?? '').trim();
+  const serverUuid = String(target?.serverUuid ?? '').trim();
+  const port = Number(target?.port);
+  if (!host || !database || !serverUuid || !Number.isInteger(port) || port <= 0) {
+    throw new Error('target fingerprint requires host, port, database, and server UUID');
+  }
+  return { host, port, database, serverUuid };
+}
+
+function importRecordsForTable(bundle, tableName) {
+  const payloadByTable = {
+    shimmer_item_transforms: bundle.itemTransformsPayload,
+    shimmer_decraft_rules: bundle.decraftRulesPayload,
+    shimmer_entity_transforms: bundle.entityTransformsPayload,
+    shimmer_npc_transforms: bundle.npcTransformsPayload
+  };
+  const records = payloadByTable[tableName]?.records;
+  if (!Array.isArray(records)) throw new Error(`verified bundle is missing records for ${tableName}`);
+  return records;
+}
+
+function describeRows(tableName, rows) {
+  const normalized = Array.isArray(rows)
+    ? rows.map(stableValue).sort(compareCanonicalRows)
+    : [];
+  const logicalKeys = normalized.map((row) => scopeKeyForRow(tableName, row));
+  const descriptor = {
+    count: normalized.length,
+    keySha256: hashCanonical({
+      tableName,
+      rows: logicalKeys
+    }),
+    logicalKeys,
+    sha256: hashCanonical({ tableName, rows: normalized })
+  };
+  if (tableName === 'entity_source_snapshots') {
+    descriptor.descriptors = normalized.map((row) => ({
+      logicalKey: scopeKeyForRow(tableName, row),
+      payloadSha256: row.payloadSha256 ?? null,
+      sourcePage: row.sourcePage ?? null,
+      sourceRevisionTimestamp: row.sourceRevisionTimestamp ?? null,
+      fetchedAt: row.fetchedAt ?? null,
+      isCurrent: row.isCurrent ?? null,
+      parseStatus: row.parseStatus ?? null
+    }));
+  }
+  return descriptor;
+}
+
+function compareCanonicalRows(left, right) {
+  return JSON.stringify(left).localeCompare(JSON.stringify(right));
+}
+
+function scopeKeyForRow(tableName, row) {
+  const fields = SHIMMER_SCOPE_KEY_FIELDS[tableName] ?? Object.keys(row ?? {}).sort();
+  return Object.fromEntries(fields.map((field) => [field, row?.[field] ?? null]));
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+
+function freezeDeep(value) {
+  if (value == null || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const nested of Object.values(value)) freezeDeep(nested);
+  return value;
+}
+
+function hashCanonical(value) {
+  return `sha256:${crypto.createHash('sha256').update(JSON.stringify(stableValue(value)), 'utf8').digest('hex')}`;
+}
+
+function isSha256(value) {
+  return /^sha256:[a-f0-9]{64}$/.test(String(value ?? ''));
+}
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== '' && !relative.startsWith(`..${path.sep}`)
+    && relative !== '..' && !path.isAbsolute(relative);
+}
+
+function assertInputContractMatchesBundle({ inputContract, bundle }) {
+  const binding = shimmerImportBindingFromInputContract(inputContract?.contract ?? inputContract);
+  if (binding.generationId !== bundle.generationId
+      || binding.manifestSha256 !== bundle.manifestSha256
+      || binding.dataBundleSha256 !== bundle.dataBundleSha256) {
+    throw new Error('Shimmer import input contract does not match the verified bundle');
+  }
+  return binding;
+}
+
+function assertAuthorizedBundle({ authorizedContext, bundle, inputContract }) {
+  if (authorizedContext?.operationId !== OPERATION_ID) {
+    throw new Error(`authorized shimmer import operation must be ${OPERATION_ID}`);
+  }
+  requireApplyInputContract(inputContract);
+  const binding = assertInputContractMatchesBundle({ inputContract, bundle });
+  const authorizedDataBundleSha256 = hashOrderedBundleBytes([{
+    path: inputContract.relativePath,
+    bytes: inputContract.bytes,
+  }], 'data bundle');
+  if (authorizedContext?.dataBundleSha256 !== authorizedDataBundleSha256) {
+    throw new Error('authorized shimmer import data bundle does not match the private input contract');
+  }
+  const authorizedBinding = requireAuthorizedShimmerImportBinding(authorizedContext);
+  if (hashCanonical(binding) !== hashCanonical(authorizedBinding)) {
+    throw new Error('authorized shimmer import binding does not match the private input contract');
+  }
+  return binding;
+}
+
+function requireAuthorizedShimmerImportBinding(authorizedContext) {
+  const binding = authorizedContext?.executionManifest?.shimmerImport;
+  if (!hasExactFields(binding, AUTHORIZED_SHIMMER_IMPORT_BINDING_FIELDS)) {
+    throw new Error('authorized shimmer import binding must contain exactly the required fields');
+  }
+  if (binding.operationId !== OPERATION_ID
+      || !/^[a-f0-9]{64}$/.test(String(binding.generationId ?? ''))
+      || !isSha256(binding.manifestSha256)
+      || !isSha256(binding.dataBundleSha256)
+      || !isSha256(binding.previewSha256)
+      || !isSha256(binding.targetFingerprintSha256)
+      || !hasExpectedProviderScope(binding.providerScope)) {
+    throw new Error('authorized shimmer import binding has an invalid shape');
+  }
+  return binding;
+}
+
+function assertAuthorizedShimmerImportBindingMatchesPreview({ binding, bundle, preview }) {
+  if (binding.operationId !== preview?.operationId
+      || binding.generationId !== bundle.generationId
+      || binding.generationId !== preview?.generationId
+      || binding.manifestSha256 !== bundle.manifestSha256
+      || binding.manifestSha256 !== preview?.manifestSha256
+      || binding.dataBundleSha256 !== bundle.dataBundleSha256
+      || binding.dataBundleSha256 !== preview?.dataBundleSha256
+      || binding.previewSha256 !== preview?.previewSha256
+      || binding.targetFingerprintSha256 !== preview?.targetFingerprintSha256
+      || hashCanonical(binding.providerScope) !== hashCanonical(preview?.providerScope)) {
+    throw new Error('authorized shimmer import binding does not match the verified preview');
+  }
+}
+
+function hasExactFields(value, fields) {
+  return value != null
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.keys(value).length === fields.length
+    && fields.every((field) => Object.prototype.hasOwnProperty.call(value, field));
+}
+
+function requireMatchingPreview({ bundle, preview }) {
+  const { previewSha256, ...previewPayload } = preview ?? {};
+  if (!preview || preview.operationId !== OPERATION_ID
+      || preview.generationId !== bundle.generationId
+      || preview.dataBundleSha256 !== bundle.dataBundleSha256
+      || preview.manifestSha256 !== bundle.manifestSha256
+      || !isSha256(previewSha256)
+      || previewSha256 !== hashCanonical(previewPayload)
+      || !isSha256(preview.targetFingerprintSha256)
+      || !hasExpectedProviderScope(preview.providerScope)) {
+    throw new Error('verified shimmer import preview does not match the authorized bundle');
+  }
+}
+
+function hasExpectedProviderScope(scope) {
+  return hasExactFields(scope, ['provider', 'sourcePage', 'tables'])
+    && scope.provider === SHIMMER_PROVIDER
+    && scope?.sourcePage === SHIMMER_SOURCE_PAGE
+    && JSON.stringify(scope?.tables) === JSON.stringify(SHIMMER_TABLE_NAMES);
+}
+
+function buildShimmerSnapshotDefinitions(bundle) {
+  const generationDirectory = path.dirname(bundle.manifestPath);
+  const fetchedAt = toDateTime(bundle.manifest?.generatedAt);
+  if (!fetchedAt) throw new Error('verified shimmer generation manifest must include generatedAt');
+  return [
+    buildSnapshotDefinition('wiki_shimmer_page', bundle.rawPayload, path.join(generationDirectory, IMPORTABLE_PAYLOAD_FILES.rawPayload), bundle.rawPayload, 'wiki_page', bundle.repoRoot, fetchedAt),
+    buildSnapshotDefinition('wiki_shimmer_context', bundle.contextPayload, path.join(generationDirectory, IMPORTABLE_PAYLOAD_FILES.contextPayload), bundle.contextPayload, 'generated_json', bundle.repoRoot, fetchedAt),
+    buildSnapshotDefinition('wiki_shimmer_item_transforms', bundle.itemTransformsPayload, path.join(generationDirectory, IMPORTABLE_PAYLOAD_FILES.itemTransformsPayload), bundle.itemTransformsPayload, 'generated_json', bundle.repoRoot, fetchedAt),
+    buildSnapshotDefinition('wiki_shimmer_decraft_rules', bundle.decraftRulesPayload, path.join(generationDirectory, IMPORTABLE_PAYLOAD_FILES.decraftRulesPayload), bundle.decraftRulesPayload, 'generated_json', bundle.repoRoot, fetchedAt),
+    buildSnapshotDefinition('wiki_shimmer_entity_transforms', bundle.entityTransformsPayload, path.join(generationDirectory, IMPORTABLE_PAYLOAD_FILES.entityTransformsPayload), bundle.entityTransformsPayload, 'generated_json', bundle.repoRoot, fetchedAt),
+    buildSnapshotDefinition('wiki_shimmer_npc_transforms', bundle.npcTransformsPayload, path.join(generationDirectory, IMPORTABLE_PAYLOAD_FILES.npcTransformsPayload), bundle.npcTransformsPayload, 'generated_json', bundle.repoRoot, fetchedAt),
+    buildSnapshotDefinition('wiki_shimmer_manifest', bundle.manifest, bundle.manifestPath, bundle.contextPayload, 'generated_json', bundle.repoRoot, fetchedAt)
+  ];
+}
+
+function buildSnapshotDefinition(entityType, payload, absolutePath, sourceMetaPayload, sourceKind, sourceRoot = repoRoot, fetchedAt) {
   const unresolvedCount = Number(payload?.resolution?.unresolvedCount ?? 0);
-  const page = sourceMetaPayload?.page ?? {};
+  const page = sourceMetaPayload?.page ?? sourceMetaPayload?.records?.[0] ?? {};
   return {
     entityType,
-    provider: toText(payload?.sourceProvider) ?? 'wiki_zh',
+    provider: SHIMMER_PROVIDER,
     sourceKind,
-    sourceLocator: path.relative(repoRoot, absolutePath).replaceAll('\\', '/'),
-    sourcePage: toText(page?.sourcePage) ?? toText(sourceMetaPayload?.pageTitle) ?? '\u5fae\u5149',
-    sourceRevisionTimestamp: toDateTime(page?.sourceRevisionTimestamp ?? sourceMetaPayload?.revisionTimestamp),
+    sourceLocator: path.relative(sourceRoot, absolutePath).replaceAll('\\', '/'),
+    sourcePage: SHIMMER_SOURCE_PAGE,
+    sourceRevisionTimestamp: toDateTime(
+      page?.sourceRevisionTimestamp
+      ?? page?.revisionTimestamp
+      ?? sourceMetaPayload?.revisionTimestamp
+    ),
     payloadJson: JSON.stringify(payload),
-    fetchedAt: toDateTime(payload?.generatedAt ?? new Date().toISOString()),
+    fetchedAt,
     parseStatus: unresolvedCount > 0 ? 'partial' : 'parsed'
   };
+}
+
+function snapshotDefinitionToProjection(definition) {
+  return normalizeSnapshotProjectionRow({
+    entityType: definition.entityType,
+    provider: definition.provider,
+    sourceKind: definition.sourceKind,
+    sourceLocator: definition.sourceLocator,
+    sourcePage: definition.sourcePage,
+    sourceRevisionTimestamp: definition.sourceRevisionTimestamp,
+    isCurrent: 1,
+    parseStatus: definition.parseStatus,
+    payloadSha256: hashSnapshotPayloadJson(definition.payloadJson),
+    fetchedAt: definition.fetchedAt
+  });
+}
+
+function normalizeSnapshotProjectionRow(row) {
+  const normalized = normalizeShimmerDbRow(row);
+  const payloadJson = row?.payloadJson ?? row?.payload_json;
+  const payloadSha256 = isSha256(normalized.payloadSha256)
+    ? normalized.payloadSha256
+    : payloadJson == null ? null : hashSnapshotPayloadJson(payloadJson);
+  return normalizeShimmerDbRow({
+    entityType: normalized.entityType,
+    provider: normalized.provider,
+    sourceKind: normalized.sourceKind,
+    sourceLocator: normalized.sourceLocator,
+    sourcePage: normalized.sourcePage,
+    sourceRevisionTimestamp: normalized.sourceRevisionTimestamp,
+    isCurrent: normalized.isCurrent,
+    parseStatus: normalized.parseStatus,
+    payloadSha256,
+    fetchedAt: normalized.fetchedAt
+  });
+}
+
+function hashSnapshotPayloadJson(payloadJson) {
+  const bytes = Buffer.isBuffer(payloadJson)
+    ? payloadJson
+    : Buffer.from(String(payloadJson), 'utf8');
+  return `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
 }
 
 async function upsertWorldContext(connection, worldContext, stats, shouldApply) {
@@ -397,7 +936,17 @@ function normalizeWorldContext(worldContext) {
   };
 }
 
-async function upsertSnapshot(connection, definition, shouldApply) {
+function requireVerifiedShimmerWorldContext(contextPayload) {
+  const records = contextPayload?.records;
+  if (!Array.isArray(records) || records.length !== 1
+      || records[0] == null || typeof records[0] !== 'object' || Array.isArray(records[0])
+      || records[0].code !== 'SHIMMER') {
+    throw new Error('verified shimmer import context must contain exactly one SHIMMER record');
+  }
+  return normalizeWorldContext(records[0]);
+}
+
+export async function upsertSnapshot(connection, definition, shouldApply) {
   const [existingRows] = await connection.execute(
     `SELECT id
        FROM entity_source_snapshots
@@ -405,8 +954,9 @@ async function upsertSnapshot(connection, definition, shouldApply) {
         AND provider = ?
         AND source_kind = ?
         AND COALESCE(source_locator, '') = ?
+        AND source_page = ?
       LIMIT 1`,
-    [definition.entityType, definition.provider, definition.sourceKind, definition.sourceLocator]
+    [definition.entityType, definition.provider, definition.sourceKind, definition.sourceLocator, definition.sourcePage]
   );
 
   const action = existingRows.length > 0 ? 'updated' : 'created';
@@ -498,14 +1048,8 @@ async function loadSnapshotStats(connection, sourcePage) {
 }
 
 async function loadShimmerTableStats(connection) {
-  const tables = [
-    'shimmer_item_transforms',
-    'shimmer_decraft_rules',
-    'shimmer_entity_transforms',
-    'shimmer_npc_transforms'
-  ];
   const stats = {};
-  for (const table of tables) {
+  for (const table of SHIMMER_TABLE_NAMES) {
     try {
       const [[row]] = await connection.query(
         `SELECT COUNT(*) AS c
@@ -523,124 +1067,395 @@ async function loadShimmerTableStats(connection) {
   return stats;
 }
 
-export async function importShimmerItemTransforms(connection, contextCode, records, stats, shouldApply) {
-  const count = Array.isArray(records) ? records.length : 0;
-  if (!shouldApply) {
-    stats.created = count;
-    return;
+export async function loadCurrentShimmerScope(connection, bundle, { forUpdate = false } = {}) {
+  const projection = buildShimmerImportProjection({ bundle });
+  const lockClause = forUpdate ? ' FOR UPDATE' : '';
+  const [[worldContextRow]] = await connection.execute(
+    `SELECT code,
+            name_en AS nameEn,
+            name_zh AS nameZh,
+            context_type AS contextType,
+            description,
+            icon_url AS iconUrl,
+            sort_order AS sortOrder
+      FROM world_contexts
+      WHERE code = ?
+      LIMIT 1${lockClause}`,
+    [projection.worldContext.code]
+  );
+  const shimmerTables = {};
+  for (const tableName of SHIMMER_TABLE_NAMES) {
+    const columns = SHIMMER_TABLE_COLUMNS[tableName]
+      .map((column) => `${toSnakeCase(column)} AS ${column}`)
+      .join(', ');
+    const [rows] = await connection.execute(
+      `SELECT ${columns}
+         FROM ${tableName}
+        WHERE deleted = 0
+          AND COALESCE(source_provider, '') = ?
+          AND source_page = ?
+        ORDER BY sort_order ASC, id ASC${lockClause}`,
+      [SHIMMER_PROVIDER, SHIMMER_SOURCE_PAGE]
+    );
+    shimmerTables[tableName] = rows.map((row) => normalizeShimmerDbRow(row));
   }
-  const rows = records.map((record, index) => ({
-    sql: `INSERT INTO shimmer_item_transforms
-      (context_code, input_kind, input_name_en, input_name_zh, input_internal_name, output_kind, output_name_en, output_name_zh, output_internal_name, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-    payload: [
-        contextCode,
-        toText(record?.inputKind) ?? 'item',
-        toText(record?.inputNameEn),
-        toText(record?.inputNameZh),
-        toText(record?.inputInternalName),
-        toText(record?.outputKind) ?? 'item',
-        toText(record?.outputNameEn),
-        toText(record?.outputNameZh),
-        toText(record?.outputInternalName),
-        JSON.stringify(Array.isArray(record?.conditions) ? record.conditions : []),
-        toText(record?.notes),
-        'wiki_zh',
-        toText(record?.sourcePage) ?? '\u5fae\u5149',
-        toDateTime(record?.sourceRevisionTimestamp),
-        index + 1
-    ],
-  }));
-  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_item_transforms', SHIMMER_TABLE_COLUMNS.shimmer_item_transforms, rows, stats);
+  const [snapshots] = await connection.execute(
+    `SELECT entity_type AS entityType,
+            provider,
+            source_kind AS sourceKind,
+            source_locator AS sourceLocator,
+            source_page AS sourcePage,
+            source_revision_timestamp AS sourceRevisionTimestamp,
+            payload_json AS payloadJson,
+            fetched_at AS fetchedAt,
+            is_current AS isCurrent,
+            parse_status AS parseStatus
+       FROM entity_source_snapshots
+      WHERE provider = ?
+        AND source_page = ?
+      ORDER BY entity_type ASC, id ASC${lockClause}`,
+    [SHIMMER_PROVIDER, SHIMMER_SOURCE_PAGE]
+  );
+  return {
+    worldContext: worldContextRow == null ? null : normalizeWorldContext(worldContextRow),
+    shimmerTables,
+    snapshots: snapshots.map(normalizeSnapshotProjectionRow)
+  };
+}
+
+export async function loadTargetFingerprint(connection, db) {
+  const [[row]] = await connection.query('SELECT @@server_uuid AS serverUuid');
+  return {
+    host: db.host,
+    port: db.port,
+    database: db.database,
+    serverUuid: String(row?.serverUuid ?? '').trim()
+  };
+}
+
+async function applyBundleChanges({ bundle, connection }) {
+  const summary = createLegacySummary({ bundle, database: null, reportPath: null, apply: true });
+  const projection = buildShimmerImportProjection({ bundle });
+  const context = projection.worldContext;
+  const contextId = await upsertWorldContext(connection, context, summary.worldContext, true);
+  summary.worldContext.id = contextId;
+  for (const definition of buildShimmerSnapshotDefinitions(bundle)) {
+    const result = await upsertSnapshot(connection, definition, true);
+    summary.snapshots[result.action] += 1;
+  }
+  await importShimmerItemTransforms(connection, context.code, bundle.itemTransformsPayload.records, summary.shimmerTables.itemTransforms, true);
+  await importShimmerDecraftRules(connection, context.code, bundle.decraftRulesPayload.records, summary.shimmerTables.decraftRules, true);
+  await importShimmerEntityTransforms(connection, context.code, bundle.entityTransformsPayload.records, summary.shimmerTables.entityTransforms, true);
+  await importShimmerNpcTransforms(connection, context.code, bundle.npcTransformsPayload.records, summary.shimmerTables.npcTransforms, true);
+  return summary;
+}
+
+function createLegacySummary({ bundle, database, reportPath, apply }) {
+  return {
+    generatedAt: new Date().toISOString(),
+    apply,
+    database,
+    reportPath,
+    input: { manifest: bundle.manifestPath },
+    counts: {
+      itemTransforms: bundle.itemTransformsPayload.records.length,
+      decraftRules: bundle.decraftRulesPayload.records.length,
+      entityTransforms: bundle.entityTransformsPayload.records.length,
+      npcTransforms: bundle.npcTransformsPayload.records.length,
+      unresolvedTitles: 0
+    },
+    worldContext: { created: 0, updated: 0, id: null },
+    snapshots: { created: 0, updated: 0, entries: [] },
+    shimmerTables: {
+      itemTransforms: { created: 0, replaced: 0 },
+      decraftRules: { created: 0, replaced: 0 },
+      entityTransforms: { created: 0, replaced: 0 },
+      npcTransforms: { created: 0, replaced: 0 }
+    }
+  };
+}
+
+export function assertShimmerImportScopeMatchesPreview({ after, preview }) {
+  assertScopeDescriptorMatches(
+    'world_contexts',
+    after?.worldContext == null ? [] : [after.worldContext],
+    preview?.worldContext?.after
+  );
+  for (const tableName of SHIMMER_TABLE_NAMES) {
+    assertScopeDescriptorMatches(
+      tableName,
+      after?.shimmerTables?.[tableName] ?? [],
+      preview?.tables?.[tableName]?.after
+    );
+  }
+  assertScopeDescriptorMatches(
+    'entity_source_snapshots',
+    normalizeSnapshotRows(after?.snapshots),
+    preview?.snapshots?.after
+  );
+}
+
+function assertLockedShimmerImportScopeMatchesPreview({ before, preview }) {
+  assertScopeDescriptorMatches(
+    'world_contexts',
+    before?.worldContext == null ? [] : [before.worldContext],
+    preview?.worldContext?.before,
+    'locked pre-apply scope does not match preview'
+  );
+  for (const tableName of SHIMMER_TABLE_NAMES) {
+    assertScopeDescriptorMatches(
+      tableName,
+      before?.shimmerTables?.[tableName] ?? [],
+      preview?.tables?.[tableName]?.before,
+      'locked pre-apply scope does not match preview'
+    );
+  }
+  assertScopeDescriptorMatches(
+    'entity_source_snapshots',
+    normalizeSnapshotRows(before?.snapshots),
+    preview?.snapshots?.before,
+    'locked pre-apply scope does not match preview'
+  );
+}
+
+function assertScopeDescriptorMatches(tableName, rows, expected, mismatchMessage = 'post-write count/hash mismatch') {
+  const actual = describeRows(tableName, rows);
+  if (actual.count !== expected?.count
+      || actual.sha256 !== expected?.sha256
+      || (expected?.keySha256 != null && actual.keySha256 !== expected.keySha256)) {
+    throw new Error(`${mismatchMessage} for ${tableName}`);
+  }
+}
+
+function buildShimmerImportResult({ bundle = null, preview = null, apply, status, result = null }) {
+  const output = {
+    schemaVersion: 1,
+    operationId: OPERATION_ID,
+    status,
+    apply,
+    generatedAt: new Date().toISOString(),
+  };
+  if (bundle?.generationId != null) output.generationId = bundle.generationId;
+  if (bundle?.dataBundleSha256 != null) output.dataBundleSha256 = bundle.dataBundleSha256;
+  if (bundle?.manifestSha256 != null) output.manifestSha256 = bundle.manifestSha256;
+  if (preview?.previewSha256 != null) output.previewSha256 = preview.previewSha256;
+  if (preview?.targetFingerprintSha256 != null) output.targetFingerprintSha256 = preview.targetFingerprintSha256;
+  if (preview?.providerScope != null) output.providerScope = preview.providerScope;
+  if (preview?.target != null) output.target = preview.target;
+  if (preview?.worldContext != null) output.worldContext = preview.worldContext;
+  if (preview?.tables != null) output.tables = preview.tables;
+  if (preview?.snapshots != null) output.snapshots = preview.snapshots;
+  if (result != null) output.transaction = result;
+  if (status === 'failed') {
+    output.phase = result?.phase ?? 'unknown';
+    output.reason = result?.reason ?? 'unknown error';
+  }
+  return output;
+}
+
+async function writeCanonicalShimmerImportResult(outputPath, root, result) {
+  const fallbackPath = path.join(root, CANONICAL_SHIMMER_IMPORT_RESULT_PATH);
+  const reportPath = requireCanonicalReportPath(outputPath ?? fallbackPath, root);
+  await writePrivateJson(reportPath, result);
+}
+
+async function writeImportReport(outputPath, root, result) {
+  const fallbackPath = path.join(root, 'reports', 'wiki-shimmer-db-import-preview.json');
+  const reportPath = requirePreviewReportPath(outputPath ?? fallbackPath, root);
+  await fs.promises.mkdir(path.dirname(reportPath), { recursive: true });
+  await fs.promises.writeFile(reportPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
+}
+
+function requirePreviewReportPath(outputPath, root) {
+  const reportPath = path.resolve(outputPath);
+  const relativePath = path.relative(root, reportPath);
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error('shimmer import report path must be inside the repository root');
+  }
+  assertRepositoryReportPath({
+    reportPath,
+    root,
+    label: 'shimmer import report',
+  });
+  return reportPath;
+}
+
+function requireCanonicalReportPath(outputPath, root) {
+  const reportPath = path.resolve(outputPath);
+  const canonicalPath = path.join(root, CANONICAL_SHIMMER_IMPORT_RESULT_PATH);
+  if (reportPath !== canonicalPath) {
+    throw new Error('applied shimmer import result must use the canonical private result path');
+  }
+  assertRepositoryReportPath({
+    reportPath,
+    root,
+    label: 'applied shimmer import result',
+  });
+  return reportPath;
+}
+
+function assertRepositoryReportPath({ reportPath, root, label }) {
+  assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: reportPath,
+    label,
+    createParent: true,
+  });
+  try {
+    const stat = fs.lstatSync(reportPath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error(`${label} must be an ordinary file when it already exists`);
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+}
+
+async function writePrivateJson(outputPath, value) {
+  await fs.promises.mkdir(path.dirname(outputPath), { recursive: true, mode: 0o700 });
+  const temporary = `${outputPath}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+  try {
+    await fs.promises.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
+      mode: 0o600,
+      flag: 'wx'
+    });
+    await fs.promises.rename(temporary, outputPath);
+    await fs.promises.chmod(outputPath, 0o600);
+  } finally {
+    await fs.promises.rm(temporary, { force: true });
+  }
+}
+
+export async function importShimmerItemTransforms(connection, contextCode, records, stats, shouldApply) {
+  await importShimmerTableRows(connection, 'shimmer_item_transforms', contextCode, records, stats, shouldApply);
 }
 
 async function importShimmerDecraftRules(connection, contextCode, records, stats, shouldApply) {
-  const count = Array.isArray(records) ? records.length : 0;
-  if (!shouldApply) {
-    stats.created = count;
-    return;
-  }
-  const rows = records.map((record, index) => ({
-    sql: `INSERT INTO shimmer_decraft_rules
-      (context_code, rule_type, group_label, input_kind, input_name_en, input_name_zh, input_internal_name, outputs_json, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-    payload: [
-        contextCode,
-        toText(record?.ruleType),
-        toText(record?.groupLabel),
-        toText(record?.input?.kind) ?? 'item',
-        toText(record?.input?.nameEn),
-        toText(record?.input?.nameZh),
-        toText(record?.input?.internalName),
-        JSON.stringify(Array.isArray(record?.outputs) ? record.outputs : []),
-        JSON.stringify(Array.isArray(record?.conditions) ? record.conditions : []),
-        toText(record?.notes),
-        'wiki_zh',
-        toText(record?.sourcePage) ?? '\u5fae\u5149',
-        toDateTime(record?.sourceRevisionTimestamp),
-        index + 1
-    ],
-  }));
-  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_decraft_rules', SHIMMER_TABLE_COLUMNS.shimmer_decraft_rules, rows, stats);
+  await importShimmerTableRows(connection, 'shimmer_decraft_rules', contextCode, records, stats, shouldApply);
 }
 
 async function importShimmerEntityTransforms(connection, contextCode, records, stats, shouldApply) {
-  const count = Array.isArray(records) ? records.length : 0;
-  if (!shouldApply) {
-    stats.created = count;
-    return;
-  }
-  const rows = records.map((record, index) => ({
-    sql: `INSERT INTO shimmer_entity_transforms
-      (context_code, transform_group, input_entity_type, input_name_en, input_name_zh, input_internal_name, output_entity_type, output_name_en, output_name_zh, output_internal_name, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-    payload: [
-        contextCode,
-        toText(record?.transformGroup),
-        toText(record?.input?.kind),
-        toText(record?.input?.nameEn),
-        toText(record?.input?.nameZh),
-        toText(record?.input?.internalName),
-        toText(record?.output?.kind),
-        toText(record?.output?.nameEn),
-        toText(record?.output?.nameZh),
-        toText(record?.output?.internalName),
-        'wiki_zh',
-        toText(record?.sourcePage) ?? '\u5fae\u5149',
-        toDateTime(record?.sourceRevisionTimestamp),
-        index + 1
-    ],
-  }));
-  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_entity_transforms', SHIMMER_TABLE_COLUMNS.shimmer_entity_transforms, rows, stats);
+  await importShimmerTableRows(connection, 'shimmer_entity_transforms', contextCode, records, stats, shouldApply);
 }
 
 async function importShimmerNpcTransforms(connection, contextCode, records, stats, shouldApply) {
-  const count = Array.isArray(records) ? records.length : 0;
+  await importShimmerTableRows(connection, 'shimmer_npc_transforms', contextCode, records, stats, shouldApply);
+}
+
+async function importShimmerTableRows(connection, tableName, contextCode, records, stats, shouldApply) {
+  const rows = buildShimmerTableInsertRows(tableName, contextCode, records);
   if (!shouldApply) {
-    stats.created = count;
+    stats.created = rows.length;
     return;
   }
-  const rows = records.map((record, index) => ({
-    sql: `INSERT INTO shimmer_npc_transforms
-      (context_code, npc_name_en, npc_name_zh, npc_internal_name, appearance_variant, effect_type, variant_image_url, variant_image_alt, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-    payload: [
-        contextCode,
-        toText(record?.npc?.nameEn),
-        toText(record?.npc?.nameZh),
-        toText(record?.npc?.internalName),
-        toText(record?.appearanceVariant),
-        toText(record?.effectType),
-        toText(record?.variantImageUrl),
-        toText(record?.variantImageAlt),
-        toText(record?.notes),
-        'wiki_zh',
-        toText(record?.sourcePage) ?? '\u5fae\u5149',
-        toDateTime(record?.sourceRevisionTimestamp),
-        index + 1
-    ],
+  await replaceSourceScopedRowsIfChanged(connection, tableName, SHIMMER_TABLE_COLUMNS[tableName], rows, stats);
+}
+
+function buildShimmerTableProjectionRows(bundle, contextCode) {
+  return Object.fromEntries(SHIMMER_TABLE_NAMES.map((tableName) => {
+    const rows = buildShimmerTableInsertRows(tableName, contextCode, importRecordsForTable(bundle, tableName));
+    return [tableName, rows.map((row) => rowFromColumns(SHIMMER_TABLE_COLUMNS[tableName], row.payload))];
   }));
-  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_npc_transforms', SHIMMER_TABLE_COLUMNS.shimmer_npc_transforms, rows, stats);
+}
+
+function buildShimmerTableInsertRows(tableName, contextCode, records) {
+  const normalizedRecords = Array.isArray(records) ? records : [];
+  return normalizedRecords.map((record, index) => {
+    const sortOrder = index + 1;
+    if (tableName === 'shimmer_item_transforms') {
+      return {
+        sql: `INSERT INTO shimmer_item_transforms
+          (context_code, input_kind, input_name_en, input_name_zh, input_internal_name, output_kind, output_name_en, output_name_zh, output_internal_name, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+        payload: [
+          contextCode,
+          toText(record?.inputKind) ?? 'item',
+          toText(record?.inputNameEn),
+          toText(record?.inputNameZh),
+          toText(record?.inputInternalName),
+          toText(record?.outputKind) ?? 'item',
+          toText(record?.outputNameEn),
+          toText(record?.outputNameZh),
+          toText(record?.outputInternalName),
+          JSON.stringify(Array.isArray(record?.conditions) ? record.conditions : []),
+          toText(record?.notes),
+          SHIMMER_PROVIDER,
+          toText(record?.sourcePage) ?? SHIMMER_SOURCE_PAGE,
+          toDateTime(record?.sourceRevisionTimestamp),
+          sortOrder
+        ]
+      };
+    }
+    if (tableName === 'shimmer_decraft_rules') {
+      return {
+        sql: `INSERT INTO shimmer_decraft_rules
+          (context_code, rule_type, group_label, input_kind, input_name_en, input_name_zh, input_internal_name, outputs_json, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+        payload: [
+          contextCode,
+          toText(record?.ruleType),
+          toText(record?.groupLabel),
+          toText(record?.input?.kind) ?? 'item',
+          toText(record?.input?.nameEn),
+          toText(record?.input?.nameZh),
+          toText(record?.input?.internalName),
+          JSON.stringify(Array.isArray(record?.outputs) ? record.outputs : []),
+          JSON.stringify(Array.isArray(record?.conditions) ? record.conditions : []),
+          toText(record?.notes),
+          SHIMMER_PROVIDER,
+          toText(record?.sourcePage) ?? SHIMMER_SOURCE_PAGE,
+          toDateTime(record?.sourceRevisionTimestamp),
+          sortOrder
+        ]
+      };
+    }
+    if (tableName === 'shimmer_entity_transforms') {
+      return {
+        sql: `INSERT INTO shimmer_entity_transforms
+          (context_code, transform_group, input_entity_type, input_name_en, input_name_zh, input_internal_name, output_entity_type, output_name_en, output_name_zh, output_internal_name, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+        payload: [
+          contextCode,
+          toText(record?.transformGroup),
+          toText(record?.input?.kind),
+          toText(record?.input?.nameEn),
+          toText(record?.input?.nameZh),
+          toText(record?.input?.internalName),
+          toText(record?.output?.kind),
+          toText(record?.output?.nameEn),
+          toText(record?.output?.nameZh),
+          toText(record?.output?.internalName),
+          SHIMMER_PROVIDER,
+          toText(record?.sourcePage) ?? SHIMMER_SOURCE_PAGE,
+          toDateTime(record?.sourceRevisionTimestamp),
+          sortOrder
+        ]
+      };
+    }
+    if (tableName === 'shimmer_npc_transforms') {
+      return {
+        sql: `INSERT INTO shimmer_npc_transforms
+          (context_code, npc_name_en, npc_name_zh, npc_internal_name, appearance_variant, effect_type, variant_image_url, variant_image_alt, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+        payload: [
+          contextCode,
+          toText(record?.npc?.nameEn),
+          toText(record?.npc?.nameZh),
+          toText(record?.npc?.internalName),
+          toText(record?.appearanceVariant),
+          toText(record?.effectType),
+          toText(record?.variantImageUrl),
+          toText(record?.variantImageAlt),
+          toText(record?.notes),
+          SHIMMER_PROVIDER,
+          toText(record?.sourcePage) ?? SHIMMER_SOURCE_PAGE,
+          toDateTime(record?.sourceRevisionTimestamp),
+          sortOrder
+        ]
+      };
+    }
+    throw new Error(`unsupported shimmer table projection: ${tableName}`);
+  });
 }
 
 const SHIMMER_TABLE_COLUMNS = {
@@ -737,7 +1552,8 @@ async function replaceSourceScopedRowsIfChanged(connection, tableName, columns, 
   stats.replaced = existingRows.length;
   await connection.execute(
     `DELETE FROM ${tableName}
-      WHERE COALESCE(source_provider, '') = 'wiki_zh'
+      WHERE deleted = 0
+        AND COALESCE(source_provider, '') = 'wiki_zh'
         AND source_page = ?`,
     ['\u5fae\u5149']
   );
@@ -794,6 +1610,10 @@ function hashRows(tableName, rows) {
 
 function toCamelCase(value) {
   return String(value).replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function toSnakeCase(value) {
+  return String(value).replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
 
 function toText(value) {

@@ -48,7 +48,8 @@ test('toArmorSetDefinitionSeedRow preserves page-specific Hallowed item ids', ()
     overrides: manualDefinitionOverrides,
   });
 
-  assert.equal(entry.status, 'placeholder');
+  assert.equal(entry.status, 'expected_placeholder');
+  assert.equal(entry.review.status, 'accepted_expected_placeholder');
   assert.equal(entry.definition.textKey, null);
   assert.deepEqual(entry.definition.uniqueItemIds, [551, 552, 559]);
 });
@@ -71,4 +72,50 @@ test('toArmorSetDefinitionSeedRow maps current armor_sets row fields', () => {
       setsJson: '[[88,410,411]]',
     },
   );
+});
+
+test('resolveArmorSetDefinitionEntry uses the row text key as source-backed definition identity', () => {
+  const definition = {
+    textKey: 'ArmorSetBonus.CobaltMelee',
+    benefitExpression: 'ArmorSetBonuses.Benefits.CobaltMelee',
+    setCount: 1,
+    uniqueItemIds: [372, 374],
+  };
+  const entry = resolveArmorSetDefinitionEntry({
+    seed: {
+      armorSetId: 120,
+      name: 'ArmorSetBonus.CobaltMelee',
+      internalCode: 'ArmorSetBonus.CobaltMelee',
+      itemIds: [0, 372, 374],
+      textKey: 'ArmorSetBonus.CobaltMelee',
+    },
+    definitions: [definition],
+    definitionLookup: new Map([[definition.textKey, definition]]),
+    overrides: new Map(),
+  });
+
+  assert.equal(entry.status, 'mapped_source_key');
+  assert.equal(entry.definition.textKey, 'ArmorSetBonus.CobaltMelee');
+  assert.equal(entry.definition.benefitExpression, 'ArmorSetBonuses.Benefits.CobaltMelee');
+});
+
+test('resolveArmorSetDefinitionEntry marks reviewed placeholders by stable identity instead of database id', () => {
+  const entry = resolveArmorSetDefinitionEntry({
+    seed: {
+      armorSetId: 9001,
+      name: '空桶',
+      internalCode: '空桶',
+      itemIds: [205],
+      textKey: null,
+    },
+    definitions: [],
+    definitionLookup: new Map(),
+    overrides: new Map(),
+  });
+
+  assert.equal(entry.status, 'expected_placeholder');
+  assert.deepEqual(entry.review, {
+    status: 'accepted_expected_placeholder',
+    reason: 'nonstandard single-piece equipped display',
+  });
 });

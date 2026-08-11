@@ -108,6 +108,144 @@ test('extractMaintEntitiesFromLandingRow preserves explicit zero-valued item fac
   assert.equal(row.majorValue, 0);
 });
 
+test('extractMaintEntitiesFromLandingRow matches NPC crawler facts and preserves exact landing lineage', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 91,
+    dataset_type: 'npc_crawler_facts_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Medusa',
+    source_key: 'wiki.npc.crawler_fact:medusa',
+    source_revision_timestamp: '2026-07-27T01:00:00Z',
+    content_hash: 'c'.repeat(64),
+    fetched_at: '2026-07-27T01:01:00Z',
+    parsed_at: '2026-07-27T01:02:00Z',
+    payload_json: JSON.stringify({
+      normalized: {
+        entityId: 'Medusa',
+        source: { pageTitle: 'Medusa' },
+        sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+        display: { name: 'Medusa' },
+        buffInflictions: [{ buffName: 'Stoned', durationText: '1 second' }],
+        shop: { normalizedRows: [{ itemName: 'Torch', priceText: '50 Copper' }] },
+        loot: [{ itemName: 'Medusa Head', chanceText: '1%' }],
+      },
+      audit: { status: 'pass' },
+    }),
+  }, {
+    maintNpcRows: [{ source_id: 477, internal_name: 'Medusa', english_name: 'Medusa' }],
+  });
+
+  assert.equal(actual.scope, 'npc_crawler_facts');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_npc_crawler_facts');
+  assert.equal(actual.rows[0].npcSourceId, 477);
+  assert.equal(actual.rows[0].npcInternalName, 'Medusa');
+  assert.equal(actual.rows[0].matchStatus, 'MATCHED');
+  assert.equal(actual.rows[0].landingSourceId, 91);
+  assert.equal(actual.rows[0].landingSourceKey, 'wiki.npc.crawler_fact:medusa');
+  assert.equal(actual.rows[0].landingContentHash, 'c'.repeat(64));
+  assert.equal(JSON.parse(actual.rows[0].buffInflictionsJson).length, 1);
+  assert.equal(JSON.parse(actual.rows[0].shopFactsJson).length, 1);
+  assert.equal(JSON.parse(actual.rows[0].lootFactsJson).length, 1);
+});
+
+test('extractMaintEntitiesFromLandingRow keeps unmatched and ambiguous NPC facts out of MATCHED state', async () => {
+  const landing = {
+    id: 92,
+    dataset_type: 'npc_crawler_facts_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Unknown',
+    source_key: 'wiki.npc.crawler_fact:unknown',
+    source_revision_timestamp: '2026-07-27T01:00:00Z',
+    content_hash: 'd'.repeat(64),
+    payload_json: JSON.stringify({
+      normalized: {
+        entityId: 'Unknown',
+        source: { pageTitle: 'Unknown' },
+        sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+        display: { name: 'Shared Name' },
+      },
+      audit: { status: 'pass' },
+    }),
+  };
+  const unmatched = await extractMaintEntitiesFromLandingRow(landing, { maintNpcRows: [] });
+  const ambiguous = await extractMaintEntitiesFromLandingRow(landing, {
+    maintNpcRows: [
+      { source_id: 1, internal_name: 'SharedA', english_name: 'Shared Name' },
+      { source_id: 2, internal_name: 'SharedB', english_name: 'Shared Name' },
+    ],
+  });
+
+  assert.equal(unmatched.rows[0].matchStatus, 'UNMATCHED');
+  assert.equal(ambiguous.rows[0].matchStatus, 'AMBIGUOUS');
+});
+
+test('extractMaintEntitiesFromLandingRow preserves explicit rejected NPC identity reviews', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 93,
+    dataset_type: 'npc_crawler_facts_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Bestiary',
+    source_key: 'wiki.npc.crawler.fact:bestiary',
+    source_revision_timestamp: '2026-07-27T01:00:00Z',
+    content_hash: 'e'.repeat(64),
+    payload_json: JSON.stringify({
+      normalized: {
+        entityId: 'bestiary-index',
+        source: { pageTitle: 'Bestiary' },
+        sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+        identityReview: { status: 'REJECTED', reason: 'page_is_not_an_npc_entity' },
+      },
+      audit: { status: 'pass' },
+    }),
+  }, { maintNpcRows: [] });
+
+  assert.equal(actual.rows[0].matchStatus, 'REJECTED');
+  assert.equal(actual.rows[0].matchReason, 'page_is_not_an_npc_entity');
+});
+
+test('extractMaintEntitiesFromLandingRow expands canonical item group landing rows', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 71,
+    dataset_type: 'item_groups_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'recipe-material-reference',
+    source_key: 'wiki.recipe_material_groups',
+    content_hash: 'g'.repeat(64),
+    payload_json: JSON.stringify({
+      groups: [{
+        canonicalKey: 'any-wood',
+        canonicalName: 'Any Wood',
+        sourceLayer: 'recipe_reference',
+        sourcePriority: 100,
+        sourceKind: 'generated_recipe_reference',
+        status: 'ACTIVE',
+        aliases: ['any timber'],
+        members: [{ internalName: 'Wood', name: 'Wood', nameZh: 'wood' }],
+      }],
+    }),
+  });
+
+  assert.equal(actual.scope, 'item_groups');
+  assert.deepEqual(actual.rows.map((row) => row.tableName), [
+    'maint_item_groups',
+    'maint_item_group_members',
+    'maint_item_group_aliases',
+    'maint_item_group_aliases',
+  ]);
+  assert.ok(actual.rows.every((row) => row.recordKey));
+  assert.deepEqual(
+    actual.rows
+      .filter((row) => row.tableName === 'maint_item_group_aliases')
+      .map((row) => [row.aliasKind, row.normalizedAlias])
+      .sort(([left], [right]) => left.localeCompare(right)),
+    [
+      ['canonical_name', 'any wood'],
+      ['explicit', 'any timber'],
+    ],
+  );
+});
+
 test('extractMaintEntitiesFromLandingRow expands armor attribute rows with linked item identity', async () => {
   const landingRow = {
     id: 51,
@@ -435,6 +573,36 @@ test('extractMaintEntitiesFromLandingRow expands standardized npc records and pr
   assert.equal(JSON.parse(actual.rows[0].rawJson).wikiCrawler.combat.projectileId, '24');
 });
 
+test('extractMaintEntitiesFromLandingRow reads standardized town NPC identity from extras', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow({
+    id: 25,
+    dataset_type: 'npcs_base_raw',
+    provider: 'terrapedia.standardized',
+    source_page: 'npcs.standardized',
+    source_key: 'standardized.npcs',
+    source_revision_timestamp: '2026-07-30T00:00:00Z',
+    content_hash: 'l'.repeat(64),
+    fetched_at: '2026-07-30T00:00:00Z',
+    parsed_at: '2026-07-30T00:00:00Z',
+    payload_json: JSON.stringify({
+      records: [{
+        id: 22,
+        internalName: 'Guide',
+        name: 'Guide',
+        flags: { friendly: true, boss: false },
+        extras: { townNPC: true },
+      }],
+    }),
+  });
+
+  assert.equal(actual.rows.length, 1);
+  assert.deepEqual(JSON.parse(actual.rows[0].flagsJson), {
+    friendly: true,
+    townNpc: true,
+    boss: false,
+  });
+});
+
 test('listSourceDatasetLandingInputs locates generated NPC item relation bundles', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-npc-bundle-'));
   const repoRoot = path.join(tempRoot, 'repo');
@@ -448,7 +616,11 @@ test('listSourceDatasetLandingInputs locates generated NPC item relation bundles
   };
   await writeJson(path.join(repoRoot, 'data', 'generated', 'npc-item-relations.bundle.json'), payload);
 
-  const actual = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot });
+  const actual = await listSourceDatasetLandingInputs({
+    repoRoot,
+    sharedDataRoot,
+    datasets: ['npc_item_relations_bundle_raw'],
+  });
   const entry = actual.find((candidate) => candidate.datasetType === 'npc_item_relations_bundle_raw');
 
   assert.ok(entry);
@@ -644,6 +816,49 @@ test('runMaintSync includes NPC item bundle item source and candidate rows for n
   assert.equal(summary.rows.byScope.npcs, 1);
   assert.equal(summary.rows.byScope.item_sources, 1);
   assert.equal(summary.rows.byScope.backfill_candidates, 1);
+});
+
+test('runMaintSync matches crawler facts against base NPC rows in the same dry-run batch', async () => {
+  const basePayload = {
+    records: [{ id: 477, internalName: 'Medusa', name: 'Medusa' }],
+  };
+  const factPayload = {
+    normalized: {
+      entityId: 'Medusa',
+      source: { pageTitle: 'Medusa' },
+      sourceMetadata: { revisionTimestamp: '2026-07-27T01:00:00Z' },
+      display: { name: 'Medusa' },
+      buffInflictions: [{ buffName: 'Stoned' }],
+      shop: { normalizedRows: [{ itemName: 'Torch' }] },
+      loot: [{ itemName: 'Medusa Head' }],
+    },
+    audit: { status: 'pass' },
+  };
+  const summary = await runMaintSync({ apply: false, scopes: ['npcs'] }, {
+    zhSourceIndexes: {},
+    loadLandingRows: async () => [{
+      id: 90,
+      dataset_type: 'npcs_base_raw',
+      provider: 'terrapedia.standardized',
+      source_page: 'data/standardized/npcs.standardized.json',
+      source_key: 'standardized.npcs',
+      source_revision_timestamp: '2026-07-27T00:00:00Z',
+      content_hash: 'b'.repeat(64),
+      payload_json: JSON.stringify(basePayload),
+    }, {
+      id: 91,
+      dataset_type: 'npc_crawler_facts_raw',
+      provider: 'terraria.wiki.gg',
+      source_page: 'Medusa',
+      source_key: 'wiki.npc.crawler.fact:medusa',
+      source_revision_timestamp: '2026-07-27T01:00:00Z',
+      content_hash: 'c'.repeat(64),
+      payload_json: JSON.stringify(factPayload),
+    }],
+  });
+
+  assert.equal(summary.rows.byScope.npcs, 1);
+  assert.equal(summary.rows.byScope.npc_crawler_facts, 1);
 });
 
 test('runMaintSync upserts NPC item bundle source and backfill rows on apply', async () => {
@@ -2355,4 +2570,95 @@ test('runMaintSync reports category rule diagnostics in dry-run mode', async () 
   assert.equal(summary.categoryRules.unmatchedItems, 1);
   assert.equal(summary.categoryRules.primaryAssignments, 1);
   assert.equal(summary.categoryRules.secondaryAssignments, 0);
+});
+
+test('item_image_sources_raw maps only to maint_item_images with real landing lineage', async () => {
+  const landingRow = {
+    id: 4711,
+    dataset_type: 'item_image_sources_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'item-image-lineage',
+    source_page: 'item-image-lineage-bundle',
+    source_revision_timestamp: null,
+    content_hash: 'c'.repeat(64),
+    fetched_at: null,
+    parsed_at: null,
+    payload_json: JSON.stringify({
+      itemImages: [{
+        itemId: 71,
+        itemInternalName: 'CopperCoin',
+        itemName: 'Copper Coin',
+        role: 'icon',
+        provider: 'terraria.wiki.gg',
+        sourceFileTitle: 'Copper Coin.png',
+        sourcePage: 'Coins',
+        sourceRevisionTimestamp: '2026-07-29T12:18:22Z',
+        originalUrl: 'https://terraria.wiki.gg/images/Copper_Coin.png',
+        cachedUrl: 'http://localhost:19100/terrapedia-images/items/coppercoin.png',
+        width: 12,
+        height: 12,
+        contentType: 'image/png',
+        isPrimary: true,
+        sortOrder: 0,
+      }],
+      // A bundle in this lane must never smuggle other relation scopes.
+      recipes: [{ resultInternalName: 'CopperCoin' }],
+    }),
+  };
+
+  const result = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(result.scope, 'item_images');
+  assert.equal(result.rows.length, 1);
+  const row = result.rows[0];
+  assert.equal(row.tableName, 'maint_item_images');
+  assert.equal(row.landingSourceId, 4711);
+  assert.equal(row.originalUrl, 'https://terraria.wiki.gg/images/Copper_Coin.png');
+  assert.equal(row.cachedUrl, 'http://localhost:19100/terrapedia-images/items/coppercoin.png');
+  assert.notEqual(row.originalUrl, row.cachedUrl);
+});
+
+test('item_image_sources_raw rejects a zero landing id', async () => {
+  const landingRow = {
+    id: 0,
+    dataset_type: 'item_image_sources_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'item-image-lineage',
+    source_page: 'item-image-lineage-bundle',
+    content_hash: 'c'.repeat(64),
+    payload_json: JSON.stringify({ itemImages: [] }),
+  };
+
+  await assert.rejects(
+    () => extractMaintEntitiesFromLandingRow(landingRow),
+    /landing id/i
+  );
+});
+
+test('item_image_sources_raw rejects a row whose cached URL repeats the original', async () => {
+  const sameUrl = 'http://localhost:19100/terrapedia-images/items/coppercoin.png';
+  const landingRow = {
+    id: 4711,
+    dataset_type: 'item_image_sources_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'item-image-lineage',
+    source_page: 'item-image-lineage-bundle',
+    content_hash: 'c'.repeat(64),
+    payload_json: JSON.stringify({
+      itemImages: [{
+        itemInternalName: 'CopperCoin',
+        role: 'icon',
+        sourceFileTitle: 'Copper Coin.png',
+        originalUrl: sameUrl,
+        cachedUrl: sameUrl,
+        isPrimary: true,
+        sortOrder: 0,
+      }],
+    }),
+  };
+
+  await assert.rejects(
+    () => extractMaintEntitiesFromLandingRow(landingRow),
+    /original and cached URLs must differ/i
+  );
 });

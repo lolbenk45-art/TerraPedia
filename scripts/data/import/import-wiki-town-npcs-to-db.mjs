@@ -307,7 +307,7 @@ export async function importTownNpcRecord(connection, rawRecord, context) {
   const nextBehaviorNotes = toText(rawRecord?.functionSummary)
     ? buildBehaviorNotes(rawRecord?.functionSummary, rawRecord?.moveInSummary)
     : null;
-  const wikiAssetsJson = buildWikiAssetsJson(rawRecord, result);
+  const wikiAssetsJson = buildWikiAssetsJson(rawRecord, result, context);
   const livingPreferencesJson = buildLivingPreferencesJson(rawRecord, context.npcTargetLookup ?? context.npcLookup);
   result.livingPreferencesPreview = livingPreferencesJson;
 
@@ -844,14 +844,18 @@ async function loadTownNpcShopConditionLookup(connection) {
   });
 }
 
-function buildWikiAssetsJson(rawRecord, result) {
+function buildWikiAssetsJson(rawRecord, result, context = {}) {
   const assets = {};
+  const acceptedPrefixes = Array.isArray(context.managedImageUrlPrefixes)
+    && context.managedImageUrlPrefixes.length > 0
+    ? context.managedImageUrlPrefixes
+    : managedImageUrlPrefixes;
   for (const [key, value] of Object.entries({
     spriteImage: rawRecord?.wikiDetails?.spriteImage,
     mapIconImage: rawRecord?.wikiDetails?.mapIconImage,
     dialogPortraitImage: rawRecord?.wikiDetails?.dialogPortraitImage,
   })) {
-    const managed = managedTownNpcAssetOrNull(value, result);
+    const managed = managedTownNpcAssetOrNull(value, result, acceptedPrefixes);
     if (managed) {
       assets[key] = managed;
     }
@@ -859,10 +863,10 @@ function buildWikiAssetsJson(rawRecord, result) {
   return Object.keys(assets).length > 0 ? JSON.stringify(assets) : null;
 }
 
-function managedTownNpcAssetOrNull(value, result) {
+function managedTownNpcAssetOrNull(value, result, acceptedPrefixes = managedImageUrlPrefixes) {
   const text = toText(value);
   if (!text) return null;
-  if (isManagedUrlForEntity(text, 'npcs', managedImageUrlPrefixes)) return text;
+  if (isManagedUrlForEntity(text, 'npcs', acceptedPrefixes)) return text;
   if (isRawTerrariaWikiUrl(text)) {
     result.rawWikiAssetUrlCount += 1;
   }

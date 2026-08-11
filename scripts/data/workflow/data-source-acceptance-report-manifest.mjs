@@ -19,6 +19,13 @@ const CRAWLER_MONITOR_FRESHNESS_POLICY = {
   statusImpact: 'stale-pass-to-warning',
 };
 
+const CANONICAL_READINESS_FRESHNESS_POLICY = {
+  freshnessSource: 'report-generatedAt-or-mtime',
+  staleAfterHours: 24,
+  nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
+  statusImpact: 'invalid-to-blocked',
+};
+
 const MANIFEST = [
   {
     panelId: 'relationHealth',
@@ -49,12 +56,21 @@ const MANIFEST = [
   },
   {
     panelId: 'sourceGroupAudit',
-    reportPattern: 'reports/item-groups/any-item-group-source-audit*.json',
-    generatorCommand: 'node scripts/data/audit/audit-any-item-group-sources.mjs',
+    reportPattern: 'reports/canonical-migration/canonical-item-group-readiness*.json',
+    generatorCommand: 'node scripts/data/item-groups/item-group-readiness.mjs',
     writesDatabase: false,
-    requiresDatabase: false,
-    notes: 'Feeds sourceGroupAudit from the latest source-backed item group audit report.',
-    ...REPORT_FRESHNESS_POLICY,
+    requiresDatabase: true,
+    notes: 'Feeds sourceGroupAudit from the fail-closed canonical item-group readiness report.',
+    ...CANONICAL_READINESS_FRESHNESS_POLICY,
+  },
+  {
+    panelId: 'npcCanonicalReadiness',
+    reportPattern: 'reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json',
+    generatorCommand: 'node scripts/data/npc-canonical/npc-canonical-readiness.mjs',
+    writesDatabase: false,
+    requiresDatabase: true,
+    notes: 'Feeds npcCanonicalReadiness from the fail-closed canonical NPC crawler-fact readiness report.',
+    ...CANONICAL_READINESS_FRESHNESS_POLICY,
   },
   {
     panelId: 'imageReadiness',

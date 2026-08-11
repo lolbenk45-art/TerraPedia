@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import os from 'node:os';
 import { promisify } from 'node:util';
 import path from 'node:path';
+import * as imageAssetReadiness from './image-asset-readiness-audit.mjs';
 
 import {
   buildImageAssetReadinessAudit,
@@ -231,6 +232,47 @@ test('buildImageAssetReadinessAudit treats managed asset path as cache across ho
   assert.equal(audit.entities.items.brokenCachedUrlCount, 0);
 });
 
+test('buildImageAssetReadinessAudit treats an origin-free managed path as cache', () => {
+  // Uploads are stored as the path the backend returns. Requiring an absolute
+  // URL reads every one of those rows as an invalid URL.
+  const audit = buildImageAssetReadinessAudit({
+    generatedAt: GENERATED_AT,
+    items: [
+      {
+        id: 1,
+        internalName: 'RelativeCachedItem',
+        cachedUrl: '/terrapedia-images/items/2026/07/29/relative-cached-item.png',
+        originalUrl: 'https://terraria.wiki.gg/images/Relative_Cached_Item.png',
+        contentType: 'image/png',
+        lastVerifiedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.equal(audit.entities.items.cachedHitCount, 1);
+  assert.equal(audit.entities.items.brokenCachedUrlCount, 0);
+});
+
+test('buildImageAssetReadinessAudit rejects an origin-free path outside managed storage', () => {
+  const audit = buildImageAssetReadinessAudit({
+    generatedAt: GENERATED_AT,
+    items: [
+      {
+        id: 1,
+        internalName: 'RelativeBadPath',
+        cachedUrl: '/uploads/items/relative-bad-path.png',
+        originalUrl: 'https://terraria.wiki.gg/images/Relative_Bad_Path.png',
+        contentType: 'image/png',
+        lastVerifiedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  });
+
+  assert.equal(audit.entities.items.cachedHitCount, 0);
+  assert.equal(audit.entities.items.brokenCachedUrlCount, 1);
+  assert.equal(audit.entities.items.brokenCachedUrlSamples[0].reason, 'outside_managed_prefix');
+});
+
 test('buildImageAssetReadinessAudit rejects managed path prefix collisions', () => {
   const audit = buildImageAssetReadinessAudit({
     generatedAt: GENERATED_AT,
@@ -289,6 +331,36 @@ test('buildImageAssetReadinessQueries are SELECT-only and cover the current imag
   for (const sql of Object.values(queries)) {
     assert.doesNotMatch(sql, /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE)\b/i);
   }
+});
+
+test('image readiness item query quotes the reserved window-function rank alias', () => {
+  const { items } = buildImageAssetReadinessQueries({ localDatabase: 'terria_v1_local' });
+
+  assert.match(items, /\) AS `row_number`/);
+  assert.match(items, /WHERE ranked\.`row_number` = 1/);
+});
+
+test('image readiness database options use the local-stack port when no environment override exists', () => {
+  assert.equal(typeof imageAssetReadiness.resolveImageAssetReadinessDatabaseOptions, 'function');
+  assert.deepEqual(
+    imageAssetReadiness.resolveImageAssetReadinessDatabaseOptions({
+      env: {},
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 13306,
+          username: 'audit_reader',
+          password: 'test-only',
+        },
+      },
+    }),
+    {
+      host: '127.0.0.1',
+      port: 13306,
+      user: 'audit_reader',
+      password: 'test-only',
+    },
+  );
 });
 
 test('buildImageAssetReadinessQueries rejects unsafe database identifiers', () => {

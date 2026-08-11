@@ -4,6 +4,11 @@ import path from 'node:path';
 
 import { resolveProjectPath, resolveSharedDataRoot } from '../lib/project-root.mjs';
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { buildItemGroupBootstrap } from '../item-groups/item-group-bootstrap.mjs';
+import {
+  buildNpcCrawlerFactEvidence,
+  validateNpcCrawlerFactRunEvidence,
+} from '../npc-canonical/npc-canonical-contract.mjs';
 
 const defaultRepoRoot = resolveProjectPath();
 const defaultSharedDataRoot = sharedDataPath();
@@ -138,8 +143,19 @@ export async function listSourceDatasetLandingInputs(options = {}) {
   const shouldInclude = (datasetType) => datasetFilter.size === 0 || datasetFilter.has(datasetType);
 
   const entries = [];
-  const pushFileDescriptor = async (datasetType, filePath, builder) => {
-    if (!shouldInclude(datasetType) || !(await exists(filePath))) {
+  const pushFileDescriptor = async (datasetType, filePath, builder, { required = false } = {}) => {
+    if (!shouldInclude(datasetType)) {
+      return;
+    }
+    if (!(await exists(filePath))) {
+      // A required dataset that silently vanishes is worse than a hard failure: the landing
+      // import then reports success while omitting the dataset entirely.
+      if (required) {
+        throw new Error(
+          `${datasetType} requires an accepted landing source, but ${filePath} does not exist. `
+          + 'Provide an explicit descriptor for this dataset instead of relying on a default path.',
+        );
+      }
       return;
     }
     const payload = await readJson(filePath);
@@ -167,15 +183,15 @@ export async function listSourceDatasetLandingInputs(options = {}) {
   );
 
   await pushFileDescriptor(
-    'npcs_raw',
-    path.join(repoRoot, 'data', 'generated', 'wiki-crawler-npc-bridge', 'standardized', 'npcs.standardized.json'),
+    'npcs_base_raw',
+    path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json'),
     (filePath, payload) => buildFileDescriptor({
-      datasetType: 'npcs_raw',
+      datasetType: 'npcs_base_raw',
       filePath,
       payload,
-      provider: 'terrapedia.generated',
-      sourceKind: 'generated_standardized_bridge',
-      sourceKey: 'generated.wiki_crawler_npc_bridge',
+      provider: 'terrapedia.standardized',
+      sourceKind: 'standardized_dataset',
+      sourceKey: 'standardized.npcs',
       sourcePage: 'npcs.standardized',
       sourceRevisionTimestamp: null,
       fetchedAt: payload.generatedAt,
@@ -184,7 +200,59 @@ export async function listSourceDatasetLandingInputs(options = {}) {
       repoRoot,
       sharedDataRoot,
     }),
+    { required: true },
   );
+
+  if (shouldInclude('npc_crawler_facts_raw')) {
+    const normalizedDir = path.join(repoRoot, 'data', 'wiki-crawler', 'normalized-light', 'npc');
+    const auditDir = path.join(repoRoot, 'data', 'wiki-crawler', 'audit', 'npc');
+    const explicitlyRequested = datasetFilter.has('npc_crawler_facts_raw');
+    if (!(await exists(normalizedDir))) {
+      if (explicitlyRequested) {
+        throw new Error('npc_crawler_facts_raw requires matching audit evidence and normalized crawler evidence');
+      }
+    } else {
+      const fileNames = (await fs.readdir(normalizedDir))
+        .filter((name) => name.endsWith('.latest.json'))
+        .sort();
+      validateNpcCrawlerFactRunEvidence(fileNames.map(() => ({ payloadBytes: 0 })));
+      if (explicitlyRequested && fileNames.length === 0) {
+        throw new Error('npc_crawler_facts_raw requires matching audit evidence and normalized crawler evidence');
+      }
+      const crawlerFactEntries = [];
+      for (const fileName of fileNames) {
+        const normalizedPath = path.join(normalizedDir, fileName);
+        const auditPath = path.join(auditDir, fileName);
+        if (!(await exists(auditPath))) {
+          throw new Error(`npc_crawler_facts_raw requires matching audit evidence for ${fileName}`);
+        }
+        const normalized = await readJson(normalizedPath);
+        const audit = await readJson(auditPath);
+        const evidence = buildNpcCrawlerFactEvidence({ normalized, audit });
+        crawlerFactEntries.push({
+          datasetType: 'npc_crawler_facts_raw',
+          provider: 'terraria.wiki.gg',
+          sourceKind: 'npc_crawler_fact',
+          sourceKey: `wiki.npc.crawler_fact:${evidence.entityId}`,
+          sourcePage: evidence.sourcePage,
+          sourceLocator: toSourceLocator(normalizedPath, repoRoot, sharedDataRoot),
+          sourceRevisionTimestamp: evidence.sourceRevisionTimestamp,
+          fetchedAt: evidence.fetchedAt,
+          parsedAt: evidence.parsedAt,
+          parseStatus: evidence.parseStatus,
+          payloadBytes: evidence.payloadBytes,
+          contentHash: evidence.contentHash,
+          payload: evidence.payload,
+          auditLocator: toSourceLocator(auditPath, repoRoot, sharedDataRoot),
+          normalizedContentHash: evidence.normalizedContentHash,
+          auditContentHash: evidence.auditContentHash,
+          recordKey: evidence.recordKey,
+        });
+        validateNpcCrawlerFactRunEvidence(crawlerFactEntries);
+      }
+      entries.push(...crawlerFactEntries);
+    }
+  }
 
   await pushFileDescriptor(
     'projectiles_raw',
@@ -480,6 +548,39 @@ export async function listSourceDatasetLandingInputs(options = {}) {
       sharedDataRoot,
     }),
   );
+
+  if (shouldInclude('item_groups_raw')) {
+    const artifactPaths = {
+      recipeReference: path.join(repoRoot, 'data', 'generated', 'recipe-material-reference.json'),
+      recipeOverrides: path.join(repoRoot, 'data', 'generated', 'recipe-group-overrides.json'),
+      itemOverrides: path.join(repoRoot, 'data', 'generated', 'item-group-overrides.json'),
+    };
+    const artifactAvailability = Object.fromEntries(await Promise.all(
+      Object.entries(artifactPaths).map(async ([key, filePath]) => [key, await exists(filePath)]),
+    ));
+    const availableCount = Object.values(artifactAvailability).filter(Boolean).length;
+    if (availableCount > 0 || datasetFilter.has('item_groups_raw')) {
+      for (const [key, filePath] of Object.entries(artifactPaths)) {
+        if (!artifactAvailability[key]) {
+          throw new Error(`item_groups_raw requires bootstrap artifact ${key}, but ${filePath} does not exist`);
+        }
+      }
+      const artifacts = {};
+      for (const [key, filePath] of Object.entries(artifactPaths)) {
+        const raw = await fs.readFile(filePath, 'utf8');
+        artifacts[key] = {
+          raw,
+          payload: JSON.parse(raw),
+          sourceLocator: toSourceLocator(filePath, repoRoot, sharedDataRoot),
+        };
+      }
+      const bootstrap = buildItemGroupBootstrap({
+        artifacts,
+        producerRunKey: options.producerRunKey,
+      });
+      entries.push(...bootstrap.landingEntries);
+    }
+  }
 
   entries.sort((left, right) => {
     if (left.datasetType !== right.datasetType) {

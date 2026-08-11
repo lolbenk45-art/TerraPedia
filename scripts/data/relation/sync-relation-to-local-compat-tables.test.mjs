@@ -26,7 +26,8 @@ test('buildRelationCompatSyncSql rebuilds only owned local compatibility tables'
     'item_acquisition_sources',
     'npc_loot_entries',
     'npc_shop_entries',
-    'npc_shop_conditions'
+    'npc_shop_conditions',
+    'npc_buff_relations'
   ]);
   assert.match(sql.item_acquisition_sources.deleteSql, /DELETE FROM `terria_v1_local`\.`item_acquisition_sources`/);
   assert.match(sql.item_acquisition_sources.insertSql, /INSERT INTO `terria_v1_local`\.`item_acquisition_sources`/);
@@ -34,6 +35,21 @@ test('buildRelationCompatSyncSql rebuilds only owned local compatibility tables'
   assert.match(sql.npc_loot_entries.insertSql, /FROM `terria_v1_relation`\.`item_npc_loot_relations` r/);
   assert.match(sql.npc_shop_entries.insertSql, /FROM `terria_v1_relation`\.`item_npc_shop_relations` r/);
   assert.match(sql.npc_shop_conditions.insertSql, /FROM `terria_v1_relation`\.`item_npc_shop_relations` r/);
+  assert.match(sql.npc_buff_relations.insertSql, /FROM `terria_v1_relation`\.`npc_buff_relations` r/);
+  assert.match(sql.npc_buff_relations.insertSql, /INNER JOIN `terria_v1_local`\.`npcs` n/);
+  assert.match(sql.npc_buff_relations.insertSql, /INNER JOIN `terria_v1_local`\.`buffs` b/);
+  assert.deepEqual(sql.npc_loot_entries.sourceLineage, [
+    'maint_npc_crawler_facts',
+    'maint_item_sources',
+    'item_source_facts',
+    'item_npc_loot_relations',
+  ]);
+  assert.deepEqual(sql.npc_shop_entries.sourceLineage, [
+    'maint_npc_crawler_facts',
+    'maint_item_sources',
+    'item_source_facts',
+    'item_npc_shop_relations',
+  ]);
   assert.match(sql.npc_loot_entries.insertSql, /SELECT\s+n\.id,\s+i\.id,\s+i\.id,\s+'npc_drop',/);
   assert.match(sql.npc_shop_entries.insertSql, /SELECT\s+n\.id,\s+i\.id,\s+i\.id,/);
   assert.doesNotMatch(sql.npc_loot_entries.insertSql, /\bi\.source_id\b/);
@@ -202,7 +218,7 @@ test('runRelationToLocalCompatSync dry-run reports row counts and samples withou
   assert.equal(result.report.apply, false);
   assert.equal(result.report.tables.item_acquisition_sources.plannedRows, 2);
   assert.equal(result.report.tables.npc_loot_entries.sampleRows[0].tableName, 'npc_loot_entries');
-  assert.equal(reportPayload.summary.totalPlannedRows, 8);
+  assert.equal(reportPayload.summary.totalPlannedRows, 10);
   assert.ok(statements.every((sql) => !/DELETE FROM|INSERT INTO/i.test(sql)));
 });
 
@@ -236,10 +252,12 @@ test('runRelationToLocalCompatSync apply deletes and rebuilds owned tables in de
     'npc_shop_conditions',
     'npc_shop_entries',
     'npc_loot_entries',
+    'npc_buff_relations',
     'item_acquisition_sources'
   ]);
   assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`item_acquisition_sources`')));
   assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npc_loot_entries`')));
   assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npc_shop_entries`')));
   assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npc_shop_conditions`')));
+  assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npc_buff_relations`')));
 });

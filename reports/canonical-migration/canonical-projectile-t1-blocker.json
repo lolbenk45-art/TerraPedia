@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "recordType": "isolated_acceptance_blocker",
+  "generatedAt": "2026-08-07T15:05:00+08:00",
+  "batch": "projectile-t1",
+  "status": "blocked",
+  "reasonCode": "npc_projectile_source_contract_missing",
+  "formalWritesAttempted": false,
+  "isolatedWritesAttempted": false,
+  "networkAccessAttempted": false,
+  "candidateFixture": {
+    "projectiles": [
+      {
+        "sourceId": 1,
+        "internalName": "WoodenArrowFriendly",
+        "nameZh": "木箭",
+        "itemInternalName": "WoodenBow"
+      },
+      {
+        "sourceId": 2,
+        "internalName": "FireArrow",
+        "nameZh": "烈火箭",
+        "itemInternalName": "FlamingArrow"
+      }
+    ],
+    "itemRelationCount": 2,
+    "npcRelationCount": 0
+  },
+  "evidence": {
+    "standardizedProjectileInput": "data/standardized/projectiles.standardized.json",
+    "maintProjectileRows": 2,
+    "maintItemProjectileRows": 2,
+    "maintNpcRowsWithSupportedProjectileFields": 0,
+    "repositoryNpcProjectileSourceMatches": 0,
+    "supportedNpcFields": [
+      "raw_json.wikiCrawler.combat.projectileId",
+      "raw_json.combat.projectileId",
+      "raw_json.projectileId",
+      "raw_json.projectile_id"
+    ]
+  },
+  "stopCondition": "A closed offline Projectile T1 fixture cannot prove NPC-projectile relations without fabricating source evidence.",
+  "unblockCondition": "Add or identify a real local NPC source contract carrying a supported projectile identity, land it through the maintained NPC/maint path, and re-audit fixture closure before authorization."
+}

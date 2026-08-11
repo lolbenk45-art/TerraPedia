@@ -175,3 +175,74 @@ function writeShimmerMock(tempDir) {
   }), 'utf8');
   return mockPath;
 }
+
+test('fetchWikiShimmerRaw reports its three fetch phases through an injected callback', async () => {
+  const { fetchWikiShimmerRaw } = await import('./fetch-wiki-shimmer-page.mjs');
+  const phases = [];
+  const requestOrder = [];
+
+  const payload = await fetchWikiShimmerRaw({
+    pageTitle: '微光',
+    apiUrl: 'https://terraria.wiki.gg/zh/api.php',
+    onPhase: (event) => phases.push({ ...event, requestsSoFar: requestOrder.length })
+  }, {
+    fetchJson: async ({ url, profile }) => {
+      requestOrder.push(profile ?? String(url));
+      return mockRawResponse(String(url));
+    }
+  });
+
+  assert.deepEqual(phases.map((event) => event.phase), [
+    'fetch_revision',
+    'fetch_sections',
+    'fetch_html'
+  ]);
+  assert.deepEqual(
+    phases.map((event) => event.requestsSoFar),
+    [0, 1, 2],
+    'each phase report must precede its own network call'
+  );
+  assert.equal(payload.pageTitle, '微光');
+  assert.equal(payload.pageId, 4242);
+  assert.equal(payload.sections.length, 1);
+  assert.match(payload.html, /<table/);
+});
+
+test('fetchWikiShimmerRaw never owns a terminal action state', async () => {
+  const { fetchWikiShimmerRaw } = await import('./fetch-wiki-shimmer-page.mjs');
+  const phases = [];
+
+  await fetchWikiShimmerRaw({
+    pageTitle: '微光',
+    apiUrl: 'https://terraria.wiki.gg/zh/api.php',
+    onPhase: (event) => phases.push(event)
+  }, { fetchJson: async ({ url }) => mockRawResponse(String(url)) });
+
+  assert.equal(
+    phases.some((event) => ['completed', 'failed'].includes(event.status)),
+    false,
+    'the raw fetch child must leave terminal state to the parent pipeline'
+  );
+});
+
+function mockRawResponse(url) {
+  if (url.includes('action=query')) {
+    return {
+      query: {
+        pages: [{
+          pageid: 4242,
+          title: '微光',
+          revisions: [{
+            revid: 99,
+            timestamp: '2026-07-30T00:00:00Z',
+            content: '{{shimmer}}'
+          }]
+        }]
+      }
+    };
+  }
+  if (url.includes('prop=sections')) {
+    return { parse: { sections: [{ number: '1', level: '2', line: '物品嬗变' }] } };
+  }
+  return { parse: { text: '<table><caption>物品嬗变</caption><tr><td>a</td></tr></table>' } };
+}

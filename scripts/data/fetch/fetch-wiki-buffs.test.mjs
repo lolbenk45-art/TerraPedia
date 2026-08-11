@@ -361,6 +361,8 @@ const fs = require('node:fs');
   });
 
   assert.notEqual(result.status, 0);
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assertBuffProgressPayload(progress, 'failed', progressPath);
   const calls = fs.readFileSync(redisLog, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
   assert.ok(calls.some((args) => {
     return args.includes('SETEX')
@@ -368,6 +370,53 @@ const fs = require('node:fs');
       && args.some((arg) => String(arg).includes('"status":"failed"'));
   }));
 });
+
+test('buff fetch failure uses the isolated shared-data canonical progress path by default', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-buffs-default-progress-'));
+  const worktreeRoot = path.join(tempDir, 'feature-worktree');
+  const sharedDataRoot = path.join(tempDir, 'shared');
+  const rawDir = path.join(tempDir, 'missing', 'raw');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(rawDir), { recursive: true });
+  fs.writeFileSync(rawDir, 'not a directory', 'utf8');
+
+  const result = spawnSync(process.execPath, [scriptPath, `--raw-dir=${rawDir}`], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_SHARED_DATA_ROOT: sharedDataRoot,
+      TERRAPEDIA_REDIS_HOST: '',
+      TERRAPEDIA_REDIS_PORT: '',
+      TERRAPEDIA_REDIS_DATABASE: ''
+    }
+  });
+
+  assert.notEqual(result.status, 0);
+  const progressPath = path.join(sharedDataRoot, 'generated', 'fetch-wiki-buffs-progress.latest.json');
+  assertBuffProgressPayload(JSON.parse(fs.readFileSync(progressPath, 'utf8')), 'failed', progressPath);
+});
+
+function assertBuffProgressPayload(progress, status, progressPath) {
+  for (const field of [
+    'actionId',
+    'status',
+    'generatedAt',
+    'lastHeartbeatAt',
+    'childStatusPath',
+    'phase',
+    'message',
+    'current',
+    'total'
+  ]) {
+    assert.ok(Object.hasOwn(progress, field), `missing ${field}`);
+  }
+  assert.equal(progress.actionId, 'buff-page-immunity-refresh');
+  assert.equal(progress.status, status);
+  assert.equal(path.resolve(progress.childStatusPath), path.resolve(progressPath));
+}
 
 test('buff fetch finalizes template ingestion manifest after writing latest raw output', () => {
   const source = fs.readFileSync(scriptPath, 'utf8');

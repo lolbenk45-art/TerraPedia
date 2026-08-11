@@ -1128,6 +1128,81 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   };
 }
 
+export function buildNpcCrawlerFactItemSourceRows(maintNpcCrawlerFactRows = []) {
+  const rows = [];
+  for (const fact of Array.isArray(maintNpcCrawlerFactRows) ? maintNpcCrawlerFactRows : []) {
+    if (String(fact.match_status ?? fact.matchStatus ?? '').toUpperCase() !== 'MATCHED') {
+      continue;
+    }
+    const npcInternalName = normalizeText(fact.npc_internal_name ?? fact.npcInternalName);
+    const npcName = normalizeText(fact.npc_name ?? fact.npcName) ?? npcInternalName;
+    const crawlerFactRecordKey = normalizeText(fact.record_key ?? fact.recordKey);
+    if (!npcInternalName || !crawlerFactRecordKey) {
+      continue;
+    }
+    const trace = {
+      landing_source_id: fact.landing_source_id ?? fact.landingSourceId ?? null,
+      landing_source_key: fact.landing_source_key ?? fact.landingSourceKey ?? null,
+      landing_source_page: fact.landing_source_page ?? fact.landingSourcePage ?? null,
+      landing_content_hash: fact.landing_content_hash ?? fact.landingContentHash ?? null,
+      source_provider: 'terraria.wiki.gg',
+      source_page: fact.source_page ?? fact.sourcePage ?? fact.landing_source_page ?? null,
+      source_revision_timestamp: fact.source_revision_timestamp ?? fact.sourceRevisionTimestamp ?? null,
+    };
+    const groups = [
+      ['shop', parseArrayJson(fact.shop_facts_json ?? fact.shopFactsJson)],
+      ['drop', parseArrayJson(fact.loot_facts_json ?? fact.lootFactsJson)],
+    ];
+    for (const [sourceType, facts] of groups) {
+      for (let index = 0; index < facts.length; index += 1) {
+        const entry = facts[index] ?? {};
+        const itemName = normalizeText(entry.itemName ?? entry.item_name ?? entry.name);
+        if (!itemName) continue;
+        const raw = {
+          ...entry,
+          crawlerFactRecordKey,
+          sourceRefName: npcName,
+          sourceRefInternalName: npcInternalName,
+          sourceRefResolution: 'exact_internal_name',
+          ...(sourceType === 'shop'
+            ? { priceText: entry.priceText ?? entry.price_text ?? null, conditions: entry.conditionText ?? entry.conditions ?? null }
+            : { chanceText: entry.chanceText ?? entry.chance_text ?? null, quantityText: entry.quantityText ?? entry.quantity_text ?? null, conditions: entry.conditionText ?? entry.conditions ?? null }),
+        };
+        rows.push({
+          record_key: createRecordKey({ type: 'npc_crawler_item_source', crawlerFactRecordKey, sourceType, index, itemName }),
+          source_maint_table: 'maint_npc_crawler_facts',
+          source_maint_record_key: crawlerFactRecordKey,
+          source_maint_id: fact.id ?? fact.sourceMaintId ?? null,
+          item_source_id: null,
+          item_internal_name: normalizeText(entry.itemInternalName ?? entry.item_internal_name),
+          item_name: itemName,
+          source_type: sourceType,
+          source_ref_type: 'npc',
+          source_ref_name: npcName,
+          biome_code: null,
+          sort_order: index,
+          raw_json: JSON.stringify(raw),
+          ...trace,
+          status: 1,
+          deleted: 0,
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+function parseArrayJson(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export function buildItemSourceRelations({
   itemSourceRows = [],
   npcIndex = new Map(),
@@ -1148,7 +1223,14 @@ export function buildItemSourceRelations({
   for (let index = 0; index < itemSourceRows.length; index += 1) {
     const row = itemSourceRows[index] ?? {};
     const raw = parseRawJson(row);
-    const trace = normalizeTrace('maint_item_sources', row);
+    const trace = normalizeTrace(
+      row.source_maint_table ?? row.sourceMaintTable ?? 'maint_item_sources',
+      {
+        ...row,
+        record_key: row.source_maint_record_key ?? row.sourceMaintRecordKey ?? row.record_key,
+        id: row.source_maint_id ?? row.sourceMaintId ?? row.id,
+      },
+    );
     const sourceType = normalizeText(row.source_type)?.toLowerCase() ?? null;
     const sourceRefType = normalizeText(row.source_ref_type)?.toLowerCase() ?? null;
     const itemResolution = resolveItemRef(row, raw, itemIndex);
@@ -1168,7 +1250,7 @@ export function buildItemSourceRelations({
     const itemKey = normalizeLookupKey(itemInternalName);
     const sourceFactKey = createRecordKey({
       type: 'item_source_fact',
-      rowRecordKey: trace.sourceMaintRecordKey,
+      rowRecordKey: normalizeText(row.record_key ?? row.recordKey) ?? trace.sourceMaintRecordKey,
       sortOrder: row.sort_order ?? index
     });
 

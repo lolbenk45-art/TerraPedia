@@ -106,8 +106,11 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
 
   const shimmerSync = plan.actions.find((action) => action.id === 'shimmer-sync');
   assert.ok(shimmerSync);
-  assert.ok(shimmerSync.args.includes('scripts/data/pipeline/run-shimmer-sync-pipeline.mjs'));
-  assert.ok(shimmerSync.args.includes('--apply=true'));
+  assert.deepEqual(shimmerSync.args, [
+    'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+    '--progress-path=data/generated/domain-source-shimmer-progress.latest.json'
+  ]);
+  assert.equal(shimmerSync.args.some((arg) => arg.startsWith('--apply=')), false);
 
   const supportSync = plan.actions.find((action) => action.id === 'support-sync');
   assert.ok(supportSync);
@@ -140,6 +143,24 @@ test('buildBackendDataRefreshPlan can select bounded wiki audio asset refresh on
   ]);
 });
 
+test('buildBackendDataRefreshPlan exposes the manual bounded item image verifier', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: 'item-image-source-verification' });
+
+  assert.equal(plan.actions.length, 1);
+  assert.equal(plan.actions[0].id, 'item-image-source-verification');
+  assert.equal(plan.actions[0].manualOnly, true);
+  assert.deepEqual(plan.actions[0].args, [
+    'scripts/data/fetch/fetch-item-image-source-verification.mjs',
+    '--input=reports/authorization/canonical/canonical-item-image-source-verification.input.json',
+    '--output=reports/audit/item-image-source-verification.round-04-2026-08-01.json',
+    '--batch-size=8',
+    '--max-requests=9'
+  ]);
+  assert.ok(!buildBackendDataRefreshPlan().actions.some(
+    (action) => action.id === 'item-image-source-verification'
+  ));
+});
+
 test('backend refresh plan keeps check force preview and apply commands distinct', () => {
   const plan = buildBackendDataRefreshPlan({
     steps: [
@@ -153,6 +174,10 @@ test('backend refresh plan keeps check force preview and apply commands distinct
       'npc-loot-apply',
       'boss-loot-backfill',
       'boss-loot-apply',
+      'item-group-canonical-preview',
+      'item-group-canonical-apply',
+      'npc-crawler-facts-preview',
+      'npc-crawler-facts-apply',
     ],
   });
   const action = (id) => plan.actions.find((entry) => entry.id === id);
@@ -170,11 +195,31 @@ test('backend refresh plan keeps check force preview and apply commands distinct
   assert.ok(action('npc-loot-apply').args.includes('--dry-run=false'));
   assert.ok(action('boss-loot-backfill').args.includes('--dry-run=true'));
   assert.ok(action('boss-loot-apply').args.includes('--dry-run=false'));
+  assert.deepEqual(action('item-group-canonical-preview').args, [
+    'scripts/data/item-groups/item-group-canonical-action.mjs',
+    '--action-id=item-group-canonical-preview',
+  ]);
+  assert.deepEqual(action('item-group-canonical-apply').args, [
+    'scripts/data/item-groups/item-group-canonical-action.mjs',
+    '--action-id=item-group-canonical-apply',
+  ]);
+  assert.deepEqual(action('npc-crawler-facts-preview').args, [
+    'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+    '--action-id=npc-crawler-facts-preview',
+  ]);
+  assert.deepEqual(action('npc-crawler-facts-apply').args, [
+    'scripts/data/npc-canonical/npc-crawler-fact-action.mjs',
+    '--action-id=npc-crawler-facts-apply',
+  ]);
 
   const defaultIds = buildBackendDataRefreshPlan().actions.map((entry) => entry.id);
   assert.ok(!defaultIds.includes('wiki-items-force-refresh'));
   assert.ok(!defaultIds.includes('recipe-reference-apply'));
   assert.ok(!defaultIds.includes('npc-loot-apply'));
+  assert.ok(!defaultIds.includes('item-group-canonical-preview'));
+  assert.ok(!defaultIds.includes('item-group-canonical-apply'));
+  assert.ok(!defaultIds.includes('npc-crawler-facts-preview'));
+  assert.ok(!defaultIds.includes('npc-crawler-facts-apply'));
 });
 
 test('run-backend-data-refresh replaces output path placeholders before spawning actions', () => {

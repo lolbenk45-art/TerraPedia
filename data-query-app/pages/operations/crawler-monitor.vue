@@ -40,12 +40,21 @@
       <header class="operation-catalog__head">
         <div>
           <small>操作目录</small>
-          <h2 id="operation-catalog-title">全部 {{ operationCatalogCount }} 个可选操作</h2>
-          <p>按检查同步、直接抓取、数据处理与入库、数据回填与差异检查分组；点击后先看真实执行摘要。</p>
+          <h2 id="operation-catalog-title">{{ operationCatalogCount }} 个可选操作</h2>
+          <p>其中 {{ writeOperationCatalogCount }} 个写库操作需要二次确认；也可进入域详情直接操作。</p>
         </div>
-        <span class="operation-catalog__count">4 组 · {{ operationCatalogCount }} 项</span>
+        <button
+          type="button"
+          class="operation-catalog__toggle"
+          :aria-expanded="operationCatalogExpanded"
+          aria-controls="operation-catalog-groups"
+          @click="operationCatalogExpanded = !operationCatalogExpanded"
+        >
+          <span>{{ operationCatalogExpanded ? '收起目录' : '展开目录' }}</span>
+          <ChevronDown :size="18" :class="{ 'operation-catalog__toggle-icon--expanded': operationCatalogExpanded }" aria-hidden="true" />
+        </button>
       </header>
-      <div class="operation-catalog__groups">
+      <div v-if="operationCatalogExpanded" id="operation-catalog-groups" class="operation-catalog__groups">
         <section v-for="group in operationGroups" :key="group.key" class="operation-catalog__group">
           <header>
             <h3>{{ group.label }}</h3>
@@ -111,11 +120,18 @@
       :data-quality-signals="dataQualitySignals"
       :reports="recentReportRows"
       :auto-dispatch-form="autoDispatchForm"
+      :v2-mode="Boolean(v2State)"
+      :v2-automation-form="v2AutomationForm"
       :saving="autoDispatchSaving"
+      :v2-saving="v2AutomationSaving"
+      :v2-sweep-loading="v2AutomationSweepLoading"
       @close="systemDrawerOpen = false"
-      @preview="openReportPreview"
+      @preview="(path) => openReportPreview(path, 'system-drawer')"
       @update-auto-dispatch="updateAutoDispatchDraft"
       @save-auto-dispatch="saveAutoDispatchSettings"
+      @update-v2-automation="updateV2AutomationDraft"
+      @save-v2-automation="saveV2AutomationSettings"
+      @run-v2-sweep="runV2AutomationSweep"
     />
 
     <section
@@ -212,7 +228,7 @@
       class="report-drawer-backdrop"
       :class="{
         open: reportPreviewOpen,
-        'report-drawer-backdrop--over-domain': reportPreviewOverDomainDrawer,
+        'report-drawer-backdrop--over-modal': reportPreviewOverModalDrawer,
       }"
       @click="closeReportPreview"
     ></div>
@@ -220,7 +236,7 @@
       class="report-drawer"
       :class="{
         open: reportPreviewOpen,
-        'report-drawer--over-domain': reportPreviewOverDomainDrawer,
+        'report-drawer--over-modal': reportPreviewOverModalDrawer,
       }"
       role="dialog"
       aria-modal="true"
@@ -252,6 +268,7 @@
 import {
   Activity,
   AlertTriangle,
+  ChevronDown,
   CircleStop,
   Eye,
   FileJson,
@@ -273,6 +290,7 @@ import {
 import {
   buildDomainDetailViewModel,
   buildTriageWorkbench,
+  localDataUpdateLabel,
   shortCrawlerIdentity,
   sourceFreshnessLabel,
   v2DomainDisplayStatus,
@@ -306,7 +324,7 @@ import {
   resultKindLabel,
 } from '~/utils/crawlerMonitorOperationCatalog.mjs'
 import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, executeV2ControlRequest, isV2AuthFailure, shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel, v2ControlPendingKey } from './crawler-monitor.control.mjs'
-import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
+import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestSuccessfulV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
 import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
@@ -340,13 +358,14 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
 const route = useRoute()
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
+const operationCatalogExpanded = ref(false)
 const loading = ref(false)
 const autoRefresh = ref(true)
 const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
 const reportPreviewError = ref('')
-const reportPreviewLayer = ref<'page' | 'domain-drawer'>('page')
+const reportPreviewLayer = ref<'page' | 'domain-drawer' | 'system-drawer'>('page')
 const reportPreviewRequestFence = createAttemptLogRequestFence()
 const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
@@ -355,9 +374,12 @@ const progressControlLoading = ref('')
 const queueControlLoading = ref('')
 const forceReclaimAllLoading = ref(false)
 const autoDispatchSaving = ref(false)
+const v2AutomationSaving = ref(false)
+const v2AutomationSweepLoading = ref(false)
 const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   mode: 'changed-only',
 })
+const v2AutomationForm = reactive({ enabled: false, mode: 'changed-only', sweepIntervalMinutes: 60 })
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const visibleQueueLogKeys = ref<Set<string>>(new Set())
 const selectedWikiDomainKey = ref('')
@@ -405,7 +427,10 @@ const v2Transport = createCrawlerMonitorV2Transport({
 })
 
 const reportPreviewOpen = computed(() => Boolean(selectedReportPath.value || reportPreview.value || reportPreviewError.value))
-const reportPreviewOverDomainDrawer = computed(() => reportPreviewOpen.value && domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
+const reportPreviewOverModalDrawer = computed(() => reportPreviewOpen.value && (
+  (domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
+  || (systemDrawerOpen.value && reportPreviewLayer.value === 'system-drawer')
+))
 
 async function fetchCrawlerMonitorOverview() {
   const response: any = await get('/admin/crawler-monitor/overview')
@@ -628,8 +653,16 @@ const latestV2TerminalAttemptByDomain = computed(() => latestV2TerminalAttemptsB
   v2State.value?.attemptHistory || [],
   overview.value?.stateStoreEpoch,
 ))
+const latestSuccessfulV2AttemptByDomain = computed(() => latestSuccessfulV2AttemptsByDomain(
+  v2State.value?.attemptHistory || [],
+  overview.value?.stateStoreEpoch,
+))
 const operationGroups = computed(() => groupOperationCatalog(v2State.value?.domainStates || []))
 const operationCatalogCount = computed(() => operationGroups.value.reduce((total, group) => total + group.operations.length, 0))
+const writeOperationCatalogCount = computed(() => operationGroups.value.reduce(
+  (total, group) => total + group.operations.filter((operation) => operation.databaseAccess === 'write').length,
+  0,
+))
 const wikiDomainFreshnessByKey = computed(() => {
   const map = new Map<string, any>()
   for (const domain of wikiDomainRows.value) {
@@ -641,6 +674,7 @@ const wikiDomainFreshnessByKey = computed(() => {
 const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((domainState: any) => {
   const attempt = v2State.value?.currentByDomain.get(domainState.domain) || null
   const latestResult = latestV2TerminalAttemptByDomain.value.get(domainState.domain) || null
+  const latestSuccessfulAttempt = latestSuccessfulV2AttemptByDomain.value.get(domainState.domain) || null
   const actionableAttempt = attempt || latestActionableV2AttemptByDomain.value.get(domainState.domain) || null
   const controlAttempt = actionableAttempt ? { ...actionableAttempt, v2Attempt: true } : null
   const current = Number(attempt?.current ?? domainState.current)
@@ -661,6 +695,9 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
   const allowedActions = Array.isArray(domainState?.allowedActions)
     ? domainState.allowedActions
     : (Array.isArray(attempt?.allowedActions) ? attempt.allowedActions : [])
+  const freshnessKey = String(domainState.domain || '').toLowerCase().replace(/-/g, '_')
+  const sourceFreshness = wikiDomainFreshnessByKey.value.get(freshnessKey) || null
+  const upstreamCheckSummary = sourceFreshnessLabel(sourceFreshness)
   return {
     v2Attempt: true,
     domain: domainState.domain,
@@ -670,6 +707,12 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
     currentStatusLabel,
     latestResult,
     latestResultLabel,
+    latestSuccessfulAttempt,
+    localDataSummary: localDataUpdateLabel(
+      latestSuccessfulAttempt,
+      lastOverviewRefreshAt.value ? new Date(lastOverviewRefreshAt.value) : new Date(),
+    ),
+    upstreamCheckSummary,
     diagnosisTitle: crawlerStatusDisplayLabel(status),
     risk: status,
     queueStatus: attempt?.status || status,
@@ -700,9 +743,9 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
     rankReason: attempt?.messageZh || displayStatus.note || domainState.messageZh || '',
     nextActionLabel: controlAttempt?.suggestedAction || domainState.suggestedAction || '查看详情',
     queueSummary: attempt ? `队列 ${shortCrawlerIdentity(attempt.queueId)} · 尝试 ${shortCrawlerIdentity(attempt.attemptId)}` : '无当前 V2 尝试',
-    // 新鲜度=真实 wiki revision 对比; 没有检查记录就诚实置空, 不用 phase 冒充
-    sourceSummary: sourceFreshnessLabel(wikiDomainFreshnessByKey.value.get(String(domainState.domain || '').toLowerCase().replace(/-/g, '_'))) || '',
-    sourceFreshness: wikiDomainFreshnessByKey.value.get(String(domainState.domain || '').toLowerCase().replace(/-/g, '_')) || null,
+    // 上游检查=真实 wiki revision 对比; 没有检查记录就明确显示未检查, 不用 phase 冒充
+    sourceSummary: upstreamCheckSummary,
+    sourceFreshness,
     log: attempt?.log || null,
   }
 }))
@@ -998,6 +1041,13 @@ watch(() => ({
   autoDispatchForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? Math.max(1, interval) : undefined
 }, { immediate: true })
 
+watch(() => overview.value?.v2Automation, (settings: any) => {
+  v2AutomationForm.enabled = settings?.enabled === true
+  v2AutomationForm.mode = settings?.mode || 'changed-only'
+  const interval = Number(settings?.sweepIntervalMinutes)
+  v2AutomationForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? interval : 60
+}, { immediate: true })
+
 onMounted(async () => {
   if (!overview.value) {
     await refreshOverview()
@@ -1136,6 +1186,10 @@ function handleV2StreamEvent(frame: any) {
 }
 
 async function saveAutoDispatchSettings() {
+  if (v2State.value) {
+    showToast('V2 已接管 live 队列，V1 自动派发不可用', 'warning')
+    return
+  }
   autoDispatchSaving.value = true
   try {
     const interval = Number(autoDispatchForm.sweepIntervalMinutes)
@@ -1156,6 +1210,44 @@ async function saveAutoDispatchSettings() {
     showToast(error?.data?.message || error?.message || '保存自动派发设置失败', 'error')
   } finally {
     autoDispatchSaving.value = false
+  }
+}
+
+function updateV2AutomationDraft(settings: Record<string, any>) {
+  v2AutomationForm.enabled = settings.enabled === true
+  v2AutomationForm.mode = 'changed-only'
+  const interval = Number(settings.sweepIntervalMinutes)
+  v2AutomationForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? interval : 60
+}
+
+async function saveV2AutomationSettings() {
+  v2AutomationSaving.value = true
+  try {
+    await put('/admin/crawler-monitor/v2/automation', {
+      enabled: v2AutomationForm.enabled,
+      mode: 'changed-only',
+      sweepIntervalMinutes: v2AutomationForm.sweepIntervalMinutes,
+    })
+    showToast(v2AutomationForm.enabled ? 'V2 自动派发已开启' : 'V2 自动派发已暂停', 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '保存 V2 自动化控制失败', 'error')
+  } finally {
+    v2AutomationSaving.value = false
+  }
+}
+
+async function runV2AutomationSweep() {
+  v2AutomationSweepLoading.value = true
+  try {
+    const response: any = await post('/admin/crawler-monitor/v2/automation/sweep', {})
+    const sweep = response?.data ?? response
+    showToast(sweep?.status === 'observed' ? '扫描完成，自动派发仍处于暂停状态' : 'V2 自动化扫描完成', 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '运行 V2 自动化扫描失败', 'error')
+  } finally {
+    v2AutomationSweepLoading.value = false
   }
 }
 
@@ -1313,7 +1405,7 @@ watch(() => {
   }
 })
 
-async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' = 'page') {
+async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' | 'system-drawer' = 'page') {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
   const request = reportPreviewRequestFence.begin(`report:${path}`)
   reportPreviewLayer.value = layer
@@ -3715,13 +3807,39 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   color: var(--color-text-secondary);
 }
 
-.operation-catalog__count {
+.operation-catalog__toggle {
+  min-height: 44px;
   flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--color-info-muted);
-  color: var(--color-info);
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  padding: 0 14px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.operation-catalog__toggle:hover,
+.operation-catalog__toggle:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
+
+.operation-catalog__toggle:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.operation-catalog__toggle svg {
+  transition: transform 180ms ease-out;
+}
+
+.operation-catalog__toggle-icon--expanded {
+  transform: rotate(180deg);
 }
 
 .operation-catalog__groups {
@@ -4055,7 +4173,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   opacity: 1;
 }
 
-.report-drawer-backdrop--over-domain {
+.report-drawer-backdrop--over-modal {
   inset: 0;
   z-index: calc(var(--z-modal) + 2);
 }
@@ -4080,7 +4198,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   transform: translateX(0);
 }
 
-.report-drawer--over-domain {
+.report-drawer--over-modal {
   inset: 0 0 0 auto;
   z-index: calc(var(--z-modal) + 3);
 }
@@ -4173,7 +4291,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
     grid-template-columns: 1fr;
   }
 
-  .operation-catalog__count {
+  .operation-catalog__toggle {
     justify-self: start;
   }
 
@@ -4184,6 +4302,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 @media (prefers-reduced-motion: reduce) {
   .inline-report-button,
+  .operation-catalog__toggle svg,
   .report-drawer,
   .report-drawer-backdrop {
     transition: none;

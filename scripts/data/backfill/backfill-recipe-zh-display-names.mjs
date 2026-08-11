@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { createRequire } from 'node:module';
 import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
+const mysql = loadMysqlModule();
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
@@ -50,11 +49,11 @@ const CANONICAL_STATION_NAME_MAP = new Map([
 ]);
 
 const db = {
-  host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
-  port: Number(process.env.TERRAPEDIA_DB_PORT || '3306'),
-  user: process.env.TERRAPEDIA_DB_USERNAME || 'root',
-  password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
-  database: resolveDefaultDatabaseName(),
+  host: args.host || process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
+  port: Number(args.port || process.env.TERRAPEDIA_DB_PORT || '3306'),
+  user: args.user || process.env.TERRAPEDIA_DB_USERNAME || 'root',
+  password: args.password || process.env.TERRAPEDIA_DB_PASSWORD || 'root',
+  database: args.database || resolveDefaultDatabaseName(),
 };
 
 assertPrimaryDb(db.database, apply, allowNonPrimaryDb);

@@ -121,11 +121,15 @@ export function resolveOptions(args = {}, {
   now = new Date()
 } = {}) {
   const apply = booleanOption(args.apply, false);
-  const dataPath = path.resolve(
-    args['data-path']
-      ?? args.dataPath
-      ?? path.join(repoRoot, 'data', 'generated', 'wiki-crawler-npc-bridge', 'standardized', 'npcs.standardized.json')
-  );
+  const requestedDataPath = args['data-path'] ?? args.dataPath ?? null;
+  if (!requestedDataPath) {
+    throw new Error(
+      'backfill-npc-buff-relations requires --data-path=<path>. '
+      + 'The former wiki-crawler-npc-bridge default is retired because that artifact is gitignored '
+      + 'and absent from every clean clone; pass an accepted crawler normalized payload explicitly.',
+    );
+  }
+  const dataPath = path.resolve(requestedDataPath);
   const reportPath = path.resolve(
     args.output
       ?? path.join(repoRoot, 'reports', 'data', `npc-buff-relations-backfill-${formatDateTag(now)}.json`)

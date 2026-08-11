@@ -76,6 +76,31 @@ class MinioObjectStorageServiceImplTest {
     }
 
     @Test
+    void shouldAcceptValidatedGifForManagedBossImages() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+        MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(minioClient, connectionDetails());
+        MockMultipartFile file = new MockMultipartFile("file", "king-slime.gif", "image/gif", onePixelGif());
+
+        var result = service.uploadItemImage(file, "bosses");
+
+        assertTrue(result.getObjectKey().endsWith(".gif"));
+        assertEquals("image/gif", result.getContentType());
+        verify(minioClient).putObject(argThat(args -> args.object().startsWith("bosses/")));
+    }
+
+    @Test
+    void shouldRejectSpoofedGifForManagedImages() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(minioClient, connectionDetails());
+        MockMultipartFile file = new MockMultipartFile("file", "bad.gif", "image/gif", onePixelPng());
+
+        assertThrows(IllegalArgumentException.class, () -> service.uploadItemImage(file, "bosses"));
+
+        verify(minioClient, never()).putObject(any(PutObjectArgs.class));
+    }
+
+    @Test
     void shouldRejectSvgUploadsForManagedImages() throws Exception {
         MinioClient minioClient = mock(MinioClient.class);
         MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(minioClient, connectionDetails());
@@ -171,5 +196,9 @@ class MinioObjectStorageServiceImplTest {
         return Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         );
+    }
+
+    private static byte[] onePixelGif() {
+        return Base64.getDecoder().decode("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
     }
 }

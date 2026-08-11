@@ -40,12 +40,21 @@ if (apply) {
 } else if (dryRun) {
   importArgs.push('--dry-run=true');
 }
+if (booleanOption(options['allow-non-primary-db'] ?? options.allowNonPrimaryDb, false)) {
+  importArgs.push('--allow-non-primary-db=true');
+}
+if (booleanOption(options.offline, false)) {
+  importArgs.push('--offline=true');
+}
 
 const backfillArgs = [...sharedDbArgs];
 if (apply) {
   backfillArgs.push('--apply=true');
 } else if (dryRun) {
   backfillArgs.push('--dry-run=true');
+}
+if (booleanOption(options['allow-non-primary-db'] ?? options.allowNonPrimaryDb, false)) {
+  backfillArgs.push('--allow-non-primary-db=true');
 }
 
 const consolidateArgs = [...sharedDbArgs, `--output=${consolidationReportPath}`];

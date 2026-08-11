@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "reportKind": "canonical_npc_apply_ownership_preparation",
+  "generatedAt": "2026-07-29T04:14:30.306Z",
+  "writesDatabase": false,
+  "sourceOperationId": "canonical-npc-apply",
+  "state": "T1_PREPARED",
+  "formalApplyReady": false,
+  "formalBlocker": "seven owner-specific executors and seven independent exact authorizations are still required",
+  "evidence": {
+    "inputHash": "b32fd6dae90a346ee3756147186d231e3c6a602e0e295bda1eb0e97be34c2314",
+    "targetManifestHash": "sha256:1bcbc4120ab1b8ea54eb33bdbe3b0be90665f68c6ab2a43883103b8ab3ddee86",
+    "pairSetHash": "c33e7f63684cb64710b4d855c741bc45aaf38012207209a4a5b67359fa99e3f1",
+    "pairCount": 25,
+    "payloadBytes": 268479,
+    "buffFactCount": 9,
+    "shopFactCount": 239,
+    "lootFactCount": 175,
+    "bossLootFactCount": 172,
+    "nonBossLootFactCount": 3
+  },
+  "phases": [
+    {
+      "operationId": "canonical-npc-facts-maint-apply",
+      "capability": "npc_crawler_facts",
+      "ownershipKeys": [
+        "maint.maint_npc_crawler_facts.canonical"
+      ],
+      "targets": [
+        {
+          "key": "maint.maint_npc_crawler_facts.canonical",
+          "capability": "npc_crawler_facts",
+          "databaseRole": "maint",
+          "table": "maint_npc_crawler_facts",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    },
+    {
+      "operationId": "canonical-npc-item-relations-apply",
+      "capability": "items",
+      "ownershipKeys": [
+        "relation.item_source_facts.items",
+        "relation.item_source_details.items",
+        "relation.item_npc_shop_relations.items",
+        "relation.item_npc_loot_relations.items"
+      ],
+      "targets": [
+        {
+          "key": "relation.item_source_facts.items",
+          "capability": "items",
+          "databaseRole": "relation",
+          "table": "item_source_facts",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        },
+        {
+          "key": "relation.item_source_details.items",
+          "capability": "items",
+          "databaseRole": "relation",
+          "table": "item_source_details",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        },
+        {
+          "key": "relation.item_npc_shop_relations.items",
+          "capability": "items",
+          "databaseRole": "relation",
+          "table": "item_npc_shop_relations",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        },
+        {
+          "key": "relation.item_npc_loot_relations.items",
+          "capability": "items",
+          "databaseRole": "relation",
+          "table": "item_npc_loot_relations",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    },
+    {
+      "operationId": "canonical-npc-buff-relations-apply",
+      "capability": "buffs",
+      "ownershipKeys": [
+        "relation.npc_buff_relations.buffs"
+      ],
+      "targets": [
+        {
+          "key": "relation.npc_buff_relations.buffs",
+          "capability": "buffs",
+          "databaseRole": "relation",
+          "table": "npc_buff_relations",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    },
+    {
+      "operationId": "canonical-npc-town-shop-projection-apply",
+      "capability": "town_npc_maintenance",
+      "ownershipKeys": [
+        "local.npc_shop_entries",
+        "local.npc_shop_conditions"
+      ],
+      "targets": [
+        {
+          "key": "local.npc_shop_entries",
+          "capability": "town_npc_maintenance",
+          "databaseRole": "local",
+          "table": "npc_shop_entries",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        },
+        {
+          "key": "local.npc_shop_conditions",
+          "capability": "town_npc_maintenance",
+          "databaseRole": "local",
+          "table": "npc_shop_conditions",
+          "fieldGroup": "all_columns",
+          "columnMode": "whole_table",
+          "columns": null,
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    },
+    {
+      "operationId": "canonical-npc-buff-projection-apply",
+      "capability": "buffs",
+      "ownershipKeys": [
+        "local.npc_buff_relations.buffs"
+      ],
+      "targets": [
+        {
+          "key": "local.npc_buff_relations.buffs",
+          "capability": "buffs",
+          "databaseRole": "local",
+          "table": "npc_buff_relations",
+          "fieldGroup": "all_columns",
+          "columnMode": "columns",
+          "columns": [
+            "buff_id",
+            "buff_source_id",
+            "chance_text",
+            "chance_value",
+            "conditions",
+            "deleted",
+            "duration_ticks",
+            "notes",
+            "npc_id",
+            "relation_type",
+            "sort_order",
+            "status"
+          ],
+          "logicalPredicate": {
+            "kind": "all"
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    },
+    {
+      "operationId": "canonical-npc-nonboss-loot-projection-apply",
+      "capability": "npc_loot",
+      "ownershipKeys": [
+        "local.npc_loot_entries.non_boss"
+      ],
+      "targets": [
+        {
+          "key": "local.npc_loot_entries.non_boss",
+          "capability": "npc_loot",
+          "databaseRole": "local",
+          "table": "npc_loot_entries",
+          "fieldGroup": "all_columns",
+          "columnMode": "columns",
+          "columns": [
+            "chance_text",
+            "chance_value",
+            "conditions",
+            "deleted",
+            "drop_source_kind",
+            "item_id",
+            "notes",
+            "npc_id",
+            "quantity_max",
+            "quantity_min",
+            "quantity_text",
+            "sort_order",
+            "source_item_id",
+            "status"
+          ],
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "npc_loot_parent_kind",
+            "partition": "non_boss",
+            "resolver": "resolveNpcLootParentKind",
+            "resolverVersion": 1
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    },
+    {
+      "operationId": "canonical-npc-boss-loot-projection-apply",
+      "capability": "boss_loot",
+      "ownershipKeys": [
+        "local.npc_loot_entries.boss"
+      ],
+      "targets": [
+        {
+          "key": "local.npc_loot_entries.boss",
+          "capability": "boss_loot",
+          "databaseRole": "local",
+          "table": "npc_loot_entries",
+          "fieldGroup": "all_columns",
+          "columnMode": "columns",
+          "columns": [
+            "chance_text",
+            "chance_value",
+            "conditions",
+            "deleted",
+            "drop_source_kind",
+            "item_id",
+            "notes",
+            "npc_id",
+            "quantity_max",
+            "quantity_min",
+            "quantity_text",
+            "sort_order",
+            "source_item_id",
+            "status"
+          ],
+          "logicalPredicate": {
+            "kind": "partition",
+            "group": "npc_loot_parent_kind",
+            "partition": "boss",
+            "resolver": "resolveNpcLootParentKind",
+            "resolverVersion": 1
+          },
+          "logicalKeySchemaVersion": 1,
+          "writeMode": "write",
+          "fenceScope": "databaseRole+table+physicalColumns+logicalPredicate",
+          "rollbackMode": "scope_snapshot_latest_writer"
+        }
+      ],
+      "ownerValid": true,
+      "authorizationRequiredForFormal": true,
+      "formalExecutorRegistered": false
+    }
+  ],
+  "summary": {
+    "status": "pass",
+    "blockingCount": 0,
+    "warningCount": 0
+  }
+}

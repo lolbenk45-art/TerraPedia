@@ -10,6 +10,7 @@ import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineMode;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Repository;
@@ -144,6 +145,28 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void readingV2AutomationSweepClaimsDoesNotCreateAClaimFile() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-10T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class),
+            router,
+            v2Service,
+            legacyQueue
+        );
+
+        Path claimPath = repoRoot.resolve("reports/crawler-monitor/v2/automation-sweep.lock");
+        assertFalse(Files.exists(claimPath));
+        assertEquals(0, service.getV2AutomationSweepClaimCount());
+        assertFalse(Files.exists(claimPath));
+    }
+
+    @Test
     void v2EventSubscriptionPreservesStateStoreUnavailableInsteadOfDowngradingToConflict() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
@@ -249,6 +272,36 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void dedicatedDomainStartSubmitsTheRegisteredItemsSampleOperation() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-sample", "attempt-sample", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerMonitorDispatchResultDTO result = service.startCrawlerDomain(
+            "items",
+            "sample",
+            "fresh",
+            false,
+            "admin"
+        );
+
+        assertEquals("attempt-sample", result.getAttemptId());
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("items", command.getValue().domain());
+        assertEquals("crawler-queue-v2-items-fixture", command.getValue().actionId());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
     void v2FixtureDispatchReachesTheV2ApplicationWithoutEnteringTheLegacyRegistry() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
@@ -272,6 +325,26 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("crawler_queue_v2_fixture", command.getValue().domain());
         assertEquals("crawler-queue-v2-fixture", command.getValue().actionId());
         verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void legacyDispatchRejectsTheItemsSampleAndRequiresDedicatedV2Start() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        IllegalArgumentException error = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.dispatchWikiMonitorTask(dispatchRequest(
+                "items",
+                "crawler-queue-v2-items-fixture"
+            ))
+        );
+
+        assertTrue(error.getMessage().contains("不允许用于域 items"));
+        verifyNoInteractions(v2Service, legacyQueue);
     }
 
     @Test
@@ -671,10 +744,10 @@ class CrawlerMonitorServiceImplTest {
             assertEquals(expected, permit.mode());
             return null;
         }).when(permit).requireMode(any());
-        when(router.withMutationPermit(any())).thenAnswer(invocation -> {
+        org.mockito.Mockito.doAnswer(invocation -> {
             java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
             return operation.apply(permit);
-        });
+        }).when(router).withMutationPermit(any());
     }
 
     private static void awaitLatch(CountDownLatch latch) {
@@ -792,6 +865,95 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(Arrays.stream(CrawlerMonitorServiceImpl.class.getDeclaredMethods())
             .anyMatch(method -> method.isAnnotationPresent(Scheduled.class)
                 && method.getName().contains("AutoDispatch")));
+    }
+
+    @Test
+    void shouldEnableScheduledV2AutomationSweep() {
+        assertTrue(Arrays.stream(CrawlerMonitorServiceImpl.class.getDeclaredMethods())
+            .anyMatch(method -> method.isAnnotationPresent(Scheduled.class)
+                && method.getName().equals("scheduledV2AutomationSweep")));
+    }
+
+    @Test
+    void shouldKeepBiomePreviewOutOfChangedOnlyAutomation() throws Exception {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        Method method = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "isAutoEligibleRule",
+            CrawlerMonitorActionDefinition.class
+        );
+        method.setAccessible(true);
+
+        boolean eligible = (boolean) method.invoke(
+            service,
+            CrawlerMonitorActionRegistry.defaults().require("biomes", "biome-preview")
+        );
+
+        assertFalse(eligible);
+    }
+
+    @Test
+    void shouldCheckDisabledV2AutomationInsideTheMutationPermit() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            mock(CrawlerQueueV2ApplicationService.class),
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+
+        service.scheduledV2AutomationSweep();
+
+        verify(router).withMutationPermit(any());
+        verifyNoInteractions(launcher);
+    }
+
+    @Test
+    void shouldReleaseTheGlobalMutationPermitBeforeV2SourceDetection() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        AtomicBoolean insidePermit = new AtomicBoolean(false);
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        when(permit.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            insidePermit.set(true);
+            try {
+                return operation.apply(permit);
+            } finally {
+                insidePermit.set(false);
+            }
+        }).when(router).withMutationPermit(any());
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of("checkedAt", "2026-06-20T03:00:00Z", "sources", List.of())
+        ) {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+                assertFalse(insidePermit.get(), "source checker must not hold the global V2 mutation permit");
+                return super.launch(request);
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            mock(CrawlerQueueV2ApplicationService.class),
+            mock(WikiMonitorDispatchQueueRepository.class)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("observed", sweep.getStatus());
     }
 
     @Test
@@ -1756,15 +1918,15 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("reports/domain/domain-source-armor-attributes-2026-05-24.json", armorAttributes.getReportPath());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO shimmer = taskById(overview.getRegisteredTasks(), "domain-source-shimmer");
-        assertEquals("Domain source: Shimmer", shimmer.getLabel());
+        assertEquals("Domain source: Shimmer generation", shimmer.getLabel());
         assertEquals("missing", shimmer.getStatus());
         assertEquals("missing", shimmer.getProgressKind());
         assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressPath());
         assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressSource());
         assertFalse(shimmer.isProgressFound());
         assertFalse(shimmer.isProgressReadable());
-        assertEquals("data/generated/shimmer/wiki-shimmer-manifest.latest.json", shimmer.getOutputPath());
-        assertEquals("Run the domain source snapshot fetch before downstream audit evidence.", shimmer.getNextStep());
+        assertEquals("data/generated/shimmer/wiki-shimmer-current-generation.json", shimmer.getOutputPath());
+        assertEquals("Authorize and publish a coherent Shimmer generation before downstream audit evidence.", shimmer.getNextStep());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO townNpcMaintenance = taskById(overview.getRegisteredTasks(), "domain-source-town-npc-maintenance");
         assertEquals("Domain source: Town NPC maintenance", townNpcMaintenance.getLabel());
@@ -2146,6 +2308,10 @@ class CrawlerMonitorServiceImplTest {
             "attemptId", "attempt-123",
             "status", "completed"
         ));
+        writeJson(attemptDirectory.resolve("progress.json.items-sample.json"), Map.of(
+            "entity", "items",
+            "sampleCount", 3
+        ));
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
 
@@ -2158,10 +2324,15 @@ class CrawlerMonitorServiceImplTest {
                 "reports/crawler-monitor/v2/2026-07-14/attempt-123/progress.json"
             )
         );
+        CrawlerMonitorReportDetailDTO sample = service.getReportDetail(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-123/progress.json.items-sample.json"
+        );
 
         assertTrue(detail.isFound());
         assertTrue(detail.isReadable());
         assertTrue(detail.getContent().contains("\"completedActions\" : 1"));
+        assertTrue(sample.isReadable());
+        assertTrue(sample.getContent().contains("\"sampleCount\" : 3"));
         assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
     }
 
@@ -3467,6 +3638,169 @@ class CrawlerMonitorServiceImplTest {
         Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("queueId"));
         assertEquals("auto-dispatch", latest.get("dispatchSource"));
+    }
+
+    @Test
+    void shouldObserveChangedSourcesWithoutV2EnqueueWhenAutomationIsDisabled() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+
+        CrawlerV2AutomationDTO settings = service.getV2AutomationSettings();
+        assertFalse(settings.isEnabled());
+        assertEquals("changed-only", settings.getMode());
+        assertEquals(60, settings.getSweepIntervalMinutes());
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("observed", sweep.getStatus());
+        assertEquals(1, launcher.launchCount);
+        assertTrue(sweep.getSkipped().stream()
+            .anyMatch(item -> "automation_disabled".equals(item.get("reason"))));
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void shouldEnqueueChangedEligibleSourceThroughV2WhenAutomationIsEnabled() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-auto", "attempt-auto", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("items", command.getValue().domain());
+        assertEquals("wiki-items-refresh", command.getValue().actionId());
+        assertEquals("v2-automation", command.getValue().requestedBy());
+    }
+
+    @Test
+    void shouldEnqueueOnlyTheFixtureActionFromFixtureScheduledAutomation() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-fixture", "attempt-fixture", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-08-08T00:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        Field fixtureEnabled = CrawlerMonitorServiceImpl.class.getDeclaredField("fixtureScheduledAutomationEnabled");
+        fixtureEnabled.setAccessible(true);
+        fixtureEnabled.set(service, true);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals(0, launcher.launchCount);
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("crawler-queue-v2-fixture", sweep.getDispatched().get(0).get("actionId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("crawler_queue_v2_fixture", command.getValue().domain());
+        assertEquals("crawler-queue-v2-fixture", command.getValue().actionId());
+    }
+
+    @Test
+    void shouldRecheckAutomationEnabledInTheSamePermitAsV2Enqueue() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO enabled = new CrawlerV2AutomationDTO();
+        enabled.setEnabled(true);
+        enabled.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(enabled);
+
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        when(permit.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        AtomicInteger permitCalls = new AtomicInteger();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            if (permitCalls.incrementAndGet() == 2) {
+                writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
+                    "enabled", false,
+                    "mode", "changed-only",
+                    "sweepIntervalMinutes", 60
+                ));
+            }
+            return operation.apply(permit);
+        }).when(router).withMutationPermit(any());
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertTrue(sweep.getSkipped().stream()
+            .anyMatch(item -> "automation_disabled".equals(item.get("reason"))));
+        verify(v2Service, never()).enqueue(any());
     }
 
     @Test
@@ -6692,8 +7026,8 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO overview = service.getOverview();
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
-        assertEquals("failed", recipes.getState().getStatus());
-        assertEquals("terminate_and_recrawl", recipes.getState().getNextAction());
+        assertEquals("ready", recipes.getState().getStatus());
+        assertEquals("recrawl", recipes.getState().getNextAction());
     }
 
     @Test
@@ -7074,7 +7408,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void overviewDomainStateKeepsFailedQueueWhenProgressWasForceReclaimed() throws Exception {
+    void overviewDomainStateClearsFailedQueueWhenProgressWasForceReclaimed() throws Exception {
         Path recipeProgressPath = repoRoot.resolve("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json");
         writeJson(recipeProgressPath, Map.of(
             "actionId", "recipe-reference-sync",
@@ -7113,8 +7447,8 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
 
-        assertEquals("failed", recipes.getState().getStatus());
-        assertEquals("terminate_and_recrawl", recipes.getState().getNextAction());
+        assertEquals("ready", recipes.getState().getStatus());
+        assertEquals("recrawl", recipes.getState().getNextAction());
         assertEquals("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json", recipes.getState().getEvidence());
     }
 

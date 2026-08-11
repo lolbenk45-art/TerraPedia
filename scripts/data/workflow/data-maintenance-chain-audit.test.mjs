@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildDataMaintenanceChainAudit,
   compareImageReadinessReportCandidates,
+  resolveDataMaintenanceInputs,
   resolveImageReadinessInput,
 } from './data-maintenance-chain-audit.mjs';
 
@@ -12,9 +13,37 @@ const READY_IMAGE_TEXT = [
   '- buff readiness references V40__add_buff_image_cache_columns.sql, image_original_url, and image_cached_url.',
 ].join('\n');
 
+test('resolveDataMaintenanceInputs requires every explicit JSON path in clean-clone mode', () => {
+  assert.throws(
+    () => resolveDataMaintenanceInputs({
+      cleanClone: 'true',
+      relationHealth: 'scripts/data/workflow/fixtures/relation-health-clean-clone.json',
+    }),
+    /clean-clone requires explicit --relation-health, --item-group-audit, and --entity-completeness paths/,
+  );
+});
+
+test('resolveDataMaintenanceInputs labels complete clean-clone fixture evidence', () => {
+  assert.deepEqual(
+    resolveDataMaintenanceInputs({
+      cleanClone: 'true',
+      relationHealth: 'relation.json',
+      itemGroupAudit: 'groups.json',
+      entityCompleteness: 'entities.json',
+    }),
+    {
+      evidenceMode: 'fixture',
+      relationHealth: 'relation.json',
+      itemGroupAudit: 'groups.json',
+      entityCompleteness: 'entities.json',
+    },
+  );
+});
+
 test('buildDataMaintenanceChainAudit returns passing gates when all chains are ready', () => {
   const audit = buildDataMaintenanceChainAudit({
     generatedAt: '2026-05-03T00:00:00.000Z',
+    evidenceMode: 'fixture',
     relationHealth: {
       summary: {
         blockingCount: 0,
@@ -45,6 +74,7 @@ test('buildDataMaintenanceChainAudit returns passing gates when all chains are r
   });
 
   assert.equal(audit.generatedAt, '2026-05-03T00:00:00.000Z');
+  assert.equal(audit.evidenceMode, 'fixture');
   assert.equal(audit.status, 'pass');
   assert.deepEqual(audit.blockingReasons, []);
   assert.deepEqual(audit.warningReasons, []);

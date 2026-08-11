@@ -18,8 +18,14 @@ import { buildBuffEntityRelations } from './buff-entity-processor.mjs';
 import { buildImageRelations } from './image-processor.mjs';
 import { buildCategoryRelations } from './category-relation-processor.mjs';
 import { buildRecipeRelations } from './recipe-relation-processor.mjs';
-import { buildRecipeGroupExpansions } from './recipe-expansion-processor.mjs';
+import {
+  buildCanonicalRecipeGroups,
+  buildRecipeGroupExpansions,
+} from './recipe-expansion-processor.mjs';
+import { buildItemGroupRelationProjection } from '../item-groups/item-group-canonical-sync.mjs';
 import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
+import { buildNpcCrawlerFactItemSourceRows } from './item-source-relation-processor.mjs';
+import { mergeNpcCrawlerFactsIntoMaintBuffRows } from './sync-buffs-to-relation.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
@@ -34,7 +40,8 @@ import {
 } from './projection-sync.mjs';
 import { writeRelationReports } from './relation-report.mjs';
 import {
-  isManagedImageUrl,
+  isManagedImagePath,
+  managedImagePathPrefixes,
   normalizeManagedImageUrlPrefixes,
   resolveManagedImageUrlPrefixes
 } from './managed-image-url-policy.mjs';
@@ -81,6 +88,21 @@ const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
   'item_group_requires_expansion',
   'legacy_only_item_not_in_current_corpus',
 ]);
+
+export const buildCanonicalItemGroupRelationProjection = buildItemGroupRelationProjection;
+
+export function buildNpcCrawlerFactRelationInputs({
+  maintNpcCrawlerFactRows = [],
+  maintBuffRows = [],
+} = {}) {
+  return {
+    itemSourceRows: buildNpcCrawlerFactItemSourceRows(maintNpcCrawlerFactRows),
+    maintBuffRows: mergeNpcCrawlerFactsIntoMaintBuffRows({
+      maintBuffRows,
+      maintNpcCrawlerFactRows,
+    }),
+  };
+}
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -516,7 +538,7 @@ function buildItemIndex(rows) {
 }
 
 function isManagedProjectionImageUrl(value, prefixes) {
-  return isManagedImageUrl(value, prefixes);
+  return isManagedImagePath(value, prefixes);
 }
 
 function escapeSqlString(value) {
@@ -527,14 +549,25 @@ function escapeSqlLikeLiteral(value) {
   return escapeSqlString(String(value).replace(/[\\%_]/g, (match) => `\\${match}`));
 }
 
+// A managed image is stored either at a configured origin or as the origin-free
+// path that origin resolves to, so both forms have to be matched here. Each
+// pattern stays anchored at the start: a loose `%/terrapedia-images/%` would
+// trust any host that happens to serve that path.
+function managedImageSqlPatterns(prefixes) {
+  return [
+    ...normalizeManagedImageUrlPrefixes(prefixes),
+    ...managedImagePathPrefixes(prefixes)
+  ];
+}
+
 function buildManagedImageSqlLikeAny(column, prefixes) {
-  const clauses = normalizeManagedImageUrlPrefixes(prefixes)
+  const clauses = managedImageSqlPatterns(prefixes)
     .map((prefix) => `BINARY TRIM(${column}) LIKE BINARY '${escapeSqlLikeLiteral(prefix)}%' ESCAPE '\\\\'`);
   return clauses.length ? `(${clauses.join(' OR ')})` : 'FALSE';
 }
 
 function buildManagedImageSqlNotLikeAll(column, prefixes) {
-  const clauses = normalizeManagedImageUrlPrefixes(prefixes)
+  const clauses = managedImageSqlPatterns(prefixes)
     .map((prefix) => `BINARY TRIM(${column}) NOT LIKE BINARY '${escapeSqlLikeLiteral(prefix)}%' ESCAPE '\\\\'`);
   return clauses.length ? `(${clauses.join(' AND ')})` : 'TRUE';
 }
@@ -697,30 +730,6 @@ async function reconcileProjectionItemImageFromMaint(connection, maintDatabase, 
       ON picked.item_internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
     SET pi.image = picked.cached_url
     WHERE pi.deleted = 0
-    `.trim()
-  );
-  return Number(result?.affectedRows ?? 0);
-}
-
-async function reconcileProjectionItemImageFromLocal(connection, localDatabase, enabled = true, prefixes) {
-  if (!localDatabase || !enabled) {
-    return 0;
-  }
-
-  const localImageManagedPredicate = buildManagedImageSqlLikeAny('li.image', prefixes);
-  const projectionImageUnmanagedPredicate = buildManagedImageSqlNotLikeAll('pi.image', prefixes);
-  const [result] = await connection.query(
-    `
-    UPDATE \`projection_items\` pi
-    INNER JOIN \`${localDatabase}\`.\`items\` li
-      ON li.internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
-    SET pi.image = li.image
-    WHERE pi.deleted = 0
-      AND li.deleted = 0
-      AND (pi.image IS NULL OR TRIM(pi.image) = '' OR ${projectionImageUnmanagedPredicate})
-      AND li.image IS NOT NULL
-      AND TRIM(li.image) <> ''
-      AND ${localImageManagedPredicate}
     `.trim()
   );
   return Number(result?.affectedRows ?? 0);
@@ -1324,9 +1333,9 @@ export async function runSync(options, dependencies = {}) {
     itemRecipes,
     itemPageRecipes,
     recipePageRecipes,
-    itemSourceRows,
+    baseItemSourceRows,
     itemBiomeRows,
-    maintBuffRows,
+    baseMaintBuffRows,
     maintBossRows,
     maintNpcImageRows,
     maintItems,
@@ -1334,6 +1343,7 @@ export async function runSync(options, dependencies = {}) {
     localProjectiles,
     maintNpcs,
     localBossGroupRows,
+    localBossLootRows,
     localBuffRows,
     itemImageRows,
     maintItemPages,
@@ -1345,9 +1355,12 @@ export async function runSync(options, dependencies = {}) {
     maintArmorSetImages,
     maintArmorAttributeRows,
     existingRelationArmorSetImages,
+    maintItemGroupRows,
+    maintItemGroupMemberRows,
     inheritanceRules,
     reviewedNonNpcSourceExclusions,
-    reviewedSourceOnlyItemExclusions
+    reviewedSourceOnlyItemExclusions,
+    maintNpcCrawlerFactRows
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -1364,6 +1377,17 @@ export async function runSync(options, dependencies = {}) {
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image_url FROM projectiles WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_npcs'),
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT code, image_url FROM boss_groups WHERE deleted = 0') : [],
+    options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, `
+      SELECT
+        n.internal_name AS npc_internal_name,
+        i.internal_name AS item_internal_name,
+        nle.quantity_text,
+        nle.chance_text
+      FROM npc_loot_entries nle
+      INNER JOIN npcs n ON n.id = nle.npc_id AND n.deleted = 0 AND n.status = 1
+      INNER JOIN items i ON i.id = nle.item_id AND i.deleted = 0 AND i.status = 1
+      WHERE nle.deleted = 0 AND nle.status = 1
+    `) : [],
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image, image_cached_url FROM buffs WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_item_images'),
     queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
@@ -1374,9 +1398,13 @@ export async function runSync(options, dependencies = {}) {
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', []),
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_attribute_rows WHERE deleted = 0', []),
     queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', []),
+    queryMaintOptional(queryMaint, "SELECT * FROM maint_item_groups WHERE deleted = 0 AND status = 'ACTIVE'", []),
+    queryMaintOptional(queryMaint, 'SELECT * FROM maint_item_group_members WHERE deleted = 0', []),
     loadInheritanceRules(),
     loadReviewedNonNpcSourceExclusions(),
     loadReviewedSourceOnlyItemExclusions()
+    ,
+    queryMaintOptional(queryMaint, "SELECT * FROM maint_npc_crawler_facts WHERE match_status = 'MATCHED' AND status = 1 AND deleted = 0", [])
   ]);
   validateInheritanceRules(inheritanceRules);
   validateReviewedNonNpcSourceExclusions(reviewedNonNpcSourceExclusions);
@@ -1384,6 +1412,12 @@ export async function runSync(options, dependencies = {}) {
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const armorSetDefinitionMap = readArmorSetDefinitionMap();
+  const npcCrawlerInputs = buildNpcCrawlerFactRelationInputs({
+    maintNpcCrawlerFactRows,
+    maintBuffRows: baseMaintBuffRows,
+  });
+  const itemSourceRows = [...baseItemSourceRows, ...npcCrawlerInputs.itemSourceRows];
+  const maintBuffRows = npcCrawlerInputs.maintBuffRows;
   const itemIndex = buildItemIndex(maintItems);
   const itemSourceLookupIndex = buildItemSourceLookupIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);
@@ -1404,19 +1438,19 @@ export async function runSync(options, dependencies = {}) {
     maintBuffs: maintBuffRows,
     localProjectiles,
     localBuffs: localBuffRows,
-    canonicalBuffUrlMatcher: (value) => isManagedImageUrl(value, canonicalBuffManagedUrlPrefixes)
+    canonicalBuffUrlMatcher: (value) => isManagedImagePath(value, canonicalBuffManagedUrlPrefixes)
   });
   const relationItemRarities = buildRelationItemRarities();
 
   const category = buildCategoryRelations({ categoryRows, itemCategoryRows });
   const recipe = buildRecipeRelations({ itemRecipes, itemPageRecipes, recipePageRecipes, itemIndex });
-  const recipeReferencePath = path.join(repoRoot, 'data', 'generated', 'recipe-material-reference.json');
-  const recipeReferencePayload = fs.existsSync(recipeReferencePath)
-    ? JSON.parse(fs.readFileSync(recipeReferencePath, 'utf8'))
-    : { groups: [] };
+  const canonicalRecipeGroups = buildCanonicalRecipeGroups({
+    groupRows: maintItemGroupRows,
+    memberRows: maintItemGroupMemberRows,
+  });
   const recipeExpansions = buildRecipeGroupExpansions({
     recipeIngredients: recipe.recipeIngredients,
-    recipeReferencePayload
+    canonicalGroups: canonicalRecipeGroups,
   });
   const itemSource = buildItemSourceRelations({
     itemSourceRows,
@@ -1438,7 +1472,8 @@ export async function runSync(options, dependencies = {}) {
     maintBossRows,
     localBossGroupRows,
     relationNpcRows: baseEntities.relationNpcs,
-    itemNpcLootRelations: itemSource.npcLootRelations
+    itemNpcLootRelations: itemSource.npcLootRelations,
+    bossLootRows: localBossLootRows
   });
   const npcSeries = buildNpcSeriesRelations({
     relationNpcRows: baseEntities.relationNpcs,
@@ -1584,7 +1619,6 @@ export async function runSync(options, dependencies = {}) {
       itemTextOverrideRows: maintItemTextOverrides.length,
       localItemImageFallbackEnabled: Boolean(options.allowLocalItemImageFallback && options.localDatabase),
       maintItemImageFillRows: 0,
-      localItemImageFallbackRows: 0,
       localArmorSetRelatedItemImageFallbackRows: 0,
     },
     gateBreakdown: {
@@ -1610,10 +1644,10 @@ export async function runSync(options, dependencies = {}) {
       const mysql = loadMysqlModule();
       const adminConnection = await mysql.createConnection(mysqlOptions);
       try {
-        for (const statement of buildRelationSchemaStatements()) {
+        for (const statement of buildRelationSchemaStatements(options.relationDatabase)) {
           await adminConnection.query(statement);
         }
-        for (const statement of buildProjectionSchemaStatements()) {
+        for (const statement of buildProjectionSchemaStatements(options.relationDatabase)) {
           await adminConnection.query(statement);
         }
         await ensureRelationMigrations(adminConnection, options.relationDatabase);
@@ -1623,10 +1657,10 @@ export async function runSync(options, dependencies = {}) {
       }
     } else {
       await executeRelation(async (connection) => {
-        for (const statement of buildRelationSchemaStatements().slice(1)) {
+        for (const statement of buildRelationSchemaStatements(options.relationDatabase).slice(1)) {
           await connection.query(statement);
         }
-        for (const statement of buildProjectionSchemaStatements()) {
+        for (const statement of buildProjectionSchemaStatements(options.relationDatabase)) {
           await connection.query(statement);
         }
         await ensureRelationMigrations(connection, options.relationDatabase);
@@ -1747,12 +1781,6 @@ export async function runSync(options, dependencies = {}) {
       summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(
         connection,
         options.maintDatabase,
-        managedImageUrlPrefixes
-      );
-      summary.bridgeBreakdown.localItemImageFallbackRows = await reconcileProjectionItemImageFromLocal(
-        connection,
-        options.localDatabase,
-        options.allowLocalItemImageFallback,
         managedImageUrlPrefixes
       );
       summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows =

@@ -28,27 +28,27 @@ class CrawlerDomainStateReducerTest {
     }
 
     @Test
-    void forceReclaimedProgressDoesNotClearFailedQueue() {
+    void forceReclaimedProgressClearsStaleFailedQueue() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("failed")
             .progressStatus("force_reclaimed")
             .now(now)
             .build();
         CrawlerDomainStateReducer.State state = reducer.reduce(in);
-        assertEquals("failed", state.status());
-        assertEquals("terminate_and_recrawl", state.nextAction());
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
     }
 
     @Test
-    void forceReclaimedProgressDoesNotClearTimedOutQueue() {
+    void forceReclaimedProgressClearsStaleTimedOutQueue() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("timed_out")
             .progressStatus("force_reclaimed")
             .now(now)
             .build();
         CrawlerDomainStateReducer.State state = reducer.reduce(in);
-        assertEquals("timed_out", state.status());
-        assertEquals("terminate_and_recrawl", state.nextAction());
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
     }
 
     @Test

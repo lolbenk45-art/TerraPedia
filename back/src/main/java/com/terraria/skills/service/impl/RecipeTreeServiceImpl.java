@@ -4,9 +4,9 @@ import com.terraria.skills.common.AdminTextUtils;
 import static com.terraria.skills.common.AdminTextUtils.trimToNull;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.ItemDTO;
+import com.terraria.skills.dto.ItemGroupDTO;
+import com.terraria.skills.dto.ItemGroupMemberDTO;
 import com.terraria.skills.dto.RecipeGroupMemberDTO;
 import com.terraria.skills.dto.RecipeConditionDTO;
 import com.terraria.skills.dto.RecipeDTO;
@@ -19,6 +19,7 @@ import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ItemGroupCanonicalService;
 import com.terraria.skills.service.ItemService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.ManagedItemImageResolver;
@@ -27,8 +28,6 @@ import com.terraria.skills.service.RecipeTreeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,10 +53,10 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     private static final Duration GROUP_REFERENCE_CACHE_TTL = Duration.ofMinutes(10);
     private final ItemService itemService;
     private final RecipeService recipeService;
-    private final ObjectMapper objectMapper;
     private final ItemMapper itemMapper;
     private final ManagedItemImageResolver managedItemImageResolver;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
+    private final ItemGroupCanonicalService itemGroupCanonicalService;
     private final ConcurrentHashMap<String, TimedValue<RecipeTreeResponseDTO>> recipeTreeCache = new ConcurrentHashMap<>();
     private volatile TimedValue<Map<String, RecipeGroupReference>> recipeGroupReferenceCache;
 
@@ -590,49 +589,19 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private Map<String, RecipeGroupReference> loadRecipeGroupReferences() {
-        try {
-            List<Map<String, Object>> generatedGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "recipe-material-reference.json")));
-            List<Map<String, Object>> overrideGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "recipe-group-overrides.json")));
-            List<Map<String, Object>> centralOverrideGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "item-group-overrides.json")));
-            Map<String, RecipeGroupReference> lookup = new LinkedHashMap<>();
-            for (Map<String, Object> group : generatedGroups) {
-                RecipeGroupReference reference = toRecipeGroupReference(group);
-                if (reference != null) {
-                    registerGroupReferenceAliases(lookup, reference);
-                }
+        Map<String, RecipeGroupReference> lookup = new LinkedHashMap<>();
+        List<RecipeGroupReference> references = new ArrayList<>();
+        for (ItemGroupDTO group : itemGroupCanonicalService.listGroups(
+            ItemGroupCanonicalService.Consumer.RECIPE_TREE
+        )) {
+            RecipeGroupReference reference = toRecipeGroupReference(group);
+            if (reference != null) {
+                references.add(reference);
+                registerGroupReferenceAlias(lookup, reference.canonicalName(), reference, true);
             }
-            for (Map<String, Object> group : overrideGroups) {
-                RecipeGroupReference reference = toRecipeGroupReference(group);
-                if (reference != null) {
-                    registerGroupReferenceAliases(lookup, reference);
-                }
-            }
-            for (Map<String, Object> group : centralOverrideGroups) {
-                if (!isRecipeDomainGroup(group)) {
-                    continue;
-                }
-                RecipeGroupReference reference = toRecipeGroupReference(group);
-                if (reference != null) {
-                    if (hasGroupReferenceAliasCollision(lookup, reference)) {
-                        continue;
-                    }
-                    registerGroupReferenceAliases(lookup, reference);
-                }
-            }
-            return lookup;
-        } catch (Exception exception) {
-            return Map.of();
         }
-    }
-
-    private boolean isRecipeDomainGroup(Map<String, Object> group) {
-        Object domains = group.get("domains");
-        if (!(domains instanceof Collection<?> values) || values.isEmpty()) {
-            return true;
-        }
-        return values.stream()
-            .map(value -> value == null ? "" : String.valueOf(value).trim().toLowerCase().replace("-", "_"))
-            .anyMatch(value -> value.equals("recipe") || value.equals("recipe_material") || value.equals("crafting"));
+        references.forEach(reference -> registerGroupReferenceAliases(lookup, reference));
+        return lookup;
     }
 
     private void registerGroupReferenceAliases(Map<String, RecipeGroupReference> lookup, RecipeGroupReference reference) {
@@ -644,27 +613,11 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         }
     }
 
-    private boolean hasGroupReferenceAliasCollision(Map<String, RecipeGroupReference> lookup, RecipeGroupReference reference) {
-        if (lookup == null || reference == null) {
-            return false;
-        }
-        for (String alias : groupReferenceAliases(reference)) {
-            for (String aliasVariant : expandGroupAliasVariants(alias)) {
-                String normalizedAlias = normalizeKey(aliasVariant);
-                if (!normalizedAlias.isEmpty() && lookup.containsKey(normalizedAlias)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     private List<String> groupReferenceAliases(RecipeGroupReference reference) {
         if (reference == null) {
             return List.of();
         }
         List<String> aliases = new ArrayList<>();
-        aliases.add(reference.canonicalName());
         aliases.add(reference.displayNameEn());
         aliases.add(reference.displayNameZh());
         aliases.addAll(reference.aliases());
@@ -672,10 +625,23 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private void registerGroupReferenceAlias(Map<String, RecipeGroupReference> lookup, String alias, RecipeGroupReference reference) {
+        registerGroupReferenceAlias(lookup, alias, reference, false);
+    }
+
+    private void registerGroupReferenceAlias(
+        Map<String, RecipeGroupReference> lookup,
+        String alias,
+        RecipeGroupReference reference,
+        boolean replace
+    ) {
         for (String aliasVariant : expandGroupAliasVariants(alias)) {
             String normalizedAlias = normalizeKey(aliasVariant);
             if (!normalizedAlias.isEmpty()) {
-                lookup.put(normalizedAlias, reference);
+                if (replace) {
+                    lookup.put(normalizedAlias, reference);
+                } else {
+                    lookup.putIfAbsent(normalizedAlias, reference);
+                }
             }
         }
     }
@@ -696,75 +662,35 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return new ArrayList<>(aliases);
     }
 
-    private List<Map<String, Object>> loadGroupMaps(Path path) throws Exception {
-        if (path == null || !Files.exists(path)) {
-            return List.of();
-        }
-        Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
-        Object rawGroups = root.get("groups");
-        if (!(rawGroups instanceof List<?> groups)) {
-            return List.of();
-        }
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object rawGroup : groups) {
-            if (rawGroup instanceof Map<?, ?> group) {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                group.forEach((key, value) -> entry.put(String.valueOf(key), value));
-                result.add(entry);
-            }
-        }
-        return result;
-    }
-
-    private RecipeGroupReference toRecipeGroupReference(Map<String, Object> group) {
-        String canonicalName = trimObjectToNull(group.get("canonicalName"));
+    private RecipeGroupReference toRecipeGroupReference(ItemGroupDTO group) {
+        String canonicalName = AdminTextUtils.trimToNull(group.getCanonicalName());
         if (canonicalName == null) {
             return null;
         }
-        String displayNameZh = trimObjectToNull(group.get("displayNameZh"));
-        String displayNameEn = trimObjectToNull(group.get("displayNameEn"));
-        List<RecipeGroupMemberDTO> members = extractGroupMembers(group.get("members"));
+        String displayNameZh = AdminTextUtils.trimToNull(group.getDisplayNameZh());
+        String displayNameEn = AdminTextUtils.trimToNull(group.getDisplayNameEn());
+        List<RecipeGroupMemberDTO> members = enrichGroupMembers(group.getMembers());
         return new RecipeGroupReference(
             canonicalName,
             displayNameZh,
             displayNameEn,
-            readStringList(group.get("aliases")),
+            group.getAliases() == null ? List.of() : group.getAliases(),
             members.stream().map(this::resolveMemberLabel).filter(Objects::nonNull).toList(),
             members
         );
     }
 
-    private List<String> readStringList(Object value) {
-        if (!(value instanceof Collection<?> values)) {
-            return List.of();
-        }
-        LinkedHashSet<String> result = new LinkedHashSet<>();
-        for (Object entry : values) {
-            String text = trimObjectToNull(entry);
-            if (text != null) {
-                result.add(text);
-            }
-        }
-        return new ArrayList<>(result);
-    }
-
-    private List<RecipeGroupMemberDTO> extractGroupMembers(Object rawMembers) {
-        if (!(rawMembers instanceof List<?> members)) {
-            return List.of();
-        }
+    private List<RecipeGroupMemberDTO> enrichGroupMembers(List<ItemGroupMemberDTO> members) {
         List<RecipeGroupMemberDTO> rawDtos = new ArrayList<>();
         Set<String> internalNames = new LinkedHashSet<>();
         Set<String> names = new LinkedHashSet<>();
-        for (Object rawMember : members) {
-            if (!(rawMember instanceof Map<?, ?> member)) {
-                continue;
-            }
+        for (ItemGroupMemberDTO member : members == null ? List.<ItemGroupMemberDTO>of() : members) {
             RecipeGroupMemberDTO dto = new RecipeGroupMemberDTO();
-            dto.setItemId(parseLong(member.get("itemId")));
-            dto.setInternalName(trimObjectToNull(member.get("internalName")));
-            dto.setName(trimObjectToNull(member.get("name")));
-            dto.setNameZh(trimObjectToNull(member.get("nameZh")));
-            dto.setImage(trimObjectToNull(member.get("image")));
+            dto.setItemId(member.getItemId());
+            dto.setInternalName(AdminTextUtils.trimToNull(member.getInternalName()));
+            dto.setName(AdminTextUtils.trimToNull(member.getName()));
+            dto.setNameZh(AdminTextUtils.trimToNull(member.getNameZh()));
+            dto.setImage(AdminTextUtils.trimToNull(member.getImage()));
             rawDtos.add(dto);
             if (dto.getInternalName() != null) {
                 internalNames.add(dto.getInternalName());
@@ -838,20 +764,6 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return image == null ? null : managedImageUrlPolicy.normalizeManagedImagePath(image).orElse(null);
     }
 
-    private Path resolveDataFile(Path relativePath) {
-        List<Path> candidates = List.of(
-            Path.of(System.getProperty("user.dir")).resolve("data").resolve(relativePath).normalize(),
-            Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve(relativePath).normalize(),
-            Path.of("data").resolve(relativePath).normalize()
-        );
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
     private boolean isValid(TimedValue<?> cached) {
         return cached != null && cached.expiresAtMillis() > System.currentTimeMillis();
     }
@@ -861,24 +773,6 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return text == null ? "" : text.toLowerCase();
     }
 
-
-    private String trimObjectToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        return AdminTextUtils.trimToNull(String.valueOf(value));
-    }
-
-    private Long parseLong(Object value) {
-        if (value == null) {
-            return null;
-        }
-        try {
-            return Long.valueOf(String.valueOf(value));
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
 
     private record RecipeGroupReference(
         String canonicalName,

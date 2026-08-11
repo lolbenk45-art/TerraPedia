@@ -1,20 +1,20 @@
 package com.terraria.skills.controller;
 
+import com.terraria.skills.auth.AdminAccessDeniedException;
+import com.terraria.skills.auth.AdminAuthenticationInterceptor;
+import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.common.AdminTextUtils;
-import static com.terraria.skills.common.AdminTextUtils.trimToNull;
-
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.ItemGroupDTO;
+import com.terraria.skills.dto.ItemGroupMemberDTO;
 import com.terraria.skills.dto.RecipeGroupDTO;
 import com.terraria.skills.dto.RecipeGroupMemberDTO;
-import com.terraria.skills.entity.Item;
-import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ItemGroupCanonicalService;
 import com.terraria.skills.service.RecipeTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,402 +28,176 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/admin/recipe-groups")
 @RequiredArgsConstructor
-@Tag(name = "AdminRecipeGroups", description = "Admin recipe group management")
+@Tag(name = "AdminRecipeGroups", description = "Admin canonical recipe group management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRecipeGroupController {
 
-    private static final Duration GROUP_CACHE_TTL = Duration.ofMinutes(10);
-
-    private final ObjectMapper objectMapper;
-    private final ItemMapper itemMapper;
+    private final ItemGroupCanonicalService itemGroupCanonicalService;
     private final RecipeTreeService recipeTreeService;
-    private volatile TimedValue<List<RecipeGroupDTO>> mergedRecipeGroupsCache;
 
     @GetMapping
-    @Operation(summary = "Get recipe groups")
+    @Operation(summary = "Get canonical recipe groups")
     public ResponseEntity<ApiResponse<List<RecipeGroupDTO>>> getRecipeGroups(
         @RequestParam(required = false) String keyword
     ) {
-        List<RecipeGroupDTO> groups = getCachedRecipeGroups();
         String normalizedKeyword = AdminTextUtils.trimToNull(keyword);
-        if (normalizedKeyword != null) {
-            String needle = normalizedKeyword.toLowerCase();
-            groups = groups.stream()
-                .filter(group -> containsIgnoreCase(group.getCanonicalName(), needle)
-                    || containsIgnoreCase(group.getDisplayNameEn(), needle)
-                    || containsIgnoreCase(group.getDisplayNameZh(), needle))
-                .toList();
-        }
+        List<RecipeGroupDTO> groups = itemGroupCanonicalService
+            .listGroups(ItemGroupCanonicalService.Consumer.ADMIN_RECIPE_GROUPS)
+            .stream()
+            .map(this::toRecipeGroup)
+            .filter(group -> normalizedKeyword == null || contains(group, normalizedKeyword))
+            .toList();
         return ResponseEntity.ok(ApiResponse.success(groups));
     }
 
     @GetMapping("/{canonicalName}")
-    @Operation(summary = "Get recipe group detail")
-    public ResponseEntity<ApiResponse<RecipeGroupDTO>> getRecipeGroup(@PathVariable("canonicalName") String canonicalName) {
-        RecipeGroupDTO group = findGroup(getCachedRecipeGroups(), canonicalName);
-        if (group == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Recipe group not found"));
-        }
-        return ResponseEntity.ok(ApiResponse.success(group));
+    @Operation(summary = "Get canonical recipe group detail")
+    public ResponseEntity<ApiResponse<RecipeGroupDTO>> getRecipeGroup(@PathVariable String canonicalName) {
+        return itemGroupCanonicalService.findGroup(
+                ItemGroupCanonicalService.Consumer.ADMIN_RECIPE_GROUPS,
+                canonicalName
+            )
+            .map(group -> ResponseEntity.ok(ApiResponse.success(toRecipeGroup(group))))
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(404, "Recipe group not found")));
     }
 
     @PostMapping
-    @Operation(summary = "Create recipe group")
-    public ResponseEntity<ApiResponse<RecipeGroupDTO>> createRecipeGroup(@RequestBody RecipeGroupDTO request) {
+    @Operation(summary = "Create canonical recipe group override")
+    public ResponseEntity<ApiResponse<RecipeGroupDTO>> createRecipeGroup(
+        HttpServletRequest httpRequest,
+        @RequestBody RecipeGroupDTO request
+    ) {
         try {
-            RecipeGroupDTO normalized = normalizeGroup(request, true);
-            List<RecipeGroupDTO> groups = new ArrayList<>(getCachedRecipeGroups());
-            if (findGroup(groups, normalized.getCanonicalName()) != null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "Recipe group already exists"));
+            String actor = requireAdminActor(httpRequest);
+            String canonicalName = request == null ? null : request.getCanonicalName();
+            if (itemGroupCanonicalService.findGroup(
+                ItemGroupCanonicalService.Consumer.ADMIN_RECIPE_GROUPS,
+                canonicalName
+            ).isPresent()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error(400, "Recipe group already exists"));
             }
-            groups.add(normalized);
-            groups.sort(Comparator.comparing(group -> normalizeKey(group.getCanonicalName())));
-            writeOverrideGroups(groups);
-            invalidateRecipeGroupSnapshot();
+            ItemGroupDTO committed = itemGroupCanonicalService.createCentralOverride(toItemGroup(request), actor);
             recipeTreeService.invalidateCaches();
-            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(normalized, "Recipe group created"));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(toRecipeGroup(committed), "Recipe group created"));
         } catch (IllegalArgumentException exception) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, exception.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(400, exception.getMessage()));
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(409, exception.getMessage()));
         }
     }
 
     @PutMapping("/{canonicalName}")
-    @Operation(summary = "Update recipe group")
+    @Operation(summary = "Update canonical recipe group override")
     public ResponseEntity<ApiResponse<RecipeGroupDTO>> updateRecipeGroup(
-        @PathVariable("canonicalName") String canonicalName,
+        HttpServletRequest httpRequest,
+        @PathVariable String canonicalName,
         @RequestBody RecipeGroupDTO request
     ) {
         try {
-            List<RecipeGroupDTO> groups = new ArrayList<>(getCachedRecipeGroups());
-            RecipeGroupDTO existing = findGroup(groups, canonicalName);
-            if (existing == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Recipe group not found"));
+            String actor = requireAdminActor(httpRequest);
+            if (itemGroupCanonicalService.findGroup(
+                ItemGroupCanonicalService.Consumer.ADMIN_RECIPE_GROUPS,
+                canonicalName
+            ).isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(404, "Recipe group not found"));
             }
-            RecipeGroupDTO normalized = normalizeGroup(request, false);
-            normalized.setCanonicalName(existing.getCanonicalName());
-
-            for (int index = 0; index < groups.size(); index += 1) {
-                if (normalizeKey(groups.get(index).getCanonicalName()).equals(normalizeKey(existing.getCanonicalName()))) {
-                    groups.set(index, normalized);
-                    break;
-                }
-            }
-            groups.sort(Comparator.comparing(group -> normalizeKey(group.getCanonicalName())));
-            writeOverrideGroups(groups);
-            invalidateRecipeGroupSnapshot();
+            ItemGroupDTO committed = itemGroupCanonicalService.updateCentralOverride(canonicalName, toItemGroup(request), actor);
             recipeTreeService.invalidateCaches();
-            return ResponseEntity.ok(ApiResponse.success(normalized, "Recipe group updated"));
+            return ResponseEntity.ok(ApiResponse.success(toRecipeGroup(committed), "Recipe group updated"));
         } catch (IllegalArgumentException exception) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, exception.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(400, exception.getMessage()));
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(409, exception.getMessage()));
         }
     }
 
     @DeleteMapping("/{canonicalName}")
-    @Operation(summary = "Delete recipe group")
-    public ResponseEntity<ApiResponse<Void>> deleteRecipeGroup(@PathVariable("canonicalName") String canonicalName) {
-        List<RecipeGroupDTO> groups = new ArrayList<>(getCachedRecipeGroups());
-        RecipeGroupDTO existing = findGroup(groups, canonicalName);
-        if (existing == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Recipe group not found"));
-        }
-        groups.removeIf(group -> normalizeKey(group.getCanonicalName()).equals(normalizeKey(canonicalName)));
-        writeOverrideGroups(groups);
-        invalidateRecipeGroupSnapshot();
-        recipeTreeService.invalidateCaches();
-        return ResponseEntity.ok(ApiResponse.success(null, "Recipe group deleted"));
-    }
-
-    private List<RecipeGroupDTO> getCachedRecipeGroups() {
-        TimedValue<List<RecipeGroupDTO>> cached = mergedRecipeGroupsCache;
-        if (isValid(cached)) {
-            return cached.value();
-        }
-
-        List<RecipeGroupDTO> groups = loadMergedRecipeGroups();
-        mergedRecipeGroupsCache = new TimedValue<>(groups, System.currentTimeMillis() + GROUP_CACHE_TTL.toMillis());
-        return groups;
-    }
-
-    private List<RecipeGroupDTO> loadMergedRecipeGroups() {
-        List<RecipeGroupDTO> generated = readGroupFile(resolveDataFile(Path.of("generated", "recipe-material-reference.json")), true);
-        List<RecipeGroupDTO> overrides = readGroupFile(resolveDataFile(Path.of("generated", "recipe-group-overrides.json")), false);
-        Map<String, RecipeGroupDTO> merged = new LinkedHashMap<>();
-        for (RecipeGroupDTO group : generated) {
-            merged.put(normalizeKey(group.getCanonicalName()), group);
-        }
-        for (RecipeGroupDTO group : overrides) {
-            merged.put(normalizeKey(group.getCanonicalName()), group);
-        }
-        return merged.values().stream()
-            .map(this::enrichGroupMembers)
-            .sorted(Comparator.comparing(group -> normalizeKey(group.getCanonicalName())))
-            .toList();
-    }
-
-    private List<RecipeGroupDTO> readGroupFile(Path path, boolean readFromReferenceRoot) {
-        if (path == null || !Files.exists(path)) {
-            return Collections.emptyList();
-        }
+    @Operation(summary = "Delete canonical recipe group override")
+    public ResponseEntity<ApiResponse<Void>> deleteRecipeGroup(
+        HttpServletRequest httpRequest,
+        @PathVariable String canonicalName
+    ) {
         try {
-            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
-            Object rawGroups = readFromReferenceRoot ? root.get("groups") : root.get("groups");
-            if (!(rawGroups instanceof List<?> rawList)) {
-                return Collections.emptyList();
-            }
-            List<RecipeGroupDTO> groups = new ArrayList<>();
-            for (Object rawGroup : rawList) {
-                if (!(rawGroup instanceof Map<?, ?> groupMap)) {
-                    continue;
-                }
-                RecipeGroupDTO dto = new RecipeGroupDTO();
-                dto.setCanonicalName(trimObjectToNull(groupMap.get("canonicalName")));
-                dto.setDisplayNameEn(firstNonBlank(
-                    trimObjectToNull(groupMap.get("displayNameEn")),
-                    trimObjectToNull(groupMap.get("canonicalName"))
-                ));
-                dto.setDisplayNameZh(trimObjectToNull(groupMap.get("displayNameZh")));
-                dto.setMembers(extractMembers(groupMap.get("members")));
-                if (dto.getCanonicalName() != null) {
-                    groups.add(normalizeGroup(dto, false));
-                }
-            }
-            return groups;
-        } catch (Exception exception) {
-            return Collections.emptyList();
+            itemGroupCanonicalService.deleteCentralOverride(canonicalName, requireAdminActor(httpRequest));
+            recipeTreeService.invalidateCaches();
+            return ResponseEntity.ok(ApiResponse.success(null, "Recipe group deleted"));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(400, exception.getMessage()));
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(409, exception.getMessage()));
         }
     }
 
-    private List<RecipeGroupMemberDTO> extractMembers(Object rawMembers) {
-        if (!(rawMembers instanceof List<?> members)) {
-            return Collections.emptyList();
-        }
-        List<RecipeGroupMemberDTO> result = new ArrayList<>();
-        for (Object rawMember : members) {
-            if (!(rawMember instanceof Map<?, ?> memberMap)) {
-                continue;
-            }
-            RecipeGroupMemberDTO dto = new RecipeGroupMemberDTO();
-            dto.setItemId(parseLong(memberMap.get("itemId")));
-            dto.setInternalName(trimObjectToNull(memberMap.get("internalName")));
-            dto.setName(trimObjectToNull(memberMap.get("name")));
-            dto.setNameZh(trimObjectToNull(memberMap.get("nameZh")));
-            dto.setImage(trimObjectToNull(memberMap.get("image")));
-            result.add(dto);
-        }
-        return result;
+    private ItemGroupDTO toItemGroup(RecipeGroupDTO source) {
+        if (source == null) return null;
+        ItemGroupDTO target = new ItemGroupDTO();
+        target.setCanonicalName(source.getCanonicalName());
+        target.setDisplayNameEn(source.getDisplayNameEn());
+        target.setDisplayNameZh(source.getDisplayNameZh());
+        target.setDomains(List.of("recipe"));
+        target.setAliases(List.of());
+        target.setMembers((source.getMembers() == null ? List.<RecipeGroupMemberDTO>of() : source.getMembers())
+            .stream().map(this::toItemMember).toList());
+        return target;
     }
 
-    private RecipeGroupDTO normalizeGroup(RecipeGroupDTO request, boolean canonicalNameRequired) {
-        RecipeGroupDTO normalized = new RecipeGroupDTO();
-        normalized.setCanonicalName(AdminTextUtils.trimToNull(request == null ? null : request.getCanonicalName()));
-        normalized.setDisplayNameEn(firstNonBlank(
-            AdminTextUtils.trimToNull(request == null ? null : request.getDisplayNameEn()),
-            normalized.getCanonicalName()
-        ));
-        normalized.setDisplayNameZh(AdminTextUtils.trimToNull(request == null ? null : request.getDisplayNameZh()));
-        normalized.setMembers(normalizeMembers(request == null ? Collections.emptyList() : request.getMembers()));
-        if (canonicalNameRequired && normalized.getCanonicalName() == null) {
-            throw new IllegalArgumentException("canonicalName is required");
-        }
-        if (normalized.getMembers().isEmpty()) {
-            throw new IllegalArgumentException("At least one member is required");
-        }
-        return normalized;
+    private RecipeGroupDTO toRecipeGroup(ItemGroupDTO source) {
+        RecipeGroupDTO target = new RecipeGroupDTO();
+        target.setCanonicalName(source.getCanonicalName());
+        target.setDisplayNameEn(source.getDisplayNameEn());
+        target.setDisplayNameZh(source.getDisplayNameZh());
+        target.setMembers((source.getMembers() == null ? List.<ItemGroupMemberDTO>of() : source.getMembers())
+            .stream().map(this::toRecipeMember).toList());
+        return target;
     }
 
-    private List<RecipeGroupMemberDTO> normalizeMembers(Collection<RecipeGroupMemberDTO> members) {
-        Map<String, RecipeGroupMemberDTO> deduped = new LinkedHashMap<>();
-        for (RecipeGroupMemberDTO member : members == null ? Collections.<RecipeGroupMemberDTO>emptyList() : members) {
-            RecipeGroupMemberDTO normalized = new RecipeGroupMemberDTO();
-            normalized.setItemId(member == null ? null : member.getItemId());
-            normalized.setInternalName(AdminTextUtils.trimToNull(member == null ? null : member.getInternalName()));
-            normalized.setName(AdminTextUtils.trimToNull(member == null ? null : member.getName()));
-            normalized.setNameZh(AdminTextUtils.trimToNull(member == null ? null : member.getNameZh()));
-            normalized.setImage(AdminTextUtils.trimToNull(member == null ? null : member.getImage()));
-            String key = firstNonBlank(normalized.getInternalName(), normalized.getName(), normalized.getNameZh());
-            if (key == null) {
-                continue;
-            }
-            deduped.putIfAbsent(normalizeKey(key), normalized);
-        }
-        return new ArrayList<>(deduped.values());
+    private ItemGroupMemberDTO toItemMember(RecipeGroupMemberDTO source) {
+        ItemGroupMemberDTO target = new ItemGroupMemberDTO();
+        target.setItemId(source.getItemId());
+        target.setInternalName(source.getInternalName());
+        target.setName(source.getName());
+        target.setNameZh(source.getNameZh());
+        target.setImage(source.getImage());
+        return target;
     }
 
-    private RecipeGroupDTO enrichGroupMembers(RecipeGroupDTO group) {
-        RecipeGroupDTO enriched = new RecipeGroupDTO();
-        enriched.setCanonicalName(group.getCanonicalName());
-        enriched.setDisplayNameEn(group.getDisplayNameEn());
-        enriched.setDisplayNameZh(group.getDisplayNameZh());
-
-        List<RecipeGroupMemberDTO> members = new ArrayList<>(group.getMembers() == null ? Collections.emptyList() : group.getMembers());
-        Set<String> internalNames = new LinkedHashSet<>();
-        Set<String> names = new LinkedHashSet<>();
-        for (RecipeGroupMemberDTO member : members) {
-            String internalName = AdminTextUtils.trimToNull(member.getInternalName());
-            String name = AdminTextUtils.trimToNull(member.getName());
-            if (internalName != null) {
-                internalNames.add(internalName);
-            }
-            if (name != null) {
-                names.add(name);
-            }
-        }
-
-        Map<String, Item> itemsByInternalName = new LinkedHashMap<>();
-        if (!internalNames.isEmpty()) {
-            itemMapper.selectList(new LambdaQueryWrapper<Item>()
-                    .in(Item::getInternalName, internalNames)
-                    .eq(Item::getDeleted, 0))
-                .forEach(item -> itemsByInternalName.putIfAbsent(normalizeKey(item.getInternalName()), item));
-        }
-        Map<String, Item> itemsByName = new LinkedHashMap<>();
-        if (!names.isEmpty()) {
-            itemMapper.selectList(new LambdaQueryWrapper<Item>()
-                    .in(Item::getName, names)
-                    .eq(Item::getDeleted, 0))
-                .forEach(item -> itemsByName.putIfAbsent(normalizeKey(item.getName()), item));
-        }
-
-        List<RecipeGroupMemberDTO> enrichedMembers = new ArrayList<>();
-        for (RecipeGroupMemberDTO member : members) {
-            Item resolved = null;
-            String internalName = AdminTextUtils.trimToNull(member.getInternalName());
-            String name = AdminTextUtils.trimToNull(member.getName());
-            if (internalName != null) {
-                resolved = itemsByInternalName.get(normalizeKey(internalName));
-            }
-            if (resolved == null && name != null) {
-                resolved = itemsByName.get(normalizeKey(name));
-            }
-            RecipeGroupMemberDTO next = new RecipeGroupMemberDTO();
-            next.setItemId(resolved == null ? member.getItemId() : resolved.getId());
-            next.setInternalName(firstNonBlank(internalName, resolved == null ? null : resolved.getInternalName()));
-            next.setName(firstNonBlank(name, resolved == null ? null : resolved.getName()));
-            next.setNameZh(firstNonBlank(AdminTextUtils.trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
-            next.setImage(firstNonBlank(AdminTextUtils.trimToNull(member.getImage()), resolved == null ? null : resolved.getImage()));
-            enrichedMembers.add(next);
-        }
-        enriched.setMembers(enrichedMembers);
-        return enriched;
+    private RecipeGroupMemberDTO toRecipeMember(ItemGroupMemberDTO source) {
+        RecipeGroupMemberDTO target = new RecipeGroupMemberDTO();
+        target.setItemId(source.getItemId());
+        target.setInternalName(source.getInternalName());
+        target.setName(source.getName());
+        target.setNameZh(source.getNameZh());
+        target.setImage(source.getImage());
+        return target;
     }
 
-    private void writeOverrideGroups(List<RecipeGroupDTO> groups) {
-        Path outputPath = resolveWritableDataFile(Path.of("generated", "recipe-group-overrides.json"));
-        Map<String, Object> root = new LinkedHashMap<>();
-        root.put("schemaVersion", "1.0.0");
-        root.put("updatedAt", LocalDateTime.now().toString());
-        root.put("groups", groups);
-        try {
-            Files.createDirectories(outputPath.getParent());
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(outputPath.toFile(), root);
-        } catch (Exception exception) {
-            throw new IllegalStateException("Failed to write recipe group overrides", exception);
+    private boolean contains(RecipeGroupDTO group, String keyword) {
+        String needle = keyword.toLowerCase(Locale.ROOT);
+        return contains(group.getCanonicalName(), needle)
+            || contains(group.getDisplayNameEn(), needle)
+            || contains(group.getDisplayNameZh(), needle);
+    }
+
+    private boolean contains(String value, String needle) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(needle);
+    }
+
+    private String requireAdminActor(HttpServletRequest httpRequest) {
+        Object attribute = httpRequest.getAttribute(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE);
+        if (!(attribute instanceof AdminTokenClaims claims)
+            || !"ADMIN".equalsIgnoreCase(claims.getRole())
+            || AdminTextUtils.trimToNull(claims.getUsername()) == null) {
+            throw new AdminAccessDeniedException("authenticated admin actor is required");
         }
-    }
-
-    private RecipeGroupDTO findGroup(List<RecipeGroupDTO> groups, String canonicalName) {
-        String normalizedKey = normalizeKey(canonicalName);
-        return groups.stream()
-            .filter(group -> normalizeKey(group.getCanonicalName()).equals(normalizedKey))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private Path resolveDataFile(Path relativePath) {
-        List<Path> candidates = List.of(
-            Path.of(System.getProperty("user.dir")).resolve("data").resolve(relativePath).normalize(),
-            Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve(relativePath).normalize(),
-            Path.of("data").resolve(relativePath).normalize()
-        );
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return candidate;
-            }
-        }
-        return candidates.get(0);
-    }
-
-    private Path resolveWritableDataFile(Path relativePath) {
-        List<Path> candidates = List.of(
-            Path.of(System.getProperty("user.dir")).resolve("data").resolve(relativePath).normalize(),
-            Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve(relativePath).normalize(),
-            Path.of("data").resolve(relativePath).normalize()
-        );
-        for (Path candidate : candidates) {
-            Path parent = candidate.getParent();
-            if (parent != null && Files.exists(parent)) {
-                return candidate;
-            }
-        }
-        return candidates.get(0);
-    }
-
-    private boolean isValid(TimedValue<?> cached) {
-        return cached != null && cached.expiresAtMillis() > System.currentTimeMillis();
-    }
-
-    private void invalidateRecipeGroupSnapshot() {
-        mergedRecipeGroupsCache = null;
-    }
-
-    private String normalizeKey(String value) {
-        String text = AdminTextUtils.trimToNull(value);
-        return text == null ? "" : text.toLowerCase();
-    }
-
-    private boolean containsIgnoreCase(String value, String needle) {
-        return value != null && value.toLowerCase().contains(needle);
-    }
-
-
-    private String trimObjectToNull(Object value) {
-        if (value == null) {
-            return null;
-        }
-        return AdminTextUtils.trimToNull(String.valueOf(value));
-    }
-
-    private Long parseLong(Object value) {
-        if (value == null) {
-            return null;
-        }
-        try {
-            return Long.valueOf(String.valueOf(value));
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
-
-    private String firstNonBlank(String... values) {
-        if (values == null) {
-            return null;
-        }
-        for (String value : values) {
-            String trimmed = trimToNull(value);
-            if (trimmed != null) {
-                return trimmed;
-            }
-        }
-        return null;
-    }
-
-    private record TimedValue<T>(T value, long expiresAtMillis) {
+        return claims.getUsername().trim();
     }
 }

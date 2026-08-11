@@ -6,6 +6,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,9 +26,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class AdminAudioAssetControllerTest {
@@ -130,7 +133,11 @@ class AdminAudioAssetControllerTest {
             "Music-Aether.mp3"
         ));
 
-        mockMvc.perform(get("/admin/audio-assets/1/stream"))
+        MvcResult initial = mockMvc.perform(get("/admin/audio-assets/1/stream"))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+        mockMvc.perform(asyncDispatch(initial))
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Type", "audio/mpeg"))
             .andExpect(header().longValue("Content-Length", body.length))
@@ -152,7 +159,11 @@ class AdminAudioAssetControllerTest {
             "Music-Aether.mp3"
         ));
 
-        mockMvc.perform(get("/admin/audio-assets/1/stream").header("Range", "bytes=1-3"))
+        MvcResult initial = mockMvc.perform(get("/admin/audio-assets/1/stream").header("Range", "bytes=1-3"))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+        mockMvc.perform(asyncDispatch(initial))
             .andExpect(status().isPartialContent())
             .andExpect(header().string("Accept-Ranges", "bytes"))
             .andExpect(header().string("Content-Range", "bytes 1-3/5"))

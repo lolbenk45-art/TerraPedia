@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-07T21:54:00+08:00",
+  "coverage": {
+    "items": "required",
+    "npcProjectiles": "not-covered"
+  },
+  "records": [
+    {
+      "id": 1,
+      "internalName": "WoodenArrowFriendly",
+      "itemInternalName": "WoodenBow",
+      "name": "Wooden Arrow (friendly)",
+      "nameZh": "木箭",
+      "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/92ddf79f66844566a9db851856ae756e.png",
+      "aiStyle": 1,
+      "combat": {
+        "damage": null,
+        "knockBack": null,
+        "penetrate": null
+      },
+      "dimensions": {
+        "height": 10,
+        "scale": null,
+        "width": 10
+      },
+      "flags": {
+        "friendly": true,
+        "hostile": null,
+        "tileCollide": null
+      },
+      "lifecycle": {
+        "timeLeft": 1200
+      },
+      "localized": {
+        "zh": {
+          "name": "木箭"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "internalName": "FireArrow",
+      "itemInternalName": "FlamingArrow",
+      "name": "Fire Arrow",
+      "nameZh": "烈火箭",
+      "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/766f4ff80e114ee29f5642ac4045ec6b.png",
+      "aiStyle": 1,
+      "combat": {
+        "damage": null,
+        "knockBack": null,
+        "penetrate": null
+      },
+      "dimensions": {
+        "height": 10,
+        "scale": null,
+        "width": 10
+      },
+      "flags": {
+        "friendly": true,
+        "hostile": null,
+        "tileCollide": null
+      },
+      "lifecycle": {
+        "timeLeft": 1200
+      },
+      "localized": {
+        "zh": {
+          "name": "烈火箭"
+        }
+      }
+    }
+  ]
+}

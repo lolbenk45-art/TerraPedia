@@ -630,6 +630,59 @@ test('buildProjectionPayload projects cached item images instead of wiki origina
   assert.equal(actual.projectionItems[0].image, 'http://localhost:9000/terrapedia-images/items/wiki/item-images/61/enchanted-boomerang.png');
 });
 
+test('buildProjectionPayload projects cached item images stored as origin-free paths', () => {
+  // Image sync stores the path the backend returns, so relation cached URLs
+  // arrive without an origin. Reading those as unmanaged blanks the image.
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk',
+        sourceId: 55,
+        internalName: 'EnchantedBoomerang',
+        englishName: 'Enchanted Boomerang',
+        rawJson: '{}',
+      },
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'EnchantedBoomerang',
+        originalUrl: 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041',
+        cachedUrl: '/terrapedia-images/items/wiki/item-images/61/enchanted-boomerang.png',
+        isPrimary: 1,
+      },
+    ],
+  });
+
+  assert.equal(
+    actual.projectionItems[0].image,
+    '/terrapedia-images/items/wiki/item-images/61/enchanted-boomerang.png'
+  );
+});
+
+test('buildProjectionPayload rejects an origin-free path outside managed storage', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk',
+        sourceId: 55,
+        internalName: 'EnchantedBoomerang',
+        englishName: 'Enchanted Boomerang',
+        rawJson: '{}',
+      },
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'EnchantedBoomerang',
+        originalUrl: 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041',
+        cachedUrl: '/uploads/items/enchanted-boomerang.png',
+        isPrimary: 1,
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionItems[0].image, null);
+});
+
 test('buildProjectionPayload rejects cached item images when managed prefixes are empty', () => {
   const actual = buildProjectionPayloadBase({
     relationItems: [

@@ -1,0 +1,393 @@
+{
+  "generatedAt": "2026-07-29T10:50:59.025Z",
+  "summary": {
+    "switchableDomains": [
+      "bosses",
+      "projectiles"
+    ],
+    "blockedDomains": [
+      "items",
+      "npcs",
+      "buffs"
+    ]
+  },
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6159,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6146,
+      "missingInProjectionCount": 5,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "RoninShirt",
+        "TimelessTravelerHood",
+        "TVHeadPants",
+        "AntlionEggs",
+        "BoneWhip"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS",
+        "ZH_RECIPE_TIMELESS_TRAVELER_S_SET",
+        "ZH_RECIPE_WANDERING_SET",
+        "ZH_RECIPE_TV_HEAD_SET"
+      ],
+      "blockingFields": [
+        {
+          "field": "image",
+          "localField": "image",
+          "projectionField": "image",
+          "localNonNull": 6131,
+          "projectionNonNull": 6129,
+          "gap": 2,
+          "missingExamples": [
+            {
+              "key": "IronBroadsword",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "/terrapedia-images/items/wiki/item-images/1e/1e4f7d8cde7a70cdcaaa90ea192d2b13fe77d5dc-iron-broadsword-png.png",
+              "projectionValue": null
+            },
+            {
+              "key": "IronShortsword",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "/terrapedia-images/items/wiki/item-images/da/dad37d6de5da5b140b9a2790115d129d4e7b6347-iron-shortsword-png.png",
+              "projectionValue": null
+            }
+          ]
+        }
+      ]
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "blocked",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [
+        {
+          "field": "name_zh",
+          "localField": "name_zh",
+          "projectionField": "name_zh",
+          "localNonNull": 758,
+          "projectionNonNull": 145,
+          "gap": 613,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "sub_name_zh",
+          "localField": "sub_name_zh",
+          "projectionField": "sub_name_zh",
+          "localNonNull": 206,
+          "projectionNonNull": 0,
+          "gap": 206,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "sub_name_zh",
+              "projectionField": "sub_name_zh",
+              "localValue": "大毒刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "sub_name_zh",
+              "projectionField": "sub_name_zh",
+              "localValue": "小毒刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "sub_name_zh",
+              "projectionField": "sub_name_zh",
+              "localValue": "大尖刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "sub_name_zh",
+              "projectionField": "sub_name_zh",
+              "localValue": "小尖刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "sub_name_zh",
+              "projectionField": "sub_name_zh",
+              "localValue": "大多叶黄蜂",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "life_max",
+          "localField": "life_max",
+          "projectionField": "life_max",
+          "localNonNull": 757,
+          "projectionNonNull": 0,
+          "gap": 757,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 45,
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 33,
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 48,
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 32,
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 41,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "knock_back_resist",
+          "localField": "knock_back_resist",
+          "projectionField": "knock_back_resist",
+          "localNonNull": 624,
+          "projectionNonNull": 0,
+          "gap": 624,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4740",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.6780",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4620",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.6710",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4050",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "scale",
+          "localField": "scale",
+          "projectionField": "scale",
+          "localNonNull": 119,
+          "projectionNonNull": 0,
+          "gap": 119,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.2100",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "0.8700",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.1600",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "0.7800",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.1000",
+              "projectionValue": null
+            }
+          ]
+        }
+      ]
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "switchable",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": []
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "switchable",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": []
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "blocked",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [
+        {
+          "field": "image_cached_url<=image",
+          "localField": "image_cached_url",
+          "projectionField": "image",
+          "localNonNull": 388,
+          "projectionNonNull": 0,
+          "gap": 388,
+          "missingExamples": [
+            {
+              "key": "ObsidianSkin",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/e8/e81a74cb058d02494e2da8dd8a833c4b0b57c5dc-obsidianskin.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Regeneration",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/b8/b8f2a10c891bfbd29be88537e97dd1a5b801e6ea-regeneration.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Swiftness",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/8b/8bc21cba2e4eb3a92deb2c7da198fb533d9802a3-swiftness.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Gills",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/e7/e71d034a643a82b0e026777a078ca03934e7e6ef-gills.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Ironskin",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/c9/c964b2e7d53207ae046cec2512cdf791727a4d98-ironskin.png",
+              "projectionValue": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

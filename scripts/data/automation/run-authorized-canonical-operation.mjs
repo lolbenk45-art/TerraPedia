@@ -1,0 +1,656 @@
+import { createHash, randomBytes } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import {
+  resolveCanonicalOperationTechnicalInput,
+  verifyCanonicalAuthorizationPacketAgainstCurrent,
+} from './build-canonical-cutover-authorization.mjs';
+import {
+  createAuthorizedOperationDispatchPermit,
+  revokeAuthorizedOperationDispatchPermit,
+} from './authorized-operation-context.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import {
+  assertItemImageProjectionCompletedResult,
+  assertItemImageProjectionFailedResult,
+  readItemImageProjectionInputContract,
+} from '../relation/item-image-projection-contract.mjs';
+
+const ITEM_IMAGE_PROJECTION_OPERATION_ID = 'canonical-item-image-projection-apply';
+const NPC_T2_CUTOVER_OPERATION_ID = 'canonical-npc-t2-cutover-verification';
+
+export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity, dispatchPermitHash = null } = {}) {
+  const identity = requireText(decisionIdentity, 'decision identity');
+  const permitHash = dispatchPermitHash == null
+    ? null
+    : requireText(dispatchPermitHash, 'dispatch permit hash');
+  const output = path.resolve(requireText(ledgerPath, 'decision ledger path'));
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  const lockPath = `${output}.lock`;
+  let lock;
+  try {
+    lock = fs.openSync(lockPath, 'wx', 0o600);
+  } catch (error) {
+    if (error?.code === 'EEXIST') throw new Error(`decision ledger is locked: ${output}`);
+    throw error;
+  }
+  try {
+    const used = fs.existsSync(output) ? JSON.parse(fs.readFileSync(output, 'utf8')) : [];
+    if (!Array.isArray(used) || used.some((entry) => !isDecisionLedgerEntry(entry))) {
+      throw new Error('decision ledger must contain non-empty identities or dispatch-permit records');
+    }
+    if (used.some((entry) => decisionIdentityOf(entry) === identity)) {
+      throw new Error(`decision identity is already used: ${identity}`);
+    }
+    const nextEntry = permitHash == null
+      ? identity
+      : { decisionIdentity: identity, dispatchPermitHash: permitHash };
+    const temporary = `${output}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
+    try {
+      fs.writeFileSync(temporary, `${JSON.stringify([...used, nextEntry], null, 2)}\n`, {
+        mode: 0o600,
+        flag: 'wx',
+      });
+      fs.renameSync(temporary, output);
+    } finally {
+      fs.rmSync(temporary, { force: true });
+    }
+  } finally {
+    if (lock !== undefined) fs.closeSync(lock);
+    fs.rmSync(lockPath, { force: true });
+  }
+}
+
+export async function runExecutionManifestCommand({
+  manifest,
+  cwd = process.cwd(),
+  authorizationPacketPath = null,
+  authorizationDispatchPermit = null,
+  env = process.env,
+  spawnImpl = spawnCommand,
+  now = new Date().toISOString(),
+  projectionContract = null,
+} = {}) {
+  const permit = authorizationDispatchPermit == null
+    ? null
+    : {
+        path: path.resolve(requireText(authorizationDispatchPermit.path, 'authorization dispatch permit path')),
+        nonce: requireText(authorizationDispatchPermit.nonce, 'authorization dispatch permit nonce'),
+      };
+  const { commandParts, root } = assertExecutionManifestDispatchPreflight({
+    manifest,
+    cwd,
+    authorizationPacketPath,
+    authorizationDispatchPermit: permit,
+  });
+  if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
+  const childEnv = authorizationPacketPath == null
+    ? env
+    : {
+        ...env,
+        TERRAPEDIA_AUTHORIZED_PACKET_PATH: path.resolve(
+          requireText(authorizationPacketPath, 'authorization packet path'),
+        ),
+        ...(permit == null ? {} : {
+          TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH: permit.path,
+          TERRAPEDIA_AUTHORIZED_DISPATCH_NONCE: permit.nonce,
+        }),
+      };
+  const result = await spawnImpl(commandParts[0], commandParts.slice(1), {
+    cwd: root,
+    shell: false,
+    env: childEnv,
+  });
+  const exitCode = Number(result?.exitCode);
+  if (!Number.isInteger(exitCode) || exitCode !== 0) {
+    if (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID) {
+      const retainedPath = verifyItemImageProjectionTerminalResult({
+        manifest,
+        cwd: root,
+        expectedStatus: 'failed',
+        now,
+        projectionContract,
+      });
+      throw new Error(
+        `authorized operation command failed with exit code ${result?.exitCode ?? 'unknown'}; retained result: ${retainedPath}`,
+      );
+    }
+    throw new Error(`authorized operation command failed with exit code ${result?.exitCode ?? 'unknown'}`);
+  }
+  verifyDeclaredManifestOutputs({ manifest, cwd: root, now, projectionContract });
+  return result;
+}
+
+export function assertExecutionManifestTechnicalPreflight({
+  manifest,
+  cwd = process.cwd(),
+} = {}) {
+  return assertExecutionManifestPreflight({ manifest, cwd });
+}
+
+export function assertExecutionManifestDispatchPreflight(options = {}) {
+  return assertExecutionManifestPreflight({
+    ...options,
+    requireProjectionAuthorizationPaths: true,
+  });
+}
+
+function assertExecutionManifestPreflight({
+  manifest,
+  cwd = process.cwd(),
+  authorizationPacketPath = null,
+  authorizationDispatchPermit = null,
+  requireProjectionAuthorizationPaths = false,
+} = {}) {
+  const commandParts = manifest?.command;
+  if (!Array.isArray(commandParts) || commandParts.length < 2
+      || commandParts.some((part) => typeof part !== 'string' || !part.trim())) {
+    throw new Error('execution manifest command must contain at least two non-empty strings');
+  }
+  if (path.basename(commandParts[0]) !== 'node') {
+    throw new Error('execution manifest command must use the Node runtime');
+  }
+  if (commandParts.some((part) => /^--[^=]*(?:password|token|secret|api[-_]?key)[^=]*=/i.test(part))) {
+    throw new Error('execution manifest command contains a credential-shaped argument');
+  }
+  const { root, outputs } = resolveDeclaredManifestOutputs({ manifest, cwd });
+  if (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID) {
+    assertItemImageProjectionAttemptDispatch({
+      manifest,
+      root,
+      authorizationPacketPath,
+      authorizationDispatchPermit,
+      requireAuthorizationPaths: requireProjectionAuthorizationPaths,
+    });
+  }
+  if (manifest?.operationId === NPC_T2_CUTOVER_OPERATION_ID) {
+    assertNpcT2AttemptDispatch({
+      manifest,
+      root,
+      authorizationPacketPath,
+      authorizationDispatchPermit,
+      requireAuthorizationPaths: requireProjectionAuthorizationPaths,
+    });
+  }
+  for (const { relativePath, output } of outputs) {
+    assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: output,
+      label: 'authorized operation declared output',
+      createParent: true,
+    });
+    const existingStat = lstatIfPresent(output);
+    if (existingStat != null
+        && (existingStat.isSymbolicLink() || (!existingStat.isFile() && !existingStat.isDirectory()))) {
+      throw new Error(`authorized operation declared output is not an ordinary file or directory: ${relativePath}`);
+    }
+    if (existingStat != null
+        && isCanonicalResultPath(manifest, relativePath)
+        && (!existingStat.isFile() || existingStat.isSymbolicLink() || (existingStat.mode & 0o077) !== 0)) {
+      throw new Error(`authorized operation canonical result must be a private ordinary file: ${relativePath}`);
+    }
+  }
+  return { commandParts, root };
+}
+
+function verifyDeclaredManifestOutputs({ manifest, cwd, now, projectionContract }) {
+  const { root, outputs } = resolveDeclaredManifestOutputs({ manifest, cwd });
+  for (const { relativePath, output } of outputs) {
+    const stat = lstatIfPresent(output);
+    if (stat == null) {
+      throw new Error(`authorized operation declared output is missing: ${relativePath}`);
+    }
+    assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: output,
+      label: 'authorized operation declared output',
+    });
+    if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory())) {
+      throw new Error(`authorized operation declared output is not an ordinary file or directory: ${relativePath}`);
+    }
+    if ((stat.isFile() && stat.size === 0)
+        || (stat.isDirectory() && fs.readdirSync(output).length === 0)) {
+      throw new Error(`authorized operation declared output is empty: ${relativePath}`);
+    }
+    if (isCanonicalResultPath(manifest, relativePath)
+        && (!stat.isFile() || (stat.mode & 0o077) !== 0)) {
+      throw new Error(`authorized operation canonical result must be a private ordinary file: ${relativePath}`);
+    }
+    if (isCanonicalResultPath(manifest, relativePath)) {
+      let result;
+      try {
+        result = JSON.parse(fs.readFileSync(output, 'utf8'));
+      } catch {
+        throw new Error(`authorized operation canonical result must be valid JSON: ${relativePath}`);
+      }
+      if (result?.operationId !== manifest.operationId) {
+        throw new Error(`authorized operation canonical result operationId drifted: ${relativePath}`);
+      }
+      if (manifest.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID) {
+        verifyItemImageProjectionTerminalResult({
+          manifest,
+          cwd: root,
+          expectedStatus: 'completed',
+          now,
+          projectionContract,
+          result,
+        });
+        continue;
+      }
+      if (manifest.operationId === NPC_T2_CUTOVER_OPERATION_ID) {
+        if (manifest.noWrite !== true || manifest.databaseWrites !== false) {
+          throw new Error(`authorized NPC T2 manifest must remain noWrite=true: ${relativePath}`);
+        }
+        if (result?.resultKind !== 'canonical_npc_t2_cutover_result') {
+          throw new Error(`authorized NPC T2 canonical result kind drifted: ${relativePath}`);
+        }
+        if (result?.status !== 'completed') {
+          throw new Error(`authorized NPC T2 canonical result status must be completed: ${relativePath}`);
+        }
+        if (result?.noWrite !== true) {
+          throw new Error(`authorized NPC T2 canonical result noWrite must be true: ${relativePath}`);
+        }
+        if (result?.cutoverState !== 'T2_CUTOVER_VERIFIED') {
+          throw new Error(`authorized NPC T2 canonical result cutover state drifted: ${relativePath}`);
+        }
+        continue;
+      }
+      const requiresAppliedCompletion = manifest.operationId === 'canonical-shimmer-import';
+      if (requiresAppliedCompletion && result?.status !== 'completed') {
+        throw new Error(`authorized operation canonical result status must be completed: ${relativePath}`);
+      }
+      if (requiresAppliedCompletion && result?.apply !== true) {
+        throw new Error(`authorized operation canonical result apply must be true: ${relativePath}`);
+      }
+    }
+  }
+}
+
+function isCanonicalResultPath(manifest, relativePath) {
+  if (!relativePath.startsWith('reports/authorization/canonical/')) return false;
+  return relativePath.endsWith('.result.json')
+    || (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
+      && relativePath === manifest?.itemImageProjectionAttempt?.resultPath)
+    || (manifest?.operationId === NPC_T2_CUTOVER_OPERATION_ID
+      && relativePath === manifest?.npcT2Attempt?.resultPath);
+}
+
+function assertItemImageProjectionAttemptDispatch({
+  manifest,
+  root,
+  authorizationPacketPath,
+  authorizationDispatchPermit,
+  requireAuthorizationPaths,
+}) {
+  const attempt = manifest?.itemImageProjectionAttempt;
+  const attemptRoot = String(attempt?.attemptRoot ?? '').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-projection-apply/';
+  if (!attemptRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('projection dispatch attempt root is invalid');
+  }
+  const inputPath = `${attemptRoot}/input.json`;
+  const resultPath = `${attemptRoot}/result.json`;
+  const packetPath = `${attemptRoot}/packet.json`;
+  const permitPath = `${attemptRoot}/permit.json`;
+  const expectedCommand = [
+    'node',
+    'scripts/data/relation/apply-item-image-projection.mjs',
+    `--input-contract=${inputPath}`,
+    '--apply=true',
+    `--output=${resultPath}`,
+  ];
+  if (JSON.stringify(manifest.inputPaths) !== JSON.stringify([inputPath])
+      || JSON.stringify(manifest.outputPaths) !== JSON.stringify([resultPath])
+      || JSON.stringify(manifest.command) !== JSON.stringify(expectedCommand)
+      || attempt.packetPath !== packetPath
+      || attempt.permitPath !== permitPath
+      || attempt.resultPath !== resultPath) {
+    throw new Error('projection dispatch manifest paths drifted across attempts');
+  }
+  if (!requireAuthorizationPaths) return;
+  const packet = resolveFromRoot(root, requireText(
+    authorizationPacketPath,
+    'projection authorization packet path',
+  ));
+  const permit = resolveFromRoot(root, requireText(
+    authorizationDispatchPermit?.path,
+    'projection authorization dispatch permit path',
+  ));
+  if (packet !== path.resolve(root, packetPath)) {
+    throw new Error('projection authorization packet must use the exact attempt path');
+  }
+  if (permit !== path.resolve(root, permitPath)) {
+    throw new Error('projection authorization dispatch permit must use the exact attempt path');
+  }
+}
+
+function assertNpcT2AttemptDispatch({
+  manifest,
+  root,
+  authorizationPacketPath,
+  authorizationDispatchPermit,
+  requireAuthorizationPaths,
+}) {
+  const attempt = manifest?.npcT2Attempt;
+  const attemptRoot = String(attempt?.attemptRoot ?? '').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/canonical-npc-t2-cutover-verification/';
+  if (!attemptRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('NPC T2 dispatch attempt root is invalid');
+  }
+  const packetPath = `${attemptRoot}/packet.json`;
+  const permitPath = `${attemptRoot}/permit.json`;
+  const resultPath = `${attemptRoot}/result.json`;
+  if (attempt.packetPath !== packetPath
+      || attempt.permitPath !== permitPath
+      || attempt.resultPath !== resultPath
+      || !manifest.command?.includes(`--output=${resultPath}`)
+      || manifest.outputPaths?.[0] !== resultPath) {
+    throw new Error('NPC T2 dispatch manifest paths drifted across attempts');
+  }
+  if (!requireAuthorizationPaths) return;
+  const packet = resolveFromRoot(root, requireText(
+    authorizationPacketPath,
+    'NPC T2 authorization packet path',
+  ));
+  const permit = resolveFromRoot(root, requireText(
+    authorizationDispatchPermit?.path,
+    'NPC T2 authorization dispatch permit path',
+  ));
+  if (packet !== path.resolve(root, packetPath)) {
+    throw new Error('NPC T2 authorization packet must use the exact attempt path');
+  }
+  if (permit !== path.resolve(root, permitPath)) {
+    throw new Error('NPC T2 authorization permit must use the exact attempt path');
+  }
+}
+
+function resolveFromRoot(root, filePath) {
+  return path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(root, filePath);
+}
+
+function verifyItemImageProjectionTerminalResult({
+  manifest,
+  cwd,
+  expectedStatus,
+  now,
+  projectionContract,
+  result = null,
+}) {
+  const attempt = manifest.itemImageProjectionAttempt;
+  const relativePath = attempt.resultPath;
+  const output = path.resolve(cwd, relativePath);
+  let parsed = result;
+  if (parsed == null) {
+    const stat = lstatIfPresent(output);
+    if (stat == null || !stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
+      throw new Error(`projection terminal result must be a private ordinary file: ${relativePath}`);
+    }
+    try {
+      parsed = JSON.parse(fs.readFileSync(output, 'utf8'));
+    } catch {
+      throw new Error(`projection terminal result must be valid JSON: ${relativePath}`);
+    }
+  }
+  const contract = projectionContract ?? {
+    readInput: ({ repoRoot, inputPath, currentTime }) => readItemImageProjectionInputContract({
+      repoRoot,
+      inputContractPath: inputPath,
+      now: currentTime,
+    }),
+    assertCompleted: assertItemImageProjectionCompletedResult,
+    assertFailed: assertItemImageProjectionFailedResult,
+  };
+  const inputContract = contract.readInput({
+    repoRoot: cwd,
+    inputPath: manifest.inputPaths[0],
+    currentTime: now,
+  });
+  const inputContractSha256 = `sha256:${createHash('sha256')
+    .update(fs.readFileSync(path.resolve(cwd, manifest.inputPaths[0])))
+    .digest('hex')}`;
+  if (parsed.inputContractSha256 !== inputContractSha256) {
+    throw new Error('projection terminal result input contract hash drifted');
+  }
+  if (expectedStatus === 'completed') {
+    if (typeof contract.assertCompleted !== 'function') {
+      throw new Error('projection completed result validator is required');
+    }
+    contract.assertCompleted({ result: parsed, inputContract });
+  } else {
+    if (typeof contract.assertFailed !== 'function') {
+      throw new Error('projection failed result validator is required');
+    }
+    contract.assertFailed({ result: parsed, inputContract });
+  }
+  return relativePath;
+}
+
+function lstatIfPresent(filePath) {
+  try {
+    return fs.lstatSync(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function resolveDeclaredManifestOutputs({ manifest, cwd }) {
+  const root = path.resolve(cwd);
+  const outputs = (manifest?.outputPaths ?? []).map((declaredPath) => {
+    const relativePath = String(declaredPath ?? '').trim().replaceAll('\\', '/');
+    if (!relativePath || path.posix.isAbsolute(relativePath)
+        || path.posix.normalize(relativePath) !== relativePath
+        || relativePath.split('/').some((part) => !part || part === '.' || part === '..')) {
+      throw new Error(`authorized operation declared output path is invalid: ${declaredPath ?? ''}`);
+    }
+    const output = path.resolve(root, relativePath);
+    if (!output.startsWith(`${root}${path.sep}`)) {
+      throw new Error(`authorized operation declared output path is invalid: ${declaredPath ?? ''}`);
+    }
+    return { relativePath, output };
+  });
+  return { root, outputs };
+}
+
+function spawnCommand(command, args, options) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { ...options, stdio: 'inherit' });
+    child.once('error', reject);
+    child.once('exit', (exitCode, signal) => resolve({ exitCode, signal }));
+  });
+}
+
+function requireText(value, label) {
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${label} is required`);
+  return text;
+}
+
+export async function runAuthorizedCanonicalOperation({
+  packet,
+  currentTechnicalInput,
+  usedDecisionIdentities,
+  consumeDecisionIdentity = null,
+  preflight = null,
+  dispatchers,
+  now = new Date().toISOString(),
+} = {}) {
+  if (!(usedDecisionIdentities instanceof Set)) {
+    throw new TypeError('used decision identities must be a Set');
+  }
+  verifyCanonicalAuthorizationPacketAgainstCurrent({ packet, currentTechnicalInput, now });
+  if (usedDecisionIdentities.has(packet.decisionIdentity)) {
+    throw new Error(`decision identity is already used: ${packet.decisionIdentity}`);
+  }
+  const dispatch = dispatchers?.[packet.operationId];
+  if (typeof dispatch !== 'function') {
+    throw new Error(`no authorized dispatcher is registered for operation: ${packet.operationId}`);
+  }
+  if (preflight != null) {
+    if (typeof preflight !== 'function') throw new TypeError('authorized operation preflight must be a function');
+    await preflight({ packet, currentTechnicalInput });
+  }
+
+  if (consumeDecisionIdentity != null) {
+    if (typeof consumeDecisionIdentity !== 'function') {
+      throw new TypeError('decision identity consumer must be a function');
+    }
+    await consumeDecisionIdentity(packet.decisionIdentity);
+  }
+  usedDecisionIdentities.add(packet.decisionIdentity);
+  const result = await dispatch({ packet, currentTechnicalInput });
+  return {
+    operationId: packet.operationId,
+    decisionIdentity: packet.decisionIdentity,
+    packetHash: packet.packetHash,
+    status: 'completed',
+    result,
+  };
+}
+
+export async function runAuthorizedCanonicalOperationsIndependently({
+  jobs,
+  usedDecisionIdentities = new Set(),
+  dispatchers,
+  now = new Date().toISOString(),
+} = {}) {
+  if (!Array.isArray(jobs)) throw new TypeError('jobs must be an array');
+  const results = [];
+  for (const job of jobs) {
+    const operationId = job?.packet?.operationId ?? null;
+    try {
+      results.push(await runAuthorizedCanonicalOperation({
+        ...job,
+        usedDecisionIdentities,
+        dispatchers,
+        now,
+      }));
+    } catch (error) {
+      results.push({
+        operationId,
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return results;
+}
+
+function parseArgs(argv) {
+  return Object.fromEntries(argv.map((arg) => {
+    const [key, ...values] = String(arg).replace(/^--/, '').split('=');
+    return [key, values.join('=')];
+  }));
+}
+
+function readJson(filePath, label) {
+  return JSON.parse(fs.readFileSync(path.resolve(requireText(filePath, label)), 'utf8'));
+}
+
+function readUsedDecisionIdentities(ledgerPath) {
+  const resolved = path.resolve(ledgerPath);
+  if (!fs.existsSync(resolved)) return new Set();
+  const values = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+  if (!Array.isArray(values) || values.some((value) => !isDecisionLedgerEntry(value))) {
+    throw new Error('decision ledger must contain non-empty identities or dispatch-permit records');
+  }
+  return new Set(values.map(decisionIdentityOf));
+}
+
+function isDecisionLedgerEntry(entry) {
+  return (typeof entry === 'string' && entry.trim())
+    || (entry != null
+      && typeof entry === 'object'
+      && !Array.isArray(entry)
+      && typeof entry.decisionIdentity === 'string'
+      && entry.decisionIdentity.trim()
+      && typeof entry.dispatchPermitHash === 'string'
+      && entry.dispatchPermitHash.trim());
+}
+
+function decisionIdentityOf(entry) {
+  return typeof entry === 'string' ? entry : entry.decisionIdentity;
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const repoRoot = path.resolve(args['repo-root'] ?? process.cwd());
+  const packet = readJson(args.packet, 'packet');
+  const serverFingerprint = readJson(args['server-fingerprint'], 'server fingerprint');
+  const policyRows = readJson(args['policy-rows'], 'policy rows');
+  if (!Array.isArray(policyRows)) throw new Error('policy rows must be a JSON array');
+  const canonicalLedgerPath = path.join(repoRoot, 'reports/authorization/canonical/used-decisions.json');
+  const ledgerPath = path.resolve(args['used-decisions'] ?? canonicalLedgerPath);
+  if (ledgerPath !== canonicalLedgerPath) {
+    throw new Error('authorized canonical operation must use the canonical durable decision ledger');
+  }
+  const currentTechnicalInput = {
+    ...resolveCanonicalOperationTechnicalInput({
+      repoRoot,
+      operationId: packet.operationId,
+      executionManifest: packet.executionManifest,
+    }),
+    serverFingerprint,
+    policyRows,
+  };
+  let dispatchPermit = null;
+  const result = await runAuthorizedCanonicalOperation({
+    packet,
+    currentTechnicalInput,
+    usedDecisionIdentities: readUsedDecisionIdentities(ledgerPath),
+    preflight: ({ packet: preflightPacket }) => assertExecutionManifestTechnicalPreflight({
+      manifest: preflightPacket.executionManifest,
+      cwd: repoRoot,
+    }),
+    consumeDecisionIdentity: (decisionIdentity) => {
+      const attemptPermitPath = packet.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
+        ? packet.executionManifest.itemImageProjectionAttempt.permitPath
+        : packet.operationId === NPC_T2_CUTOVER_OPERATION_ID
+          ? packet.executionManifest.npcT2Attempt.permitPath
+          : null;
+      dispatchPermit = createAuthorizedOperationDispatchPermit({
+        directory: path.join(repoRoot, 'reports/authorization/canonical'),
+        outputPath: attemptPermitPath == null ? null : path.join(repoRoot, attemptPermitPath),
+        packet,
+      });
+      try {
+        consumeDecisionIdentityFile({
+          ledgerPath,
+          decisionIdentity,
+          dispatchPermitHash: dispatchPermit.dispatchPermitHash,
+        });
+      } catch (error) {
+        revokeAuthorizedOperationDispatchPermit({ permit: dispatchPermit });
+        dispatchPermit = null;
+        throw error;
+      }
+    },
+    dispatchers: {
+      [packet.operationId]: () => {
+        if (dispatchPermit == null) throw new Error('authorized dispatch permit is missing after decision consumption');
+        const permit = dispatchPermit;
+        return runExecutionManifestCommand({
+          manifest: packet.executionManifest,
+          cwd: repoRoot,
+          authorizationPacketPath: args.packet,
+          authorizationDispatchPermit: permit,
+        }).finally(() => {
+          revokeAuthorizedOperationDispatchPermit({ permit });
+          dispatchPermit = null;
+        });
+      },
+    },
+  });
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`authorized canonical operation failed: ${error.message}\n`);
+    process.exitCode = 1;
+  });
+}

@@ -5,11 +5,69 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  buildCanonicalItemGroupRelationProjection,
   parseArgs,
   readWikiArmorSets,
   rewriteArmorSetRelatedItemImages,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
+
+test('buildNpcCrawlerFactRelationInputs reconstructs non-empty shop, loot, and buff inputs', async () => {
+  const { buildNpcCrawlerFactRelationInputs } = await import('./sync-maint-to-relation.mjs');
+  const actual = buildNpcCrawlerFactRelationInputs({
+    maintNpcCrawlerFactRows: [{
+      record_key: 'a'.repeat(64),
+      npc_source_id: 477,
+      npc_internal_name: 'Medusa',
+      npc_name: 'Medusa',
+      match_status: 'MATCHED',
+      buff_inflictions_json: JSON.stringify([{ buffName: 'Stoned' }]),
+      shop_facts_json: JSON.stringify([{ itemName: 'Torch', priceText: '50 Copper' }]),
+      loot_facts_json: JSON.stringify([{ itemName: 'Medusa Head', chanceText: '1%' }]),
+      landing_source_id: 91,
+      landing_source_key: 'wiki.npc.crawler.fact:medusa',
+      landing_source_page: 'Medusa',
+      landing_content_hash: 'c'.repeat(64),
+    }],
+    maintBuffRows: [{
+      source_id: 156,
+      internal_name: 'Stoned',
+      english_name: 'Stoned',
+      raw_json: JSON.stringify({ inflictingNpcs: [] }),
+    }],
+  });
+
+  assert.equal(actual.itemSourceRows.length, 2);
+  assert.equal(JSON.parse(actual.maintBuffRows[0].raw_json).inflictingNpcs.length, 1);
+});
+
+test('canonical item group relation entrypoint resolves maint rows without compatibility files', () => {
+  const actual = buildCanonicalItemGroupRelationProjection({
+    maintProjection: {
+      groups: [{
+        recordKey: 'g'.repeat(64),
+        canonicalKey: 'any-wood',
+        canonicalName: 'Any Wood',
+        sourceLayer: 'recipe_reference',
+        sourcePriority: 100,
+        status: 'ACTIVE',
+      }],
+      members: [{
+        recordKey: 'm'.repeat(64),
+        groupRecordKey: 'g'.repeat(64),
+        memberKey: 'Wood',
+        internalName: 'Wood',
+      }],
+      aliases: [],
+      exclusions: [],
+    },
+    items: [{ id: 9, internalName: 'Wood' }],
+  });
+
+  assert.equal(actual.groups.length, 1);
+  assert.equal(actual.members[0].itemId, 9);
+  assert.equal(actual.members[0].resolutionState, 'RESOLVED');
+});
 
 const MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',
@@ -689,6 +747,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.match(itemSourceRead[1], /\bWHERE\b/i);
   assert.match(itemSourceRead[1], /\bstatus\s*=\s*1\b/i);
   assert.match(itemSourceRead[1], /\bdeleted\s*=\s*0\b/i);
+  assert.ok(reads.some(([, sql]) => /\bFROM\s+maint_npc_crawler_facts\b/i.test(sql)));
   assert.ok(relationReads.some(([, sql]) => sql.includes('relation_armor_set_images')));
   assert.equal(writeCalled, false);
   assert.equal(result.summary.domainSummary.base, 4);
@@ -1496,7 +1555,7 @@ test('runSync dry-run prefers wiki armor source fallback and projects single-pie
 test('runSync apply mode clears stale relation tables before writing current snapshot', async () => {
   const statements = [];
 
-  await runSync(
+  const result = await runSync(
     {
       apply: true,
       createDatabase: false,
@@ -1631,17 +1690,19 @@ test('runSync apply mode clears stale relation tables before writing current sna
   assert.ok(statements.some((sql) => sql.includes('AND mi.cached_url IS NOT NULL')));
   assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
   assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
+  // Managed uploads are stored as the origin-free path the backend returns, so
+  // the projection predicates must anchor on that path too or every such row is
+  // read as unmanaged and never projected.
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY '/terrapedia-images/items/%'")));
+  assert.ok(statements.every((sql) => !sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
+  assert.ok(statements.every((sql) => !sql.includes('SET pi.image = li.image')));
   assert.ok(statements.every((sql) => !sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
-  assert.ok(statements.some((sql) => sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
-  assert.ok(statements.some((sql) => sql.includes('SET pi.image = li.image')));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
-  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
   assert.ok(statements.every((sql) => !sql.includes("LIKE '%/terrapedia-images/%'")));
   assert.ok(statements.some((sql) => sql.includes('SELECT id, related_items_json')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_local`.`items`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_armor_sets` SET related_items_json = ?')));
+  assert.equal('localItemImageFallbackRows' in result.summary.bridgeBreakdown, false);
+  assert.equal(result.summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows, 1);
   assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_shop_candidates`')));
   assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_loot_candidates`')));
   assert.ok(statements.every((sql) => !sql.includes('item_npc_shop_candidates` (`record_key`')));

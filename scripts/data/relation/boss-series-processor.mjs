@@ -144,7 +144,8 @@ export function buildBossSeriesRelations({
   maintBossRows = [],
   localBossGroupRows = [],
   relationNpcRows = [],
-  itemNpcLootRelations = []
+  itemNpcLootRelations = [],
+  bossLootRows = []
 } = {}) {
   const relationBosses = [];
   const bossItemRewardRelations = [];
@@ -239,7 +240,17 @@ export function buildBossSeriesRelations({
     }
 
     const rewardGroups = new Map();
-    for (const rewardRow of itemNpcLootRelations) {
+    const rewardRowsForBoss = [
+      ...itemNpcLootRelations,
+      ...bossLootRows.map((rewardRow) => ({
+        sourceFactKey: rewardRow.sourceFactKey ?? rewardRow.source_fact_key ?? null,
+        itemInternalName: rewardRow.itemInternalName ?? rewardRow.item_internal_name ?? null,
+        npcInternalName: rewardRow.npcInternalName ?? rewardRow.npc_internal_name ?? null,
+        chanceText: rewardRow.chanceText ?? rewardRow.chance_text ?? null,
+        quantityText: rewardRow.quantityText ?? rewardRow.quantity_text ?? null,
+      }))
+    ];
+    for (const rewardRow of rewardRowsForBoss) {
       if (!npcInternalNames.includes(normalizeText(rewardRow.npcInternalName))) continue;
       const itemInternalName = normalizeText(rewardRow.itemInternalName);
       if (!itemInternalName) continue;

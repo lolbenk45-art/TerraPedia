@@ -15,7 +15,7 @@ export function buildDataSourceAcceptanceRefreshPlan({
 } = {}) {
   const panels = Array.isArray(audit?.panels) ? audit.panels : [];
   const actions = panels
-    .filter((panel) => ['missing', 'stale', 'unknown'].includes(panel?.freshnessStatus))
+    .filter((panel) => panel?.blocking === true || ['missing', 'stale', 'unknown'].includes(panel?.freshnessStatus))
     .filter((panel) => includeExternal || panel?.commandRisk !== 'external-read-only')
     .map((panel) => ({
       panelId: panel.panelId,
@@ -25,6 +25,8 @@ export function buildDataSourceAcceptanceRefreshPlan({
       commandRisk: panel.commandRisk ?? 'unknown',
       requiresDatabase: panel.requiresDatabase === true,
       writesDatabase: panel.writesDatabase === true,
+      blocking: panel.blocking === true,
+      blockingReason: panel.blockingReason ?? null,
       status: actionStatus(panel),
       confirmationReason: confirmationReason(panel),
       blockedReason: blockedReason(panel),
@@ -75,11 +77,17 @@ function actionStatus(panel) {
 }
 
 function blockedReason(panel) {
+  if (panel?.blocking === true) {
+    return panel.blockingReason ?? `${panel.panelId} evidence is blocked`;
+  }
   if (panel?.commandRisk === 'unsafe') {
     return `${panel.panelId} generator command is unsafe`;
   }
   if (panel?.writesDatabase === true) {
     return `${panel.panelId} generator command writes database`;
+  }
+  if (panel?.commandRisk === 'unknown') {
+    return `${panel.panelId} command risk is unknown`;
   }
   if (!panel?.nextEvidenceCommand) {
     return `${panel.panelId} evidence command is missing`;
@@ -88,9 +96,6 @@ function blockedReason(panel) {
 }
 
 function confirmationReason(panel) {
-  if (panel?.commandRisk === 'unknown') {
-    return `${panel.panelId} command risk is unknown`;
-  }
   if (panel?.commandRisk === 'external-read-only') {
     return `${panel.panelId} evidence is ${panel.freshnessStatus}`;
   }

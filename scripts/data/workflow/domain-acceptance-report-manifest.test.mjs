@@ -468,7 +468,7 @@ test('b1 exemption compliance panel uses its dedicated read-only audit command',
   assert.ok(shimmerPanel);
   assert.equal(
     shimmerPanel.generatorCommand,
-    'node scripts/data/audit/b1-exemption-compliance.mjs --domain=support.shimmer',
+    'node scripts/data/audit/canonical-source-contract-registry.mjs --domain=support.shimmer',
   );
   assert.equal(shimmerPanel.blockingBeforePublic, true);
   assert.equal(shimmerPanel.writesDatabase, false);

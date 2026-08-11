@@ -139,6 +139,7 @@ if [[ -n "\${FAKE_CHILD_ENV_CAPTURE:-}" && ("$name" == "mvn" || "$name" == "pnpm
     SPRING_CONFIG_ADDITIONAL_LOCATION SPRING_CONFIG_IMPORT SPRING_APPLICATION_JSON NODE_OPTIONS \
     REDISCLI_AUTH MYSQL_PWD MYSQL_HOST ARBITRARY_POISON \
     TERRAPEDIA_E2E_DB_URL TERRAPEDIA_E2E_RUN_ID TERRAPEDIA_E2E_RUN_SECRET \
+    TERRAPEDIA_E2E_REDIS_DATABASE \
     SERVER_PORT E2E_BASE_URL E2E_ARTIFACT_DIR E2E_CHROMIUM_EXECUTABLE; do
     state='unset'
     [[ -v "$variable" ]] && state='set'
@@ -699,6 +700,12 @@ test('keeps generic Spring Config imports out of isolated E2E children', () => {
   }
 });
 
+test('starts the marker-owned E2E schema from Flyway V1', () => {
+  const source = requireRunnerSource();
+
+  assert.match(source, /^\s*'SPRING_FLYWAY_BASELINE_VERSION=0'$/m);
+});
+
 test('runs Maven, Nuxt, and Playwright with an isolated E2E environment allowlist', () => {
   const sandbox = makeSandbox();
   const result = runRunner(sandbox, {
@@ -734,6 +741,7 @@ test('runs Maven, Nuxt, and Playwright with an isolated E2E environment allowlis
     'TERRAPEDIA_E2E_DB_URL',
     'TERRAPEDIA_E2E_RUN_ID',
     'TERRAPEDIA_E2E_RUN_SECRET',
+    'TERRAPEDIA_E2E_REDIS_DATABASE',
     'SERVER_PORT',
     'E2E_BASE_URL',
     'E2E_ARTIFACT_DIR',
@@ -780,6 +788,35 @@ test('records ownership after an exclusive derived database create, keeps child 
     'only redacted browser artifacts and the summary may be promoted to reports',
   );
   assertPrivateValuesAreAbsent(sandbox, result);
+});
+
+test('probes the user refresh readiness endpoint with POST', () => {
+  const sandbox = makeSandbox();
+  const result = runRunner(sandbox);
+  const refreshProbe = invocations(sandbox).find((line) => (
+    line.startsWith('curl\t') && line.includes('/api/user-auth/refresh')
+  ));
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(refreshProbe, 'expected a user refresh readiness probe');
+  assert.match(refreshProbe, /\t--request\tPOST(?:\t|$)/);
+});
+
+test('dispatches the maintained user-auth Playwright scripts for both modes', () => {
+  for (const [mode, scriptName] of [
+    ['--smoke', 'test:e2e:auth:smoke'],
+    ['--regression', 'test:e2e:auth:regression'],
+  ]) {
+    const sandbox = makeSandbox();
+    const result = runRunner(sandbox, {}, mode);
+    const suiteCall = invocations(sandbox).find((line) => (
+      line.startsWith('pnpm\t') && line.includes('\ttest:e2e:')
+    ));
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(suiteCall, `expected a Playwright suite call for ${mode}`);
+    assert.match(suiteCall, new RegExp(`\\t${scriptName}(?:\\t|$)`));
+  }
 });
 
 test('retains redacted browser artifacts under the durable E2E report after cleanup', () => {

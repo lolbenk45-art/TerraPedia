@@ -3,12 +3,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
+
+import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
-
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 
 const repoRoot = getProjectRoot();
 
@@ -52,10 +51,32 @@ function readStandardizedItems(filePath) {
   return Array.isArray(raw.records) ? raw.records : [];
 }
 
+// Compatibility diagnostic only. The formal item image lane is the governed
+// `item_image_sources_raw` landing dataset; this helper exists so an operator can
+// see which standardized items still have no maint row. It therefore requires a
+// real landing record and a real managed image result, and it never reuses the
+// standardized image URL as the cached URL.
 export function buildMaintItemImageRows({
   standardizedItems = [],
   existingMaintImages = [],
+  landingRecord = null,
+  managedResult = null,
 } = {}) {
+  if (!landingRecord || typeof landingRecord !== 'object') {
+    throw new Error('a landing record is required; this diagnostic no longer fabricates lineage');
+  }
+  const landingSourceId = Number(landingRecord.id);
+  if (!Number.isInteger(landingSourceId) || landingSourceId <= 0) {
+    throw new Error('a nonzero landing id is required; this diagnostic no longer fabricates lineage');
+  }
+  if (!managedResult || typeof managedResult !== 'object') {
+    throw new Error('a managed image result is required to supply cached URLs');
+  }
+  const managedByKey = new Map(
+    (Array.isArray(managedResult.managedImages) ? managedResult.managedImages : [])
+      .map((entry) => [toNullableText(entry?.key), entry])
+  );
+
   const existing = new Set(
     existingMaintImages
       .map((row) => toNullableText(row.item_internal_name ?? row.itemInternalName))
@@ -72,30 +93,37 @@ export function buildMaintItemImageRows({
     })
     .map((item) => {
       const internalName = toNullableText(item.internalName);
-      const imageUrl = toNullableText(item.imageUrl);
-      const sourceFileTitle = toNullableText(item.imageFileTitle);
+      const originalUrl = toNullableText(item.imageUrl);
+      const managed = managedByKey.get(internalName);
+      const cachedUrl = toNullableText(managed?.managedUrl);
+      if (!cachedUrl) {
+        throw new Error(`missing managed image for ${internalName}`);
+      }
+      if (cachedUrl === originalUrl) {
+        throw new Error(`original and cached URLs must differ for ${internalName}`);
+      }
       return {
-        recordKey: buildRecordKey(`standardized.items:${internalName}:${imageUrl}`),
+        recordKey: buildRecordKey(`item_image_sources_raw:${landingSourceId}:${internalName}:${cachedUrl}`),
         itemInternalName: internalName,
         itemName: toNullableText(item.name),
         role: 'icon',
-        sourceProvider: 'standardized',
-        sourceFileTitle,
-        sourcePage: 'items.standardized.json',
-        sourceRevisionTimestamp: null,
-        originalUrl: imageUrl,
-        cachedUrl: imageUrl,
+        sourceProvider: 'terraria.wiki.gg',
+        sourceFileTitle: toNullableText(item.imageFileTitle),
+        sourcePage: toNullableText(landingRecord.sourcePage),
+        sourceRevisionTimestamp: toNullableText(landingRecord.sourceRevisionTimestamp),
+        originalUrl,
+        cachedUrl,
         width: toNullableNumber(item.imageWidth),
         height: toNullableNumber(item.imageHeight),
         contentType: toNullableText(item.imageContentType),
         isPrimary: 1,
         sortOrder: 0,
-        landingSourceId: 0,
-        landingSourceKey: 'standardized.items',
-        landingSourcePage: 'items.standardized.json',
-        landingContentHash: buildRecordKey(`landing:standardized.items:${internalName}:${imageUrl}`),
-        landingFetchedAt: null,
-        landingParsedAt: null,
+        landingSourceId,
+        landingSourceKey: toNullableText(landingRecord.sourceKey),
+        landingSourcePage: toNullableText(landingRecord.sourcePage),
+        landingContentHash: toNullableText(landingRecord.contentHash),
+        landingFetchedAt: toNullableText(landingRecord.fetchedAt),
+        landingParsedAt: toNullableText(landingRecord.parsedAt),
         rawJson: JSON.stringify(item),
         status: 1,
         deleted: 0,
@@ -140,7 +168,13 @@ async function run() {
   const standardizedPath = path.resolve(process.cwd(), args.standardized ?? path.join('data', 'standardized', 'items.standardized.json'));
   const output = path.resolve(process.cwd(), args.output ?? path.join('reports', 'relation', `item-image-maint-sync-${new Date().toISOString().slice(0, 10)}.json`));
   const database = args.database ?? process.env.TERRAPEDIA_DB_NAME ?? 'terria_v1_maint';
-  const connection = await mysql.createConnection({
+  const landingRecord = args['landing-record']
+    ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), args['landing-record']), 'utf8'))
+    : null;
+  const managedResult = args['managed-result']
+    ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), args['managed-result']), 'utf8'))
+    : null;
+  const connection = await loadMysqlModule({ repoRoot }).createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
     port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? 3306),
     user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? 'root',
@@ -151,7 +185,7 @@ async function run() {
   try {
     const standardizedItems = readStandardizedItems(standardizedPath);
     const [existingMaintImages] = await connection.query('SELECT item_internal_name FROM maint_item_images WHERE deleted = 0');
-    const rows = buildMaintItemImageRows({ standardizedItems, existingMaintImages });
+    const rows = buildMaintItemImageRows({ standardizedItems, existingMaintImages, landingRecord, managedResult });
     const summary = {
       generatedAt: new Date().toISOString(),
       apply,

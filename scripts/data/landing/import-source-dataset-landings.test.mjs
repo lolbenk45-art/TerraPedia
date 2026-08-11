@@ -119,7 +119,7 @@ test('planLandingImportExecution returns dry-run summary without write actions',
   assert.equal(summary.database, 'terria_v1_local');
   assert.equal(summary.tableName, 'source_dataset_landings');
   assert.equal(summary.schema.willApply, false);
-  assert.equal(summary.schema.datasetTypes.length, 15);
+  assert.equal(summary.schema.datasetTypes.length, 19);
   assert.deepEqual(summary.datasets.requested, ['items_raw']);
   assert.equal(summary.datasets.located, 2);
   assert.equal(summary.datasets.byType.items_raw, 2);
@@ -259,6 +259,21 @@ test('runLandingImport executes schema sql and upserts landing rows in apply mod
   assert.equal(executeCalls.length, 2);
   assert.match(executeCalls[0].sql, /^SELECT id, content_hash/);
   assert.match(executeCalls[1].sql, /^INSERT INTO source_dataset_landings/);
+  assert.match(executeCalls[1].sql, /artifact_role,[\s\S]*producer_run_key,[\s\S]*full_file_byte_size/);
+  assert.deepEqual(executeCalls[1].params.slice(12, 19), [
+    'legacy_compat',
+    'legacy.source-dataset-importer',
+    'pre-v56',
+    `legacy-${'a'.repeat(64)}`,
+    null,
+    null,
+    null,
+  ]);
+  assert.deepEqual(executeCalls[1].params.filter((_, index) => [6, 9, 10].includes(index)), [
+    '2026-04-22 11:00:00',
+    '2026-04-23 01:00:00',
+    '2026-04-23 01:00:00',
+  ]);
   assert.equal(ended, true);
   assert.equal(summary.schema.applied, true);
   assert.equal(summary.datasets.located, 1);
@@ -526,4 +541,152 @@ test('runLandingImport clears prior archived row before retiring a replaced curr
   ]);
   assert.ok(retireCall);
   assert.equal(summary.rows.replaced, 1);
+});
+
+function governedEntry(overrides = {}) {
+  return {
+    datasetType: 'item_groups_raw',
+    provider: 'terrapedia.bootstrap',
+    sourceKind: 'canonical_group_bundle',
+    sourceKey: 'wiki.recipe_material_groups',
+    sourcePage: 'groups',
+    sourceLocator: 'artifact://item-groups/bootstrap/groups.json',
+    contentHash: 'c'.repeat(64),
+    payload: { groups: [{ name: 'Any Wood' }] },
+    fetchedAt: '2026-07-27T10:00:00.000Z',
+    parsedAt: '2026-07-27T10:00:01.000Z',
+    parseStatus: 'ok',
+    artifactRole: 'bootstrap_input',
+    producerId: 'bootstrap.item-groups',
+    producerVersion: '1',
+    producerRunKey: 'bootstrap-run-001',
+    bootstrapManifestHash: 'a'.repeat(64),
+    fullFileContentHash: 'b'.repeat(64),
+    fullFileByteSize: 4950220,
+    ...overrides,
+  };
+}
+
+function governedImportHarness({ entryOverrides = {}, currentRows = [], manifestRows = [] } = {}) {
+  const state = {
+    connections: 0,
+    beginTransactions: 0,
+    commits: 0,
+    rollbacks: 0,
+    calls: [],
+  };
+
+  return {
+    state,
+    run: () => runLandingImport(
+      {
+        apply: true,
+        datasets: ['item_groups_raw'],
+        db: { database: 'terria_v1_local' },
+        reportPath: null,
+      },
+      {
+        locateDatasetEntries: async () => [governedEntry(entryOverrides)],
+        mysqlModule: {
+          async createConnection() {
+            state.connections += 1;
+            return {
+              async beginTransaction() {
+                state.beginTransactions += 1;
+              },
+              async commit() {
+                state.commits += 1;
+              },
+              async rollback() {
+                state.rollbacks += 1;
+              },
+              async query(sql, params) {
+                state.calls.push({ method: 'query', sql, params });
+                return [[]];
+              },
+              async execute(sql, params) {
+                state.calls.push({ method: 'execute', sql, params });
+                if (sql.includes('bootstrap_manifest_hash')) {
+                  return [manifestRows];
+                }
+                if (sql.startsWith('SELECT id, content_hash')) {
+                  return [currentRows];
+                }
+                return [{}];
+              },
+              async end() {},
+            };
+          },
+        },
+        writeReport: async () => {},
+      },
+    ),
+  };
+}
+
+function mutationCalls(state) {
+  return state.calls.filter(({ sql }) => (
+    sql.startsWith('INSERT INTO')
+      || sql.startsWith('DELETE FROM')
+      || sql.includes('SET is_current = 0')
+  ));
+}
+
+test('governed landing replacement retires current without deleting immutable history', async () => {
+  const harness = governedImportHarness({
+    currentRows: [{ id: 41, content_hash: 'd'.repeat(64), source_page: 'groups' }],
+  });
+
+  const summary = await harness.run();
+
+  assert.equal(harness.state.calls.filter(({ sql }) => sql.startsWith('DELETE FROM source_dataset_landings')).length, 0);
+  assert.equal(harness.state.calls.filter(({ sql }) => sql.includes('SET is_current = 0')).length, 1);
+  assert.equal(harness.state.calls.filter(({ sql }) => sql.startsWith('INSERT INTO source_dataset_landings')).length, 1);
+  assert.equal(summary.rows.replaced, 1);
+});
+
+test('compatibility exports are rejected before connection or mutation', async () => {
+  const harness = governedImportHarness({ entryOverrides: { artifactRole: 'compat_export' } });
+
+  await assert.rejects(harness.run(), /landing artifact contract rejected: artifactRole: compat_export cannot be imported/);
+
+  assert.equal(harness.state.connections, 0);
+  assert.equal(harness.state.beginTransactions, 0);
+  assert.deepEqual(mutationCalls(harness.state), []);
+});
+
+test('governed inputs require explicit producer and full-file identity', async () => {
+  const missingProducer = governedImportHarness({ entryOverrides: { producerId: null } });
+  const missingFullFileHash = governedImportHarness({ entryOverrides: { fullFileContentHash: null } });
+
+  await assert.rejects(missingProducer.run(), /landing artifact contract rejected: producerId: required/);
+  await assert.rejects(missingFullFileHash.run(), /landing artifact contract rejected: fullFileContentHash: required/);
+
+  assert.equal(missingProducer.state.connections, 0);
+  assert.equal(missingFullFileHash.state.connections, 0);
+  assert.deepEqual(mutationCalls(missingProducer.state), []);
+  assert.deepEqual(mutationCalls(missingFullFileHash.state), []);
+});
+
+test('source evidence cannot carry a bootstrap manifest hash', async () => {
+  const harness = governedImportHarness({
+    entryOverrides: { artifactRole: 'source_evidence' },
+  });
+
+  await assert.rejects(harness.run(), /landing artifact contract rejected: bootstrapManifestHash: forbidden for source_evidence/);
+
+  assert.equal(harness.state.connections, 0);
+  assert.equal(harness.state.beginTransactions, 0);
+  assert.deepEqual(mutationCalls(harness.state), []);
+});
+
+test('a bootstrap manifest cannot be replayed for the same source identity', async () => {
+  const harness = governedImportHarness({ manifestRows: [{ id: 9 }] });
+
+  await assert.rejects(harness.run(), /landing artifact contract rejected: bootstrapManifestHash: already accepted for source identity/);
+
+  assert.equal(harness.state.connections, 1);
+  assert.equal(harness.state.beginTransactions, 0);
+  assert.equal(harness.state.calls.filter(({ sql }) => sql.includes('bootstrap_manifest_hash')).length, 1);
+  assert.deepEqual(mutationCalls(harness.state), []);
 });

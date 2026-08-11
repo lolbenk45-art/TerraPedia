@@ -51,6 +51,29 @@ restore, own, or report V2 live work. See
 `docs/runbooks/crawler-monitor-queue-v2-cutover.md` for the authenticated
 cutover, first-mutation, reset, and restart procedure.
 
+Canonical item-group runtime reads use the published formal
+`terria_v1_local` projection backed by maint and relation lineage. The admin
+item-group, admin recipe-group, and recipe-tree consumers have no production
+JSON reader or JSON fallback. The three JSON artifacts were regenerated as the
+one-way compatibility export `ig_export_20260729_01`; fresh canonical readiness
+passes with distinct runtime and compatibility snapshot identities. Their
+source contracts are canonical, and the JSON files remain compatibility-export
+and governance evidence rather than steady-state runtime readers.
+
+Canonical NPC runtime reads use the published formal `terria_v1_local`
+projection backed by maint and relation lineage. The formal no-write T2 cutover
+verification passes against matching admin/public API evidence. The standardized
+NPC input remains compatibility and governance evidence, while the generated
+NPC bridge contract remains retired.
+
+Canonical item image ownership follows the active primary
+`terria_v1_relation.relation_item_images.cached_url` rows. The governed
+`canonical-item-image-projection-apply` operation may update only the `image`
+column of existing active `terria_v1_relation.projection_items` rows; the
+projection value is derived state and relation sync must not reverse-copy
+`terria_v1_local.items.image` into it. The local item image remains available
+only for the existing armor-set `related_items_json` compatibility fallback.
+
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
 DB `15`, and exposes verification codes only through the E2E profile's

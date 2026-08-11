@@ -7,6 +7,8 @@ import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
+import com.terraria.skills.dto.CrawlerV2SchedulerActivationPreflightDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
@@ -18,6 +20,7 @@ import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.CrawlerV2SchedulerActivationPreflightService;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
@@ -61,6 +64,9 @@ class AdminCrawlerMonitorControllerTest {
 
     @Mock
     private CrawlerMonitorService crawlerMonitorService;
+
+    @Mock
+    private CrawlerV2SchedulerActivationPreflightService schedulerActivationPreflightService;
 
     @Mock
     private WikiImageLocalizationService wikiImageLocalizationService;
@@ -625,6 +631,53 @@ class AdminCrawlerMonitorControllerTest {
                 && "changed-only".equals(settings.getMode())
                 && settings.getSweepIntervalMinutes() == 15
         ));
+    }
+
+    @Test
+    void shouldGetUpdateAndRunV2Automation() throws Exception {
+        CrawlerV2AutomationDTO current = new CrawlerV2AutomationDTO();
+        current.setEnabled(false);
+        CrawlerV2AutomationDTO updated = new CrawlerV2AutomationDTO();
+        updated.setEnabled(true);
+        updated.setSweepIntervalMinutes(15);
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        sweep.setStatus("completed");
+
+        when(crawlerMonitorService.getV2AutomationSettings()).thenReturn(current);
+        when(crawlerMonitorService.updateV2AutomationSettings(argThat(settings ->
+            settings.isEnabled() && settings.getSweepIntervalMinutes() == 15
+        ))).thenReturn(updated);
+        when(crawlerMonitorService.runV2AutomationSweepOnce()).thenReturn(sweep);
+
+        mockMvc.perform(get("/admin/crawler-monitor/v2/automation"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.enabled").value(false));
+        mockMvc.perform(put("/admin/crawler-monitor/v2/automation")
+                .contentType("application/json")
+                .content("{\"enabled\":true,\"mode\":\"changed-only\",\"sweepIntervalMinutes\":15}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.enabled").value(true));
+        mockMvc.perform(post("/admin/crawler-monitor/v2/automation/sweep"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("completed"));
+    }
+
+    @Test
+    void shouldReadV2AutomationPreflightThroughAdminGetOnly() throws Exception {
+        CrawlerV2SchedulerActivationPreflightDTO preflight = new CrawlerV2SchedulerActivationPreflightDTO();
+        preflight.setOperationId("canonical-crawler-v2-scheduler-activation");
+        preflight.setDatabaseWrites(false);
+        preflight.setNetworkAccess(false);
+        when(schedulerActivationPreflightService.getPreflight()).thenReturn(preflight);
+
+        mockMvc.perform(get("/admin/crawler-monitor/v2/automation/preflight"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.operationId").value("canonical-crawler-v2-scheduler-activation"))
+            .andExpect(jsonPath("$.data.databaseWrites").value(false))
+            .andExpect(jsonPath("$.data.networkAccess").value(false));
+
+        verify(schedulerActivationPreflightService).getPreflight();
     }
 
     @Test

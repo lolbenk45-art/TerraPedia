@@ -35,6 +35,7 @@ public class CrawlerMonitorOverviewDTO {
     private List<CrawlerQueueV2OverviewDTO.DomainStateDTO> domainStates = new ArrayList<>();
     private List<CrawlerQueueV2OverviewDTO.AttemptDTO> attemptHistory = new ArrayList<>();
     private List<CrawlerQueueV2OverviewDTO.LegacyAttemptDTO> legacyHistory = new ArrayList<>();
+    private CrawlerV2AutomationDTO v2Automation;
     private List<String> staleHeartbeats = new ArrayList<>();
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();

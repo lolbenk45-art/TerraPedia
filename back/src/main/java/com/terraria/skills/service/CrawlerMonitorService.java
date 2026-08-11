@@ -3,6 +3,7 @@ package com.terraria.skills.service;
 import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
+import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
@@ -71,6 +72,14 @@ public interface CrawlerMonitorService {
     CrawlerMonitorAutoDispatchDTO getAutoDispatchSettings();
 
     CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings);
+
+    CrawlerV2AutomationDTO getV2AutomationSettings();
+
+    int getV2AutomationSweepClaimCount();
+
+    CrawlerV2AutomationDTO updateV2AutomationSettings(CrawlerV2AutomationDTO settings);
+
+    CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runV2AutomationSweepOnce();
 
     CrawlerMonitorTestStateDTO getTestState();
 

@@ -1,0 +1,47 @@
+{
+  "entity": "wiki_bosses",
+  "generatedAt": "2026-05-24T00:37:36.455Z",
+  "schemaVersion": "1.0.0",
+  "sourceApi": "https://terraria.wiki.gg/api.php",
+  "overview": { "groupCount": 1, "bossCount": 2 },
+  "records": [
+    {
+      "progressionOrder": 1,
+      "orderWithinGroup": 1,
+      "groupNameEn": "Pre-Hardmode bosses",
+      "groupNameZh": "困难模式之前的 Boss",
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "King Slime",
+      "pageTitleEn": "King Slime",
+      "status": "ok",
+      "pageId": 12967,
+      "revisionId": 996447,
+      "revisionTimestamp": "2026-05-07T12:44:58Z",
+      "titleZh": "史莱姆王",
+      "pageTitleZh": "史莱姆王",
+      "sourceUrl": "https://terraria.wiki.gg/wiki/King_Slime",
+      "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/史莱姆王",
+      "imageUrl": null,
+      "notes": "King Slime fixture for isolated T1 acceptance."
+    },
+    {
+      "progressionOrder": 2,
+      "orderWithinGroup": 2,
+      "groupNameEn": "Pre-Hardmode bosses",
+      "groupNameZh": "困难模式之前的 Boss",
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Eye of Cthulhu",
+      "pageTitleEn": "Eye of Cthulhu",
+      "status": "ok",
+      "pageId": 13236,
+      "revisionId": 996749,
+      "revisionTimestamp": "2026-05-10T13:12:56Z",
+      "titleZh": "克苏鲁之眼",
+      "pageTitleZh": "克苏鲁之眼",
+      "sourceUrl": "https://terraria.wiki.gg/wiki/Eye_of_Cthulhu",
+      "sourceUrlZh": "https://terraria.wiki.gg/zh/wiki/克苏鲁之眼",
+      "imageUrl": null,
+      "notes": "Eye of Cthulhu fixture for isolated T1 acceptance."
+    }
+  ]
+}

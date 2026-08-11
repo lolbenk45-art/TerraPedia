@@ -3,11 +3,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
 import { resolveReferenceOnlyBossSource } from './boss-reference-source.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { containsChinese } from '../lib/wiki-page-utils.mjs';
 import {
   createMinioImageUploader,
@@ -15,8 +15,6 @@ import {
   isManagedUrlForEntity,
   isManagedUrl,
 } from '../lib/minio-image-upload.mjs';
-
-const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
 
@@ -131,17 +129,18 @@ async function main() {
   const dateTag = new Date().toISOString().slice(0, 10);
   const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
   const dryRun = booleanOption(args['dry-run'], false);
+  const offline = booleanOption(args.offline, false);
   const strictMode = booleanOption(args.strict, false);
   const apiBase = resolveBackendApiBase(args, { repoRoot });
   const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
     usernameKey: 'adminUsername',
     passwordKey: 'adminPassword',
     repoRoot,
-    requiredPassword: !dryRun,
+    requiredPassword: !dryRun && !offline,
   });
   const managedUrlPrefixes = [args.managedUrlPrefix ?? DEFAULT_MANAGED_URL_PREFIX];
   const generatedNpcMapPath = path.resolve(args['generated-npc-map'] ?? path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json'));
-  const mysql = require('mysql2/promise');
+  const mysql = loadMysqlModule();
   const payload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const records = Array.isArray(payload?.records) ? payload.records : [];
   if (records.length === 0) {
@@ -149,14 +148,14 @@ async function main() {
   }
   const generatedNpcMap = loadGeneratedNpcMap(generatedNpcMapPath);
   let generatedNpcMapDirty = false;
-  const uploader = dryRun
-    ? null
-    : await createMinioImageUploader({
+  const uploader = shouldCreateBossImageUploader({ dryRun, offline })
+    ? await createMinioImageUploader({
         apiBase,
         adminUsername,
         adminPassword,
         managedUrlPrefixes,
-      });
+      })
+    : null;
 
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -176,6 +175,7 @@ async function main() {
     database: conn.config.database,
     apiBase,
     dryRun,
+    offline,
     strictMode,
     generatedNpcMapPath,
     totalBosses: records.length,
@@ -213,12 +213,27 @@ async function main() {
 
     for (const record of records) {
       const memberMapping = mapBossMembers(record, npcLookup);
-      const localizedBossImageUrl = await localizeBossImage(record, uploader, summary);
-      if (await reconcileBossMemberImages(memberMapping.members, generatedNpcMap, uploader, summary)) {
+      const localizedBossImageUrl = await localizeBossImage(
+        record,
+        uploader,
+        summary,
+        managedUrlPrefixes,
+      );
+      if (await reconcileBossMemberImages(
+        memberMapping.members,
+        generatedNpcMap,
+        uploader,
+        summary,
+        managedUrlPrefixes,
+      )) {
         generatedNpcMapDirty = true;
       }
 
-      const imageUrl = resolveBossImageUrl({ ...record, imageUrl: localizedBossImageUrl }, memberMapping.members);
+      const imageUrl = resolveBossImageUrl(
+        { ...record, imageUrl: localizedBossImageUrl },
+        memberMapping.members,
+        managedUrlPrefixes,
+      );
       const bossGroupResult = await upsertBossGroup(conn, record, imageUrl);
       if (bossGroupResult.created) summary.createdBossGroups += 1;
       else summary.updatedBossGroups += 1;
@@ -435,7 +450,7 @@ function dedupeMembers(members) {
   return out;
 }
 
-async function localizeBossImage(record, uploader, summary) {
+async function localizeBossImage(record, uploader, summary, managedUrlPrefixes) {
   const sourceUrl = toText(record?.imageUrl);
   if (!sourceUrl) {
     return null;
@@ -467,7 +482,13 @@ async function localizeBossImage(record, uploader, summary) {
   return managedUrl;
 }
 
-async function reconcileBossMemberImages(members, generatedNpcMap, uploader, summary) {
+async function reconcileBossMemberImages(
+  members,
+  generatedNpcMap,
+  uploader,
+  summary,
+  managedUrlPrefixes,
+) {
   if (!members.length) {
     return false;
   }
@@ -558,7 +579,7 @@ function applyManagedUrlToGeneratedNpcMapRecord(record, managedUrl) {
   return changed;
 }
 
-function resolveBossImageUrl(record, members) {
+function resolveBossImageUrl(record, members, managedUrlPrefixes) {
   const directImageUrl = toText(record?.imageUrl);
   if (isManagedUrlForEntity(directImageUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
     return directImageUrl;
@@ -568,36 +589,18 @@ function resolveBossImageUrl(record, members) {
     .find((value) => isManagedUrlForEntity(value, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) ?? null;
 }
 
-// boss_groups has no notes_zh column, so the zh backfill made `notes` itself the
-// Chinese-facing field. A sync that only resolved an English intro must therefore
-// leave Chinese already in the row alone, or every refresh would undo the backfill.
-// Celestial Pillars have no zh langlink, so a snapshot can legitimately carry a
-// null titleZh for a row whose Chinese name the backfill already filled in.
-// Writing that null straight through would erase it, so absence never overwrites.
-export function reconcileBossNameZh(record, existingNameZh) {
-  return toText(record?.titleZh) ?? toText(existingNameZh);
-}
-
-export function reconcileBossNotes(record, existingNotes) {
-  const incoming = truncateText(toText(record?.notesZh) ?? toText(record?.notes), 2000);
-  const existing = toText(existingNotes);
-  if (!incoming) return existing;
-  if (containsChinese(incoming)) return incoming;
-  return containsChinese(existing) ? existing : incoming;
-}
-
 async function upsertBossGroup(conn, record, imageUrl) {
   const code = buildBossCode(record.titleEn);
-  const [existingRows] = await conn.execute('SELECT id, image_url, name_zh, notes FROM boss_groups WHERE code = ? LIMIT 1', [code]);
+  const [existingRows] = await conn.execute('SELECT id, image_url FROM boss_groups WHERE code = ? LIMIT 1', [code]);
   const existing = existingRows[0] ?? null;
   const payload = [
     code,
     toText(record.titleEn),
-    reconcileBossNameZh(record, existing?.name_zh ?? null),
+    toText(record.titleZh),
     toText(record.groupType),
     imageUrl ?? null,
     Number(record.progressionOrder ?? 0),
-    reconcileBossNotes(record, existing?.notes ?? null),
+    truncateText(toText(record.notes), 2000),
     toText(record.sourceUrl),
     normalizeSqlDateTime(record.revisionTimestamp),
   ];
@@ -650,6 +653,24 @@ async function clearExistingMembersForGroup(conn, bossGroupId) {
       WHERE boss_group_id = ?`,
     [bossGroupId]
   );
+}
+
+// boss_groups has no notes_zh column, so the zh backfill made `notes` itself the
+// Chinese-facing field. A sync that only resolved an English intro must therefore
+// leave Chinese already in the row alone, or every refresh would undo the backfill.
+// Celestial Pillars have no zh langlink, so a snapshot can legitimately carry a
+// null titleZh for a row whose Chinese name the backfill already filled in.
+// Writing that null straight through would erase it, so absence never overwrites.
+export function reconcileBossNameZh(record, existingNameZh) {
+  return toText(record?.titleZh) ?? toText(existingNameZh);
+}
+
+export function reconcileBossNotes(record, existingNotes) {
+  const incoming = truncateText(toText(record?.notesZh) ?? toText(record?.notes), 2000);
+  const existing = toText(existingNotes);
+  if (!incoming) return existing;
+  if (containsChinese(incoming)) return incoming;
+  return containsChinese(existing) ? existing : incoming;
 }
 
 export async function reconcileBossMembers(conn, bossGroupId, members, summary) {
@@ -770,6 +791,10 @@ function booleanOption(value, fallback) {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return fallback;
+}
+
+export function shouldCreateBossImageUploader({ dryRun, offline } = {}) {
+  return !dryRun && !offline;
 }
 
 function toText(value) {

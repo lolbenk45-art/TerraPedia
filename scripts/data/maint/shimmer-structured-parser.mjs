@@ -1,6 +1,8 @@
 import { decodeHtmlEntities, stripHtml } from '../lib/wiki-page-utils.mjs';
 
-const TABLE_ROLE_SEQUENCE = [
+export const SHIMMER_TABLE_ROLE_VERSION = 'shimmer-table-roles/1';
+
+export const SHIMMER_TABLE_ROLE_SEQUENCE = Object.freeze([
   { role: 'item_transforms', label: '物品嬗变' },
   { role: 'decraft_multi_recipe', label: '有多个配方的物品' },
   { role: 'decraft_evil_branch', label: '有两种邪恶生物群系配方的物品' },
@@ -14,7 +16,9 @@ const TABLE_ROLE_SEQUENCE = [
   { role: 'critter_to_faeling', label: '嬗变为飞灵的小动物' },
   { role: 'slime_to_shimmer_slime', label: '嬗变为微光史莱姆的史莱姆' },
   { role: 'npc_transforms', label: 'NPC 微光形态' },
-];
+].map((entry) => Object.freeze(entry)));
+
+const TABLE_ROLE_SEQUENCE = SHIMMER_TABLE_ROLE_SEQUENCE;
 
 const FIXED_NPC_OUTPUTS = {
   critter_to_faeling: { nameZh: '飞灵', nameEn: 'Faeling', internalName: 'Shimmerfly' },
@@ -46,10 +50,18 @@ export function extractShimmerStructuredRecords(rawPayload) {
   }
 
   return {
+    tableRoleVersion: SHIMMER_TABLE_ROLE_VERSION,
     itemTransforms: buildItemTransformRecords(rawPayload, tables[0]),
     decraftRules: buildDecraftRuleRecords(rawPayload, tables.slice(1, 8)),
     entityTransforms: buildEntityTransformRecords(rawPayload, tables.slice(8, 12)),
     npcTransforms: buildNpcTransformRecords(rawPayload, tables[12]),
+  };
+}
+
+function tableRoleMeta(ordinal) {
+  return {
+    sourceTableOrdinal: ordinal,
+    sourceTableRole: TABLE_ROLE_SEQUENCE[ordinal].role,
   };
 }
 
@@ -71,6 +83,7 @@ function buildItemTransformRecords(rawPayload, table) {
       conditions: deriveConditions(notes),
       notes,
       sourceSection: TABLE_ROLE_SEQUENCE[0].label,
+      ...tableRoleMeta(0),
       ...buildSourceMeta(rawPayload),
     };
   });
@@ -92,6 +105,7 @@ function buildDecraftRuleRecords(rawPayload, tablesSubset) {
           conditions: [],
           notes: null,
           sourceSection: TABLE_ROLE_SEQUENCE[index + 1].label,
+          ...tableRoleMeta(index + 1),
           ...buildSourceMeta(rawPayload),
         });
       }
@@ -111,6 +125,7 @@ function buildDecraftRuleRecords(rawPayload, tablesSubset) {
           conditions: [],
           notes: null,
           sourceSection: TABLE_ROLE_SEQUENCE[index + 1].label,
+          ...tableRoleMeta(index + 1),
           ...buildSourceMeta(rawPayload),
         });
       }
@@ -126,6 +141,7 @@ function buildDecraftRuleRecords(rawPayload, tablesSubset) {
         conditions: deriveConditions(caption),
         notes: null,
         sourceSection: TABLE_ROLE_SEQUENCE[index + 1].label,
+        ...tableRoleMeta(index + 1),
         ...buildSourceMeta(rawPayload),
       });
     }
@@ -145,6 +161,7 @@ function buildEntityTransformRecords(rawPayload, tablesSubset) {
           input: resolveReference(parsePrimaryCellEntity(cells[0]), 'npc'),
           output: resolveReference(parsePrimaryCellEntity(cells[1]), role === 'critter_to_item' ? 'item' : 'npc'),
           sourceSection: TABLE_ROLE_SEQUENCE[index + 8].label,
+          ...tableRoleMeta(index + 8),
           ...buildSourceMeta(rawPayload),
         });
       }
@@ -164,6 +181,7 @@ function buildEntityTransformRecords(rawPayload, tablesSubset) {
           quantityText: null,
         },
         sourceSection: TABLE_ROLE_SEQUENCE[index + 8].label,
+        ...tableRoleMeta(index + 8),
         ...buildSourceMeta(rawPayload),
       });
     }
@@ -183,6 +201,7 @@ function buildNpcTransformRecords(rawPayload, table) {
       variantImageAlt: shimmerImage?.alt ?? null,
       notes: '仅影响外观',
       sourceSection: TABLE_ROLE_SEQUENCE[12].label,
+      ...tableRoleMeta(12),
       ...buildSourceMeta(rawPayload),
     };
   });

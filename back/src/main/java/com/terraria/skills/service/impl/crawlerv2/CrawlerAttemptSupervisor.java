@@ -360,11 +360,6 @@ public class CrawlerAttemptSupervisor {
         return new ProgressResult(ProgressCode.ACCEPTED, updated);
     }
 
-    /**
-     * The fixture is intentionally absent from the public action registry.
-     * Only an attempt already admitted by the application-service fixture gate
-     * can reach this supervisor path.
-     */
     private CrawlerMonitorActionDefinition resolveLaunchAction(CrawlerQueueV2Attempt attempt) {
         if ("crawler_queue_v2_fixture".equals(attempt.domain())
             && "crawler-queue-v2-fixture".equals(attempt.actionId())) {

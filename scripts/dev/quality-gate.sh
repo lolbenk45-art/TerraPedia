@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/runtime-config.sh
+source "$SCRIPT_DIR/lib/runtime-config.sh"
 # shellcheck source=lib/run-step.sh
 source "$SCRIPT_DIR/lib/run-step.sh"
 
@@ -41,8 +43,11 @@ EOF
   shift
 done
 
+load_runtime_config
+
 run_step "Data workflow acceptance tests" . node --test \
   scripts/dev/quality-gate.test.mjs \
+  scripts/dev/quality-gate-automation-live-contract.test.mjs \
   scripts/dev/local-stack.test.mjs \
   scripts/dev/slot-allocator.test.mjs \
   scripts/dev/data-source-snapshot.test.mjs \
@@ -58,7 +63,16 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/fetch/snapshot-policy.test.mjs \
   scripts/data/maint/gc-snapshots.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
+  scripts/data/item-groups/item-group-compatibility-publish.test.mjs \
+  scripts/data/item-groups/item-group-readiness.test.mjs \
+  scripts/data/npc-canonical/npc-canonical-readiness.test.mjs \
+  scripts/data/npc-canonical/npc-canonical-t0-acceptance.test.mjs \
+  scripts/data/npc-canonical/npc-apply-ownership-preparation.test.mjs \
+  scripts/data/npc-canonical/npc-owner-phase-contract.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
+  scripts/data/audit/canonical-source-contract-registry.test.mjs \
+  scripts/data/audit/build-npc-bridge-retirement-report.test.mjs \
+  scripts/data/audit/npc-buff-relation-precheck.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \
   scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs \
@@ -67,6 +81,25 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/workflow/domain-acceptance-refresh-plan.test.mjs \
   scripts/data/workflow/domain-acceptance-a-grade-gate.test.mjs \
   scripts/data/workflow/domain-acceptance-generate-reports.test.mjs
+
+run_step "Crawler automation contract tests" . node --test \
+  scripts/data/automation/automation-database-contract.test.mjs \
+  scripts/data/automation/automation-test-profile.test.mjs \
+  scripts/data/automation/table-ownership-matrix.test.mjs \
+  scripts/data/automation/frozen-apply-bundle.test.mjs \
+  scripts/data/automation/policy-set-hash.test.mjs \
+  scripts/data/automation/build-canonical-cutover-authorization.test.mjs \
+  scripts/data/automation/crawler-automation-migration-contract.test.mjs \
+  scripts/data/automation/mutation-generation.test.mjs \
+  scripts/data/automation/table-ownership-fence.test.mjs \
+  scripts/data/automation/three-database-commit-protocol.test.mjs \
+  scripts/data/automation/capability-manifest.test.mjs \
+  scripts/data/automation/capability-owned-table-contract.test.mjs \
+  scripts/data/automation/bootstrap-automation-policy.test.mjs \
+  scripts/data/automation/run-automation-acceptance.test.mjs \
+  scripts/data/automation/mysql-automation-acceptance-adapter.test.mjs \
+  scripts/data/automation/run-live-automation-acceptance.test.mjs \
+  data-query-app/pages/operations/crawler-automation.contract.test.mjs
 
 run_step "Crawler source layout check (warning-only)" . node \
   scripts/data/crawler/source-layout-check.mjs
@@ -93,7 +126,7 @@ if ! $skip_back; then
 fi
 
 if ! $skip_front; then
-  run_step "Front Nuxt checks and build" front-nuxt pnpm run test
+  run_step "Front Nuxt checks and build" "$TP_FRONT_PROJECT_DIR" pnpm run test
   run_step "User-auth isolated browser smoke" . bash scripts/dev/run-user-auth-e2e.sh --smoke
 else
   printf '\nquality-gate: --skip-front also skips User-auth isolated browser smoke.\n'

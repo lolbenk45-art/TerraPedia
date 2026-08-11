@@ -14,8 +14,43 @@ function toNullableNumber(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function buildGroupIndex(recipeReferencePayload = {}) {
-  const groups = Array.isArray(recipeReferencePayload?.groups) ? recipeReferencePayload.groups : [];
+export function buildCanonicalRecipeGroups({ groupRows = [], memberRows = [] } = {}) {
+  const membersByGroup = new Map();
+  for (const row of memberRows) {
+    const groupRecordKey = normalizeText(row?.groupRecordKey ?? row?.group_record_key);
+    if (!groupRecordKey) continue;
+    const members = membersByGroup.get(groupRecordKey) ?? [];
+    members.push({
+      internalName: normalizeText(row?.internalName ?? row?.internal_name),
+      name: normalizeText(row?.name),
+      nameZh: normalizeText(row?.nameZh ?? row?.name_zh),
+      sortOrder: toNullableNumber(row?.sortOrder ?? row?.sort_order) ?? members.length,
+    });
+    membersByGroup.set(groupRecordKey, members);
+  }
+
+  return groupRows
+    .filter((row) => normalizeText(row?.sourceLayer ?? row?.source_layer) === 'recipe_reference')
+    .map((row) => {
+      const groupRecordKey = normalizeText(row?.recordKey ?? row?.record_key);
+      const members = [...(membersByGroup.get(groupRecordKey) ?? [])]
+        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .map(({ sortOrder: _sortOrder, ...member }) => member);
+      return {
+        canonicalName: normalizeText(row?.canonicalName ?? row?.canonical_name),
+        displayNameZh: normalizeText(row?.displayNameZh ?? row?.display_name_zh),
+        sourceLayer: 'recipe_reference',
+        members,
+      };
+    });
+}
+
+function buildGroupIndex(recipeReferencePayload = {}, canonicalGroups = null) {
+  const groups = Array.isArray(canonicalGroups)
+    ? canonicalGroups.filter((group) => (
+      normalizeText(group?.sourceLayer ?? group?.source_layer) === 'recipe_reference'
+    ))
+    : Array.isArray(recipeReferencePayload?.groups) ? recipeReferencePayload.groups : [];
   const index = new Map();
 
   for (const group of groups) {
@@ -50,9 +85,10 @@ function buildGroupIndex(recipeReferencePayload = {}) {
 
 export function buildRecipeGroupExpansions({
   recipeIngredients = [],
-  recipeReferencePayload = {}
+  recipeReferencePayload = {},
+  canonicalGroups = null,
 } = {}) {
-  const groupIndex = buildGroupIndex(recipeReferencePayload);
+  const groupIndex = buildGroupIndex(recipeReferencePayload, canonicalGroups);
   const groupExpansions = [];
 
   for (const ingredient of recipeIngredients) {

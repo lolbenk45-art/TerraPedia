@@ -1,0 +1,251 @@
+{
+  "generatedAt": "2026-08-01T00:15:48.421Z",
+  "reportPath": "/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness/reports/audit/image-source-lineage-2026-08-01.json",
+  "contractVersion": "P1.1-image-source-lineage-v1",
+  "summary": {
+    "totalEntityTypes": 7,
+    "readyEntityTypes": 1,
+    "notReadyEntityTypes": 6
+  },
+  "entities": {
+    "items": {
+      "entityType": "items",
+      "contractKey": "item.image",
+      "contractReady": false,
+      "gapReasons": [
+        "projection_image_not_managed",
+        "projection_blank_but_core_image_available"
+      ],
+      "lineage": {
+        "core": {
+          "rowCount": 6159,
+          "rowsWithImage": 6136
+        },
+        "maint": {
+          "table": "maint_item_images",
+          "rowCount": 6131,
+          "rowsWithStructuredImage": 6131
+        },
+        "relation": {
+          "table": "relation_item_images",
+          "rowCount": 6131,
+          "rowsWithStructuredImage": 6131,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": "projection_items",
+          "imageField": "image",
+          "rowCount": 6146,
+          "rowsWithImage": 6129,
+          "rowsWithManagedImage": 0,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 2
+        }
+      }
+    },
+    "buffs": {
+      "entityType": "buffs",
+      "contractKey": "buff.image",
+      "contractReady": false,
+      "gapReasons": [
+        "missing_projection_image_values"
+      ],
+      "lineage": {
+        "core": {
+          "rowCount": 388,
+          "rowsWithImage": 388
+        },
+        "maint": {
+          "table": "maint_buffs",
+          "rowCount": 388,
+          "rowsWithStructuredImage": 388
+        },
+        "relation": {
+          "table": "relation_buff_images",
+          "rowCount": 388,
+          "rowsWithStructuredImage": 388,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": "projection_buffs",
+          "imageField": "image",
+          "rowCount": 388,
+          "rowsWithImage": 0,
+          "rowsWithManagedImage": 0,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 0
+        }
+      }
+    },
+    "npcs": {
+      "entityType": "npcs",
+      "contractKey": "npc.imageUrl",
+      "contractReady": false,
+      "gapReasons": [
+        "projection_image_not_managed"
+      ],
+      "lineage": {
+        "core": {
+          "rowCount": 762,
+          "rowsWithImage": 758
+        },
+        "maint": {
+          "table": "maint_npc_images",
+          "rowCount": 758,
+          "rowsWithStructuredImage": 758
+        },
+        "relation": {
+          "table": "relation_npc_images",
+          "rowCount": 758,
+          "rowsWithStructuredImage": 758,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": "projection_npcs",
+          "imageField": "imageUrl",
+          "rowCount": 762,
+          "rowsWithImage": 758,
+          "rowsWithManagedImage": 0,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 0
+        }
+      }
+    },
+    "bosses": {
+      "entityType": "bosses",
+      "contractKey": "boss.imageUrl",
+      "contractReady": true,
+      "gapReasons": [],
+      "lineage": {
+        "core": {
+          "rowCount": 33,
+          "rowsWithImage": 33
+        },
+        "maint": {
+          "table": "maint_bosses",
+          "rowCount": 33,
+          "rowsWithStructuredImage": 29
+        },
+        "relation": {
+          "table": "relation_bosses",
+          "rowCount": 33,
+          "rowsWithStructuredImage": 33,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": "projection_bosses",
+          "imageField": "imageUrl",
+          "rowCount": 33,
+          "rowsWithImage": 33,
+          "rowsWithManagedImage": 33,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 0
+        }
+      }
+    },
+    "projectiles": {
+      "entityType": "projectiles",
+      "contractKey": "projectile.imageUrl",
+      "contractReady": false,
+      "gapReasons": [
+        "projection_image_not_managed"
+      ],
+      "lineage": {
+        "core": {
+          "rowCount": 1111,
+          "rowsWithImage": 1110
+        },
+        "maint": {
+          "table": "maint_projectiles",
+          "rowCount": 1111,
+          "rowsWithStructuredImage": 1110
+        },
+        "relation": {
+          "table": "relation_projectile_images",
+          "rowCount": 1110,
+          "rowsWithStructuredImage": 1110,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": "projection_projectiles",
+          "imageField": "imageUrl",
+          "rowCount": 1111,
+          "rowsWithImage": 1110,
+          "rowsWithManagedImage": 0,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 0
+        }
+      }
+    },
+    "armor_sets": {
+      "entityType": "armor_sets",
+      "contractKey": "armor_set.images",
+      "contractReady": false,
+      "gapReasons": [
+        "projection_image_not_managed"
+      ],
+      "lineage": {
+        "core": {
+          "rowCount": 88,
+          "rowsWithImage": 88
+        },
+        "maint": {
+          "table": null,
+          "rowCount": 0,
+          "rowsWithStructuredImage": 0
+        },
+        "relation": {
+          "table": null,
+          "rowCount": 0,
+          "rowsWithStructuredImage": 0,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": "projection_armor_sets",
+          "imageField": "maleImages|femaleImages|specialImages",
+          "rowCount": 88,
+          "rowsWithImage": 88,
+          "rowsWithManagedImage": 0,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 0
+        }
+      }
+    },
+    "biomes": {
+      "entityType": "biomes",
+      "contractKey": "biome.iconUrl",
+      "contractReady": false,
+      "gapReasons": [
+        "missing_maint_image_table",
+        "missing_relation_image_table",
+        "missing_projection_image_field"
+      ],
+      "lineage": {
+        "core": {
+          "rowCount": 47,
+          "rowsWithImage": 46
+        },
+        "maint": {
+          "table": null,
+          "rowCount": 0,
+          "rowsWithStructuredImage": 0
+        },
+        "relation": {
+          "table": null,
+          "rowCount": 0,
+          "rowsWithStructuredImage": 0,
+          "rowsWithWrongManagedPrefix": 0
+        },
+        "projection": {
+          "table": null,
+          "imageField": null,
+          "rowCount": 0,
+          "rowsWithImage": 0,
+          "rowsWithManagedImage": 0,
+          "rowsWithWrongManagedPrefix": 0,
+          "rowsBlankButCoreImageAvailable": 0
+        }
+      }
+    }
+  }
+}

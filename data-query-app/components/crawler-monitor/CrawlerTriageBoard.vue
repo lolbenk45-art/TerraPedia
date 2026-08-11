@@ -253,6 +253,16 @@
               <dd :title="row.latestResultLabel || '暂无历史结果'">{{ row.latestResultLabel || '暂无历史结果' }}</dd>
             </div>
           </dl>
+          <dl class="domain-tile__freshness">
+            <div>
+              <dt>最近数据</dt>
+              <dd :title="row.localDataSummary || '尚无成功爬取记录'">{{ row.localDataSummary || '尚无成功爬取记录' }}</dd>
+            </div>
+            <div>
+              <dt>上游检查</dt>
+              <dd :title="row.upstreamCheckSummary || '上游尚未检查'">{{ row.upstreamCheckSummary || '上游尚未检查' }}</dd>
+            </div>
+          </dl>
           <small class="domain-tile__mode" :title="row.taskLabel || '未配置'">动作模式：{{ row.taskLabel || '未配置' }}</small>
           <small v-if="row.startupLabel" class="tile-startup-note" role="status">{{ row.startupLabel }}</small>
           <div class="tile-progress" :class="{ 'tile-progress--indeterminate': row.isStartupWindow }">
@@ -303,7 +313,8 @@
               <th>基础域</th>
               <th>当前状态</th>
               <th>上次结果</th>
-              <th>新鲜度</th>
+              <th>最近数据</th>
+              <th>上游检查</th>
               <th>动作模式</th>
               <th>最近活动</th>
               <th>下一步</th>
@@ -316,7 +327,8 @@
               <td><strong>{{ row.label || row.domain }}</strong><small>{{ row.domain || '未知域' }}</small></td>
               <td><span class="status-pill" :class="row.triageStatus">{{ row.currentStatusLabel || row.diagnosisTitle || row.statusLabel || '未知状态' }}</span></td>
               <td>{{ row.latestResultLabel || '暂无历史结果' }}</td>
-              <td>{{ row.sourceSummary || '未记录' }}</td>
+              <td>{{ row.localDataSummary || '尚无成功爬取记录' }}</td>
+              <td>{{ row.upstreamCheckSummary || '上游尚未检查' }}</td>
               <td><strong>{{ row.taskLabel || '未配置' }}</strong><small>{{ row.queueSummary || '无队列记录' }}</small></td>
               <td>{{ row.v2Attempt ? row.heartbeatAgeLabel : row.heartbeatAt || '未记录' }}</td>
               <td>{{ row.nextActionLabel || '查看详情' }}</td>
@@ -1257,6 +1269,38 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.domain-tile__freshness {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.domain-tile__freshness div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.domain-tile__freshness dt,
+.domain-tile__freshness dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.domain-tile__freshness dt {
+  color: var(--color-text-muted);
+}
+
+.domain-tile__freshness dd {
+  color: var(--color-text-secondary);
 }
 
 .domain-tile__state-pair dt {

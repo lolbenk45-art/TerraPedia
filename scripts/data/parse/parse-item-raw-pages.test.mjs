@@ -56,6 +56,12 @@ test('parseItemRawPagePayload quarantines group page image and sell evidence', (
   assert.deepEqual(record.sell, { sellText: null, sellValue: null });
   assert.ok(record.groupPageEvidence.images.length > 0);
   assert.ok(record.groupPageEvidence.sell.sellText);
+  assert.equal(record.groupPageEvidence.memberImageEvidence.summary.status, 'verified');
+  assert.equal(record.groupPageEvidence.memberImageEvidence.summary.candidateCount, 1);
+  assert.equal(
+    record.groupPageEvidence.memberImageEvidence.candidates[0].fileTitle,
+    'Adamantite Leggings.png'
+  );
   assert.ok(record.safetyWarnings.includes('group_page_images_quarantined'));
   assert.ok(record.safetyWarnings.includes('group_page_sell_quarantined'));
 });

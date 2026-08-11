@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-07T20:21:45.337Z",
+  "status": "passed",
+  "mode": "read-only",
+  "decisionId": "canonical-recipe-apply-20260729-03",
+  "writesAttempted": false,
+  "expectedFinalProjectionHash": "582c4152aa4fe770bce41c431420230e82586d8322424edf877387e184ecf20e",
+  "artifacts": {
+    "input": {
+      "path": "data/generated/wiki-zh-recipe-pages.latest.json",
+      "sha256": "3503bdd42c623d8ec919aa3d4bc3c8e77d217f4cacb85a5bfd9d4c869752aefc"
+    },
+    "appliedPipeline": {
+      "path": "reports/wiki-zh-recipe-sync-summary-2026-07-29.json",
+      "sha256": "53704e56640062ddb6407d88f5701a61c68014ee6b79dc1dcdfca741fde843f2"
+    },
+    "standaloneImport": {
+      "path": "reports/wiki-zh-recipe-import-2026-07-29.json",
+      "sha256": "4a862d1fe5cfdbaebf81d3350e39bace6d10a709577322b5e04624af0ab1d0e3"
+    }
+  },
+  "input": {
+    "pageCount": 41,
+    "recipeCount": 3663,
+    "expectedSha256": "3503bdd42c623d8ec919aa3d4bc3c8e77d217f4cacb85a5bfd9d4c869752aefc"
+  },
+  "appliedPipeline": {
+    "apply": true,
+    "import": {
+      "apply": true,
+      "database": "terria_v1_local",
+      "inputPages": 41,
+      "inputRecipes": 3663,
+      "insertedRecipes": 3571,
+      "insertedIngredientRows": 5965,
+      "insertedStationRows": 4337,
+      "createdPlaceholderItems": 0,
+      "createdCraftingStations": 0,
+      "unresolvedItemRowsAfterImport": 0,
+      "unresolvedStationRowsAfterImport": 0,
+      "importedRecipeCountInDb": 3571,
+      "recipeScopeHashTarget": "b14dc414734cd3cac11f364039482eaa89594bae8277bfcae787955b0bdd2ee3"
+    },
+    "displayNameBackfill": {
+      "apply": true,
+      "database": "terria_v1_local",
+      "groupIngredientsUpdated": 124,
+      "stationsUpdated": 239,
+      "after": {
+        "groupIngredients": {
+          "total": 19601,
+          "mappable": 0,
+          "needsSync": 0,
+          "updated": 0
+        },
+        "craftingStations": {
+          "total": 68,
+          "autoMappable": 0,
+          "dictionaryMappable": 0,
+          "updated": 0
+        },
+        "ingredients": {
+          "total": 19601,
+          "linkedWithZh": 18464,
+          "needsSync": 0,
+          "updated": 0
+        },
+        "stations": {
+          "total": 15195,
+          "linkedWithZh": 14956,
+          "needsSync": 0,
+          "updated": 0
+        }
+      }
+    },
+    "consolidation": {
+      "apply": true,
+      "dryRun": false,
+      "after": {
+        "recipeRows": 11658,
+        "activeRecipeRows": 3775,
+        "resultItems": 3191,
+        "activeResultItems": 3191,
+        "rawRecipeRowsByProvider": [
+          {
+            "key": "wiki_zh",
+            "count": 3571
+          },
+          {
+            "key": "terraria.wiki.gg/zh",
+            "count": 3566
+          },
+          {
+            "key": "wiki_gg",
+            "count": 3351
+          },
+          {
+            "key": "terraria.wiki.gg",
+            "count": 1170
+          }
+        ],
+        "activeRecipeRowsByProvider": [
+          {
+            "key": "wiki_gg",
+            "count": 2118
+          },
+          {
+            "key": "wiki_zh",
+            "count": 1311
+          },
+          {
+            "key": "terraria.wiki.gg",
+            "count": 340
+          },
+          {
+            "key": "terraria.wiki.gg/zh",
+            "count": 6
+          }
+        ],
+        "topProviderResultItems": [
+          {
+            "key": "wiki_gg",
+            "count": 2041
+          },
+          {
+            "key": "wiki_zh",
+            "count": 965
+          },
+          {
+            "key": "terraria.wiki.gg",
+            "count": 182
+          },
+          {
+            "key": "terraria.wiki.gg/zh",
+            "count": 3
+          }
+        ]
+      }
+    }
+  },
+  "formalScope": {
+    "database": "terria_v1_local",
+    "totalRecipes": 11658,
+    "totalIngredients": 19601,
+    "totalStations": 15195,
+    "consolidationRecipeRows": 11658,
+    "activeRecipeRows": 3775,
+    "resultItems": 3191,
+    "activeResultItems": 3191,
+    "wikiZhRecipes": 3571,
+    "wikiZhIngredients": 5965,
+    "wikiZhStations": 4337,
+    "unresolvedItems": 0,
+    "unresolvedStations": 0,
+    "projectionHash": "582c4152aa4fe770bce41c431420230e82586d8322424edf877387e184ecf20e"
+  },
+  "standaloneImport": {
+    "classification": "superseded-invalid",
+    "reasons": [
+      "apply is not true",
+      "inputPages does not match applied result",
+      "inputRecipes does not match applied result",
+      "insertedRecipes does not match applied result",
+      "insertedIngredientRows does not match applied result",
+      "insertedStationRows does not match applied result",
+      "inputPath is not the canonical Recipe input"
+    ]
+  },
+  "checks": [
+    {
+      "name": "input-hash-and-counts",
+      "status": "passed"
+    },
+    {
+      "name": "embedded-applied-import",
+      "status": "passed"
+    },
+    {
+      "name": "embedded-applied-display-name-backfill",
+      "status": "passed"
+    },
+    {
+      "name": "embedded-applied-consolidation",
+      "status": "passed"
+    },
+    {
+      "name": "formal-database-identity",
+      "status": "passed"
+    },
+    {
+      "name": "formal-wiki-zh-counts",
+      "status": "passed"
+    },
+    {
+      "name": "formal-provider-consolidation-aggregates",
+      "status": "passed"
+    },
+    {
+      "name": "formal-post-backfill-projection-hash",
+      "status": "passed"
+    },
+    {
+      "name": "formal-unresolved-relations",
+      "status": "passed"
+    }
+  ],
+  "blockingReasons": []
+}

@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-07-29T21:17:24.360Z",
+  "domainId": "support.recipe",
+  "panelId": "blockingGate",
+  "status": "pass",
+  "reportPath": "reports/domain/support.recipe/blocking-gate-2026-07-29.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 3,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_recipe_provider_consolidationlatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/recipe-provider-consolidation-2026-07-29.json",
+      "latestReportPath": "reports/recipe-provider-consolidation-2026-07-29.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "recipe provider consolidation semantic gates are clean in reports/recipe-provider-consolidation-2026-07-29.json; non-blocking metrics within baseline: gapOnlyResultItems=965/3059, gapOnlyRecipeRows=4329/6751"
+    },
+    {
+      "id": "reports_recipe_provider_suppressionlatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/recipe-provider-suppression-2026-07-29.json",
+      "latestReportPath": "reports/recipe-provider-suppression-2026-07-29.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "recipe provider suppression semantic gates are clean in reports/recipe-provider-suppression-2026-07-29.json; non-blocking metrics within baseline: candidateCount=0/245"
+    },
+    {
+      "id": "reports_wiki_zh_recipe_source_coveragelatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/wiki-zh-recipe-source-coverage-2026-07-29.json",
+      "latestReportPath": "reports/wiki-zh-recipe-source-coverage-2026-07-29.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "recipe source coverage semantic gates are clean in reports/wiki-zh-recipe-source-coverage-2026-07-29.json; non-blocking metrics within baseline: suppressedButPresentCount=1981/2557"
+    }
+  ]
+}

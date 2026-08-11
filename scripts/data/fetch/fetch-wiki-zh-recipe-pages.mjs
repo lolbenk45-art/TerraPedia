@@ -18,13 +18,15 @@ import {
   stripHtml
 } from '../lib/wiki-page-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  resolveRecipeCrawlerProgressPaths,
+  runRecipeCrawlerWithProgress,
+} from './fetch-wiki-zh-recipe-pages-progress.mjs';
 
 const repoRoot = getProjectRoot();
 
 const ZH_WIKI_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const DEFAULT_PAGE_TITLES = ['\u914d\u65b9', '\u914d\u65b9/\u5de5\u4f5c\u53f0'];
-const generatedAt = new Date().toISOString();
-const dateTag = generatedAt.slice(0, 10);
 const VERSION_TITLES = new Set([
   '\u7535\u8111\u7248',
   '\u4e3b\u673a\u7248',
@@ -33,35 +35,67 @@ const VERSION_TITLES = new Set([
   '\u4efb\u5929\u58023DS\u7248'
 ]);
 
-const options = resolveOptions(parseCliArgs(process.argv.slice(2)));
-const crawlResult = await crawlPages(options);
+export async function runRecipePageCrawler({
+  argv = process.argv.slice(2),
+  env = process.env,
+  crawlPagesImpl = crawlPages,
+} = {}) {
+  const generatedAt = new Date().toISOString();
+  const rawOptions = parseCliArgs(argv);
+  const options = resolveOptions(rawOptions, { generatedAt });
+  const progressPaths = resolveRecipeCrawlerProgressPaths({
+    repoRoot,
+    explicitPath: rawOptions['progress-path'] ?? rawOptions.progressPath,
+    env,
+  });
 
-const payload = {
-  entity: 'wiki_zh_recipe_pages',
-  generatedAt,
-  sourceApi: ZH_WIKI_API_URL,
-  requestedPages: options.pageTitles,
-  expandChildPages: options.expandChildPages,
-  maxDepth: options.maxDepth,
-  summary: buildSummary(crawlResult.records),
-  records: crawlResult.records
-};
+  return runRecipeCrawlerWithProgress({
+    progressPaths,
+    total: options.pageTitles.length,
+    execute: async ({ publishProgress }) => {
+      const crawlResult = await crawlPagesImpl(options, { publishProgress });
+      const payload = {
+        entity: 'wiki_zh_recipe_pages',
+        generatedAt,
+        sourceApi: ZH_WIKI_API_URL,
+        requestedPages: options.pageTitles,
+        expandChildPages: options.expandChildPages,
+        maxDepth: options.maxDepth,
+        summary: buildSummary(crawlResult.records),
+        records: crawlResult.records
+      };
 
-writeJson(options.outputJsonPath, payload);
-ensureDir(path.dirname(options.outputMdPath));
-fs.writeFileSync(options.outputMdPath, buildMarkdownReport(payload), 'utf8');
+      writeJson(options.outputJsonPath, payload);
+      ensureDir(path.dirname(options.outputMdPath));
+      fs.writeFileSync(
+        options.outputMdPath,
+        buildMarkdownReport(payload, options.outputJsonPath),
+        'utf8',
+      );
 
-console.log(JSON.stringify({
-  outputJsonPath: options.outputJsonPath,
-  outputMdPath: options.outputMdPath,
-  requestedPages: options.pageTitles,
-  crawledPages: payload.summary.crawledPages,
-  recipePages: payload.summary.recipePages,
-  recipeTableCount: payload.summary.recipeTableCount,
-  recipeRowCount: payload.summary.recipeRowCount
-}, null, 2));
+      const summary = {
+        outputJsonPath: options.outputJsonPath,
+        outputMdPath: options.outputMdPath,
+        requestedPages: options.pageTitles,
+        crawledPages: payload.summary.crawledPages,
+        recipePages: payload.summary.recipePages,
+        recipeTableCount: payload.summary.recipeTableCount,
+        recipeRowCount: payload.summary.recipeRowCount
+      };
+      console.log(JSON.stringify(summary, null, 2));
+      return {
+        current: payload.summary.crawledPages,
+        total: payload.summary.crawledPages,
+        outputPath: path.relative(repoRoot, options.outputJsonPath).replaceAll('\\', '/'),
+        reportPath: path.relative(repoRoot, options.outputMdPath).replaceAll('\\', '/'),
+        summary,
+      };
+    },
+  });
+}
 
-function resolveOptions(rawOptions) {
+function resolveOptions(rawOptions, { generatedAt }) {
+  const dateTag = generatedAt.slice(0, 10);
   const pageTitles = dedupeStrings(
     String(rawOptions.pages ?? rawOptions.pageTitles ?? DEFAULT_PAGE_TITLES.join(','))
       .split(',')
@@ -78,7 +112,7 @@ function resolveOptions(rawOptions) {
   };
 }
 
-async function crawlPages(options) {
+async function crawlPages(options, { publishProgress = () => {} } = {}) {
   const queue = options.pageTitles.map((pageTitle, index) => ({
     pageTitle,
     depth: 0,
@@ -109,19 +143,23 @@ async function crawlPages(options) {
     });
     records.push(record);
 
-    if (!options.expandChildPages || task.depth >= options.maxDepth) {
-      continue;
+    if (options.expandChildPages && task.depth < options.maxDepth) {
+      for (const [childIndex, childPage] of record.childPages.entries()) {
+        queue.push({
+          pageTitle: childPage.pageTitle,
+          depth: task.depth + 1,
+          requested: false,
+          discoveredFrom: record.pageTitle,
+          discoveryIndex: childIndex
+        });
+      }
     }
-
-    for (const [childIndex, childPage] of record.childPages.entries()) {
-      queue.push({
-        pageTitle: childPage.pageTitle,
-        depth: task.depth + 1,
-        requested: false,
-        discoveredFrom: record.pageTitle,
-        discoveryIndex: childIndex
-      });
-    }
+    publishProgress({
+      phase: 'crawl',
+      message: `fetched recipe page ${record.pageTitle}`,
+      current: records.length,
+      total: records.length + queue.length,
+    });
   }
 
   return {
@@ -417,7 +455,7 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildMarkdownReport(payload) {
+function buildMarkdownReport(payload, outputJsonPath) {
   const lines = [];
   lines.push('# Terraria Wiki.gg zh recipe crawl summary');
   lines.push('');
@@ -429,7 +467,7 @@ function buildMarkdownReport(payload) {
   lines.push(`- Recipe pages: \`${payload.summary.recipePages}\``);
   lines.push(`- Recipe tables: \`${payload.summary.recipeTableCount}\``);
   lines.push(`- Recipe rows: \`${payload.summary.recipeRowCount}\``);
-  lines.push(`- JSON output: \`${path.relative(repoRoot, options.outputJsonPath).replaceAll('\\', '/')}\``);
+  lines.push(`- JSON output: \`${path.relative(repoRoot, outputJsonPath).replaceAll('\\', '/')}\``);
   lines.push('');
   lines.push('## Crawl order');
   lines.push('');
@@ -513,4 +551,16 @@ function buildMarkdownReport(payload) {
   }
 
   return `${lines.join('\n')}\n`;
+}
+
+function isDirectExecution() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+}
+
+if (isDirectExecution()) {
+  runRecipePageCrawler().catch((error) => {
+    console.error('[fetch-wiki-zh-recipe-pages] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exitCode = 1;
+  });
 }

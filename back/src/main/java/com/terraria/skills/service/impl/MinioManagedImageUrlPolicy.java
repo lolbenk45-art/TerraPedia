@@ -72,6 +72,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
             : connectionDetails.objectPrefix();
 
         for (String objectPrefix : resolveTrustedObjectPrefixes(defaultObjectPrefix, properties.getManagedImageObjectPrefixes())) {
+            addRelativePrefix(prefixes, resolveBucket(), objectPrefix);
             for (String legacyOrigin : legacyImageOrigins()) {
                 addPrefix(prefixes, legacyOrigin, resolveBucket(), objectPrefix);
             }
@@ -255,6 +256,20 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
             pathParts.add(normalizedObjectPrefix);
         }
         prefixes.add(normalizedEndpoint + "/" + String.join("/", pathParts) + "/");
+    }
+
+    private void addRelativePrefix(LinkedHashSet<String> prefixes, String bucket, String objectPrefix) {
+        String normalizedBucket = trimObjectPath(bucket);
+        if (normalizedBucket == null) {
+            return;
+        }
+        List<String> pathParts = new ArrayList<>();
+        pathParts.add(normalizedBucket);
+        String normalizedObjectPrefix = trimObjectPath(objectPrefix);
+        if (normalizedObjectPrefix != null) {
+            pathParts.add(normalizedObjectPrefix);
+        }
+        prefixes.add("/" + String.join("/", pathParts) + "/");
     }
 
     private String normalizeEndpoint(String endpoint) {

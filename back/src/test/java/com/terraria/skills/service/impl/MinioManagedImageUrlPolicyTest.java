@@ -89,6 +89,8 @@ class MinioManagedImageUrlPolicyTest {
 
         assertTrue(policy.trustedManagedImageReadUrlPrefixes()
             .contains("http://localhost:9000/terrapedia-images/items/"));
+        assertTrue(policy.trustedManagedImageReadUrlPrefixes()
+            .contains("/terrapedia-images/items/"));
         assertFalse(policy.trustedManagedImageUrlPrefixes()
             .contains("http://localhost:9000/terrapedia-images/items/"));
     }

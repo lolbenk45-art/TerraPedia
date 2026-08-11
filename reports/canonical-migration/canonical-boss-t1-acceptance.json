@@ -1,0 +1,1367 @@
+{
+  "profile": "t1",
+  "runId": "npc-t1-boss-20260807-07",
+  "runKey": "npc_f134b93b1315c28e",
+  "databases": {
+    "local": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_local",
+    "maint": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_maint",
+    "relation": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_relation"
+  },
+  "redis": {
+    "host": "127.0.0.1",
+    "port": 16380,
+    "logicalDb": 2
+  },
+  "serverIdentity": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf"
+  },
+  "snapshot": {
+    "snapshotId": "npc-t1-boss-20260807-07-readonly-snapshot",
+    "snapshotHash": "sha256:ff25e0c2ed89be2e8f04a73abb9d50a1f73ea158e40aeb6f84bfe8c5daa5815f",
+    "tableCount": 129,
+    "tables": [
+      {
+        "role": "local",
+        "table": "armor_set_items",
+        "maxRows": 25,
+        "sourceCount": 501,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:7e2bb3677388fe71ffe2d24c4cba13942560aede4d362ccee0c9b3ae78def2b4",
+        "schemaHash": "sha256:65c804508c26a810faec10b09e86319983e002881ded45adc3d536886c68f875"
+      },
+      {
+        "role": "local",
+        "table": "armor_sets",
+        "maxRows": 25,
+        "sourceCount": 151,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c7b3a2e79b19d7a39d27a1c90aeed0dfccc3ed8892ee9a9e51b9b67ba940a05d",
+        "schemaHash": "sha256:8e3f80be54854bc0f2686cea545da0cd2d1aa96123a9fbacb083f2fd328ffba1"
+      },
+      {
+        "role": "local",
+        "table": "audio_asset_links",
+        "maxRows": 25,
+        "sourceCount": 428,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ec5789bc9d6dfde5ed4015f66ab9b967023887eb38654ad673f9c581b94e17cd",
+        "schemaHash": "sha256:8854f47a809328de21f9dfc360ae829d398ade3da1a94d46837ffdd9aa016da0"
+      },
+      {
+        "role": "local",
+        "table": "audio_assets",
+        "maxRows": 25,
+        "sourceCount": 428,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:dc81ab019d8001aa34f8a427b97ea9e8fcc5011108167e23cd043d5340181ec0",
+        "schemaHash": "sha256:9dd0a0ff6360aef293e0015a82d93761dda5186ed07aa670ce4295ffdbd2b265"
+      },
+      {
+        "role": "local",
+        "table": "biome_relations",
+        "maxRows": 25,
+        "sourceCount": 14,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:1c59ea47d1e8a6770e07aa03e17b3fd1b2152d151369232f42308a10af3c467f",
+        "schemaHash": "sha256:0c0d8dab55b21a8a1b89a096ff7b30ca81a22387b0bafa61375c082f8d67bf3a"
+      },
+      {
+        "role": "local",
+        "table": "biome_resources",
+        "maxRows": 25,
+        "sourceCount": 1204,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:bb8ebce22989b8c2ffaddaccf415b64eb52799842a0362e16e0e8b001198029a",
+        "schemaHash": "sha256:15a187acdb488cadc99d9bec7f7a6b65b861aca21f08aca989f6353903e9ed5c"
+      },
+      {
+        "role": "local",
+        "table": "biomes",
+        "maxRows": 25,
+        "sourceCount": 48,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c70416fd57460fe794b9ab96d751e7d846b34603c15963a3d67a39f9fc4a40d6",
+        "schemaHash": "sha256:1ee94b0dc9d6f6794b52973f08286d8cfeaf64618f699a7bcba4b8093c4a026e"
+      },
+      {
+        "role": "local",
+        "table": "boss_groups",
+        "maxRows": 25,
+        "sourceCount": 33,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:bfd4f79820efe4b0339645a68753e7693e14e62d670a4183b5c99d33678a64c3",
+        "schemaHash": "sha256:186effb9fd173ce9548ff4d9df24ae401b52a2eb32ab208d6d4de0aa6a975108"
+      },
+      {
+        "role": "local",
+        "table": "buff_source_items",
+        "maxRows": 25,
+        "sourceCount": 380,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:144e7c2d2e613e19a118474e72fc09a42420932f1f753c31b2b733a60fb1cc1c",
+        "schemaHash": "sha256:61bae8d49a2368873243f059cbaf83f1fabbfd6aa4680779b985f77faf8a5510"
+      },
+      {
+        "role": "local",
+        "table": "buffs",
+        "maxRows": 25,
+        "sourceCount": 388,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:3f4732abc94a7aa893b09d9035d55f4320eb700ebad5dc992064884014cb2a57",
+        "schemaHash": "sha256:bbda8f166779fefc629c03d9cd7249284891f1f5275a3d30c2bfb7168e9869cc"
+      },
+      {
+        "role": "local",
+        "table": "category",
+        "maxRows": 25,
+        "sourceCount": 110,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:21d7cd411448359082e85332318a482427b4e740f18772d80f08b43fe4c02032",
+        "schemaHash": "sha256:83a62060d02f14852fd93fc53f83b85d2f8a23c2649d02831c865ddcc3fb3a2e"
+      },
+      {
+        "role": "local",
+        "table": "condition_terms",
+        "maxRows": 25,
+        "sourceCount": 7,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e5449972231c2893236fa745386bddd1f95bcd4188ef7af80655e430765df38e",
+        "schemaHash": "sha256:450509f9619cc273fe896085de42179fc0e61f67b5ea7b1f61a2be6ae4674077"
+      },
+      {
+        "role": "local",
+        "table": "crafting_stations",
+        "maxRows": 25,
+        "sourceCount": 73,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:f4d459adaaa45ac4613c374deb886c5d3299ad9898bc88d409f1f96f3af2ca4d",
+        "schemaHash": "sha256:b165ede300911a62d896952affd9492f35e031e37c94d4cb264da82b8b8728c4"
+      },
+      {
+        "role": "local",
+        "table": "entity_source_snapshots",
+        "maxRows": 25,
+        "sourceCount": 6317,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:b4b83a9eabd3d37d778635c2e0e94a664d17506d9f591d1f758d317e8e4dde73",
+        "schemaHash": "sha256:1810eadbaa4c8fe17eb06a7288669853d9328ea3b96863c0d925ddcb290a1b0b"
+      },
+      {
+        "role": "local",
+        "table": "item_acquisition_sources",
+        "maxRows": 25,
+        "sourceCount": 8857,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:f4cc90e350aa3b86b279195530656ac43a22b9b5a5e6cb06b9eb2542d4e6f6e2",
+        "schemaHash": "sha256:d7fc500109a836d409b22ef1a3528b8044747d753e8b3ec5d5d8e94b32929af1"
+      },
+      {
+        "role": "local",
+        "table": "item_biomes",
+        "maxRows": 25,
+        "sourceCount": 1519,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8d6fc1024410aa6b9ed6ac794314006a1c873277b26a33225b281e4edd0602e8",
+        "schemaHash": "sha256:54cba1fbef79225fe600bc9894aec153ec7104c82def529d400700de8279db0e"
+      },
+      {
+        "role": "local",
+        "table": "item_category_rel",
+        "maxRows": 25,
+        "sourceCount": 13535,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:338cfcb48045ba3c8b57cf66f1923c8f3053082bb2ca9c4ff0f8b06871d74a0e",
+        "schemaHash": "sha256:78109955638f6d754a2e6b540bd205a544be92c534ce44a4f83fa792a9abd625"
+      },
+      {
+        "role": "local",
+        "table": "item_group_admin_audit",
+        "maxRows": 25,
+        "sourceCount": 0,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:1a12fdec10ebba9e8ee1f8d7d1c600d64cc59aea81970a03351909fa37989dd4",
+        "schemaHash": "sha256:800989499e769061b5cdea7bb5a89713fc5075e2d1d3cf68c8a1381091ebd80f"
+      },
+      {
+        "role": "local",
+        "table": "item_group_aliases",
+        "maxRows": 25,
+        "sourceCount": 70,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:f2efa31006fdee4d0137d67ec7fb46372a214a4d87fec8627c9f1d521e0233db",
+        "schemaHash": "sha256:c7c5461d5ae78d65158f09f505dbe0bd8ded284d28b3aadce35321d5e0e47f6c"
+      },
+      {
+        "role": "local",
+        "table": "item_group_members",
+        "maxRows": 25,
+        "sourceCount": 161,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:5e4311c9d19824f828fb889844aa372c4073ec860b8bc3bd4ec5d81f8e9b6b8f",
+        "schemaHash": "sha256:99ec398dbea50f969662ae1c6dcfc2f2ee60b6c75cd9ee6def3dbc413df73581"
+      },
+      {
+        "role": "local",
+        "table": "item_group_projection_state",
+        "maxRows": 25,
+        "sourceCount": 1,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:4552f1ca589ea9e689b11dc4469e0c9985c76749008f0143f56e22aa35ab2e07",
+        "schemaHash": "sha256:8d7c4e9050a50dc7c232681ccc77feceab95758c7f2af4dc8435476b66ca4eaa"
+      },
+      {
+        "role": "local",
+        "table": "item_groups",
+        "maxRows": 25,
+        "sourceCount": 34,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8f80209035670c21395d7f74541f4a648680e0c45de4d4bb8a25b1b6db71d022",
+        "schemaHash": "sha256:6e43bd53f09ae4aa9094ae46dcde4c4894b15f2597571b34b7c3952fdc6777a4"
+      },
+      {
+        "role": "local",
+        "table": "item_images",
+        "maxRows": 25,
+        "sourceCount": 9900,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:200d47b6b1de05079d1f0752f68d623dbe1da2b4f6dc44eb374b0db227ce9ffd",
+        "schemaHash": "sha256:5ef909f0bccaa4ce3df45ededfce2a5b72396db98ccf06b0c915388ef56180da"
+      },
+      {
+        "role": "local",
+        "table": "items",
+        "maxRows": 25,
+        "sourceCount": 6159,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:5ce774116193c506b1beef51b5de772566431e070a37fd43fb3b04474639d419",
+        "schemaHash": "sha256:70a2dca32b1437881f93cf47d3cdca6022dede45e502476850344d3740fca54a"
+      },
+      {
+        "role": "local",
+        "table": "npc_biomes",
+        "maxRows": 25,
+        "sourceCount": 229,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:b046738a3b13ca4cdb48aa7b03ac249a582f2174b5c2d2af0a1179b47b677b96",
+        "schemaHash": "sha256:b115b91281e635c9c1ad58bb8fae42d6adbe23a27f754a342dc99031de28075d"
+      },
+      {
+        "role": "local",
+        "table": "npc_buff_relations",
+        "maxRows": 25,
+        "sourceCount": 1270,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:b805ebe8380ee293a92fdda30ca59cad47bee92b209b75ef9f4d5ea5c596663d",
+        "schemaHash": "sha256:b8e3773f5155983c8e457c3ebd1faaea15d2d8f6bdd482cc06e7021bffcff9a3"
+      },
+      {
+        "role": "local",
+        "table": "npc_loot_entries",
+        "maxRows": 25,
+        "sourceCount": 1880,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:d843aac766917893e99bb1c5f905e8adc59087d78d0f3bbdac3f10933efa56c6",
+        "schemaHash": "sha256:520241ba260556fa573cb8c6b964332e04abe15469ef6b64f34cf31f9016e5a5"
+      },
+      {
+        "role": "local",
+        "table": "npc_shop_conditions",
+        "maxRows": 25,
+        "sourceCount": 257,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8e904aedef266497b4e56739b243a890b50d58c9a231e580b150e40852e7e548",
+        "schemaHash": "sha256:2a68dc16fab570f36768ac560b1785b01465b98f11d42a11bad2d3acdcb85c94"
+      },
+      {
+        "role": "local",
+        "table": "npc_shop_entries",
+        "maxRows": 25,
+        "sourceCount": 1116,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a4f29e4e43fcce7b90aaab3353eee0c7caea51a747424fb5e60efb17a783fdd1",
+        "schemaHash": "sha256:0789cae5015a161355d827a80c44b6a82ed882df0c17c178438ac8fbe975c5e2"
+      },
+      {
+        "role": "local",
+        "table": "npcs",
+        "maxRows": 25,
+        "sourceCount": 762,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:63aedad253b8f02dbab44e53a5d144885ca03d463aba84968d3eff6ea468dc54",
+        "schemaHash": "sha256:abcaeb1353e81d54ec01772f563a06483a604bd7be32b4b8d4f5300d0daecee6"
+      },
+      {
+        "role": "local",
+        "table": "projectiles",
+        "maxRows": 25,
+        "sourceCount": 1111,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:4454ea900deae51ac26dd776c0d6a10a4349da4d0f7a0c7c79867b46cc651ce3",
+        "schemaHash": "sha256:f253323659c98971d45cce52e2ee84ddd1e9ed29aadd099052b2e207905b2d18"
+      },
+      {
+        "role": "local",
+        "table": "recipe_context_requirements",
+        "maxRows": 25,
+        "sourceCount": 0,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:69510e99a76d62c669f5594f825453313cc76551467bcd1e5c64183b5638140e",
+        "schemaHash": "sha256:1ab7930c24700405b6c392149453b210846a592dac3e92da25e2c6fd22c479e0"
+      },
+      {
+        "role": "local",
+        "table": "recipe_ingredients",
+        "maxRows": 25,
+        "sourceCount": 19601,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ba53a08cdad9ebc5306f07b975cca687491d786d598209cdf9ef4e43b42fe5ea",
+        "schemaHash": "sha256:4d4334af64f8f1f7b99a345eb34bbfdf8674ca1e2ccbef9ce1e7a691472700dd"
+      },
+      {
+        "role": "local",
+        "table": "recipe_stations",
+        "maxRows": 25,
+        "sourceCount": 15195,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:d7aea9763c868935f1a2791863098a94aa32eb04951ee233442dceadaa3da452",
+        "schemaHash": "sha256:7e8f181fd8dbbeb257b55f8750ad80ff9e533430f8212bc7dadf33e8d21797c9"
+      },
+      {
+        "role": "local",
+        "table": "recipes",
+        "maxRows": 25,
+        "sourceCount": 11658,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:786975597193b5e481a1b18ce60e6c11723588815c4c869448ebbcc75327590a",
+        "schemaHash": "sha256:9d1c3f1aac41c369068206710ee699c4d349fb2e716c1ddff17e9dd8bcbb2b25"
+      },
+      {
+        "role": "local",
+        "table": "shimmer_decraft_rules",
+        "maxRows": 25,
+        "sourceCount": 248,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:9f58f5c1a8e4c58ccb0c82bdb438647295bc8df863e44a499b85f718cd5f27f2",
+        "schemaHash": "sha256:3d73fabbbdfdb9ae6a6607ea62369188e32d3715d9b5595611c6522eca0fa5f2"
+      },
+      {
+        "role": "local",
+        "table": "shimmer_entity_transforms",
+        "maxRows": 25,
+        "sourceCount": 121,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a2ddebed881416ddcf990131ffbbd0fcd747c2325513b469968391fc84a327ec",
+        "schemaHash": "sha256:8560944ea64c8065fa9ca41cc226edfad67a56d6628c79d653654a6237a23eb1"
+      },
+      {
+        "role": "local",
+        "table": "shimmer_item_transforms",
+        "maxRows": 25,
+        "sourceCount": 279,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ac06046992ff317981c77749bc1028e03f361bfdeee85f55c4798c85566d3d4d",
+        "schemaHash": "sha256:7ce785a7f9b621559edbce80229a4b3a15f20a9c238b2c3208bc57bc3ea301cb"
+      },
+      {
+        "role": "local",
+        "table": "shimmer_npc_transforms",
+        "maxRows": 25,
+        "sourceCount": 29,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:7f79e4ce271ac78b2369680f1ea08647806ba3be3d203c2b172a3a150c4d9698",
+        "schemaHash": "sha256:129dcd72b857246f6bb2b5b6220287242d639d13ff8144cdbe4ec7074ed739e6"
+      },
+      {
+        "role": "local",
+        "table": "source_dataset_landings",
+        "maxRows": 25,
+        "sourceCount": 12459,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c984ba3f4de65dfc8638ed481e801e9e1d7c2e2eba1ccd923f3bd1d34cd18d8b",
+        "schemaHash": "sha256:987babbbd5e858d0727f01e649b62d2aa7acc9e9aa8a68b6fb1095764aa1dee5"
+      },
+      {
+        "role": "local",
+        "table": "world_contexts",
+        "maxRows": 25,
+        "sourceCount": 44,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e7c2ea85a4fbec343885b0bf0792b649967dceb19e3f7db050673dcfcf26c99e",
+        "schemaHash": "sha256:c9f5f7b2082fa01fbd899a016246851eac8a45a91a205df63616733db097ca0a"
+      },
+      {
+        "role": "maint",
+        "table": "maint_armor_attribute_rows",
+        "maxRows": 25,
+        "sourceCount": 230,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:7559dc8013608fc4f5ee50dec6af175c1fee8d298dfc4d65e59dc8a1c2b49b8a",
+        "schemaHash": "sha256:5dd68215970f936f0f2acd67a617dbb103803690374bd1dcfb05c9d0b5c97929"
+      },
+      {
+        "role": "maint",
+        "table": "maint_armor_set_images",
+        "maxRows": 25,
+        "sourceCount": 175,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:2fc3a11a19b40ba59953836184528b8f3faa561096a681eee90f05af26b8705e",
+        "schemaHash": "sha256:8516e8337072d2823808822480999438099a0da2b5af693108707ff72e86388d"
+      },
+      {
+        "role": "maint",
+        "table": "maint_armor_sets",
+        "maxRows": 25,
+        "sourceCount": 63,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e6e3d7a2e47b3a5d048d34784ccae69a2f3f790fab51bff0cbe014efdfe6191c",
+        "schemaHash": "sha256:85987c8471a83f75175052518821e9b0295cbd4b83b28c4fb95f856a3bd999d6"
+      },
+      {
+        "role": "maint",
+        "table": "maint_backfill_candidates",
+        "maxRows": 25,
+        "sourceCount": 432,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:47f32b4f9f88993561039ccad60295f82bb008fa6f6aca62c9998fed8fd0c0e6",
+        "schemaHash": "sha256:0c0bfcce9e6c8ef4a4438880f923b734deaf1080f5f89d999664293232b64fe0"
+      },
+      {
+        "role": "maint",
+        "table": "maint_biomes",
+        "maxRows": 25,
+        "sourceCount": 54,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e33cc2b73bbe34fc03a1d3642b648ef5ef0eec855828f12b7377acda6cd578b4",
+        "schemaHash": "sha256:b6797db61338b82669a0874ba1df9e2196ea4d99aa5e2b9f265d91acbe9b78ee"
+      },
+      {
+        "role": "maint",
+        "table": "maint_bosses",
+        "maxRows": 25,
+        "sourceCount": 33,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ac89d81434c439a8464feb7c01c80a3f3eaa01dec2af2c269980ddf9fd45b693",
+        "schemaHash": "sha256:97f23d9df8313534616c65a016a930162f56b999a5083c59b8de769269e7b3bd"
+      },
+      {
+        "role": "maint",
+        "table": "maint_buffs",
+        "maxRows": 25,
+        "sourceCount": 388,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:229ba100ec8937ba3a78eb888f81ed18b904c5f17a98ae4d1a83c1b6924a01f3",
+        "schemaHash": "sha256:774176f1550f80d47bc3cd5840ecc2016201a8432f057018fa4cb1a2050803ca"
+      },
+      {
+        "role": "maint",
+        "table": "maint_categories",
+        "maxRows": 25,
+        "sourceCount": 6,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:19026854f3b4de6bdbeb82d067d369958d1235c434ac51c4739781f8b1f7bf8c",
+        "schemaHash": "sha256:331402ab0c5ce67ea6d0684acffb9f9bdb57f048dfe8c04491b088a886bf7b77"
+      },
+      {
+        "role": "maint",
+        "table": "maint_category_nodes",
+        "maxRows": 25,
+        "sourceCount": 0,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:4ae2902577fde94866d288532d1a7a71f7570a861d6f92cd62c0b0ec33a07212",
+        "schemaHash": "sha256:392b854ff3dc049caf24c29d58b3c3f4d1803f11c75ed3642b75b4c74bc45000"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_biomes",
+        "maxRows": 25,
+        "sourceCount": 364,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a863807ea6c17973b1990afdea18369d9baff3358b299f52fadcb746706f3bb7",
+        "schemaHash": "sha256:6e1966bd5bdd60a0174549b685152d9712070d428977f8198e8dd6b5b0b69c09"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_categories",
+        "maxRows": 25,
+        "sourceCount": 2047,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:df33c1d06417ba7d6e4b4da63afd7bf387c9072b02f6486a02679ac9c7b9b6bf",
+        "schemaHash": "sha256:4daa304ca688c43f6d599d5968cfe269ac8fda97546b98291dc279458cd12987"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_category_assignments",
+        "maxRows": 25,
+        "sourceCount": 0,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:f55235e623523f56d712401841a2c956a5f7611096453c2d95fb2bf71641c1a2",
+        "schemaHash": "sha256:cf50e5aa3eb8fb94679616ba6c1cc177b236cd5ddfb06910a486130c774cc786"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_group_aliases",
+        "maxRows": 25,
+        "sourceCount": 72,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:85a1e3783cf06b41d8dc6059301135e010566769e69198f49484c23ba3a72e59",
+        "schemaHash": "sha256:2343e6cd58997d50b2ab4ee4d3c362ebc9fa43d75f2c3ef2ca8bb0bf9b885206"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_group_member_exclusions",
+        "maxRows": 25,
+        "sourceCount": 2,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c5d086dca50d1e0d12e67ef6c3b4a08812e7285c706644b82fa2ed6b7b2913f6",
+        "schemaHash": "sha256:2380da3311ccbac37ec96acf5bcc8d5a9f7491b2139b2a79cf9a550b7368c139"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_group_members",
+        "maxRows": 25,
+        "sourceCount": 163,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ef0bbe92522a63fed11bd8417946f5e17803e699b8e48032a47ac14456079f0e",
+        "schemaHash": "sha256:83ddcb39d033ee03894f76d6b2cbe06d9cbe20157df0521c9b6bf09c820734be"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_groups",
+        "maxRows": 25,
+        "sourceCount": 35,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:325c7465b341f5172a373c11e020c2e30e64b59c34fff2d7b7c3aaf4616dd96e",
+        "schemaHash": "sha256:304f4eb6e9eb804dded662fefd53f8334c2872940418d4c7894cb14666a559ed"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_images",
+        "maxRows": 25,
+        "sourceCount": 6131,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ac2408135daf64bab5bfb725d9ce8068c8a1c95b7b8df3e0bbf1617169fdd74a",
+        "schemaHash": "sha256:c761a853e3d3885fd1ced6b06503515febe91c40c317cd50810893afe5cac2d3"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_numeric_overrides",
+        "maxRows": 25,
+        "sourceCount": 6131,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:310619c3a969e9bd045e732b161932694d84bbeca6f2af4046952929f02d82d0",
+        "schemaHash": "sha256:73f852de87faabc6ea96d6099974dfd52472ea899047656815261b26cd284142"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_page_recipes",
+        "maxRows": 25,
+        "sourceCount": 2291,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:0bde7fc97f5c1a4b227182eb048572fa8e62e4629c1dd44360ae048c53b34f3f",
+        "schemaHash": "sha256:81bcc31d593a3c5c2e5a28f9090325dba9682c8833cc40ac4fbd62eb559465a6"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_pages",
+        "maxRows": 25,
+        "sourceCount": 6131,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e924b2885521523f2c2b1f6594c1cf7a7d497bebde3b8b3a4e8396eb4924b049",
+        "schemaHash": "sha256:bedeca37987b35dc62e96145767cc3253ad73c217dca806379d56cf5ec297547"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_rarity_overrides",
+        "maxRows": 25,
+        "sourceCount": 6131,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:069afcba580a1fdf3f47f8edc035f14f463a44068a79b31b51985c66f1b4a6f1",
+        "schemaHash": "sha256:17a420e5751c5249ad1887daf8fd0e4421bf7377fe696947953f624eb3e0ef83"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_recipes",
+        "maxRows": 25,
+        "sourceCount": 3203,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a7d4f091dd7c72f5580df43fefed6a7d466bef9993406092926f6ff9a3118786",
+        "schemaHash": "sha256:ea2375a0714a74ef5690bbdcb664568aa3fd5c3b88219f087f1df45ded1a3c56"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_sources",
+        "maxRows": 25,
+        "sourceCount": 6223,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:0eda83792836487860b05156ecbdc75665f75bf48d4883cbf0ed91fa9532b68d",
+        "schemaHash": "sha256:ed34c579e53d76776dcfac9cc8a58311d93cdd1869404d60068d7a9bcf51f5b4"
+      },
+      {
+        "role": "maint",
+        "table": "maint_item_text_overrides",
+        "maxRows": 25,
+        "sourceCount": 6,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:63b7d8301e580a38ab9f39128351fb33f4e6fecde870ede688a33c50345fa3ba",
+        "schemaHash": "sha256:5ec60dd6a88b855e3cd00dd05ef818e7a93ce0942f00252e158c58236885fd1b"
+      },
+      {
+        "role": "maint",
+        "table": "maint_items",
+        "maxRows": 25,
+        "sourceCount": 6146,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:3b8f87def532a6273100fcf85f5ae696cd802090f48ed39884b8f00c95a77cf4",
+        "schemaHash": "sha256:1b232f72d6000044057242df3c433917ea0951536234590d757401abd92ad4a3"
+      },
+      {
+        "role": "maint",
+        "table": "maint_npc_crawler_facts",
+        "maxRows": 25,
+        "sourceCount": 25,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c23480726c07c4a522102cf0b3e943d5c3ef93986c52b3142afa024079e14f99",
+        "schemaHash": "sha256:dc40964f0caa28a36c7aed056189264891612bdd7e79f1c866a769cdbc96aa65"
+      },
+      {
+        "role": "maint",
+        "table": "maint_npc_images",
+        "maxRows": 25,
+        "sourceCount": 1516,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8a4e208e816a033841208d227ff7a5b52b11c90512e743a832a5c5798e023927",
+        "schemaHash": "sha256:b7db719d4d842d13ff87eaf7776103f90851f3231c48d86dabd026ec39cac75c"
+      },
+      {
+        "role": "maint",
+        "table": "maint_npcs",
+        "maxRows": 25,
+        "sourceCount": 762,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:d009d4eb6e58be07c72d44a85dd3ad58b05862bdd7403a0558dbdc773f370b48",
+        "schemaHash": "sha256:7d62fc0f2c2a95ebc6f09a75cb3de94d64f38e2268589019765eb6258b76c35b"
+      },
+      {
+        "role": "maint",
+        "table": "maint_projectiles",
+        "maxRows": 25,
+        "sourceCount": 1111,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:5d4cb33302ec73ee4a5b464d6640bd5c07e2538bd794d0f4c259c7a13f18ab02",
+        "schemaHash": "sha256:f18a543cc5af57e9f6366da4dc0ad8ed60eede754422327c7c8192341bc82529"
+      },
+      {
+        "role": "maint",
+        "table": "maint_recipe_page_recipes",
+        "maxRows": 25,
+        "sourceCount": 3663,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:918b3a31d15faaf4e6614a80abe858d8b20335dd5a6f519ae3f431e3e0584fb2",
+        "schemaHash": "sha256:b26ed7e893cda85a1ae8283c103a70e533179e7efba423876bde07b14ceaddb0"
+      },
+      {
+        "role": "maint",
+        "table": "maint_recipe_pages",
+        "maxRows": 25,
+        "sourceCount": 41,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a59dd525768a2a1b3e4e1f622eca3d7b481852ef3d18d0200f3164ecbac2ae3e",
+        "schemaHash": "sha256:87e943705519b91b44d8fa89e4bbf977edfe2c88cff1e26edd0ebb09ce4fd12c"
+      },
+      {
+        "role": "maint",
+        "table": "maint_shimmer_decraft_rules",
+        "maxRows": 25,
+        "sourceCount": 248,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:efa273aaa31b35ce314dd806ff6c657b55e2873cec9e81a0538f59af7fad6bb2",
+        "schemaHash": "sha256:32c11777dacb7f2053dc85f45a8e592cbf6d08fcb51bc8c4ce28a42bd427eb50"
+      },
+      {
+        "role": "maint",
+        "table": "maint_shimmer_entity_transforms",
+        "maxRows": 25,
+        "sourceCount": 121,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:bdfce66449b1bbb4f2a600ab428938123e5aed72fc61966e3f04c9b874adf11d",
+        "schemaHash": "sha256:35304ab599db30eb84433dfa7364d69b6c8b9499e2d10ebda317cf703593b50a"
+      },
+      {
+        "role": "maint",
+        "table": "maint_shimmer_item_transforms",
+        "maxRows": 25,
+        "sourceCount": 279,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:b6f3dc33ea9172db2b48ed1a7b8db73f21e3130aad3ba6713214b8231c16550b",
+        "schemaHash": "sha256:bf7bedd1222ee55a883f295cc7f2a6bd4b1de686842ea8a458982300bebc4e2b"
+      },
+      {
+        "role": "maint",
+        "table": "maint_shimmer_npc_transforms",
+        "maxRows": 25,
+        "sourceCount": 29,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:2f2ce271eb48dcfee63b3d58976ff4938c6ebe95825c1dd8bf5a503e4bf16125",
+        "schemaHash": "sha256:148142b119969d0a29b955038e3e7d34e4426dc5104e14923b7ebb4223079cd7"
+      },
+      {
+        "role": "maint",
+        "table": "maint_shimmer_pages",
+        "maxRows": 25,
+        "sourceCount": 1,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8d21988bdf54f15a06f60a245dd5d0a8b21f2a949ef07f8e0b73227efa484b00",
+        "schemaHash": "sha256:ad645827ef149a2d8f609b2ac10c9443610a3eabeaa114de12dd0721608da7de"
+      },
+      {
+        "role": "maint",
+        "table": "maint_source_snapshots",
+        "maxRows": 25,
+        "sourceCount": 6138,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:91a7a16d41b61a7dc107a8bc63a6c03daaedd413cc8d90a70261e11ce4e73b13",
+        "schemaHash": "sha256:b32a1839ebf8b47d8444410757b1ddb93e04aff4e6c06dfc49663223f35b66fe"
+      },
+      {
+        "role": "relation",
+        "table": "boss_effect_relations",
+        "maxRows": 25,
+        "sourceCount": 11,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a7ce8fb6ac4dd18979a11ae1fed9770940cbadf6a8f99b14f370cc5390c03c6a",
+        "schemaHash": "sha256:6794fa9e68ba7c8424b6f085f1d12ef96ba0a1391dd692c10e8e73e439604a3e"
+      },
+      {
+        "role": "relation",
+        "table": "boss_item_reward_relations",
+        "maxRows": 25,
+        "sourceCount": 70,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:07032a3864d49c649d832bf07c27720509b078f62464dbaa65fd680883528e9e",
+        "schemaHash": "sha256:b46280fa6d984b785ea59ac95dd04e6a14ab108599798593ac51996c3f64ed44"
+      },
+      {
+        "role": "relation",
+        "table": "category_nodes",
+        "maxRows": 25,
+        "sourceCount": 2175,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:eef59dfe2a20571dd8417ccd1e5c91ee5455740128f3b764219befd661d21c64",
+        "schemaHash": "sha256:13da553cf924a6a337880fca7933adb732d0f601bd9072b14dfee66ad3da3cd1"
+      },
+      {
+        "role": "relation",
+        "table": "item_biome_relations",
+        "maxRows": 25,
+        "sourceCount": 364,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:061a239d0e8484596dd33d2c165add0e6a4ac90fe83dbd0b6ff917b4b4503454",
+        "schemaHash": "sha256:1557abe1272524c20ac3d59c31f7142eb8420674dd0473f56ae198ee6f0cc79b"
+      },
+      {
+        "role": "relation",
+        "table": "item_buff_relations",
+        "maxRows": 25,
+        "sourceCount": 394,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:d89e0833b627c025fdd70ea789284cb8008f6657137989178c1022f250bd0aa7",
+        "schemaHash": "sha256:e0e264dbfe224383f07dec492728f04e40c19647155089f94d37c419eb97ff95"
+      },
+      {
+        "role": "relation",
+        "table": "item_category_assignments",
+        "maxRows": 25,
+        "sourceCount": 1758,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:5685b74d72406dcb721091fa9c5503c9127105fde82cd98b6adcffaf7f8ce03d",
+        "schemaHash": "sha256:d9abe9d2982160fdca95c0eeee00bc0d845f008785bc002cb1a0e5dcd1a2af09"
+      },
+      {
+        "role": "relation",
+        "table": "item_npc_loot_relations",
+        "maxRows": 25,
+        "sourceCount": 1544,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:5baf0575e7b2db33061f4fc02409e1aa3e90602adde7c870c06896c2ff2b737d",
+        "schemaHash": "sha256:3c584bc512dd6dc6066c60aa9e958449ecc11af5edac4795771877b0cc96ea19"
+      },
+      {
+        "role": "relation",
+        "table": "item_npc_relation_audits",
+        "maxRows": 25,
+        "sourceCount": 3006,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:7cbf4d27c30e8bc1cb67e510d31b1bafa2db94bc8a9bd73fd17c11539d284c9a",
+        "schemaHash": "sha256:e893501fdba7d06b12d555c5e80d4d15d234447a97f74433e728a151648e0bbe"
+      },
+      {
+        "role": "relation",
+        "table": "item_npc_shop_relations",
+        "maxRows": 25,
+        "sourceCount": 1116,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e56f13ac7150e3ae2c8b4efd860757b615c9f95511377179d2b21f08a6689b76",
+        "schemaHash": "sha256:ba74e65bdca1f93aadbc88c0c709d56fe41c5bf3bd84e2d3bc24710213156211"
+      },
+      {
+        "role": "relation",
+        "table": "item_projectile_audits",
+        "maxRows": 25,
+        "sourceCount": 6141,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ab8e93acad5fa702af1b2e7267e8c124c2545fe2484b9d3d4c1af978e2ada642",
+        "schemaHash": "sha256:07764dec5ab5683043336cd794961194fab1daf69d71ac4df19b2d8694f9a51b"
+      },
+      {
+        "role": "relation",
+        "table": "item_projectile_relations",
+        "maxRows": 25,
+        "sourceCount": 720,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:07923a6a20dc55be9bbd4d4aabc48f3883d198d386b5125f672eb88041452333",
+        "schemaHash": "sha256:b841447035d45d6dd79ae5bc10cb96d20135dbd77710c31629d2c90931bc2be8"
+      },
+      {
+        "role": "relation",
+        "table": "item_recipe_group_expansions",
+        "maxRows": 25,
+        "sourceCount": 3107,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:361571e378a07696b9520b5ad7e23421e78e16cb16668218777d5b960423be56",
+        "schemaHash": "sha256:4fc431ed5228473337ba98256ae9733478df8377b724b1a3064d4d11b8766501"
+      },
+      {
+        "role": "relation",
+        "table": "item_recipe_heads",
+        "maxRows": 25,
+        "sourceCount": 7420,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a6b0154307271a338c5ce7a2ba6c9cbfc6f241e95b152ba5030af015b8adc5e5",
+        "schemaHash": "sha256:ef875861c8fde88837907a4c08db00cd85551648901ae7f406974025bb64ec8a"
+      },
+      {
+        "role": "relation",
+        "table": "item_recipe_ingredients",
+        "maxRows": 25,
+        "sourceCount": 12386,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:905f180eb7cda5435c8fd76ee05ac57836c8e8496301014431d8d39c50a3b172",
+        "schemaHash": "sha256:3d84fc8dfd2a91166a221a701bc564200ea5cf00d34147dab6d313e32883f845"
+      },
+      {
+        "role": "relation",
+        "table": "item_recipe_stations",
+        "maxRows": 25,
+        "sourceCount": 10177,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:70db146af6437d994bb417a8b5a23f3d083569817cde659a4f2f2cf5a7a65021",
+        "schemaHash": "sha256:e53144b4f55138b4c233eb6184c6b1b6159aaf47c3dd60891e76ba6d2213c615"
+      },
+      {
+        "role": "relation",
+        "table": "item_source_details",
+        "maxRows": 25,
+        "sourceCount": 5651,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:4437c424616c97452f246d8972d4c9ff9f268f19cd606a65542a17ae10aeaee7",
+        "schemaHash": "sha256:9f3992da385fd84c6d1cebd529d34379b73dc14a3e3d59f68efd5bd903212750"
+      },
+      {
+        "role": "relation",
+        "table": "item_source_facts",
+        "maxRows": 25,
+        "sourceCount": 5651,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c86a5d613867c50af8a6ae8d8d09b3d8840a8876b1ad5d17a5cbcf1d0078f4f5",
+        "schemaHash": "sha256:b8a5defbdf3f71ffd5320da40e123481a0487e9cea1e6caea4aa72bdaa8c28f3"
+      },
+      {
+        "role": "relation",
+        "table": "npc_buff_relations",
+        "maxRows": 25,
+        "sourceCount": 1270,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:12b8e55672ac7ae78dbf95fe935944ea9f8162e434a68f36efb656282a3b174c",
+        "schemaHash": "sha256:3e1798f3fff3cb52e8edbf92a7dac1307274e3aeee1aa8cc1703442f7f50e0bc"
+      },
+      {
+        "role": "relation",
+        "table": "npc_projectile_audits",
+        "maxRows": 25,
+        "sourceCount": 770,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:9041c7f6507aa121f744781bc2bcabfb51f83242eb2b275c7369f85634649378",
+        "schemaHash": "sha256:9f186bf7a0f78c8489c6dbd5e78ca1e2211c0b1d0b90b8bcb9c36373eca7c310"
+      },
+      {
+        "role": "relation",
+        "table": "npc_projectile_relations",
+        "maxRows": 25,
+        "sourceCount": 32,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:58de1f070e8688d253b94e43898afa9eac33ae5bff5b0654cd81194cc2b2c452",
+        "schemaHash": "sha256:48b57ec633ff770f9c36d802e177cdd561f541d1c70350d60ebf30a555f12e75"
+      },
+      {
+        "role": "relation",
+        "table": "npc_series_item_relations",
+        "maxRows": 25,
+        "sourceCount": 224,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ee0b7ea900480a8bbfd7f88ba1d13813d615d2cd49d5ea02240a5841dea997ec",
+        "schemaHash": "sha256:e2474ddbe194623d87d8a60370cf63d2658a8b20dc8933b29a4d0135117728a8"
+      },
+      {
+        "role": "relation",
+        "table": "npc_series_memberships",
+        "maxRows": 25,
+        "sourceCount": 323,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8a1ac4f612f8ec167415cb40bee0f87f7ecca5b0b21c7fd40cf74e6af6eaba5e",
+        "schemaHash": "sha256:35af4ebbc4255401ee017601119dc90634c2a26232fcc3e45ce581ed53ece89c"
+      },
+      {
+        "role": "relation",
+        "table": "npc_series_nodes",
+        "maxRows": 25,
+        "sourceCount": 87,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e23ff297f96f57c87a9e82378f1aa6dad8b9f29f6f9f46762f3ac5d41f3614e6",
+        "schemaHash": "sha256:5af0560c0caec18f98da03a9c32b1f32290ddbb191b81d876825eead78db183c"
+      },
+      {
+        "role": "relation",
+        "table": "projection_armor_sets",
+        "maxRows": 25,
+        "sourceCount": 88,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:ec43b05764f01f12a973fb60a5205f6eae339e895141b5b69f3190d2f97deaf6",
+        "schemaHash": "sha256:e28c7ea0c95eb18ac8c1f72cec3269be7fd91b31a7e11c5db5e05c556215f90d"
+      },
+      {
+        "role": "relation",
+        "table": "projection_bosses",
+        "maxRows": 25,
+        "sourceCount": 33,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:dcbba6596b36101b84050c5af51220ca5c4920679262a65a88fcbec4b89710bf",
+        "schemaHash": "sha256:329d05e1e73a86bb81f8c06b4330c3bbe1cfcebdb75bb304ad748db6ad4561e3"
+      },
+      {
+        "role": "relation",
+        "table": "projection_buffs",
+        "maxRows": 25,
+        "sourceCount": 388,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:40f4e2e9144e2f2d4b34e6f9736bd7eec3258f59aa6d6d1e5c919653a2cd6ee9",
+        "schemaHash": "sha256:959e7ae5a2323ad7d9c400e652afaad2be798296b4993019055256a1cb167159"
+      },
+      {
+        "role": "relation",
+        "table": "projection_equipment_effect_attributes",
+        "maxRows": 25,
+        "sourceCount": 827,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:af090b5b06e774fc6835854824117de74671fa3aade6800954cfb771f21e6268",
+        "schemaHash": "sha256:024bcddf08369aff1894e629c005240e61e241a2f475dc17a6ef2edc4cec3739"
+      },
+      {
+        "role": "relation",
+        "table": "projection_item_armor_attributes",
+        "maxRows": 25,
+        "sourceCount": 246,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8a2280aef4117f862ba16d5b30483a674fa35ee36043fd7abba30a45269039c0",
+        "schemaHash": "sha256:b50988be1ddb7dce5c28e508022f4aa34a5c45da7e7795395e12d847a462c220"
+      },
+      {
+        "role": "relation",
+        "table": "projection_items",
+        "maxRows": 25,
+        "sourceCount": 6146,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e95ab89c4e02218fad55e151e49c11f633b7522f49698d885a5bbb5ca0aad204",
+        "schemaHash": "sha256:1702010d4bfaf555bf9b4e8f5b6513f0337c32d9ae625cf1253f207de3109574"
+      },
+      {
+        "role": "relation",
+        "table": "projection_npcs",
+        "maxRows": 25,
+        "sourceCount": 762,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:f6ded289c443f2aaeee63e262e9a3683faff724d45bf3a5b6642f443b1156777",
+        "schemaHash": "sha256:4319490de43f46b92b998e5e74da5969cad079f9810be03835f1878477fb0d10"
+      },
+      {
+        "role": "relation",
+        "table": "projection_projectiles",
+        "maxRows": 25,
+        "sourceCount": 1111,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:a60e9bf4f7d49ac6d13a29d057cff8e44b16e221b8c6d10dbb793e55ecaf4da5",
+        "schemaHash": "sha256:bb1d569cf850e9fc17495118a02acaae826c38d30a05109ba0fc3c16670b1ff4"
+      },
+      {
+        "role": "relation",
+        "table": "relation_armor_attribute_rows",
+        "maxRows": 25,
+        "sourceCount": 246,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:bfd1942373758420f2be447c8956df924d9edf17164170f8d50abcb594f19509",
+        "schemaHash": "sha256:cd8d0cfbf1c23ce3f82f4bf8fc34b95d79fe353364090a7ce9721962315fbd56"
+      },
+      {
+        "role": "relation",
+        "table": "relation_armor_set_images",
+        "maxRows": 25,
+        "sourceCount": 183,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c70bd65b379c8c4fbdbd68659138174edf921d897956382e516113667734fa0d",
+        "schemaHash": "sha256:366e3cdac0e908183d25e74369c3409beff43cf303811cf8f7250d4accd584f3"
+      },
+      {
+        "role": "relation",
+        "table": "relation_armor_set_items",
+        "maxRows": 25,
+        "sourceCount": 530,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:01b5b492b178a218400187d9f097e27ace3e47a0f3be89f10869ed084eb34ab6",
+        "schemaHash": "sha256:c17bc0ac607c4444e177ef3decd97ce9b6be3ee27dc0b5b7055ef934c2f7f4a7"
+      },
+      {
+        "role": "relation",
+        "table": "relation_armor_sets",
+        "maxRows": 25,
+        "sourceCount": 88,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:0b94a9383b46612894d5b1056bca1244b6f5c4ffec93f9cc53a0a13e3c818e65",
+        "schemaHash": "sha256:48ac0c6e2c4f1f23e0e30089be384369ba435ce786f046f6144f901efb927750"
+      },
+      {
+        "role": "relation",
+        "table": "relation_bosses",
+        "maxRows": 25,
+        "sourceCount": 33,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c521d0cbeebcf22c98a5e9b4b0144287213c262a6663ed236da4c185a4a50ba5",
+        "schemaHash": "sha256:80e354a6d43381df5d67320b00add4806e3568a970da3c1907fc3d99ab4e2591"
+      },
+      {
+        "role": "relation",
+        "table": "relation_buff_images",
+        "maxRows": 25,
+        "sourceCount": 388,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:07db588c8e0e24e603fc88020af374c70427ea49cf3192a1f1d9f95a1fd4387b",
+        "schemaHash": "sha256:a3ecbf50eee112aee5890b6439c853f84d5e7ce2a685cc5dcf2a826bb76e6430"
+      },
+      {
+        "role": "relation",
+        "table": "relation_buffs",
+        "maxRows": 25,
+        "sourceCount": 388,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:075ae4a549dc5d11947c7b59687922ca4c801ea91a7cb6ba86015a49e9161e4e",
+        "schemaHash": "sha256:7c67508c06154a00bd31ade3dc92feccc3f39bea8c53c9ca73f25296e652b781"
+      },
+      {
+        "role": "relation",
+        "table": "relation_equipment_effect_attributes",
+        "maxRows": 25,
+        "sourceCount": 827,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:dab2cd55e839078a1bd28c7009bbc3252ff053075980582e8de5d8133abb1226",
+        "schemaHash": "sha256:64671a2d1aac5dc9547646c19ad0583442cd1c2e7b0ad5bf2af6c00c2b7c7ec7"
+      },
+      {
+        "role": "relation",
+        "table": "relation_item_group_aliases",
+        "maxRows": 25,
+        "sourceCount": 72,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:0addc68030f36cac3a5efa8adca64f78ccb99281f7d2125542062d916f163e76",
+        "schemaHash": "sha256:98948be9341c45f188aa9b9763eef21fabc48616537d2ec9115a60d3883db926"
+      },
+      {
+        "role": "relation",
+        "table": "relation_item_group_members",
+        "maxRows": 25,
+        "sourceCount": 163,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:c04778b15b23650478b8db9574026e7668e5268b440445d212aa8330b5b52630",
+        "schemaHash": "sha256:726e069e8fcee5641ed12adced0f1caa02886d50f1756d65fd2e59ce32ec1233"
+      },
+      {
+        "role": "relation",
+        "table": "relation_item_groups",
+        "maxRows": 25,
+        "sourceCount": 35,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:8541198991f2f743df000bfbc00d9e88ef4fdd724e886272729f1a4a875e2c7b",
+        "schemaHash": "sha256:3c968ebb6cd4c384638ea465fcefcdcbad687e4ceecb51115377394721eebd37"
+      },
+      {
+        "role": "relation",
+        "table": "relation_item_images",
+        "maxRows": 25,
+        "sourceCount": 6131,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:9e2771cb2814b180d0dcf4038643e4e9d3323cb793d4184acc303cea9f879308",
+        "schemaHash": "sha256:9809f24c8fe02e5b8e4db305a4169a706c62e33eb640f455906101a57a58daa0"
+      },
+      {
+        "role": "relation",
+        "table": "relation_item_rarities",
+        "maxRows": 25,
+        "sourceCount": 16,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:2c46f70d2cdab5318e345db14b79a7a6a47ce7ca624c232ea7ab3d6a123ee0e2",
+        "schemaHash": "sha256:992c969d2c2c945f7c749db41bb0ab2609d1b1c5e035001c4d103b26d6ba2926"
+      },
+      {
+        "role": "relation",
+        "table": "relation_items",
+        "maxRows": 25,
+        "sourceCount": 6146,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:054f285e604829159489a83c216651388ea1aed9e7ec71c8959d33ab6ceacfec",
+        "schemaHash": "sha256:78fe4336a76a6b340609f27e3c99515824182402449b64d089fc4fd0d8324ce7"
+      },
+      {
+        "role": "relation",
+        "table": "relation_npc_images",
+        "maxRows": 25,
+        "sourceCount": 758,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:12ada4ee6c2045c0d833b949152bb691090a5f4348afc323736f119e51a61fab",
+        "schemaHash": "sha256:d4179f0e4537944fc34f270d59c17b595f8845f89915897f4b0272067af5cb44"
+      },
+      {
+        "role": "relation",
+        "table": "relation_npcs",
+        "maxRows": 25,
+        "sourceCount": 762,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:0401af0d62df3be80997190b32aa3fc8f923b46127a85aef4b17918d556a2d1a",
+        "schemaHash": "sha256:5046cb4f0dc968020bbbc1b200c54a6b8b5d30b5deb698fa4d8d35fbc37b5b22"
+      },
+      {
+        "role": "relation",
+        "table": "relation_projectile_images",
+        "maxRows": 25,
+        "sourceCount": 1110,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:279dd1c13c3b79bfecbfd0b3914d1751931831fe45488954e7b6da824cd44468",
+        "schemaHash": "sha256:73cfd920ff92424a57b048ac90dc5e6ca1ff35eb963459b196ef64d8a5cf05a2"
+      },
+      {
+        "role": "relation",
+        "table": "relation_projectiles",
+        "maxRows": 25,
+        "sourceCount": 1111,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:402e915ea18ccab3dfca8a8b95a0e062ae31ea1a99e2c3211e5cf8bb38c2d7cf",
+        "schemaHash": "sha256:3ab3c4e10dcc7f278f3173a731b334436a828ea91dd7dd272d4ab51ae4b65551"
+      },
+      {
+        "role": "relation",
+        "table": "relation_run_reports",
+        "maxRows": 25,
+        "sourceCount": 88,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:e7cfc1ee37febddd958813a691b27e042bcf5ac1f2aa4d5281c1a0c22fe58ccb",
+        "schemaHash": "sha256:8918e9173d578f585496d762c0cbf9d6ec4292d8bbaf09631928d7c159335eec"
+      },
+      {
+        "role": "relation",
+        "table": "relation_runs",
+        "maxRows": 25,
+        "sourceCount": 12,
+        "sourceAvailable": true,
+        "sampleHash": "sha256:29542dbe49fa972b607cc3b08daa493514436d4348bc9980116cc3fb06bfa454",
+        "schemaHash": "sha256:150fdc5b6171208499f94bf065372e6ff1c153fc9fe2f9f97105ddaee631cfde"
+      }
+    ]
+  },
+  "snapshotVerification": {
+    "verified": true,
+    "tableCount": 129,
+    "verificationHash": "sha256:f539cf15b1e717ed9f0930a345ab7a5f2da8a15d62286baccb6f229d02d4f389"
+  },
+  "snapshotBinding": null,
+  "probeCounts": {
+    "rollback": [
+      0,
+      0,
+      0
+    ],
+    "commit": [
+      1,
+      1,
+      1
+    ],
+    "restore": [
+      0,
+      0,
+      0
+    ]
+  },
+  "acceptance": {
+    "status": "passed",
+    "databases": {
+      "local": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_local",
+      "maint": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_maint",
+      "relation": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_relation"
+    },
+    "inputs": {
+      "boss": "scripts/data/boss/fixtures/boss-t1.sample.json",
+      "loot": "scripts/data/boss/fixtures/boss-loot-t1.sample.json"
+    },
+    "dependencySeed": {
+      "npcRows": 2,
+      "itemRows": 2
+    },
+    "maintDependencySeed": {
+      "npcRows": 2,
+      "itemRows": 2
+    },
+    "maintSync": {
+      "generatedAt": "2026-08-07T12:48:20.806Z",
+      "apply": true,
+      "scopes": [
+        "bosses"
+      ],
+      "rows": {
+        "total": 2,
+        "byScope": {
+          "bosses": 2
+        }
+      },
+      "writes": {
+        "inserted": 2,
+        "updated": 0,
+        "unchanged": 0,
+        "retired": 0
+      },
+      "categoryRules": null
+    },
+    "bossImport": {
+      "generatedAt": "2026-08-07T12:48:21.198Z",
+      "inputPath": "/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness/scripts/data/boss/fixtures/boss-t1.sample.json",
+      "reportPath": "/tmp/terrapedia-boss-t1-npc-t1-boss-20260807-07-ruwfVO/boss-import.json",
+      "database": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_local",
+      "apiBase": "http://127.0.0.1:18188/api",
+      "dryRun": false,
+      "offline": true,
+      "strictMode": false,
+      "generatedNpcMapPath": "/tmp/terrapedia-boss-t1-npc-t1-boss-20260807-07-ruwfVO/npc-map.json",
+      "totalBosses": 2,
+      "createdBossGroups": 0,
+      "updatedBossGroups": 2,
+      "mappedBosses": 2,
+      "unmappedBosses": 0,
+      "totalMemberAssignments": 2,
+      "bossImageCandidates": 0,
+      "bossImagesAlreadyManaged": 0,
+      "localizedBossImages": 0,
+      "pendingBossImages": 0,
+      "failedBossImages": 0,
+      "bossMemberImageCandidates": 0,
+      "bossMemberImagesAlreadyManaged": 0,
+      "localizedBossMemberImages": 0,
+      "pendingBossMemberImages": 0,
+      "failedBossMemberImages": 0,
+      "patchedBossMemberMapRows": 0,
+      "bossMemberMapMissing": 2,
+      "bossMemberImageMissingSource": 0,
+      "remainingWikiBossImages": 0,
+      "remainingWikiBossMemberImages": 0,
+      "generatedNpcMapWritten": false,
+      "unresolvedBosses": [],
+      "samples": [
+        {
+          "titleEn": "King Slime",
+          "titleZh": "史莱姆王",
+          "bossType": "PRE_HARDMODE",
+          "imageUrl": null,
+          "sourceMode": "assigned",
+          "memberCount": 1,
+          "memberInternalNames": [
+            "KingSlime"
+          ]
+        },
+        {
+          "titleEn": "Eye of Cthulhu",
+          "titleZh": "克苏鲁之眼",
+          "bossType": "PRE_HARDMODE",
+          "imageUrl": null,
+          "sourceMode": "assigned",
+          "memberCount": 1,
+          "memberInternalNames": [
+            "EyeofCthulhu"
+          ]
+        }
+      ],
+      "skippedMemberAssignments": 2
+    },
+    "bossLootImport": {
+      "generatedAt": "2026-08-07T12:48:21.426Z",
+      "database": "terria_v1_automation_acceptance_npc_f134b93b1315c28e_local",
+      "dryRun": false,
+      "regenerateBundle": false,
+      "bundleSourcePath": "/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-auto-ingestion-readiness/scripts/data/boss/fixtures/boss-loot-t1.sample.json",
+      "bundleGeneratedPath": null,
+      "generatedBundleWritten": false,
+      "relationsPath": null,
+      "npcPath": null,
+      "totalBossRecords": 2,
+      "totalDropRecords": 2,
+      "targetedBossGroups": 2,
+      "importedBosses": 2,
+      "skippedBosses": 0,
+      "replacedLootRows": 0,
+      "insertedLootRows": 2,
+      "updatedLootRows": 0,
+      "removedLootRows": 0,
+      "skippedLootRows": 0,
+      "directBossRows": 2,
+      "treasureBagRows": 0,
+      "unresolvedBosses": [],
+      "referenceOnlyBosses": [],
+      "unresolvedItems": [],
+      "samples": [
+        {
+          "bossName": "King Slime",
+          "bossGroupCode": "KING_SLIME",
+          "ownerNpcId": 50,
+          "ownerNpcInternalName": "KingSlime",
+          "existingRows": 0,
+          "insertedRows": 1,
+          "directBossRows": 1,
+          "treasureBagRows": 0,
+          "uniqueItemCount": 1
+        },
+        {
+          "bossName": "Eye of Cthulhu",
+          "bossGroupCode": "EYE_OF_CTHULHU",
+          "ownerNpcId": 4,
+          "ownerNpcInternalName": "EyeofCthulhu",
+          "existingRows": 0,
+          "insertedRows": 1,
+          "directBossRows": 1,
+          "treasureBagRows": 0,
+          "uniqueItemCount": 1
+        }
+      ]
+    },
+    "consolidation": {
+      "apply": true,
+      "relationBossCount": 2,
+      "bossRewardRelationCount": 2
+    }
+  },
+  "cleanupPassed": true,
+  "status": "passed"
+}

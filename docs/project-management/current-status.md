@@ -2,95 +2,82 @@
 
 ## Date
 
-2026-07-10
+2026-08-10
 
 ## Current Phase
 
-Project governance reset and crawler reliability stabilization.
+Phase B foundation stabilization. Automated-ingestion readiness is closed; the
+active focus moves to P1 crawler monitor and resume/recovery reliability.
 
-## Active Sequence
+## Current State
 
-Document-level judgment: July work is focused on crawler monitor reliability, crawler resume/recovery hardening, and project documentation governance.
+- Item-image lineage is `6131/6131/6131/6131`; projection apply targeted 6,131
+  rows and changed 6,126 existing image values.
+- Shimmer generation/import is complete. Domain acceptance is `45/0/0` and
+  cross-DB quick is `10/10 pass`.
+- NPC decision `canonical-npc-t2-cutover-verification-20260806-admin-02`
+  completed with `noWrite=true` and `T2_CUTOVER_VERIFIED`. The database snapshot
+  was unchanged and no authorization permit remains.
+- The three item-group inputs and standardized NPC input are canonical source
+  contracts. The generated NPC bridge remains retired.
+- Two independent `biomes` L1 applies are committed. Policy is
+  `biomes v1 L2/ACTIVE` with one L2 decision and one bounded scheduler
+  eligibility decision; there is no circuit, active attempt, or reservation.
+- The full Bash gate passed: backend `1523` tests with zero failures/errors and
+  10 explicit skips, public `39/39`, admin `405/405`, and isolated E2E run
+  `5588e137a806de4a2dd417fe8319954d` with outcome and cleanup both passed.
+- Cleanup readback found no disposable E2E database, Redis DB 15 state, runner
+  listener, retained permit, scheduler daemon, or crawler process.
+- Isolated Scheduler T1 run `npc-t1-crawler-v2-auto-ingestion-20260809-04`
+  passed with a real scheduled recorded-Recipe tick, two lease renewals,
+  restart adopt/reject, lease-loss reap, matching `947/1256/1015` Recipe and
+  relation readback, and independent cleanup to zero. This evidence is local
+  acceptance only; formal Scheduler V2 automation remains disabled.
+- Preparation Tasks 1-3 are implemented: the backend exposes a read-only
+  `GET /admin/crawler-monitor/v2/automation/preflight`, the Node collector
+  binds disabled/changed-only control, zero attempts/claims, reconciler health,
+  epoch/namespace, domain evidence, T1 hash, and code hashes, and the proposal
+  builder rejects representative current-state constants and byte drift.
+  No real preflight artifact was generated because no backend listener was
+  available; starting one would cross the no-daemon/formal-store boundary.
 
-Current sequence:
+## Gate Boundary
 
-P0 governance/status synchronization -> P1 crawler monitor and resume/recovery stabilization -> P2 homepage aggregation and public UI polish.
+This is local readiness evidence, not release or production-deployment
+authority. Scheduler activation records bounded eligibility only; it does not
+authorize a recurring daemon or crawler run. Monitor projections remain
+read-only and `notGateEvidence=true`.
 
-## Current Gate Boundary
+Formal Scheduler enablement preparation must use a fresh read-only preflight
+and current-hash proposal before a separate ADMIN request. No prior T1 report,
+eligible-domain result, or consumed decision authorizes a production mutation.
 
-Current workflow authority is `docs/project-governance/00_WORKFLOW.md`.
-Current progress-control authority is `docs/project-governance/current/PROJECT_CONTROL.md`.
-Current stack, code style, architecture, API contract, and validation/release
-summaries live in
-`docs/project-governance/current/CURRENT_TECH_STACK.md`,
-`docs/project-governance/current/CURRENT_CODE_STYLE.md`,
-`docs/project-governance/current/CURRENT_ARCHITECTURE.md`,
-`docs/project-governance/current/CURRENT_API_CONTRACTS.md`, and
-`docs/project-governance/current/CURRENT_VALIDATION_AND_RELEASE.md`.
-Bash/WSL is the primary local automation path. The full local gate is:
+## Current Risks
 
-```bash
-bash ./scripts/dev/quality-gate.sh
-```
+- Crawler monitor and resume/recovery reliability remains the main P1 area.
+- Release, staging, recurring scheduler startup, crawler execution, push,
+  merge, and worktree cleanup require separate decisions.
+- A proposal built from representative control values is not production-ready;
+  it must bind a fresh observed disabled/changed-only state, zero activity,
+  reconciler health, epoch/namespace, readiness, and code/report hashes.
+- The preparation implementation is now fail-closed for evidence paths outside
+  the repository and for code bundle bytes changed after preflight. A future
+  request still requires a fresh production read-only GET and owner decision;
+  this branch has generated no proposal, request, packet, or permit.
+- Current companion docs and gate evidence must remain synchronized with future
+  workflow, API, runtime, and data-chain changes.
 
-No runtime/backend/frontend/data gate was run for the 2026-07-09 governance
-audit or the current status/risk synchronization task. Treat old May release
-evidence as historical until rerun.
+## Priorities
 
-## Data Chain Boundary
-
-Acceptance status must flow through manifest, report evidence, freshness audit, manual refresh plan, quality gate, then UI/API.
-UI/API must not generate evidence, refresh data, or query DB as gate evidence.
-
-## Public Domain Boundary
-
-The May V0.1 Nuxt public preview evidence covered Items, NPCs, Bosses, Buffs, Projectiles, Armor Sets, Biomes, Crafting, Categories, Search, Articles, and About. Treat that evidence as historical until the current Bash gate and route checks are rerun.
-
-Public surface readiness still does not override Domain Acceptance. Missing or unknown evidence blocks; stale evidence is warning-only unless a current decision explicitly accepts it as `accepted-warning`. A blocker is cleared only when gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
-
-## Monitor Boundary
-
-Data Source Acceptance `crawlerMonitor` is read-only monitor projection and external monitor evidence. It is not crawler execution, not a refresh-plan/evidence command, and not an evidence generator.
-Future DB-backed or real-time crawler diagnostics must be marked `notGateEvidence=true` and must not affect gate status.
-
-## Local Self-start Boundary
-
-Local self-start acceptance is runtime-only. Current maintained entrypoints are Bash/WSL scripts:
-
-```bash
-bash ./scripts/dev/start-local-stack.sh
-bash ./scripts/dev/stop-local-stack.sh
-```
-
-Legacy `.ps1` local-stack scripts may appear in older May records or compatibility wrappers, but they are not current workflow authority and do not change acceptance readiness.
-Smoke is read-only business probing and report writing under `reports/local-start`; it must not generate evidence, refresh data, run storage sync, or bypass manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate.
-
-## P2 Status
-
-P2 UI work is allowed only after P0 governance/status synchronization and P1 crawler/data reliability control points are stable. New public feature expansion should not be prioritized ahead of crawler/data reliability work unless explicitly accepted as preview-only work.
-
-## Current Blockers And Risks
-
-- Stale root governance files `03`, `04`, and `07-12` were removed from the current tree on 2026-07-10; Git history remains audit-only recovery, not current authority.
-- Current companion docs now define stack, code style, architecture, API
-  contract, validation, and release boundaries; they must be updated when
-  package scripts, runtime config, API route families, response/auth contracts,
-  data chain, or gate behavior changes.
-- Code style now has a current document and EditorConfig baseline, but
-  Prettier/ESLint/Spotless and strong style gates remain staged until each
-  maintained line has a clean baseline.
-- `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
-- Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
-- Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
+- P0: keep spec, devlog, project status, and risk records synchronized.
+- P1: stabilize crawler monitor state, interruption handling, and resume/recovery.
+- P2: continue homepage aggregation and public UI quality only after P1 control
+  points are stable.
 
 ## Next Actions
 
-- Keep `docs/project-governance/current/PROJECT_CONTROL.md` aligned with `docs/project-management/current-status.md`.
-- Keep current stack, code style, architecture, API contract, validation, and
-  release summaries aligned with code and workflow changes.
-- Introduce frontend and backend formatter/linter tooling through separate
-  baseline migrations before adding read-only style checks to the full gate.
-- Keep `docs/project-governance/00_CURRENT_SPEC.md`, `docs/devlog/current.md`, and project-management records synchronized when project facts or risks change.
-- Continue crawler monitor/resume stabilization from the current July plans before broad public feature expansion.
-- Decide whether to push or PR the local governance/status branches when the operator is ready.
-- Rerun runtime/backend/frontend/data gates before making any release, staging, or public-readiness claim.
+- Continue from the current crawler monitor/resume plans and Redis V2 attempt
+  contract.
+- Preserve all consumed operation identities and immutable evidence.
+- Rerun relevant runtime/backend/frontend/data gates before release, staging,
+  or public-readiness claims.

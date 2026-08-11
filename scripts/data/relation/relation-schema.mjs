@@ -1,5 +1,13 @@
 export const RELATION_DATABASE_NAME = 'terria_v1_relation';
 
+export function requireRelationDatabaseName(value = RELATION_DATABASE_NAME) {
+  const databaseName = String(value ?? '');
+  if (!/^[a-z0-9_]+$/.test(databaseName)) {
+    throw new Error('relation database name is invalid');
+  }
+  return databaseName;
+}
+
 export const RELATION_TABLE_NAMES = [
   'relation_runs',
   'relation_run_reports',
@@ -40,8 +48,26 @@ export const RELATION_TABLE_NAMES = [
   'boss_effect_relations',
   'npc_series_nodes',
   'npc_series_memberships',
-  'npc_series_item_relations'
+  'npc_series_item_relations',
+  'relation_item_groups',
+  'relation_item_group_members',
+  'relation_item_group_aliases'
 ];
+
+export const NPC_CRAWLER_FACT_RELATION_TARGETS = Object.freeze([
+  'item_source_facts',
+  'item_source_details',
+  'item_npc_shop_relations',
+  'item_npc_loot_relations',
+  'npc_buff_relations',
+]);
+
+export const RELATION_TABLE_CATALOG = Object.freeze(RELATION_TABLE_NAMES.map((table) => Object.freeze({
+  databaseRole: 'relation',
+  table,
+  tableKind: table.startsWith('relation_') ? 'relation' : 'relation-support',
+  engine: 'InnoDB'
+})));
 
 export const DEPRECATED_RELATION_TABLE_NAMES = [
   'item_npc_shop_candidates',
@@ -822,19 +848,97 @@ function buildTableStatements() {
   UNIQUE KEY \`uk_npc_series_item_relations_record_key\` (\`record_key\`),
   KEY \`idx_npc_series_item_relations_series_key\` (\`series_key\`),
   KEY \`idx_npc_series_item_relations_item_internal_name\` (\`item_internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`relation_item_groups\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`canonical_key\` VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,
+  \`canonical_name\` VARCHAR(255) DEFAULT NULL,
+  \`display_name\` VARCHAR(255) DEFAULT NULL,
+  \`display_name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`normalized_domains_json\` LONGTEXT,
+  \`source_layer\` VARCHAR(32) NOT NULL,
+  \`source_priority\` INT NOT NULL,
+  \`source_maint_record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`landing_source_id\` BIGINT DEFAULT NULL,
+  \`landing_source_key\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) COLLATE utf8mb4_bin DEFAULT NULL,
+  \`resolved_member_count\` INT NOT NULL DEFAULT 0,
+  \`unresolved_member_count\` INT NOT NULL DEFAULT 0,
+  \`ambiguous_member_count\` INT NOT NULL DEFAULT 0,
+  \`rejected_member_count\` INT NOT NULL DEFAULT 0,
+  \`status\` VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  \`block_reason\` VARCHAR(255) DEFAULT NULL,
+  \`canonical_version\` BIGINT NOT NULL,
+  \`source_metadata_json\` LONGTEXT,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_relation_item_groups_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_relation_item_groups_canonical_layer\` (\`canonical_key\`, \`source_layer\`),
+  KEY \`idx_relation_item_groups_source_layer\` (\`source_layer\`, \`status\`, \`deleted\`),
+  CHECK (\`source_layer\` IN ('recipe_reference', 'source_group', 'central_override'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`relation_item_group_members\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`group_record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`member_key\` VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,
+  \`item_id\` BIGINT DEFAULT NULL,
+  \`source_item_id\` INT DEFAULT NULL,
+  \`internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`name\` VARCHAR(255) DEFAULT NULL,
+  \`name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`sort_order\` INT NOT NULL DEFAULT 0,
+  \`resolution_state\` VARCHAR(32) NOT NULL,
+  \`resolution_reason\` VARCHAR(255) DEFAULT NULL,
+  \`source_metadata_json\` LONGTEXT,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_relation_item_group_members_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_relation_item_group_members_group_member\` (\`group_record_key\`, \`member_key\`),
+  KEY \`idx_relation_item_group_members_group_record_key\` (\`group_record_key\`),
+  KEY \`idx_relation_item_group_members_item_id\` (\`item_id\`),
+  CONSTRAINT \`fk_relation_item_group_members_group_record_key\`
+    FOREIGN KEY (\`group_record_key\`) REFERENCES \`${RELATION_DATABASE_NAME}\`.\`relation_item_groups\` (\`record_key\`) ON DELETE RESTRICT,
+  CHECK (\`resolution_state\` IN ('RESOLVED', 'UNRESOLVED', 'AMBIGUOUS', 'REJECTED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`relation_item_group_aliases\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`group_record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`alias_text\` VARCHAR(255) NOT NULL,
+  \`normalized_alias\` VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,
+  \`alias_kind\` VARCHAR(32) NOT NULL,
+  \`alias_language\` VARCHAR(16) DEFAULT NULL,
+  \`sort_order\` INT NOT NULL DEFAULT 0,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_relation_item_group_aliases_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_relation_item_group_aliases_group_alias\` (\`group_record_key\`, \`normalized_alias\`),
+  KEY \`idx_relation_item_group_aliases_group_record_key\` (\`group_record_key\`),
+  KEY \`idx_relation_item_group_aliases_normalized_alias\` (\`normalized_alias\`),
+  CONSTRAINT \`fk_relation_item_group_aliases_group_record_key\`
+    FOREIGN KEY (\`group_record_key\`) REFERENCES \`${RELATION_DATABASE_NAME}\`.\`relation_item_groups\` (\`record_key\`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
   ];
 }
 
-export function buildRelationSchemaStatements() {
+export function buildRelationSchemaStatements(databaseName = RELATION_DATABASE_NAME) {
+  const targetDatabase = requireRelationDatabaseName(databaseName);
   return [
     `CREATE DATABASE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
     ...buildTableStatements()
-  ];
+  ].map((statement) => statement.replaceAll(RELATION_DATABASE_NAME, targetDatabase));
 }
 
-export function buildRelationSchemaSql() {
-  return `${buildRelationSchemaStatements().join('\n\n')}\n`;
+export function buildRelationSchemaSql(databaseName = RELATION_DATABASE_NAME) {
+  return `${buildRelationSchemaStatements(databaseName).join('\n\n')}\n`;
 }
 
 export function buildRelationMigrationStatements() {

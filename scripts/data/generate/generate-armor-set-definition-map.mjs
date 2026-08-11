@@ -4,7 +4,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { toArmorSetDefinitionSeedRow } from './armor-set-definition-source.mjs';
+import {
+  resolveExpectedArmorSetPlaceholder,
+  toArmorSetDefinitionSeedRow,
+} from './armor-set-definition-source.mjs';
 
 const outputPath = path.join(process.cwd(), 'data', 'generated', 'armor-set-definition-map.json');
 
@@ -77,9 +80,13 @@ export function resolveArmorSetDefinitionEntry({
   };
 
   const manualDefinition = definitionLookup.get(overrides.get(String(seed.internalCode)));
+  const sourceKeyDefinition = String(seed.internalCode ?? '').startsWith('ArmorSetBonus.')
+    ? definitionLookup.get(String(seed.internalCode))
+    : null;
+  const expectedPlaceholder = resolveExpectedArmorSetPlaceholder(seed);
 
-  if (matches.length === 1 || manualDefinition) {
-    const def = manualDefinition || matches[0];
+  if (matches.length === 1 || manualDefinition || sourceKeyDefinition) {
+    const def = manualDefinition || matches[0] || sourceKeyDefinition;
     entry.definition = {
       textKey: def.textKey ?? null,
       textZh: null,
@@ -91,7 +98,11 @@ export function resolveArmorSetDefinitionEntry({
       setCount: Number(def.setCount ?? 0),
       uniqueItemIds: Array.isArray(def.uniqueItemIds) ? def.uniqueItemIds : [],
     };
-    entry.status = manualDefinition ? 'mapped_manual' : 'mapped';
+    entry.status = manualDefinition
+      ? 'mapped_manual'
+      : matches.length === 1
+        ? 'mapped'
+        : 'mapped_source_key';
   } else {
     entry.definition = {
       textKey: null,
@@ -104,6 +115,13 @@ export function resolveArmorSetDefinitionEntry({
       setCount: ids.length > 0 ? 1 : 0,
       uniqueItemIds: ids,
     };
+    if (expectedPlaceholder) {
+      entry.status = 'expected_placeholder';
+      entry.review = {
+        status: 'accepted_expected_placeholder',
+        reason: expectedPlaceholder.reason,
+      };
+    }
   }
 
   return entry;
@@ -126,7 +144,7 @@ export async function generateArmorSetDefinitionMap({ mysql, database = db, outp
     for (const row of rows) {
       const seed = toArmorSetDefinitionSeedRow(row);
       const entry = resolveArmorSetDefinitionEntry({ seed });
-      if (entry.status === 'placeholder') {
+      if (entry.status === 'placeholder' || entry.status === 'expected_placeholder') {
         placeholder += 1;
       } else {
         mapped += 1;

@@ -84,6 +84,10 @@ function createProfileImportFixture({ record }) {
       pageTitle: 'Merchant',
       ...record,
     },
+    context: {
+      ...base.context,
+      managedImageUrlPrefixes: ['http://localhost:9000/terrapedia-images/npcs/'],
+    },
   };
 }
 

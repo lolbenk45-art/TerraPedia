@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": "terraria.wiki.gg:boss-loot-assembly",
+  "generatedAt": "2026-07-30T00:21:19.770Z",
+  "totalBosses": 2,
+  "totalDrops": 2,
+  "bosses": [
+    {
+      "bossInternalName": "KingSlime",
+      "bossName": "King Slime",
+      "treasureBagName": "Treasure Bag (King Slime)",
+      "drops": [{
+        "itemInternalName": "LesserHealingPotion",
+        "itemName": "Lesser Healing Potion",
+        "dropSourceKind": "direct_boss",
+        "sourceName": "King Slime",
+        "sourceRefType": "boss",
+        "quantityMin": 5,
+        "quantityMax": 15,
+        "quantityText": "5-15",
+        "chanceValue": 1,
+        "chanceText": "100%",
+        "conditions": null,
+        "notes": null,
+        "sourcePage": "Lesser Healing Potion",
+        "sourceRevisionTimestamp": "2026-02-06T11:21:46Z"
+      }],
+      "dropRecordCount": 1,
+      "uniqueItemCount": 1
+    },
+    {
+      "bossInternalName": "EyeofCthulhu",
+      "bossName": "Eye of Cthulhu",
+      "treasureBagName": "Treasure Bag (Eye of Cthulhu)",
+      "drops": [{
+        "itemInternalName": "CorruptSeeds",
+        "itemName": "Corrupt Seeds",
+        "dropSourceKind": "direct_boss",
+        "sourceName": "Eye of Cthulhu",
+        "sourceRefType": "boss",
+        "quantityMin": 1,
+        "quantityMax": 3,
+        "quantityText": "1-3",
+        "chanceValue": 1,
+        "chanceText": "100%",
+        "conditions": null,
+        "notes": null,
+        "sourcePage": "Corrupt Seeds",
+        "sourceRevisionTimestamp": "2026-01-01T00:00:00Z"
+      }],
+      "dropRecordCount": 1,
+      "uniqueItemCount": 1
+    }
+  ]
+}

@@ -184,6 +184,40 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void startsTheItemsSampleThroughTheProductionRegistry() {
+        CrawlerQueueV2Attempt attempt = withAction(
+            startingAttempt(142L, 2L),
+            "items",
+            "crawler-queue-v2-items-fixture"
+        );
+        CrawlerMonitorActionRegistry actionRegistry = mock(CrawlerMonitorActionRegistry.class);
+        when(actionRegistry.require("items", "crawler-queue-v2-items-fixture")).thenReturn(
+            CrawlerMonitorActionRegistry.defaults().require("items", "crawler-queue-v2-items-fixture")
+        );
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            attempt,
+            actionRegistry,
+            new CrawlerQueueV2Properties()
+        );
+
+        supervisor.start(attempt);
+
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-items-fixture.mjs",
+                "--items-input=data/standardized/items.standardized.json",
+                "--progress-path=" + attempt.artifacts().progressPath(),
+                "--output-path=" + attempt.artifacts().progressPath() + ".items-sample.json"
+            ),
+            launcher.lastLaunchSpec().command()
+        );
+        verify(actionRegistry).require("items", "crawler-queue-v2-items-fixture");
+    }
+
+    @Test
     void keepsFixtureExecutionInTheWorktreeWhileWritingArtifactsToAnExternalFixtureRoot() throws IOException {
         Path fixtureRoot = Files.createTempDirectory("crawler-v2-fixture-artifacts-");
         CrawlerQueueV2Attempt attempt = withAction(

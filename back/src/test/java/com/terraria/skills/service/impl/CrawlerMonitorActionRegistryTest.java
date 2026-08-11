@@ -6,17 +6,18 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CrawlerMonitorActionRegistryTest {
 
     @Test
-    void exposesNineteenOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
+    void exposesTwentyFiveOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(19, registry.all().size());
-        assertEquals(List.of("check", "force"), registry.operations("items").stream()
+        assertEquals(25, registry.all().size());
+        assertEquals(List.of("check", "force", "verify", "sample"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
         assertEquals("check", registry.requireDefaultOperation("items").operationId());
@@ -68,6 +69,8 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(List.of(
             "wiki-items-refresh",
             "wiki-items-force-refresh",
+            "item-image-source-verification",
+            "crawler-queue-v2-items-fixture",
             "wiki-npcs-refresh",
             "wiki-npcs-force-refresh",
             "wiki-projectiles-refresh",
@@ -84,7 +87,11 @@ class CrawlerMonitorActionRegistryTest {
             "npc-loot-backfill",
             "npc-loot-apply",
             "boss-loot-backfill",
-            "boss-loot-apply"
+            "boss-loot-apply",
+            "item-group-canonical-preview",
+            "item-group-canonical-apply",
+            "npc-crawler-facts-preview",
+            "npc-crawler-facts-apply"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::actionId).toList());
 
         CrawlerMonitorActionDefinition townNpc = registry.require(
@@ -109,10 +116,55 @@ class CrawlerMonitorActionRegistryTest {
         CrawlerMonitorActionDefinition npcLoot = registry.require("npc_loot", "npc-loot-backfill");
         assertTrue(npcLoot.backendRefresh());
         assertFalse(npcLoot.wikiDomain());
+
+        CrawlerMonitorActionDefinition itemImageVerification = registry.require(
+            "items", "item-image-source-verification"
+        );
+        assertTrue(itemImageVerification.backendRefresh());
+        assertTrue(itemImageVerification.wikiDomain());
+        assertTrue(itemImageVerification.networkAccess());
+        assertFalse(itemImageVerification.resumeSupported());
+        assertFalse(itemImageVerification.defaultOperation());
+        assertEquals("verify", itemImageVerification.operationId());
+        assertEquals("none", itemImageVerification.databaseAccess());
+        assertEquals("fresh", itemImageVerification.restartBehavior());
+        assertEquals(9L, itemImageVerification.estimatedRequests());
+
+        CrawlerMonitorActionDefinition itemsSample = registry.requireOperation("items", "sample");
+        assertEquals("crawler-queue-v2-items-fixture", itemsSample.actionId());
+        assertEquals("模拟物品爬取（真实样本）", itemsSample.labelZh());
+        assertFalse(itemsSample.defaultOperation());
+        assertFalse(itemsSample.networkAccess());
+        assertEquals("none", itemsSample.databaseAccess());
+        assertEquals(0L, itemsSample.estimatedRequests());
+        assertEquals(3L, itemsSample.estimatedRecords());
+
+        CrawlerMonitorActionDefinition itemGroupPreview = registry.require(
+            "item_groups", "item-group-canonical-preview"
+        );
+        assertTrue(itemGroupPreview.backendRefresh());
+        assertEquals("read", itemGroupPreview.databaseAccess());
+        assertEquals("preview", itemGroupPreview.operationId());
+        assertEquals("summary", itemGroupPreview.confirmationLevel());
+
+        CrawlerMonitorActionDefinition itemGroupApply = registry.require(
+            "item_groups", "item-group-canonical-apply"
+        );
+        assertTrue(itemGroupApply.backendRefresh());
+        assertEquals("write", itemGroupApply.databaseAccess());
+        assertEquals("apply", itemGroupApply.operationId());
+        assertEquals("destructive", itemGroupApply.confirmationLevel());
+
+        CrawlerMonitorActionDefinition npcFactApply = registry.require(
+            "npc_crawler_facts", "npc-crawler-facts-apply"
+        );
+        assertTrue(npcFactApply.backendRefresh());
+        assertEquals("write", npcFactApply.databaseAccess());
+        assertEquals("apply", npcFactApply.operationId());
     }
 
     @Test
-    void allTwelveRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
+    void allFourteenRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
         String base = "reports/crawler-monitor/v2/2026-07-14/attempt-test/";
         String progressPath = base + "progress.json";
@@ -129,7 +181,9 @@ class CrawlerMonitorActionRegistryTest {
             "town_npc_maintenance",
             "shimmer",
             "npc_loot",
-            "boss_loot"
+            "boss_loot",
+            "item_groups",
+            "npc_crawler_facts"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::domain).distinct().toList());
 
         for (CrawlerMonitorActionDefinition action : registry.all()) {
@@ -204,11 +258,19 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void shimmerOperationEstimateMatchesItsThreeRequestProgressPlan() {
+    void shimmerOperationUsesTheFullExtractionPipelineAndDefersItsDynamicRequestEstimate() {
         CrawlerMonitorActionDefinition shimmer = CrawlerMonitorActionRegistry.defaults()
             .require("shimmer", "domain-source-shimmer");
 
-        assertEquals(3L, shimmer.estimatedRequests());
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+                "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
+            ),
+            shimmer.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "fresh")
+        );
+        assertNull(shimmer.estimatedRequests());
     }
 
     @Test
@@ -242,7 +304,7 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void shouldExposeFixtureOnlyOutsideTheApprovedProductionActionSet() {
+    void shouldKeepOnlyTheHeartbeatFixtureOutsideTheApprovedProductionActionSet() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
         assertFalse(registry.all().stream()
@@ -266,6 +328,21 @@ class CrawlerMonitorActionRegistryTest {
                 "--interval-ms=250"
             ),
             fixture.command()
+        );
+
+        CrawlerMonitorActionDefinition itemsSample = registry.require(
+            "items",
+            "crawler-queue-v2-items-fixture"
+        );
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-items-fixture.mjs",
+                "--items-input=data/standardized/items.standardized.json",
+                "--progress-path=<progressPath>",
+                "--output-path=<progressPath>.items-sample.json"
+            ),
+            itemsSample.command()
         );
     }
 }

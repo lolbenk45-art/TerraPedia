@@ -1114,8 +1114,9 @@ public class CrawlerQueueV2ApplicationService {
     }
 
     private CrawlerMonitorActionDefinition requireExactAction(String domain, String actionId) {
-        if ("crawler_queue_v2_fixture".equals(domain)
-            && "crawler-queue-v2-fixture".equals(actionId)) {
+        boolean heartbeatFixture = "crawler_queue_v2_fixture".equals(domain)
+            && "crawler-queue-v2-fixture".equals(actionId);
+        if (heartbeatFixture) {
             if (!properties.isFixtureEnabled()) {
                 throw new CrawlerQueueV2Exception(
                     HttpStatus.FORBIDDEN,

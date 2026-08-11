@@ -1,0 +1,582 @@
+{
+  "schemaVersion": "1.0.0",
+  "entity": "item_image_source_verification",
+  "generatedAt": "2026-07-31T16:25:31.156Z",
+  "inputs": {
+    "verificationInput": {
+      "path": "reports/authorization/canonical/canonical-item-image-source-verification.input.json",
+      "sha256": "sha256:df5eac15c156727929c0b4a0cbde9fd7808fbbf926c4c1f3890ddfea72244c75"
+    },
+    "candidateReport": {
+      "path": "reports/audit/item-image-source-candidates-2026-07-30-v2.json",
+      "sha256": "sha256:e57e7e1147c746d4d4b90ef15fd2aad6b71c441a776430372429ffe94a12effb"
+    },
+    "rawFiles": [
+      {
+        "path": "bluejellyfish.latest.json",
+        "sha256": "sha256:ae0a58d8002f8fc9264951eba623cfa1170c38141c387684390a3c48d7dac9b1"
+      },
+      {
+        "path": "coppercoin.latest.json",
+        "sha256": "sha256:59be445476363f22d00d48919a9845d983a3b09dd616de9c35e08a0e2fbdaadf"
+      },
+      {
+        "path": "flairon.latest.json",
+        "sha256": "sha256:33dd8d73989ef85facfa22a80f7629adf17dc1c597196c128487fde36973d75a"
+      },
+      {
+        "path": "goldcoin.latest.json",
+        "sha256": "sha256:49a4c5ff1f001e3ce5fdfadde45379cc7fe3f34a8118db686728812e725299d5"
+      },
+      {
+        "path": "greenjellyfish.latest.json",
+        "sha256": "sha256:9f40ba8b94e5680f9093d29ead3e9661719b2b1ac0f7713fb34ff03cc2a4c8d4"
+      },
+      {
+        "path": "pinkjellyfish.latest.json",
+        "sha256": "sha256:7867840a9c0717ce97eb8cd3ed755fbe1913d42b3b4d2e5d3184781cd1caadfd"
+      },
+      {
+        "path": "platinumcoin.latest.json",
+        "sha256": "sha256:227ee9ee5d1e7654029173405c24326ac89218957f869967db775f96a874df7e"
+      },
+      {
+        "path": "shellphone.latest.json",
+        "sha256": "sha256:0c8ab886a6ee7f0d0c7f6ced5399d7f4aab5c62fcbf7d8c053a392674baa75f9"
+      },
+      {
+        "path": "silvercoin.latest.json",
+        "sha256": "sha256:97cb7e2421348199b49006da4118fa5c8c7d22efc57b6d6be1319ebe6037e002"
+      }
+    ]
+  },
+  "constraints": {
+    "batchSize": 8,
+    "maxRequests": 9
+  },
+  "summary": {
+    "total": 9,
+    "verified": 9,
+    "ambiguous": 0,
+    "unresolved": 0,
+    "failed": 0,
+    "requestCount": 9
+  },
+  "records": [
+    {
+      "itemId": 71,
+      "itemInternalName": "CopperCoin",
+      "itemName": "Copper Coin",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Copper Coin",
+        "rawSourceFile": "coppercoin.latest.json",
+        "rawFileSha256": "sha256:59be445476363f22d00d48919a9845d983a3b09dd616de9c35e08a0e2fbdaadf",
+        "pageId": 11456,
+        "requestedPageTitle": "Copper Coin",
+        "sourcePage": "Coins",
+        "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+        "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+        "revisionDrifted": true,
+        "fileTitle": "Copper Coin.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Copper_Coin.png?9febe7",
+        "width": 12,
+        "height": 12,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:bb00956b519f95561b9d02cef8e5d6f7421ff2d60896758c04aac4f4aa0b754c"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Copper Coin",
+          "rawSourceFile": "coppercoin.latest.json",
+          "rawFileSha256": "sha256:59be445476363f22d00d48919a9845d983a3b09dd616de9c35e08a0e2fbdaadf",
+          "pageId": 11456,
+          "requestedPageTitle": "Copper Coin",
+          "sourcePage": "Coins",
+          "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+          "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+          "revisionDrifted": true,
+          "fileTitle": "Copper Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Copper_Coin.gif?d43b4c",
+          "width": 12,
+          "height": 12,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:bb00956b519f95561b9d02cef8e5d6f7421ff2d60896758c04aac4f4aa0b754c",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Copper_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Copper_Coin.gif?d43b4c",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/37/3759072ffe0c9c4c994a6f702e0bd5a704cfd35f-copper-coin-gif.gif"
+        },
+        "lineage": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Copper_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Copper_Coin.gif?d43b4c",
+          "cachedUrl": "https://terraria.wiki.gg/images/Copper_Coin.gif?d43b4c"
+        }
+      },
+      "responseSha256": "sha256:bb00956b519f95561b9d02cef8e5d6f7421ff2d60896758c04aac4f4aa0b754c"
+    },
+    {
+      "itemId": 72,
+      "itemInternalName": "SilverCoin",
+      "itemName": "Silver Coin",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Silver Coin",
+        "rawSourceFile": "silvercoin.latest.json",
+        "rawFileSha256": "sha256:97cb7e2421348199b49006da4118fa5c8c7d22efc57b6d6be1319ebe6037e002",
+        "pageId": 11456,
+        "requestedPageTitle": "Silver Coin",
+        "sourcePage": "Coins",
+        "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+        "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+        "revisionDrifted": true,
+        "fileTitle": "Silver Coin.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Silver_Coin.png?e69dff",
+        "width": 12,
+        "height": 14,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:153154311d00d221603a7a44e3708d4701c71e07b4d27a1f68327d9b9a8e3171"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Silver Coin",
+          "rawSourceFile": "silvercoin.latest.json",
+          "rawFileSha256": "sha256:97cb7e2421348199b49006da4118fa5c8c7d22efc57b6d6be1319ebe6037e002",
+          "pageId": 11456,
+          "requestedPageTitle": "Silver Coin",
+          "sourcePage": "Coins",
+          "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+          "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+          "revisionDrifted": true,
+          "fileTitle": "Silver Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Silver_Coin.gif?5d8a4d",
+          "width": 12,
+          "height": 14,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:153154311d00d221603a7a44e3708d4701c71e07b4d27a1f68327d9b9a8e3171",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Silver_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Silver_Coin.gif?5d8a4d",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/21/21b43bed59f5fc3fdd3060145f84e5d62883bdc9-silver-coin-gif.gif"
+        },
+        "lineage": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Silver_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Silver_Coin.gif?5d8a4d",
+          "cachedUrl": "https://terraria.wiki.gg/images/Silver_Coin.gif?5d8a4d"
+        }
+      },
+      "responseSha256": "sha256:153154311d00d221603a7a44e3708d4701c71e07b4d27a1f68327d9b9a8e3171"
+    },
+    {
+      "itemId": 73,
+      "itemInternalName": "GoldCoin",
+      "itemName": "Gold Coin",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Gold Coin",
+        "rawSourceFile": "goldcoin.latest.json",
+        "rawFileSha256": "sha256:49a4c5ff1f001e3ce5fdfadde45379cc7fe3f34a8118db686728812e725299d5",
+        "pageId": 11456,
+        "requestedPageTitle": "Gold Coin",
+        "sourcePage": "Coins",
+        "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+        "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+        "revisionDrifted": true,
+        "fileTitle": "Gold Coin.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Gold_Coin.png?c6fdb6",
+        "width": 12,
+        "height": 16,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:14aca1658f069d5f262c374bea1f3fe4f896b57d3197f7c566a8809e5f27d9b7"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Gold Coin",
+          "rawSourceFile": "goldcoin.latest.json",
+          "rawFileSha256": "sha256:49a4c5ff1f001e3ce5fdfadde45379cc7fe3f34a8118db686728812e725299d5",
+          "pageId": 11456,
+          "requestedPageTitle": "Gold Coin",
+          "sourcePage": "Coins",
+          "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+          "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+          "revisionDrifted": true,
+          "fileTitle": "Gold Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Gold_Coin.gif?ddc99f",
+          "width": 12,
+          "height": 16,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:14aca1658f069d5f262c374bea1f3fe4f896b57d3197f7c566a8809e5f27d9b7",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Gold_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Gold_Coin.gif?ddc99f",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/34/34fdf6f986715e8c9fd0c1381d27c81cfc2e7fe6-gold-coin-gif.gif"
+        },
+        "lineage": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Gold_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Gold_Coin.gif?ddc99f",
+          "cachedUrl": "https://terraria.wiki.gg/images/Gold_Coin.gif?ddc99f"
+        }
+      },
+      "responseSha256": "sha256:14aca1658f069d5f262c374bea1f3fe4f896b57d3197f7c566a8809e5f27d9b7"
+    },
+    {
+      "itemId": 74,
+      "itemInternalName": "PlatinumCoin",
+      "itemName": "Platinum Coin",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Platinum Coin",
+        "rawSourceFile": "platinumcoin.latest.json",
+        "rawFileSha256": "sha256:227ee9ee5d1e7654029173405c24326ac89218957f869967db775f96a874df7e",
+        "pageId": 11456,
+        "requestedPageTitle": "Platinum Coin",
+        "sourcePage": "Coins",
+        "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+        "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+        "revisionDrifted": true,
+        "fileTitle": "Platinum Coin.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Platinum_Coin.png?81bdc9",
+        "width": 14,
+        "height": 16,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:53d66c725f89232503b7427cfa2d0b21f3e5956d5c48173f37eb1578629eb0f0"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Platinum Coin",
+          "rawSourceFile": "platinumcoin.latest.json",
+          "rawFileSha256": "sha256:227ee9ee5d1e7654029173405c24326ac89218957f869967db775f96a874df7e",
+          "pageId": 11456,
+          "requestedPageTitle": "Platinum Coin",
+          "sourcePage": "Coins",
+          "sourceRevisionTimestamp": "2026-07-02T02:54:52Z",
+          "frozenSourceRevisionTimestamp": "2026-04-05T19:44:23Z",
+          "revisionDrifted": true,
+          "fileTitle": "Platinum Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Platinum_Coin.gif?9800de",
+          "width": 14,
+          "height": 16,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:53d66c725f89232503b7427cfa2d0b21f3e5956d5c48173f37eb1578629eb0f0",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Platinum_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Platinum_Coin.gif?9800de",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/6e/6e8289618c2cf75478458d12c683f9a2a321b6d0-platinum-coin-gif.gif"
+        },
+        "lineage": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Platinum_Coin.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Platinum_Coin.gif?9800de",
+          "cachedUrl": "https://terraria.wiki.gg/images/Platinum_Coin.gif?9800de"
+        }
+      },
+      "responseSha256": "sha256:53d66c725f89232503b7427cfa2d0b21f3e5956d5c48173f37eb1578629eb0f0"
+    },
+    {
+      "itemId": 2436,
+      "itemInternalName": "BlueJellyfish",
+      "itemName": "Blue Jellyfish",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Blue Jellyfish",
+        "rawSourceFile": "bluejellyfish.latest.json",
+        "rawFileSha256": "sha256:ae0a58d8002f8fc9264951eba623cfa1170c38141c387684390a3c48d7dac9b1",
+        "pageId": 12391,
+        "requestedPageTitle": "Blue Jellyfish",
+        "sourcePage": "Jellyfish",
+        "sourceRevisionTimestamp": "2026-06-28T02:12:28Z",
+        "frozenSourceRevisionTimestamp": "2026-05-05T12:33:21Z",
+        "revisionDrifted": true,
+        "fileTitle": "Blue Jellyfish.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Blue_Jellyfish.png?635c98",
+        "width": 26,
+        "height": 28,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:2339938f066d2037d7bafd79693aa09a8adce57f88c641b7c1db26c51eab9fe8"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Blue Jellyfish",
+          "rawSourceFile": "bluejellyfish.latest.json",
+          "rawFileSha256": "sha256:ae0a58d8002f8fc9264951eba623cfa1170c38141c387684390a3c48d7dac9b1",
+          "pageId": 12391,
+          "requestedPageTitle": "Blue Jellyfish",
+          "sourcePage": "Jellyfish",
+          "sourceRevisionTimestamp": "2026-06-28T02:12:28Z",
+          "frozenSourceRevisionTimestamp": "2026-05-05T12:33:21Z",
+          "revisionDrifted": true,
+          "fileTitle": "Blue Jellyfish.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Blue_Jellyfish.gif?db485e",
+          "width": 26,
+          "height": 30,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:2339938f066d2037d7bafd79693aa09a8adce57f88c641b7c1db26c51eab9fe8",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Blue Jellyfish.png",
+          "originalUrl": "https://terraria.wiki.gg/images/Blue_Jellyfish.png",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/0d/0dd21b745c073a990951a4df64e70cc48f78369d-blue-jellyfish-png.png"
+        },
+        "lineage": {
+          "status": "missing"
+        }
+      },
+      "responseSha256": "sha256:2339938f066d2037d7bafd79693aa09a8adce57f88c641b7c1db26c51eab9fe8"
+    },
+    {
+      "itemId": 2437,
+      "itemInternalName": "GreenJellyfish",
+      "itemName": "Green Jellyfish",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Green Jellyfish",
+        "rawSourceFile": "greenjellyfish.latest.json",
+        "rawFileSha256": "sha256:9f40ba8b94e5680f9093d29ead3e9661719b2b1ac0f7713fb34ff03cc2a4c8d4",
+        "pageId": 12391,
+        "requestedPageTitle": "Green Jellyfish",
+        "sourcePage": "Jellyfish",
+        "sourceRevisionTimestamp": "2026-06-28T02:12:28Z",
+        "frozenSourceRevisionTimestamp": "2026-05-05T12:33:21Z",
+        "revisionDrifted": true,
+        "fileTitle": "Green Jellyfish.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Green_Jellyfish.png?d8e500",
+        "width": 26,
+        "height": 28,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:9065f6148e35b9aa8e5aeddc2d214d0d3286c349ee8e7d151ac9fb1d5ad8aa58"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Green Jellyfish",
+          "rawSourceFile": "greenjellyfish.latest.json",
+          "rawFileSha256": "sha256:9f40ba8b94e5680f9093d29ead3e9661719b2b1ac0f7713fb34ff03cc2a4c8d4",
+          "pageId": 12391,
+          "requestedPageTitle": "Green Jellyfish",
+          "sourcePage": "Jellyfish",
+          "sourceRevisionTimestamp": "2026-06-28T02:12:28Z",
+          "frozenSourceRevisionTimestamp": "2026-05-05T12:33:21Z",
+          "revisionDrifted": true,
+          "fileTitle": "Green Jellyfish.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Green_Jellyfish.gif?cc9e3c",
+          "width": 26,
+          "height": 30,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:9065f6148e35b9aa8e5aeddc2d214d0d3286c349ee8e7d151ac9fb1d5ad8aa58",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Green Jellyfish.png",
+          "originalUrl": "https://terraria.wiki.gg/images/Green_Jellyfish.png",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/f1/f1c15b75fc2dd149f6b8146d33b76bcda1a31757-green-jellyfish-png.png"
+        },
+        "lineage": {
+          "status": "missing"
+        }
+      },
+      "responseSha256": "sha256:9065f6148e35b9aa8e5aeddc2d214d0d3286c349ee8e7d151ac9fb1d5ad8aa58"
+    },
+    {
+      "itemId": 2438,
+      "itemInternalName": "PinkJellyfish",
+      "itemName": "Pink Jellyfish",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Pink Jellyfish",
+        "rawSourceFile": "pinkjellyfish.latest.json",
+        "rawFileSha256": "sha256:7867840a9c0717ce97eb8cd3ed755fbe1913d42b3b4d2e5d3184781cd1caadfd",
+        "pageId": 12391,
+        "requestedPageTitle": "Pink Jellyfish",
+        "sourcePage": "Jellyfish",
+        "sourceRevisionTimestamp": "2026-06-28T02:12:28Z",
+        "frozenSourceRevisionTimestamp": "2026-05-05T12:33:21Z",
+        "revisionDrifted": true,
+        "fileTitle": "Pink Jellyfish.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Pink_Jellyfish.png?f1bea6",
+        "width": 26,
+        "height": 28,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:921663b48eeb476718081eaf17397d469d5d81ebefaaa64679a1f3fd335a69ad"
+      },
+      "secondarySources": [
+        {
+          "authority": "raw_wiki_evidence",
+          "evidenceKind": "mediawiki_exact_file",
+          "blockOrdinal": 1,
+          "anchorTitle": "Pink Jellyfish",
+          "rawSourceFile": "pinkjellyfish.latest.json",
+          "rawFileSha256": "sha256:7867840a9c0717ce97eb8cd3ed755fbe1913d42b3b4d2e5d3184781cd1caadfd",
+          "pageId": 12391,
+          "requestedPageTitle": "Pink Jellyfish",
+          "sourcePage": "Jellyfish",
+          "sourceRevisionTimestamp": "2026-06-28T02:12:28Z",
+          "frozenSourceRevisionTimestamp": "2026-05-05T12:33:21Z",
+          "revisionDrifted": true,
+          "fileTitle": "Pink Jellyfish.gif",
+          "originalUrl": "https://terraria.wiki.gg/images/Pink_Jellyfish.gif?c30959",
+          "width": 26,
+          "height": 30,
+          "contentType": "image/gif",
+          "verificationResponseSha256": "sha256:921663b48eeb476718081eaf17397d469d5d81ebefaaa64679a1f3fd335a69ad",
+          "sortOrder": 1
+        }
+      ],
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Pink Jellyfish.png",
+          "originalUrl": "https://terraria.wiki.gg/images/Pink_Jellyfish.png",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/e7/e7d73f66e93d1ba708c0e837d6d6e1ccb12f6168-pink-jellyfish-png.png"
+        },
+        "lineage": {
+          "status": "missing"
+        }
+      },
+      "responseSha256": "sha256:921663b48eeb476718081eaf17397d469d5d81ebefaaa64679a1f3fd335a69ad"
+    },
+    {
+      "itemId": 2611,
+      "itemInternalName": "Flairon",
+      "itemName": "Flairoon",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Flairoon",
+        "rawSourceFile": "flairon.latest.json",
+        "rawFileSha256": "sha256:33dd8d73989ef85facfa22a80f7629adf17dc1c597196c128487fde36973d75a",
+        "pageId": 4631,
+        "requestedPageTitle": "Flairoon",
+        "sourcePage": "Flairon",
+        "sourceRevisionTimestamp": "2026-07-24T22:56:27Z",
+        "frozenSourceRevisionTimestamp": "2026-02-08T18:09:07Z",
+        "revisionDrifted": true,
+        "fileTitle": "Flairoon.png",
+        "originalUrl": "https://terraria.wiki.gg/images/Flairoon.png?d4a5be",
+        "width": 32,
+        "height": 32,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:79a3e55c58ada9d65c8c5f594b77230521fd255b913bfec0ce727f383507ef4d"
+      },
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Flairoon.png",
+          "originalUrl": "https://terraria.wiki.gg/images/Flairoon.png",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/a4/a4bcb76bb29a21b7c06127ef14522789852df0d3-flairoon-png.png"
+        },
+        "lineage": {
+          "status": "missing"
+        }
+      },
+      "responseSha256": "sha256:79a3e55c58ada9d65c8c5f594b77230521fd255b913bfec0ce727f383507ef4d"
+    },
+    {
+      "itemId": 5358,
+      "itemInternalName": "Shellphone",
+      "itemName": "Shellphone (Home)",
+      "classification": "verified",
+      "source": {
+        "authority": "raw_wiki_evidence",
+        "evidenceKind": "mediawiki_exact_file",
+        "blockOrdinal": 1,
+        "anchorTitle": "Shellphone (Home)",
+        "rawSourceFile": "shellphone.latest.json",
+        "rawFileSha256": "sha256:0c8ab886a6ee7f0d0c7f6ced5399d7f4aab5c62fcbf7d8c053a392674baa75f9",
+        "pageId": 58818,
+        "requestedPageTitle": "Shellphone (Home)",
+        "sourcePage": "Shellphone",
+        "sourceRevisionTimestamp": "2026-07-24T23:03:13Z",
+        "frozenSourceRevisionTimestamp": "2026-04-02T10:47:09Z",
+        "revisionDrifted": true,
+        "fileTitle": "Shellphone (Home).png",
+        "originalUrl": "https://terraria.wiki.gg/images/Shellphone_%28Home%29.png?97a1bb",
+        "width": 28,
+        "height": 32,
+        "contentType": "image/png",
+        "verificationResponseSha256": "sha256:ff7ec294b03731c02af669fe089003c3223f8ee6e98847b30ebda78b64773141"
+      },
+      "comparison": {
+        "local": {
+          "status": "comparison_only",
+          "sourceFileTitle": "Shellphone (Home).png",
+          "originalUrl": "https://terraria.wiki.gg/images/Shellphone_(Home).png",
+          "cachedUrl": "http://localhost:9000/terrapedia-images/items/wiki/item-images/52/523987d7299da2717ca627ae79b55d4f81134855-shellphone-home-png.png"
+        },
+        "lineage": {
+          "status": "missing"
+        }
+      },
+      "responseSha256": "sha256:ff7ec294b03731c02af669fe089003c3223f8ee6e98847b30ebda78b64773141"
+    }
+  ]
+}

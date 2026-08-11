@@ -27,12 +27,15 @@ public class CrawlerDomainStateReducer {
         boolean progressActiveNoLease = ACTIVE_PROGRESS.contains(progress) && !leaseValid && !queueActive;
 
         String status;
-        if (isOneOf(queue, "failed", "timed_out")) {
+        // A force reclaim is the latest ownership decision. Historical V1
+        // queue failures must not keep the domain looking blocked after the
+        // administrator has released it.
+        if (forceReclaimed) {
+            status = "ready";
+        } else if (isOneOf(queue, "failed", "timed_out")) {
             status = queue;
         } else if (isOneOf(progress, "failed", "timed_out")) {
             status = progress;
-        } else if (forceReclaimed) {
-            status = "ready";
         } else if (isOneOf(queue, "cancelled") || isOneOf(progress, "cancelled") || isOneOf(domain, "cancelled")) {
             status = "ready";
         } else if (isOneOf(queue, "completed") || isOneOf(progress, "completed")) {

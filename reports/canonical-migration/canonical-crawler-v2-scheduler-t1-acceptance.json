@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-scheduler-t1-acceptance",
+  "status": "passed",
+  "cleanupPassed": true,
+  "offline": true,
+  "scheduledTickObserved": true,
+  "runtimeAssertionsDeferred": false,
+  "identity": {
+    "runId": "scheduler-dry-20260808-17",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:test:scheduler-dry-20260808-17:",
+    "redisDb": 14,
+    "epoch": "epoch-sch_2ba4b4c2374d5898",
+    "fenceToken": "fence-sch_2ba4b4c2374d5898",
+    "domain": "crawler_queue_v2_fixture",
+    "actionId": "crawler-queue-v2-fixture"
+  },
+  "progress": { "status": "completed", "sequence": 22, "actionId": "crawler-queue-v2-fixture" },
+  "leaseRenewals": 2,
+  "concurrentDispatches": 1,
+  "restart": { "adopted": true, "mismatchRejected": true, "epochRecreated": false },
+  "leaseLoss": { "childReaped": true, "nextReadyClaimed": false, "attemptId": "attempt-75c60809-5e4d-4365-bcb5-f00dc8f0a465", "reasonCode": "LEASE_RENEW_FAILED" },
+  "cleanup": { "backendProcesses": 0, "childProcesses": 0, "redisKeys": 0, "credentials": 0, "files": 0, "permits": 0, "ports": 0, "databases": 0 },
+  "generatedAt": "2026-08-08T16:31:54.018Z"
+}

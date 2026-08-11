@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-07-23T00:00:00.000Z",
+  "fixture": true,
+  "modules": {
+    "items": { "standardizedCount": 0, "dbStats": {}, "imageFields": [] },
+    "buffs": { "standardizedCount": 0, "dbStats": {}, "imageFields": [] },
+    "npcs": { "standardizedCount": 0, "dbStats": {}, "imageFields": [] },
+    "projectiles": { "standardizedCount": 0, "dbStats": {}, "imageFields": [] },
+    "biomes": { "standardizedCount": 0, "dbStats": {}, "imageFields": [] }
+  }
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -8,9 +9,22 @@ import { fileURLToPath } from 'node:url';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
-  isManagedImageUrl,
+  isManagedImagePath,
   resolveManagedImageUrlPrefixes,
 } from '../relation/managed-image-url-policy.mjs';
+import {
+  assertItemImageProjectionCompletedResult,
+  assertItemImageProjectionInputContract,
+  assertItemImageProjectionProposal,
+  assertItemImageProjectionSnapshot,
+  buildItemImageProjectionInputContract,
+  buildItemImageProjectionAttemptPaths,
+  canonicalItemImageProjectionHash,
+} from '../relation/item-image-projection-contract.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -75,7 +89,7 @@ WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
     projectionQuery: (relationDatabase) => `
-SELECT \`id\`, \`internal_name\` AS internalName, \`image\`
+SELECT \`id\`, \`relation_record_key\` AS relationRecordKey, \`internal_name\` AS internalName, \`image\`
 FROM ${qualified(relationDatabase, 'projection_items')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
@@ -492,12 +506,29 @@ export function parseArgs(argv = []) {
 
   return {
     source: raw.source ?? 'db',
+    attemptRoot: raw.attemptRoot ?? null,
     output: raw.output ?? null,
     repoRoot: raw.repoRoot ?? null,
     generatedAt: raw.generatedAt ?? null,
     maintDatabase: raw.maintDatabase ?? DEFAULT_MAINT_DATABASE,
     relationDatabase: raw.relationDatabase ?? DEFAULT_RELATION_DATABASE,
     localDatabase: raw.localDatabase ?? DEFAULT_LOCAL_DATABASE,
+  };
+}
+
+export function resolveItemImageProjectionEvidencePaths({ attemptRoot } = {}) {
+  const normalized = String(attemptRoot ?? '').trim().replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-projection-apply/';
+  if (path.isAbsolute(normalized)
+      || path.posix.normalize(normalized) !== normalized
+      || !normalized.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalized.slice(prefix.length))) {
+    throw new Error('item image projection attempt root must contain one exact lowercase SHA-256 attempt');
+  }
+  return {
+    attemptRoot: normalized,
+    inputPath: `${normalized}/input.json`,
+    resultPath: `${normalized}/result.json`,
   };
 }
 
@@ -547,11 +578,17 @@ export function buildImageSourceLineageReport({
   reportPath = null,
   entities = {},
   managedUrlPrefixes = DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
+  itemImageProjectionEvidence = null,
 } = {}) {
   const entityReports = {};
 
   for (const entityType of ENTITY_ORDER) {
-    entityReports[entityType] = summarizeEntityLineage(entityType, entities[entityType] ?? {}, managedUrlPrefixes);
+    entityReports[entityType] = summarizeEntityLineage(
+      entityType,
+      entities[entityType] ?? {},
+      managedUrlPrefixes,
+      itemImageProjectionEvidence,
+    );
   }
 
   const readyEntityTypes = Object.values(entityReports).filter((entry) => entry.contractReady).length;
@@ -570,7 +607,12 @@ export function buildImageSourceLineageReport({
   };
 }
 
-function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
+function summarizeEntityLineage(
+  entityType,
+  entityData,
+  managedUrlPrefixes,
+  itemImageProjectionEvidence,
+) {
   const config = ENTITY_CONFIG[entityType];
   const coreRows = Array.isArray(entityData.coreRows) ? entityData.coreRows : [];
   const maintImageRows = Array.isArray(entityData.maintImageRows) ? entityData.maintImageRows : [];
@@ -646,6 +688,12 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   if (projectionBlankButCoreImageAvailableCount > 0) {
     gapReasons.push('projection_blank_but_core_image_available');
   }
+  if (entityType === 'items') {
+    gapReasons.push(...itemImageProjectionEvidenceGaps({
+      evidence: itemImageProjectionEvidence,
+      projectionRows,
+    }));
+  }
 
   const contractReady = gapReasons.length === 0;
   return {
@@ -682,7 +730,169 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   };
 }
 
-async function main(argv = process.argv.slice(2)) {
+function itemImageProjectionEvidenceGaps({ evidence, projectionRows }) {
+  if (evidence == null) return ['missing_item_image_projection_apply_evidence'];
+  if (evidence.loadError) return [classifyItemImageProjectionEvidenceLoadError(evidence.loadError)];
+  if (!evidence.result || !evidence.inputContract || !evidence.proposal || !evidence.snapshot
+      || !evidence.inputBytes || !evidence.proposalBytes || !evidence.snapshotBytes
+      || !Array.isArray(evidence.artifacts)) {
+    return ['partial_item_image_projection_apply_evidence'];
+  }
+  if (evidence.result.status === 'failed') return ['failed_item_image_projection_apply_evidence'];
+  if (evidence.result.status !== 'completed' || evidence.result.apply !== true) {
+    return ['dry_run_item_image_projection_apply_evidence'];
+  }
+  if (Array.isArray(evidence.inputContract?.projectionAfterRows)
+      && evidence.inputContract.projectionAfterRows.some((row) => (
+        !isManagedImagePath(row?.image, evidence.inputContract.managedUrlPrefixes)
+      ))) {
+    return ['item_image_projection_unmanaged_evidence'];
+  }
+  try {
+    assertItemImageProjectionInputContract(evidence.inputContract);
+    assertItemImageProjectionProposal(evidence.proposal);
+    assertItemImageProjectionSnapshot(evidence.snapshot);
+    assertItemImageProjectionCompletedResult({
+      result: evidence.result,
+      inputContract: evidence.inputContract,
+    });
+    if (sha256Bytes(evidence.inputBytes) !== evidence.result.inputContractSha256) {
+      return ['stale_item_image_projection_apply_evidence'];
+    }
+    if (sha256Bytes(evidence.proposalBytes) !== evidence.inputContract.proposalSha256) {
+      return ['item_image_projection_proposal_hash_drifted'];
+    }
+    if (sha256Bytes(evidence.snapshotBytes) !== evidence.inputContract.snapshotSha256) {
+      return ['item_image_projection_snapshot_hash_drifted'];
+    }
+    const expectedArtifacts = projectionEvidenceArtifactBindings(evidence.inputContract);
+    const actualArtifacts = new Map();
+    for (const entry of evidence.artifacts) {
+      if (actualArtifacts.has(entry?.path)) {
+        return ['partial_item_image_projection_apply_evidence'];
+      }
+      actualArtifacts.set(entry?.path, entry?.bytes);
+    }
+    for (const binding of expectedArtifacts) {
+      const bytes = actualArtifacts.get(binding.path);
+      if (bytes == null || sha256Bytes(bytes) !== binding.sha256) {
+        return ['partial_item_image_projection_apply_evidence'];
+      }
+    }
+    const rebuiltInput = buildItemImageProjectionInputContract({
+      proposal: evidence.proposal,
+      proposalPath: evidence.inputContract.proposalPath,
+      proposalSha256: evidence.inputContract.proposalSha256,
+    });
+    if (canonicalItemImageProjectionHash(rebuiltInput)
+        !== canonicalItemImageProjectionHash(evidence.inputContract)) {
+      return ['item_image_projection_input_binding_drifted'];
+    }
+    const expectedSnapshot = {
+      snapshotKind: 'canonical_item_image_projection_snapshot',
+      operationId: evidence.inputContract.operationId,
+      contractVersion: evidence.inputContract.contractVersion,
+      generatedAt: evidence.inputContract.generatedAt,
+      target: evidence.inputContract.target,
+      managedUrlPolicy: evidence.inputContract.managedUrlPolicy,
+      managedUrlPrefixes: evidence.inputContract.managedUrlPrefixes,
+      keys: evidence.inputContract.keys,
+      keySetSha256: evidence.inputContract.keySetSha256,
+      relationRows: evidence.inputContract.relationRows,
+      relationRowsSha256: evidence.inputContract.relationRowsSha256,
+      projectionBeforeRows: evidence.inputContract.projectionBeforeRows,
+      projectionBeforeSha256: evidence.inputContract.projectionBeforeSha256,
+      targetRowCount: evidence.inputContract.targetRowCount,
+    };
+    if (canonicalItemImageProjectionHash(expectedSnapshot)
+        !== canonicalItemImageProjectionHash(evidence.snapshot)) {
+      return ['item_image_projection_snapshot_content_drifted'];
+    }
+  } catch (error) {
+    return [classifyItemImageProjectionEvidenceError(error)];
+  }
+
+  const frozenKeys = new Set(evidence.inputContract.keys);
+  const currentRows = projectionRows
+    .filter((row) => frozenKeys.has(firstText(row?.internalName, row?.internal_name)))
+    .map((row) => ({
+      id: Number(row?.id),
+      relationRecordKey: firstText(row?.relationRecordKey, row?.relation_record_key),
+      internalName: firstText(row?.internalName, row?.internal_name),
+      image: firstText(row?.image),
+    }))
+    .sort((left, right) => left.internalName.localeCompare(right.internalName));
+  if (canonicalItemImageProjectionHash(currentRows)
+      !== canonicalItemImageProjectionHash(evidence.inputContract.projectionAfterRows)) {
+    return ['item_image_projection_after_rows_drifted'];
+  }
+  return [];
+}
+
+function projectionEvidenceArtifactBindings(inputContract) {
+  return [
+    {
+      path: inputContract.proposalAuthorization.path,
+      sha256: inputContract.proposalAuthorization.sha256,
+      privateFile: true,
+    },
+    {
+      path: inputContract.lineage.inputContractPath,
+      sha256: inputContract.lineage.inputContractSha256,
+      privateFile: true,
+    },
+    {
+      path: inputContract.lineage.resultPath,
+      sha256: inputContract.lineage.resultSha256,
+      privateFile: true,
+    },
+    {
+      path: inputContract.lineage.bundlePath,
+      sha256: inputContract.lineage.bundleSha256,
+      privateFile: false,
+    },
+    {
+      path: inputContract.lineage.applySnapshotPath,
+      sha256: inputContract.lineage.applySnapshotSha256,
+      privateFile: true,
+    },
+    {
+      path: inputContract.lineage.authorizationPacketPath,
+      sha256: inputContract.lineage.authorizationPacketSha256,
+      privateFile: true,
+    },
+    {
+      path: inputContract.managedUrlPolicy.sourcePath,
+      sha256: inputContract.managedUrlPolicy.sourceSha256,
+      privateFile: false,
+    },
+  ];
+}
+
+function classifyItemImageProjectionEvidenceError(error) {
+  const message = String(error?.message ?? error).toLowerCase();
+  if (message.includes('count')) return 'item_image_projection_count_drifted';
+  if (message.includes('lineage')) return 'item_image_projection_lineage_drifted';
+  if (message.includes('target')) return 'item_image_projection_target_drifted';
+  if (message.includes('key')) return 'item_image_projection_key_drifted';
+  if (message.includes('after')) return 'item_image_projection_after_hash_drifted';
+  if (message.includes('managed')) return 'item_image_projection_unmanaged_evidence';
+  return 'invalid_item_image_projection_apply_evidence';
+}
+
+function classifyItemImageProjectionEvidenceLoadError(error) {
+  const message = String(error?.message ?? error).toLowerCase();
+  if (error?.code === 'ENOENT' || message.includes('no such file') || message.includes(' is missing')) {
+    return 'missing_item_image_projection_apply_evidence';
+  }
+  return 'invalid_item_image_projection_apply_evidence';
+}
+
+function sha256Bytes(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+}
+
+export async function runImageSourceLineageReport(argv = process.argv.slice(2), dependencies = {}) {
   const args = parseArgs(argv);
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const root = args.repoRoot ? path.resolve(repoRoot, args.repoRoot) : repoRoot;
@@ -692,28 +902,138 @@ async function main(argv = process.argv.slice(2)) {
     root,
   });
 
+  let itemImageProjectionEvidence = null;
+  if (args.source === 'db') {
+    const loadEvidence = dependencies.loadEvidence ?? loadItemImageProjectionEvidence;
+    try {
+      itemImageProjectionEvidence = await loadEvidence({
+        repoRoot: root,
+        attemptRoot: args.attemptRoot,
+      });
+    } catch (error) {
+      itemImageProjectionEvidence = { loadError: error };
+    }
+  }
+  const loadEntities = dependencies.loadEntities ?? loadEntitiesFromDatabase;
   const entities = args.source === 'db'
-    ? await loadEntitiesFromDatabase(args)
+    ? await loadEntities(args)
     : {};
 
   const report = buildImageSourceLineageReport({
     generatedAt,
     reportPath,
     entities,
-    managedUrlPrefixes: resolveManagedImageUrlPrefixes({ repoRoot: root }),
+    managedUrlPrefixes: (dependencies.resolveManagedUrlPrefixes ?? resolveManagedImageUrlPrefixes)({
+      repoRoot: root,
+    }),
+    itemImageProjectionEvidence,
   });
   const output = `${JSON.stringify(report, null, 2)}\n`;
 
-  await fs.mkdir(path.dirname(reportPath), { recursive: true });
-  await fs.writeFile(reportPath, output, 'utf8');
-  process.stdout.write(output);
+  const writeReport = dependencies.writeReport ?? (async () => {
+    await fs.mkdir(path.dirname(reportPath), { recursive: true });
+    await fs.writeFile(reportPath, output, 'utf8');
+  });
+  await writeReport({ reportPath, output, report });
+  (dependencies.writeOutput ?? ((value) => process.stdout.write(value)))(output);
+  return report;
 }
 
-async function loadEntitiesFromDatabase(args) {
+async function main(argv = process.argv.slice(2)) {
+  return runImageSourceLineageReport(argv);
+}
+
+export async function loadItemImageProjectionEvidence({ repoRoot: root, attemptRoot } = {}) {
+  const repositoryRoot = path.resolve(root);
+  const paths = resolveItemImageProjectionEvidencePaths({ attemptRoot });
+  const inputEntry = await readProjectionEvidenceFile({
+    repoRoot: repositoryRoot,
+    relativePath: paths.inputPath,
+    label: 'projection readiness input contract',
+    privateFile: true,
+  });
+  const inputContract = parseEvidenceJson(inputEntry.bytes, inputEntry.label);
+  assertItemImageProjectionInputContract(inputContract);
+  const expectedPaths = buildItemImageProjectionAttemptPaths(
+    inputContract.proposalAuthorization.decisionIdentity,
+  );
+  if (expectedPaths.attemptRoot !== paths.attemptRoot
+      || inputContract.attemptRoot !== paths.attemptRoot
+      || expectedPaths.inputPath !== paths.inputPath
+      || expectedPaths.resultPath !== paths.resultPath) {
+    throw new Error('projection readiness evidence attempt identity drifted');
+  }
+  const resultEntry = await readProjectionEvidenceFile({
+    repoRoot: repositoryRoot,
+    relativePath: paths.resultPath,
+    label: 'projection readiness result',
+    privateFile: true,
+  });
+  const proposalEntry = await readProjectionEvidenceFile({
+    repoRoot: repositoryRoot,
+    relativePath: inputContract.proposalPath,
+    label: 'projection readiness proposal',
+    privateFile: true,
+  });
+  const snapshotEntry = await readProjectionEvidenceFile({
+    repoRoot: repositoryRoot,
+    relativePath: inputContract.snapshotPath,
+    label: 'projection readiness snapshot',
+    privateFile: true,
+  });
+  const artifacts = [];
+  for (const binding of projectionEvidenceArtifactBindings(inputContract)) {
+    const entry = await readProjectionEvidenceFile({
+      repoRoot: repositoryRoot,
+      relativePath: binding.path,
+      label: `projection readiness artifact ${binding.path}`,
+      privateFile: binding.privateFile,
+    });
+    if (sha256Bytes(entry.bytes) !== binding.sha256) {
+      throw new Error(`projection readiness artifact hash drifted: ${binding.path}`);
+    }
+    artifacts.push({ path: binding.path, bytes: entry.bytes });
+  }
+  return {
+    result: parseEvidenceJson(resultEntry.bytes, resultEntry.label),
+    inputContract,
+    proposal: parseEvidenceJson(proposalEntry.bytes, proposalEntry.label),
+    snapshot: parseEvidenceJson(snapshotEntry.bytes, snapshotEntry.label),
+    inputBytes: inputEntry.bytes,
+    proposalBytes: proposalEntry.bytes,
+    snapshotBytes: snapshotEntry.bytes,
+    artifacts,
+  };
+}
+
+async function readProjectionEvidenceFile({ repoRoot: root, relativePath, label, privateFile }) {
+  const absolutePath = assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: path.resolve(root, relativePath),
+    label,
+  });
+  assertRepositoryOrdinaryFile({ repoRoot: root, filePath: absolutePath, label });
+  const stat = await fs.stat(absolutePath);
+  if (privateFile && (stat.mode & 0o077) !== 0) throw new Error(`${label} must be private`);
+  return { label, bytes: await fs.readFile(absolutePath) };
+}
+
+function parseEvidenceJson(bytes, label) {
+  try {
+    return JSON.parse(Buffer.from(bytes).toString('utf8'));
+  } catch {
+    throw new Error(`${label} must contain valid JSON`);
+  }
+}
+
+export async function loadEntitiesFromDatabase(args, dependencies = {}) {
   const queries = buildImageSourceLineageQueries(args);
-  const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));
-  const mysql = require('mysql2/promise');
-  const connection = await mysql.createConnection({
+  const createConnection = dependencies.createConnection ?? (async (options) => {
+    const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));
+    const mysql = require('mysql2/promise');
+    return mysql.createConnection(options);
+  });
+  const connection = await createConnection({
     host: process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
     port: Number(process.env.TERRAPEDIA_DB_PORT ?? 3306),
     user: process.env.TERRAPEDIA_DB_USERNAME ?? 'root',
@@ -721,7 +1041,10 @@ async function loadEntitiesFromDatabase(args) {
     database: args.localDatabase,
   });
 
+  let transactionStarted = false;
   try {
+    await connection.query('START TRANSACTION READ ONLY');
+    transactionStarted = true;
     const entities = {};
     for (const entityType of ENTITY_ORDER) {
       const entityQueries = queries[entityType];
@@ -733,6 +1056,7 @@ async function loadEntitiesFromDatabase(args) {
     }
     return entities;
   } finally {
+    if (transactionStarted) await connection.query('ROLLBACK');
     await connection.end();
   }
 }
@@ -766,7 +1090,7 @@ function countRowsWithManagedProjectionImage(rows, accessor, managedUrlPrefixes)
   }
   return rows.filter((row) => {
     const imageUrl = accessor(row);
-    return imageUrl ? isManagedImageUrl(imageUrl, managedUrlPrefixes) : false;
+    return imageUrl ? isManagedImagePath(imageUrl, managedUrlPrefixes) : false;
   }).length;
 }
 
@@ -780,7 +1104,7 @@ function countRowsWithWrongManagedImagePrefix(rows, accessor, entityType, manage
     if (!imageUrl) {
       return false;
     }
-    return isManagedImageUrl(imageUrl, managedUrlPrefixes) && !isManagedImageUrl(imageUrl, expectedPrefixes);
+    return isManagedImagePath(imageUrl, managedUrlPrefixes) && !isManagedImagePath(imageUrl, expectedPrefixes);
   }).length;
 }
 
@@ -798,7 +1122,7 @@ function countBlankProjectionRowsWithCoreManagedImageAvailable(coreRows, project
   for (const row of coreRows) {
     const key = normalizeEntityKey(config.coreKeyAccessor(row));
     const imageUrl = config.coreImageAccessor(row);
-    if (key && imageUrl && isManagedImageUrl(imageUrl, managedUrlPrefixes)) {
+    if (key && imageUrl && isManagedImagePath(imageUrl, managedUrlPrefixes)) {
       coreKeysWithManagedImages.add(key);
     }
   }

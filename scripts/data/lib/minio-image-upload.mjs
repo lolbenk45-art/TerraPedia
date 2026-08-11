@@ -128,13 +128,24 @@ export function isManagedUrl(value, managedUrlPrefixes = [DEFAULT_MANAGED_URL_PR
   if (!text) {
     return false;
   }
+  const normalizedPrefixes = normalizeManagedUrlPrefixes(managedUrlPrefixes);
+  if (text.startsWith('/') && !text.startsWith('//')) {
+    const candidatePath = text.split(/[?#]/, 1)[0];
+    return normalizedPrefixes.some((prefix) => {
+      try {
+        return isPathUnderPrefix(candidatePath, new URL(prefix).pathname);
+      } catch {
+        return false;
+      }
+    });
+  }
   let candidate;
   try {
     candidate = new URL(text);
   } catch {
     return false;
   }
-  return normalizeManagedUrlPrefixes(managedUrlPrefixes).some((prefix) => {
+  return normalizedPrefixes.some((prefix) => {
     try {
       const parsedPrefix = new URL(prefix);
       return candidate.origin === parsedPrefix.origin

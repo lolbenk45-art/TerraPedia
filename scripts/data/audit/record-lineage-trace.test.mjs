@@ -12,7 +12,7 @@ test('parseArgs accepts item lineage lookup arguments', () => {
       sourceId: 6131,
       internalName: 'Wood',
       recordKey: 'abc',
-      landingDatabase: 'terria_v1_maint',
+      landingDatabase: 'terria_v1_local',
       maintDatabase: 'terria_v1_maint',
       relationDatabase: 'terria_v1_relation',
       localDatabase: 'terria_v1_local',
@@ -37,6 +37,7 @@ test('buildRecordLineageTracePlan builds item stages across local relation maint
   assert.deepEqual(plan.steps[1].params, [6131, 'Wood']);
   assert.match(plan.steps[5].sql, /item_id = \? OR source_ref_name = \?/);
   assert.deepEqual(plan.steps[5].params, [42, 'Wood']);
+  assertLandingIdentityContract(plan.steps.at(-1).sql);
 });
 
 test('buildRecordLineageTracePlan builds npc stages across local relation maint and landing', () => {
@@ -53,4 +54,16 @@ test('buildRecordLineageTracePlan builds npc stages across local relation maint 
   assert.deepEqual(plan.steps[1].params, [22, 'Guide']);
   assert.deepEqual(plan.steps[5].params, [17]);
   assert.deepEqual(plan.steps[6].params, [17]);
+  assertLandingIdentityContract(plan.steps.at(-1).sql);
 });
+
+function assertLandingIdentityContract(sql) {
+  assert.match(sql, /artifact_role AS artifactRole/);
+  assert.match(sql, /producer_id AS producerId/);
+  assert.match(sql, /producer_version AS producerVersion/);
+  assert.match(sql, /producer_run_key AS producerRunKey/);
+  assert.match(sql, /bootstrap_manifest_hash AS bootstrapManifestHash/);
+  assert.match(sql, /full_file_content_hash AS fullFileContentHash/);
+  assert.match(sql, /current_slot = 1/);
+  assert.doesNotMatch(sql, /is_current = 1/);
+}

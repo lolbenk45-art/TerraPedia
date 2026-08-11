@@ -129,3 +129,171 @@ Decision: `docs/project-management/risk-register.md` records current July risk t
 Reason: The May rows were tied to May gate and release evidence. Current governance treats that evidence as historical until fresh Bash gates, route checks, and data-readiness checks are rerun.
 Evidence: `docs/project-governance/current/PROJECT_CONTROL.md`, `docs/project-management/current-status.md`, and the 2026-07-09 governance reset commits.
 Expected follow-up: Revalidate any May risk before promoting it back into the current risk table or closing it as resolved.
+
+## D-2026-07-29-01: Biomes policy promotion is not an L1 apply approval
+
+Decision: Treat the completed exact `biomes` v1 `L1/ACTIVE` policy-promotion as
+its own governance checkpoint; it authorizes neither a preview bundle nor an L1
+apply, L2 promotion, scheduler activation, or network activity.
+Reason: The policy decision and a frozen data apply have independent evidence,
+rollback, and one-time-authorization requirements.
+Evidence: Formal retry packet `sha256:c9104874389c553617ff24c7a7c5be9ac0d0fd2b9a19c7d0d1a7208a7b43ca5c`
+completed on 2026-07-29; readback shows policy v1 `L1/ACTIVE`, one policy
+version, and zero external active transactions.
+Expected follow-up: Freeze the first exact preview bundle, then request a new
+operation-level decision before any L1 apply.
+
+## D-2026-07-30-01: Item image group-page evidence stays candidate-only
+
+Decision: Generate a separately reviewable artifact only for the 695 group
+pages with one exact normalized item-identity filename plus 7 safe non-group
+pages. Keep the other 3,310 group pages fail-closed. Do not write standardized
+item data or rerun image sync from this decision.
+Reason: Group-page images are intentionally quarantined because a shared page
+can contain set, variant, or unrelated images. Exact unique filename identity
+is sufficient for review candidacy, not automatic source ownership.
+Evidence: `reports/audit/item-image-source-candidates-2026-07-30.json` records
+702 candidates and 3,310 quarantined group pages; pre/post standardized input
+hashes are identical and focused tests pass 2/2.
+Expected follow-up: Review the 702 candidate rows, define a separately governed
+write operation if accepted, and require stronger provenance or manual review
+before any of the remaining 3,310 rows can leave quarantine.
+
+## D-2026-07-31-01: Item image dual-format retention is designed but deferred
+
+Decision: Keep the current single-image behaviour. Do not implement dual-format
+retention now. The design is settled and approved but parked as a follow-up the
+user asked to be reminded about.
+
+Approved design, ready to implement when resumed:
+- When more than one candidate file survives identity filtering, stop returning
+  `ambiguous`. Take `.png` as the primary image (`is_primary=1`, `sort_order=0`)
+  and keep every other format as a secondary row (`is_primary=0`, ascending
+  `sort_order`). When no `.png` sibling exists, leave the existing primary alone.
+- Add two non-format disambiguation rules: a filename exactly equal to the item
+  name wins, and a parenthesised variant suffix is demoted. These resolve
+  `Flairon` against the misspelled wiki duplicate `Flairoon.png`, and
+  `Shellphone` against the `Shellphone (Home).png` variant.
+- Scope is 29 items: the 9 currently ambiguous (4 coins, 3 jellyfish, Flairon,
+  Shellphone) plus 20 of the 24 legacy `.gif`-primary items.
+- `StrangePlant1..4` are a known exception: all four share one
+  `Strange Plants.gif` and the wiki has no `.png` sibling, so they cannot be
+  flipped and keep their current primary.
+
+Reason: The user chose to hold the change and move on to the next crawler
+automated-ingestion stage. Deferring costs nothing structurally because the
+verification evidence is already frozen and reproducible.
+
+Evidence: The two formats are genuinely different assets, not containers of the
+same image. Measured frame counts are 8 for each coin and 4 for each jellyfish
+against a single-frame `.png`, and the jellyfish differ in size as well
+(`.gif` 26x30 vs `.png` 26x28), so the `.png` is not a crop of frame one.
+No schema work is required: `item_images` has been multi-row since V13 with
+`role`, `is_primary`, `sort_order` and an `idx_item_images_primary` index, and
+`imageFileTitle` has zero references in `back/`, `front-nuxt/`, `admin-vue`, and
+`data-query-app`, confirming it is a pipeline-internal field. A bounded read-only
+check of the 24 legacy `.gif` items found `.png` siblings for exactly 20.
+
+Consequences of continuing to defer: the promotion review stays at
+`existing 2119 + promoted 4003 + ambiguous 9`, so `ambiguous` never reaches zero,
+no promotion bundle can be written, and item-image subplan Tasks 4-7 plus Task 8
+Steps 3-6 stay blocked. The item image domain panel therefore remains the one
+blocked panel in the domain gate.
+
+Expected follow-up: Remind the user to schedule this. Implementing it needs a
+change to `buildVerificationRecord` in
+`scripts/data/fetch/fetch-item-image-source-verification.mjs`, multi-row support
+in the Task 6 lineage bundle, and — for the 20 legacy items, which sit outside
+the authorized 877 frozen set — its own frozen input and a fresh Owner
+authorization.
+
+## D-2026-08-01-01: Item image dual-format retention lands with corrected disambiguation
+
+Decision: Implement the retention design deferred by `D-2026-07-31-01`, with its
+two disambiguation rules replaced. `D-2026-07-31-01` stated the rules correctly
+in the abstract but recorded the wrong outcome for the two items they were
+written for, because it read `itemInternalName` where the deciding field is the
+display name `itemName`.
+
+Corrected rules, applied in order, both failing closed:
+1. Display-name precedence. When more than one candidate survives identity
+   filtering, keep only those whose file base title equals the item's display
+   name. Candidate filtering accepts the internal name *and* the display name, so
+   a page hosting a sibling item's sprite otherwise stays ambiguous forever.
+2. Format precedence. Among what survives, exactly one `.png` leads as the
+   primary image (`is_primary=1`, `sort_order=0`) and every other format is
+   retained as a secondary row (`is_primary=0`, ascending `sort_order`). More
+   than one `.png`, or none, stays `ambiguous` rather than guessing.
+
+The superseded rule "a parenthesised variant suffix is demoted" is deleted, not
+implemented: it inverts the correct result.
+
+Evidence for the correction, from `data/standardized/items.standardized.json`
+and `data/standardized/item_pages.standardized.json`:
+- Item 2611 is `internalName=Flairon` but `name=Flairoon`, requested as page
+  title `Flairoon`. `Flairon.png` is already the existing image of item 5526
+  (`internalName=FlaironFlail`, `name=Flairon`), which shares page 4631.
+- Item 5358 is `internalName=Shellphone` but `name=Shellphone (Home)`.
+  `Shellphone.png` is already the existing image of item 5437
+  (`internalName=ShellphoneDummy`, `name=Shellphone`).
+- Task 2's independent local candidate evidence had already selected
+  `Flairoon.png` and `Shellphone (Home).png` for these two.
+
+Following `D-2026-07-31-01` literally would therefore have given both items a
+sibling item's sprite. `item_images` carries no unique key — V13 declares only
+`idx_item_images_item_id`, `idx_item_images_primary`, and
+`idx_item_images_provider` — so nothing in the database would have rejected the
+collision; uniqueness is the pipeline's responsibility alone.
+
+Scope: the 9 currently ambiguous items only. Seven (4 coins, 3 jellyfish) resolve
+by rule 2 into a `.png` primary plus a `.gif` secondary; items 2611 and 5358
+resolve by rule 1 into a single source with no secondary row. The 20 legacy
+`.gif`-primary items stay out of scope and still need their own frozen input and
+a fresh Owner authorization. `StrangePlant1..4` remain the known exception.
+
+Consequence: the 9 records carry no `source` and no imageinfo, only
+`candidateFileTitles`, so the corrected rules cannot be applied to the existing
+report offline. Clearing `ambiguous` to zero requires one more bounded run over
+exactly those 9 identities — a new frozen input, a new packet, and a new one-time
+decision identity.
+
+## D-2026-08-01-02: A lost verification report is rebuilt from promotion review evidence
+
+Decision: Rebuild the destroyed retry-03 item image verification report by
+replaying the promotion review it produced, rather than re-authorizing and
+re-running all 877 identities.
+
+What was lost: the verifier's frozen output path was
+`reports/audit/item-image-source-verification.latest.json`, a fixed filename. The
+retry-04 round wrote its 9 records over the retry-03 round's 877 records. A
+full-filesystem search found no copy; only the retry-01 failed report had been
+archived by hand.
+
+Why replay is sound: all 868 verification-derived sources survived verbatim
+inside `item-image-source-promotion-review-2026-07-31.json`, each carrying
+`evidenceKind: mediawiki_exact_file` and `verificationResponseSha256` — the
+per-record response hash. Those two fields together distinguish a row that came
+from a verification round from one extracted from candidates, so nothing is
+guessed about provenance, and every replayed field is copied, not derived. The
+reconstruction is performed by
+`scripts/data/audit/rebuild-item-image-source-verification-report.mjs`, which
+fails closed on a duplicate identity or a conflicting raw evidence hash, and
+records its own provenance block naming both source artifacts.
+
+The replay cannot smuggle bad data into the database: every source, replayed or
+fresh, still faces `verifyEvidenceSource` against actual raw bytes before the
+bundle is published. All 877 passed.
+
+Reason: re-running would burn another one-time decision and issue 877 requests to
+reproduce records that already exist, field for field, in a committed artifact.
+
+Prevention: the frozen output path is now round-tagged
+(`item-image-source-verification.round-04-2026-08-01.json`) in both the backend
+refresh plan and the execution manifest, and the verifier refuses to start when
+its output path already exists — checked before the dispatch permit is consumed
+and before any request is issued, so a clobbering round fails closed instead of
+spending the network budget first.
+
+Result: `total 6131 = existing 2119 + promoted 4012 + unresolved 0 + ambiguous 0
++ duplicate 0 + conflict 0`. The promotion bundle published for the first time at
+generation `79159314be3f282b8b117491711f95c7985bd7f189b08ee0c44126bbfd0d3f34`.

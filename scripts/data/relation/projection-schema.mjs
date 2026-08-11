@@ -1,4 +1,4 @@
-import { RELATION_DATABASE_NAME } from './relation-schema.mjs';
+import { RELATION_DATABASE_NAME, requireRelationDatabaseName } from './relation-schema.mjs';
 
 export const PROJECTION_TABLE_NAMES = [
   'projection_items',
@@ -10,6 +10,13 @@ export const PROJECTION_TABLE_NAMES = [
   'projection_item_armor_attributes',
   'projection_equipment_effect_attributes'
 ];
+
+export const PROJECTION_TABLE_CATALOG = Object.freeze(PROJECTION_TABLE_NAMES.map((table) => Object.freeze({
+  databaseRole: 'relation',
+  table,
+  tableKind: 'projection',
+  engine: 'InnoDB'
+})));
 
 function buildProjectionStatements() {
   return [
@@ -277,6 +284,8 @@ function buildProjectionStatements() {
   ];
 }
 
-export function buildProjectionSchemaStatements() {
-  return buildProjectionStatements();
+export function buildProjectionSchemaStatements(databaseName = RELATION_DATABASE_NAME) {
+  const targetDatabase = requireRelationDatabaseName(databaseName);
+  return buildProjectionStatements()
+    .map((statement) => statement.replaceAll(RELATION_DATABASE_NAME, targetDatabase));
 }
