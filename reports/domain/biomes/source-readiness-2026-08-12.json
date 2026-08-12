@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-08-12T20:07:51.491Z",
+  "domainId": "biomes",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/biomes/source-readiness-2026-08-12.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 2,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_standardized_biomes_standardized_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/biomes.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 7,
+      "status": "pass",
+      "message": "Evidence present: data/standardized/biomes.standardized.json"
+    },
+    {
+      "id": "data_generated_wiki_biomes_latest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/wiki-biomes.latest.json",
+      "latestReportPath": null,
+      "recordCount": 47,
+      "status": "pass",
+      "message": "Evidence present: data/generated/wiki-biomes.latest.json"
+    }
+  ]
+}

@@ -343,6 +343,37 @@ const PRODUCT_DOMAIN_CONFIG = {
       ],
     },
   },
+  biomes: {
+    sourceReadiness: {
+      fileKey: 'source-readiness',
+      evidence: [
+        requiredJson('data/standardized/biomes.standardized.json'),
+        optionalJson('data/generated/wiki-biomes.latest.json'),
+      ],
+    },
+    imageReadiness: {
+      fileKey: 'image-readiness',
+      evidence: [
+        requiredJson('data/standardized/biomes.standardized.json'),
+        optionalJson('data/standardized-view/biomes/_meta.json'),
+      ],
+    },
+    publicReadiness: {
+      fileKey: 'public-readiness',
+      evidence: [
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicBiomeController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicBiomeControllerTest.java'),
+        optionalText('front-nuxt/pages/biomes/index.vue'),
+        optionalDirectory('front-nuxt/pages'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
+  },
 };
 
 const SUPPORT_DOMAIN_CONFIG = {
