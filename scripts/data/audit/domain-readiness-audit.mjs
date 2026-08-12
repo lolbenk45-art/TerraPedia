@@ -343,6 +343,35 @@ const PRODUCT_DOMAIN_CONFIG = {
       ],
     },
   },
+  audio: {
+    sourceReadiness: {
+      fileKey: 'source-readiness',
+      evidence: [
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicAudioAssetController.java'),
+      ],
+    },
+    imageReadiness: {
+      fileKey: 'image-readiness',
+      evidence: [
+        optionalText('front-nuxt/pages/audio/index.vue'),
+      ],
+    },
+    publicReadiness: {
+      fileKey: 'public-readiness',
+      evidence: [
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicAudioAssetController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicAudioAssetControllerTest.java'),
+        optionalText('front-nuxt/pages/audio/index.vue'),
+        optionalDirectory('front-nuxt/pages'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
+  },
   shimmer: {
     sourceReadiness: {
       fileKey: 'source-readiness',
