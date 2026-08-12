@@ -19,14 +19,10 @@ Active branch: `main` (merged `design/crawler-auto-ingestion-readiness`)
 
 ## Active Focus
 
-Tasks 1–6 complete. Task 6 (formal scheduler activation evidence run) executed
-and rolled back cleanly on 2026-08-11. Scheduler is currently **disabled**.
-Next step is an independent owner decision: keep enabled permanently (new auth
-cycle required) or push/merge the branch as-is.
+Tasks 1–6 complete on design/crawler-auto-ingestion-readiness. Permanent activation executed on feat/scheduler-permanent-enablement (2026-08-12T01:52Z). Scheduler is currently **enabled** (changed-only, 60min interval). First sweep dispatched 5 domains. No rollback.
 
 ## Open Work
 
-- **Permanent scheduler enablement**: independent owner decision; requires a new Task 5/6 authorization cycle (this run's packet was the evidence run; rollback closes it).
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
 - Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.

@@ -6,16 +6,16 @@
   "databaseWrites": false,
   "networkAccess": false,
   "isolatedResourceWrites": false,
-  "generatedAt": "2026-08-11T11:49:27.411Z",
-  "expiresAt": "2026-08-12T11:49:27.411Z",
+  "generatedAt": "2026-08-12T01:49:17.338Z",
+  "expiresAt": "2026-08-13T01:49:17.338Z",
   "proposal": {
     "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json",
-    "fileSha256": "sha256:02cc0b626ca1a520a61ba7a66ad38781c9323e7fe8249a41804986ff5611bc1b",
-    "proposalHash": "sha256:ec4fb9903bdc4164c287abcf702b87b8a570c8535f0d3597f1507080a333c514"
+    "fileSha256": "sha256:433741142d5ae3844ca242544e08c6ba5ccd2ad9f26efbadabd0f8246a107421",
+    "proposalHash": "sha256:8bd6df97eb7f94217aefcbe0dee0f4c5f3d106167e756e3725507a89391f647e"
   },
   "preflight": {
-    "observedAt": "2026-08-11T11:48:53.499483800Z",
-    "preflightHash": "sha256:e24fbc4ce4339c24e340b76e79fb69477e104c516cc8ce60d22ec25b23470909",
+    "observedAt": "2026-08-12T01:48:54.711928447Z",
+    "preflightHash": "sha256:02c39e6eb57b05341d9a31baea485d3d0a58b87de831823ca03f276c972759b6",
     "endpoint": {
       "method": "GET",
       "path": "/admin/crawler-monitor/v2/automation/preflight",
@@ -113,17 +113,13 @@
   "current": {
     "enabled": false,
     "mode": "changed-only",
-    "epoch": "epoch-c87fd828-9295-4fc9-b84c-49ab72e1519b",
+    "epoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346",
     "namespace": "terrapedia:crawler:wiki-monitor:v2:",
     "liveAttempts": 0,
     "sweepClaims": 0,
     "reconcilerHealthy": true
   },
   "eligibleDomains": {
-    "wiki-items-refresh": "eligible",
-    "wiki-items-force-refresh": "eligible",
-    "item-image-source-verification": "eligible",
-    "crawler-queue-v2-items-fixture": "eligible",
     "wiki-npcs-refresh": "eligible",
     "wiki-npcs-force-refresh": "eligible",
     "wiki-projectiles-refresh": "eligible",
@@ -161,5 +157,5 @@
     "authorizationReference",
     "decisionIdentity"
   ],
-  "requestHash": "sha256:34e5746443f2421d4e24f3553665f87624a3c8f550466bca7a6ebd6a60417be9"
+  "requestHash": "sha256:553ee17be80e14329ce8099236e4273f97224b9999551f4bfe6d8ef1a47586c6"
 }
