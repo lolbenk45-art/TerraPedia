@@ -1,20 +1,23 @@
 # Current Devlog
 
-Last updated: 2026-08-11 12:39 CST by Codex
+Last updated: 2026-08-12 04:00 CST by Codex
 
 Active branch: `design/crawler-auto-ingestion-readiness`
 
 ## Active Focus
 
-Tasks 1–6 complete. Task 6 (formal scheduler activation evidence run) executed
-and rolled back cleanly on 2026-08-11. Scheduler is currently **disabled**.
-Next step is an independent owner decision: keep enabled permanently (new auth
-cycle required) or push/merge the branch as-is.
+Tasks 1–6 complete. Permanent scheduler enablement executed 2026-08-12T01:52Z
+under a new 6-domain authorization cycle (items excluded; image pipeline not
+ready). Scheduler is currently **enabled** (`mode=changed-only`,
+`sweepIntervalMinutes=60`). Two sweeps have completed; all authorized domains
+(npcs×2/projectiles×2/buffs×1/armor_sets×1) are idle. Branch
+`feat/scheduler-permanent-enablement` at commit `340d196c` is pushed to remote.
 
 ## Open Work
 
-- **Permanent scheduler enablement**: independent owner decision; requires a new Task 5/6 authorization cycle (this run's packet was the evidence run; rollback closes it).
-- **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
+- **Merge `feat/scheduler-permanent-enablement`**: independent owner decision; branch is pushed, no code risk.
+- **Merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
+- **Items domain activation**: deferred; imageReadiness panel at `warning` (missing optional evidence `workflow-image-sync*.json`); activate in a future cycle when image pipeline is complete.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
 - Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.
 
@@ -106,12 +109,12 @@ cycle required) or push/merge the branch as-is.
 
 ## Next Agent Start Point
 
-Close the T1 evidence with a focused commit and implement the read-only
-preflight/proposal hardening in
-`docs/superpowers/plans/2026-08-09-crawler-v2-scheduler-formal-enablement-preparation.md`.
-Do not generate a proposal/request/packet/permit, enable production V2
-automation, write formal stores, or access Wiki network without a new explicit
-owner authorization.
+Scheduler permanently enabled; no further activation work required. Next
+independent decisions: merge `feat/scheduler-permanent-enablement` into main,
+then merge `design/crawler-auto-ingestion-readiness`. Items domain activation
+requires a separate authorization cycle (image pipeline must be ready first).
+Do not generate a proposal/request/packet/permit or re-enable/disable the
+scheduler without a new explicit owner authorization.
 
 ## Current Risks
 
@@ -129,7 +132,8 @@ owner authorization.
 
 ## Recently Closed
 
-- `entries/2026-08-11-scheduler-activation-task6.md` - Task 6 formal activation evidence run: enable→sweep→rollback completed 2026-08-11T12:36Z; 5 authorized domains dispatched (items/npcs/projectiles/buffs/armor_sets); rollback clean; 28/28 tests pass; scheduler is disabled.
+- `entries/2026-08-12-scheduler-permanent-activation.md` - Permanent enablement executed 2026-08-12T01:52Z; 6-domain auth cycle (items excluded); first sweep dispatched 5 domains; second sweep 02:52Z dispatched 5 domains; all domains idle by 04:00Z; commit `340d196c` on `feat/scheduler-permanent-enablement`, pushed to remote.
+- `entries/2026-08-11-scheduler-activation-task6.md` - Task 6 formal activation evidence run: enable→sweep→rollback completed 2026-08-11T12:36Z; 5 authorized domains dispatched (items/npcs/projectiles/buffs/armor_sets); rollback clean; 28/28 tests pass; scheduler was disabled post-rollback.
 
 - `entries/2026-08-11-scheduler-preflight-domain-mapping-decision.md` - Task 5 preflight domain gap analysis; owner chose Approach C (narrow to 5 auto-dispatch domains); preflight now 10/10 eligible.
 
