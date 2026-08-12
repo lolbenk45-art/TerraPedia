@@ -137,6 +137,9 @@ data/raw/
 data/normalized/
 data/terraPedia/raw/
 data/terraPedia/generated/
+data/terraPedia/normalized/
+data/terraPedia/reports/
+data/terraPedia/standardized/
 data/generated/**/*.latest.json
 data/generated/wiki-*.json
 data/generated/resume/

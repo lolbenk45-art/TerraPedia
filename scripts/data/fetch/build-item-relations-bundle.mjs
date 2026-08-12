@@ -89,6 +89,7 @@ export async function buildItemRelationsBundle({
   outputPath = sharedDataPath('normalized', 'item-relations.bundle.json'),
   reportDir = sharedDataPath('reports', 'normalize'),
   limit = null,
+  offset = 0,
   refreshRecipeReference = false,
   pages = null,
   log = false
@@ -127,7 +128,8 @@ export async function buildItemRelationsBundle({
   const itemPageFiles = fs.existsSync(itemPageDir)
     ? fs.readdirSync(itemPageDir).filter((name) => name.endsWith('.latest.json')).sort()
     : [];
-  const selectedItemPageFiles = itemPageFiles.slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
+  const resolvedOffset = Number.isFinite(offset) && offset > 0 ? offset : 0;
+  const selectedItemPageFiles = itemPageFiles.slice(resolvedOffset, Number.isFinite(limit) && limit > 0 ? resolvedOffset + limit : undefined);
 
   const itemImages = [];
   const recipes = [];
@@ -427,6 +429,7 @@ if (isDirectRun(import.meta.url)) {
     recipeReferencePath: options['recipe-reference'] ?? resolveRecipeMaterialReferenceOutputPath(process.cwd()),
     outputPath: options.output ?? sharedDataPath('normalized', 'item-relations.bundle.json'),
     limit: numericOption(options.limit, null),
+    offset: numericOption(options.offset, 0),
     refreshRecipeReference: booleanOption(options['refresh-recipe-reference'] ?? options.refreshRecipeReference, false),
     pages: options.pages,
     log: true

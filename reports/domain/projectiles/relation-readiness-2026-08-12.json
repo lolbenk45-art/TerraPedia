@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-08-12T01:44:45Z",
+  "domainId": "projectiles",
+  "panelId": "relationReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/projectiles/relation-readiness-2026-08-12.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 2,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_relation_entity_coverage_baselinelatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/relation/entity-coverage-baseline-2026-07-29.json",
+      "latestReportPath": "reports/relation/entity-coverage-baseline-2026-07-29.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "projectiles relation coverage semantic gates are clean in reports/relation/entity-coverage-baseline-2026-07-29.json"
+    },
+    {
+      "id": "reports_projectile_zh_image_backfilllatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/projectile-zh-image-backfill-apply-2026-06-04.json",
+      "latestReportPath": "reports/projectile-zh-image-backfill-apply-2026-06-04.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "projectile image semantic gates are clean in reports/projectile-zh-image-backfill-apply-2026-06-04.json; non-blocking metrics within baseline: unresolvedZh=105/105"
+    }
+  ]
+}
