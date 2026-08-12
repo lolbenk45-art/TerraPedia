@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-08-12T20:15:55.652Z",
+  "domainId": "shimmer",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/shimmer/source-readiness-2026-08-12.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 1,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "back_src_main_java_com_terraria_skills_controller_PublicShimmerController_java",
+      "type": "text",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "back/src/main/java/com/terraria/skills/controller/PublicShimmerController.java",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: back/src/main/java/com/terraria/skills/controller/PublicShimmerController.java"
+    }
+  ]
+}

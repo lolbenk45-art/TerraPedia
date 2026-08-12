@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-08-12T20:15:55.689Z",
+  "domainId": "shimmer",
+  "panelId": "imageReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/shimmer/image-readiness-2026-08-12.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 1,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "front_nuxt_pages_shimmer_index_vue",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "front-nuxt/pages/shimmer/index.vue",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: front-nuxt/pages/shimmer/index.vue"
+    }
+  ]
+}

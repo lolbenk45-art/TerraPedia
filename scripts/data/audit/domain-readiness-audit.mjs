@@ -343,6 +343,35 @@ const PRODUCT_DOMAIN_CONFIG = {
       ],
     },
   },
+  shimmer: {
+    sourceReadiness: {
+      fileKey: 'source-readiness',
+      evidence: [
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicShimmerController.java'),
+      ],
+    },
+    imageReadiness: {
+      fileKey: 'image-readiness',
+      evidence: [
+        optionalText('front-nuxt/pages/shimmer/index.vue'),
+      ],
+    },
+    publicReadiness: {
+      fileKey: 'public-readiness',
+      evidence: [
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicShimmerController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicShimmerControllerTest.java'),
+        optionalText('front-nuxt/pages/shimmer/index.vue'),
+        optionalDirectory('front-nuxt/pages'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
+  },
   biomes: {
     sourceReadiness: {
       fileKey: 'source-readiness',
