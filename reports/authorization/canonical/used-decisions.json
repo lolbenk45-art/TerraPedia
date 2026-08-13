@@ -1,0 +1,10 @@
+[
+  {
+    "decisionIdentity": "canonical-shimmer-generation-2026-08-13",
+    "dispatchPermitHash": "sha256:f07e67bd544724ff0d9f1c3f84881acd6d7ea6cf913091c3e2a30a872825f478"
+  },
+  {
+    "decisionIdentity": "canonical-shimmer-import-2026-08-13",
+    "dispatchPermitHash": "sha256:24b05a67ead13c8eba0217243bd977c89da8abf0576eef828f51b926eab89d93"
+  }
+]
