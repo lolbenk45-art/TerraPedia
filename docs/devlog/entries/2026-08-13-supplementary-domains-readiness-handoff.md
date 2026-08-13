@@ -79,9 +79,11 @@ bosses 在 preflight eligible 列表中（join OK），但不在 `isAutoEligible
 ## 下一会话起点
 
 1. 读本文件 + `[[project_crawler-v2-scheduler-activation-review]]`
-2. 检查 scheduler 当前 eligible ops 是否包含 shimmer：`GET /admin/crawler-monitor/v2/automation/preflight`（stack on port 18191）
-3. 决策：G1/G2 需要走新 canonical 授权还是仅配置变更
-4. stack 状态：redis(16380), back(18191), front(15177), data-query-app(13004) 全部运行中；`start-local-stack.sh --skip-front` 是 WSL2 的正确启动方式
+2. 启动 stack：`bash scripts/dev/start-local-stack.sh`（WSL2 下已加 `--skip-front`，无需额外参数）
+   - 默认端口（`scripts/dev/config/local-stack.config.json`）：redis=16380, back=18188, front=15174, admin=13001, DB=13306
+3. 检查 scheduler 当前 eligible ops 是否包含 shimmer：`GET http://localhost:18188/admin/crawler-monitor/v2/automation/preflight`
+4. 决策：G1/G2 需要走新 canonical 授权还是仅配置变更
+5. 所有脚本需要 DB 端口时用 `TERRAPEDIA_DB_PORT=13306`（config 已是 13306，但命令行运行脚本时须显式传入）
 
 ## Validation
 
