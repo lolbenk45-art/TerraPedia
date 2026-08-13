@@ -1,11 +1,12 @@
 # Current Devlog
 
-Last updated: 2026-08-11 12:39 CST by Codex
+Last updated: 2026-08-13 19:30 CST by Claude Code
 
-Active branch: `main` (merged `design/crawler-auto-ingestion-readiness`)
+Active branch: `feat/supplementary-domains-readiness`
 
 ## Open Work
 
+- **附加域自动化路径补全**（G1 shimmer auto、G2 audio auto）；owner: 下一会话；status: pending；branch: `feat/supplementary-domains-readiness`；entry: `entries/2026-08-13-supplementary-domains-readiness-handoff.md`；起点：检查 scheduler preflight 是否已含 shimmer，再决策是否需要新 canonical 授权链。
 - 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，NPC 已在 `3d9045fa` 建立检查点。Article 最终裁决保留正式 `/articles` 舞台，将搜索上移到 mast、首页最新投稿收敛为 6 篇，并新增无侧栏的四列 `/articles/archive` 承担 12 篇分页与搜索。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 书面设计复核、实施计划、合同优先实现与用户视觉验收；contract handoff: `docs/superpowers/specs/2026-07-30-article-discovery-archive-split-design.md`，只消费真实 DTO 或明确标注的展示派生值。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).

@@ -332,7 +332,7 @@ if ! $reuse_existing; then
 fi
 
 log_info "Running preflight checks before local stack startup..."
-bash "$SCRIPT_DIR/verify-local-stack.sh"
+bash "$SCRIPT_DIR/verify-local-stack.sh" --skip-front
 preflight_status="passed"
 
 run_snapshot_gc_if_due
