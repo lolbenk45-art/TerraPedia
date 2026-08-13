@@ -3041,7 +3041,7 @@ class CrawlerMonitorServiceImplTest {
         assertFalse(wikiMonitor.getAutoDispatchSettings().isEnabled());
         assertEquals("changed-only", wikiMonitor.getAutoDispatchSettings().getMode());
         assertEquals(60, wikiMonitor.getAutoDispatchSettings().getSweepIntervalMinutes());
-        assertEquals(10, wikiMonitor.getSummary().getDomainCount());
+        assertEquals(11, wikiMonitor.getSummary().getDomainCount());
         assertEquals(1, wikiMonitor.getSummary().getChangedCount());
         assertEquals(1, wikiMonitor.getSummary().getPendingApprovalCount());
         assertEquals("changed", items.getStatus());

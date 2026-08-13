@@ -16,7 +16,7 @@ class CrawlerMonitorActionRegistryTest {
     void exposesTwentyFiveOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(25, registry.all().size());
+        assertEquals(27, registry.all().size());
         assertEquals(List.of("check", "force", "verify", "sample"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
@@ -84,6 +84,8 @@ class CrawlerMonitorActionRegistryTest {
             "domain-source-bosses",
             "domain-source-town-npc-maintenance",
             "domain-source-shimmer",
+            "wiki-audio-assets-refresh",
+            "wiki-audio-assets-import",
             "npc-loot-backfill",
             "npc-loot-apply",
             "boss-loot-backfill",
@@ -164,7 +166,7 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void allFourteenRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
+    void allFifteenRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
         String base = "reports/crawler-monitor/v2/2026-07-14/attempt-test/";
         String progressPath = base + "progress.json";
@@ -180,6 +182,7 @@ class CrawlerMonitorActionRegistryTest {
             "bosses",
             "town_npc_maintenance",
             "shimmer",
+            "audio",
             "npc_loot",
             "boss_loot",
             "item_groups",

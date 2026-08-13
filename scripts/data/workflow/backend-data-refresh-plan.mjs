@@ -291,6 +291,16 @@ export function buildBackendDataRefreshPlan(options = {}) {
         '--max-total-files=12',
         '--max-file-bytes=10485760'
       ]
+    },
+    {
+      id: 'wiki-audio-assets-import',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/import/import-wiki-audio-assets-to-db.mjs',
+        '--apply=true'
+      ]
     }
   ];
 

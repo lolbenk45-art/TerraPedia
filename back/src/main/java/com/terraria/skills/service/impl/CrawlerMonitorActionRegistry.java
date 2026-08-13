@@ -377,6 +377,20 @@ public class CrawlerMonitorActionRegistry {
                 )
             ),
             backend(
+                "audio", "抓取音频资源元数据", "wiki.audio.assets", "Terraria Wiki 音频文件",
+                "wiki-audio-assets-refresh", "fresh", "direct_crawl", "fresh",
+                "从 Wiki 抓取音频资源文件列表及属性，不写入数据库。",
+                "更新音频资源来源 JSON 和进度文件", "none", null, false,
+                "summary", true, true, true
+            ),
+            backend(
+                "audio", "写入音频资源到数据库", "wiki.audio.assets", "Terraria Wiki 音频文件",
+                "wiki-audio-assets-import", "apply", "data_process", "apply",
+                "将已抓取的音频资源元数据正式写入数据库。",
+                "更新音频资源入库结果和审计报告", "write", null, false,
+                "destructive", false, false, false
+            ),
+            backend(
                 "npc_loot", "预览普通 NPC 掉落差异", "npc.loot.backfill", "普通 NPC 掉落来源和数据库",
                 "npc-loot-backfill", "preview", "backfill", "preview",
                 "读取真实来源和数据库，生成普通 NPC 掉落 dry-run 报告。",
