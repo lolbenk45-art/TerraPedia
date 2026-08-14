@@ -13,6 +13,7 @@ import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
@@ -102,6 +103,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Duration WIKI_MONITOR_DISPATCH_COOLDOWN = Duration.ofMinutes(30);
     private static final Duration WIKI_MONITOR_DISPATCH_TIMEOUT = Duration.ofMinutes(90);
     private static final int WIKI_MONITOR_RETRY_LIMIT = 3;
+    private static final int V2_AUTOMATION_RESUME_RETRY_LIMIT = 3;
     // Lock staleness must be >= the dispatch timeout so an in-flight process is never
     // declared stale before the watcher has had a chance to reclaim it (see H1).
     private static final Duration WIKI_MONITOR_DISPATCH_LOCK_STALE = Duration.ofMinutes(120);
@@ -4292,9 +4294,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runV2AutomationSweepClaimed() {
         Path repoRoot = resolveRepoRoot();
         CrawlerV2AutomationDTO settings = readV2AutomationSettings(repoRoot);
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO previousSweep = readV2AutomationLastSweep(repoRoot);
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
         sweep.setCheckedAt(Instant.now(clock).toString());
         Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> sourceByKey = Map.of();
         if (!fixtureScheduledAutomationEnabled) {
             SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
             if (!sourceUpdateCheck.success()) {
@@ -4304,7 +4308,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 return sweep;
             }
             ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
-            Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
+            sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
             for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
                 if (!rule.wikiDomain() || !isAutoEligibleRule(rule)) continue;
                 Map<String, Object> source = sourceByKey.get(rule.sourceKey());
@@ -4325,31 +4329,190 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         for (Map.Entry<String, List<CrawlerMonitorActionDefinition>> entry : changedByAction.entrySet()) {
             List<CrawlerMonitorActionDefinition> rules = entry.getValue();
+            String sourceFingerprint = v2AutomationSourceFingerprint(rules, sourceByKey);
+            String previousSourceFingerprint = v2AutomationSourceFingerprint(previousSweep, entry.getKey());
             if (!settings.isEnabled()) {
                 sweep.getSkipped().add(Map.of("actionId", entry.getKey(), "reason", "automation_disabled", "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()));
                 continue;
             }
-            CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
-            request.setDomain(rules.get(0).domain());
-            request.setActionId(entry.getKey());
-            request.setResumeMode("fresh");
-            CrawlerMonitorDispatchResultDTO result = queueEngineRouter.withMutationPermit(permit -> {
+            V2AutomationDispatchOutcome outcome = queueEngineRouter.withMutationPermit(permit -> {
                 if (permit.mode() != CrawlerQueueEngineMode.V2
                     || !readV2AutomationSettings(resolveRepoRoot()).isEnabled()) {
                     return null;
                 }
-                return dispatchV2WikiMonitorTask(request, "v2-automation");
+                CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
+                    queueV2ApplicationService,
+                    "V2 router requires CrawlerQueueV2ApplicationService"
+                );
+                V2AutomationRecoveryDecision decision = v2AutomationRecoveryDecision(
+                    service.overview(),
+                    rules,
+                    entry.getKey(),
+                    sourceFingerprint,
+                    previousSourceFingerprint
+                );
+                if (decision.skipReason() != null) {
+                    return new V2AutomationDispatchOutcome(null, decision.skipReason());
+                }
+                if (decision.retryAttempt() != null) {
+                    CrawlerQueueV2OverviewDTO.AttemptDTO retryAttempt = decision.retryAttempt();
+                    CrawlerQueueV2ApplicationService.DispatchResult retry = service.control(
+                        new CrawlerQueueV2ApplicationService.ControlCommand(
+                            retryAttempt.queueId(),
+                            retryAttempt.attemptId(),
+                            retryAttempt.stateVersion(),
+                            "retry",
+                            "v2-automation"
+                        )
+                    );
+                    invalidateCachedOverview();
+                    return new V2AutomationDispatchOutcome(v2DispatchResponse(retry), null);
+                }
+                CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+                request.setDomain(rules.get(0).domain());
+                request.setActionId(entry.getKey());
+                request.setResumeMode("fresh");
+                return new V2AutomationDispatchOutcome(
+                    dispatchV2WikiMonitorTask(request, "v2-automation"),
+                    null
+                );
             });
-            if (result == null) {
+            if (outcome == null) {
                 sweep.getSkipped().add(Map.of("actionId", entry.getKey(), "reason", "automation_disabled", "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()));
                 continue;
             }
-            sweep.getDispatched().add(Map.of("actionId", entry.getKey(), "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList(), "accepted", result.isAccepted(), "attemptId", result.getAttemptId() == null ? "" : result.getAttemptId(), "status", result.getStatus() == null ? "" : result.getStatus()));
+            if (outcome.skipReason() != null) {
+                sweep.getSkipped().add(Map.of(
+                    "actionId", entry.getKey(),
+                    "reason", outcome.skipReason(),
+                    "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()
+                ));
+                continue;
+            }
+            CrawlerMonitorDispatchResultDTO result = outcome.result();
+            LinkedHashMap<String, Object> dispatched = new LinkedHashMap<>();
+            dispatched.put("actionId", entry.getKey());
+            dispatched.put("domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList());
+            dispatched.put("accepted", result.isAccepted());
+            dispatched.put("attemptId", result.getAttemptId() == null ? "" : result.getAttemptId());
+            dispatched.put("status", result.getStatus() == null ? "" : result.getStatus());
+            if (sourceFingerprint != null) {
+                dispatched.put("sourceFingerprint", sourceFingerprint);
+            }
+            sweep.getDispatched().add(dispatched);
         }
         sweep.setStatus(settings.isEnabled() ? "completed" : "observed");
         writeV2AutomationLastSweep(repoRoot, sweep);
         invalidateCachedOverview();
         return sweep;
+    }
+
+    private V2AutomationRecoveryDecision v2AutomationRecoveryDecision(
+        CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot,
+        List<CrawlerMonitorActionDefinition> rules,
+        String actionId,
+        String sourceFingerprint,
+        String previousSourceFingerprint
+    ) {
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> live = snapshot == null ? List.of() : snapshot.liveQueue();
+        if (live.stream().anyMatch(attempt -> matchesV2AutomationAction(attempt, rules, actionId))) {
+            return V2AutomationRecoveryDecision.skip("automatic_attempt_active");
+        }
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> history = snapshot == null ? List.of() : snapshot.attemptHistory().stream()
+            .filter(attempt -> matchesV2AutomationAction(attempt, rules, actionId))
+            .toList();
+        if (history.isEmpty()) {
+            return V2AutomationRecoveryDecision.fresh();
+        }
+        CrawlerQueueV2OverviewDTO.AttemptDTO latest = history.stream()
+            .max(Comparator
+                .comparing(this::v2AttemptTerminalTime, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(CrawlerQueueV2OverviewDTO.AttemptDTO::attemptId, Comparator.nullsFirst(Comparator.naturalOrder()))
+            )
+            .orElseThrow();
+        if ("completed".equals(latest.status())) {
+            return sameV2AutomationSourceFingerprint(sourceFingerprint, previousSourceFingerprint)
+                ? V2AutomationRecoveryDecision.skip("automatic_attempt_completed")
+                : V2AutomationRecoveryDecision.fresh();
+        }
+        if (!"failed".equals(latest.status())) {
+            return V2AutomationRecoveryDecision.skip("automatic_retry_not_failed");
+        }
+        if (sourceFingerprint != null && previousSourceFingerprint != null
+            && !Objects.equals(sourceFingerprint, previousSourceFingerprint)) {
+            return V2AutomationRecoveryDecision.fresh();
+        }
+        if (!latest.resumeSupported()) {
+            return V2AutomationRecoveryDecision.skip("automatic_retry_not_resumable");
+        }
+        if (!latest.allowedActions().contains("retry")) {
+            return V2AutomationRecoveryDecision.skip("automatic_retry_unavailable");
+        }
+        long retryCount = history.stream()
+            .filter(attempt -> Objects.equals(latest.queueId(), attempt.queueId()))
+            .count() - 1L;
+        if (retryCount >= V2_AUTOMATION_RESUME_RETRY_LIMIT) {
+            return V2AutomationRecoveryDecision.skip("automatic_retry_limit_reached");
+        }
+        return V2AutomationRecoveryDecision.retry(latest);
+    }
+
+    private boolean matchesV2AutomationAction(
+        CrawlerQueueV2OverviewDTO.AttemptDTO attempt,
+        List<CrawlerMonitorActionDefinition> rules,
+        String actionId
+    ) {
+        if (attempt == null || !Objects.equals(actionId, attempt.actionId())) {
+            return false;
+        }
+        Set<String> domains = rules.stream().map(CrawlerMonitorActionDefinition::domain).collect(Collectors.toSet());
+        return attempt.coveredDomains().stream().anyMatch(domains::contains);
+    }
+
+    private Instant v2AttemptTerminalTime(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
+        return attempt.completedAt() == null ? attempt.requestedAt() : attempt.completedAt();
+    }
+
+    private String v2AutomationSourceFingerprint(
+        List<CrawlerMonitorActionDefinition> rules,
+        Map<String, Map<String, Object>> sourceByKey
+    ) {
+        List<String> values = rules.stream()
+            .map(CrawlerMonitorActionDefinition::sourceKey)
+            .sorted()
+            .map(sourceKey -> {
+                Map<String, Object> source = sourceByKey.get(sourceKey);
+                String value = firstNonBlank(
+                    firstNonBlank(
+                        asString(source == null ? null : source.get("currentValue")),
+                        asString(source == null ? null : source.get("revisionId"))
+                    ),
+                    asString(source == null ? null : source.get("revisionTimestamp"))
+                );
+                return value == null ? null : sourceKey + "=" + value;
+            })
+            .filter(Objects::nonNull)
+            .toList();
+        return values.isEmpty() ? null : String.join("|", values);
+    }
+
+    private String v2AutomationSourceFingerprint(
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep,
+        String actionId
+    ) {
+        if (sweep == null) {
+            return null;
+        }
+        return sweep.getDispatched().stream()
+            .filter(dispatched -> Objects.equals(actionId, asString(dispatched.get("actionId"))))
+            .map(dispatched -> asString(dispatched.get("sourceFingerprint")))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+    }
+
+    private boolean sameV2AutomationSourceFingerprint(String current, String previous) {
+        return current != null && Objects.equals(current, previous);
     }
 
     private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO busyV2AutomationSweep() {
@@ -6921,6 +7084,28 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         static ReadResult missingRedis(String key) {
             String displayPath = key == null ? null : "redis://" + key;
             return new ReadResult(displayPath == null ? null : Path.of(displayPath), displayPath, true, false, false, Collections.emptyMap(), null);
+        }
+    }
+
+    private record V2AutomationDispatchOutcome(
+        CrawlerMonitorDispatchResultDTO result,
+        String skipReason
+    ) {}
+
+    private record V2AutomationRecoveryDecision(
+        CrawlerQueueV2OverviewDTO.AttemptDTO retryAttempt,
+        String skipReason
+    ) {
+        static V2AutomationRecoveryDecision fresh() {
+            return new V2AutomationRecoveryDecision(null, null);
+        }
+
+        static V2AutomationRecoveryDecision retry(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
+            return new V2AutomationRecoveryDecision(attempt, null);
+        }
+
+        static V2AutomationRecoveryDecision skip(String reason) {
+            return new V2AutomationRecoveryDecision(null, reason);
         }
     }
 

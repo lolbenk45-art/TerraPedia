@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-14 23:24 CST by Codex
+Last updated: 2026-08-15 00:30 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -28,9 +28,10 @@ task finishes and after the current backend is restarted with the final
 source-only filter.
 
 The follow-up `Crawler Auto-Domain Consumption And Resume` task is active on
-this branch. It is repairing the shared source-consumption manifest and
-three-attempt checkpoint recovery for all eight automatic domains; it must not
-interrupt the live Buff writer or add database/L2/Boss-loot automation.
+this branch. It repairs source-manifest consumption and three-attempt checkpoint
+recovery for `items`, `npcs`, `projectiles`, `armor_sets`, and `buffs`; `shimmer`,
+`audio`, and `bosses` are fail-closed pending lightweight source probes. It must
+not interrupt the live Buff writer or add database/L2/Boss-loot automation.
 
 ## Open Work
 

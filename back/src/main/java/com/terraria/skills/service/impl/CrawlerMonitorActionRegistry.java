@@ -27,10 +27,7 @@ public class CrawlerMonitorActionRegistry {
         "npcs",
         "projectiles",
         "armor_sets",
-        "buffs",
-        "shimmer",
-        "audio",
-        "bosses"
+        "buffs"
     );
 
     private static final String TOWN_NPC_RESUME =
@@ -269,7 +266,8 @@ public class CrawlerMonitorActionRegistry {
                 List.of(
                     "node",
                     "scripts/data/fetch/fetch-wiki-buffs.mjs",
-                    "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json"
+                    "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json",
+                    "--manifest-path=data/generated/wiki-source-manifest.latest.json"
                 ),
                 BUFF_RESUME
             ),
@@ -290,7 +288,8 @@ public class CrawlerMonitorActionRegistry {
                 List.of(
                     "node",
                     "scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs",
-                    "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json"
+                    "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json",
+                    "--manifest-path=data/generated/wiki-source-manifest.latest.json"
                 )
             ),
             backend(

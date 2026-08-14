@@ -735,6 +735,70 @@ class CrawlerMonitorServiceImplTest {
         );
     }
 
+    private static CrawlerQueueV2ApplicationService.OverviewSnapshot v2Overview(
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> liveQueue,
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> attemptHistory
+    ) {
+        CrawlerQueueV2OverviewDTO.HealthDTO health = new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.parse("2026-07-13T01:00:00Z"), null, 0L, 0L, 0L, null, null, null
+        );
+        return new CrawlerQueueV2ApplicationService.OverviewSnapshot(
+            2,
+            "epoch-1",
+            Instant.parse("2026-07-13T01:00:00Z"),
+            "1710000000000-3",
+            health,
+            health,
+            liveQueue,
+            List.of(),
+            attemptHistory,
+            List.of()
+        );
+    }
+
+    private static CrawlerQueueV2OverviewDTO.AttemptDTO v2Attempt(
+        String queueId,
+        String attemptId,
+        String status,
+        String domain,
+        String actionId,
+        boolean resumeSupported,
+        List<String> allowedActions
+    ) {
+        Instant now = Instant.parse("2026-07-13T01:00:00Z");
+        return new CrawlerQueueV2OverviewDTO.AttemptDTO(
+            queueId,
+            attemptId,
+            "epoch-1",
+            null,
+            1L,
+            status,
+            "standard",
+            domain,
+            List.of(domain),
+            actionId,
+            status,
+            null,
+            null,
+            now,
+            null,
+            now,
+            now,
+            now,
+            null,
+            null,
+            null,
+            resumeSupported,
+            allowedActions,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
     private static void configureMutationPermit(CrawlerQueueEngineRouter router) {
         CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
         when(permit.mode()).thenAnswer(invocation -> router.mode());
@@ -3569,30 +3633,29 @@ class CrawlerMonitorServiceImplTest {
 
         assertEquals("completed", sweep.getStatus());
         assertEquals(4, sweep.getDetected().size());
-        assertEquals(4, sweep.getDispatched().size());
+        assertEquals(3, sweep.getDispatched().size());
         assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
         assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
         assertEquals("wiki-npcs-refresh", sweep.getDispatched().get(1).get("actionId"));
         assertEquals(List.of("npcs"), sweep.getDispatched().get(1).get("domains"));
         assertEquals("buff-page-immunity-refresh", sweep.getDispatched().get(2).get("actionId"));
-        assertEquals("domain-source-bosses", sweep.getDispatched().get(3).get("actionId"));
-        assertEquals(List.of("bosses"), sweep.getDispatched().get(3).get("domains"));
-        assertEquals(0, sweep.getSkipped().size());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "not_auto_eligible".equals(item.get("reason"))
+                && "bosses".equals(item.get("domain"))
+        ));
 
         Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("queueId"));
         assertEquals("auto-dispatch", latest.get("dispatchSource"));
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
-        assertEquals(4, queueItems.size());
+        assertEquals(3, queueItems.size());
         assertEquals(latest.get("queueId"), queueItems.get(0).get("queueId"));
         assertEquals("running", queueItems.get(0).get("status"));
         assertEquals("wiki-npcs-refresh", queueItems.get(1).get("actionId"));
         assertEquals("queued", queueItems.get(1).get("status"));
         assertEquals("buff-page-immunity-refresh", queueItems.get(2).get("actionId"));
         assertEquals("queued", queueItems.get(2).get("status"));
-        assertEquals("domain-source-bosses", queueItems.get(3).get("actionId"));
-        assertEquals("queued", queueItems.get(3).get("status"));
     }
 
     @Test
@@ -3714,6 +3777,248 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("items", command.getValue().domain());
         assertEquals("wiki-items-refresh", command.getValue().actionId());
         assertEquals("v2-automation", command.getValue().requestedBy());
+    }
+
+    @Test
+    void shouldRetryFailedResumableSourceThroughV2WhenAutomationIsEnabled() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO failedBuff = v2Attempt(
+            "queue-buff", "attempt-buff-failed", "failed", "buffs",
+            "buff-page-immunity-refresh", true, List.of("retry")
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedBuff)));
+        when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-buff", "attempt-buff-retry", null, 1L,
+            CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.ControlCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.ControlCommand.class
+        );
+        verify(v2Service).control(command.capture());
+        assertEquals("queue-buff", command.getValue().queueId());
+        assertEquals("attempt-buff-failed", command.getValue().attemptId());
+        assertEquals("retry", command.getValue().controlAction());
+        assertEquals("v2-automation", command.getValue().operator());
+        verify(v2Service, never()).enqueue(any());
+        assertEquals("attempt-buff-retry", sweep.getDispatched().get(0).get("attemptId"));
+    }
+
+    @Test
+    void shouldPauseAutomaticRecoveryAfterThreeFailedResumeAttempts() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> failedAttempts = List.of(
+            v2Attempt("queue-buff", "attempt-buff-initial", "failed", "buffs", "buff-page-immunity-refresh", true, List.of()),
+            v2Attempt("queue-buff", "attempt-buff-retry-1", "failed", "buffs", "buff-page-immunity-refresh", true, List.of()),
+            v2Attempt("queue-buff", "attempt-buff-retry-2", "failed", "buffs", "buff-page-immunity-refresh", true, List.of()),
+            v2Attempt("queue-buff", "attempt-buff-retry-3", "failed", "buffs", "buff-page-immunity-refresh", true, List.of("retry"))
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), failedAttempts));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_retry_limit_reached".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).control(any());
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void shouldPauseFailedNonResumableSourceInsteadOfStartingFreshAutomation() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO failedArmor = v2Attempt(
+            "queue-armor", "attempt-armor-failed", "failed", "armor_sets",
+            "domain-source-armor-sets", false, List.of("retry")
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedArmor)));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.armorsetbonuses", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_retry_not_resumable".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).control(any());
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void shouldNotDuplicateActiveOrCompletedV2AutomationAttempts() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO activeBuff = v2Attempt(
+            "queue-buff", "attempt-buff-running", "running", "buffs",
+            "buff-page-immunity-refresh", true, List.of("cancel")
+        );
+        CrawlerQueueV2OverviewDTO.AttemptDTO completedArmor = v2Attempt(
+            "queue-armor", "attempt-armor-completed", "completed", "armor_sets",
+            "domain-source-armor-sets", false, List.of("cleanup")
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(activeBuff), List.of(completedArmor)));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "status", "completed",
+            "detected", List.of(),
+            "skipped", List.of(),
+            "dispatched", List.of(Map.of(
+                "actionId", "domain-source-armor-sets",
+                "sourceFingerprint", "wiki.module.armorsetbonuses=armor-hash"
+            ))
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(
+                    Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"),
+                    Map.of("key", "wiki.module.armorsetbonuses", "changed", true, "status", "ok", "currentValue", "armor-hash")
+                )
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_attempt_active".equals(item.get("reason"))
+        ));
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_attempt_completed".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).control(any());
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void shouldStartFreshAutomationWhenCompletedAttemptHasAnOlderSourceFingerprint() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO completedArmor = v2Attempt(
+            "queue-armor", "attempt-armor-completed", "completed", "armor_sets",
+            "domain-source-armor-sets", false, List.of("cleanup")
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedArmor)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-armor-new", "attempt-armor-new", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "status", "completed",
+            "detected", List.of(),
+            "skipped", List.of(),
+            "dispatched", List.of(Map.of(
+                "actionId", "domain-source-armor-sets",
+                "sourceFingerprint", "wiki.module.armorsetbonuses=old-armor-hash"
+            ))
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.armorsetbonuses",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "new-armor-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-armor-new", sweep.getDispatched().get(0).get("attemptId"));
+        assertEquals(
+            "wiki.module.armorsetbonuses=new-armor-hash",
+            sweep.getDispatched().get(0).get("sourceFingerprint")
+        );
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
     }
 
     @Test

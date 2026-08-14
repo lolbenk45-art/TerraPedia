@@ -16,9 +16,11 @@ class CrawlerMonitorActionRegistryTest {
     @Test
     void autoDispatchDomainsIncludeOnlyTheGovernedPreviewSet() {
         assertEquals(
-            Set.of("items", "npcs", "projectiles", "armor_sets", "buffs", "shimmer", "audio", "bosses"),
+            Set.of("items", "npcs", "projectiles", "armor_sets", "buffs"),
             CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS
         );
+        assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("audio"));
+        assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("bosses"));
         assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("boss_loot"));
     }
 
@@ -41,6 +43,10 @@ class CrawlerMonitorActionRegistryTest {
         );
         assertTrue(registry.requireOperation("bosses", "fresh").resumeSupported());
         assertFalse(registry.requireOperation("armor_sets", "fresh").resumeSupported());
+        assertTrue(registry.requireOperation("buffs", "fresh").command()
+            .contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
+        assertTrue(registry.requireOperation("armor_sets", "fresh").command()
+            .contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
         assertEquals(
             List.of("buffs", "bosses", "town_npc_maintenance"),
             registry.all().stream()
