@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 04:03 CST by Codex
+Last updated: 2026-08-15 04:20 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -69,6 +69,14 @@ manual sweep, apply, database write, L2, or Boss-loot command was run; the
 all-sources-unchanged runtime case remains a residual acceptance gap.
 
 ## Open Work
+
+- **手动与自动双路径真实入库验收**；owner: Codex；status: active；branch:
+  `feat/supplementary-domains-readiness`；review design:
+  `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-design.zh-en.md`；
+  entry: `docs/devlog/entries/2026-08-15-dual-path-domain-ingestion-acceptance.md`。
+  Items/Projectiles 使用本地数据和真实探针，其余六域使用真实受限来源和
+  WSL 本地库事务；自动写库取消逐次批准，但必须受 canonical automation
+  activation 总闸门约束。当前仅进入书面评审，尚未启动 crawler 或写库。
 
 
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
