@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 02:20 CST by Codex
+Last updated: 2026-08-15 02:55 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -28,21 +28,26 @@ the backend is restarted with the final source-only filter.
 
 The follow-up `Crawler Auto-Domain Consumption And Resume` task is active on
 this branch. It repairs source-manifest consumption and three-attempt checkpoint
-recovery for `items`, `npcs`, `projectiles`, `armor_sets`, and `buffs`; `shimmer`,
-`audio`, and `bosses` are fail-closed pending lightweight source probes. The
-user selected the bounded probe design at
+recovery for `items`, `npcs`, `projectiles`, `armor_sets`, and `buffs`; the
+same changed-only contract now covers `shimmer`, `audio`, and `bosses`. The user
+selected the bounded probe design at
 `docs/superpowers/specs/2026-08-15-supplementary-domain-source-probes-design.md`;
 the written specification is approved and its executable plan is
 `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`.
 Task 1 is checkpointed at `9c11c24b` after focused validation and local
-contract review. It must not add database/L2/Boss-loot automation.
+contract review; Tasks 2-5 are completed in `f273f5b7`. The task must not add
+database/L2/Boss-loot automation.
 
 Execution coordinator: Codex. The user approved the revised complete-Audio
 contract in the 2026-08-15 handoff. Task 1 now runs serially in this worktree:
 the probe and real Audio L1 action must share complete catalog discovery with
 the four governed prefixes, a 600 accepted-file limit, and a 100-page-per-prefix
 guard. Tasks 2-5 are complete; Task 6 is blocked because the local MySQL
-preflight cannot reach `127.0.0.1:13306`.
+preflight cannot reach `127.0.0.1:13306`. The follow-up recovery confirmed the
+current WSL session has neither a systemd bus nor a registered `service mysql`
+entry, and no non-interactive administrator credential. A privileged operator
+must restore the configured MySQL listener before the required restart and
+authenticated read-only scheduler observation can proceed.
 
 Audio remains fail-closed: historical L1 used one 50-row page per prefix and
 recorded `continuationComplete=false` for all four prefixes. Task 1 may not
@@ -53,9 +58,9 @@ permitted.
 Task 1 validation: the focused Node suite covers the supplementary probes,
 complete Audio action, and L1 preview command. It proves that a 601st accepted
 file, incomplete pagination, or a page guard above 100 fail before manifest
-output or downloads. No live crawl, scheduler sweep, database write, or service
-restart was run. Task 2 remains blocked on the explicit serial handoff into its
-manifest/monitor contract work.
+output or downloads. Tasks 2-5 subsequently passed the focused `71`-test Node
+and `334`-test Maven suites. No live crawl, scheduler sweep, or database write
+was run; the required service restart remains blocked on MySQL availability.
 
 ## Open Work
 

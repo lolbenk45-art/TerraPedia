@@ -76,6 +76,13 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   skipped because ownership could not be verified. No authenticated read-only
   scheduler observation was collected; preserve the supplementary domains as
   operationally unaccepted until the database is available and the stack starts.
+- Follow-up environment recovery at 2026-08-15 02:55 CST confirmed that this
+  WSL session has no systemd bus, `service mysql start` has no registered
+  service, and `sudo` requires an unavailable interactive credential. The
+  MySQL data directory exists, but no `mysqld` process or listener exists on
+  `127.0.0.1:13306`. No database command, crawler command, or scheduler
+  mutation was issued. A privileged operator must restore the configured
+  MySQL service before Task 6 can continue.
 
 ## Execution Coordination
 
