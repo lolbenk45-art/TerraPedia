@@ -178,7 +178,7 @@ git commit -m "feat(crawler): add supplementary source probes"
 - Modify: `scripts/data/lib/wiki-sync-manifest.mjs`
 - Modify: `scripts/data/lib/wiki-sync-manifest.test.mjs`
 
-- [ ] **Step 1: Write failing monitor and acknowledgement tests**
+- [x] **Step 1: Write failing monitor and acknowledgement tests**
 
 ```js
 assert.deepEqual(
@@ -196,7 +196,7 @@ Test stable acknowledgement, changed pre/post snapshot, unreadable output, and
 probe failure. For every failure case, retain an exact copy of manifest bytes
 and assert the file is unchanged.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -207,7 +207,7 @@ node --test scripts/data/monitor/check-source-updates.test.mjs scripts/data/lib/
 Expected: FAIL because no supplementary monitor records or explicit probe
 acknowledgement helper exists.
 
-- [ ] **Step 3: Implement monitor registration and explicit acknowledgement**
+- [x] **Step 3: Implement monitor registration and explicit acknowledgement**
 
 Import the probe module into `check-source-updates.mjs`, add the three sources
 to `buildWikiSources`, and dispatch their lookup through
@@ -245,7 +245,7 @@ export function acknowledgeWikiProbeSnapshot({ manifestPath, snapshot, outputPat
 Return the saved normalized manifest from the helper. Ensure an acknowledgement
 for the same snapshot replaces its exact record and is idempotent.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 
@@ -256,7 +256,7 @@ node --test scripts/data/monitor/check-source-updates.test.mjs scripts/data/lib/
 Expected: PASS; all three monitor records compare to the shared manifest and
 only stable, readable probe snapshots become unchanged.
 
-- [ ] **Step 5: Commit the monitor/manifest checkpoint**
+- [x] **Step 5: Commit the monitor/manifest checkpoint**
 
 ```bash
 git add scripts/data/monitor/check-source-updates.mjs scripts/data/monitor/check-source-updates.test.mjs scripts/data/lib/wiki-sync-manifest.mjs scripts/data/lib/wiki-sync-manifest.test.mjs
@@ -269,7 +269,7 @@ git commit -m "fix(crawler): track supplementary source snapshots"
 - Modify: `scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs`
 - Modify: `scripts/data/automation/prepare-supplementary-domain-l1-preview.test.mjs`
 
-- [ ] **Step 1: Write failing pre/post probe tests**
+- [x] **Step 1: Write failing pre/post probe tests**
 
 ```js
 const successive = (...snapshots) => async () => snapshots.shift();
@@ -297,7 +297,7 @@ assert.equal(drifted.sourceAcknowledgementReason, 'source_changed_during_preview
 Add tests for source failure, unreadable bundle/source output, and failed
 post-probe; all must leave the manifest unchanged.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -307,7 +307,7 @@ node --test scripts/data/automation/prepare-supplementary-domain-l1-preview.test
 
 Expected: FAIL because the wrapper neither probes nor reports acknowledgement.
 
-- [ ] **Step 3: Implement stable acknowledgement around existing source work**
+- [x] **Step 3: Implement stable acknowledgement around existing source work**
 
 Inject `probeSource` and `acknowledgeSource` dependencies with production
 defaults from Task 1 and Task 2. For `audio`, `bosses`, and `shimmer`, capture
@@ -328,7 +328,7 @@ payload/report without changing the existing terminal `completed` result for a
 valid frozen bundle. A second-probe error is fail-closed for acknowledgement;
 it does not replace the original source failure handling.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 
@@ -338,7 +338,7 @@ node --test scripts/data/automation/prepare-supplementary-domain-l1-preview.test
 
 Expected: PASS; only stable successful bundles advance manifest state.
 
-- [ ] **Step 5: Commit the acknowledgement checkpoint**
+- [x] **Step 5: Commit the acknowledgement checkpoint**
 
 ```bash
 git add scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs scripts/data/automation/prepare-supplementary-domain-l1-preview.test.mjs
@@ -352,7 +352,7 @@ git commit -m "fix(crawler): acknowledge stable supplementary previews"
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
 
-- [ ] **Step 1: Write failing backend assertions**
+- [x] **Step 1: Write failing backend assertions**
 
 ```java
 assertEquals(
@@ -369,7 +369,7 @@ Add a V2 sweep fixture with a changed `wiki.bosses.catalog` source and assert
 it selects only `domain-source-bosses`, preserves its source fingerprint, and
 does not select `boss-loot-backfill` or any apply action.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -380,7 +380,7 @@ cd back && mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerMonitorServiceImpl
 Expected: FAIL because the allowlist has five domains and the three action
 definitions still use unmatched legacy source keys.
 
-- [ ] **Step 3: Implement exact source-key alignment**
+- [x] **Step 3: Implement exact source-key alignment**
 
 Set the public `AUTO_DISPATCH_DOMAINS` exactly to the eight domains above.
 Replace the source keys on the three source/preview definitions as follows:
@@ -396,7 +396,7 @@ plans remain source-consistent, while leaving it ineligible because `apply`
 actions are not default automatic rules. Do not change commands, progress
 paths, resume support, authorization mode, or any Boss loot definition.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 
@@ -407,7 +407,7 @@ cd back && mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerMonitorServiceImpl
 Expected: PASS; the V2 sweep maps each changed probe record to its L1 preview
 source action only.
 
-- [ ] **Step 5: Commit the registry checkpoint**
+- [x] **Step 5: Commit the registry checkpoint**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java
@@ -420,7 +420,7 @@ git commit -m "feat(crawler): enable probed supplementary domains"
 - Modify: `docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md`
 - Modify: `docs/devlog/current.md`
 
-- [ ] **Step 1: Run the complete focused contract suite**
+- [x] **Step 1: Run the complete focused contract suite**
 
 ```bash
 node --test \

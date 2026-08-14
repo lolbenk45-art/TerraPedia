@@ -198,3 +198,68 @@ test('acknowledges only a stable supplementary source snapshot after the frozen 
   assert.equal(drifted.sourceAcknowledgementReason, 'source_changed_during_preview');
   assert.equal(acknowledgements.length, 1);
 });
+
+test('keeps a valid frozen preview completed but does not acknowledge when the post-probe fails', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-post-probe-failure-'));
+  const manifestPath = path.join(repoRoot, 'manifest.json');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  const before = fs.readFileSync(manifestPath, 'utf8');
+  const writes = [];
+  const stableSnapshot = {
+    sourceKey: 'wiki.audio_assets.catalog', locator: 'Music|NPC_Hit|NPC_Killed|Item_', entityFamily: 'audio',
+    sourceKind: 'media_catalog', contentHash: 'stable', checkedAt: '2026-08-14T06:00:00.000Z',
+  };
+  let probeCount = 0;
+  const result = await prepareSupplementaryDomainL1Preview({
+    domainId: 'audio', repoRoot, manifestPath, generatedAt: '2026-08-14T06:00:00.000Z', runId: 'audio_l1_20260814_02',
+  }, {
+    writeProgress: (_path, payload) => writes.push(payload),
+    probeSource: async () => {
+      probeCount += 1;
+      if (probeCount === 2) throw new Error('post probe unavailable');
+      return stableSnapshot;
+    },
+    runSource: async () => ({ sourcePayload: { records: [] } }),
+    loadPolicyContext: async () => ({
+      policy: { domainId: 'audio', level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH('a'), policySetHash: HASH('b') },
+      baseline: { environmentId: 'local', generations: DOMAIN_PREVIEW_CONFIG.audio.ownedTables.map((scope) => ({ ...scope, generation: 0 })), projectionHash: HASH('c') },
+    }),
+    buildImportPlan: async () => ({ records: [] }),
+    acknowledgeSource: () => { throw new Error('must not acknowledge after post-probe failure'); },
+  });
+
+  assert.equal(result.sourceAcknowledged, false);
+  assert.equal(result.sourceAcknowledgementReason, 'post_probe_failed');
+  assert.equal(writes.at(-1).status, 'completed');
+  assert.equal(fs.readFileSync(manifestPath, 'utf8'), before);
+});
+
+test('keeps a valid frozen preview completed but does not acknowledge when acknowledgement fails', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-ack-failure-'));
+  const manifestPath = path.join(repoRoot, 'manifest.json');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  const before = fs.readFileSync(manifestPath, 'utf8');
+  const writes = [];
+  const snapshot = {
+    sourceKey: 'wiki.bosses.catalog', locator: 'Bosses', entityFamily: 'bosses',
+    sourceKind: 'page_catalog', contentHash: 'stable', checkedAt: '2026-08-14T06:00:00.000Z',
+  };
+  const result = await prepareSupplementaryDomainL1Preview({
+    domainId: 'bosses', repoRoot, manifestPath, generatedAt: '2026-08-14T06:00:00.000Z', runId: 'bosses_l1_20260814_02',
+  }, {
+    writeProgress: (_path, payload) => writes.push(payload),
+    probeSource: async () => snapshot,
+    runSource: async () => ({ sourcePayload: { records: [] } }),
+    loadPolicyContext: async () => ({
+      policy: { domainId: 'bosses', level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH('a'), policySetHash: HASH('b') },
+      baseline: { environmentId: 'local', generations: DOMAIN_PREVIEW_CONFIG.bosses.ownedTables.map((scope) => ({ ...scope, generation: 0 })), projectionHash: HASH('c') },
+    }),
+    buildImportPlan: async () => ({ records: [] }),
+    acknowledgeSource: () => { throw new Error('acknowledgement write failed'); },
+  });
+
+  assert.equal(result.sourceAcknowledged, false);
+  assert.equal(result.sourceAcknowledgementReason, 'post_probe_failed');
+  assert.equal(writes.at(-1).status, 'completed');
+  assert.equal(fs.readFileSync(manifestPath, 'utf8'), before);
+});

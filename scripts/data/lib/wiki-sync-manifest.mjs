@@ -127,33 +127,35 @@ export function advanceWikiIngestionManifestForSource({
   if (!outputPath) {
     throw new Error('advanceWikiIngestionManifestForSource requires outputPath');
   }
-  const payload = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
-  const manifest = loadWikiSourceManifest(manifestPath);
-  const sourceRecord = isObject(record) ? record : null;
-  const fetchedAt = sourceRecord?.fetchedAt ?? payload.fetchedAt ?? payload.generatedAt ?? new Date().toISOString();
-  const pageTitle = sourceRecord?.pageTitle ?? payload.pageTitle ?? payload.moduleTitle ?? payload.requestedPageTitle ?? locator ?? null;
-  const requestedPageTitle = sourceRecord?.requestedPageTitle ?? payload.requestedPageTitle ?? payload.moduleTitle ?? locator ?? pageTitle;
-  const contentHash = sourceRecord?.contentHash === null
-    ? null
-    : createContentHash(sourceRecord?.moduleContent ?? payload.moduleContent ?? JSON.stringify(payload));
-  const nextManifest = upsertManifestRecord(manifest, {
-    contentHash,
-    entityFamily,
-    lang: 'en',
-    lastFetchedAt: fetchedAt,
-    lastParsedAt: fetchedAt,
-    localPath: normalizePathForOutput(outputPath),
-    pageId: sourceRecord?.pageId ?? payload.pageId ?? null,
-    pageTitle,
-    requestedPageTitle,
-    revisionId: sourceRecord?.revisionId ?? payload.revisionId ?? null,
-    revisionTimestamp: sourceRecord?.revisionTimestamp ?? payload.revisionTimestamp ?? null,
-    sourceKey,
-    sourceKind,
-    status: 'ok'
+  return withManifestFileLock(manifestPath, () => {
+    const payload = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    const manifest = loadWikiSourceManifest(manifestPath);
+    const sourceRecord = isObject(record) ? record : null;
+    const fetchedAt = sourceRecord?.fetchedAt ?? payload.fetchedAt ?? payload.generatedAt ?? new Date().toISOString();
+    const pageTitle = sourceRecord?.pageTitle ?? payload.pageTitle ?? payload.moduleTitle ?? payload.requestedPageTitle ?? locator ?? null;
+    const requestedPageTitle = sourceRecord?.requestedPageTitle ?? payload.requestedPageTitle ?? payload.moduleTitle ?? locator ?? pageTitle;
+    const contentHash = sourceRecord?.contentHash === null
+      ? null
+      : createContentHash(sourceRecord?.moduleContent ?? payload.moduleContent ?? JSON.stringify(payload));
+    const nextManifest = upsertManifestRecord(manifest, {
+      contentHash,
+      entityFamily,
+      lang: 'en',
+      lastFetchedAt: fetchedAt,
+      lastParsedAt: fetchedAt,
+      localPath: normalizePathForOutput(outputPath),
+      pageId: sourceRecord?.pageId ?? payload.pageId ?? null,
+      pageTitle,
+      requestedPageTitle,
+      revisionId: sourceRecord?.revisionId ?? payload.revisionId ?? null,
+      revisionTimestamp: sourceRecord?.revisionTimestamp ?? payload.revisionTimestamp ?? null,
+      sourceKey,
+      sourceKind,
+      status: 'ok'
+    });
+    saveWikiSourceManifest(manifestPath, nextManifest);
+    return nextManifest;
   });
-  saveWikiSourceManifest(manifestPath, nextManifest);
-  return nextManifest;
 }
 
 export function acknowledgeWikiProbeSnapshot({
@@ -167,23 +169,25 @@ export function acknowledgeWikiProbeSnapshot({
   if (!isObject(snapshot) || !nullableString(snapshot.contentHash)) {
     throw new Error('probe acknowledgement requires a source snapshot contentHash');
   }
-  const checkedAt = nullableString(snapshot.checkedAt) ?? new Date().toISOString();
-  const manifest = loadWikiSourceManifest(manifestPath);
-  const nextManifest = upsertManifestRecord(manifest, {
-    contentHash: snapshot.contentHash,
-    entityFamily: snapshot.entityFamily,
-    lang: 'en',
-    lastFetchedAt: checkedAt,
-    lastParsedAt: checkedAt,
-    localPath: normalizePathForOutput(outputPath),
-    pageTitle: snapshot.locator,
-    requestedPageTitle: snapshot.locator,
-    sourceKey: snapshot.sourceKey,
-    sourceKind: snapshot.sourceKind,
-    status: 'ok'
+  return withManifestFileLock(manifestPath, () => {
+    const checkedAt = nullableString(snapshot.checkedAt) ?? new Date().toISOString();
+    const manifest = loadWikiSourceManifest(manifestPath);
+    const nextManifest = upsertManifestRecord(manifest, {
+      contentHash: snapshot.contentHash,
+      entityFamily: snapshot.entityFamily,
+      lang: 'en',
+      lastFetchedAt: checkedAt,
+      lastParsedAt: checkedAt,
+      localPath: normalizePathForOutput(outputPath),
+      pageTitle: snapshot.locator,
+      requestedPageTitle: snapshot.locator,
+      sourceKey: snapshot.sourceKey,
+      sourceKind: snapshot.sourceKind,
+      status: 'ok'
+    });
+    saveWikiSourceManifest(manifestPath, nextManifest);
+    return loadWikiSourceManifest(manifestPath);
   });
-  saveWikiSourceManifest(manifestPath, nextManifest);
-  return loadWikiSourceManifest(manifestPath);
 }
 
 export function normalizePathForOutput(filePath) {
@@ -203,7 +207,57 @@ export function loadJsonIfExists(filePath) {
 
 export function writeJson(filePath, payload) {
   ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, `${JSON.stringify(deepSortObject(payload), null, 2)}\n`);
+  const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    fs.writeFileSync(temporaryPath, `${JSON.stringify(deepSortObject(payload), null, 2)}\n`);
+    fs.renameSync(temporaryPath, filePath);
+  } catch (error) {
+    try {
+      fs.unlinkSync(temporaryPath);
+    } catch {
+      // Preserve the original write error when cleanup also fails.
+    }
+    throw error;
+  }
+}
+
+function withManifestFileLock(manifestPath, operation) {
+  const lockPath = `${manifestPath}.lock`;
+  ensureDir(path.dirname(manifestPath));
+  const deadline = Date.now() + 30_000;
+  let lockHandle;
+  while (!lockHandle) {
+    try {
+      lockHandle = fs.openSync(lockPath, 'wx');
+    } catch (error) {
+      if (error?.code !== 'EEXIST') {
+        throw error;
+      }
+      try {
+        const lockAge = Date.now() - fs.statSync(lockPath).mtimeMs;
+        if (lockAge > 30_000) {
+          fs.unlinkSync(lockPath);
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`timed out waiting for wiki source manifest lock: ${lockPath}`);
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+    }
+  }
+  try {
+    return operation();
+  } finally {
+    fs.closeSync(lockHandle);
+    try {
+      fs.unlinkSync(lockPath);
+    } catch {
+      // A stale-lock cleanup may have already removed the file.
+    }
+  }
 }
 
 function normalizeManifest(manifest, filePath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH) {

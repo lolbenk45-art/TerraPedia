@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import {
   createContentHash,
@@ -38,6 +40,53 @@ test('acknowledgeWikiProbeSnapshot preserves the probe hash and leaves the manif
   assert.equal(record.contentHash, snapshot.contentHash);
   assert.equal(record.sourceKey, snapshot.sourceKey);
   assert.equal(record.localPath, path.resolve(outputPath).replaceAll('\\', '/'));
+});
+
+test('concurrent supplementary acknowledgements retain every source record', async () => {
+  const manifestModuleUrl = pathToFileURL(path.resolve('scripts/data/lib/wiki-sync-manifest.mjs')).href;
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-probe-concurrent-'));
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: Array.from({ length: 120 }, (_, index) => ({
+    sourceKey: `wiki.seed.${index}`,
+    entityFamily: 'seed',
+    sourceKind: 'fixture',
+    lang: 'en',
+    pageTitle: `Seed ${index}`,
+    requestedPageTitle: `Seed ${index}`,
+  })) }), 'utf8');
+
+  const children = Array.from({ length: 20 }, (_, index) => {
+    const outputPath = path.join(tempDir, `preview-${index}.json`);
+    fs.writeFileSync(outputPath, '{"bundle":true}\n', 'utf8');
+    const script = `
+      const module = await import(${JSON.stringify(manifestModuleUrl)});
+      module.acknowledgeWikiProbeSnapshot({
+        manifestPath: ${JSON.stringify(manifestPath)},
+        outputPath: ${JSON.stringify(outputPath)},
+        snapshot: {
+          sourceKey: ${JSON.stringify(`wiki.supplementary.${index}`)},
+          locator: ${JSON.stringify(`Source ${index}`)},
+          entityFamily: 'supplementary',
+          sourceKind: 'fixture',
+          contentHash: ${JSON.stringify(`hash-${index}`)},
+          checkedAt: '2026-08-15T03:10:00.000Z'
+        }
+      });
+    `;
+    return new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let stderr = '';
+      child.stderr.on('data', (chunk) => { stderr += chunk; });
+      child.on('error', reject);
+      child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`child exited ${code}: ${stderr}`)));
+    });
+  });
+
+  await Promise.all(children);
+  const manifest = loadWikiSourceManifest(manifestPath);
+  const supplementary = manifest.records.filter((record) => record.sourceKey.startsWith('wiki.supplementary.'));
+  assert.equal(supplementary.length, 20);
+  assert.deepEqual(supplementary.map((record) => record.sourceKey), Array.from({ length: 20 }, (_, index) => `wiki.supplementary.${index}`).sort());
 });
 
 test('advanceWikiIngestionManifestForSource writes normalized source output fingerprint', async () => {

@@ -87,12 +87,22 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   boundary: `/usr/sbin/mysqld` reads the configured port `13306`, but exits
   with `OS errno: 13 - Permission denied` for `/var/lib/mysql`. It did not
   create a running process or issue a database command.
+- The operator then started the existing WSL MySQL instance as `mysql` at
+  2026-08-15 03:13 CST. Read-only TCP verification returned `1` from
+  `127.0.0.1:13306`; no schema or application data command was issued.
 - Independent review found a release-blocking acknowledgement race in
   `acknowledgeWikiProbeSnapshot`: concurrent supplementary previews can each
   read the prior manifest and the last save can discard another domain's
   acknowledgement. It also found missing failure-path coverage for a throwing
-  post-probe or acknowledgement helper. Repair and re-review are required
-  before the scheduler is restarted or Task 6 acceptance resumes.
+  post-probe or acknowledgement helper. The repair adds a manifest lock,
+  atomic same-directory replacement, and explicit failure-path tests; the
+  fresh re-review found no remaining Important findings. Minor residual risks
+  are age-based stale-lock recovery and legacy callers that can still save a
+  previously loaded whole manifest; neither path is used by the supplementary
+  acknowledgement test contract.
+- Post-repair focused validation: Node `74` tests and Maven `334` tests passed;
+  `git diff --check` passed. No service restart, live crawl, scheduler sweep,
+  apply, or database write has run.
 
 ## Execution Coordination
 

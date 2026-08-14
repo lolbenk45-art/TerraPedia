@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 03:04 CST by Codex
+Last updated: 2026-08-15 03:43 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -42,30 +42,29 @@ Execution coordinator: Codex. The user approved the revised complete-Audio
 contract in the 2026-08-15 handoff. Task 1 now runs serially in this worktree:
 the probe and real Audio L1 action must share complete catalog discovery with
 the four governed prefixes, a 600 accepted-file limit, and a 100-page-per-prefix
-guard. Tasks 2-5 are complete; Task 6 is blocked because the local MySQL
-preflight cannot reach `127.0.0.1:13306`. The follow-up recovery confirmed the
-current WSL session has neither a systemd bus nor a registered `service mysql`
-entry, and no non-interactive administrator credential. A privileged operator
-must restore the configured MySQL listener before the required restart and
-authenticated read-only scheduler observation can proceed. A WSL-only direct
-`mysqld` start fails with `OS errno: 13` because `/var/lib/mysql` belongs to
-`mysql:mysql` and is inaccessible to the current user. Independent review also
-found an acknowledgement read-modify-write race that can lose a concurrent
-Audio/Bosses/Shimmer manifest record; repair and re-review are required before
-the scheduler restart.
+guard. Tasks 2-5 are complete; Task 6 is pending its restart and authenticated
+read-only scheduler observation. The earlier WSL recovery confirmed the
+session has neither a systemd bus nor a registered `service mysql` entry, but
+the operator has since started the existing WSL instance as `mysql`; `127.0.0.1:13306` now
+answers a read-only `SELECT 1`. The acknowledgement race found by independent
+review is repaired with a manifest lock and atomic replacement, and the fresh
+re-review has no Important findings. The scheduler restart remains pending
+until this repaired code is checkpointed.
 
 Audio remains fail-closed: historical L1 used one 50-row page per prefix and
 recorded `continuationComplete=false` for all four prefixes. Task 1 may not
 write a partial manifest or start downloads on a 601st accepted file, unfinished
-pagination, or page-guard breach; no service restart or scheduler sweep is
-permitted.
+pagination, or page-guard breach; no service restart or scheduler sweep has
+run yet.
 
 Task 1 validation: the focused Node suite covers the supplementary probes,
 complete Audio action, and L1 preview command. It proves that a 601st accepted
 file, incomplete pagination, or a page guard above 100 fail before manifest
-output or downloads. Tasks 2-5 subsequently passed the focused `71`-test Node
-and `334`-test Maven suites. No live crawl, scheduler sweep, or database write
-was run; the required service restart remains blocked on MySQL availability.
+output or downloads. Tasks 2-5 subsequently passed the focused `74`-test Node
+and `334`-test Maven suites, including concurrent acknowledgement retention and
+post-probe failure coverage. No live crawl, scheduler sweep, or database write
+was run; Task 6 is now pending the repaired-code restart and read-only
+scheduler observation.
 
 ## Open Work
 
