@@ -317,7 +317,7 @@ async function applyFrozenDomainImport({ connection, bundle, repoRoot }) {
       input: sourcePath,
       'report-json': path.join(repoRoot, 'reports', 'authorization', 'canonical', 'automation-bosses-first-l1.import.json'),
       offline: 'true',
-      strict: 'true',
+      strict: 'false',
       database: 'terria_v1_local',
     }, { connection, transactionOwner: 'caller' });
   }

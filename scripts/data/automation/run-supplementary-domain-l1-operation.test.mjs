@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
@@ -14,6 +15,11 @@ test('uses string dates so frozen shimmer previews are deterministic at apply ti
     TERRAPEDIA_DB_PASSWORD: 'root',
     TERRAPEDIA_DB_NAME: 'terria_v1_local',
   }).dateStrings, true);
+});
+
+test('Boss L1 base apply does not make offline image localization a strict blocker', () => {
+  const source = fs.readFileSync(new URL('./run-supplementary-domain-l1-operation.mjs', import.meta.url), 'utf8');
+  assert.match(source, /offline:\s*'true',\s*\n\s*strict:\s*'false'/);
 });
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
