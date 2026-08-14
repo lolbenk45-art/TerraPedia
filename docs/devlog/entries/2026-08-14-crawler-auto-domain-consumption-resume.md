@@ -71,6 +71,11 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   stable pre-probe hash, and the registry enables exactly eight source domains
   while keeping `boss_loot` excluded. No service restart, live crawl, manual
   sweep, apply, or database write was run.
+- Task 6 stop/start attempt was blocked before service startup: local-stack
+  preflight could not reach MySQL at `127.0.0.1:13306`. Existing processes were
+  skipped because ownership could not be verified. No authenticated read-only
+  scheduler observation was collected; preserve the supplementary domains as
+  operationally unaccepted until the database is available and the stack starts.
 
 ## Execution Coordination
 
