@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
-import { executeSupplementaryL1Operation } from './run-supplementary-domain-l1-operation.mjs';
+import * as operationModule from './run-supplementary-domain-l1-operation.mjs';
+
+const { executeSupplementaryL1Operation } = operationModule;
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
 
@@ -144,4 +146,34 @@ test('rejects expired or mismatched authorization before a transaction', async (
     /currently valid/,
   );
   assert.equal(begun, false);
+});
+
+test('loads shimmer generation only through the matching canonical input contract', () => {
+  const frozenSource = {
+    generationId: 'verified-generation',
+    manifestSha256: HASH('a'),
+    dataBundleSha256: HASH('b'),
+  };
+  const calls = [];
+  const verifiedBundle = { generationId: frozenSource.generationId };
+
+  const result = operationModule.loadFrozenShimmerImportBundle({
+    repoRoot: '/repo',
+    frozenSource,
+  }, {
+    readInputContractImpl: (options) => {
+      calls.push(['contract', options]);
+      return { contract: { ...frozenSource } };
+    },
+    loadBundleImpl: (options) => {
+      calls.push(['bundle', options]);
+      return verifiedBundle;
+    },
+  });
+
+  assert.equal(result, verifiedBundle);
+  assert.deepEqual(calls, [
+    ['contract', { repoRoot: '/repo' }],
+    ['bundle', { repoRoot: '/repo' }],
+  ]);
 });

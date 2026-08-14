@@ -17,6 +17,7 @@ import {
 } from '../import/import-wiki-shimmer-to-db.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { loadAuthorizedOperationContext } from './authorized-operation-context.mjs';
+import { readCanonicalShimmerImportInputContract } from './canonical-shimmer-import-input-contract.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 import { validateSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 
@@ -320,10 +321,7 @@ async function applyFrozenDomainImport({ connection, bundle, repoRoot }) {
       database: 'terria_v1_local',
     }, { connection, transactionOwner: 'caller' });
   }
-  const shimmerBundle = loadVerifiedShimmerImportBundleFromInputContract({
-    inputContractPath: sourcePath,
-    repoRoot,
-  });
+  const shimmerBundle = loadFrozenShimmerImportBundle({ repoRoot, frozenSource: sourcePayload });
   const existing = await loadCurrentShimmerScope(connection, shimmerBundle, { forUpdate: true });
   const target = await loadTargetFingerprint(connection, {
     host: connection.config?.host ?? '127.0.0.1',
@@ -338,6 +336,17 @@ async function applyFrozenDomainImport({ connection, bundle, repoRoot }) {
   const after = await loadCurrentShimmerScope(connection, shimmerBundle);
   assertShimmerImportScopeMatchesPreview({ after, preview });
   return preview.summary;
+}
+
+export function loadFrozenShimmerImportBundle({ repoRoot, frozenSource }, {
+  readInputContractImpl = readCanonicalShimmerImportInputContract,
+  loadBundleImpl = loadVerifiedShimmerImportBundleFromInputContract,
+} = {}) {
+  const canonicalInput = readInputContractImpl({ repoRoot });
+  if (hashJson(canonicalInput.contract) !== hashJson(frozenSource)) {
+    throw new Error('frozen Shimmer source does not match the canonical input contract');
+  }
+  return loadBundleImpl({ repoRoot });
 }
 
 export async function runSupplementaryL1OperationCli({
