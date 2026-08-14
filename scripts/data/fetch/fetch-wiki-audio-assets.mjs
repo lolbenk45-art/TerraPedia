@@ -101,6 +101,9 @@ export async function fetchAudioCatalogMetadata(
       });
       const rows = Array.isArray(payload?.query?.allimages) ? payload.query.allimages : [];
       for (const row of rows) {
+        if (!ALLOWED_MIME.has(String(row?.mime ?? '').trim().toLowerCase())) {
+          continue;
+        }
         prefixRecords.push(normalizeAudioCatalogRecord(row, prefix));
       }
       if (prefixRecords.length > fileLimit) {

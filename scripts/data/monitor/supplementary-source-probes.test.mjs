@@ -63,6 +63,22 @@ test('audio probe is stable across reordered catalog responses and does not requ
   }]);
 });
 
+test('audio probe ignores non-audio catalog rows and fingerprints every consumed source field', async () => {
+  const baseline = createAudioDependencies();
+  const ignoredImage = createAudioDependencies({ includeImage: true });
+  const changedMusicPage = createAudioDependencies({ musicRevisionId: 102 });
+  const changedAudioFile = createAudioDependencies({ musicSha1: 'changed-a1' });
+
+  const baselineResult = await probeSupplementarySource({ domainId: 'audio', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, baseline.dependencies);
+  const ignoredImageResult = await probeSupplementarySource({ domainId: 'audio', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, ignoredImage.dependencies);
+  const changedMusicPageResult = await probeSupplementarySource({ domainId: 'audio', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, changedMusicPage.dependencies);
+  const changedAudioFileResult = await probeSupplementarySource({ domainId: 'audio', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, changedAudioFile.dependencies);
+
+  assert.equal(baselineResult.contentHash, ignoredImageResult.contentHash);
+  assert.notEqual(baselineResult.contentHash, changedMusicPageResult.contentHash);
+  assert.notEqual(baselineResult.contentHash, changedAudioFileResult.contentHash);
+});
+
 test('audio probe rejects a continuation that reaches its governed page bound', async () => {
   const { dependencies } = createAudioDependencies({ truncated: true });
 
@@ -155,12 +171,18 @@ test('shimmer probe uses one source revision and source-page HTML, then batches 
   }]);
 });
 
-function createAudioDependencies({ reverseRows = false, truncated = false } = {}) {
+function createAudioDependencies({
+  reverseRows = false,
+  truncated = false,
+  includeImage = false,
+  musicRevisionId = 101,
+  musicSha1 = 'a1'
+} = {}) {
   const requests = [];
   const metadataCalls = [];
   let binaryRequestCount = 0;
   const rowsByPrefix = {
-    Music: [audioRow('Music_Overworld_Day.mp3', 'a1'), audioRow('Music_Boss_1.ogg', 'a2')],
+    Music: [audioRow('Music_Overworld_Day.mp3', musicSha1), audioRow('Music_Boss_1.ogg', 'a2')],
     NPC_Hit: [audioRow('NPC_Hit_1.wav', 'a3')],
     NPC_Killed: [audioRow('NPC_Killed_1.wav', 'a4')],
     Item_: [audioRow('Item_1.wav', 'a5')]
@@ -171,7 +193,10 @@ function createAudioDependencies({ reverseRows = false, truncated = false } = {}
       requests.push(request);
       if (request.protocol !== 'https:' || request.searchParams.get('action') !== 'query') binaryRequestCount += 1;
       const prefix = request.searchParams.get('aiprefix');
-      const rows = reverseRows ? [...rowsByPrefix[prefix]].reverse() : rowsByPrefix[prefix];
+      const rows = reverseRows ? [...rowsByPrefix[prefix]].reverse() : [...rowsByPrefix[prefix]];
+      if (includeImage && prefix === 'Item_') {
+        rows.push({ ...audioRow('Item_1.png', 'image-a1'), mime: 'image/png' });
+      }
       return {
         query: { allimages: rows },
         ...(truncated ? { continue: { aicontinue: `${prefix}|next` } } : {})
@@ -179,7 +204,7 @@ function createAudioDependencies({ reverseRows = false, truncated = false } = {}
     },
     fetchPageMetadataBatch: async (input) => {
       metadataCalls.push(compactMetadataInput(input));
-      return [metadata('音乐', 101, '2026-08-01T00:00:00Z')];
+      return [metadata('音乐', musicRevisionId, '2026-08-01T00:00:00Z')];
     }
   };
   return {
