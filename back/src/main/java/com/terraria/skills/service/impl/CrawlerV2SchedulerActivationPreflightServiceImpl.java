@@ -127,8 +127,11 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
                 continue;
             }
             for (CrawlerQueueV2OverviewDTO.OperationDTO operation : safeList(state.operations())) {
+                if (!operation.defaultOperation()) {
+                    continue;
+                }
                 DomainAcceptanceOverviewDTO.DomainDTO accepted = acceptanceByDomain.get(state.domain());
-                DomainAcceptanceOverviewDTO.DomainPanelDTO panel = firstPanel(accepted);
+                DomainAcceptanceOverviewDTO.DomainPanelDTO panel = sourceReadinessPanel(accepted);
                 CrawlerV2SchedulerActivationPreflightDTO.DomainReadinessDTO readiness =
                     new CrawlerV2SchedulerActivationPreflightDTO.DomainReadinessDTO();
                 String sourceHash = hashReport(panel, overview.getRepoRoot());
@@ -152,18 +155,20 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
         String sourceHash
     ) {
         return domain != null
-            && "pass".equalsIgnoreCase(domain.getStatus())
             && panel != null
             && panel.isFound()
             && panel.isReadable()
+            && "pass".equalsIgnoreCase(panel.getStatus())
             && "fresh".equalsIgnoreCase(panel.getFreshnessStatus())
             && !Boolean.TRUE.equals(panel.getWritesDatabase())
             && sourceHash != null;
     }
 
-    private DomainAcceptanceOverviewDTO.DomainPanelDTO firstPanel(DomainAcceptanceOverviewDTO.DomainDTO domain) {
-        return domain == null || domain.getPanels() == null || domain.getPanels().isEmpty()
-            ? null : domain.getPanels().get(0);
+    private DomainAcceptanceOverviewDTO.DomainPanelDTO sourceReadinessPanel(DomainAcceptanceOverviewDTO.DomainDTO domain) {
+        return domain == null || domain.getPanels() == null ? null : domain.getPanels().stream()
+            .filter(panel -> "sourceReadiness".equals(panel.getPanelId()))
+            .findFirst()
+            .orElse(null);
     }
 
     private String hashReport(DomainAcceptanceOverviewDTO.DomainPanelDTO panel, String repoRoot) {

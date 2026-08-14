@@ -1,0 +1,48 @@
+{
+  "databaseName": "terria_v1_local",
+  "domainId": "audio",
+  "ownerUsername": "admin",
+  "ownerAction": "unchanged",
+  "policyAction": "created",
+  "policyVersion": 1,
+  "previousLevel": null,
+  "level": "L0",
+  "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+  "formalAuthorization": {
+    "reference": "user://conversation/2026-08-14/supplementary-l1-confirmation",
+    "approvedBy": "admin",
+    "decisionIdentity": "automation-audio-l0-bootstrap-20260814-01",
+    "packetHash": "sha256:e1953edcf1762e706dc3207592e02a2d806c9aab088a317304421a766e8815da"
+  },
+  "intendedStatements": [
+    {
+      "sql": "INSERT INTO crawler_automation_policy_version (domain_id, policy_version, level, policy_json, policy_hash, created_by, approved_by, reason) VALUES (?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)",
+      "params": [
+        "audio",
+        1,
+        "L0",
+        "{\"absoluteDisableCap\":50,\"absoluteInsertCap\":500,\"absoluteUpdateCap\":500,\"ratioDisableCap\":0.1,\"requireSnapshot\":true}",
+        "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+        "admin",
+        "admin",
+        "Enable approved L1 supplementary-domain ingestion"
+      ]
+    },
+    {
+      "sql": "INSERT INTO crawler_automation_policy (domain_id, current_version, current_level, operational_state) VALUES (?, ?, ?, ?)",
+      "params": [
+        "audio",
+        1,
+        "L0",
+        "DISABLED"
+      ]
+    }
+  ],
+  "applied": true,
+  "schemaVersion": 1,
+  "operationId": "automation-audio-l0-bootstrap",
+  "operationalState": "DISABLED",
+  "decisionIdentity": "automation-audio-l0-bootstrap-20260814-01",
+  "packetHash": "sha256:e1953edcf1762e706dc3207592e02a2d806c9aab088a317304421a766e8815da",
+  "generatedAt": "2026-08-14T02:12:54.479Z"
+}

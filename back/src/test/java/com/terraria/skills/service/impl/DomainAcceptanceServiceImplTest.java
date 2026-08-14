@@ -35,8 +35,8 @@ class DomainAcceptanceServiceImplTest {
 
         assertEquals(Instant.parse("2026-05-03T12:00:00Z"), overview.getGeneratedAt());
         assertEquals("pass", overview.getOverallStatus());
-        assertEquals(11, overview.getDomainCount());
-        assertEquals(45, overview.getPanelCount());
+        assertEquals(13, overview.getDomainCount());
+        assertEquals(47, overview.getPanelCount());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
         assertEquals(0, overview.getMissingCount());
@@ -601,7 +601,7 @@ class DomainAcceptanceServiceImplTest {
         DomainAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot).getOverview();
 
         assertEquals("missing", overview.getOverallStatus());
-        assertEquals(45, overview.getMissingCount());
+        assertEquals(47, overview.getMissingCount());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = panel(domain(overview, "support.item_group"), "blockingGate");
@@ -997,10 +997,13 @@ class DomainAcceptanceServiceImplTest {
             new PanelSpec("blocking-gate"),
             new PanelSpec("b1-exemption-compliance")
         );
+        List<PanelSpec> automationPanels = List.of(new PanelSpec("source-readiness"));
         return List.of(
             new DomainSpec("items", productPanels),
             new DomainSpec("npcs", productPanels),
             new DomainSpec("bosses", productPanels),
+            new DomainSpec("audio", automationPanels),
+            new DomainSpec("shimmer", automationPanels),
             new DomainSpec("buffs", productPanels),
             new DomainSpec("projectiles", productPanels),
             new DomainSpec("armor_sets", productPanels),

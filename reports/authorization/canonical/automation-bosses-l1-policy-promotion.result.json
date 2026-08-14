@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l1-policy-promotion",
+  "domainId": "bosses",
+  "status": "completed",
+  "policyVersion": 1,
+  "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+  "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": null,
+  "decisionIdentity": "automation-bosses-l1-policy-promotion-20260814-01",
+  "successfulL1Runs": null,
+  "completedAt": "2026-08-14T02:15:10.040Z"
+}

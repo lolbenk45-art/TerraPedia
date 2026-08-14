@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-shimmer-first-l1",
+  "runId": "shimmer_l1_20260814_05",
+  "domainId": "shimmer",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-14T14:32:23.283Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "policy": {
+    "domainId": "shimmer",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "shimmer_item_transforms",
+        "generation": 0
+      },
+      {
+        "databaseRole": "local",
+        "table": "shimmer_decraft_rules",
+        "generation": 0
+      },
+      {
+        "databaseRole": "local",
+        "table": "shimmer_entity_transforms",
+        "generation": 0
+      },
+      {
+        "databaseRole": "local",
+        "table": "shimmer_npc_transforms",
+        "generation": 0
+      }
+    ],
+    "projectionHash": "sha256:cf42f4c600815886070900b2f1234bec389a43ffbda1e14765d75a12e7d516af"
+  },
+  "baselineFingerprint": "sha256:494bbd1cd3157f94b276480155c696fdfee3b1f9a0de56333553615157f35984",
+  "source": {
+    "path": "reports/authorization/canonical/automation-shimmer-first-l1.source.json",
+    "sha256": "sha256:8e977f81a1104427c17369f0de87abed1643a541f43f5735ac19a531e9b2d60d"
+  },
+  "evidenceHash": "sha256:02a51c324bb4a18a961c7825e801cf40fc115883a2b4956a3bd0d6e9ffb57c53",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:494bbd1cd3157f94b276480155c696fdfee3b1f9a0de56333553615157f35984",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "shimmer_item_transforms"
+      },
+      {
+        "databaseRole": "local",
+        "table": "shimmer_decraft_rules"
+      },
+      {
+        "databaseRole": "local",
+        "table": "shimmer_entity_transforms"
+      },
+      {
+        "databaseRole": "local",
+        "table": "shimmer_npc_transforms"
+      }
+    ],
+    "sourceSha256": "sha256:8e977f81a1104427c17369f0de87abed1643a541f43f5735ac19a531e9b2d60d",
+    "importPlan": {
+      "previewSha256": "sha256:e2bd5ee63d69b0d5f23a224510916abb5292392e918264cf028c7d5f6b3baff0",
+      "targetFingerprintSha256": "sha256:48d56246ed920bed2616226262ef7dd1603c198ba5f3e1d189fefc3f554f7448",
+      "summary": {}
+    }
+  },
+  "logicalDiffHash": "sha256:9a14f70c7817415ec9dbba171684432655c494275f8bfa1938a037211bc49cf5",
+  "decisionHash": "sha256:17ff9cc90e634bd5c8d0349139d8a26d6e8e49a9d30388efb2303c17abc98df0",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "shimmer_item_transforms"
+    },
+    {
+      "databaseRole": "local",
+      "table": "shimmer_decraft_rules"
+    },
+    {
+      "databaseRole": "local",
+      "table": "shimmer_entity_transforms"
+    },
+    {
+      "databaseRole": "local",
+      "table": "shimmer_npc_transforms"
+    }
+  ],
+  "importPlan": {
+    "previewSha256": "sha256:e2bd5ee63d69b0d5f23a224510916abb5292392e918264cf028c7d5f6b3baff0",
+    "targetFingerprintSha256": "sha256:48d56246ed920bed2616226262ef7dd1603c198ba5f3e1d189fefc3f554f7448",
+    "summary": {}
+  },
+  "bundleHash": "sha256:c2e6b8d629650f17bec30e0703ce984d15a487ca69cb94e9eb39944f2de5e10b"
+}

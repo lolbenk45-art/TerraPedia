@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Enable approved L1 supplementary-domain ingestion",
+  "authorizationReference": "user://conversation/2026-08-14/supplementary-l1-confirmation",
+  "decisionIdentity": "automation-bosses-l1-policy-promotion-20260814-01"
+}

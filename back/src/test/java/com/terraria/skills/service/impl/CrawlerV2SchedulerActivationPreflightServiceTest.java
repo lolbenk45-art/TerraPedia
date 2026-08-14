@@ -106,6 +106,7 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         domain.setDomainId("items");
         domain.setStatus("pass");
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
+        panel.setPanelId("sourceReadiness");
         panel.setFound(true);
         panel.setReadable(true);
         panel.setStatus("pass");
@@ -159,6 +160,7 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         domain.setDomainId("items");
         domain.setStatus("pass");
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
+        panel.setPanelId("sourceReadiness");
         panel.setFound(true);
         panel.setReadable(true);
         panel.setFreshnessStatus("fresh");
@@ -209,6 +211,150 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
         assertEquals("items", result.getDomains().get(0).getDomain());
     }
 
+    @Test
+    void allowsFreshPassingSourceEvidenceWhenUnrelatedPanelsWarn() throws Exception {
+        Path repoRoot = Files.createTempDirectory("crawler-preflight-repo");
+        Path report = repoRoot.resolve("reports/domain/bosses/source-readiness-20260814.json");
+        Files.createDirectories(report.getParent());
+        Files.writeString(report, "{\"status\":\"pass\"}\n");
+
+        CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+        DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setRepoRoot(repoRoot.toString());
+        overview.setStateStoreEpoch("epoch-current");
+        overview.setDomainStates(List.of(domainState("bosses", "bosses-refresh", "domain-source-bosses")));
+        overview.setLiveQueue(List.of());
+        overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.now(), Instant.now(), 0L, 0L, 0L, null, null, null
+        ));
+        CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+        automation.setEnabled(false);
+        automation.setMode("changed-only");
+        when(monitor.getOverview()).thenReturn(overview);
+        when(monitor.getV2AutomationSettings()).thenReturn(automation);
+        when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+
+        DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
+        domain.setDomainId("bosses");
+        domain.setStatus("warning");
+        DomainAcceptanceOverviewDTO.DomainPanelDTO imageWarning = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
+        imageWarning.setPanelId("imageReadiness");
+        imageWarning.setStatus("warning");
+        DomainAcceptanceOverviewDTO.DomainPanelDTO source = sourcePanel(report, "pass");
+        domain.setPanels(List.of(imageWarning, source));
+        DomainAcceptanceOverviewDTO acceptance = new DomainAcceptanceOverviewDTO();
+        acceptance.setDomains(List.of(domain));
+        when(domainAcceptance.getOverview()).thenReturn(acceptance);
+
+        var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(monitor, domainAcceptance, properties)
+            .getPreflight();
+
+        assertEquals("eligible", result.getDomains().get(0).getReadinessStatus());
+        assertEquals("reports/domain/bosses/source-readiness-20260814.json", result.getDomains().get(0).getEvidencePath());
+    }
+
+    @Test
+    void blocksWarningOrBlockedSourceEvidenceEvenWhenDomainStatusPasses() throws Exception {
+        for (String sourceStatus : List.of("warning", "blocked")) {
+            Path repoRoot = Files.createTempDirectory("crawler-preflight-repo");
+            Path report = repoRoot.resolve("reports/domain/audio/source-readiness-20260814.json");
+            Files.createDirectories(report.getParent());
+            Files.writeString(report, "{\"status\":\"" + sourceStatus + "\"}\n");
+
+            CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+            DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+            CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+            CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+            overview.setRepoRoot(repoRoot.toString());
+            overview.setStateStoreEpoch("epoch-current");
+            overview.setDomainStates(List.of(domainState("audio", "audio-refresh", "wiki-audio-assets-refresh")));
+            overview.setLiveQueue(List.of());
+            overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+                "healthy", Instant.now(), Instant.now(), 0L, 0L, 0L, null, null, null
+            ));
+            CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+            automation.setEnabled(false);
+            automation.setMode("changed-only");
+            when(monitor.getOverview()).thenReturn(overview);
+            when(monitor.getV2AutomationSettings()).thenReturn(automation);
+            when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+
+            DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
+            domain.setDomainId("audio");
+            domain.setStatus("pass");
+            domain.setPanels(List.of(sourcePanel(report, sourceStatus)));
+            DomainAcceptanceOverviewDTO acceptance = new DomainAcceptanceOverviewDTO();
+            acceptance.setDomains(List.of(domain));
+            when(domainAcceptance.getOverview()).thenReturn(acceptance);
+
+            var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(monitor, domainAcceptance, properties)
+                .getPreflight();
+
+            assertEquals("blocked", result.getDomains().get(0).getReadinessStatus(), sourceStatus);
+        }
+    }
+
+    @Test
+    void excludesNonDefaultOperationsFromSchedulerEligibility() throws Exception {
+        Path repoRoot = Files.createTempDirectory("crawler-preflight-repo");
+        Path report = repoRoot.resolve("reports/domain/audio/source-readiness-20260814.json");
+        Files.createDirectories(report.getParent());
+        Files.writeString(report, "{\"status\":\"pass\"}\n");
+
+        CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+        DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setRepoRoot(repoRoot.toString());
+        overview.setStateStoreEpoch("epoch-current");
+        overview.setDomainStates(List.of(new CrawlerQueueV2OverviewDTO.DomainStateDTO(
+            "audio", null, 0L, "idle", null, 0L, 0L, null, null, null, null, null, List.of(),
+            List.of(
+                operation("audio-refresh", "wiki-audio-assets-refresh", true),
+                operation("audio-import", "wiki-audio-assets-import", false)
+            )
+        )));
+        overview.setLiveQueue(List.of());
+        overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.now(), Instant.now(), 0L, 0L, 0L, null, null, null
+        ));
+        CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+        automation.setEnabled(false);
+        automation.setMode("changed-only");
+        when(monitor.getOverview()).thenReturn(overview);
+        when(monitor.getV2AutomationSettings()).thenReturn(automation);
+        when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+
+        DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
+        domain.setDomainId("audio");
+        domain.setStatus("pass");
+        domain.setPanels(List.of(sourcePanel(report, "pass")));
+        DomainAcceptanceOverviewDTO acceptance = new DomainAcceptanceOverviewDTO();
+        acceptance.setDomains(List.of(domain));
+        when(domainAcceptance.getOverview()).thenReturn(acceptance);
+
+        var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(monitor, domainAcceptance, properties)
+            .getPreflight();
+
+        assertEquals(1, result.getDomains().size());
+        assertEquals("wiki-audio-assets-refresh", result.getDomains().get(0).getActionId());
+    }
+
+    private static DomainAcceptanceOverviewDTO.DomainPanelDTO sourcePanel(Path report, String status) {
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
+        panel.setPanelId("sourceReadiness");
+        panel.setFound(true);
+        panel.setReadable(true);
+        panel.setStatus(status);
+        panel.setFreshnessStatus("fresh");
+        panel.setWritesDatabase(false);
+        panel.setReportPath(report.toString().replaceFirst("^.*/reports/", "reports/"));
+        panel.setGeneratedAt(Instant.now());
+        return panel;
+    }
+
     private static CrawlerQueueV2OverviewDTO.DomainStateDTO domainState(
         String domain, String operationId, String actionId
     ) {
@@ -219,6 +365,16 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
                 "refresh", false, "fixture", "none", "none", 0L, 0L, true, true, true,
                 null, "read-only", true
             ))
+        );
+    }
+
+    private static CrawlerQueueV2OverviewDTO.OperationDTO operation(
+        String operationId, String actionId, boolean defaultOperation
+    ) {
+        return new CrawlerQueueV2OverviewDTO.OperationDTO(
+            operationId, actionId, "audio", "wiki", "changed-only",
+            "refresh", false, "fixture", "none", "none", 0L, 0L, true, true, true,
+            null, "read-only", defaultOperation
         );
     }
 }

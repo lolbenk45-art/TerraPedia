@@ -1,12 +1,12 @@
 # Current Devlog
 
-Last updated: 2026-08-14 10:33 CST by Codex
+Last updated: 2026-08-14 23:24 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
-## Open Work
+## Recently Closed
 
-- **附加域 L1 自动化入库**（Shimmer、Audio、Bosses）；owner: Codex；status: active；branch: `feat/supplementary-domains-readiness`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: Shimmer verified preview、three first-L1 Owner applies 与 fresh scheduler activation；contract handoff: `docs/superpowers/specs/2026-08-14-supplementary-domains-l1-automation-design.md`；implementation plan: `docs/superpowers/plans/2026-08-14-supplementary-domains-l1-automation.md`；current state: three canonical L0/L1 promotions and Audio/Bosses real previews completed；边界：`L1/ACTIVE`、每次 apply 单次 Owner 批准、不含 L2/Boss loot。
+- **附加域 L1 自动化入库**（Shimmer、Audio、Bosses）；owner: Codex；status: closed；branch: `feat/supplementary-domains-readiness`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: three first-L1 Owner applies, source-only scheduler preflight, and reviewer re-check complete；contract handoff: `docs/superpowers/specs/2026-08-14-supplementary-domains-l1-automation-design.md`；implementation plan: `docs/superpowers/plans/2026-08-14-supplementary-domains-l1-automation.md`；result: three formal applies completed and scheduler is enabled for changed-only default previews；boundary: `L1/ACTIVE`, one Owner approval per apply, no L2 or Boss loot；commit SHA pending in final response. Runtime restart and regenerated scheduler preflight are deferred until the unrelated live Buff task is terminal.
 - 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，NPC 已在 `3d9045fa` 建立检查点。Article 最终裁决保留正式 `/articles` 舞台，将搜索上移到 mast、首页最新投稿收敛为 6 篇，并新增无侧栏的四列 `/articles/archive` 承担 12 篇分页与搜索。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 书面设计复核、实施计划、合同优先实现与用户视觉验收；contract handoff: `docs/superpowers/specs/2026-07-30-article-discovery-archive-split-design.md`，只消费真实 DTO 或明确标注的展示派生值。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
@@ -20,14 +20,15 @@ Active branch: `feat/supplementary-domains-readiness`
 
 ## Active Focus
 
-Tasks 1–6 complete. Task 6 (formal scheduler activation evidence run) executed
-and rolled back cleanly on 2026-08-11. Scheduler is currently **disabled**.
-Next step is an independent owner decision: keep enabled permanently (new auth
-cycle required) or push/merge the branch as-is.
+Supplementary-domain scheduler activation is now **enabled**, `changed-only`,
+with a 60-minute interval. The current automatic tick found pre-existing source
+deltas for the established domains; its Buff task is still live. No manual
+sweep was invoked. The next scheduler preflight must be collected after that
+task finishes and after the current backend is restarted with the final
+source-only filter.
 
 ## Open Work
 
-- **Permanent scheduler enablement**: independent owner decision; requires a new Task 5/6 authorization cycle (this run's packet was the evidence run; rollback closes it).
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
 - Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.

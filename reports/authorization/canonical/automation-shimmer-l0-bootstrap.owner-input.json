@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Enable approved L1 supplementary-domain ingestion",
+  "authorizationReference": "user://conversation/2026-08-14/supplementary-l1-confirmation",
+  "decisionIdentity": "automation-shimmer-l0-bootstrap-20260814-01",
+  "authorizedAt": "2026-08-14T02:10:54.000Z"
+}

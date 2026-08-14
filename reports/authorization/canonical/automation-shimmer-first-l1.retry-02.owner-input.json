@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Retry approved L1 supplementary-domain ingestion after canonical-path repair",
+  "authorizationReference": "user://conversation/2026-08-14/supplementary-l1-confirmation",
+  "decisionIdentity": "automation-shimmer-first-l1-20260814-retry-02"
+}

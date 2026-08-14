@@ -1,7 +1,7 @@
 # Devlog: supplementary-domains-readiness 交接
 
 ## Status
-`active`
+`closed`
 
 ## Context
 
@@ -127,3 +127,62 @@ bosses 在 preflight eligible 列表中（join OK），但不在 `isAutoEligible
 - retry-04 在 DML 前被 baseline fingerprint 栅栏拦截；generation 均为 0，但 preview CLI 的 baseline connection 仍未启用 `dateStrings: true`，其 projectionHash 与 apply runner 的字符串日期形态不一致。Preview CLI 已同步该选项并新增测试，综合回归 60/60 通过；retry-04 identity 已消费且无数据库写入，等待 retry-05。
 - retry-05 Shimmer 已 `COMMITTED`（四个 owned-table generation 均为 1）；Audio 与 Bosses 旧 preview 经 apply-side 基线预检发现日期表示差异，故未消费旧 packet 并重新 preview。Audio retry-06 已 `COMMITTED`（200 assets，150 links）；Boss retry-06 在 DML 前被 offline+strict 图片完整性 gate 拦截，33 Boss 均解析但 29 张 wiki 图片未本地化。此图片同步不属于已确认的 Boss base/no-loot scope，base runner 保持 offline 并改为 non-strict，仍输出图片残留证据；回归 25/25 通过。Boss retry-06 identity 已消费且 boss/loot 均未写入，等待新 checkpoint、preview 与 retry-07。
 - See git for code-level diff details.
+
+## 2026-08-14 Closeout State
+
+- Result: Shimmer, Audio, and Bosses have completed formal first-L1 applies
+  under their individual Owner decisions. Terminal run IDs are
+  `shimmer_l1_20260814_05`, `audio_l1_20260814_02`, and
+  `bosses_l1_20260814_02`. Policy remains `L1/ACTIVE`; no L2 operation was
+  introduced.
+- Boss boundary: the committed bundle owns only `boss_groups` and `npcs`.
+  The base import completed 33 boss-group updates and 33 mapped bosses;
+  `npc_loot_entries` remains outside this operation. Pending Boss images are
+  recorded as base-import evidence only and were not fetched by the runner.
+- Scheduler boundary: the source-readiness gate now selects its exact fresh,
+  passing, readable, no-write panel instead of requiring the whole domain to
+  pass. Audio and Shimmer have source-only registry panels. Boss source
+  readiness no longer depends on historical Boss import reports, while the
+  separate Boss relation panel still requires formal Boss-loot evidence.
+- Review repair: a reviewer found that the preflight projection included a
+  non-default Audio import operation. It now emits only `defaultOperation`
+  entries, matching the changed-only scheduler's `defaultOperations()` set;
+  the new backend regression proves `wiki-audio-assets-import` is excluded
+  while `wiki-audio-assets-refresh` remains eligible. Re-review found no
+  remaining code findings.
+- Runtime evidence: the persisted scheduler control is `enabled=true`,
+  `mode=changed-only`, interval 60 minutes. The fresh authenticated preflight
+  before the review repair reported the three source actions eligible. A later
+  automatic tick saw all three supplementary source keys unchanged; it did
+  not dispatch them. It did dispatch pre-existing changed deltas for Items,
+  NPCs, Projectiles, Buffs, and Armor Sets. No manual sweep was invoked.
+- Superseded evidence: the generated scheduler activation preflight,
+  proposal, and request with suffix `supplementary-20260814-01` predate the
+  source-only filter and list `wiki-audio-assets-import`; they are excluded
+  from this commit and must not be used for a later authorization decision.
+  The current unrelated Buff automatic task prevents a safe backend restart,
+  so a fresh post-restart preflight/request is deferred until it is terminal.
+- Validation: focused Node domain tests 188/188 passed; focused backend suite
+  passed 37/37 after the review repair; `git diff --check` passed. The full
+  quality gate passed all in-scope checks but remains blocked by five known
+  baseline tests whose canonical Item/NPC input artifacts are absent
+  (`canonical-item-group-bootstrap.result.json` and
+  `canonical-npc-apply.input.json`).
+- Residual risk / follow-up: leave the scheduler enabled. Once the Buff task
+  has reached a terminal state, restart the backend through the standard
+  stack script and generate a new authorization preflight if a new scheduler
+  authorization decision is required. The current active scheduler behavior
+  remains limited to changed-only default preview operations; formal applies
+  remain Owner-gated.
+
+## Review
+
+- Reviewer: `/root/supplementary_review`; scope: supplementary scheduler
+  readiness, authorization boundary, and Boss table ownership.
+- Finding: preflight advertised the non-default Audio import as eligible.
+  Disposition: fixed by filtering to default operations; regression added and
+  reviewer re-check passed.
+
+## Commit
+
+- Commit SHA pending in final response.

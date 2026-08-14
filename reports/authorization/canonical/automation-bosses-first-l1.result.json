@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-first-l1",
+  "runId": "bosses_l1_20260814_02",
+  "domainId": "bosses",
+  "status": "completed",
+  "bundleHash": "sha256:7a6b0bc6618e6efe2f3beb4bad7d06f2963f11767aebdad25349eecff6c99c46",
+  "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8",
+  "importSummary": {
+    "generatedAt": "2026-08-14T14:45:58.416Z",
+    "inputPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-bosses-first-l1.source.json",
+    "reportPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-bosses-first-l1.import.json",
+    "database": "terria_v1_local",
+    "apiBase": "http://127.0.0.1:18188/api",
+    "dryRun": false,
+    "offline": true,
+    "strictMode": false,
+    "generatedNpcMapPath": "/home/lolben/TerraPedia/data/generated/npc-standardized-map.json",
+    "totalBosses": 33,
+    "createdBossGroups": 0,
+    "updatedBossGroups": 33,
+    "mappedBosses": 33,
+    "unmappedBosses": 0,
+    "totalMemberAssignments": 51,
+    "bossImageCandidates": 29,
+    "bossImagesAlreadyManaged": 0,
+    "localizedBossImages": 0,
+    "pendingBossImages": 29,
+    "failedBossImages": 0,
+    "bossMemberImageCandidates": 51,
+    "bossMemberImagesAlreadyManaged": 51,
+    "localizedBossMemberImages": 0,
+    "pendingBossMemberImages": 0,
+    "failedBossMemberImages": 0,
+    "patchedBossMemberMapRows": 0,
+    "bossMemberMapMissing": 0,
+    "bossMemberImageMissingSource": 0,
+    "remainingWikiBossImages": 29,
+    "remainingWikiBossMemberImages": 0,
+    "generatedNpcMapWritten": false,
+    "unresolvedBosses": [],
+    "samples": [
+      {
+        "titleEn": "King Slime",
+        "titleZh": "史莱姆王",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "KingSlime"
+        ]
+      },
+      {
+        "titleEn": "Eye of Cthulhu",
+        "titleZh": "克苏鲁之眼",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "EyeofCthulhu"
+        ]
+      },
+      {
+        "titleEn": "Eater of Worlds",
+        "titleZh": "世界吞噬怪",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 3,
+        "memberInternalNames": [
+          "EaterofWorldsHead",
+          "EaterofWorldsBody",
+          "EaterofWorldsTail"
+        ]
+      },
+      {
+        "titleEn": "Brain of Cthulhu",
+        "titleZh": "克苏鲁之脑",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "BrainofCthulhu"
+        ]
+      },
+      {
+        "titleEn": "Queen Bee",
+        "titleZh": "蜂王",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "QueenBee"
+        ]
+      },
+      {
+        "titleEn": "Deerclops",
+        "titleZh": "独眼巨鹿",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "Deerclops"
+        ]
+      },
+      {
+        "titleEn": "Skeletron",
+        "titleZh": "骷髅王",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 2,
+        "memberInternalNames": [
+          "SkeletronHead",
+          "SkeletronHand"
+        ]
+      },
+      {
+        "titleEn": "Wall of Flesh",
+        "titleZh": "血肉墙",
+        "bossType": "PRE_HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "WallofFlesh"
+        ]
+      },
+      {
+        "titleEn": "Queen Slime",
+        "titleZh": "史莱姆皇后",
+        "bossType": "HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "QueenSlimeBoss"
+        ]
+      },
+      {
+        "titleEn": "The Twins",
+        "titleZh": "双子魔眼",
+        "bossType": "HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 2,
+        "memberInternalNames": [
+          "Retinazer",
+          "Spazmatism"
+        ]
+      },
+      {
+        "titleEn": "The Destroyer",
+        "titleZh": "毁灭者",
+        "bossType": "HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 1,
+        "memberInternalNames": [
+          "TheDestroyer"
+        ]
+      },
+      {
+        "titleEn": "Skeletron Prime",
+        "titleZh": "机械骷髅王",
+        "bossType": "HARDMODE",
+        "imageUrl": null,
+        "sourceMode": "assigned",
+        "memberCount": 5,
+        "memberInternalNames": [
+          "SkeletronPrime",
+          "PrimeCannon",
+          "PrimeSaw",
+          "PrimeVice",
+          "PrimeLaser"
+        ]
+      }
+    ],
+    "skippedMemberAssignments": 51
+  },
+  "completedAt": "2026-08-14T14:45:58.314Z"
+}

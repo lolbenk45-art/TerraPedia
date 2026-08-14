@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l0-bootstrap",
+  "databaseName": "terria_v1_local",
+  "domainId": "bosses",
+  "level": "L0",
+  "operationalState": "DISABLED",
+  "policy": {
+    "absoluteInsertCap": 500,
+    "absoluteUpdateCap": 500,
+    "absoluteDisableCap": 50,
+    "ratioDisableCap": 0.1,
+    "requireSnapshot": true
+  }
+}

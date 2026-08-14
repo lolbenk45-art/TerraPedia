@@ -8,7 +8,8 @@
   },
   "panelSets": {
     "product": ["sourceReadiness", "relationReadiness", "imageReadiness", "publicReadiness", "unresolvedAuditTrend"],
-    "support": ["sourceReadiness", "blockingGate", "b1ExemptionCompliance"]
+    "support": ["sourceReadiness", "blockingGate", "b1ExemptionCompliance"],
+    "automation": ["sourceReadiness"]
   },
   "panels": {
     "sourceReadiness": {
@@ -131,6 +132,28 @@
       "managementRoute": "/entities/bosses",
       "publicExposure": "public",
       "publicRoute": "/bosses"
+    },
+    {
+      "domainId": "audio",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "automation-readiness",
+      "panelSet": "automation",
+      "backendRefreshStepIds": ["wiki-audio-assets-refresh"],
+      "managementRoute": "/operations/audio-assets",
+      "publicExposure": "public",
+      "publicRoute": "/audio"
+    },
+    {
+      "domainId": "shimmer",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "automation-readiness",
+      "panelSet": "automation",
+      "backendRefreshStepIds": ["shimmer-sync"],
+      "managementRoute": "/recipes/shimmer",
+      "publicExposure": "public",
+      "publicRoute": "/shimmer"
     },
     {
       "domainId": "buffs",

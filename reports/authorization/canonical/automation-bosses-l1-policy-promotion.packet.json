@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-08-14T02:15:09.802Z",
+  "expiresAt": "2026-08-15T02:15:09.802Z",
+  "operationId": "automation-bosses-l1-policy-promotion",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:abb9612fd4948a20032f3b77302c01a25a808f8691334581b717b273915d2740",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/automation-bosses-l1-policy-promotion.input.json",
+      "sizeBytes": 383,
+      "contentHash": "sha256:caf114e86ebe9f738f8d632bfb0ca98a7bf4e6a906c8f3a7c2a6a84658e91ee2"
+    }
+  ],
+  "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8",
+  "executionManifestHash": "sha256:9d501b0f6daf69ee362ab6c6ab11138e6a046b59ca854d8762b20f5194fc2df2",
+  "executionManifest": {
+    "artifactDate": "2026-08-14",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:2b25fbfd940857cd0004b1e3dd02edc4cbbbc7daea2f7112256ef422b8716b02",
+        "path": "scripts/data/automation/run-automation-policy-decision.mjs"
+      },
+      {
+        "contentHash": "sha256:fe448b7491b36e7e521c6f47938802d3bb89460450f8504fc621ecf86f76a8f6",
+        "path": "scripts/data/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:a0bac4393d48a40a4f280fc5cf103ffc85eef25791a8ddf3d57d242f3785e34b",
+        "path": "scripts/data/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:44680fac43d6f654c27c457c59a4ec823aa2ccde6a80c801c3f24bfbb2561a0b",
+        "path": "scripts/data/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:0a08576360c4906a5af0f54a4aa50bb336f41faab7e388bb432ca04da51e1164",
+        "path": "scripts/data/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "scripts/data/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:b7c4f03bb503fab33381c61b75b3f25aae61571ca5bba3cc3d56f046a93ac4b6",
+        "path": "scripts/data/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:d28427679a56590234e67d56645545c1e3114d3ad3fac5095ff9329867b3689b",
+        "path": "scripts/data/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "scripts/data/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "scripts/data/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "scripts/data/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:435beab2cd7ee18538b5bccc6e5c591e84bf74bf512b897d0acf106a6006a790",
+        "path": "scripts/data/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "scripts/data/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:ccc392d606bffe46c2c69abce5818cc5066784afa2ac6307de920d687f69a465",
+        "path": "scripts/data/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "scripts/data/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ee87d8ce172092d9da269e1b936c4e6c0bb58c406ffd30963c7f25a13e17674b",
+        "path": "scripts/data/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "scripts/data/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451",
+        "path": "scripts/data/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b",
+        "path": "scripts/data/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373",
+        "path": "scripts/data/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "scripts/data/automation/run-automation-policy-decision.mjs",
+      "--operation-id=automation-bosses-l1-policy-promotion",
+      "--input=reports/authorization/canonical/automation-bosses-l1-policy-promotion.input.json",
+      "--output=reports/authorization/canonical/automation-bosses-l1-policy-promotion.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_policy_decision",
+    "inputPaths": [
+      "reports/authorization/canonical/automation-bosses-l1-policy-promotion.input.json"
+    ],
+    "networkAccess": false,
+    "operationId": "automation-bosses-l1-policy-promotion",
+    "outputPaths": [
+      "reports/authorization/canonical/automation-bosses-l1-policy-promotion.result.json"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "Enable approved L1 supplementary-domain ingestion",
+  "authorizationReference": "user://conversation/2026-08-14/supplementary-l1-confirmation",
+  "decisionIdentity": "automation-bosses-l1-policy-promotion-20260814-01",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:e12186241e1ec48789563d17fb1db261bb40d46a8215ae957c644e817e71454b",
+  "authorizedAt": "2026-08-14T02:15:09.899Z",
+  "packetHash": "sha256:5a793098884921fd9612de4e528738c89f3243fcaab3ab09e61e0cbf8886efbf"
+}

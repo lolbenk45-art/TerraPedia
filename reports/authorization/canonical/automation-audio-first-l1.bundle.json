@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-audio-first-l1",
+  "runId": "audio_l1_20260814_02",
+  "domainId": "audio",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-14T14:34:42.090Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "policy": {
+    "domainId": "audio",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "audio_assets",
+        "generation": 0
+      },
+      {
+        "databaseRole": "local",
+        "table": "audio_asset_links",
+        "generation": 0
+      }
+    ],
+    "projectionHash": "sha256:ec6516ee8a81babf2916cea3f900ef7d7de9530cd45fd5b1d983f1a7f289c107"
+  },
+  "baselineFingerprint": "sha256:cd3d862064a5d416b93bdedc16c3464ace8e4f765c41b53f0165d3bc099fc241",
+  "source": {
+    "path": "reports/authorization/canonical/automation-audio-first-l1.source.json",
+    "sha256": "sha256:9304cb26b04884962ba3b216b347dcce20721bbd4307d5c40110a6aa21f62dc9"
+  },
+  "evidenceHash": "sha256:985953fae859a747c04819124bae307af9f6163679ee37be4c162ba72bed1f62",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:cd3d862064a5d416b93bdedc16c3464ace8e4f765c41b53f0165d3bc099fc241",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "audio_assets"
+      },
+      {
+        "databaseRole": "local",
+        "table": "audio_asset_links"
+      }
+    ],
+    "sourceSha256": "sha256:9304cb26b04884962ba3b216b347dcce20721bbd4307d5c40110a6aa21f62dc9",
+    "importPlan": {
+      "summary": {
+        "assets": 200
+      }
+    }
+  },
+  "logicalDiffHash": "sha256:7b7cf92a22b97597b177d4eaac55bb4c57c4f6c61e0e5b6f2422b069e4cbe4bb",
+  "decisionHash": "sha256:5212cfccd1cae2cd578df1001406256f292e2923da49ce5f081884be20153a32",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "audio_assets"
+    },
+    {
+      "databaseRole": "local",
+      "table": "audio_asset_links"
+    }
+  ],
+  "importPlan": {
+    "summary": {
+      "assets": 200
+    }
+  },
+  "bundleHash": "sha256:e07ababd0fa11a59c76c53db6175e88b4fbf795d391a5244d54d944a77647c83"
+}

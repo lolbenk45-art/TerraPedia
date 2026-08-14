@@ -12,11 +12,13 @@ const execFileAsync = promisify(execFile);
 
 const EXPECTED_DOMAIN_IDS = [
   'armor_sets',
+  'audio',
   'bosses',
   'buffs',
   'items',
   'npcs',
   'projectiles',
+  'shimmer',
   'support.category',
   'support.item_group',
   'support.recipe',
@@ -360,6 +362,20 @@ test('domain manifest is expanded from the registry single source of truth', () 
     assert.ok(entries.every((entry) => entry.domainChainStage === domain.chainStage));
     assert.ok(entries.every((entry) => entry.managementRoute === domain.managementRoute));
     assert.ok(entries.every((entry) => entry.publicExposure === domain.publicExposure));
+  }
+});
+
+test('scheduler-only supplementary domains expose exactly source readiness evidence', () => {
+  const registry = JSON.parse(fs.readFileSync(
+    path.resolve('scripts/data/workflow/domain-acceptance-registry.json'),
+    'utf8',
+  ));
+  assert.deepEqual(registry.panelSets.automation, ['sourceReadiness']);
+
+  for (const domainId of ['audio', 'shimmer']) {
+    const domain = registry.domains.find((entry) => entry.domainId === domainId);
+    assert.ok(domain, `${domainId} must be registered for scheduler readiness`);
+    assert.equal(domain.panelSet, 'automation');
   }
 });
 

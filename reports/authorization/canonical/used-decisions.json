@@ -6,5 +6,61 @@
   {
     "decisionIdentity": "canonical-shimmer-import-2026-08-13",
     "dispatchPermitHash": "sha256:24b05a67ead13c8eba0217243bd977c89da8abf0576eef828f51b926eab89d93"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l0-bootstrap-20260814-01",
+    "dispatchPermitHash": "sha256:cf692dce795a5035c6dca980d80514ecd5d29072be76ed544511bf04733aafc0"
+  },
+  {
+    "decisionIdentity": "automation-audio-l0-bootstrap-20260814-01",
+    "dispatchPermitHash": "sha256:50421ffb5d4f43871d27479de7399b90436b5f0ac41464c43a752567ed5c37f0"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l0-bootstrap-20260814-01",
+    "dispatchPermitHash": "sha256:46bb1e4aca800ab9a915c9fc843887ed4e59b9be16b41eb9e0f04d9c5d690881"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l1-policy-promotion-20260814-01",
+    "dispatchPermitHash": "sha256:8a432cb9c287ddcb914bcf48937d37013d61a080a79944d0aa3a518f6a468210"
+  },
+  {
+    "decisionIdentity": "automation-audio-l1-policy-promotion-20260814-01",
+    "dispatchPermitHash": "sha256:0ddf22ace3b944ad8dcd660a860405d245d0b18f42c04a117db904f87d807aa4"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l1-policy-promotion-20260814-01",
+    "dispatchPermitHash": "sha256:822c2208268d3b516e4dd0975125d27406c71797a35c14d06fa1b25e4309ae89"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-first-l1-20260814-01",
+    "dispatchPermitHash": "sha256:07e7be1a2d21aa20bcf261941bcc4d0b8ae265e76fd90e072b0b7cf9a2d4c05a"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-first-l1-20260814-retry-02",
+    "dispatchPermitHash": "sha256:d22a3ef55698a6555e614a2b34a4e30b1e6947a4ca0bfff191c157e8503ebb47"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-first-l1-20260814-retry-03",
+    "dispatchPermitHash": "sha256:03d36533953a10368d0d63254ebf9be1e96b02d08f536c0676df771735e98754"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-first-l1-20260814-retry-04",
+    "dispatchPermitHash": "sha256:f6e7f8fe123ad317a71df599519206ce62a75e007c92d91c271a43910c5b9c01"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-first-l1-20260814-retry-05",
+    "dispatchPermitHash": "sha256:5459d436d3b917590035f05c02223ccc4814a6acfff411da80fd65b2c18c2f6e"
+  },
+  {
+    "decisionIdentity": "automation-audio-first-l1-20260814-retry-06",
+    "dispatchPermitHash": "sha256:6d60b9240eddfa041b2f5df8ec6d3b4f5f7779be3a8ad3b6cf00945f3f3f20c0"
+  },
+  {
+    "decisionIdentity": "automation-bosses-first-l1-20260814-retry-06",
+    "dispatchPermitHash": "sha256:a79e9189b224c3c5b43027e1aba4274284895d203fe12622fa71aa0ff9e6efcc"
+  },
+  {
+    "decisionIdentity": "automation-bosses-first-l1-20260814-retry-07",
+    "dispatchPermitHash": "sha256:d79383ba1c3609e1c0502bc6023c22d1ddea80e4a168c39b66ea3a5fa12b2c99"
   }
 ]

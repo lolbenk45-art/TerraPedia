@@ -196,7 +196,6 @@ const PRODUCT_DOMAIN_CONFIG = {
       evidence: [
         requiredJson('data/generated/wiki-bosses.latest.json'),
         optionalLatestJson('reports/wiki-bosses-fetch*.json'),
-        optionalLatestJson('reports/wiki-bosses-import*.json'),
       ],
     },
     relationReadiness: {

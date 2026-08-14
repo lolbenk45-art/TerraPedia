@@ -39,6 +39,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         "town-npc-sync",
         "independent-entity-sync",
         "shimmer-sync",
+        "wiki-audio-assets-refresh",
         "support-sync"
     );
     private static final Set<String> PUBLIC_EXPOSURE_VALUES = Set.of("public", "planned-public", "admin-only");

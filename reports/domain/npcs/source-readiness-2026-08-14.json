@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-08-14T15:06:44.000Z",
+  "domainId": "npcs",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/npcs/source-readiness-2026-08-14.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_standardized_npcs_standardized_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/npcs.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 762,
+      "status": "pass",
+      "message": "Evidence present: data/standardized/npcs.standardized.json"
+    },
+    {
+      "id": "reports_wiki_town_npc_importlatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/wiki-town-npc-import-2026-05-26.json",
+      "latestReportPath": "reports/wiki-town-npc-import-2026-05-26.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "town NPC legacy import semantic gates are clean in reports/wiki-town-npc-import-2026-05-26.json: unmatchedNpcCount=0, unmatchedShopItemCount=0"
+    },
+    {
+      "id": "reports_wiki_town_npc_maintenancelatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/wiki-town-npc-maintenance-2026-07-08-105704.json",
+      "latestReportPath": "reports/wiki-town-npc-maintenance-2026-07-08-105704.json",
+      "recordCount": 39,
+      "status": "pass",
+      "message": "Evidence present: reports/wiki-town-npc-maintenance-2026-07-08-105704.json"
+    }
+  ]
+}

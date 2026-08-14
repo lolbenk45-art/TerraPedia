@@ -1,0 +1,48 @@
+{
+  "databaseName": "terria_v1_local",
+  "domainId": "bosses",
+  "ownerUsername": "admin",
+  "ownerAction": "unchanged",
+  "policyAction": "created",
+  "policyVersion": 1,
+  "previousLevel": null,
+  "level": "L0",
+  "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+  "formalAuthorization": {
+    "reference": "user://conversation/2026-08-14/supplementary-l1-confirmation",
+    "approvedBy": "admin",
+    "decisionIdentity": "automation-bosses-l0-bootstrap-20260814-01",
+    "packetHash": "sha256:5d7a4687778fc089290346ba32586dc5cb5556746ddd1606a65e8dfe4b7ef3d6"
+  },
+  "intendedStatements": [
+    {
+      "sql": "INSERT INTO crawler_automation_policy_version (domain_id, policy_version, level, policy_json, policy_hash, created_by, approved_by, reason) VALUES (?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)",
+      "params": [
+        "bosses",
+        1,
+        "L0",
+        "{\"absoluteDisableCap\":50,\"absoluteInsertCap\":500,\"absoluteUpdateCap\":500,\"ratioDisableCap\":0.1,\"requireSnapshot\":true}",
+        "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+        "admin",
+        "admin",
+        "Enable approved L1 supplementary-domain ingestion"
+      ]
+    },
+    {
+      "sql": "INSERT INTO crawler_automation_policy (domain_id, current_version, current_level, operational_state) VALUES (?, ?, ?, ?)",
+      "params": [
+        "bosses",
+        1,
+        "L0",
+        "DISABLED"
+      ]
+    }
+  ],
+  "applied": true,
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l0-bootstrap",
+  "operationalState": "DISABLED",
+  "decisionIdentity": "automation-bosses-l0-bootstrap-20260814-01",
+  "packetHash": "sha256:5d7a4687778fc089290346ba32586dc5cb5556746ddd1606a65e8dfe4b7ef3d6",
+  "generatedAt": "2026-08-14T02:13:45.894Z"
+}

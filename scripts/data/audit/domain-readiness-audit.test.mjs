@@ -1607,7 +1607,7 @@ test('items image readiness accepts only a completed applied image-sync report',
   assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
 });
 
-test('boss source readiness accepts only a completed formal boss import report', () => {
+test('boss source readiness is independent of historical boss import reports', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/generated/wiki-bosses.latest.json', {
     overview: { bossCount: 1 },
@@ -1622,29 +1622,9 @@ test('boss source readiness accepts only a completed formal boss import report',
   });
   writeJson(repoRoot, 'reports/wiki-bosses-fetch-2026-07-27.json', { generatedAt: '2026-07-27T00:00:00Z' });
 
-  const missing = buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' });
-  assert.equal(missing.status, 'warning');
-  assert.ok(missing.warningReasons.some((reason) => /wiki-bosses-import/.test(reason)));
-
-  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-07-27.json', { dryRun: true });
-  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' }).status, 'pass');
-
-  writeJson(repoRoot, 'reports/wiki-bosses-import-2026-07-27.json', {
-    generatedAt: '2026-07-27T00:00:00Z',
-    dryRun: false,
-    totalBosses: 1,
-    createdBossGroups: 1,
-    updatedBossGroups: 0,
-    mappedBosses: 1,
-    unmappedBosses: 0,
-    unresolvedBosses: [],
-    remainingWikiBossImages: 0,
-    remainingWikiBossMemberImages: 0,
-    bossMemberImageMissingSource: 0,
-    failedBossImages: 0,
-    failedBossMemberImages: 0,
-  });
-  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' }).status, 'pass');
+  const report = buildDomainReadinessReport({ repoRoot, domainId: 'bosses', panel: 'source' });
+  assert.equal(report.status, 'pass');
+  assert.equal(report.warningReasons.some((reason) => /wiki-bosses-import/.test(reason)), false);
 });
 
 test('boss relation readiness accepts only a completed formal boss-loot import report', () => {

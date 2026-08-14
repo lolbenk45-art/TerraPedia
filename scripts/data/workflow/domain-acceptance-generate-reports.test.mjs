@@ -24,11 +24,11 @@ test('buildDomainAcceptanceReportGeneration creates reports for every manifest p
   });
 
   assert.equal(result.generatedAt, '2026-05-03T12:00:00Z');
-  assert.equal(result.summary.domainCount, 11);
-  assert.equal(result.summary.panelCount, 45);
+  assert.equal(result.summary.domainCount, 13);
+  assert.equal(result.summary.panelCount, 47);
   assert.equal(result.summary.writtenCount, 0);
-  assert.equal(result.summary.plannedCount, 45);
-  assert.equal(result.reports.length, 45);
+  assert.equal(result.summary.plannedCount, 47);
+  assert.equal(result.reports.length, 47);
   assert.ok(result.reports.every((report) => report.writePlanned === false));
   assert.equal(
     result.reports.find((report) => report.domainId === 'buffs' && report.panelId === 'sourceReadiness')?.outputPath,

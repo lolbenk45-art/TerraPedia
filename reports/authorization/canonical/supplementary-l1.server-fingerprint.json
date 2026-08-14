@@ -1,0 +1,10 @@
+{
+  "host": "127.0.0.1",
+  "port": 13306,
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "databases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ]
+}

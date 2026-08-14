@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-first-l1",
+  "runId": "bosses_l1_20260814_02",
+  "domainId": "bosses",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-14T14:35:15.312Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "policy": {
+    "domainId": "bosses",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "boss_groups",
+        "generation": 0
+      },
+      {
+        "databaseRole": "local",
+        "table": "npcs",
+        "generation": 0
+      }
+    ],
+    "projectionHash": "sha256:84ace6972e4f2639da74a77ba18c6361fc9ae352be66e0653f7e944068ec5b16"
+  },
+  "baselineFingerprint": "sha256:a7e8ca8b9a978c0c9073581ad695b6c4b35e8c19b16956bdc18c271172ce8fe3",
+  "source": {
+    "path": "reports/authorization/canonical/automation-bosses-first-l1.source.json",
+    "sha256": "sha256:d90a4d330972ba7e2238369f81a925ffcd7345bc3ded6a8c6ed5c5f8adbb867f"
+  },
+  "evidenceHash": "sha256:0993b5756ebd319053b9d75314bf96c785bf4704ca4e0cee1b38ad7642b7f77f",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:a7e8ca8b9a978c0c9073581ad695b6c4b35e8c19b16956bdc18c271172ce8fe3",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "boss_groups"
+      },
+      {
+        "databaseRole": "local",
+        "table": "npcs"
+      }
+    ],
+    "sourceSha256": "sha256:d90a4d330972ba7e2238369f81a925ffcd7345bc3ded6a8c6ed5c5f8adbb867f",
+    "importPlan": {
+      "summary": {
+        "records": 33
+      }
+    }
+  },
+  "logicalDiffHash": "sha256:e9da93af7512b3c1fda8a5f3a2182cd9362eefccf6ead51dcd94789799d84467",
+  "decisionHash": "sha256:1967d2754ea24a879cc80f20dfa389e2b56016f6d9eb729a80e26a41b874b910",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "boss_groups"
+    },
+    {
+      "databaseRole": "local",
+      "table": "npcs"
+    }
+  ],
+  "importPlan": {
+    "summary": {
+      "records": 33
+    }
+  },
+  "bundleHash": "sha256:7a6b0bc6618e6efe2f3beb4bad7d06f2963f11767aebdad25349eecff6c99c46"
+}
