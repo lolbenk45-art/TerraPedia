@@ -146,7 +146,12 @@ export async function runSupplementaryDomainL1PreviewCli({
       runId,
       progressPath: args['progress-path'],
     }, {
-      runSource: (input) => runDomainSource(input, { env, runId }),
+      runSource: (input) => runDomainSource(input, {
+        env,
+        runId,
+        resumeMode: args['resume-mode'] ?? 'fresh',
+        resumeState: args['resume-state'],
+      }),
       loadPolicyContext: async () => {
         const current = await readCurrentSupplementaryContext(connection, {
           bundle: { domainId, ownedTables: config.ownedTables },
@@ -171,7 +176,12 @@ export async function runSupplementaryDomainL1PreviewCli({
   }
 }
 
-async function runDomainSource({ domainId, repoRoot, progressPath }, { env, runId }) {
+async function runDomainSource({ domainId, repoRoot, progressPath }, {
+  env,
+  runId,
+  resumeMode,
+  resumeState,
+}) {
   const commands = {
     audio: [
       'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
@@ -181,7 +191,8 @@ async function runDomainSource({ domainId, repoRoot, progressPath }, { env, runI
     ],
     bosses: [
       'scripts/data/fetch/fetch-wiki-bosses.mjs',
-      '--resume-mode=fresh',
+      `--resume-mode=${resumeMode}`,
+      ...(resumeState ? [`--resume-state=${resumeState}`] : []),
       `--progress-path=${progressPath}`,
     ],
     shimmer: [

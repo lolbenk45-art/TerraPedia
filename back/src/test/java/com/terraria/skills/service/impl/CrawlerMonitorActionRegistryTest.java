@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,6 +12,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CrawlerMonitorActionRegistryTest {
+
+    @Test
+    void autoDispatchDomainsIncludeOnlyTheGovernedPreviewSet() {
+        assertEquals(
+            Set.of("items", "npcs", "projectiles", "armor_sets", "buffs", "shimmer", "audio", "bosses"),
+            CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS
+        );
+        assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("boss_loot"));
+    }
 
     @Test
     void exposesTwentyFiveOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
@@ -218,7 +228,8 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/fetch/fetch-wiki-bosses.mjs",
+                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "--domain=bosses",
                 "--progress-path=reports/crawler-monitor/v2/2026-07-11/attempt-1/progress.json"
             ),
             bosses.renderCommand(
@@ -240,7 +251,8 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/fetch/fetch-wiki-bosses.mjs",
+                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "--domain=bosses",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json",
                 "--resume-mode=auto",
                 "--resume-state=data/generated/resume/domain-source-bosses.resume.json"
@@ -261,19 +273,33 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void shimmerOperationUsesTheFullExtractionPipelineAndDefersItsDynamicRequestEstimate() {
+    void supplementaryOperationsUseTheGovernedL1PreviewPipeline() {
         CrawlerMonitorActionDefinition shimmer = CrawlerMonitorActionRegistry.defaults()
             .require("shimmer", "domain-source-shimmer");
+        CrawlerMonitorActionDefinition audio = CrawlerMonitorActionRegistry.defaults()
+            .require("audio", "wiki-audio-assets-refresh");
 
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "--domain=shimmer",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
             ),
             shimmer.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "fresh")
         );
         assertNull(shimmer.estimatedRequests());
+        assertFalse(audio.backendRefresh());
+        assertEquals("data/generated/wiki-audio-assets-progress.latest.json", audio.progressPath());
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "--domain=audio",
+                "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
+            ),
+            audio.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "fresh")
+        );
     }
 
     @Test
@@ -284,7 +310,8 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/fetch/fetch-wiki-bosses.mjs",
+                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "--domain=bosses",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
             ),
             bosses.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json")

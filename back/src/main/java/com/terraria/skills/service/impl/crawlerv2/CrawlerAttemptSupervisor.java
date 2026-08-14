@@ -1052,6 +1052,10 @@ public class CrawlerAttemptSupervisor {
         environment.put("TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION", Long.toString(attempt.stateVersion()));
         environment.put("TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE", Long.toString(attempt.progressSequence()));
         environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", launchArtifactPath(attempt.artifacts().progressPath()));
+        repository.findQueue(attempt.queueId())
+            .map(CrawlerQueueV2Queue::requestedBy)
+            .filter(requestedBy -> requestedBy != null && !requestedBy.isBlank())
+            .ifPresent(requestedBy -> environment.put("TERRAPEDIA_CRAWLER_REQUESTED_BY", requestedBy));
         return environment;
     }
 

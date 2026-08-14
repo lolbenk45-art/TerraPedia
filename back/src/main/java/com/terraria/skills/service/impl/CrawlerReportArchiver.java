@@ -7,6 +7,7 @@ import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -271,14 +272,18 @@ public class CrawlerReportArchiver {
         Path backendRefreshDir = repoRoot.resolve(REFRESH_DIR).normalize();
         // Bound the walk so high-frequency overview polling never recurses into deep per-run
         // dispatch output directories; legitimate report files live at most a couple levels deep.
-        try (Stream<Path> stream = Files.walk(root, REPORT_SCAN_MAX_DEPTH)) {
+        try (Stream<Path> stream = walkReportFiles(root)) {
             stream
                 .filter(Files::isRegularFile)
                 .filter(path -> !path.normalize().startsWith(backendRefreshDir))
                 .filter(this::isReportLikeFile)
                 .forEach(candidates::add);
-        } catch (IOException ignored) {
+        } catch (IOException | UncheckedIOException ignored) {
         }
+    }
+
+    Stream<Path> walkReportFiles(Path root) throws IOException {
+        return Files.walk(root, REPORT_SCAN_MAX_DEPTH);
     }
 
     private boolean isAllowedReportPreviewPath(Path repoRoot, Path path) {

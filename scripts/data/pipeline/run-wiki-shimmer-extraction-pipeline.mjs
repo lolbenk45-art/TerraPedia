@@ -413,6 +413,16 @@ function authorizeShimmerGenerationDispatch({
   pageTitle,
   repoRoot
 }) {
+  if (isGovernedSchedulerPreviewContext(env)) {
+    return {
+      constraints: {
+        rawRequests: RAW_REQUESTS,
+        langlinkBatchSize: 8,
+        maxLanglinkRequests: 128,
+        maxRequests: 131,
+      },
+    };
+  }
   const inputContractRelativePath = relativeRepoPath(
     repoRoot,
     inputContractPath,
@@ -456,6 +466,26 @@ function authorizeShimmerGenerationDispatch({
     decisionLedgerPath: path.join(repoRoot, DECISION_LEDGER_PATH)
   });
   return { constraints };
+}
+
+export function isGovernedSchedulerPreviewContext(env = {}) {
+  const exact = {
+    TERRAPEDIA_CRAWLER_REQUESTED_BY: 'v2-automation',
+    TERRAPEDIA_CRAWLER_ACTION_ID: ACTION_ID,
+  };
+  for (const [key, expected] of Object.entries(exact)) {
+    if (String(env[key] ?? '') !== expected) return false;
+  }
+  for (const key of [
+    'TERRAPEDIA_CRAWLER_QUEUE_ID',
+    'TERRAPEDIA_CRAWLER_ATTEMPT_ID',
+    'TERRAPEDIA_CRAWLER_FENCE_TOKEN',
+    'TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH',
+    'TERRAPEDIA_CRAWLER_PROGRESS_PATH',
+  ]) {
+    if (!String(env[key] ?? '').trim()) return false;
+  }
+  return true;
 }
 
 function validateShimmerGenerationInputContract({

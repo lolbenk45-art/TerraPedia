@@ -413,19 +413,20 @@ cd back && mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerMonitorServiceImpl
 
 Expected: all PASS.
 
-- [ ] **Step 3: Generate one real preview per domain**
-
-Run the three preview operations serially, never in parallel, with DB port
-`13306`. Verify each canonical progress heartbeat, content-addressed bundle,
-decision state, and source report before continuing.
-
-- [ ] **Step 4: Bootstrap/promote each domain to L1/ACTIVE**
+- [ ] **Step 3: Bootstrap/promote each domain to L1/ACTIVE**
 
 For each exact L0 and L1 policy operation, create a canonical request, populate
 the Owner fields from the configured active Owner identity with reason
 `Enable approved L1 supplementary-domain ingestion`, authorize it, and run it
 through `run-authorized-canonical-operation.mjs`. Never edit policy tables
 directly.
+
+- [ ] **Step 4: Generate one real preview per domain**
+
+Run the three preview operations serially, never in parallel, with DB port
+`13306`. The preview contract requires the current policy to be `L1/ACTIVE`.
+Verify each canonical progress heartbeat, content-addressed bundle, decision
+state, and source report before continuing.
 
 - [ ] **Step 5: Execute one approved first-L1 apply per domain**
 

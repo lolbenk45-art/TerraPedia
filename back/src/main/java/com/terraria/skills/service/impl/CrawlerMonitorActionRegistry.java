@@ -27,7 +27,10 @@ public class CrawlerMonitorActionRegistry {
         "npcs",
         "projectiles",
         "armor_sets",
-        "buffs"
+        "buffs",
+        "shimmer",
+        "audio",
+        "bosses"
     );
 
     private static final String TOWN_NPC_RESUME =
@@ -332,7 +335,8 @@ public class CrawlerMonitorActionRegistry {
                 "data/generated/domain-source-bosses-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/fetch/fetch-wiki-bosses.mjs",
+                    "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                    "--domain=bosses",
                     "--progress-path=data/generated/domain-source-bosses-progress.latest.json"
                 ),
                 BOSS_RESUME
@@ -372,16 +376,31 @@ public class CrawlerMonitorActionRegistry {
                 "data/generated/domain-source-shimmer-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+                    "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                    "--domain=shimmer",
                     "--progress-path=data/generated/domain-source-shimmer-progress.latest.json"
                 )
             ),
-            backend(
-                "audio", "抓取音频资源元数据", "wiki.audio.assets", "Terraria Wiki 音频文件",
-                "wiki-audio-assets-refresh", "fresh", "direct_crawl", "fresh",
-                "从 Wiki 抓取音频资源文件列表及属性，不写入数据库。",
-                "更新音频资源来源 JSON 和进度文件", "none", null, false,
-                "summary", true, true, true
+            direct(
+                "audio",
+                "抓取音频并生成 L1 冻结预览",
+                "wiki.audio.assets",
+                "Terraria Wiki 音频文件",
+                "wiki-audio-assets-refresh",
+                "fresh",
+                "direct_crawl",
+                "fresh",
+                "抓取音频资源并生成需要 Owner 批准的 L1 frozen bundle。",
+                "更新音频来源、进度和 L1 预览证据",
+                null,
+                false,
+                "data/generated/wiki-audio-assets-progress.latest.json",
+                List.of(
+                    "node",
+                    "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                    "--domain=audio",
+                    "--progress-path=data/generated/wiki-audio-assets-progress.latest.json"
+                )
             ),
             backend(
                 "audio", "写入音频资源到数据库", "wiki.audio.assets", "Terraria Wiki 音频文件",

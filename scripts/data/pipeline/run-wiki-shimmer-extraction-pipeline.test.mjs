@@ -17,6 +17,24 @@ const __dirname = path.dirname(__filename);
 const pipelinePath = path.join(__dirname, 'run-wiki-shimmer-extraction-pipeline.mjs');
 const originalSpawnSync = childProcess.spawnSync;
 
+test('scheduler preview authorization requires the complete V2 automation identity', async () => {
+  const { isGovernedSchedulerPreviewContext } = await loadPipelineModule();
+  const valid = {
+    TERRAPEDIA_CRAWLER_REQUESTED_BY: 'v2-automation',
+    TERRAPEDIA_CRAWLER_ACTION_ID: 'domain-source-shimmer',
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_FENCE_TOKEN: '42',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-1',
+    TERRAPEDIA_CRAWLER_PROGRESS_PATH: '/tmp/progress.json',
+  };
+  assert.equal(isGovernedSchedulerPreviewContext(valid), true);
+  for (const key of Object.keys(valid)) {
+    assert.equal(isGovernedSchedulerPreviewContext({ ...valid, [key]: '' }), false, key);
+  }
+  assert.equal(isGovernedSchedulerPreviewContext({ ...valid, TERRAPEDIA_CRAWLER_REQUESTED_BY: 'admin' }), false);
+});
+
 test('the extraction pipeline owns ordered progress and completes only after the published generation verifies', async () => {
   const fixture = createFixture('ordered-progress');
   const progress = [];

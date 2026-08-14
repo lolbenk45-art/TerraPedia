@@ -69,6 +69,11 @@ class CrawlerAttemptSupervisorTest {
         CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
         FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
         CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(new CrawlerQueueV2Queue(
+            2, "epoch-1", "queue-1", "standard", "bosses", List.of("bosses"),
+            "domain-source-bosses", "dedupe-1", NOW, "v2-automation", "attempt-1",
+            List.of("attempt-1"), null
+        )));
 
         supervisor.start(attempt);
 
@@ -82,6 +87,7 @@ class CrawlerAttemptSupervisorTest {
         assertEquals("2", spec.environment().get("TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION"));
         assertEquals("0", spec.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE"));
         assertEquals(attempt.artifacts().progressPath(), spec.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
+        assertEquals("v2-automation", spec.environment().get("TERRAPEDIA_CRAWLER_REQUESTED_BY"));
         assertEquals(attempt.artifacts().logPath(), storedPath(spec.logPath()));
         assertEquals(repoRoot.toAbsolutePath().normalize(), spec.directory());
         assertTrue(spec.command().contains("--progress-path=" + attempt.artifacts().progressPath()));

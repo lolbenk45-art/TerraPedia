@@ -107,3 +107,13 @@ bosses 在 preflight eligible 列表中（join OK），但不在 `isAutoEligible
 - eligibility 与安全 preview command 必须在同一检查点落地，避免 scheduler 派发 source-only 假自动入库。
 - 开始实施时工作区除本计划文件外干净，未发现占用三个目标 progress/output family 的 crawler/import writer。
 - See git for code-level diff details.
+
+## 2026-08-14 Task 6 调度预览接线
+
+- Shimmer、Audio、Bosses 的 changed-only 默认 action 已统一指向 governed L1 preview orchestrator；Boss resume 参数继续透传。
+- V2 attempt 启动环境携带 queue `requestedBy`，Shimmer 仅在完整 `v2-automation` attempt identity 下允许 scheduler-owned generation；手动运行仍需原 canonical generation authorization。
+- `AUTO_DISPATCH_DOMAINS` 精确扩展为原五域加 Shimmer、Audio、Bosses；未加入 Boss loot、NPC loot 或任何 apply action。
+- 解除验证阻塞的最小修复：report archiver 忽略原子写 `.tmp` 在惰性目录遍历期间消失产生的 `UncheckedIOException`。
+- 验证：Task 6 后端聚焦集 351/351，scheduler/preflight/Shimmer Node 集 28/28，preview/Shimmer 集 15/15；`git diff --check` 通过。
+- 正式运行顺序更正为 L0 bootstrap → L1/ACTIVE promotion → governed preview → 单次 Owner-approved apply；正式 DB apply、scheduler re-activation 与最终数据核验仍未执行。
+- See git for code-level diff details.

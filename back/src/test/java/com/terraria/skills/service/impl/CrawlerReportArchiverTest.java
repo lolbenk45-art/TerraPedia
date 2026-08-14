@@ -6,11 +6,14 @@ import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,6 +23,24 @@ class CrawlerReportArchiverTest {
 
     @TempDir
     private Path tempDir;
+
+    @Test
+    void shouldIgnoreFilesThatDisappearDuringReportScan() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper()) {
+            @Override
+            Stream<Path> walkReportFiles(Path root) {
+                return Stream.<Path>generate(() -> {
+                    throw new UncheckedIOException(new NoSuchFileException(
+                        root.resolve("wiki-monitor-dispatch-queue.latest.json.tmp").toString()
+                    ));
+                }).limit(1);
+            }
+        };
+
+        assertTrue(archiver.loadRecentReports(repoRoot).isEmpty());
+    }
 
     @Test
     void shouldLoadBackendRefreshHistoryFromReportSummaries() throws Exception {

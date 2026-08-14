@@ -3569,28 +3569,30 @@ class CrawlerMonitorServiceImplTest {
 
         assertEquals("completed", sweep.getStatus());
         assertEquals(4, sweep.getDetected().size());
-        assertEquals(3, sweep.getDispatched().size());
+        assertEquals(4, sweep.getDispatched().size());
         assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
         assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
         assertEquals("wiki-npcs-refresh", sweep.getDispatched().get(1).get("actionId"));
         assertEquals(List.of("npcs"), sweep.getDispatched().get(1).get("domains"));
         assertEquals("buff-page-immunity-refresh", sweep.getDispatched().get(2).get("actionId"));
-        assertEquals(1, sweep.getSkipped().size());
-        assertEquals("bosses", sweep.getSkipped().get(0).get("domain"));
-        assertEquals("not_auto_eligible", sweep.getSkipped().get(0).get("reason"));
+        assertEquals("domain-source-bosses", sweep.getDispatched().get(3).get("actionId"));
+        assertEquals(List.of("bosses"), sweep.getDispatched().get(3).get("domains"));
+        assertEquals(0, sweep.getSkipped().size());
 
         Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("queueId"));
         assertEquals("auto-dispatch", latest.get("dispatchSource"));
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
-        assertEquals(3, queueItems.size());
+        assertEquals(4, queueItems.size());
         assertEquals(latest.get("queueId"), queueItems.get(0).get("queueId"));
         assertEquals("running", queueItems.get(0).get("status"));
         assertEquals("wiki-npcs-refresh", queueItems.get(1).get("actionId"));
         assertEquals("queued", queueItems.get(1).get("status"));
         assertEquals("buff-page-immunity-refresh", queueItems.get(2).get("actionId"));
         assertEquals("queued", queueItems.get(2).get("status"));
+        assertEquals("domain-source-bosses", queueItems.get(3).get("actionId"));
+        assertEquals("queued", queueItems.get(3).get("status"));
     }
 
     @Test
@@ -3819,7 +3821,8 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("data/generated/domain-source-bosses-progress.latest.json", result.getProgressPath());
         assertEquals(List.of(
             "node",
-            "scripts/data/fetch/fetch-wiki-bosses.mjs",
+            "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+            "--domain=bosses",
             "--progress-path=data/generated/domain-source-bosses-progress.latest.json"
         ), launcher.lastRequest.command());
         assertEquals("domain-source-bosses", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
