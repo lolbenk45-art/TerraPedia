@@ -232,6 +232,7 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
       pointer,
       inputContract: inputContract.contract,
       proposal: refreshedProposal,
+      allowPreviewRefresh: true,
     });
     return { sourcePayload: inputContract.contract, proposal: refreshedProposal };
   }
@@ -251,7 +252,7 @@ function runReadOnlyCanonicalShimmerImportProposal(options) {
   });
 }
 
-function assertReusableShimmerGeneration({ pointer, inputContract, proposal }) {
+function assertReusableShimmerGeneration({ pointer, inputContract, proposal, allowPreviewRefresh = false }) {
   const expectedManifestPath = path.posix.join('data/generated/shimmer', requireText(pointer.manifestPath, 'pointer manifestPath'));
   if (pointer.generationId !== inputContract?.generationId
       || pointer.manifestSha256 !== inputContract?.manifestSha256
@@ -259,7 +260,12 @@ function assertReusableShimmerGeneration({ pointer, inputContract, proposal }) {
       || expectedManifestPath !== inputContract?.manifestPath) {
     throw new Error('Current Shimmer generation pointer does not match the canonical input contract');
   }
-  if (canonicalJson(proposal?.inputContract) !== canonicalJson(inputContract)) {
+  const proposalContract = proposal?.inputContract;
+  const contractIdentity = ['generationId', 'manifestPath', 'manifestSha256', 'dataBundleSha256', 'providerScope'];
+  const contractsMatch = allowPreviewRefresh
+    ? contractIdentity.every((field) => canonicalJson(proposalContract?.[field]) === canonicalJson(inputContract?.[field]))
+    : canonicalJson(proposalContract) === canonicalJson(inputContract);
+  if (!contractsMatch) {
     throw new Error('Canonical Shimmer proposal input contract does not match the reusable generation');
   }
 }

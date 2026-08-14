@@ -37,6 +37,9 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
     manifestPath: 'data/generated/shimmer/generations/verified-generation/wiki-shimmer-manifest.json',
     manifestSha256: 'sha256:manifest',
     dataBundleSha256: 'sha256:data',
+    previewSha256: 'sha256:old-preview',
+    targetFingerprintSha256: 'sha256:old-target',
+    providerScope: { provider: 'wiki_zh', sourcePage: '微光', tables: ['shimmer_item_transforms'] },
   };
   fs.writeFileSync(pointerPath, JSON.stringify({
     generationId: inputContract.generationId,
@@ -52,6 +55,7 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
   };
   const refreshedProposal = {
     ...proposal,
+    inputContract: { ...inputContract, previewSha256: 'sha256:new-preview', targetFingerprintSha256: 'sha256:new-target' },
     previewSha256: 'sha256:refreshed-preview',
     preview: { summary: { records: 0 } },
   };
