@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { createWikiRequestGate } from '../lib/wiki-request-gate.mjs';
 import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
@@ -37,6 +38,9 @@ const SAMPLE_CAPS = {
   maxApiPagesPerPrefix: 5,
   maxTotalFiles: 150
 };
+const AUDIO_CATALOG_PREFIXES = ['Music', 'NPC_Hit', 'NPC_Killed', 'Item_'];
+const AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX = 100;
+const AUDIO_CATALOG_MAX_FILES_PER_PREFIX = 5_000;
 
 const SCOPE_PREFIXES = {
   bgm: [{ prefix: 'Music', kind: 'bgm_track' }],
@@ -53,10 +57,66 @@ const SHARD_PREFIXES = {
   items: { prefix: 'Item_', kind: 'item_sound' }
 };
 
-await main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (isDirectExecution()) {
+  await main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+export async function fetchAudioCatalogMetadata(
+  {
+    apiUrl = API_URL,
+    maxPagesPerPrefix = AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX,
+    maxFilesPerPrefix = AUDIO_CATALOG_MAX_FILES_PER_PREFIX
+  } = {},
+  { fetchJson } = {}
+) {
+  const requestJson = fetchJson ?? (async ({ url, profile, sourceKey }) => {
+    const gate = createWikiRequestGate();
+    return gate.runJsonRequest(url, { profile, sourceKey });
+  });
+  const pageLimit = positiveInteger(maxPagesPerPrefix, AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX);
+  const fileLimit = positiveInteger(maxFilesPerPrefix, AUDIO_CATALOG_MAX_FILES_PER_PREFIX);
+  const records = [];
+
+  for (const prefix of AUDIO_CATALOG_PREFIXES) {
+    const prefixRecords = [];
+    let continuation = null;
+    for (let page = 0; page < pageLimit; page += 1) {
+      const url = new URL(apiUrl);
+      url.searchParams.set('action', 'query');
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('formatversion', '2');
+      url.searchParams.set('list', 'allimages');
+      url.searchParams.set('aiprefix', prefix);
+      url.searchParams.set('ailimit', '50');
+      url.searchParams.set('aiprop', 'sha1|timestamp|mime|size');
+      if (continuation) url.searchParams.set('aicontinue', continuation);
+
+      const payload = await requestJson({
+        url,
+        profile: 'revision',
+        sourceKey: `audio-catalog:${prefix}`
+      });
+      const rows = Array.isArray(payload?.query?.allimages) ? payload.query.allimages : [];
+      for (const row of rows) {
+        prefixRecords.push(normalizeAudioCatalogRecord(row, prefix));
+      }
+      if (prefixRecords.length > fileLimit) {
+        throw new Error(`audio catalog ${prefix} exceeds governed file limit ${fileLimit}`);
+      }
+      continuation = payload?.continue?.aicontinue ?? null;
+      if (!continuation) break;
+    }
+    if (continuation) {
+      throw new Error(`audio catalog continuation exceeded governed limit for ${prefix}`);
+    }
+    records.push(...prefixRecords);
+  }
+
+  return records.sort(compareAudioCatalogRecords);
+}
 
 async function main(argv = process.argv.slice(2), env = process.env) {
   const startedAt = new Date().toISOString();
@@ -491,6 +551,28 @@ function normalizeFileName(value) {
   return decodeHtmlEntities(String(value ?? ''))
     .trim()
     .replace(/_/g, ' ');
+}
+
+function normalizeAudioCatalogRecord(row, prefix) {
+  const name = String(row?.name ?? '').trim();
+  const sha1 = String(row?.sha1 ?? '').trim();
+  const timestamp = String(row?.timestamp ?? '').trim();
+  const mime = String(row?.mime ?? '').trim().toLowerCase();
+  const size = Number(row?.size);
+  if (!name || !sha1 || !timestamp || !mime || !Number.isFinite(size) || size < 0) {
+    throw new Error(`audio catalog metadata is missing for ${name || prefix}`);
+  }
+  return { prefix, name, sha1, timestamp, mime, size };
+}
+
+function compareAudioCatalogRecords(left, right) {
+  for (const key of ['prefix', 'name', 'sha1', 'timestamp', 'mime', 'size']) {
+    const leftValue = String(left[key]);
+    const rightValue = String(right[key]);
+    if (leftValue === rightValue) continue;
+    return leftValue < rightValue ? -1 : 1;
+  }
+  return 0;
 }
 
 function normalizeMusicSourceKey(value) {
@@ -1021,6 +1103,10 @@ function parseArgs(argv) {
     }
   }
   return args;
+}
+
+function isDirectExecution() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }
 
 function loadMock(mockPath) {
