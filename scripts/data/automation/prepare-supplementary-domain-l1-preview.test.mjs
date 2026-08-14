@@ -5,11 +5,27 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  buildDomainSourceCommand,
   DOMAIN_PREVIEW_CONFIG,
   prepareSupplementaryDomainL1Preview,
 } from './prepare-supplementary-domain-l1-preview.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+test('audio preview owns an explicit bounded full-corpus source command', () => {
+  assert.deepEqual(buildDomainSourceCommand({
+    domainId: 'audio',
+    progressPath: '/tmp/audio-progress.json',
+    runId: 'audio_l1_20260814_01',
+    resumeMode: 'fresh',
+  }), [
+    'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
+    '--mode=all',
+    '--allow-full-audio-corpus=true',
+    '--max-total-files=600',
+    '--progress-path=/tmp/audio-progress.json',
+  ]);
+});
 
 for (const domainId of ['audio', 'bosses', 'shimmer']) {
   test(`prepares a monitor-visible frozen ${domainId} L1 preview`, async () => {

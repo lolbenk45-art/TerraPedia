@@ -182,26 +182,13 @@ async function runDomainSource({ domainId, repoRoot, progressPath }, {
   resumeMode,
   resumeState,
 }) {
-  const commands = {
-    audio: [
-      'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
-      '--mode=all',
-      '--allow-full-audio-corpus=true',
-      `--progress-path=${progressPath}`,
-    ],
-    bosses: [
-      'scripts/data/fetch/fetch-wiki-bosses.mjs',
-      `--resume-mode=${resumeMode}`,
-      ...(resumeState ? [`--resume-state=${resumeState}`] : []),
-      `--progress-path=${progressPath}`,
-    ],
-    shimmer: [
-      'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
-      `--run-id=${runId}`,
-      `--progress-path=${progressPath}`,
-    ],
-  };
-  await runNode(commands[domainId], { cwd: repoRoot, env });
+  await runNode(buildDomainSourceCommand({
+    domainId,
+    progressPath,
+    runId,
+    resumeMode,
+    resumeState,
+  }), { cwd: repoRoot, env });
   if (domainId === 'audio') {
     return { sourcePayload: readJson(resolveSharedDataRoot('generated', 'wiki-audio-assets.latest.json')) };
   }
@@ -217,6 +204,30 @@ async function runDomainSource({ domainId, repoRoot, progressPath }, {
     repoRoot,
   });
   return { sourcePayload: proposal.inputContract, proposal };
+}
+
+export function buildDomainSourceCommand({ domainId, progressPath, runId, resumeMode, resumeState }) {
+  const commands = {
+    audio: [
+      'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
+      '--mode=all',
+      '--allow-full-audio-corpus=true',
+      '--max-total-files=600',
+      `--progress-path=${progressPath}`,
+    ],
+    bosses: [
+      'scripts/data/fetch/fetch-wiki-bosses.mjs',
+      `--resume-mode=${resumeMode}`,
+      ...(resumeState ? [`--resume-state=${resumeState}`] : []),
+      `--progress-path=${progressPath}`,
+    ],
+    shimmer: [
+      'scripts/data/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+      `--run-id=${runId}`,
+      `--progress-path=${progressPath}`,
+    ],
+  };
+  return commands[requireDomain(domainId)];
 }
 
 function buildDomainImportPlan(domainId, sourcePayload, sourceResult) {
