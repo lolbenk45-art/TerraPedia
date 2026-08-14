@@ -470,7 +470,7 @@ git commit -m "docs(crawler): record supplementary probe validation"
 - Modify: `docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md`
 - Modify: `docs/devlog/current.md`
 
-- [ ] **Step 1: Restart through the V2 queue cutover runbook**
+- [x] **Step 1: Restart through the V2 queue cutover runbook**
 
 Run only after Tasks 1-5 pass and review is clear:
 
@@ -482,7 +482,7 @@ bash ./scripts/dev/start-local-stack.sh
 Expected: backend starts with the new registry code; no manual crawler or
 database apply command is run.
 
-- [ ] **Step 2: Collect authenticated, read-only scheduler evidence**
+- [x] **Step 2: Collect authenticated, read-only scheduler evidence**
 
 Use the existing authorized crawler-monitor access route from
 `docs/runbooks/crawler-monitor-queue-v2-cutover.md` to read the next sweep and
@@ -491,7 +491,7 @@ the mutation endpoint. Confirm all unchanged source snapshots create zero new
 attempts, while any real changed snapshot is represented by only its matching
 L1 preview action.
 
-- [ ] **Step 3: Record acceptance or fail closed**
+- [x] **Step 3: Record acceptance or fail closed**
 
 Record the observation timestamp, attempt IDs (if any), and result. If the
 read-only observation cannot be collected or indicates duplicate dispatch,

@@ -100,9 +100,30 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   are age-based stale-lock recovery and legacy callers that can still save a
   previously loaded whole manifest; neither path is used by the supplementary
   acknowledgement test contract.
-- Post-repair focused validation: Node `74` tests and Maven `334` tests passed;
-  `git diff --check` passed. No service restart, live crawl, scheduler sweep,
-  apply, or database write has run.
+- Before Task 6, post-repair focused validation: Node `74` tests and Maven
+  `334` tests passed; `git diff --check` passed. No service restart, live crawl,
+  scheduler sweep, apply, or database write had run at that checkpoint.
+- Task 6 runtime observation completed in WSL on 2026-08-15 04:01 CST after
+  the repaired stack restart. `POST /api/auth/login` succeeded in memory, then
+  only authenticated `GET /api/admin/crawler-monitor/overview` and
+  `GET /api/admin/crawler-monitor/v2/automation/preflight` were called. The
+  preflight returned HTTP 200 with V2 enabled, `changed-only`, a 60-minute
+  interval, eight registered domains, `liveAttempts=1`, and `sweepClaims=0`.
+- The two overview snapshots (20:01:31Z and 20:01:38Z) both reported attempt
+  history size `117` and the same live Buff attempt
+  `attempt-747e728a-9726-43e2-8619-df93e1f31e4c`; its progress advanced from
+  `138/388` to `139/388` without a second attempt. The automatic last sweep
+  mapped changed supplementary sources to their matching actions (Audio to
+  `wiki-audio-assets-refresh`, Bosses to `domain-source-bosses`) and kept
+  Shimmer unchanged with no dispatch. No mutation endpoint, manual sweep,
+  apply, L2, or Boss-loot command was called.
+- Because the post-restart scheduler observed changed source snapshots, it
+  automatically queued the corresponding L1 previews and produced runtime
+  changes in `data/generated/wiki-bosses.latest.json` and the existing
+  authorization evidence files. Those paths are intentionally preserved and
+  remain unstaged; the local stack was stopped at 04:02 CST to prevent further
+  automatic crawler output. Full all-sources-unchanged behavior remains an
+  unproven runtime case, but no duplicate dispatch was observed.
 
 ## Execution Coordination
 
