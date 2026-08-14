@@ -190,6 +190,7 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
 }, {
   runNodeImpl = runNode,
   runProposalImpl = runCanonicalShimmerImportProposal,
+  runReadOnlyProposalImpl = runReadOnlyCanonicalShimmerImportProposal,
   readInputContractImpl = readCanonicalShimmerImportInputContract,
   readProposalImpl = readCanonicalShimmerImportProposal,
 } = {}) {
@@ -214,9 +215,25 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
   const pointer = readJson(path.join(repoRoot, 'data', 'generated', 'shimmer', 'wiki-shimmer-current-generation.json'));
   if (reuseCurrentGeneration) {
     const inputContract = readInputContractImpl({ repoRoot });
-    const proposal = readProposalImpl({ repoRoot });
-    assertReusableShimmerGeneration({ pointer, inputContract: inputContract.contract, proposal: proposal.proposal });
-    return { sourcePayload: inputContract.contract, proposal: proposal.proposal };
+    const canonicalProposal = readProposalImpl({ repoRoot });
+    assertReusableShimmerGeneration({
+      pointer,
+      inputContract: inputContract.contract,
+      proposal: canonicalProposal.proposal,
+    });
+    const refreshedProposal = await runReadOnlyProposalImpl({
+      bundleManifestPath: path.join('data', 'generated', 'shimmer', pointer.manifestPath),
+      database: 'terria_v1_local',
+      env,
+      generatedAt: new Date().toISOString(),
+      repoRoot,
+    });
+    assertReusableShimmerGeneration({
+      pointer,
+      inputContract: inputContract.contract,
+      proposal: refreshedProposal,
+    });
+    return { sourcePayload: inputContract.contract, proposal: refreshedProposal };
   }
   const proposal = await runProposalImpl({
     bundleManifestPath: path.join('data', 'generated', 'shimmer', pointer.manifestPath),
@@ -226,6 +243,12 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
     repoRoot,
   });
   return { sourcePayload: proposal.inputContract, proposal };
+}
+
+function runReadOnlyCanonicalShimmerImportProposal(options) {
+  return runCanonicalShimmerImportProposal(options, {
+    writeProposal: async () => {},
+  });
 }
 
 function assertReusableShimmerGeneration({ pointer, inputContract, proposal }) {

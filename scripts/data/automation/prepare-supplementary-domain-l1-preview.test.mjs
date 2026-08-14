@@ -50,6 +50,11 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
     targetFingerprintSha256: 'sha256:target',
     preview: { summary: { records: 1 } },
   };
+  const refreshedProposal = {
+    ...proposal,
+    previewSha256: 'sha256:refreshed-preview',
+    preview: { summary: { records: 0 } },
+  };
 
   const result = await runDomainSource({
     domainId: 'shimmer',
@@ -63,12 +68,13 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
   }, {
     runNodeImpl: async () => { throw new Error('current-generation reuse must not crawl'); },
     runProposalImpl: async () => { throw new Error('current-generation reuse must not write a proposal'); },
+    runReadOnlyProposalImpl: async () => refreshedProposal,
     readInputContractImpl: () => ({ contract: inputContract }),
     readProposalImpl: () => ({ proposal }),
   });
 
   assert.deepEqual(result.sourcePayload, inputContract);
-  assert.deepEqual(result.proposal, proposal);
+  assert.deepEqual(result.proposal, refreshedProposal);
   await assert.rejects(
     runDomainSource({ domainId: 'audio', repoRoot, progressPath: '/tmp/audio.json' }, {
       env: {}, runId: 'audio_l1_20260814_01', resumeMode: 'fresh', reuseCurrentGeneration: true,
