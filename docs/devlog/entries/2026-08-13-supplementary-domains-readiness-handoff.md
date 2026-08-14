@@ -116,4 +116,5 @@ bosses 在 preflight eligible 列表中（join OK），但不在 `isAutoEligible
 - 解除验证阻塞的最小修复：report archiver 忽略原子写 `.tmp` 在惰性目录遍历期间消失产生的 `UncheckedIOException`。
 - 验证：Task 6 后端聚焦集 351/351，scheduler/preflight/Shimmer Node 集 28/28，preview/Shimmer 集 15/15；`git diff --check` 通过。
 - 正式运行顺序更正为 L0 bootstrap → L1/ACTIVE promotion → governed preview → 单次 Owner-approved apply；正式 DB apply、scheduler re-activation 与最终数据核验仍未执行。
+- 正式运行预检发现共享 bootstrap CLI 仍仅接受 Biomes，尽管 catalog/manifest 已注册三个新 L0 operation；已用精确 operation→domain allowlist 补齐 Audio、Bosses、Shimmer，保留 Biomes 兼容，治理回归 115/115 通过。该修复必须先提交，随后生成的 canonical packet 才能绑定稳定代码哈希。
 - See git for code-level diff details.

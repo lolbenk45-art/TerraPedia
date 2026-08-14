@@ -359,6 +359,55 @@ test('formal bootstrap CLI consumes one frozen input, uses environment credentia
   assert.equal(JSON.stringify(written).includes('not-written-to-output'), false);
 });
 
+test('formal bootstrap CLI supports the three governed supplementary L0 operations', async () => {
+  for (const domainId of ['audio', 'bosses', 'shimmer']) {
+    const operationId = `automation-${domainId}-l0-bootstrap`;
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-${domainId}-bootstrap-cli-`));
+    const inputPath = path.join(tempDir, 'bootstrap.input.json');
+    const outputPath = path.join(tempDir, 'bootstrap.result.json');
+    fs.writeFileSync(inputPath, `${JSON.stringify({
+      schemaVersion: 1,
+      operationId,
+      databaseName: 'terria_v1_local',
+      domainId,
+      level: 'L0',
+      operationalState: 'DISABLED',
+      policy: DEFAULT_POLICY,
+    }, null, 2)}\n`);
+    const connection = fakeConnection({ owner: { username: 'admin', status: 'ACTIVE', version: 0 } });
+    connection.end = async () => {};
+
+    const result = await runBootstrapCli({
+      argv: [`--input=${inputPath}`, `--output=${outputPath}`, '--apply=true'],
+      env: {
+        TERRAPEDIA_DB_HOST: '127.0.0.1',
+        TERRAPEDIA_DB_PORT: '13306',
+        TERRAPEDIA_DB_USERNAME: 'automation-owner',
+        TERRAPEDIA_DB_PASSWORD: 'not-written-to-output',
+      },
+      mysqlModule: { createConnection: async () => connection },
+      loadAuthorizationContextImpl: ({ operationId: authorizedOperationId }) => {
+        assert.equal(authorizedOperationId, operationId);
+        return {
+          operationId,
+          actor: 'admin',
+          reason: `Bootstrap ${domainId} L0 policy.`,
+          authorizationReference: `decision://automation/${domainId}/l0`,
+          decisionIdentity: `${operationId}-20260814-01`,
+          packetHash: `sha256:${'b'.repeat(64)}`,
+          authorizedAt: '2026-08-14T01:00:00.000Z',
+          expiresAt: '2026-08-14T03:00:00.000Z',
+        };
+      },
+      now: '2026-08-14T02:00:00.000Z',
+    });
+
+    assert.equal(result.operationId, operationId);
+    assert.equal(result.domainId, domainId);
+    assert.equal(result.level, 'L0');
+  }
+});
+
 test('formal bootstrap CLI rejects unbound operation fields and missing credential environment', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-bootstrap-cli-invalid-'));
   const base = {

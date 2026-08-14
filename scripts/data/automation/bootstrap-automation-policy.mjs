@@ -11,6 +11,12 @@ import { loadAuthorizedOperationContext } from './authorized-operation-context.m
 const LEVELS = ['L0', 'L1', 'L2'];
 const DOMAIN_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
 const FORMAL_DATABASES = new Set(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
+const L0_BOOTSTRAP_OPERATIONS = Object.freeze({
+  'automation-biomes-l0-bootstrap': 'biomes',
+  'automation-audio-l0-bootstrap': 'audio',
+  'automation-bosses-l0-bootstrap': 'bosses',
+  'automation-shimmer-l0-bootstrap': 'shimmer',
+});
 
 /**
  * Canonical JSON so a policy hash depends on content rather than key order or spacing.
@@ -162,7 +168,7 @@ export async function runBootstrapCli({
   const input = readBootstrapInput(inputPath);
   const authorizationContext = loadAuthorizationContextImpl({
     env,
-    operationId: 'automation-biomes-l0-bootstrap',
+    operationId: input.operationId,
     now,
   });
   const plan = buildBootstrapPlan({
@@ -211,13 +217,14 @@ function readBootstrapInput(filePath) {
     throw new Error('bootstrap input must be a JSON object.');
   }
   if (input.schemaVersion !== 1) throw new Error('schemaVersion must be 1.');
-  if (input.operationId !== 'automation-biomes-l0-bootstrap') {
-    throw new Error('operationId must be automation-biomes-l0-bootstrap.');
-  }
+  const expectedDomainId = L0_BOOTSTRAP_OPERATIONS[input.operationId];
+  if (!expectedDomainId) throw new Error('operationId must be an approved L0 bootstrap operation.');
   if (input.databaseName !== 'terria_v1_local') {
     throw new Error('databaseName must be terria_v1_local.');
   }
-  if (input.domainId !== 'biomes') throw new Error('domainId must be biomes.');
+  if (input.domainId !== expectedDomainId) {
+    throw new Error(`domainId must be ${expectedDomainId} for ${input.operationId}.`);
+  }
   if (input.level !== 'L0') throw new Error('level must be L0.');
   if (input.operationalState !== 'DISABLED') {
     throw new Error('operationalState must be DISABLED.');
