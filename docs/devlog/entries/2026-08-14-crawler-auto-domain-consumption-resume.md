@@ -48,7 +48,10 @@ completed attempt incorrectly suppressing a newer source fingerprint.
 - Independent code-review requests were retried after two transient reviewer-stream disconnects; no review conclusion was available at checkpoint time.
 - Code checkpoint: `3afa88c7` (`fix(crawler): recover changed-only domains`).
 - The user selected the bounded upstream source-probe approach for `audio`,
-  `bosses`, and `shimmer`. The written design is pending review before code work.
+  `bosses`, and `shimmer`; its written design was subsequently approved.
+- The written source-probe specification was approved. The executable plan is
+  `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`;
+  implementation has not started pending execution-mode selection.
 
 ## Risks And Handoff
 

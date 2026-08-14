@@ -32,7 +32,9 @@ recovery for `items`, `npcs`, `projectiles`, `armor_sets`, and `buffs`; `shimmer
 `audio`, and `bosses` are fail-closed pending lightweight source probes. The
 user selected the bounded probe design at
 `docs/superpowers/specs/2026-08-15-supplementary-domain-source-probes-design.md`;
-the written specification is awaiting review. It must not add
+the written specification is approved and its executable plan is
+`docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`.
+Implementation is awaiting execution-mode selection and must not add
 database/L2/Boss-loot automation.
 
 ## Open Work
