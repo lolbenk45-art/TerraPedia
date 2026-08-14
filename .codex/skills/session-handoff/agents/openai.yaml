@@ -1,0 +1,4 @@
+interface:
+  display_name: "Session Handoff"
+  short_description: "Preserve branch, workspace, and task context"
+  default_prompt: "Use $session-handoff to prepare or resume a lossless work-session handoff."
