@@ -8,6 +8,7 @@ import {
   buildDomainSourceCommand,
   DOMAIN_PREVIEW_CONFIG,
   prepareSupplementaryDomainL1Preview,
+  runDomainSource,
 } from './prepare-supplementary-domain-l1-preview.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
@@ -25,6 +26,40 @@ test('audio preview owns an explicit bounded full-corpus source command', () => 
     '--max-total-files=600',
     '--progress-path=/tmp/audio-progress.json',
   ]);
+});
+
+test('shimmer bootstrap preview can reuse only the verified current generation', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-shimmer-current-'));
+  const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
+  fs.mkdirSync(path.dirname(pointerPath), { recursive: true });
+  fs.writeFileSync(pointerPath, JSON.stringify({ manifestPath: 'generation/manifest.json' }));
+  let proposalInput = null;
+
+  const result = await runDomainSource({
+    domainId: 'shimmer',
+    repoRoot,
+    progressPath: '/tmp/shimmer-progress.json',
+  }, {
+    env: { TERRAPEDIA_DB_NAME: 'terria_v1_local' },
+    runId: 'shimmer_l1_20260814_01',
+    resumeMode: 'fresh',
+    reuseCurrentGeneration: true,
+  }, {
+    runNodeImpl: async () => { throw new Error('current-generation reuse must not crawl'); },
+    runProposalImpl: async (input) => {
+      proposalInput = input;
+      return { inputContract: { generationId: 'verified-generation' } };
+    },
+  });
+
+  assert.equal(proposalInput.bundleManifestPath, 'data/generated/shimmer/generation/manifest.json');
+  assert.deepEqual(result.sourcePayload, { generationId: 'verified-generation' });
+  await assert.rejects(
+    runDomainSource({ domainId: 'audio', repoRoot, progressPath: '/tmp/audio.json' }, {
+      env: {}, runId: 'audio_l1_20260814_01', resumeMode: 'fresh', reuseCurrentGeneration: true,
+    }),
+    /only supported for shimmer/,
+  );
 });
 
 for (const domainId of ['audio', 'bosses', 'shimmer']) {

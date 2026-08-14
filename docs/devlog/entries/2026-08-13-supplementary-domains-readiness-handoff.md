@@ -118,4 +118,5 @@ bosses 在 preflight eligible 列表中（join OK），但不在 `isAutoEligible
 - 正式运行顺序更正为 L0 bootstrap → L1/ACTIVE promotion → governed preview → 单次 Owner-approved apply；正式 DB apply、scheduler re-activation 与最终数据核验仍未执行。
 - 正式运行预检发现共享 bootstrap CLI 仍仅接受 Biomes，尽管 catalog/manifest 已注册三个新 L0 operation；已用精确 operation→domain allowlist 补齐 Audio、Bosses、Shimmer，保留 Biomes 兼容，治理回归 115/115 通过。该修复必须先提交，随后生成的 canonical packet 才能绑定稳定代码哈希。
 - 三域 L0 bootstrap 与 L1/ACTIVE promotion 已分别通过 canonical request→Owner authorize→runner 执行，Owner 为数据库现有 ACTIVE `admin`；六个 decision identity 均已单次消费。Audio 首次真实 preview 在候选枚举后因 crawler 默认 12 条 cap 安全失败，未写数据库；preview command 现显式使用既有 full-corpus opt-in 与 bounded 600 条 cap，preview/crawler 回归 27/27 通过，等待代码 checkpoint 后重跑。
+- Audio real preview 已完成（200 bounded candidates，0 failed，全部复用既有哈希文件）；Bosses real preview 已完成（33 bosses、4 groups、0 unresolved）。Shimmer direct crawl 正确拒绝缺失 canonical generation authorization；首次 L1 bootstrap 改为显式复用 2026-08-13 已授权 generation，并仍通过 current pointer/manifest/input-contract proposal verifier，scheduler changed-only 默认联网路径不变；相关回归 17/17 通过。
 - See git for code-level diff details.

@@ -151,6 +151,7 @@ export async function runSupplementaryDomainL1PreviewCli({
         runId,
         resumeMode: args['resume-mode'] ?? 'fresh',
         resumeState: args['resume-state'],
+        reuseCurrentGeneration: args['reuse-current-generation'] === 'true',
       }),
       loadPolicyContext: async () => {
         const current = await readCurrentSupplementaryContext(connection, {
@@ -176,19 +177,28 @@ export async function runSupplementaryDomainL1PreviewCli({
   }
 }
 
-async function runDomainSource({ domainId, repoRoot, progressPath }, {
+export async function runDomainSource({ domainId, repoRoot, progressPath }, {
   env,
   runId,
   resumeMode,
   resumeState,
-}) {
-  await runNode(buildDomainSourceCommand({
-    domainId,
-    progressPath,
-    runId,
-    resumeMode,
-    resumeState,
-  }), { cwd: repoRoot, env });
+  reuseCurrentGeneration = false,
+}, {
+  runNodeImpl = runNode,
+  runProposalImpl = runCanonicalShimmerImportProposal,
+} = {}) {
+  if (reuseCurrentGeneration && domainId !== 'shimmer') {
+    throw new Error('--reuse-current-generation=true is only supported for shimmer');
+  }
+  if (!reuseCurrentGeneration) {
+    await runNodeImpl(buildDomainSourceCommand({
+      domainId,
+      progressPath,
+      runId,
+      resumeMode,
+      resumeState,
+    }), { cwd: repoRoot, env });
+  }
   if (domainId === 'audio') {
     return { sourcePayload: readJson(resolveSharedDataRoot('generated', 'wiki-audio-assets.latest.json')) };
   }
@@ -196,7 +206,7 @@ async function runDomainSource({ domainId, repoRoot, progressPath }, {
     return { sourcePayload: readJson(path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json')) };
   }
   const pointer = readJson(path.join(repoRoot, 'data', 'generated', 'shimmer', 'wiki-shimmer-current-generation.json'));
-  const proposal = await runCanonicalShimmerImportProposal({
+  const proposal = await runProposalImpl({
     bundleManifestPath: path.join('data', 'generated', 'shimmer', pointer.manifestPath),
     database: 'terria_v1_local',
     env,
