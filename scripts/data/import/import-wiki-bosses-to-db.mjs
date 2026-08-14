@@ -123,8 +123,7 @@ if (isDirectExecution()) {
   });
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
+export async function runBossImport(args = {}, dependencies = {}) {
   const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'));
   const dateTag = new Date().toISOString().slice(0, 10);
   const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
@@ -146,9 +145,20 @@ async function main() {
   if (records.length === 0) {
     throw new Error(`No boss records found in ${inputPath}`);
   }
-  const generatedNpcMap = loadGeneratedNpcMap(generatedNpcMapPath);
+  const callerOwnsTransaction = dependencies.transactionOwner === 'caller';
+  if (callerOwnsTransaction && !dependencies.connection) {
+    throw new TypeError('caller-owned boss import requires an injected connection');
+  }
+  if (callerOwnsTransaction && (!offline || dryRun)) {
+    throw new Error('caller-owned boss import requires offline apply mode');
+  }
+  const generatedNpcMap = dependencies.generatedNpcMap !== undefined
+    ? dependencies.generatedNpcMap
+    : loadGeneratedNpcMap(generatedNpcMapPath);
   let generatedNpcMapDirty = false;
-  const uploader = shouldCreateBossImageUploader({ dryRun, offline })
+  const uploader = dependencies.imageUploader !== undefined
+    ? dependencies.imageUploader
+    : shouldCreateBossImageUploader({ dryRun, offline })
     ? await createMinioImageUploader({
         apiBase,
         adminUsername,
@@ -157,7 +167,7 @@ async function main() {
       })
     : null;
 
-  const conn = await mysql.createConnection({
+  const conn = dependencies.connection ?? await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
     port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? 3306),
     user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? 'root',
@@ -206,10 +216,10 @@ async function main() {
 
   try {
     await conn.query('SET NAMES utf8mb4');
-    await ensureSchema(conn);
+    if (!callerOwnsTransaction) await ensureSchema(conn);
     const npcLookup = await loadNpcLookup(conn);
 
-    await conn.beginTransaction();
+    if (!callerOwnsTransaction) await conn.beginTransaction();
 
     for (const record of records) {
       const memberMapping = mapBossMembers(record, npcLookup);
@@ -286,9 +296,12 @@ async function main() {
       );
     }
 
+    if (callerOwnsTransaction && generatedNpcMapDirty) {
+      throw new Error('caller-owned boss import cannot write npc-standardized-map.json');
+    }
     if (dryRun) {
       await conn.rollback();
-    } else {
+    } else if (!callerOwnsTransaction) {
       await conn.commit();
       if (generatedNpcMapDirty && generatedNpcMap) {
         writeJsonFile(generatedNpcMapPath, generatedNpcMap);
@@ -296,14 +309,19 @@ async function main() {
       }
     }
   } catch (error) {
-    await conn.rollback();
+    if (!callerOwnsTransaction) await conn.rollback();
     throw error;
   } finally {
-    await conn.end();
+    if (!callerOwnsTransaction) await conn.end();
   }
 
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
   fs.writeFileSync(reportPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  return summary;
+}
+
+async function main() {
+  const summary = await runBossImport(parseArgs(process.argv.slice(2)));
   console.log(JSON.stringify(summary, null, 2));
 }
 

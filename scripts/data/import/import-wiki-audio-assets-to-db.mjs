@@ -663,10 +663,14 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
     return report;
   }
   if (options.apply) {
-    const mysql = dependencies.mysqlModule ?? loadMysqlModule();
-    const connection = await mysql.createConnection(options.db);
+    const callerOwnsTransaction = dependencies.transactionOwner === 'caller';
+    if (callerOwnsTransaction && !dependencies.connection) {
+      throw new TypeError('caller-owned audio import requires an injected connection');
+    }
+    const mysql = callerOwnsTransaction ? null : dependencies.mysqlModule ?? loadMysqlModule();
+    const connection = dependencies.connection ?? await mysql.createConnection(options.db);
     try {
-      if (typeof connection.beginTransaction === 'function') await connection.beginTransaction();
+      if (!callerOwnsTransaction && typeof connection.beginTransaction === 'function') await connection.beginTransaction();
       itemRows = mergeRowsByIdentity(dependencies.itemRows ?? await loadItemRows(connection), localItemRows);
       npcRows = mergeRowsByIdentity(dependencies.npcRows ?? await loadNpcRows(connection), localNpcRows);
       const enrichedAssetRows = buildAudioAssetRows(assets, { reportPath: options.reportPath, itemRows, npcRows, bgmDisplayNameRows: localBgmDisplayNameRows });
@@ -695,12 +699,12 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
         ...enrichedAssetRows.filter((row) => row.displayNameZh || row.displayNameEn).slice(0, 4),
         ...enrichedAssetRows.slice(0, 4)
       ].slice(0, 8);
-      if (typeof connection.commit === 'function') await connection.commit();
+      if (!callerOwnsTransaction && typeof connection.commit === 'function') await connection.commit();
     } catch (error) {
-      if (typeof connection.rollback === 'function') await connection.rollback();
+      if (!callerOwnsTransaction && typeof connection.rollback === 'function') await connection.rollback();
       throw error;
     } finally {
-      if (typeof connection.end === 'function') await connection.end();
+      if (!callerOwnsTransaction && typeof connection.end === 'function') await connection.end();
     }
   }
   await writeReport(options.reportPath, report);

@@ -461,6 +461,48 @@ test('runAudioAssetImport falls back when items source_id column is absent', asy
   assert.equal(report.summary.matched, 1);
 });
 
+test('runAudioAssetImport leaves a caller-owned transaction open', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-db-import-caller-'));
+  const filePath = path.join(tempDir, 'item.wav');
+  const inputPath = path.join(tempDir, 'metadata.json');
+  fs.writeFileSync(filePath, 'item-one');
+  fs.writeFileSync(inputPath, JSON.stringify({
+    assets: [asset({ absoluteLocalPath: filePath, sha256: sha256('item-one') })]
+  }));
+  const lifecycle = [];
+  const connection = {
+    async beginTransaction() { lifecycle.push('begin'); },
+    async commit() { lifecycle.push('commit'); },
+    async rollback() { lifecycle.push('rollback'); },
+    async end() { lifecycle.push('end'); },
+    async execute(sql) {
+      if (sql.startsWith('SELECT id, source_id, internal_name, name, name_zh FROM items')) return [[]];
+      if (sql.startsWith('SELECT id, internal_name, name, name_zh, raw_json FROM npcs')) return [[]];
+      if (sql.startsWith('SELECT id FROM audio_assets WHERE asset_id')) return [[]];
+      if (sql.startsWith('SELECT id, asset_id FROM audio_assets WHERE asset_id IN')) {
+        return [[{ id: 77, asset_id: 'items:item-1' }]];
+      }
+      if (sql.startsWith('SELECT id FROM audio_asset_links')) return [[]];
+      return [{ affectedRows: 1 }];
+    },
+  };
+
+  const report = await runAudioAssetImport({
+    apply: true,
+    inputJsonPath: inputPath,
+    reportPath: null,
+    db: { database: 'terria_v1_local' },
+  }, {
+    connection,
+    transactionOwner: 'caller',
+    localItemRows: [],
+    localNpcRows: [],
+  });
+
+  assert.equal(report.summary.insertedAssets, 1);
+  assert.deepEqual(lifecycle, []);
+});
+
 function asset(overrides = {}) {
   return {
     assetId: 'items:item-1',

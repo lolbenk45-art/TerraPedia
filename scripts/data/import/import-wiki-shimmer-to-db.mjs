@@ -438,7 +438,8 @@ export async function applyVerifiedShimmerImport({
   preview,
   readLockedBefore,
   applyChanges,
-  verifyAfter
+  verifyAfter,
+  transactionOwner = 'importer'
 } = {}) {
   const normalizedBundle = requireVerifiedBundle(bundle);
   requireApplyInputContract(inputContract);
@@ -471,19 +472,22 @@ export async function applyVerifiedShimmerImport({
   if (typeof readLockedBefore !== 'function') {
     throw new TypeError('shimmer import locked scope reader is required');
   }
+  const callerOwnsTransaction = transactionOwner === 'caller';
   let begun = false;
   try {
-    await connection.beginTransaction();
-    begun = true;
+    if (!callerOwnsTransaction) {
+      await connection.beginTransaction();
+      begun = true;
+    }
     const lockedBefore = await readLockedBefore();
     assertLockedShimmerImportScopeMatchesPreview({ before: lockedBefore, preview });
     consumeDispatchPermit();
     await applyChanges();
     await verifyAfter();
-    await connection.commit();
+    if (!callerOwnsTransaction) await connection.commit();
     return Object.freeze({ status: 'completed' });
   } catch (error) {
-    if (begun) await connection.rollback();
+    if (!callerOwnsTransaction && begun) await connection.rollback();
     throw error;
   }
 }

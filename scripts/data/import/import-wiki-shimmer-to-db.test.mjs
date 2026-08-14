@@ -1736,6 +1736,33 @@ test('verified shimmer apply rejects bundle or scope drift before permit consump
   assert.deepEqual(calls, []);
 });
 
+test('verified shimmer apply leaves a caller-owned transaction open', async () => {
+  const calls = [];
+  const bundle = createVerifiedBundleIdentity();
+  const preview = createAuthorizedPreview(bundle);
+  const connection = createTransactionConnection(calls);
+
+  const result = await shimmerImporter.applyVerifiedShimmerImport({
+    authorizedContext: createAuthorizedContext(bundle, preview),
+    bundle,
+    inputContract: createTestInputContract(bundle, preview),
+    connection,
+    transactionOwner: 'caller',
+    consumeDispatchPermit: () => calls.push('consume'),
+    currentTargetFingerprintSha256: preview.targetFingerprintSha256,
+    preview,
+    readLockedBefore: async () => {
+      calls.push('locked');
+      return createEmptyShimmerScope(preview);
+    },
+    applyChanges: async () => calls.push('apply'),
+    verifyAfter: async () => calls.push('verify'),
+  });
+
+  assert.equal(result.status, 'completed');
+  assert.deepEqual(calls, ['locked', 'consume', 'apply', 'verify']);
+});
+
 test('verified shimmer apply requires a canonical private contract before transaction or permit use', async () => {
   const calls = [];
   const bundle = createVerifiedBundleIdentity();

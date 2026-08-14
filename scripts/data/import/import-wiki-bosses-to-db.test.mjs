@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-import { reconcileBossNameZh, reconcileBossNotes, reconcileBossMembers, shouldCreateBossImageUploader } from './import-wiki-bosses-to-db.mjs';
+import { reconcileBossNameZh, reconcileBossNotes, reconcileBossMembers, runBossImport, shouldCreateBossImageUploader } from './import-wiki-bosses-to-db.mjs';
 
 test('boss importer resolves mysql2 through the repository module loader', () => {
   const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
@@ -29,6 +31,67 @@ test('offline boss import cannot create a backend image uploader', () => {
   const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
   assert.match(source, /requiredPassword:\s*!dryRun\s*&&\s*!offline/);
   assert.match(source, /offline,\s*\n\s*strictMode/);
+});
+
+test('runBossImport leaves a caller-owned offline transaction open', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boss-import-caller-'));
+  const inputPath = path.join(tempDir, 'bosses.json');
+  const reportPath = path.join(tempDir, 'report.json');
+  fs.writeFileSync(inputPath, JSON.stringify({ records: [{
+    titleEn: 'King Slime',
+    titleZh: '史莱姆王',
+    groupType: 'boss',
+    progressionOrder: 1,
+    sourceUrl: 'https://terraria.wiki.gg/wiki/King_Slime',
+    revisionTimestamp: '2026-08-14T00:00:00.000Z',
+  }] }));
+  const lifecycle = [];
+  const connection = {
+    config: { database: 'terria_v1_local' },
+    async beginTransaction() { lifecycle.push('begin'); },
+    async commit() { lifecycle.push('commit'); },
+    async rollback() { lifecycle.push('rollback'); },
+    async end() { lifecycle.push('end'); },
+    async query(sql) {
+      if (/SELECT id, game_id, internal_name/i.test(sql)) {
+        return [[{
+          id: 10,
+          game_id: 50,
+          internal_name: 'KingSlime',
+          name: 'King Slime',
+          name_zh: '史莱姆王',
+          is_boss: 1,
+          raw_json: '{}',
+        }]];
+      }
+      return [[]];
+    },
+    async execute(sql) {
+      if (/SELECT id, image_url FROM boss_groups/i.test(sql)) {
+        return [[{ id: 7, image_url: null }]];
+      }
+      if (/SELECT id, boss_group_id, boss_role\s+FROM npcs/i.test(sql)) {
+        return [[{ id: 10, boss_group_id: 7, boss_role: 'primary' }]];
+      }
+      return [{ affectedRows: 1 }];
+    },
+  };
+
+  const result = await runBossImport({
+    input: inputPath,
+    'report-json': reportPath,
+    offline: 'true',
+    strict: 'false',
+    database: 'terria_v1_local',
+  }, {
+    connection,
+    transactionOwner: 'caller',
+    generatedNpcMap: null,
+  });
+
+  assert.equal(result.totalBosses, 1);
+  assert.deepEqual(lifecycle, []);
+  assert.equal(fs.existsSync(reportPath), true);
 });
 
 test('reconcileBossMembers skips unchanged existing boss member assignments', async () => {
