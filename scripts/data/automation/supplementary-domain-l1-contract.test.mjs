@@ -29,7 +29,10 @@ function input(overrides = {}) {
     },
     baseline: {
       environmentId: 'local',
-      mutationGeneration: 4,
+      generations: [
+        { databaseRole: 'local', table: 'audio_assets', generation: 4 },
+        { databaseRole: 'local', table: 'audio_asset_links', generation: 4 },
+      ],
       projectionHash: HASH_C,
     },
     source: {

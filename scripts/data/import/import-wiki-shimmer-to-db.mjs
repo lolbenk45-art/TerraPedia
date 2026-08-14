@@ -1137,7 +1137,7 @@ export async function loadTargetFingerprint(connection, db) {
   };
 }
 
-async function applyBundleChanges({ bundle, connection }) {
+export async function applyBundleChanges({ bundle, connection }) {
   const summary = createLegacySummary({ bundle, database: null, reportPath: null, apply: true });
   const projection = buildShimmerImportProjection({ bundle });
   const context = projection.worldContext;

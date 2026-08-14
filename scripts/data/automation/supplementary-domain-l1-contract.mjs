@@ -44,10 +44,10 @@ export function buildSupplementaryL1Bundle(input = {}) {
   }
   const generatedAt = requireTimestamp(input.generatedAt, 'generatedAt');
   const policy = normalizePolicy(input.policy, domainId);
-  const baseline = normalizeBaseline(input.baseline);
-  const source = normalizeSource(input.source);
   const ownedTables = normalizeOwnedTables(input.ownedTables);
   assertSupplementaryOwnedTables(domainId, ownedTables);
+  const baseline = normalizeBaseline(input.baseline, ownedTables);
+  const source = normalizeSource(input.source);
   const importPlan = cloneObject(input.importPlan, 'importPlan');
   const baselineFingerprint = hashJson(baseline);
   const logicalDiffIdentity = {
@@ -152,18 +152,31 @@ function normalizePolicy(policy, domainId) {
   };
 }
 
-function normalizeBaseline(baseline) {
+function normalizeBaseline(baseline, ownedTables) {
   if (!baseline || typeof baseline !== 'object' || Array.isArray(baseline)) {
     throw new Error('baseline is required');
   }
   const environmentId = requireText(baseline.environmentId, 'baseline.environmentId');
-  const mutationGeneration = Number(baseline.mutationGeneration);
-  if (!Number.isSafeInteger(mutationGeneration) || mutationGeneration < 0) {
-    throw new Error('baseline.mutationGeneration must be a non-negative integer');
+  if (!Array.isArray(baseline.generations)) {
+    throw new Error('baseline.generations must be an array');
+  }
+  const generationByScope = new Map(baseline.generations.map((row) => [
+    `${row?.databaseRole}:${row?.table}`,
+    Number(row?.generation),
+  ]));
+  const generations = ownedTables.map((scope) => {
+    const generation = generationByScope.get(`${scope.databaseRole}:${scope.table}`);
+    if (!Number.isSafeInteger(generation) || generation < 0) {
+      throw new Error(`baseline generation is invalid: ${scope.databaseRole}.${scope.table}`);
+    }
+    return { ...scope, generation };
+  });
+  if (generationByScope.size !== ownedTables.length) {
+    throw new Error('baseline generations contain an undeclared table');
   }
   return {
     environmentId,
-    mutationGeneration,
+    generations,
     projectionHash: requireHash(baseline.projectionHash, 'baseline.projectionHash'),
   };
 }

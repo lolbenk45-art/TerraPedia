@@ -1,0 +1,83 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+
+import {
+  DOMAIN_PREVIEW_CONFIG,
+  prepareSupplementaryDomainL1Preview,
+} from './prepare-supplementary-domain-l1-preview.mjs';
+
+const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+for (const domainId of ['audio', 'bosses', 'shimmer']) {
+  test(`prepares a monitor-visible frozen ${domainId} L1 preview`, async () => {
+    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), `supplementary-${domainId}-`));
+    const progressWrites = [];
+    const config = DOMAIN_PREVIEW_CONFIG[domainId];
+    const result = await prepareSupplementaryDomainL1Preview({
+      domainId,
+      repoRoot,
+      generatedAt: '2026-08-14T06:00:00.000Z',
+      runId: `${domainId}_l1_20260814_01`,
+    }, {
+      writeProgress: (filePath, payload) => progressWrites.push({ filePath, payload }),
+      runSource: async ({ progressPath }) => {
+        assert.equal(progressPath, path.join(repoRoot, config.progressPath));
+        return { sourcePayload: { domainId, records: [{ id: 1 }] } };
+      },
+      loadPolicyContext: async () => ({
+        policy: {
+          domainId,
+          level: 'L1',
+          operationalState: 'ACTIVE',
+          policyVersion: 1,
+          policyHash: HASH('a'),
+          policySetHash: HASH('b'),
+        },
+        baseline: {
+          environmentId: 'local',
+          generations: config.ownedTables.map((scope) => ({ ...scope, generation: 0 })),
+          projectionHash: HASH('c'),
+        },
+      }),
+      buildImportPlan: async ({ sourcePayload }) => ({ records: sourcePayload.records }),
+    });
+
+    assert.equal(progressWrites[0].payload.status, 'running');
+    assert.equal(progressWrites[0].payload.phase, 'source');
+    assert.equal(progressWrites.at(-1).payload.status, 'completed');
+    assert.equal(progressWrites.at(-1).payload.phase, 'preview');
+    assert.equal(progressWrites.every(({ payload }) => payload.actionId === config.actionId), true);
+    assert.equal(progressWrites.every(({ payload }) => payload.childStatusPath === path.join(repoRoot, config.progressPath)), true);
+    assert.equal(result.bundle.domainId, domainId);
+    assert.equal(result.bundle.approvalMode, 'APPROVED_OWNER_L1');
+    assert.equal(fs.existsSync(result.sourcePath), true);
+    assert.equal(fs.existsSync(result.bundlePath), true);
+  });
+}
+
+test('records a terminal failed progress snapshot', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-failed-'));
+  const writes = [];
+
+  await assert.rejects(
+    prepareSupplementaryDomainL1Preview({
+      domainId: 'audio',
+      repoRoot,
+      generatedAt: '2026-08-14T06:00:00.000Z',
+      runId: 'audio_l1_20260814_01',
+    }, {
+      writeProgress: (_filePath, payload) => writes.push(payload),
+      runSource: async () => { throw new Error('controlled source failure'); },
+      loadPolicyContext: async () => { throw new Error('policy must not be reached'); },
+      buildImportPlan: async () => { throw new Error('plan must not be reached'); },
+    }),
+    /controlled source failure/,
+  );
+
+  assert.equal(writes.at(-1).status, 'failed');
+  assert.equal(writes.at(-1).phase, 'source');
+  assert.match(writes.at(-1).message, /controlled source failure/);
+});
