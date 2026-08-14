@@ -34,14 +34,14 @@ user selected the bounded probe design at
 `docs/superpowers/specs/2026-08-15-supplementary-domain-source-probes-design.md`;
 the written specification is approved and its executable plan is
 `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`.
-Task 1 is complete and awaiting its focused checkpoint commit. It must not add
-database/L2/Boss-loot automation.
+Task 1 is checkpointed at `9c11c24b` after focused validation and local
+contract review. It must not add database/L2/Boss-loot automation.
 
 Execution coordinator: Codex. The user approved the revised complete-Audio
 contract in the 2026-08-15 handoff. Task 1 now runs serially in this worktree:
 the probe and real Audio L1 action must share complete catalog discovery with
 the four governed prefixes, a 600 accepted-file limit, and a 100-page-per-prefix
-guard. All later tasks remain pending Task 1 spec and quality review.
+guard. Task 2 remains serially pending this completed Task 1 review checkpoint.
 
 Audio remains fail-closed: historical L1 used one 50-row page per prefix and
 recorded `continuationComplete=false` for all four prefixes. Task 1 may not
@@ -53,7 +53,8 @@ Task 1 validation: the focused Node suite covers the supplementary probes,
 complete Audio action, and L1 preview command. It proves that a 601st accepted
 file, incomplete pagination, or a page guard above 100 fail before manifest
 output or downloads. No live crawl, scheduler sweep, database write, or service
-restart was run. Task 2 remains blocked on Task 1 review closeout.
+restart was run. Task 2 remains blocked on the explicit serial handoff into its
+manifest/monitor contract work.
 
 ## Open Work
 

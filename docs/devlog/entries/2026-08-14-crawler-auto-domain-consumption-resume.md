@@ -61,6 +61,10 @@ completed attempt incorrectly suppressing a newer source fingerprint.
 - Task 1 changes are limited to the shared Audio catalog helper, its probe and
   action consumers, the Audio L1 command argument, and focused tests. See git
   for code-level diff details.
+- Task 1 checkpoint: `9c11c24b` (`fix(crawler): complete audio catalog
+  discovery`). Local contract review found no unresolved code defect. An
+  independent read-only reviewer was requested but did not return before the
+  review timeout; retain focused re-review before Task 2 is marked complete.
 
 ## Execution Coordination
 
@@ -73,8 +77,9 @@ completed attempt incorrectly suppressing a newer source fingerprint.
 - Task 1 forbidden paths: manifest helpers, monitor integration, acknowledgement
   behavior, backend registry/tests, generated data, and reports. It may not run
   a live crawler, restart services, or write a database.
-- Serialization: Task 2 starts only after Task 1 receives spec and quality
-  review approval. Subsequent tasks follow the same owner/review sequence.
+- Serialization: Task 1 specification and local quality review are complete.
+  Task 2 may now start serially; retain focused re-review before it is marked
+  complete. Subsequent tasks follow the same owner/review sequence.
 
 ## Active Review Finding
 
