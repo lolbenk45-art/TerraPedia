@@ -6,7 +6,7 @@ Active branch: `feat/supplementary-domains-readiness`
 
 ## Recently Closed
 
-- **附加域 L1 自动化入库**（Shimmer、Audio、Bosses）；owner: Codex；status: closed；branch: `feat/supplementary-domains-readiness`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: three first-L1 Owner applies, source-only scheduler preflight, and reviewer re-check complete；contract handoff: `docs/superpowers/specs/2026-08-14-supplementary-domains-l1-automation-design.md`；implementation plan: `docs/superpowers/plans/2026-08-14-supplementary-domains-l1-automation.md`；result: three formal applies completed and scheduler is enabled for changed-only default previews；boundary: `L1/ACTIVE`, one Owner approval per apply, no L2 or Boss loot；commit SHA pending in final response. Runtime restart and regenerated scheduler preflight are deferred until the unrelated live Buff task is terminal.
+- **附加域 L1 自动化入库**（Shimmer、Audio、Bosses）；owner: Codex；status: closed；branch: `feat/supplementary-domains-readiness`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: three first-L1 Owner applies, source-only scheduler preflight, and reviewer re-check complete；contract handoff: `docs/superpowers/specs/2026-08-14-supplementary-domains-l1-automation-design.md`；implementation plan: `docs/superpowers/plans/2026-08-14-supplementary-domains-l1-automation.md`；result: three formal applies completed and scheduler is enabled for changed-only default previews；boundary: `L1/ACTIVE`, one Owner approval per apply, no L2 or Boss loot；commit: `c698a034`. Runtime restart and regenerated scheduler preflight are deferred until the unrelated live Buff task is terminal.
 - 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，NPC 已在 `3d9045fa` 建立检查点。Article 最终裁决保留正式 `/articles` 舞台，将搜索上移到 mast、首页最新投稿收敛为 6 篇，并新增无侧栏的四列 `/articles/archive` 承担 12 篇分页与搜索。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 书面设计复核、实施计划、合同优先实现与用户视觉验收；contract handoff: `docs/superpowers/specs/2026-07-30-article-discovery-archive-split-design.md`，只消费真实 DTO 或明确标注的展示派生值。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
@@ -26,6 +26,11 @@ deltas for the established domains; its Buff task is still live. No manual
 sweep was invoked. The next scheduler preflight must be collected after that
 task finishes and after the current backend is restarted with the final
 source-only filter.
+
+The follow-up `Crawler Auto-Domain Consumption And Resume` task is active on
+this branch. It is repairing the shared source-consumption manifest and
+three-attempt checkpoint recovery for all eight automatic domains; it must not
+interrupt the live Buff writer or add database/L2/Boss-loot automation.
 
 ## Open Work
 
