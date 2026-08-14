@@ -1,7 +1,7 @@
 # Devlog: supplementary-domains-readiness 交接
 
 ## Status
-`closed`
+`active`
 
 ## Context
 
@@ -9,6 +9,9 @@
 - 分支：`feat/supplementary-domains-readiness`
 - 工作区：`/home/lolben/TerraPedia`
 - 关联记忆：`[[project_crawler-v2-scheduler-activation-review]]`、`[[project_entity-zh-backfill]]`
+- 续作设计：`docs/superpowers/specs/2026-08-14-supplementary-domains-l1-automation-design.md`
+- 续作计划：`docs/superpowers/plans/2026-08-14-supplementary-domains-l1-automation.md`
+- 已确认边界：Shimmer、Audio、Bosses 采用 `L1/ACTIVE`；每次正式 apply 仍需 Owner 单次批准；不包含 L2 和 Boss loot。
 
 ---
 
@@ -93,4 +96,14 @@ bosses 在 preflight eligible 列表中（join OK），但不在 `isAutoEligible
 
 ## Commits
 
-- `commit SHA pending in final response`
+- 原交接提交：`5aee5cd1`
+- 端口修正提交：`ae74ae76`
+- L1 自动化设计提交：`6b8d3083`
+
+## 2026-08-14 续作基线
+
+- 当前 `AUTO_DISPATCH_DOMAINS` 仍只有 items、npcs、projectiles、armor_sets、buffs 五域。
+- Shimmer、Audio、Bosses 当前默认 action 仍止于 source/generation 工作，尚未生成受治理的 L1 frozen bundle。
+- eligibility 与安全 preview command 必须在同一检查点落地，避免 scheduler 派发 source-only 假自动入库。
+- 开始实施时工作区除本计划文件外干净，未发现占用三个目标 progress/output family 的 crawler/import writer。
+- See git for code-level diff details.
