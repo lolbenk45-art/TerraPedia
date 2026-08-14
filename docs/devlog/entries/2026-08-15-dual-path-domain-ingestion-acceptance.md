@@ -10,7 +10,8 @@
 - Branch: `feat/supplementary-domains-readiness`
 - Worktree: `/home/lolben/TerraPedia`
 - Target database: WSL-local `terria_v1_local` only.
-- Related design: `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-design.zh-en.md`
+- Review plans: `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-review.zh.md`, `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-review.en.md`
+- Execution plans: `docs/superpowers/plans/2026-08-15-dual-path-domain-ingestion-acceptance-execution.zh.md`, `docs/superpowers/plans/2026-08-15-dual-path-domain-ingestion-acceptance-execution.en.md`
 - Related prior entry: `docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md`
 
 ## Direction / Decisions
@@ -37,8 +38,8 @@
 
 ## Result
 
-- Completed: approved direction translated into a bilingual review design.
-- Not completed: written owner review, executable plan, implementation, and runtime acceptance.
+- Completed: the review and execution plans are available as separate Chinese and English documents.
+- Not completed: written owner approval, implementation, and runtime acceptance.
 
 ## Residual Risks
 

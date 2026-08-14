@@ -71,8 +71,12 @@ all-sources-unchanged runtime case remains a residual acceptance gap.
 ## Open Work
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: active；branch:
-  `feat/supplementary-domains-readiness`；review design:
-  `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-design.zh-en.md`；
+  `feat/supplementary-domains-readiness`；Review Plan（中文/English）:
+  `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-review.zh.md`、
+  `docs/superpowers/specs/2026-08-15-dual-path-domain-ingestion-acceptance-review.en.md`；
+  Execution Plan（中文/English）:
+  `docs/superpowers/plans/2026-08-15-dual-path-domain-ingestion-acceptance-execution.zh.md`、
+  `docs/superpowers/plans/2026-08-15-dual-path-domain-ingestion-acceptance-execution.en.md`；
   entry: `docs/devlog/entries/2026-08-15-dual-path-domain-ingestion-acceptance.md`。
   Items/Projectiles 使用本地数据和真实探针，其余六域使用真实受限来源和
   WSL 本地库事务；自动写库取消逐次批准，但必须受 canonical automation
