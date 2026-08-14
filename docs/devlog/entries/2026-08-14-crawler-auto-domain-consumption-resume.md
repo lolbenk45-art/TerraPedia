@@ -65,6 +65,12 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   discovery`). Local contract review found no unresolved code defect. An
   independent read-only reviewer was requested but did not return before the
   review timeout; retain focused re-review before Task 2 is marked complete.
+- Tasks 2-5 validation: the focused Node suite passed `71` tests, `0` failures;
+  the focused Maven suite passed `334` tests, `0` failures or errors. The monitor
+  emits the three supplementary source keys, acknowledgement preserves the
+  stable pre-probe hash, and the registry enables exactly eight source domains
+  while keeping `boss_loot` excluded. No service restart, live crawl, manual
+  sweep, apply, or database write was run.
 
 ## Execution Coordination
 

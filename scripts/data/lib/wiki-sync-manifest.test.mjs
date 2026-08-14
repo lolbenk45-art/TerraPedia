@@ -9,6 +9,37 @@ import {
   loadWikiSourceManifest
 } from './wiki-sync-manifest.mjs';
 
+test('acknowledgeWikiProbeSnapshot preserves the probe hash and leaves the manifest unchanged for unreadable output', async () => {
+  const manifestModule = await import('./wiki-sync-manifest.mjs');
+  assert.equal(typeof manifestModule.acknowledgeWikiProbeSnapshot, 'function');
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-probe-ack-'));
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const outputPath = path.join(tempDir, 'preview.json');
+  const snapshot = {
+    sourceKey: 'wiki.audio_assets.catalog',
+    locator: 'Music|NPC_Hit|NPC_Killed|Item_',
+    entityFamily: 'audio',
+    sourceKind: 'media_catalog',
+    contentHash: 'probe-content-hash',
+    checkedAt: '2026-08-15T03:00:00.000Z'
+  };
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  const before = fs.readFileSync(manifestPath, 'utf8');
+
+  assert.throws(
+    () => manifestModule.acknowledgeWikiProbeSnapshot({ manifestPath, snapshot, outputPath }),
+    /readable terminal output/i
+  );
+  assert.equal(fs.readFileSync(manifestPath, 'utf8'), before);
+
+  fs.writeFileSync(outputPath, '{"bundle":true}\n', 'utf8');
+  const acknowledged = manifestModule.acknowledgeWikiProbeSnapshot({ manifestPath, snapshot, outputPath });
+  const record = manifestModule.resolveIngestedRecord(acknowledged, snapshot);
+  assert.equal(record.contentHash, snapshot.contentHash);
+  assert.equal(record.sourceKey, snapshot.sourceKey);
+  assert.equal(record.localPath, path.resolve(outputPath).replaceAll('\\', '/'));
+});
+
 test('advanceWikiIngestionManifestForSource writes normalized source output fingerprint', async () => {
   const manifestModule = await import('./wiki-sync-manifest.mjs');
   assert.equal(typeof manifestModule.advanceWikiIngestionManifestForSource, 'function');

@@ -16,12 +16,14 @@ class CrawlerMonitorActionRegistryTest {
     @Test
     void autoDispatchDomainsIncludeOnlyTheGovernedPreviewSet() {
         assertEquals(
-            Set.of("items", "npcs", "projectiles", "armor_sets", "buffs"),
+            Set.of("items", "npcs", "projectiles", "armor_sets", "buffs", "audio", "bosses", "shimmer"),
             CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS
         );
-        assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("audio"));
-        assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("bosses"));
         assertFalse(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains("boss_loot"));
+        CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
+        assertEquals("wiki.audio_assets.catalog", registry.require("audio", "wiki-audio-assets-refresh").sourceKey());
+        assertEquals("wiki.bosses.catalog", registry.require("bosses", "domain-source-bosses").sourceKey());
+        assertEquals("wiki.shimmer.page_and_langlinks", registry.require("shimmer", "domain-source-shimmer").sourceKey());
     }
 
     @Test

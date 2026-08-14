@@ -19,6 +19,8 @@ import {
 import { readCanonicalShimmerImportInputContract } from './canonical-shimmer-import-input-contract.mjs';
 import { readCurrentSupplementaryContext } from './run-supplementary-domain-l1-operation.mjs';
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
+import { acknowledgeWikiProbeSnapshot, DEFAULT_WIKI_SOURCE_MANIFEST_PATH } from '../lib/wiki-sync-manifest.mjs';
+import { probeSupplementarySource } from '../monitor/supplementary-source-probes.mjs';
 
 export const DOMAIN_PREVIEW_CONFIG = Object.freeze({
   audio: Object.freeze({
@@ -64,6 +66,8 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
   const runSource = requireFunction(dependencies.runSource, 'runSource');
   const loadPolicyContext = requireFunction(dependencies.loadPolicyContext, 'loadPolicyContext');
   const buildImportPlan = requireFunction(dependencies.buildImportPlan, 'buildImportPlan');
+  const probeSource = dependencies.probeSource ?? null;
+  const acknowledgeSource = dependencies.acknowledgeSource ?? null;
   let phase = 'source';
 
   const progress = ({ status, message, current, total, outputPath = null, reportPath = null }) => {
@@ -86,6 +90,7 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
 
   try {
     progress({ status: 'running', message: `starting ${domainId} source refresh`, current: 0, total: 3 });
+    const firstSnapshot = probeSource ? await probeSource({ domainId }) : null;
     const sourceResult = await runSource({ domainId, config, repoRoot, progressPath });
     const sourcePayload = requireObject(sourceResult?.sourcePayload, 'sourcePayload');
     phase = 'freeze';
@@ -109,6 +114,28 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       importPlan,
     });
     writeJsonFile(bundlePath, bundle);
+    let sourceAcknowledged = false;
+    let sourceAcknowledgementReason = firstSnapshot ? 'post_probe_failed' : 'probe_not_configured';
+    if (firstSnapshot) {
+      try {
+        const secondSnapshot = await probeSource({ domainId });
+        if (firstSnapshot.contentHash !== secondSnapshot.contentHash) {
+          sourceAcknowledgementReason = 'source_changed_during_preview';
+        } else if (typeof acknowledgeSource !== 'function') {
+          sourceAcknowledgementReason = 'acknowledger_not_configured';
+        } else {
+          acknowledgeSource({
+            manifestPath: options.manifestPath ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+            snapshot: firstSnapshot,
+            outputPath: bundlePath
+          });
+          sourceAcknowledged = true;
+          sourceAcknowledgementReason = 'acknowledged';
+        }
+      } catch {
+        sourceAcknowledgementReason = 'post_probe_failed';
+      }
+    }
     progress({
       status: 'completed',
       message: `prepared ${domainId} L1 frozen bundle`,
@@ -117,7 +144,7 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       outputPath: sourcePath,
       reportPath: bundlePath,
     });
-    return Object.freeze({ domainId, sourcePath, bundlePath, bundle });
+    return Object.freeze({ domainId, sourcePath, bundlePath, bundle, sourceAcknowledged, sourceAcknowledgementReason });
   } catch (error) {
     progress({
       status: 'failed',
@@ -175,6 +202,8 @@ export async function runSupplementaryDomainL1PreviewCli({
         };
       },
       buildImportPlan: ({ sourcePayload, sourceResult }) => buildDomainImportPlan(domainId, sourcePayload, sourceResult),
+      probeSource: ({ domainId: probeDomainId }) => probeSupplementarySource({ domainId: probeDomainId }),
+      acknowledgeSource: acknowledgeWikiProbeSnapshot,
     });
   } finally {
     await connection.end();

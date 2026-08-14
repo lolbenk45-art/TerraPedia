@@ -27,7 +27,10 @@ public class CrawlerMonitorActionRegistry {
         "npcs",
         "projectiles",
         "armor_sets",
-        "buffs"
+        "buffs",
+        "audio",
+        "bosses",
+        "shimmer"
     );
 
     private static final String TOWN_NPC_RESUME =
@@ -323,7 +326,7 @@ public class CrawlerMonitorActionRegistry {
             resumableDirect(
                 "bosses",
                 "重新抓取 Boss 页面",
-                "wiki.domain.bosses",
+                "wiki.bosses.catalog",
                 "Boss source snapshot pages",
                 "domain-source-bosses",
                 "fresh",
@@ -362,7 +365,7 @@ public class CrawlerMonitorActionRegistry {
             direct(
                 "shimmer",
                 "生成 Shimmer 内容寻址数据包",
-                "wiki.domain.shimmer",
+                "wiki.shimmer.page_and_langlinks",
                 "Shimmer source page",
                 "domain-source-shimmer",
                 "fresh",
@@ -383,7 +386,7 @@ public class CrawlerMonitorActionRegistry {
             direct(
                 "audio",
                 "抓取音频并生成 L1 冻结预览",
-                "wiki.audio.assets",
+                "wiki.audio_assets.catalog",
                 "Terraria Wiki 音频文件",
                 "wiki-audio-assets-refresh",
                 "fresh",
@@ -402,7 +405,7 @@ public class CrawlerMonitorActionRegistry {
                 )
             ),
             backend(
-                "audio", "写入音频资源到数据库", "wiki.audio.assets", "Terraria Wiki 音频文件",
+                "audio", "写入音频资源到数据库", "wiki.audio_assets.catalog", "Terraria Wiki 音频文件",
                 "wiki-audio-assets-import", "apply", "data_process", "apply",
                 "将已抓取的音频资源元数据正式写入数据库。",
                 "更新音频资源入库结果和审计报告", "write", null, false,

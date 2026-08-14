@@ -169,3 +169,32 @@ test('records a terminal failed progress snapshot', async () => {
   assert.equal(writes.at(-1).phase, 'source');
   assert.match(writes.at(-1).message, /controlled source failure/);
 });
+
+test('acknowledges only a stable supplementary source snapshot after the frozen bundle is written', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-stable-ack-'));
+  const snapshot = {
+    sourceKey: 'wiki.bosses.catalog', locator: 'Bosses', entityFamily: 'bosses',
+    sourceKind: 'page_catalog', contentHash: 'stable', checkedAt: '2026-08-14T06:00:00.000Z',
+  };
+  const acknowledgements = [];
+  const baseDependencies = {
+    runSource: async () => ({ sourcePayload: { records: [] } }),
+    loadPolicyContext: async () => ({ policy: { domainId: 'bosses', level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH('a'), policySetHash: HASH('b') }, baseline: { environmentId: 'local', generations: DOMAIN_PREVIEW_CONFIG.bosses.ownedTables.map((scope) => ({ ...scope, generation: 0 })), projectionHash: HASH('c') } }),
+    buildImportPlan: async () => ({ records: [] }),
+    acknowledgeSource: (input) => acknowledgements.push(input),
+  };
+  const stable = await prepareSupplementaryDomainL1Preview({ domainId: 'bosses', repoRoot, generatedAt: '2026-08-14T06:00:00.000Z', runId: 'bosses_l1_20260814_01' }, {
+    ...baseDependencies,
+    probeSource: async () => snapshot,
+  });
+  assert.equal(stable.sourceAcknowledged, true);
+  assert.equal(acknowledgements.length, 1);
+
+  const drifted = await prepareSupplementaryDomainL1Preview({ domainId: 'bosses', repoRoot, generatedAt: '2026-08-14T06:01:00.000Z', runId: 'bosses_l1_20260814_02' }, {
+    ...baseDependencies,
+    probeSource: (() => { const values = [snapshot, { ...snapshot, contentHash: 'next' }]; return async () => values.shift(); })(),
+  });
+  assert.equal(drifted.sourceAcknowledged, false);
+  assert.equal(drifted.sourceAcknowledgementReason, 'source_changed_during_preview');
+  assert.equal(acknowledgements.length, 1);
+});

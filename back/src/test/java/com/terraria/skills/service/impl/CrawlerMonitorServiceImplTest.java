@@ -3079,7 +3079,7 @@ class CrawlerMonitorServiceImplTest {
                     "status", "ok"
                 ),
                 Map.of(
-                    "key", "wiki.domain.bosses",
+                    "key", "wiki.bosses.catalog",
                     "locator", "Boss source snapshot pages",
                     "checkedAt", "2026-06-14T00:00:00Z",
                     "currentValue", "2026-06-13T00:00:00Z",
@@ -3277,7 +3277,7 @@ class CrawlerMonitorServiceImplTest {
                     "requiresFullRefetch", false
                 ),
                 Map.of(
-                    "key", "wiki.domain.bosses",
+                    "key", "wiki.bosses.catalog",
                     "locator", "Boss source snapshot pages",
                     "checkedAt", "2026-06-20T01:00:00Z",
                     "currentValue", "2026-06-20T00:00:00Z",
@@ -3338,7 +3338,7 @@ class CrawlerMonitorServiceImplTest {
                     "changed", true
                 ),
                 Map.of(
-                    "key", "wiki.domain.bosses",
+                    "key", "wiki.bosses.catalog",
                     "locator", "Boss source snapshot pages",
                     "checkedAt", "2026-06-20T01:00:00Z",
                     "currentValue", "2026-06-20T00:00:00Z",
@@ -3374,7 +3374,7 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
             "checkedAt", "2026-06-14T00:00:00Z",
             "sources", List.of(Map.of(
-                "key", "wiki.domain.bosses",
+                "key", "wiki.bosses.catalog",
                 "locator", "Boss source snapshot pages",
                 "checkedAt", "2026-06-14T00:00:00Z",
                 "currentValue", "2026-06-13T00:00:00Z",
@@ -3423,7 +3423,7 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
             "checkedAt", "2026-06-14T00:00:00Z",
             "sources", List.of(Map.of(
-                "key", "wiki.domain.bosses",
+                "key", "wiki.bosses.catalog",
                 "locator", "Boss source snapshot pages",
                 "checkedAt", "2026-06-14T00:00:00Z",
                 "currentValue", "2026-06-13T00:00:00Z",
@@ -3602,7 +3602,7 @@ class CrawlerMonitorServiceImplTest {
                 Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"),
                 Map.of("key", "wiki.module.npcinfo", "changed", true, "status", "ok"),
                 Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"),
-                Map.of("key", "wiki.domain.bosses", "changed", true, "status", "ok")
+                Map.of("key", "wiki.bosses.catalog", "changed", true, "status", "ok")
             )
         ));
         CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
@@ -3617,7 +3617,7 @@ class CrawlerMonitorServiceImplTest {
                     Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"),
                     Map.of("key", "wiki.module.npcinfo", "changed", true, "status", "ok"),
                     Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"),
-                    Map.of("key", "wiki.domain.bosses", "changed", true, "status", "ok")
+                    Map.of("key", "wiki.bosses.catalog", "changed", true, "status", "ok")
                 )
             )
         );
@@ -3633,29 +3633,29 @@ class CrawlerMonitorServiceImplTest {
 
         assertEquals("completed", sweep.getStatus());
         assertEquals(4, sweep.getDetected().size());
-        assertEquals(3, sweep.getDispatched().size());
+        assertEquals(4, sweep.getDispatched().size());
         assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
         assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
         assertEquals("wiki-npcs-refresh", sweep.getDispatched().get(1).get("actionId"));
         assertEquals(List.of("npcs"), sweep.getDispatched().get(1).get("domains"));
         assertEquals("buff-page-immunity-refresh", sweep.getDispatched().get(2).get("actionId"));
-        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
-            "not_auto_eligible".equals(item.get("reason"))
-                && "bosses".equals(item.get("domain"))
-        ));
+        assertEquals("domain-source-bosses", sweep.getDispatched().get(3).get("actionId"));
+        assertEquals(List.of("bosses"), sweep.getDispatched().get(3).get("domains"));
 
         Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("queueId"));
         assertEquals("auto-dispatch", latest.get("dispatchSource"));
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
-        assertEquals(3, queueItems.size());
+        assertEquals(4, queueItems.size());
         assertEquals(latest.get("queueId"), queueItems.get(0).get("queueId"));
         assertEquals("running", queueItems.get(0).get("status"));
         assertEquals("wiki-npcs-refresh", queueItems.get(1).get("actionId"));
         assertEquals("queued", queueItems.get(1).get("status"));
         assertEquals("buff-page-immunity-refresh", queueItems.get(2).get("actionId"));
         assertEquals("queued", queueItems.get(2).get("status"));
+        assertEquals("domain-source-bosses", queueItems.get(3).get("actionId"));
+        assertEquals("queued", queueItems.get(3).get("status"));
     }
 
     @Test

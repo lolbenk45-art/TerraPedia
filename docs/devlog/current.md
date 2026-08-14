@@ -41,7 +41,7 @@ Execution coordinator: Codex. The user approved the revised complete-Audio
 contract in the 2026-08-15 handoff. Task 1 now runs serially in this worktree:
 the probe and real Audio L1 action must share complete catalog discovery with
 the four governed prefixes, a 600 accepted-file limit, and a 100-page-per-prefix
-guard. Task 2 remains serially pending this completed Task 1 review checkpoint.
+guard. Tasks 2-5 are complete and checkpointed for post-restart acceptance.
 
 Audio remains fail-closed: historical L1 used one 50-row page per prefix and
 recorded `continuationComplete=false` for all four prefixes. Task 1 may not

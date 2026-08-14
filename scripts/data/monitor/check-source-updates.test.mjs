@@ -204,6 +204,16 @@ test('check-source-updates compares wiki sources against ingestion manifest, not
   assert.equal(item.meta.compareBasis, 'ingestion-manifest');
   assert.equal(item.meta.compareField, 'contentHash');
   assert.equal(state.summary.changedSources, 0);
+  assert.deepEqual(
+    state.sources
+      .filter((source) => source.key.startsWith('wiki.audio_assets.') || source.key.startsWith('wiki.bosses.') || source.key.startsWith('wiki.shimmer.'))
+      .map((source) => source.key)
+      .sort(),
+    ['wiki.audio_assets.catalog', 'wiki.bosses.catalog', 'wiki.shimmer.page_and_langlinks']
+  );
+  assert.ok(state.sources
+    .filter((source) => source.key.startsWith('wiki.audio_assets.') || source.key.startsWith('wiki.bosses.') || source.key.startsWith('wiki.shimmer.'))
+    .every((source) => source.changed === false));
 
   const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
   assert.equal(progress.actionId, 'source-update-monitor-check');

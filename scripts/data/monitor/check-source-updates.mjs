@@ -25,6 +25,10 @@ import {
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 import { compareWikiSourceFingerprint } from './source-update-comparison.mjs';
+import {
+  probeSupplementarySource,
+  SUPPLEMENTARY_SOURCE_DEFINITIONS
+} from './supplementary-source-probes.mjs';
 
 const terraPediaRoot = resolveProjectPath();
 const OFFICIAL_SOURCE_MONITOR_USER_AGENT = 'TerraPedia-source-monitor/2.0 (+https://terraria.wiki.gg/api.php)';
@@ -157,7 +161,14 @@ function buildWikiSources() {
       category: 'wiki_page',
       locator: 'Forest',
       trigger: 'partial_review'
-    }
+    },
+    ...Object.entries(SUPPLEMENTARY_SOURCE_DEFINITIONS).map(([domainId, definition]) => ({
+      key: definition.sourceKey,
+      category: 'supplementary_probe',
+      locator: definition.locator,
+      trigger: 'full_refetch',
+      domainId
+    }))
   ];
 }
 
@@ -228,6 +239,17 @@ async function checkWikiSource(source) {
 }
 
 async function fetchWikiFingerprint(source) {
+  if (source.category === 'supplementary_probe') {
+    const snapshot = await probeSupplementarySource({
+      domainId: source.domainId,
+      wikiApiUrl
+    });
+    return {
+      contentHash: snapshot.contentHash,
+      revisionId: snapshot.revisionId,
+      revisionTimestamp: snapshot.revisionTimestamp
+    };
+  }
   if (source.category === 'wiki_module' || source.key === 'wiki.page.template_getbuffinfo') {
     const result = await fetchWikiModuleContent({
       moduleTitle: source.locator,

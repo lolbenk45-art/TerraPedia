@@ -156,6 +156,36 @@ export function advanceWikiIngestionManifestForSource({
   return nextManifest;
 }
 
+export function acknowledgeWikiProbeSnapshot({
+  manifestPath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+  snapshot,
+  outputPath
+} = {}) {
+  if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
+    throw new Error('probe acknowledgement requires a readable terminal output');
+  }
+  if (!isObject(snapshot) || !nullableString(snapshot.contentHash)) {
+    throw new Error('probe acknowledgement requires a source snapshot contentHash');
+  }
+  const checkedAt = nullableString(snapshot.checkedAt) ?? new Date().toISOString();
+  const manifest = loadWikiSourceManifest(manifestPath);
+  const nextManifest = upsertManifestRecord(manifest, {
+    contentHash: snapshot.contentHash,
+    entityFamily: snapshot.entityFamily,
+    lang: 'en',
+    lastFetchedAt: checkedAt,
+    lastParsedAt: checkedAt,
+    localPath: normalizePathForOutput(outputPath),
+    pageTitle: snapshot.locator,
+    requestedPageTitle: snapshot.locator,
+    sourceKey: snapshot.sourceKey,
+    sourceKind: snapshot.sourceKind,
+    status: 'ok'
+  });
+  saveWikiSourceManifest(manifestPath, nextManifest);
+  return loadWikiSourceManifest(manifestPath);
+}
+
 export function normalizePathForOutput(filePath) {
   return path.resolve(filePath).replaceAll('\\', '/');
 }
