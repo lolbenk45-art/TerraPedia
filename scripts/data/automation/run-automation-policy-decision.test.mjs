@@ -173,3 +173,25 @@ test('authorization context is exact-operation bound and owns every decision ide
   assert.equal(result.ownerUsername, 'system-owner');
   assert.equal(result.packetHash, HASH_A);
 });
+
+test('supplementary L1 promotions are exact-domain bound and never create L2 decisions', () => {
+  for (const domainId of ['audio', 'bosses', 'shimmer']) {
+    const operationId = `automation-${domainId}-l1-policy-promotion`;
+    const plan = buildAutomationPolicyDecisionPlan(
+      input(operationId, { domainId }),
+      authorizationContext(operationId),
+    );
+    assert.equal(plan.domainId, domainId);
+    assert.equal(plan.currentLevel, 'L0');
+    assert.equal(plan.targetLevel, 'L1');
+    assert.equal(plan.targetOperationalState, 'ACTIVE');
+    assert.equal(plan.decisionKind, null);
+    assert.throws(
+      () => buildAutomationPolicyDecisionPlan(
+        input(operationId, { domainId: domainId === 'audio' ? 'bosses' : 'audio' }),
+        authorizationContext(operationId),
+      ),
+      /domainId/,
+    );
+  }
+});

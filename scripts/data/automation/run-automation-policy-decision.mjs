@@ -10,15 +10,23 @@ import { loadAuthorizedOperationContext } from './authorized-operation-context.m
 import { computePolicySetHash } from './policy-set-hash.mjs';
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const L1_PROMOTION = Object.freeze({
+  currentLevel: 'L0',
+  currentStates: Object.freeze(['DISABLED', 'SHADOW']),
+  targetLevel: 'L1',
+  targetOperationalState: 'ACTIVE',
+  decisionKind: null,
+});
 const OPERATION_DEFINITIONS = Object.freeze({
   'automation-biomes-l1-policy-promotion': Object.freeze({
-    currentLevel: 'L0',
-    currentStates: Object.freeze(['DISABLED', 'SHADOW']),
-    targetLevel: 'L1',
-    targetOperationalState: 'ACTIVE',
-    decisionKind: null,
+    domainId: 'biomes',
+    ...L1_PROMOTION,
   }),
+  'automation-audio-l1-policy-promotion': Object.freeze({ domainId: 'audio', ...L1_PROMOTION }),
+  'automation-bosses-l1-policy-promotion': Object.freeze({ domainId: 'bosses', ...L1_PROMOTION }),
+  'automation-shimmer-l1-policy-promotion': Object.freeze({ domainId: 'shimmer', ...L1_PROMOTION }),
   'automation-biomes-l2-promotion': Object.freeze({
+    domainId: 'biomes',
     currentLevel: 'L1',
     currentStates: Object.freeze(['ACTIVE']),
     targetLevel: 'L2',
@@ -26,6 +34,7 @@ const OPERATION_DEFINITIONS = Object.freeze({
     decisionKind: 'L2_PROMOTION',
   }),
   'automation-biomes-scheduler-activation': Object.freeze({
+    domainId: 'biomes',
     currentLevel: 'L2',
     currentStates: Object.freeze(['ACTIVE']),
     targetLevel: null,
@@ -48,7 +57,9 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
   if (input.databaseName !== 'terria_v1_local') {
     throw new Error('databaseName must be terria_v1_local');
   }
-  if (input.domainId !== 'biomes') throw new Error('domainId must be biomes');
+  if (input.domainId !== definition.domainId) {
+    throw new Error(`domainId must be ${definition.domainId}`);
+  }
   const minimumSuccessfulL1Runs = Number(input.minimumSuccessfulL1Runs);
   if (!Number.isSafeInteger(minimumSuccessfulL1Runs) || minimumSuccessfulL1Runs < 2) {
     throw new Error('minimumSuccessfulL1Runs must be an integer of at least 2');

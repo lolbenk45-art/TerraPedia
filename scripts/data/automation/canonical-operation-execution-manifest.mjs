@@ -291,6 +291,30 @@ const CODE_PATHS = Object.freeze({
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'scripts/data/lib/mysql-module.mjs',
   ]),
+  ...Object.fromEntries(['audio', 'bosses', 'shimmer'].flatMap((domainId) => [
+    [`automation-${domainId}-l0-bootstrap`, Object.freeze([
+      'scripts/data/automation/bootstrap-automation-policy.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'scripts/data/lib/mysql-module.mjs',
+      'scripts/data/lib/project-root.mjs',
+    ])],
+    [`automation-${domainId}-l1-policy-promotion`, Object.freeze([
+      'scripts/data/automation/run-automation-policy-decision.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'scripts/data/lib/mysql-module.mjs',
+    ])],
+    [`automation-${domainId}-first-l1`, Object.freeze([
+      'scripts/data/automation/run-supplementary-domain-l1-operation.mjs',
+      'scripts/data/automation/supplementary-domain-l1-contract.mjs',
+      'scripts/data/automation/canonical-shimmer-import-input-contract.mjs',
+      'scripts/data/import/import-wiki-audio-assets-to-db.mjs',
+      'scripts/data/import/import-wiki-bosses-to-db.mjs',
+      'scripts/data/import/import-wiki-shimmer-to-db.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'scripts/data/lib/mysql-module.mjs',
+      'scripts/data/lib/project-root.mjs',
+    ])],
+  ])),
   'canonical-item-group-bootstrap': Object.freeze([
     'scripts/data/item-groups/item-group-canonical-action.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
@@ -1197,6 +1221,17 @@ function buildDefinition(
     'automation-biomes-second-l1': biomesApplyDefinition({ operationId }),
     'automation-biomes-l2-promotion': policyDecisionDefinition({ operationId }),
     'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
+    ...Object.fromEntries(['audio', 'bosses', 'shimmer'].flatMap((domainId) => [
+      [`automation-${domainId}-l0-bootstrap`, supplementaryBootstrapDefinition({
+        operationId: `automation-${domainId}-l0-bootstrap`,
+      })],
+      [`automation-${domainId}-l1-policy-promotion`, policyDecisionDefinition({
+        operationId: `automation-${domainId}-l1-policy-promotion`,
+      })],
+      [`automation-${domainId}-first-l1`, supplementaryApplyDefinition({
+        operationId: `automation-${domainId}-first-l1`,
+      })],
+    ])),
     ...Object.fromEntries(NPC_OWNER_OPERATION_IDS.map((npcOperationId) => [
       npcOperationId,
       npcOwnerDefinition({
@@ -1756,6 +1791,47 @@ function requireBackendApiBase(operationId, value) {
 }
 
 function biomesApplyDefinition({ operationId }) {
+  const inputPath = `reports/authorization/canonical/${operationId}.bundle.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_automation_l1_apply',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      `--input=${inputPath}`,
+      `--output=${outputPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function supplementaryBootstrapDefinition({ operationId }) {
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_database_bootstrap',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input=${inputPath}`,
+      `--output=${outputPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function supplementaryApplyDefinition({ operationId }) {
   const inputPath = `reports/authorization/canonical/${operationId}.bundle.json`;
   const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
   return {

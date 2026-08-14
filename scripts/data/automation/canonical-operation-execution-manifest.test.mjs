@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 45 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 54 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 45);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 44);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 54);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 53);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -862,6 +862,48 @@ test('formal child executors bind the exact packet verifier into their code bund
     const paths = manifest.codeBundleEntries.map((entry) => entry.path);
     assert.ok(paths.includes('scripts/data/automation/authorized-operation-context.mjs'), operationId);
     assert.ok(paths.includes('scripts/data/automation/build-canonical-cutover-authorization.mjs'), operationId);
+  }
+});
+
+test('supplementary L1 operations bind exact governed executors without L2 operations', () => {
+  for (const domainId of ['audio', 'bosses', 'shimmer']) {
+    const bootstrapId = `automation-${domainId}-l0-bootstrap`;
+    const promotionId = `automation-${domainId}-l1-policy-promotion`;
+    const applyId = `automation-${domainId}-first-l1`;
+    const bootstrap = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: bootstrapId });
+    const promotion = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: promotionId });
+    const apply = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: applyId });
+
+    assert.deepEqual(bootstrap.command, [
+      'node', 'scripts/data/automation/bootstrap-automation-policy.mjs',
+      `--input=reports/authorization/canonical/${bootstrapId}.input.json`,
+      `--output=reports/authorization/canonical/${bootstrapId}.result.json`,
+      '--apply=true',
+    ]);
+    assert.deepEqual(promotion.command, [
+      'node', 'scripts/data/automation/run-automation-policy-decision.mjs',
+      `--operation-id=${promotionId}`,
+      `--input=reports/authorization/canonical/${promotionId}.input.json`,
+      `--output=reports/authorization/canonical/${promotionId}.result.json`,
+      '--apply=true',
+    ]);
+    assert.deepEqual(apply.command, [
+      'node', 'scripts/data/automation/run-supplementary-domain-l1-operation.mjs',
+      `--operation-id=${applyId}`,
+      `--input=reports/authorization/canonical/${applyId}.bundle.json`,
+      `--output=reports/authorization/canonical/${applyId}.result.json`,
+      '--apply=true',
+    ]);
+    assert.equal(bootstrap.databaseWrites, true);
+    assert.equal(promotion.databaseWrites, true);
+    assert.equal(apply.databaseWrites, true);
+    assert.throws(
+      () => buildCanonicalOperationExecutionManifest({
+        repoRoot,
+        operationId: `automation-${domainId}-l2-promotion`,
+      }),
+      /unsupported operationId/,
+    );
   }
 });
 

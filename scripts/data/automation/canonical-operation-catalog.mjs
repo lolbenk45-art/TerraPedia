@@ -43,6 +43,15 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-second-l1',
   'automation-biomes-l2-promotion',
   'automation-biomes-scheduler-activation',
+  'automation-audio-l0-bootstrap',
+  'automation-audio-l1-policy-promotion',
+  'automation-audio-first-l1',
+  'automation-bosses-l0-bootstrap',
+  'automation-bosses-l1-policy-promotion',
+  'automation-bosses-first-l1',
+  'automation-shimmer-l0-bootstrap',
+  'automation-shimmer-l1-policy-promotion',
+  'automation-shimmer-first-l1',
   'canonical-npc-base-maint-nontown-apply',
   'canonical-npc-base-maint-town-apply',
   'canonical-npc-item-relation-lineage-repair',
@@ -213,6 +222,33 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'automation-biomes-scheduler-activation': Object.freeze([
     'reports/authorization/canonical/automation-biomes-scheduler-activation.input.json',
   ]),
+  'automation-audio-l0-bootstrap': Object.freeze([
+    'reports/authorization/canonical/automation-audio-l0-bootstrap.input.json',
+  ]),
+  'automation-audio-l1-policy-promotion': Object.freeze([
+    'reports/authorization/canonical/automation-audio-l1-policy-promotion.input.json',
+  ]),
+  'automation-audio-first-l1': Object.freeze([
+    'reports/authorization/canonical/automation-audio-first-l1.bundle.json',
+  ]),
+  'automation-bosses-l0-bootstrap': Object.freeze([
+    'reports/authorization/canonical/automation-bosses-l0-bootstrap.input.json',
+  ]),
+  'automation-bosses-l1-policy-promotion': Object.freeze([
+    'reports/authorization/canonical/automation-bosses-l1-policy-promotion.input.json',
+  ]),
+  'automation-bosses-first-l1': Object.freeze([
+    'reports/authorization/canonical/automation-bosses-first-l1.bundle.json',
+  ]),
+  'automation-shimmer-l0-bootstrap': Object.freeze([
+    'reports/authorization/canonical/automation-shimmer-l0-bootstrap.input.json',
+  ]),
+  'automation-shimmer-l1-policy-promotion': Object.freeze([
+    'reports/authorization/canonical/automation-shimmer-l1-policy-promotion.input.json',
+  ]),
+  'automation-shimmer-first-l1': Object.freeze([
+    'reports/authorization/canonical/automation-shimmer-first-l1.bundle.json',
+  ]),
   'canonical-npc-base-maint-nontown-apply': Object.freeze([
     'reports/authorization/canonical/canonical-npc-apply.input.json',
     'reports/authorization/canonical/canonical-npc-landing-apply.result.json',
@@ -274,6 +310,15 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-biomes-second-l1': 'scripts/data/automation/run-biomes-automation-operation.mjs',
   'automation-biomes-l2-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
   'automation-biomes-scheduler-activation': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'automation-audio-l0-bootstrap': 'scripts/data/automation/bootstrap-automation-policy.mjs',
+  'automation-audio-l1-policy-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'automation-audio-first-l1': 'scripts/data/automation/run-supplementary-domain-l1-operation.mjs',
+  'automation-bosses-l0-bootstrap': 'scripts/data/automation/bootstrap-automation-policy.mjs',
+  'automation-bosses-l1-policy-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'automation-bosses-first-l1': 'scripts/data/automation/run-supplementary-domain-l1-operation.mjs',
+  'automation-shimmer-l0-bootstrap': 'scripts/data/automation/bootstrap-automation-policy.mjs',
+  'automation-shimmer-l1-policy-promotion': 'scripts/data/automation/run-automation-policy-decision.mjs',
+  'automation-shimmer-first-l1': 'scripts/data/automation/run-supplementary-domain-l1-operation.mjs',
   'canonical-npc-base-maint-nontown-apply': 'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
   'canonical-npc-base-maint-town-apply': 'scripts/data/npc-canonical/npc-base-maint-apply.mjs',
   'canonical-npc-item-relation-lineage-repair': 'scripts/data/npc-canonical/npc-owner-phase-apply.mjs',
