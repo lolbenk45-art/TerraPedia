@@ -14,17 +14,17 @@ at three resume attempts, after which the task pauses for human review.
 - Branch: `feat/supplementary-domains-readiness`
 - Worktree: `/home/lolben/TerraPedia`
 - Coordinator: Codex
-- Design: `docs/superpowers/specs/2026-08-14-crawler-auto-domain-consumption-resume-design.md`
+- Design: `docs/superpowers/specs/2026-08-14-crawler-auto-domain-consumption-resume-design.md`; supplementary follow-on: `docs/superpowers/specs/2026-08-15-supplementary-domain-source-probes-design.md`
 - Automatic domains: `items`, `npcs`, `projectiles`, `armor_sets`, `buffs`
 - Fail-closed until lightweight source probes exist: `shimmer`, `audio`, `bosses`
-- Excluded: database applies, L2, Boss loot, NPC loot, Redis reset, and interruption of the live Buff attempt
+- Excluded: database applies, L2, Boss loot, NPC loot, and Redis reset
 
 ## Current Evidence
 
 - Buff source state was `missing_ingestion_manifest` and `changed=true`.
 - The V2 automation sweep dispatched `fresh` for every changed action.
 - Buff has a real keyed checkpoint, but fresh mode deleted it before crawling.
-- The current Buff attempt remains live and is the active writer for its progress and resume files.
+- Buff attempt `attempt-ccd694bf-03ab-4c67-b2af-c57095f0a88c` completed at 00:10 CST with `388/388` and `failedCount=0`; no Buff writer is active.
 
 ## Plan
 
@@ -47,6 +47,8 @@ completed attempt incorrectly suppressing a newer source fingerprint.
 - `git diff --check` passed.
 - Independent code-review requests were retried after two transient reviewer-stream disconnects; no review conclusion was available at checkpoint time.
 - Code checkpoint: `3afa88c7` (`fix(crawler): recover changed-only domains`).
+- The user selected the bounded upstream source-probe approach for `audio`,
+  `bosses`, and `shimmer`. The written design is pending review before code work.
 
 ## Risks And Handoff
 
@@ -54,7 +56,7 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   and three untracked superseded authorization artifacts must remain untouched.
 - The implementation must preserve the existing V2 queue identity and lease
   fences while changing only resume selection and source acknowledgement.
-- Do not restart the backend or run a live sweep until the existing Buff writer
-  is terminal. After restart, collect a read-only scheduler sweep to confirm
-  unchanged sources produce no dispatches.
+- Do not restart the backend or run a live sweep until the supplementary source
+  probe implementation is validated and reviewed. After restart, collect a
+  read-only scheduler sweep to confirm unchanged sources produce no dispatches.
 - Re-run independent code review during the post-restart acceptance pass.

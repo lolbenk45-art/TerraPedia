@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 00:30 CST by Codex
+Last updated: 2026-08-15 00:44 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -21,17 +21,19 @@ Active branch: `feat/supplementary-domains-readiness`
 ## Active Focus
 
 Supplementary-domain scheduler activation is now **enabled**, `changed-only`,
-with a 60-minute interval. The current automatic tick found pre-existing source
-deltas for the established domains; its Buff task is still live. No manual
-sweep was invoked. The next scheduler preflight must be collected after that
-task finishes and after the current backend is restarted with the final
-source-only filter.
+with a 60-minute interval. The prior Buff task is terminal (`388/388`, zero
+failures), and no manual sweep was invoked. The next scheduler preflight must
+be collected after the supplementary source-probe follow-on is implemented and
+the backend is restarted with the final source-only filter.
 
 The follow-up `Crawler Auto-Domain Consumption And Resume` task is active on
 this branch. It repairs source-manifest consumption and three-attempt checkpoint
 recovery for `items`, `npcs`, `projectiles`, `armor_sets`, and `buffs`; `shimmer`,
-`audio`, and `bosses` are fail-closed pending lightweight source probes. It must
-not interrupt the live Buff writer or add database/L2/Boss-loot automation.
+`audio`, and `bosses` are fail-closed pending lightweight source probes. The
+user selected the bounded probe design at
+`docs/superpowers/specs/2026-08-15-supplementary-domain-source-probes-design.md`;
+the written specification is awaiting review. It must not add
+database/L2/Boss-loot automation.
 
 ## Open Work
 
