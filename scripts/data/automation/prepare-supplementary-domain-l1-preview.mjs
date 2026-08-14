@@ -12,7 +12,11 @@ import {
   buildActionProgressPayload,
   writeJsonFile,
 } from '../workflow/backend-refresh-runtime-state.mjs';
-import { runCanonicalShimmerImportProposal } from './build-canonical-shimmer-import-proposal.mjs';
+import {
+  readCanonicalShimmerImportProposal,
+  runCanonicalShimmerImportProposal,
+} from './build-canonical-shimmer-import-proposal.mjs';
+import { readCanonicalShimmerImportInputContract } from './canonical-shimmer-import-input-contract.mjs';
 import { readCurrentSupplementaryContext } from './run-supplementary-domain-l1-operation.mjs';
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 
@@ -186,6 +190,8 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
 }, {
   runNodeImpl = runNode,
   runProposalImpl = runCanonicalShimmerImportProposal,
+  readInputContractImpl = readCanonicalShimmerImportInputContract,
+  readProposalImpl = readCanonicalShimmerImportProposal,
 } = {}) {
   if (reuseCurrentGeneration && domainId !== 'shimmer') {
     throw new Error('--reuse-current-generation=true is only supported for shimmer');
@@ -206,6 +212,12 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
     return { sourcePayload: readJson(path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json')) };
   }
   const pointer = readJson(path.join(repoRoot, 'data', 'generated', 'shimmer', 'wiki-shimmer-current-generation.json'));
+  if (reuseCurrentGeneration) {
+    const inputContract = readInputContractImpl({ repoRoot });
+    const proposal = readProposalImpl({ repoRoot });
+    assertReusableShimmerGeneration({ pointer, inputContract: inputContract.contract, proposal: proposal.proposal });
+    return { sourcePayload: inputContract.contract, proposal: proposal.proposal };
+  }
   const proposal = await runProposalImpl({
     bundleManifestPath: path.join('data', 'generated', 'shimmer', pointer.manifestPath),
     database: 'terria_v1_local',
@@ -214,6 +226,27 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
     repoRoot,
   });
   return { sourcePayload: proposal.inputContract, proposal };
+}
+
+function assertReusableShimmerGeneration({ pointer, inputContract, proposal }) {
+  const expectedManifestPath = path.posix.join('data/generated/shimmer', requireText(pointer.manifestPath, 'pointer manifestPath'));
+  if (pointer.generationId !== inputContract?.generationId
+      || pointer.manifestSha256 !== inputContract?.manifestSha256
+      || pointer.dataBundleSha256 !== inputContract?.dataBundleSha256
+      || expectedManifestPath !== inputContract?.manifestPath) {
+    throw new Error('Current Shimmer generation pointer does not match the canonical input contract');
+  }
+  if (canonicalJson(proposal?.inputContract) !== canonicalJson(inputContract)) {
+    throw new Error('Canonical Shimmer proposal input contract does not match the reusable generation');
+  }
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 export function buildDomainSourceCommand({ domainId, progressPath, runId, resumeMode, resumeState }) {

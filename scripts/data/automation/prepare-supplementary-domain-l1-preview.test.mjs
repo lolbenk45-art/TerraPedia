@@ -32,8 +32,24 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-shimmer-current-'));
   const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
   fs.mkdirSync(path.dirname(pointerPath), { recursive: true });
-  fs.writeFileSync(pointerPath, JSON.stringify({ manifestPath: 'generation/manifest.json' }));
-  let proposalInput = null;
+  const inputContract = {
+    generationId: 'verified-generation',
+    manifestPath: 'data/generated/shimmer/generations/verified-generation/wiki-shimmer-manifest.json',
+    manifestSha256: 'sha256:manifest',
+    dataBundleSha256: 'sha256:data',
+  };
+  fs.writeFileSync(pointerPath, JSON.stringify({
+    generationId: inputContract.generationId,
+    manifestPath: 'generations/verified-generation/wiki-shimmer-manifest.json',
+    manifestSha256: inputContract.manifestSha256,
+    dataBundleSha256: inputContract.dataBundleSha256,
+  }));
+  const proposal = {
+    inputContract,
+    previewSha256: 'sha256:preview',
+    targetFingerprintSha256: 'sha256:target',
+    preview: { summary: { records: 1 } },
+  };
 
   const result = await runDomainSource({
     domainId: 'shimmer',
@@ -46,14 +62,13 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
     reuseCurrentGeneration: true,
   }, {
     runNodeImpl: async () => { throw new Error('current-generation reuse must not crawl'); },
-    runProposalImpl: async (input) => {
-      proposalInput = input;
-      return { inputContract: { generationId: 'verified-generation' } };
-    },
+    runProposalImpl: async () => { throw new Error('current-generation reuse must not write a proposal'); },
+    readInputContractImpl: () => ({ contract: inputContract }),
+    readProposalImpl: () => ({ proposal }),
   });
 
-  assert.equal(proposalInput.bundleManifestPath, 'data/generated/shimmer/generation/manifest.json');
-  assert.deepEqual(result.sourcePayload, { generationId: 'verified-generation' });
+  assert.deepEqual(result.sourcePayload, inputContract);
+  assert.deepEqual(result.proposal, proposal);
   await assert.rejects(
     runDomainSource({ domainId: 'audio', repoRoot, progressPath: '/tmp/audio.json' }, {
       env: {}, runId: 'audio_l1_20260814_01', resumeMode: 'fresh', reuseCurrentGeneration: true,
