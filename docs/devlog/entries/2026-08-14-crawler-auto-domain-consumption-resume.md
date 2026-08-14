@@ -46,6 +46,7 @@ completed attempt incorrectly suppressing a newer source fingerprint.
 - `node --test scripts/data/monitor/check-source-updates.test.mjs scripts/data/fetch/fetch-wiki-buffs.test.mjs scripts/data/fetch/fetch-wiki-buffs-resume.test.mjs scripts/data/fetch/fetch-wiki-armorsetbonuses.test.mjs` passed: 27 tests, 0 failures.
 - `git diff --check` passed.
 - Independent code-review requests were retried after two transient reviewer-stream disconnects; no review conclusion was available at checkpoint time.
+- Code checkpoint: `3afa88c7` (`fix(crawler): recover changed-only domains`).
 
 ## Risks And Handoff
 

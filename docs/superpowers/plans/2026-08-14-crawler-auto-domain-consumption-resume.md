@@ -137,7 +137,7 @@ cd back && mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerMonitorServiceImpl
 git diff --check
 ```
 
-- [ ] **Step 2: Record and checkpoint**
+- [x] **Step 2: Record and checkpoint**
 
 Record passing commands, five-domain boundary, supplementary fail-closed
 boundary, and the requirement to wait for the live Buff task before restarting
