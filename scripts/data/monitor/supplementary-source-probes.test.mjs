@@ -52,7 +52,7 @@ test('audio probe is stable across reordered catalog responses and does not requ
   for (const request of first.requests) {
     assert.equal(request.searchParams.get('action'), 'query');
     assert.equal(request.searchParams.get('list'), 'allimages');
-    assert.equal(request.searchParams.get('aiprop'), 'sha1|timestamp|mime|size');
+    assert.equal(request.searchParams.get('aiprop'), 'url|sha1|timestamp|mime|size');
     assert.equal(request.searchParams.has('iiurl'), false);
   }
   assert.deepEqual(first.metadataCalls, [{
@@ -88,6 +88,35 @@ test('audio probe rejects a continuation that reaches its governed page bound', 
       audioCatalogMaxPagesPerPrefix: 1
     }),
     /continuation.*governed limit/i
+  );
+});
+
+test('audio probe rejects a page limit above the governed 100-page maximum before catalog requests', async () => {
+  const { dependencies, requests } = createAudioDependencies();
+
+  await assert.rejects(
+    probeSupplementarySource({ domainId: 'audio', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, {
+      ...dependencies,
+      audioCatalogMaxPagesPerPrefix: 101
+    }),
+    /page limit exceeds governed limit 100/i
+  );
+  assert.equal(requests.length, 0);
+});
+
+test('audio probe rejects the 601st accepted catalog file before producing a snapshot', async () => {
+  const { dependencies } = createAudioDependencies({
+    rowsByPrefix: {
+      Music: Array.from({ length: 601 }, (_, index) => audioRow(`Music_${index}.mp3`, `music-${index}`)),
+      NPC_Hit: [],
+      NPC_Killed: [],
+      Item_: []
+    }
+  });
+
+  await assert.rejects(
+    probeSupplementarySource({ domainId: 'audio', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, dependencies),
+    /600.*audio files|audio files.*600/i
   );
 });
 
@@ -176,12 +205,13 @@ function createAudioDependencies({
   truncated = false,
   includeImage = false,
   musicRevisionId = 101,
-  musicSha1 = 'a1'
+  musicSha1 = 'a1',
+  rowsByPrefix = null
 } = {}) {
   const requests = [];
   const metadataCalls = [];
   let binaryRequestCount = 0;
-  const rowsByPrefix = {
+  const defaultRowsByPrefix = {
     Music: [audioRow('Music_Overworld_Day.mp3', musicSha1), audioRow('Music_Boss_1.ogg', 'a2')],
     NPC_Hit: [audioRow('NPC_Hit_1.wav', 'a3')],
     NPC_Killed: [audioRow('NPC_Killed_1.wav', 'a4')],
@@ -193,7 +223,7 @@ function createAudioDependencies({
       requests.push(request);
       if (request.protocol !== 'https:' || request.searchParams.get('action') !== 'query') binaryRequestCount += 1;
       const prefix = request.searchParams.get('aiprefix');
-      const rows = reverseRows ? [...rowsByPrefix[prefix]].reverse() : [...rowsByPrefix[prefix]];
+      const rows = reverseRows ? [...(rowsByPrefix ?? defaultRowsByPrefix)[prefix]].reverse() : [...(rowsByPrefix ?? defaultRowsByPrefix)[prefix]];
       if (includeImage && prefix === 'Item_') {
         rows.push({ ...audioRow('Item_1.png', 'image-a1'), mime: 'image/png' });
       }

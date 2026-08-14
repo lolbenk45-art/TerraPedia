@@ -662,6 +662,75 @@ test('audio asset all mode discovers a manifest then downloads from that manifes
   assert.equal(report.summary.total, readJson(manifestPath).summary.audioRows);
 });
 
+test('audio asset all mode fails closed before manifest output when a prefix pagination limit is reached', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-audio-assets-all-pagination-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const sharedRoot = path.join(tempDir, 'shared');
+  const progressPath = path.join(tempDir, 'all-pagination-progress.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const reportPath = path.join(tempDir, 'reports', 'workflow-audio-fetch.json');
+  const mockApiPath = writePagedAudioMock(tempDir);
+
+  const result = runScript([
+    '--mode=all',
+    '--allow-full-audio-corpus=true',
+    '--max-total-files=600',
+    '--max-api-pages-per-prefix=1',
+    `--manifest-output-json=${manifestPath}`,
+    `--progress-path=${progressPath}`,
+    `--report-json=${reportPath}`
+  ], {
+    WORKTREE_ROOT: worktreeRoot,
+    TERRAPEDIA_SHARED_DATA_ROOT: sharedRoot,
+    TERRAPEDIA_WIKI_AUDIO_MOCK_API_RESPONSE: mockApiPath
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /continuation.*governed limit/i);
+  assert.equal(fs.existsSync(manifestPath), false);
+  assert.equal(fs.existsSync(path.join(sharedRoot, 'media', 'audio', 'wiki')), false);
+  assert.equal(readJson(progressPath).status, 'failed');
+});
+
+test('audio asset all mode rejects the 601st accepted file before manifest output or download', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-audio-assets-all-file-cap-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const sharedRoot = path.join(tempDir, 'shared');
+  const progressPath = path.join(tempDir, 'all-file-cap-progress.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const reportPath = path.join(tempDir, 'reports', 'workflow-audio-fetch.json');
+  const mockApiPath = path.join(tempDir, 'mock-audio-api.json');
+  fs.writeFileSync(mockApiPath, JSON.stringify({
+    allimages: {
+      Music: Array.from({ length: 601 }, (_, index) => audioRow(`Music_${index}.mp3`, 'audio/mpeg', 1, `music-${index}`)),
+      NPC_Hit: [],
+      NPC_Killed: [],
+      Item_: []
+    },
+    binary: {}
+  }));
+
+  const result = runScript([
+    '--mode=all',
+    '--allow-full-audio-corpus=true',
+    '--max-total-files=600',
+    '--max-api-pages-per-prefix=100',
+    `--manifest-output-json=${manifestPath}`,
+    `--progress-path=${progressPath}`,
+    `--report-json=${reportPath}`
+  ], {
+    WORKTREE_ROOT: worktreeRoot,
+    TERRAPEDIA_SHARED_DATA_ROOT: sharedRoot,
+    TERRAPEDIA_WIKI_AUDIO_MOCK_API_RESPONSE: mockApiPath
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /600.*audio files|audio files.*600/i);
+  assert.equal(fs.existsSync(manifestPath), false);
+  assert.equal(fs.existsSync(path.join(sharedRoot, 'media', 'audio', 'wiki')), false);
+  assert.equal(readJson(progressPath).status, 'failed');
+});
+
 test('audio asset all mode requires explicit allow-full-audio-corpus', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-audio-assets-all-guard-'));
   const sharedRoot = path.join(tempDir, 'shared');
@@ -1038,6 +1107,8 @@ function audioRow(name, mime, size, key) {
     name,
     mime,
     size,
+    sha1: `sha1-${key}`,
+    timestamp: '2026-08-15T00:00:00Z',
     url: `mock://audio/${key}`
   };
 }

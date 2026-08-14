@@ -16,8 +16,11 @@
 - Create: `scripts/data/monitor/supplementary-source-probes.mjs`
 - Create: `scripts/data/monitor/supplementary-source-probes.test.mjs`
 - Modify: `scripts/data/fetch/fetch-wiki-audio-assets.mjs`
+- Modify: `scripts/data/fetch/fetch-wiki-audio-assets.test.mjs`
+- Modify: `scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs`
+- Modify: `scripts/data/automation/prepare-supplementary-domain-l1-preview.test.mjs`
 
-- [ ] **Step 1: Write failing probe contracts**
+- [x] **Step 1: Write failing probe contracts**
 
 ```js
 import {
@@ -38,13 +41,18 @@ await assert.rejects(
 );
 ```
 
-Add equivalent fixtures for Bosses and Shimmer. Assert Bosses uses section and
+Add equivalent fixtures for Bosses and Shimmer. For Audio, use one fixture that
+requires a continuation page for every governed prefix and assert the returned
+catalog contains exactly the accepted, sorted records. Add failing cases for
+the 601st allowed file and a continuation remaining after page 100; both must
+reject before the caller can observe a catalog. Non-allowlisted rows must not
+consume the 600-file limit or affect the fingerprint. Assert Bosses uses section and
 revision/langlink metadata batches but never a Boss-page parse-text request;
 assert Shimmer reads only the one Chinese source revision and one source-page
 render needed by the existing table parser, then batches candidate langlink
 revisions, and never calls `runWikiShimmerExtractionPipeline`.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -54,7 +62,7 @@ node --test scripts/data/monitor/supplementary-source-probes.test.mjs
 
 Expected: FAIL because the probe module does not exist.
 
-- [ ] **Step 3: Implement the probe module and metadata-only audio primitive**
+- [x] **Step 3: Implement the probe module and metadata-only audio primitive**
 
 Export these stable interfaces:
 
@@ -73,11 +81,22 @@ export async function probeSupplementarySource({ domainId, wikiApiUrl, zhWikiApi
 }
 ```
 
-Audio reuses an exported `fetchAudioCatalogMetadata` from
-`fetch-wiki-audio-assets.mjs`. It calls the existing `allimages` API per fixed
-prefix with `aiprop=sha1|timestamp|mime|size`, follows continuation only to
-the governed full-corpus limit, and returns sorted metadata. It does not call
-`downloadAsset`. Query the Chinese `音乐` page revision separately.
+Audio reuses one exported complete-catalog discovery helper from
+`fetch-wiki-audio-assets.mjs`. Both the probe and the `discover`/`all` action
+paths call it. It queries `allimages` for all four fixed prefixes with
+`aiprop=url|sha1|timestamp|mime|size`, filters with the existing MIME allowlist,
+and returns the accepted records plus per-prefix completion metadata. The helper
+must exhaust pagination with a maximum of 100 pages per prefix and reject as
+soon as it observes the 601st accepted file across the catalog. A remaining
+continuation at page 100 is an error. It must not return a partial result on
+either error. The probe hashes the metadata projection of the same complete
+catalog and never calls `downloadAsset`. Query the Chinese `音乐` page revision
+separately.
+
+The action path must call the same helper before it writes a manifest or begins
+the download loop. Its supplementary preview command explicitly includes
+`--max-api-pages-per-prefix=100` and `--max-total-files=600`; no default-value
+fallback is accepted as evidence for this contract.
 
 Bosses reuse the existing Boss-section discovery algorithm, then batch English
 metadata plus zh langlinks through `fetchWikiPageMetadataBatch`; batch the
@@ -88,7 +107,7 @@ metadata. It never fetches candidate page HTML or runs generation work.
 Normalize every record before hashing and reject missing/revisionless or
 over-limit inputs.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 
@@ -97,12 +116,57 @@ node --test scripts/data/monitor/supplementary-source-probes.test.mjs
 ```
 
 Expected: PASS; fixtures prove deterministic ordering, upstream-field
-sensitivity, bounded continuation, and zero media/crawler invocation.
+sensitivity, complete pagination, the 600-file boundary, and zero
+media/crawler invocation.
 
-- [ ] **Step 5: Commit the probe contract checkpoint**
+- [x] **Step 5: Write failing action-path catalog tests**
+
+Extend `fetch-wiki-audio-assets.test.mjs` with a mocked `--mode=all` run that
+has two pages for every fixed prefix. Assert the written manifest has
+`continuationComplete=true`, contains the same accepted identities returned by
+the exported catalog helper, and has no binary request before discovery
+completes. Add two negative runs: one with 601 accepted files and one with a
+continuation after page 100. Each must exit nonzero, leave the requested
+manifest path absent, and record failed progress without creating an audio
+file. Extend `prepare-supplementary-domain-l1-preview.test.mjs` to require
+the exact `--max-api-pages-per-prefix=100` action argument.
+
+- [x] **Step 6: Verify action-path RED**
+
+Run:
 
 ```bash
-git add scripts/data/monitor/supplementary-source-probes.mjs scripts/data/monitor/supplementary-source-probes.test.mjs scripts/data/fetch/fetch-wiki-audio-assets.mjs
+node --test scripts/data/fetch/fetch-wiki-audio-assets.test.mjs scripts/data/automation/prepare-supplementary-domain-l1-preview.test.mjs
+```
+
+Expected: FAIL because the action uses its independent one-page discovery
+path and the preview command does not pass the page guard explicitly.
+
+- [x] **Step 7: Reuse the helper in the action path**
+
+Replace the `discoverManifest`/`fetchAllImages` full-catalog branch with the
+same helper used by `fetchAudioCatalogMetadata`. Preserve sample-mode behavior.
+For `discover` and `all`, build candidates only after the helper reports every
+prefix complete; write the manifest only after that successful return. Set the
+governed full-catalog action limits to exactly 100 pages per prefix and 600
+accepted files. Append the explicit page and file arguments to the Audio
+supplementary preview command.
+
+- [x] **Step 8: Verify action-path GREEN**
+
+Run:
+
+```bash
+node --test scripts/data/monitor/supplementary-source-probes.test.mjs scripts/data/fetch/fetch-wiki-audio-assets.test.mjs scripts/data/automation/prepare-supplementary-domain-l1-preview.test.mjs
+```
+
+Expected: PASS; probe and action share the complete governed catalog and
+fail-closed before partial manifest output or download.
+
+- [x] **Step 9: Commit the probe contract checkpoint**
+
+```bash
+git add scripts/data/monitor/supplementary-source-probes.mjs scripts/data/monitor/supplementary-source-probes.test.mjs scripts/data/fetch/fetch-wiki-audio-assets.mjs scripts/data/fetch/fetch-wiki-audio-assets.test.mjs scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs scripts/data/automation/prepare-supplementary-domain-l1-preview.test.mjs
 git commit -m "feat(crawler): add supplementary source probes"
 ```
 

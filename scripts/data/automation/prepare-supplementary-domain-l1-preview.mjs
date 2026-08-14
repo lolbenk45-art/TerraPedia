@@ -285,6 +285,7 @@ export function buildDomainSourceCommand({ domainId, progressPath, runId, resume
       '--mode=all',
       '--allow-full-audio-corpus=true',
       '--max-total-files=600',
+      '--max-api-pages-per-prefix=100',
       `--progress-path=${progressPath}`,
     ],
     bosses: [

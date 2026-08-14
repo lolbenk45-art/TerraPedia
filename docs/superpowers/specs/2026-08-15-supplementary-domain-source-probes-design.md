@@ -1,7 +1,7 @@
 # Supplementary Domain Source-Probe Design
 
 **Date:** 2026-08-15
-**Status:** pending written-spec review
+**Status:** approved in the 2026-08-15 supplementary-domain automation handoff
 **Scope:** Changed-only source detection and consumption acknowledgement for
 `audio`, `bosses`, and `shimmer`.
 

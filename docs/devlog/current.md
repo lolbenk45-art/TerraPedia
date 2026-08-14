@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 02:01 CST by Codex
+Last updated: 2026-08-15 02:20 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -34,19 +34,26 @@ user selected the bounded probe design at
 `docs/superpowers/specs/2026-08-15-supplementary-domain-source-probes-design.md`;
 the written specification is approved and its executable plan is
 `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`.
-Implementation is awaiting execution-mode selection and must not add
+Task 1 is complete and awaiting its focused checkpoint commit. It must not add
 database/L2/Boss-loot automation.
 
-Execution coordinator: Codex. Task 1 is assigned serially to
-`/root/source_probe_task1` for the new probe module, its isolated tests, and
-the narrow Audio metadata export only; it must not touch manifest, preview,
-registry, generated data, reports, or service lifecycle. All later tasks remain
-pending review of Task 1.
+Execution coordinator: Codex. The user approved the revised complete-Audio
+contract in the 2026-08-15 handoff. Task 1 now runs serially in this worktree:
+the probe and real Audio L1 action must share complete catalog discovery with
+the four governed prefixes, a 600 accepted-file limit, and a 100-page-per-prefix
+guard. All later tasks remain pending Task 1 spec and quality review.
 
-Audio remains fail-closed: review found that its historical L1 action used a
-truncated one-page-per-prefix catalog. The user selected complete-catalog
-discovery under the existing `600`-file limit; the revised source-probe
-specification is pending review before implementation resumes.
+Audio remains fail-closed: historical L1 used one 50-row page per prefix and
+recorded `continuationComplete=false` for all four prefixes. Task 1 may not
+write a partial manifest or start downloads on a 601st accepted file, unfinished
+pagination, or page-guard breach; no service restart or scheduler sweep is
+permitted.
+
+Task 1 validation: the focused Node suite covers the supplementary probes,
+complete Audio action, and L1 preview command. It proves that a 601st accepted
+file, incomplete pagination, or a page guard above 100 fail before manifest
+output or downloads. No live crawl, scheduler sweep, database write, or service
+restart was run. Task 2 remains blocked on Task 1 review closeout.
 
 ## Open Work
 

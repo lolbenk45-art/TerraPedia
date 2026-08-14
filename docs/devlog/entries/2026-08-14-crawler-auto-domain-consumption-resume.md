@@ -51,18 +51,28 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   `bosses`, and `shimmer`; its written design was subsequently approved.
 - The written source-probe specification was approved. The executable plan is
   `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`;
-  implementation uses subagent-driven, serialized execution.
+  implementation is serialized in the current worktree.
+- Task 1 was revised for the approved complete-Audio contract. Its TDD RED
+  checks observed three gaps: the missing explicit `100`-page action argument,
+  an incomplete page sequence accepted by `--mode=all`, and acceptance of the
+  601st allowed file by the probe. The focused Node suite then passed with
+  `40` tests, `0` failures. It includes mutation checks that the 600-file and
+  100-page boundary tests fail when their guards are deliberately relaxed.
+- Task 1 changes are limited to the shared Audio catalog helper, its probe and
+  action consumers, the Audio L1 command argument, and focused tests. See git
+  for code-level diff details.
 
 ## Execution Coordination
 
-- Coordinator: Codex; only the coordinator edits `docs/devlog/current.md`.
-- Task 1 owner: `/root/source_probe_task1`; allowed paths:
-  `scripts/data/monitor/supplementary-source-probes.mjs`,
-  `scripts/data/monitor/supplementary-source-probes.test.mjs`, and the narrow
-  metadata export in `scripts/data/fetch/fetch-wiki-audio-assets.mjs`.
-- Task 1 forbidden paths: manifest helpers, monitor integration, preview
-  wrapper, backend registry/tests, devlog/current state, generated data, and
-  reports. It may not run a live crawler, restart services, or write a database.
+- Coordinator and Task 1 owner: Codex; only the coordinator edits
+  `docs/devlog/current.md`.
+- Task 1 allowed paths: `scripts/data/monitor/supplementary-source-probes.mjs`,
+  `scripts/data/monitor/supplementary-source-probes.test.mjs`,
+  `scripts/data/fetch/fetch-wiki-audio-assets.mjs`, its focused test, and the
+  narrow Audio command assertion in the supplementary preview wrapper/test.
+- Task 1 forbidden paths: manifest helpers, monitor integration, acknowledgement
+  behavior, backend registry/tests, generated data, and reports. It may not run
+  a live crawler, restart services, or write a database.
 - Serialization: Task 2 starts only after Task 1 receives spec and quality
   review approval. Subsequent tasks follow the same owner/review sequence.
 
@@ -70,10 +80,11 @@ completed attempt incorrectly suppressing a newer source fingerprint.
 
 - The historical Audio L1 action consumed only one `50`-row page per prefix;
   its 2026-08-14 manifests recorded `continuationComplete=false` for all four
-  prefixes. The user selected the complete-catalog remedy: a shared discovery
-  helper must exhaust pagination within a `600` allowed-audio-file limit and a
-  `100`-page-per-prefix guard, or fail before download. This revised written
-  specification is pending review before resuming implementation.
+  prefixes. The user approved the complete-catalog remedy in the current
+  handoff: a shared discovery helper must exhaust pagination within a `600`
+  allowed-audio-file limit and a `100`-page-per-prefix guard, or fail before
+  manifest write and download. The action command must pass the page guard
+  explicitly. Task 1 plan was repaired to enforce this contract before code.
 
 ## Risks And Handoff
 

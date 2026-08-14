@@ -40,7 +40,7 @@ const SAMPLE_CAPS = {
 };
 const AUDIO_CATALOG_PREFIXES = ['Music', 'NPC_Hit', 'NPC_Killed', 'Item_'];
 const AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX = 100;
-const AUDIO_CATALOG_MAX_FILES_PER_PREFIX = 5_000;
+const AUDIO_CATALOG_MAX_TOTAL_FILES = 600;
 
 const SCOPE_PREFIXES = {
   bgm: [{ prefix: 'Music', kind: 'bgm_track' }],
@@ -68,7 +68,30 @@ export async function fetchAudioCatalogMetadata(
   {
     apiUrl = API_URL,
     maxPagesPerPrefix = AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX,
-    maxFilesPerPrefix = AUDIO_CATALOG_MAX_FILES_PER_PREFIX
+    maxTotalFiles = AUDIO_CATALOG_MAX_TOTAL_FILES
+  } = {},
+  { fetchJson } = {}
+) {
+  const catalog = await discoverAudioCatalog({
+    apiUrl,
+    maxPagesPerPrefix,
+    maxTotalFiles
+  }, { fetchJson });
+  return catalog.records.map(({ prefix, name, sha1, timestamp, mime, size }) => ({
+    prefix,
+    name,
+    sha1,
+    timestamp,
+    mime,
+    size
+  }));
+}
+
+export async function discoverAudioCatalog(
+  {
+    apiUrl = API_URL,
+    maxPagesPerPrefix = AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX,
+    maxTotalFiles = AUDIO_CATALOG_MAX_TOTAL_FILES
   } = {},
   { fetchJson } = {}
 ) {
@@ -77,11 +100,22 @@ export async function fetchAudioCatalogMetadata(
     return gate.runJsonRequest(url, { profile, sourceKey });
   });
   const pageLimit = positiveInteger(maxPagesPerPrefix, AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX);
-  const fileLimit = positiveInteger(maxFilesPerPrefix, AUDIO_CATALOG_MAX_FILES_PER_PREFIX);
+  if (pageLimit > AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX) {
+    throw new Error(`audio catalog page limit exceeds governed limit ${AUDIO_CATALOG_MAX_API_PAGES_PER_PREFIX}`);
+  }
+  const fileLimit = positiveInteger(maxTotalFiles, AUDIO_CATALOG_MAX_TOTAL_FILES);
+  if (fileLimit > AUDIO_CATALOG_MAX_TOTAL_FILES) {
+    throw new Error(`audio catalog file limit exceeds governed limit ${AUDIO_CATALOG_MAX_TOTAL_FILES}`);
+  }
   const records = [];
+  const prefixes = [];
+  const unsupported = [];
 
   for (const prefix of AUDIO_CATALOG_PREFIXES) {
     const prefixRecords = [];
+    const prefixUnsupported = [];
+    let allRows = 0;
+    let pagesFetched = 0;
     let continuation = null;
     for (let page = 0; page < pageLimit; page += 1) {
       const url = new URL(apiUrl);
@@ -91,7 +125,7 @@ export async function fetchAudioCatalogMetadata(
       url.searchParams.set('list', 'allimages');
       url.searchParams.set('aiprefix', prefix);
       url.searchParams.set('ailimit', '50');
-      url.searchParams.set('aiprop', 'sha1|timestamp|mime|size');
+      url.searchParams.set('aiprop', 'url|sha1|timestamp|mime|size');
       if (continuation) url.searchParams.set('aicontinue', continuation);
 
       const payload = await requestJson({
@@ -100,14 +134,17 @@ export async function fetchAudioCatalogMetadata(
         sourceKey: `audio-catalog:${prefix}`
       });
       const rows = Array.isArray(payload?.query?.allimages) ? payload.query.allimages : [];
+      allRows += rows.length;
+      pagesFetched += 1;
       for (const row of rows) {
         if (!ALLOWED_MIME.has(String(row?.mime ?? '').trim().toLowerCase())) {
+          prefixUnsupported.push(normalizeUnsupportedAudioCatalogRecord(row, prefix));
           continue;
         }
         prefixRecords.push(normalizeAudioCatalogRecord(row, prefix));
-      }
-      if (prefixRecords.length > fileLimit) {
-        throw new Error(`audio catalog ${prefix} exceeds governed file limit ${fileLimit}`);
+        if (records.length + prefixRecords.length > fileLimit) {
+          throw new Error(`audio catalog exceeds governed limit of ${fileLimit} audio files`);
+        }
       }
       continuation = payload?.continue?.aicontinue ?? null;
       if (!continuation) break;
@@ -116,9 +153,24 @@ export async function fetchAudioCatalogMetadata(
       throw new Error(`audio catalog continuation exceeded governed limit for ${prefix}`);
     }
     records.push(...prefixRecords);
+    unsupported.push(...prefixUnsupported);
+    prefixes.push({
+      prefix,
+      pagesFetched,
+      allRows,
+      audioRows: prefixRecords.length,
+      unsupportedRows: prefixUnsupported.length,
+      totalBytes: prefixRecords.reduce((sum, record) => sum + record.size, 0),
+      lastContinue: null,
+      continuationComplete: true
+    });
   }
 
-  return records.sort(compareAudioCatalogRecords);
+  return {
+    records: records.sort(compareAudioCatalogRecords),
+    prefixes,
+    unsupported: unsupported.sort(compareUnsupportedAudioCatalogRecords)
+  };
 }
 
 async function main(argv = process.argv.slice(2), env = process.env) {
@@ -565,11 +617,30 @@ function normalizeAudioCatalogRecord(row, prefix) {
   if (!name || !sha1 || !timestamp || !mime || !Number.isFinite(size) || size < 0) {
     throw new Error(`audio catalog metadata is missing for ${name || prefix}`);
   }
-  return { prefix, name, sha1, timestamp, mime, size };
+  return { prefix, name, sha1, timestamp, mime, size, url: String(row?.url ?? '') };
+}
+
+function normalizeUnsupportedAudioCatalogRecord(row, prefix) {
+  return {
+    prefix,
+    name: String(row?.name ?? ''),
+    mime: String(row?.mime ?? '').trim().toLowerCase(),
+    size: Number(row?.size ?? 0)
+  };
 }
 
 function compareAudioCatalogRecords(left, right) {
   for (const key of ['prefix', 'name', 'sha1', 'timestamp', 'mime', 'size']) {
+    const leftValue = String(left[key]);
+    const rightValue = String(right[key]);
+    if (leftValue === rightValue) continue;
+    return leftValue < rightValue ? -1 : 1;
+  }
+  return 0;
+}
+
+function compareUnsupportedAudioCatalogRecords(left, right) {
+  for (const key of ['prefix', 'name', 'mime', 'size']) {
     const leftValue = String(left[key]);
     const rightValue = String(right[key]);
     if (leftValue === rightValue) continue;
@@ -617,71 +688,37 @@ async function discoverCandidates({ config, gate, mock, writeProgress }) {
 }
 
 async function discoverManifest({ config, gate, mock, writeProgress, startedAt }) {
+  const catalog = await discoverAudioCatalog({
+    apiUrl: API_URL,
+    maxPagesPerPrefix: config.maxApiPagesPerPrefix,
+    maxTotalFiles: config.maxTotalFiles
+  }, {
+    fetchJson: createAudioCatalogFetchJson({ gate, mock })
+  });
+  const shardByPrefix = new Map(resolveShardConfigs(config).map((shardConfig) => [shardConfig.prefix, shardConfig]));
   const assets = [];
-  const unsupported = [];
-  const prefixes = [];
-  const shardConfigs = resolveShardConfigs(config);
-  for (const shardConfig of shardConfigs) {
+  for (const record of catalog.records) {
+    const shardConfig = shardByPrefix.get(record.prefix);
+    if (!shardConfig) continue;
     writeProgress({
       status: 'running',
       phase: 'discover',
-      message: `querying ${shardConfig.prefix}`,
+      message: `discovered ${record.prefix}`,
       current: assets.length,
       total: 0
     });
-    const result = await fetchAllImages({
-      prefix: shardConfig.prefix,
-      maxPages: config.maxApiPagesPerPrefix,
-      gate,
-      mock
-    });
-    const audioRows = [];
-    const unsupportedRows = [];
-    for (const row of result.rows) {
-      const mime = String(row.mime ?? '').toLowerCase();
-      if (ALLOWED_MIME.has(mime)) {
-        audioRows.push(row);
-        assets.push(buildCandidate({
-          row,
-          scope: shardConfig.shard,
-          shard: shardConfig.shard,
-          kind: shardConfig.kind,
-          prefix: shardConfig.prefix
-        }));
-      } else {
-        const skipped = {
-          prefix: shardConfig.prefix,
-          name: String(row.name ?? ''),
-          mime,
-          size: Number(row.size ?? 0)
-        };
-        unsupportedRows.push(skipped);
-        unsupported.push(skipped);
-      }
-    }
-    prefixes.push({
+    assets.push(buildCandidate({
+      row: record,
+      scope: shardConfig.shard,
       shard: shardConfig.shard,
-      prefix: shardConfig.prefix,
       kind: shardConfig.kind,
-      pagesFetched: result.pagesFetched,
-      allRows: result.rows.length,
-      audioRows: audioRows.length,
-      unsupportedRows: unsupportedRows.length,
-      totalBytes: audioRows.reduce((sum, row) => sum + Number(row.size ?? 0), 0),
-      lastContinue: result.lastContinue,
-      continuationComplete: result.continuationComplete
-    });
-    writeProgress({
-      status: 'running',
-      phase: 'discover',
-      message: `discovered ${shardConfig.prefix}`,
-      current: assets.length,
-      total: assets.length
-    });
+      prefix: shardConfig.prefix
+    }));
   }
-  if (assets.length > config.maxTotalFiles) {
-    throw new Error(`Discovered ${assets.length} audio candidates, exceeding --max-total-files=${config.maxTotalFiles}`);
-  }
+  const prefixes = catalog.prefixes.map((prefix) => ({
+    ...prefix,
+    ...shardByPrefix.get(prefix.prefix)
+  }));
   return {
     generatedAt: new Date().toISOString(),
     startedAt,
@@ -694,13 +731,38 @@ async function discoverManifest({ config, gate, mock, writeProgress, startedAt }
       prefixes: prefixes.length,
       allRows: prefixes.reduce((sum, entry) => sum + entry.allRows, 0),
       audioRows: assets.length,
-      unsupportedRows: unsupported.length,
+      unsupportedRows: catalog.unsupported.length,
       totalBytes: assets.reduce((sum, asset) => sum + asset.size, 0),
       continuationComplete: prefixes.every((entry) => entry.continuationComplete)
     },
     prefixes,
     assets,
-    unsupported
+    unsupported: catalog.unsupported
+  };
+}
+
+function createAudioCatalogFetchJson({ gate, mock }) {
+  if (!mock) {
+    return ({ url, profile, sourceKey }) => gate.runJsonRequest(url, { profile, sourceKey });
+  }
+  return async ({ url }) => {
+    const request = new URL(url);
+    const prefix = request.searchParams.get('aiprefix');
+    const value = mock.allimages?.[prefix];
+    if (!Array.isArray(value)) return { query: { allimages: [] } };
+    if (value.length === 0 || !Object.hasOwn(value[0], 'rows')) {
+      return { query: { allimages: value } };
+    }
+    const continuation = request.searchParams.get('aicontinue');
+    const pageIndex = continuation == null
+      ? 0
+      : value.findIndex((entry) => entry?.continue === continuation) + 1;
+    const page = value[pageIndex];
+    if (!page) throw new Error(`mock audio catalog continuation is invalid for ${prefix}`);
+    return {
+      query: { allimages: Array.isArray(page.rows) ? page.rows : [] },
+      ...(page.continue ? { continue: { aicontinue: page.continue } } : {})
+    };
   };
 }
 
