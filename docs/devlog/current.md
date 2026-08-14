@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 02:55 CST by Codex
+Last updated: 2026-08-15 03:04 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -47,7 +47,12 @@ preflight cannot reach `127.0.0.1:13306`. The follow-up recovery confirmed the
 current WSL session has neither a systemd bus nor a registered `service mysql`
 entry, and no non-interactive administrator credential. A privileged operator
 must restore the configured MySQL listener before the required restart and
-authenticated read-only scheduler observation can proceed.
+authenticated read-only scheduler observation can proceed. A WSL-only direct
+`mysqld` start fails with `OS errno: 13` because `/var/lib/mysql` belongs to
+`mysql:mysql` and is inaccessible to the current user. Independent review also
+found an acknowledgement read-modify-write race that can lose a concurrent
+Audio/Bosses/Shimmer manifest record; repair and re-review are required before
+the scheduler restart.
 
 Audio remains fail-closed: historical L1 used one 50-row page per prefix and
 recorded `continuationComplete=false` for all four prefixes. Task 1 may not

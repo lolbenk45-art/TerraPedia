@@ -83,6 +83,16 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   `127.0.0.1:13306`. No database command, crawler command, or scheduler
   mutation was issued. A privileged operator must restore the configured
   MySQL service before Task 6 can continue.
+- A WSL-only direct start probe at 2026-08-15 03:04 CST confirmed the same
+  boundary: `/usr/sbin/mysqld` reads the configured port `13306`, but exits
+  with `OS errno: 13 - Permission denied` for `/var/lib/mysql`. It did not
+  create a running process or issue a database command.
+- Independent review found a release-blocking acknowledgement race in
+  `acknowledgeWikiProbeSnapshot`: concurrent supplementary previews can each
+  read the prior manifest and the last save can discard another domain's
+  acknowledgement. It also found missing failure-path coverage for a throwing
+  post-probe or acknowledgement helper. Repair and re-review are required
+  before the scheduler is restarted or Task 6 acceptance resumes.
 
 ## Execution Coordination
 
