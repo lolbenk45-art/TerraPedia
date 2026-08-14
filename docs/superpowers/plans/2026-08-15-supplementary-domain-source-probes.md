@@ -438,7 +438,7 @@ git diff --check
 
 Expected: every focused Node and Maven test passes; no whitespace errors.
 
-- [ ] **Step 2: Record result and residual runtime acceptance**
+- [x] **Step 2: Record result and residual runtime acceptance**
 
 Update the active entry with the exact test counts, source keys, stable
 acknowledgement behavior, and the remaining post-restart authenticated
@@ -446,7 +446,7 @@ read-only scheduler observation. Update `current.md` to state that all eight
 source-probed domains are enabled only after Task 4 validation; retain no
 automatic DB/L2/Boss-loot boundary.
 
-- [ ] **Step 3: Review the final staged scope**
+- [x] **Step 3: Review the final staged scope**
 
 ```bash
 git status --short
@@ -457,7 +457,7 @@ git diff --cached --check
 Expected: only Task 5 documentation is staged; unrelated
 `armor_sets.standardized.json` and authorization artifacts remain unstaged.
 
-- [ ] **Step 4: Commit the validated handoff**
+- [x] **Step 4: Commit the validated handoff**
 
 ```bash
 git add docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md docs/devlog/current.md
@@ -498,7 +498,7 @@ read-only observation cannot be collected or indicates duplicate dispatch,
 restore the three domains to fail-closed in a separate fix before declaring
 acceptance.
 
-- [ ] **Step 4: Commit runtime acceptance evidence when it changes docs**
+- [x] **Step 4: Commit runtime acceptance evidence when it changes docs**
 
 ```bash
 git add docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md docs/devlog/current.md
