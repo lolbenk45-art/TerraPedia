@@ -40,13 +40,19 @@ manifest paths are rejected.
 
 | Domain | Source key | Snapshot inputs | Probe work excluded |
 | --- | --- | --- | --- |
-| Audio | `wiki.audio_assets.catalog` | Audio file identity, MIME type, size, SHA-1/revision timestamp for the four existing `Music`, `NPC_Hit`, `NPC_Killed`, and `Item_` prefixes; plus the Chinese Music-page revision used for BGM display names | Binary media download and asset metadata generation |
+| Audio | `wiki.audio_assets.catalog` | Complete governed Audio catalog: allowed-audio file identity, MIME type, size, SHA-1/revision timestamp for the four existing `Music`, `NPC_Hit`, `NPC_Killed`, and `Item_` prefixes; plus the Chinese Music-page revision used for BGM display names | Binary media download and asset metadata generation |
 | Bosses | `wiki.bosses.catalog` | `Bosses` overview section identity; discovered Boss-page revisions and Chinese langlink targets; Chinese intro-page revisions for those targets | Boss HTML parsing, per-record extraction, and image/network media fetches |
 | Shimmer | `wiki.shimmer.page_and_langlinks` | Chinese `微光` source-page revision/content identity and the revision/langlink identity of every candidate title derived from that source page | Shimmer extraction, generation publication, preview bundle creation, and DB work |
 
-All paginated or batched requests use the existing action limits and fixed
-batch sizes. The probe fails if a source would exceed its governed limit rather
-than silently truncating the fingerprint.
+All paginated or batched requests use fixed limits. The Audio source is complete
+only when all four prefixes reach pagination exhaustion with no more than the
+existing L1 maximum of `600` allowed audio files. Probe and action share one
+discovery helper, so they consume the same accepted catalog. The helper stops
+and fails before download when it sees audio file 601, an unfinished page
+sequence, or its `100`-page-per-prefix guard. It excludes non-audio rows using
+the action's existing MIME allowlist. Boss and Shimmer retain their declared
+bounded list/batch limits. Every probe fails rather than silently truncating a
+fingerprint.
 
 ## Detection And Acknowledgement Flow
 
@@ -82,6 +88,13 @@ helper gains an explicit probe-record acknowledgement path that preserves the
 probe `contentHash`; it must not derive a replacement hash from generated
 output.
 
+The Audio fetch entrypoint must delegate its full-corpus discovery to the same
+helper and pass the explicit `--max-api-pages-per-prefix=100` action argument.
+It cannot write a partial manifest or begin a download when pagination remains
+or the `600`-file boundary is exceeded. This replaces the historical one-page
+per-prefix behavior, whose generated manifests proved `continuationComplete`
+was false for all four prefixes.
+
 After focused tests prove the contracts, `AUTO_DISPATCH_DOMAINS` returns to all
 eight source-probed domains: `items`, `npcs`, `projectiles`, `armor_sets`,
 `buffs`, `audio`, `bosses`, and `shimmer`. `boss_loot` remains absent.
@@ -94,15 +107,19 @@ Tests must demonstrate:
    covered upstream field changes.
 2. Audio tests prove no binary download request is issued; Boss and Shimmer
    tests prove no full crawler/extraction entrypoint is called.
-3. The source monitor reads the shared manifest and reports unchanged after a
+3. Audio tests prove a complete catalog at or below 600 is shared verbatim by
+   the probe and action, while audio file 601, unfinished pagination, and
+   non-audio rows respectively fail before download, fail before download, and
+   do not change the fingerprint.
+4. The source monitor reads the shared manifest and reports unchanged after a
    stable successful acknowledgement for each new source key.
-4. A failed preview, unreadable output, failed second probe, or changed
+5. A failed preview, unreadable output, failed second probe, or changed
    pre/post fingerprint leaves the manifest bytes unchanged.
-5. A stable completed preview writes exactly its declared source record and
+6. A stable completed preview writes exactly its declared source record and
    becomes unchanged on the following monitor pass.
-6. The registry enables exactly the eight source-probed domains and excludes
+7. The registry enables exactly the eight source-probed domains and excludes
    `boss_loot`.
-7. Existing five-domain resume and no-duplicate V2 tests continue to pass.
+8. Existing five-domain resume and no-duplicate V2 tests continue to pass.
 
 Focused validation includes the new Node probe/manifest/preview tests, the
 existing source-monitor suite, the supplementary preview suite, the action

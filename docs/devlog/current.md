@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 00:44 CST by Codex
+Last updated: 2026-08-15 02:01 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -36,6 +36,17 @@ the written specification is approved and its executable plan is
 `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`.
 Implementation is awaiting execution-mode selection and must not add
 database/L2/Boss-loot automation.
+
+Execution coordinator: Codex. Task 1 is assigned serially to
+`/root/source_probe_task1` for the new probe module, its isolated tests, and
+the narrow Audio metadata export only; it must not touch manifest, preview,
+registry, generated data, reports, or service lifecycle. All later tasks remain
+pending review of Task 1.
+
+Audio remains fail-closed: review found that its historical L1 action used a
+truncated one-page-per-prefix catalog. The user selected complete-catalog
+discovery under the existing `600`-file limit; the revised source-probe
+specification is pending review before implementation resumes.
 
 ## Open Work
 

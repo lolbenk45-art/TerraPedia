@@ -51,7 +51,29 @@ completed attempt incorrectly suppressing a newer source fingerprint.
   `bosses`, and `shimmer`; its written design was subsequently approved.
 - The written source-probe specification was approved. The executable plan is
   `docs/superpowers/plans/2026-08-15-supplementary-domain-source-probes.md`;
-  implementation has not started pending execution-mode selection.
+  implementation uses subagent-driven, serialized execution.
+
+## Execution Coordination
+
+- Coordinator: Codex; only the coordinator edits `docs/devlog/current.md`.
+- Task 1 owner: `/root/source_probe_task1`; allowed paths:
+  `scripts/data/monitor/supplementary-source-probes.mjs`,
+  `scripts/data/monitor/supplementary-source-probes.test.mjs`, and the narrow
+  metadata export in `scripts/data/fetch/fetch-wiki-audio-assets.mjs`.
+- Task 1 forbidden paths: manifest helpers, monitor integration, preview
+  wrapper, backend registry/tests, devlog/current state, generated data, and
+  reports. It may not run a live crawler, restart services, or write a database.
+- Serialization: Task 2 starts only after Task 1 receives spec and quality
+  review approval. Subsequent tasks follow the same owner/review sequence.
+
+## Active Review Finding
+
+- The historical Audio L1 action consumed only one `50`-row page per prefix;
+  its 2026-08-14 manifests recorded `continuationComplete=false` for all four
+  prefixes. The user selected the complete-catalog remedy: a shared discovery
+  helper must exhaust pagination within a `600` allowed-audio-file limit and a
+  `100`-page-per-prefix guard, or fail before download. This revised written
+  specification is pending review before resuming implementation.
 
 ## Risks And Handoff
 
