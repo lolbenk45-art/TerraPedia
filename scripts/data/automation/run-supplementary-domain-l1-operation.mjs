@@ -458,7 +458,7 @@ function parseArgs(argv) {
   }));
 }
 
-function connectionOptions(env) {
+export function connectionOptions(env) {
   const port = Number(requireText(env.TERRAPEDIA_DB_PORT, 'TERRAPEDIA_DB_PORT'));
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('TERRAPEDIA_DB_PORT must be an integer from 1 to 65535');
@@ -473,6 +473,7 @@ function connectionOptions(env) {
     password: requireText(env.TERRAPEDIA_DB_PASSWORD, 'TERRAPEDIA_DB_PASSWORD'),
     database: 'terria_v1_local',
     multipleStatements: false,
+    dateStrings: true,
   };
 }
 

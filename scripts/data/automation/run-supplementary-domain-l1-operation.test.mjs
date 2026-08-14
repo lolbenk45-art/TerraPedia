@@ -6,6 +6,16 @@ import * as operationModule from './run-supplementary-domain-l1-operation.mjs';
 
 const { executeSupplementaryL1Operation } = operationModule;
 
+test('uses string dates so frozen shimmer previews are deterministic at apply time', () => {
+  assert.equal(operationModule.connectionOptions({
+    TERRAPEDIA_DB_HOST: '127.0.0.1',
+    TERRAPEDIA_DB_PORT: '13306',
+    TERRAPEDIA_DB_USERNAME: 'root',
+    TERRAPEDIA_DB_PASSWORD: 'root',
+    TERRAPEDIA_DB_NAME: 'terria_v1_local',
+  }).dateStrings, true);
+});
+
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
 
 function bundle(domainId = 'audio') {
