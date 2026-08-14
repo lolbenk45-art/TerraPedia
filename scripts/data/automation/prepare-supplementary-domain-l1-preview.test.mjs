@@ -6,12 +6,23 @@ import test from 'node:test';
 
 import {
   buildDomainSourceCommand,
+  connectionOptions,
   DOMAIN_PREVIEW_CONFIG,
   prepareSupplementaryDomainL1Preview,
   runDomainSource,
 } from './prepare-supplementary-domain-l1-preview.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+test('uses string dates when freezing supplementary L1 baselines', () => {
+  assert.equal(connectionOptions({
+    TERRAPEDIA_DB_HOST: '127.0.0.1',
+    TERRAPEDIA_DB_PORT: '13306',
+    TERRAPEDIA_DB_USERNAME: 'root',
+    TERRAPEDIA_DB_PASSWORD: 'root',
+    TERRAPEDIA_DB_NAME: 'terria_v1_local',
+  }).dateStrings, true);
+});
 
 test('audio preview owns an explicit bounded full-corpus source command', () => {
   assert.deepEqual(buildDomainSourceCommand({
