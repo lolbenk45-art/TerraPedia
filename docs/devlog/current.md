@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:10 CST by Codex
+Last updated: 2026-08-16 03:21 CST by Codex
 
 Active branch: `refactor/project-structure-migration` (dedicated migration worktree)
 
@@ -12,7 +12,7 @@ Active branch: `refactor/project-structure-migration` (dedicated migration workt
   `entries/2026-08-16-project-structure-professionalization.md`; canonical app,
   service, shared package, pipeline, and platform boundaries are migrated with
   one-way legacy symlinks. Focused gates pass; public sitemap and existing data
-  baseline drift remain documented variances. Commit SHA pending in handoff.
+  baseline drift remain documented variances. Implementation commit: `be8ffe02`.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:

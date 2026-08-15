@@ -94,5 +94,6 @@ commit.
 
 ## Commit closeout
 
-This entry is closed after staged-scope review and focused validation. Commit
-SHA is pending in the final handoff response.
+This entry is closed after staged-scope review and focused validation. The
+implementation commit is `be8ffe02`; this follow-up records the durable
+closeout state before integration into the feature branch.
