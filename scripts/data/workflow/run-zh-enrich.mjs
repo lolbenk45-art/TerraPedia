@@ -13,15 +13,25 @@ import {
   buildResolvedProjectileZhEntries,
   isProjectileNamePlaceholder,
 } from '../lib/projectile-name-resolver.mjs';
+import {
+  resolveConfiguredPath,
+  resolveProjectConstantPath
+} from '../../lib/project-constants.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
 const options = parseCliArgs(process.argv.slice(2));
+const repoRoot = getProjectRoot();
 const apply = booleanOption(options.apply, false);
 const scopes = resolveScopes(options.scopes ?? options.scope ?? 'projectiles,buffs');
-const standardizedRoot = path.resolve(process.cwd(), 'data', 'standardized');
-const generatedRoot = path.resolve(process.cwd(), 'data', 'generated');
-const reportPath = path.resolve(
-  process.cwd(),
-  options.output ?? path.join(process.cwd(), 'reports', `workflow-zh-enrich-${new Date().toISOString().slice(0, 10)}.json`)
+const standardizedRoot = resolveProjectConstantPath('dataLayers.standardized', { repoRoot });
+const generatedRoot = resolveProjectConstantPath('dataLayers.generated', { repoRoot });
+const reportPath = resolveConfiguredPath(
+  options.output
+    ?? resolveProjectConstantPath('evidence.runtime', {
+      repoRoot,
+      suffix: [`workflow-zh-enrich-${new Date().toISOString().slice(0, 10)}.json`]
+    }),
+  { repoRoot, allowExternal: Boolean(options.output && path.isAbsolute(String(options.output))) }
 );
 
 const summary = {

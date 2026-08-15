@@ -6,11 +6,21 @@ import { fileURLToPath } from 'node:url';
 
 import { fetchWikiImageInfo } from '../lib/wiki-item-utils.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  resolveConfiguredPath,
+  resolveProjectConstantPath,
+  resolveSharedDataConstantPath
+} from '../../lib/project-constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
+const repoRoot = getProjectRoot();
 const ACTION_ID = 'armor-item-images';
-const DEFAULT_PROGRESS_PATH = 'data/generated/wiki-sync-progress.latest.json';
-const DEFAULT_RAW_ITEM_PAGES_DIR = '/home/lolben/data/terraPedia/raw/wiki/item-pages';
+const DEFAULT_PROGRESS_PATH = resolveProjectConstantPath('dataLayers.generated', {
+  repoRoot,
+  suffix: ['wiki-sync-progress.latest.json']
+});
+const DEFAULT_RAW_ITEM_PAGES_DIR = resolveSharedDataConstantPath('crawler.itemPageRawRoot');
 
 const CATEGORY_ROLE_BY_CODE = new Map([
   ['HELMET', 'head'],
@@ -221,11 +231,23 @@ export async function probeDirectArmorItemImageCandidates({
 
 async function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv);
-  const progressPath = String(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const progressPath = resolveOptionPath(
+    options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
+    DEFAULT_PROGRESS_PATH
+  );
   const startedAt = new Date().toISOString();
-  const itemsPath = path.resolve(process.cwd(), options.items ?? 'data/standardized/items.standardized.json');
-  const rawItemPagesDir = path.resolve(process.cwd(), options['raw-item-pages-dir'] ?? DEFAULT_RAW_ITEM_PAGES_DIR);
-  const outputPath = path.resolve(process.cwd(), options.output ?? path.join('reports', `armor-item-image-evidence-${new Date().toISOString().slice(0, 10)}.json`));
+  const itemsPath = resolveOptionPath(
+    options.items,
+    resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['items.standardized.json'] })
+  );
+  const rawItemPagesDir = resolveOptionPath(options['raw-item-pages-dir'], DEFAULT_RAW_ITEM_PAGES_DIR);
+  const outputPath = resolveOptionPath(
+    options.output,
+    resolveProjectConstantPath('evidence.runtime', {
+      repoRoot,
+      suffix: [`armor-item-image-evidence-${new Date().toISOString().slice(0, 10)}.json`]
+    })
+  );
   const probeDirect = booleanOption(options['probe-direct'] ?? options.probeDirect, false);
 
   writeProgress(progressPath, buildArmorItemImageProgressPayload({
@@ -403,7 +425,18 @@ function decodeHtmlEntities(value) {
 }
 
 function writeProgress(progressPath, payload) {
-  writeJsonFile(path.resolve(process.cwd(), progressPath), payload);
+  writeJsonFile(progressPath, payload);
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
 }
 
 if (process.argv[1] && __filename === path.resolve(process.argv[1])) {

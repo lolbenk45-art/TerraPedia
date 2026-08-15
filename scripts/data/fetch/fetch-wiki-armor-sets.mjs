@@ -15,13 +15,17 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
 const DEFAULT_ZH_WIKI_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const DEFAULT_ARMOR_PAGE_TITLE = '盔甲';
 const ACTION_ID = 'domain-source-armor-sets';
-const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'domain-source-armor-sets-progress.latest.json');
+const DEFAULT_PROGRESS_PATH = resolveProjectConstantPath('dataLayers.generated', {
+  repoRoot,
+  suffix: ['domain-source-armor-sets-progress.latest.json']
+});
 
 const WIKI_SECTIONS = [
   {
@@ -287,9 +291,15 @@ async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
   const apiUrl = String(options['api-url'] ?? DEFAULT_ZH_WIKI_API_URL);
   const pageTitle = String(options.page ?? DEFAULT_ARMOR_PAGE_TITLE);
-  const outputDir = path.resolve(process.cwd(), options['output-dir'] ?? path.join(repoRoot, 'data', 'generated'));
+  const outputDir = resolveOptionPath(
+    options['output-dir'],
+    resolveProjectConstantPath('dataLayers.generated', { repoRoot })
+  );
   const outputPath = path.join(outputDir, 'wiki-armor-sets.latest.json');
-  const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const progressPath = resolveOptionPath(
+    options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
+    DEFAULT_PROGRESS_PATH
+  );
   const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
   const keepSnapshot = shouldKeepSnapshot(options);
   const generatedAt = new Date().toISOString();
@@ -402,6 +412,17 @@ function buildArmorProgressPayload({
   payload.reportPath = null;
   if (nextStep) payload.nextStep = nextStep;
   return payload;
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
 }
 
 function shouldMirrorProgressPath(progressPath, canonicalProgressPath) {

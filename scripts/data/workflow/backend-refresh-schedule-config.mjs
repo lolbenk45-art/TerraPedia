@@ -1,9 +1,11 @@
 import path from 'node:path';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 export function buildBackendRefreshScheduleConfig(rawOptions = {}, options = {}) {
-  const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
+  const repoRoot = path.resolve(options.repoRoot ?? getProjectRoot());
   const config = options.config ?? loadLocalStackConfig(repoRoot);
   const scheduleConfig = readScheduleConfig(config);
   const intervalMinutes = normalizePositiveInteger(
@@ -35,26 +37,26 @@ export function buildBackendRefreshScheduleConfig(rawOptions = {}, options = {})
     steps: normalizeSteps(rawOptions.steps ?? scheduleConfig.steps),
     reportDir: path.resolve(
       repoRoot,
-      String(rawOptions.reportDir ?? scheduleConfig.reportDir ?? path.join('reports', 'backend-refresh', 'history'))
+      String(rawOptions.reportDir ?? scheduleConfig.reportDir ?? resolveProjectConstantPath('evidence.backendRefresh', { repoRoot, suffix: ['history'] }))
     ),
     lockFile: path.resolve(
       repoRoot,
-      String(rawOptions.lockFile ?? scheduleConfig.lockFile ?? path.join('reports', 'backend-refresh', 'backend-refresh.lock.json'))
+      String(rawOptions.lockFile ?? scheduleConfig.lockFile ?? resolveProjectConstantPath('evidence.backendRefresh', { repoRoot, suffix: ['backend-refresh.lock.json'] }))
     ),
     stateFile: path.resolve(
       repoRoot,
-      String(rawOptions.stateFile ?? scheduleConfig.stateFile ?? path.join('reports', 'backend-refresh', 'backend-refresh-scheduler.latest.json'))
+      String(rawOptions.stateFile ?? scheduleConfig.stateFile ?? resolveProjectConstantPath('evidence.backendRefresh', { repoRoot, suffix: ['backend-refresh-scheduler.latest.json'] }))
     ),
     heartbeatFile: path.resolve(
       repoRoot,
-      String(rawOptions.heartbeatFile ?? scheduleConfig.heartbeatFile ?? path.join('reports', 'backend-refresh', 'backend-refresh-daemon.heartbeat.json'))
+      String(rawOptions.heartbeatFile ?? scheduleConfig.heartbeatFile ?? resolveProjectConstantPath('evidence.backendRefresh', { repoRoot, suffix: ['backend-refresh-daemon.heartbeat.json'] }))
     )
   };
 }
 
 export function buildBackendRefreshScheduleRun(scheduleConfig = {}, now = new Date()) {
   const outputPath = path.resolve(
-    scheduleConfig.reportDir ?? path.join(process.cwd(), 'reports', 'backend-refresh', 'history'),
+    scheduleConfig.reportDir ?? resolveProjectConstantPath('evidence.backendRefresh', { suffix: ['history'] }),
     `backend-data-refresh-${formatTimestamp(now)}.json`
   );
   const mode = normalizeMode(scheduleConfig.mode);

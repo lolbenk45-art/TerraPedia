@@ -6,7 +6,7 @@ import path from 'node:path';
 import {
   buildItemSourceCandidateImportPlan
 } from './build-item-source-candidate-import-plan.mjs';
-import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
+import { parseCliArgs, sharedDataPath, writeJson } from '../lib/wiki-item-utils.mjs';
 
 const MUTATION_FLAGS = new Set([
   'apply',
@@ -61,7 +61,7 @@ export function parseBuildItemSourceFocusedCandidatePlanFromEvidenceArgs(argv = 
     rawCandidatesPath: options['raw-candidates'] ?? options.rawCandidates ?? 'data/reports/item-source-raw-page-candidates-2026-06-11-current.json',
     familyCandidatesPath: options['family-candidates'] ?? options.familyCandidates ?? null,
     outputPath: options.output ?? null,
-    rawItemPageDir: options['raw-dir'] ?? options.rawDir ?? '/home/lolben/data/terraPedia/raw/wiki/item-pages',
+    rawItemPageDir: options['raw-dir'] ?? options.rawDir ?? sharedDataPath('raw', 'wiki', 'item-pages'),
     npcParsedPath: options.npcs ?? options['npc-parsed'] ?? options.npcParsedPath,
     standardizedNpcsPath: options['standardized-npcs'] ?? options.standardizedNpcsPath,
     standardizedItemsPath: options.items ?? options['standardized-items'] ?? options.standardizedItemsPath,

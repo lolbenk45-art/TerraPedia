@@ -1,8 +1,10 @@
 import { resolveFrontRuntimeConfig } from './utils/runtimeConfig.mjs'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
+import { getProjectConstants } from '../scripts/lib/project-constants.mjs'
 
 const articleRuntimeDir = fileURLToPath(new URL('../shared/article-runtime', import.meta.url))
+const projectConstants = getProjectConstants()
 
 const {
   backendApiBase,
@@ -28,7 +30,7 @@ export default defineNuxtConfig({
   },
 
   devServer: {
-    port: 5176,
+    port: Number(process.env.TERRAPEDIA_FRONT_PORT || projectConstants.runtime.publicWebPort),
     host: 'localhost',
   },
 

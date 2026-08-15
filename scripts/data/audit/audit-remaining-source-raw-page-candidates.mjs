@@ -17,6 +17,8 @@ import {
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const MUTATION_FLAGS = new Set([
   'apply',
@@ -32,6 +34,10 @@ const MUTATION_FLAGS = new Set([
   'flyway',
   'delete'
 ]);
+const repoRoot = getProjectRoot();
+const DEFAULT_CLOSURE_REPORT_PATH = resolveProjectConstantPath('roots.data', { repoRoot, suffix: ['reports', 'item-source-remaining-closure-2026-06-11-current.json'] });
+const DEFAULT_RAW_ITEM_PAGE_DIR = sharedDataPath('raw', 'wiki', 'item-pages');
+const DEFAULT_STANDARDIZED_NPCS_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['npcs.standardized.json'] });
 
 export function parseAuditRemainingSourceRawPageCandidatesArgs(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -41,23 +47,26 @@ export function parseAuditRemainingSourceRawPageCandidatesArgs(argv = process.ar
     }
   }
   return {
-    closureReportPath: options.closure ?? options['closure-report'] ?? path.join(process.cwd(), 'data', 'reports', 'item-source-remaining-closure-2026-06-11-current.json'),
-    rawItemPageDir: options['raw-dir'] ?? options.rawDir ?? '/home/lolben/data/terraPedia/raw/wiki/item-pages',
+    closureReportPath: options.closure ?? options['closure-report'] ?? DEFAULT_CLOSURE_REPORT_PATH,
+    rawItemPageDir: options['raw-dir'] ?? options.rawDir ?? DEFAULT_RAW_ITEM_PAGE_DIR,
     npcParsedPath: options.npcs ?? sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
-    standardizedNpcsPath: options['standardized-npcs'] ?? path.join(process.cwd(), 'data', 'standardized', 'npcs.standardized.json'),
+    standardizedNpcsPath: options['standardized-npcs'] ?? DEFAULT_STANDARDIZED_NPCS_PATH,
     outputPath: options.output ?? null
   };
 }
 
 export function auditRemainingSourceRawPageCandidates({
   generatedAt = new Date().toISOString(),
-  closureReportPath = path.join(process.cwd(), 'data', 'reports', 'item-source-remaining-closure-2026-06-11-current.json'),
-  rawItemPageDir = '/home/lolben/data/terraPedia/raw/wiki/item-pages',
+  closureReportPath = DEFAULT_CLOSURE_REPORT_PATH,
+  rawItemPageDir = DEFAULT_RAW_ITEM_PAGE_DIR,
   npcLookup = null,
   npcParsedPath = sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
-  standardizedNpcsPath = path.join(process.cwd(), 'data', 'standardized', 'npcs.standardized.json')
+  standardizedNpcsPath = DEFAULT_STANDARDIZED_NPCS_PATH
 } = {}) {
-  const closureReport = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), closureReportPath), 'utf8'));
+  const resolvedClosureReportPath = path.isAbsolute(closureReportPath)
+    ? closureReportPath
+    : resolveConfiguredPath(closureReportPath, { repoRoot });
+  const closureReport = JSON.parse(fs.readFileSync(resolvedClosureReportPath, 'utf8'));
   const rows = Array.isArray(closureReport.rowsByLane?.needs_external_source_evidence)
     ? closureReport.rowsByLane.needs_external_source_evidence
     : [];

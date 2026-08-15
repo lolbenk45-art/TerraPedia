@@ -52,6 +52,36 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
     assert.ok(!plan.actions[0].args.includes('--only-changed=true'));
 });
 
+test('relative workflow paths resolve from WORKTREE_ROOT instead of the caller cwd', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-relative-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    fs.mkdirSync(path.join(worktreeRoot, 'generated'), { recursive: true });
+    fs.writeFileSync(path.join(worktreeRoot, 'manifest.json'), JSON.stringify({ records: [] }), 'utf8');
+    fs.writeFileSync(path.join(worktreeRoot, 'monitor-state.json'), JSON.stringify({ sources: [{ key: 'seed' }] }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=plan',
+      '--entity=item_pages',
+      '--items=MiningPotion',
+      '--manifest-path=manifest.json',
+      '--monitor-state=monitor-state.json',
+      '--plan-path=generated/plan.json',
+      '--progress-path=generated/progress.json'
+    ], {
+      cwd: tempDir,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(fs.existsSync(path.join(worktreeRoot, 'generated', 'plan.json')), true);
+    assert.equal(fs.existsSync(path.join(worktreeRoot, 'generated', 'progress.json')), true);
+});
+
 test('force mode schedules an unchanged module while check mode remains a no-change plan', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-force-module-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');

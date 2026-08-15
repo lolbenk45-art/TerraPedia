@@ -5,11 +5,22 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import {
+  resolveConfiguredPath,
+  resolveExternalConstantPath,
+  resolveProjectConstantPath
+} from '../../lib/project-constants.mjs';
 
 const DEFAULT_PUBLIC_BASE_URL = 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets';
+const repoRoot = getProjectRoot();
 const DEFAULT_INPUT = sharedDataPath('raw', 'wiki', 'armor_set_images.parsed.latest.json');
-const DEFAULT_WIKI_ARMOR_SETS_INPUT = path.join(getProjectRoot(), 'data', 'generated', 'wiki-armor-sets.latest.json');
-const DEFAULT_MINIO_ROOT = '/home/lolben/.local/share/terrapedia/minio/data/terrapedia-images/items/wiki/armor-sets';
+const DEFAULT_WIKI_ARMOR_SETS_INPUT = resolveProjectConstantPath('dataLayers.generated', {
+  repoRoot,
+  suffix: ['wiki-armor-sets.latest.json']
+});
+export const DEFAULT_MINIO_ROOT = resolveExternalConstantPath('externalDefaults.minioDataDir', {
+  suffix: ['terrapedia-images', 'items', 'wiki', 'armor-sets']
+});
 
 export function normalizeArmorImageKey(value) {
   return String(value ?? '')
@@ -244,7 +255,7 @@ function resolveWikiArmorSetsInputPath(inputPath) {
   if (!inputPath) {
     return null;
   }
-  const resolved = path.resolve(process.cwd(), inputPath);
+  const resolved = resolveOptionPath(inputPath, DEFAULT_WIKI_ARMOR_SETS_INPUT);
   if (fs.existsSync(resolved)) {
     return resolved;
   }
@@ -290,7 +301,7 @@ function walkFiles(rootDir) {
 }
 
 export function listManagedArmorSetUrls(minioRoot, publicBaseUrl = DEFAULT_PUBLIC_BASE_URL) {
-  const resolvedRoot = path.resolve(process.cwd(), minioRoot);
+  const resolvedRoot = resolveOptionPath(minioRoot, DEFAULT_MINIO_ROOT);
   return walkFiles(resolvedRoot).map((filePath) => {
     const objectPath = path.basename(filePath) === 'xl.meta' ? path.dirname(filePath) : filePath;
     const relativePath = path.relative(resolvedRoot, objectPath).split(path.sep).map(encodeURIComponent).join('/');
@@ -299,7 +310,7 @@ export function listManagedArmorSetUrls(minioRoot, publicBaseUrl = DEFAULT_PUBLI
 }
 
 export function runArmorSetManagedImageIndex(options = {}) {
-  const inputPath = path.resolve(process.cwd(), options.input ?? DEFAULT_INPUT);
+  const inputPath = resolveOptionPath(options.input, DEFAULT_INPUT);
   const minioRoot = options.minioRoot ?? DEFAULT_MINIO_ROOT;
   const payload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const managedUrls = listManagedArmorSetUrls(minioRoot, options.publicBaseUrl);
@@ -309,7 +320,7 @@ export function runArmorSetManagedImageIndex(options = {}) {
   const result = applyManagedArmorSetImageUrls(payload, index);
   const summary = {
     input: inputPath,
-    minioRoot: path.resolve(process.cwd(), minioRoot),
+    minioRoot: resolveOptionPath(minioRoot, DEFAULT_MINIO_ROOT),
     managedUrls: managedUrls.length,
     wikiArmorSets: wikiArmorSets.length,
     sourceMerge: mergeResult,
@@ -324,6 +335,17 @@ export function runArmorSetManagedImageIndex(options = {}) {
     summary.wrote = true;
   }
   return summary;
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
 }
 
 const isCli = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

@@ -15,13 +15,20 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
 const ACTION_ID = 'wiki-monitor-domain-smoke';
 const DEFAULT_LIMIT = 10;
-const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'reports', 'crawler-monitor', 'wiki-monitor-domain-smoke-progress.latest.json');
-const DEFAULT_LATEST_REPORT_PATH = path.join(repoRoot, 'reports', 'crawler-monitor', 'wiki-monitor-domain-smoke.latest.json');
+const DEFAULT_PROGRESS_PATH = resolveProjectConstantPath('evidence.crawlerMonitor', {
+  repoRoot,
+  suffix: ['wiki-monitor-domain-smoke-progress.latest.json']
+});
+const DEFAULT_LATEST_REPORT_PATH = resolveProjectConstantPath('evidence.crawlerMonitor', {
+  repoRoot,
+  suffix: ['wiki-monitor-domain-smoke.latest.json']
+});
 
 export const WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS = [
   smokeDomain('items', 'Items', 'wiki.module.iteminfo', ['item', 'incategory:Items']),
@@ -44,21 +51,21 @@ export function buildDomainSmokePlan(rawOptions = {}) {
   const domains = selectedDomains.length
     ? WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.filter((domain) => selectedDomains.includes(domain.domain))
     : WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS;
-  const outputDir = path.resolve(
-    repoRoot,
-    rawOptions['output-dir'] ?? rawOptions.outputDir ?? path.join('reports', 'crawler-monitor', runId)
+  const outputDir = resolveOptionPath(
+    rawOptions['output-dir'] ?? rawOptions.outputDir,
+    resolveProjectConstantPath('evidence.crawlerMonitor', { repoRoot, suffix: [runId] })
   );
-  const reportPath = path.resolve(
-    repoRoot,
-    rawOptions['report-path'] ?? rawOptions.reportPath ?? path.join('reports', 'crawler-monitor', `${runId}.json`)
+  const reportPath = resolveOptionPath(
+    rawOptions['report-path'] ?? rawOptions.reportPath,
+    resolveProjectConstantPath('evidence.crawlerMonitor', { repoRoot, suffix: [`${runId}.json`] })
   );
-  const progressPath = path.resolve(
-    repoRoot,
-    rawOptions['progress-path'] ?? rawOptions.progressPath ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH
+  const progressPath = resolveOptionPath(
+    rawOptions['progress-path'] ?? rawOptions.progressPath ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
+    DEFAULT_PROGRESS_PATH
   );
-  const latestReportPath = path.resolve(
-    repoRoot,
-    rawOptions['latest-report-path'] ?? rawOptions.latestReportPath ?? DEFAULT_LATEST_REPORT_PATH
+  const latestReportPath = resolveOptionPath(
+    rawOptions['latest-report-path'] ?? rawOptions.latestReportPath,
+    DEFAULT_LATEST_REPORT_PATH
   );
 
   return {
@@ -77,6 +84,17 @@ export function buildDomainSmokePlan(rawOptions = {}) {
       outputPath: path.join(outputDir, `${domain.domain}.json`)
     }))
   };
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
 }
 
 export async function runDomainSmoke(rawOptions = {}, deps = {}) {

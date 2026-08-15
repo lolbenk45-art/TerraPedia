@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
-import { getProjectRoot } from '../lib/project-root.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
 
 const repoRoot = getProjectRoot();
 const moduleRequire = createRequire(import.meta.url);
@@ -331,7 +331,7 @@ function loadMysqlModule() {
 }
 
 export function loadSourceEvidence({
-  chestRawPath = '/home/lolben/data/terraPedia/raw/wiki/item-pages/chest.latest.json'
+  chestRawPath = resolveSharedDataRoot('raw', 'wiki', 'item-pages', 'chest.latest.json')
 } = {}) {
   return {
     chestPage: loadChestPageEvidence(chestRawPath)

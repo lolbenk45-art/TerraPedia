@@ -13,11 +13,15 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
-const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+const DEFAULT_WIKI_SYNC_PROGRESS_PATH = resolveProjectConstantPath('dataLayers.generated', {
+  repoRoot,
+  suffix: ['wiki-sync-progress.latest.json']
+});
 const DEFAULT_RAW_DIR = resolveSharedDataRoot('raw', 'wiki', 'biomes');
 
 let progressPath = null;
@@ -99,10 +103,19 @@ async function main(argv = process.argv.slice(2)) {
   const generatedAt = new Date().toISOString();
   fetchGeneratedAt = generatedAt;
   const dateTag = generatedAt.slice(0, 10);
-  const outputJsonPath = path.resolve(process.cwd(), options['output-json'] ?? path.join(repoRoot, 'data', 'generated', 'wiki-biomes.latest.json'));
-  const outputMdPath = path.resolve(process.cwd(), options['report-md'] ?? path.join(repoRoot, 'reports', `wiki-biomes-summary-${dateTag}.md`));
-  rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? DEFAULT_RAW_DIR);
-  progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH);
+  const outputJsonPath = resolveOptionPath(
+    options['output-json'],
+    resolveProjectConstantPath('dataLayers.generated', { repoRoot, suffix: ['wiki-biomes.latest.json'] })
+  );
+  const outputMdPath = resolveOptionPath(
+    options['report-md'],
+    resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: [`wiki-biomes-summary-${dateTag}.md`] })
+  );
+  rawDir = resolveOptionPath(options['raw-dir'], DEFAULT_RAW_DIR);
+  progressPath = resolveOptionPath(
+    options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
+    DEFAULT_WIKI_SYNC_PROGRESS_PATH
+  );
   progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'biomes-refresh';
   progressStartedAt = generatedAt;
 
@@ -819,6 +832,17 @@ function buildMarkdown(payload, outputJsonPath) {
   }
 
   return `${lines.join('\n')}\n`;
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
 }
 
 async function fetchJson(url) {

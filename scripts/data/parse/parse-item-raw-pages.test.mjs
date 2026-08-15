@@ -5,12 +5,22 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  DEFAULT_RAW_DIR,
+  DEFAULT_REPORT,
+  DEFAULT_OUTPUT,
   buildItemRawPageParseProgressPayload,
   parseItemRawPagePayload,
   runItemRawPagesParse
 } from './parse-item-raw-pages.mjs';
+import { resolveSharedDataConstantPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const fixtureDir = path.join(import.meta.dirname, 'fixtures', 'item-pages');
+
+test('default item-page parse paths come from project constants', () => {
+  assert.equal(DEFAULT_RAW_DIR, resolveSharedDataConstantPath('crawler.itemPageRawRoot'));
+  assert.equal(DEFAULT_OUTPUT, resolveProjectConstantPath('dataLayers.generated', { suffix: ['item-raw-pages-parsed.latest.json'] }));
+  assert.match(DEFAULT_REPORT, /reports[\\/]runtime[\\/]item-raw-pages-parse-\d{4}-\d{2}-\d{2}\.json$/);
+});
 
 test('parseItemRawPagePayload keys records by itemInternalName and extracts safe item page evidence', () => {
   const payload = readFixture('demonbow.latest.json');

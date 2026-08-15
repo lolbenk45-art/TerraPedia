@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
-import { getProjectRoot } from '../lib/project-root.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const require = createRequire(import.meta.url);
 const repoRoot = getProjectRoot();
-const DEFAULT_INPUT_JSON = '/home/lolben/data/terraPedia/generated/wiki-audio-assets.latest.json';
+const DEFAULT_INPUT_JSON = resolveSharedDataRoot('generated', 'wiki-audio-assets.latest.json');
 let mysqlModule = null;
 
 export function buildAudioAssetDbAudit(metadata, dbState = {}, options = {}) {
@@ -89,7 +90,7 @@ export function resolveAuditOptions(rawArgs = {}, options = {}) {
   const env = options.env ?? process.env;
   const dateTag = formatDateTag(options.now ?? new Date());
   return {
-    inputJsonPath: path.resolve(rawArgs['input-json'] ?? rawArgs.inputJson ?? DEFAULT_INPUT_JSON),
+    inputJsonPath: resolveOptionPath(rawArgs['input-json'] ?? rawArgs.inputJson, DEFAULT_INPUT_JSON, root),
     reportPath: path.resolve(root, rawArgs['report-json'] ?? path.join('reports/audit', `audio-asset-db-readiness-${dateTag}.json`)),
     db: {
       host: rawArgs.host ?? env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -99,6 +100,12 @@ export function resolveAuditOptions(rawArgs = {}, options = {}) {
       database: rawArgs.database ?? env.TERRAPEDIA_DB_NAME ?? 'terria_v1_local'
     }
   };
+}
+
+function resolveOptionPath(value, fallback, root) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot: root, allowExternal: path.isAbsolute(candidate) });
 }
 
 function formatDateTag(value) {

@@ -4,4 +4,5 @@
 
 ## 报告
 
+- [2026-08-16 项目结构迁移 inventory](./project-structure-inventory-2026-08-16.md)
 - [2026-04-27 项目结构审计](./project-structure-audit-2026-04-27.md)

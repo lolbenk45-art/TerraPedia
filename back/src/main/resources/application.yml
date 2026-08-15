@@ -99,7 +99,7 @@ springdoc:
     path: /swagger-ui.html
 
 terrapedia:
-  audio-media-root: ${TERRAPEDIA_AUDIO_MEDIA_ROOT:/home/lolben/data/terraPedia/media/audio/wiki}
+  audio-media-root: ${TERRAPEDIA_AUDIO_MEDIA_ROOT:${user.home}/data/terraPedia/media/audio/wiki}
 
 terraria:
   logging:

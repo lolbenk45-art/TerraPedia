@@ -3,13 +3,19 @@
 TerraPedia is a Terraria knowledge base project with:
 
 - `back`: Spring Boot backend
-- `front`: user-facing frontend
+- `front-nuxt`: maintained user-facing Nuxt frontend
 - `data-query-app`: admin/data-query frontend
 - `data`: data layers and generated datasets used by import and sync tooling
 - `docs`: current architecture, audits, plans, project governance, runbooks, research notes, and `superpowers` outputs
 - `docs/project-governance`: current project facts, workflow, long-term plans, reference docs, and historical project planning records
 - `reports`: local logs, screenshots, benchmarks, and other generated run artifacts; long-lived reports should move to `docs/audits`
 - `scripts`: local automation, grouped by `dev`, `data`, `lib`, and `tooling`
+
+The physical structure migration is not started. The current application paths
+remain authoritative until a focused migration checkpoint passes its consumer
+scan and path-offset contracts. See the [v2 structure baseline](docs/architecture/project-structure-v2.md)
+and the [2026-08-16 inventory](docs/audits/structure/project-structure-inventory-2026-08-16.md)
+for the current-to-target map and compatibility boundaries.
 
 ## Structure Governance
 

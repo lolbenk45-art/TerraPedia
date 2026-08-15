@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 23:54 CST by Codex
+Last updated: 2026-08-16 02:09 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -75,6 +75,19 @@ manual sweep, apply, database write, L2, or Boss-loot command was run; the
 all-sources-unchanged runtime case remains a residual acceptance gap.
 
 ## Open Work
+
+- **Project structure hard-code boundary repair**; owner: Codex; status: active;
+  branch: `feat/supplementary-domains-readiness`; entry:
+  `entries/2026-08-16-project-structure-hardcode-boundary-repair.md`;
+  worktree: `/home/lolben/TerraPedia`; parent: none; dependencies: reviewable
+  focused checkpoint before physical migration; contract handoff:
+  `docs/architecture/project-structure-v2.md` + structure inventory; scope is
+  path hard-code census, containment contracts, narrow production fixes, and
+  removal of the retired untracked `front/` directory; no crawler apply or
+  database writes; Task 1 structure inventory and
+  `docs/architecture/project-structure-v2.md` are complete; next: review this
+  focused checkpoint and create a dedicated migration worktree before any
+  physical app move.
 
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.

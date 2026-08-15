@@ -26,6 +26,13 @@ test('resolveProjectPath joins paths relative to repository root', () => {
   assert.equal(actual, path.join(getProjectRoot(), 'scripts', 'data', 'lib'));
 });
 
+test('resolveProjectPath rejects repository traversal', () => {
+  assert.throws(
+    () => resolveProjectPath('data', '..', '..', 'outside'),
+    /escapes repository root/
+  );
+});
+
 test('resolveSharedDataRoot stays under data/terraPedia', () => {
   const actual = resolveSharedDataRoot();
 
@@ -84,4 +91,11 @@ test('resolveSharedDataRoot honors explicit shared data env override', () => {
       process.env.TERRAPEDIA_SHARED_DATA_ROOT = previous;
     }
   }
+});
+
+test('resolveSharedDataRoot rejects shared-data traversal', () => {
+  assert.throws(
+    () => resolveSharedDataRoot('raw', '..', '..', 'outside'),
+    /escapes shared data root/
+  );
 });

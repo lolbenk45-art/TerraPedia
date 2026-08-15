@@ -10,11 +10,17 @@ import {
   loadAuthorizedOperationContext
 } from '../automation/authorized-operation-context.mjs';
 import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { createWikiRequestGate } from '../lib/wiki-request-gate.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import {
+  resolveConfiguredPath,
+  resolveProjectConstantPath,
+  resolveSharedDataConstantPath
+} from '../../lib/project-constants.mjs';
 
 const ACTION_ID = 'item-image-source-verification';
 const OPERATION_ID = 'canonical-item-image-source-verification';
@@ -217,21 +223,19 @@ export function buildItemImageSourceVerificationInput({
 }
 
 export async function prepareItemImageSourceVerificationInput(rawOptions = {}, dependencies = {}) {
-  const repoRoot = path.resolve(rawOptions.repoRoot ?? process.cwd());
-  const candidateReportPath = path.resolve(
-    repoRoot,
-    rawOptions.candidateReportPath
-      ?? 'reports/audit/item-image-source-candidates-2026-07-30-v2.json'
+  const repoRoot = path.resolve(rawOptions.repoRoot ?? getProjectRoot());
+  const candidateReportPath = resolveOptionPath(
+    rawOptions.candidateReportPath,
+    resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: ['item-image-source-candidates-2026-07-30-v2.json'] }),
+    repoRoot
   );
-  const promotionReviewPath = path.resolve(
-    repoRoot,
-    rawOptions.promotionReviewPath
-      ?? 'reports/audit/item-image-source-promotion-review-2026-07-30.json'
+  const promotionReviewPath = resolveOptionPath(
+    rawOptions.promotionReviewPath,
+    resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: ['item-image-source-promotion-review-2026-07-30.json'] }),
+    repoRoot
   );
-  const rawDir = path.resolve(
-    rawOptions.rawDir ?? '/home/lolben/data/terraPedia/raw/wiki/item-pages'
-  );
-  const outputPath = path.resolve(repoRoot, rawOptions.outputPath ?? DEFAULT_INPUT_PATH);
+  const rawDir = resolveOptionPath(rawOptions.rawDir, resolveSharedDataConstantPath('crawler.itemPageRawRoot'), repoRoot);
+  const outputPath = resolveOptionPath(rawOptions.outputPath, DEFAULT_INPUT_PATH, repoRoot);
   const candidateReportBytes = await fs.promises.readFile(candidateReportPath);
   const promotionReviewBytes = await fs.promises.readFile(promotionReviewPath);
   const candidateReport = parseJsonBytes(candidateReportBytes, 'candidateReportBytes');
@@ -274,6 +278,12 @@ export async function prepareItemImageSourceVerificationInput(rawOptions = {}, d
     recordCount: input.records.length,
     constraints: input.constraints
   };
+}
+
+function resolveOptionPath(value, fallback, repoRoot) {
+  if (value == null || String(value).trim() === '') return path.resolve(repoRoot, fallback);
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot, allowExternal: path.isAbsolute(candidate) });
 }
 
 export async function runItemImageSourceVerification(rawOptions = {}, dependencies = {}) {

@@ -8,19 +8,19 @@ This folder contains only the automated upstream-reading code.
   - Checks Terraria Wiki.gg module revisions and content hashes
   - Checks Steam Terraria news
   - Checks Terraria official forum announcements
-  - Writes monitor results into `G:\ClaudeCode\TerraPedia-dev\data\generated`
+  - Writes monitor results to the configured shared-data root under `generated/`
 
 ## Not Included Here
 
 These are fetch/import pipeline scripts, not monitor scripts:
 
-- `G:\ClaudeCode\terraPedia\scripts\data\fetch-wiki-iteminfo.mjs`
-- `G:\ClaudeCode\terraPedia\scripts\data\fetch-wiki-npcinfo.mjs`
-- `G:\ClaudeCode\terraPedia\scripts\data\fetch-wiki-projectileinfo.mjs`
-- `G:\ClaudeCode\terraPedia\scripts\data\fetch-wiki-armorsetbonuses.mjs`
-- `G:\ClaudeCode\terraPedia\scripts\data\fetch-wiki-buffs.mjs`
-- `G:\ClaudeCode\terraPedia\scripts\data\fetch-wiki-item-pages.mjs`
-- `G:\ClaudeCode\terraPedia\scripts\data\normalize-wiki-items.mjs`
+- `scripts/data/fetch/fetch-wiki-iteminfo.mjs`
+- `scripts/data/fetch/fetch-wiki-npcinfo.mjs`
+- `scripts/data/fetch/fetch-wiki-projectileinfo.mjs`
+- `scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs`
+- `scripts/data/fetch/fetch-wiki-buffs.mjs`
+- `scripts/data/fetch/fetch-wiki-item-pages.mjs`
+- `scripts/data/normalize/normalize-wiki-items.mjs`
 
 ## Boundary
 
@@ -37,6 +37,6 @@ These are fetch/import pipeline scripts, not monitor scripts:
 
 ## Run
 
-```powershell
-node G:\ClaudeCode\TerraPedia-dev\scripts\tooling\upstream-monitor\check-upstream-updates.mjs --format=json
+```bash
+node scripts/tooling/upstream-monitor/check-upstream-updates.mjs --format=json
 ```

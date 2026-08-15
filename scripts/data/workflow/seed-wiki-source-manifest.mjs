@@ -12,10 +12,17 @@ import {
   saveWikiSourceManifest,
   upsertManifestRecord
 } from '../lib/wiki-sync-manifest.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const repoRoot = getProjectRoot();
 const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');
-const manifestPath = path.resolve(process.cwd(), process.argv[2] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
+const manifestArg = process.argv[2];
+const manifestPath = manifestArg == null
+  ? DEFAULT_WIKI_SOURCE_MANIFEST_PATH
+  : resolveConfiguredPath(manifestArg, {
+      repoRoot,
+      allowExternal: path.isAbsolute(manifestArg)
+    });
 
 let manifest = loadWikiSourceManifest(manifestPath);
 let seededCount = 0;

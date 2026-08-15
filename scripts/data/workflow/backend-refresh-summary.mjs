@@ -1,7 +1,10 @@
 import path from 'node:path';
+import { resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 export function buildBackendRefreshSummaryPath(outputPath) {
-  const resolvedPath = path.resolve(String(outputPath ?? 'reports/backend-data-refresh.json'));
+  const resolvedPath = path.resolve(String(
+    outputPath ?? resolveProjectConstantPath('evidence.backendRefreshSummary')
+  ));
   const parsed = path.parse(resolvedPath);
   return path.join(parsed.dir, `${parsed.name}.summary.json`);
 }

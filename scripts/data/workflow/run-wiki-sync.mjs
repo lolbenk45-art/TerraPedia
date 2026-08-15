@@ -33,6 +33,7 @@ import {
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
 import { isManagedImagePath } from '../relation/managed-image-url-policy.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,10 +42,10 @@ const repoRoot = resolveProjectPath();
 const generatedRoot = path.resolve(repoRoot, 'data', 'generated');
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(generatedRoot, 'wiki-sync-progress.latest.json');
 const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');
-const seedScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'seed-wiki-source-manifest.mjs');
+const seedScriptPath = path.join(sourceRoot, 'scripts', 'data', 'workflow', 'seed-wiki-source-manifest.mjs');
 const normalizeItemsScriptPath = path.join(sourceRoot, 'scripts', 'data', 'normalize', 'normalize-wiki-items.mjs');
-const zhEnrichScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-zh-enrich.mjs');
-const imageSyncScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-image-sync.mjs');
+const zhEnrichScriptPath = path.join(sourceRoot, 'scripts', 'data', 'workflow', 'run-zh-enrich.mjs');
+const imageSyncScriptPath = path.join(sourceRoot, 'scripts', 'data', 'workflow', 'run-image-sync.mjs');
 const OWNER_ADVANCED_SOURCE_KEYS = new Set([
   'wiki.module.iteminfo',
   'wiki.module.npcinfo',
@@ -224,14 +225,21 @@ const ENTITY_CONFIG = {
 
 const options = parseCliArgs(process.argv.slice(2));
 const mode = String(options.mode ?? 'monitor').trim().toLowerCase();
-const monitorStatePath = path.resolve(process.cwd(), options['monitor-state'] ?? DEFAULT_WIKI_MONITOR_STATE_PATH);
-const manifestPath = path.resolve(process.cwd(), options['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
-const planPath = path.resolve(process.cwd(), options['plan-path'] ?? DEFAULT_WIKI_SYNC_PLAN_PATH);
-const progressPath = path.resolve(
-  process.cwd(),
+const monitorStatePath = resolveWorkflowPath(options['monitor-state'] ?? DEFAULT_WIKI_MONITOR_STATE_PATH);
+const manifestPath = resolveWorkflowPath(options['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
+const planPath = resolveWorkflowPath(options['plan-path'] ?? DEFAULT_WIKI_SYNC_PLAN_PATH);
+const progressPath = resolveWorkflowPath(
   options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH
 );
 const requestedEntities = resolveRequestedEntities(options);
+
+function resolveWorkflowPath(candidate) {
+  const value = String(candidate ?? '');
+  return resolveConfiguredPath(value, {
+    repoRoot,
+    allowExternal: path.isAbsolute(value)
+  });
+}
 
 if (options['clear-cooldown'] === true || String(options['clear-cooldown'] ?? '').toLowerCase() === 'true') {
   clearWikiRequestGateCooldown();

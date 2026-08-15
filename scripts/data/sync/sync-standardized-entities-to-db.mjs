@@ -580,7 +580,6 @@ function loadMysqlModule({
     path.join(repoRoot, 'data-query-app', 'package.json'),
     path.join(repoRoot, 'back', 'package.json'),
     path.join(repoRoot, 'front-nuxt', 'package.json'),
-    path.join(repoRoot, 'front', 'package.json'),
   ];
 
   let firstError = null;

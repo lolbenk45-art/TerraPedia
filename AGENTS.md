@@ -20,7 +20,6 @@ reference only unless the current spec explicitly promotes it.
 - `back/`: Spring Boot backend.
 - `front-nuxt/`: maintained public Nuxt frontend.
 - `data-query-app/`: maintained admin/data-query Nuxt frontend.
-- `front/`: older frontend area; verify current relevance before editing.
 - `scripts/dev/`: local stack, smoke, and quality-gate automation.
 - `scripts/data/`: crawl, standardize, import, sync, audit, and data workflow tooling.
 - `data/`: tracked data layers and compatibility inputs; never move data blindly.

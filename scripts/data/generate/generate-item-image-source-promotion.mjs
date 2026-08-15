@@ -6,10 +6,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  resolveConfiguredPath,
+  resolveProjectConstantPath,
+  resolveSharedDataConstantPath
+} from '../../lib/project-constants.mjs';
 
-const DEFAULT_ITEMS_PATH = 'data/standardized/items.standardized.json';
-const DEFAULT_ITEM_PAGES_PATH = 'data/standardized/item_pages.standardized.json';
-const DEFAULT_RAW_DIR = '/home/lolben/data/terraPedia/raw/wiki/item-pages';
+const repoRoot = getProjectRoot();
+const DEFAULT_ITEMS_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['items.standardized.json'] });
+const DEFAULT_ITEM_PAGES_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['item_pages.standardized.json'] });
+const DEFAULT_RAW_DIR = resolveSharedDataConstantPath('crawler.itemPageRawRoot');
 
 export function buildItemImageSourcePromotionArtifacts({
   standardizedBytes,
@@ -432,21 +439,19 @@ function text(value) {
 function normalizeOptions(rawOptions = {}) {
   const generatedAt = rawOptions.generatedAt ?? new Date().toISOString();
   const dateTag = generatedAt.slice(0, 10);
-  const candidateReportPath = path.resolve(
-    rawOptions.candidateReportPath
-      ?? rawOptions['candidate-report']
-      ?? `reports/audit/item-image-source-candidates-${dateTag}-v2.json`
+  const candidateReportPath = resolveOptionPath(
+    rawOptions.candidateReportPath ?? rawOptions['candidate-report'],
+    resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: [`item-image-source-candidates-${dateTag}-v2.json`] })
   );
   return {
-    itemsPath: path.resolve(rawOptions.itemsPath ?? rawOptions.items ?? DEFAULT_ITEMS_PATH),
-    itemPagesPath: path.resolve(rawOptions.itemPagesPath ?? rawOptions['item-pages'] ?? DEFAULT_ITEM_PAGES_PATH),
-    rawDir: path.resolve(rawOptions.rawDir ?? rawOptions['raw-dir'] ?? DEFAULT_RAW_DIR),
+    itemsPath: resolveOptionPath(rawOptions.itemsPath ?? rawOptions.items, DEFAULT_ITEMS_PATH),
+    itemPagesPath: resolveOptionPath(rawOptions.itemPagesPath ?? rawOptions['item-pages'], DEFAULT_ITEM_PAGES_PATH),
+    rawDir: resolveOptionPath(rawOptions.rawDir ?? rawOptions['raw-dir'], DEFAULT_RAW_DIR),
     candidateReportPath,
     verificationReportPath: optionalPath(rawOptions.verificationReportPath ?? rawOptions['verification-report']),
-    reviewOutputPath: path.resolve(
-      rawOptions.reviewOutputPath
-        ?? rawOptions['review-output']
-        ?? `reports/audit/item-image-source-promotion-review-${dateTag}.json`
+    reviewOutputPath: resolveOptionPath(
+      rawOptions.reviewOutputPath ?? rawOptions['review-output'],
+      resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: [`item-image-source-promotion-review-${dateTag}.json`] })
     ),
     bundleOutputPath: optionalPath(rawOptions.bundleOutputPath ?? rawOptions['bundle-output']),
     generatedAt
@@ -454,7 +459,13 @@ function normalizeOptions(rawOptions = {}) {
 }
 
 function optionalPath(value) {
-  return text(value) ? path.resolve(value) : null;
+  return text(value) ? resolveOptionPath(value, null) : null;
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot, allowExternal: path.isAbsolute(candidate) });
 }
 
 function parseArgs(argv) {

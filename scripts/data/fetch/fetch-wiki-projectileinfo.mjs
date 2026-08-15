@@ -10,12 +10,15 @@ import {
   shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const DEFAULT_MODULE_TITLE = 'Module:Projectileinfo/data';
 
 const options = parseCliArgs(process.argv.slice(2));
+const repoRoot = getProjectRoot();
 const moduleTitle = options.module ?? DEFAULT_MODULE_TITLE;
-const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki'));
+const rawDir = resolveOptionPath(options['raw-dir'], sharedDataPath('raw', 'wiki'));
 const reportDir = sharedDataPath('reports', 'fetch');
 const keepSnapshot = shouldKeepSnapshot(options);
 
@@ -102,6 +105,12 @@ console.log(`Latest JSON: ${latestJsonPath}`);
 console.log(`Latest parsed JSON: ${latestParsedPath}`);
 console.log(`Latest Lua: ${latestLuaPath}`);
 console.log(`Report: ${reportPath}`);
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot, allowExternal: path.isAbsolute(candidate) });
+}
 
 function extractProjectileMetadata(moduleContent) {
   const generatedAtMatch = moduleContent.match(/^\s*--\s*generated at:\s*(.+)$/m);

@@ -22,6 +22,8 @@ import {
   resolveManagedImageUrlPrefixes
 } from '../relation/managed-image-url-policy.mjs';
 import { writeJsonFile } from './backend-refresh-runtime-state.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const OPERATION_ID = 'canonical-image-sync';
 const DECISION_LEDGER_PATH = 'reports/authorization/canonical/used-decisions.json';
@@ -37,7 +39,7 @@ const SUPPORTED_SCOPES = Object.freeze([
 ]);
 
 export async function runImageSync(rawOptions = {}, dependencies = {}) {
-  const repoRoot = path.resolve(rawOptions.repoRoot ?? process.cwd());
+  const repoRoot = path.resolve(rawOptions.repoRoot ?? getProjectRoot());
   const apply = Boolean(rawOptions.apply);
   const scopes = normalizeScopes(rawOptions.scopes);
   const legacyOriginRepair = normalizeLegacyOriginRepairOptions({
@@ -48,16 +50,18 @@ export async function runImageSync(rawOptions = {}, dependencies = {}) {
     managedObjectOrigin: rawOptions.managedObjectOrigin,
     expectedLegacyCount: rawOptions.expectedLegacyCount
   });
-  const standardizedRoot = path.join(repoRoot, 'data', 'standardized');
+  const standardizedRoot = resolveProjectConstantPath('dataLayers.standardized', { repoRoot });
   const now = dependencies.now ?? (() => new Date().toISOString());
   const startedAt = now();
-  const progressPath = path.resolve(
-    repoRoot,
-    rawOptions.progressPath ?? path.join('data', 'generated', 'wiki-sync-progress.latest.json')
+  const progressPath = resolveOptionPath(
+    rawOptions.progressPath,
+    resolveProjectConstantPath('dataLayers.generated', { repoRoot, suffix: ['wiki-sync-progress.latest.json'] }),
+    repoRoot
   );
-  const reportPath = path.resolve(
-    repoRoot,
-    rawOptions.outputPath ?? path.join('reports', `workflow-image-sync-${startedAt.slice(0, 10)}.json`)
+  const reportPath = resolveOptionPath(
+    rawOptions.outputPath,
+    resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: [`workflow-image-sync-${startedAt.slice(0, 10)}.json`] }),
+    repoRoot
   );
   // The resolver stays fail-closed: it trusts only what the local stack config
   // declares. Historical endpoints are merged in here instead, because objects
@@ -925,7 +929,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     ? options.managedUrlPrefix
     : (toText(options.managedUrlPrefix) ? [toText(options.managedUrlPrefix)] : null);
   runImageSync({
-    repoRoot: process.cwd(),
+    repoRoot: getProjectRoot(),
     apply: booleanOption(options.apply, false),
     scopes: options.scopes ?? options.scope ?? 'projectiles,buffs',
     apiBase: options.apiBase,
@@ -936,7 +940,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     ...(options['local-evidence']
       ? {
           localEvidence: buildLocalImageEvidenceFromPromotionBundle(
-            JSON.parse(fs.readFileSync(path.resolve(process.cwd(), options['local-evidence']), 'utf8'))
+            JSON.parse(fs.readFileSync(resolveOptionPath(options['local-evidence'], null, getProjectRoot()), 'utf8'))
           )
         }
       : {}),
@@ -956,5 +960,16 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   }).catch((error) => {
     process.stderr.write(`${error?.stack || error?.message || error}\n`);
     process.exitCode = 1;
+  });
+}
+
+function resolveOptionPath(value, fallback, repoRoot) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
   });
 }

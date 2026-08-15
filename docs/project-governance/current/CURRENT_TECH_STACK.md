@@ -18,7 +18,8 @@ when this summary and code diverge.
 | Data tooling | `scripts/data/` and `data/` | Crawl, normalize, import, sync, audit, and acceptance workflow assets. |
 | Local stack and gates | `scripts/dev/` | Bash/WSL startup, shutdown, smoke, and quality-gate automation. |
 
-`front/` is an older frontend area. Verify current relevance before editing it.
+The retired `front/` directory has been removed. Do not recreate it; use
+`front-nuxt/` for public frontend work.
 
 ## Frontend Stack
 

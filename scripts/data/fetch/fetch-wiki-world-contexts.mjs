@@ -19,6 +19,7 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 export const WORLD_CONTEXT_SOURCE_PAGES = [
   { title: 'Day and night cycle', domain: 'time' },
@@ -124,9 +125,15 @@ async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
   const generatedAt = new Date().toISOString();
   const dateTag = generatedAt.slice(0, 10);
-  const outputPath = path.resolve(process.cwd(), options['output-json'] ?? DEFAULT_OUTPUT_PATH);
-  const reportPath = path.resolve(process.cwd(), options['report-md'] ?? path.join(repoRoot, 'reports', `wiki-world-contexts-summary-${dateTag}.md`));
-  const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const outputPath = resolveOptionPath(options['output-json'], DEFAULT_OUTPUT_PATH);
+  const reportPath = resolveOptionPath(
+    options['report-md'],
+    path.join(repoRoot, 'reports', `wiki-world-contexts-summary-${dateTag}.md`)
+  );
+  const progressPath = resolveOptionPath(
+    options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
+    DEFAULT_PROGRESS_PATH
+  );
   const actionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'world-contexts-refresh';
 
   const writeProgress = (progress) => {
@@ -188,6 +195,17 @@ async function main(argv = process.argv.slice(2)) {
   if (unresolved.length > 0) {
     process.exitCode = 1;
   }
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
 }
 
 function toSourceRecord(source, page) {

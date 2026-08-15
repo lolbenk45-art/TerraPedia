@@ -1,8 +1,9 @@
 # Data Scripts
 
-Default shared data root:
-
-- `G:\ClaudeCode\data\terraPedia`
+Default shared data root is resolved by `scripts/data/lib/project-root.mjs`: an explicit
+`TERRAPEDIA_SHARED_DATA_ROOT` (or compatibility `TERRAPEDIA_SOURCE_DATA_DIR`) wins;
+otherwise it uses `data/terraPedia` in the primary worktree. Stable project paths are
+defined in `scripts/config/project.constants.json`.
 
 `scripts/data` owns data lifecycle automation. It is responsible for collecting source material, normalizing or transforming it, producing canonical datasets, auditing quality, importing or backfilling the active system, synchronizing standardized data, composing workflows, and exporting consumer-ready data.
 

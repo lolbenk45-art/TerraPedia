@@ -4,16 +4,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getProjectRoot } from '../lib/project-root.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
+import {
+  resolveProjectConstantPath,
+  resolveSharedDataConstantPath
+} from '../../lib/project-constants.mjs';
 
-const DEFAULT_RAW_DIR = '/home/lolben/data/terraPedia/raw/wiki/item-pages';
-const DEFAULT_OUTPUT = 'data/standardized/item_pages.standardized.json';
-const DEFAULT_VIEW_DIR = 'data/standardized-view/item_pages';
+export const DEFAULT_RAW_DIR = resolveSharedDataConstantPath('crawler.itemPageRawRoot');
+export const DEFAULT_OUTPUT = resolveProjectConstantPath('dataLayers.standardized', {
+  suffix: ['item_pages.standardized.json']
+});
+export const DEFAULT_VIEW_DIR = resolveProjectConstantPath('dataLayers.standardizedView', {
+  suffix: ['item_pages']
+});
+export const DEFAULT_SOURCE_DATA_DIR = resolveSharedDataRoot();
 const DEFAULT_PART_SIZE = 250;
 
 export async function buildItemPageMetadataPayload({
   rawDir = DEFAULT_RAW_DIR,
-  sourceDataDir = '/home/lolben/data/terraPedia',
+  sourceDataDir = DEFAULT_SOURCE_DATA_DIR,
   now = new Date().toISOString()
 } = {}) {
   const files = (await fs.promises.readdir(rawDir))
@@ -101,7 +110,7 @@ function normalizeOptions(rawOptions = {}) {
     output: path.resolve(rawOptions.output ?? DEFAULT_OUTPUT),
     viewDir: path.resolve(rawOptions.viewDir ?? rawOptions['view-dir'] ?? DEFAULT_VIEW_DIR),
     partSize: Math.max(1, Number(rawOptions.partSize ?? rawOptions['part-size'] ?? DEFAULT_PART_SIZE)),
-    sourceDataDir: path.resolve(rawOptions.sourceDataDir ?? rawOptions['source-data-dir'] ?? '/home/lolben/data/terraPedia')
+    sourceDataDir: path.resolve(rawOptions.sourceDataDir ?? rawOptions['source-data-dir'] ?? DEFAULT_SOURCE_DATA_DIR)
   };
 }
 

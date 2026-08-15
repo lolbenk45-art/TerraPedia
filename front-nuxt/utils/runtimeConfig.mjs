@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { getProjectConstants } from '../../scripts/lib/project-constants.mjs'
 
-const DEFAULT_BACKEND_ORIGIN = 'http://localhost:18088'
+const PROJECT_CONSTANTS = getProjectConstants()
 const DEFAULT_IMAGE_ORIGIN = 'http://localhost:19000'
 const DEFAULT_WIKI_GATE_URL = 'http://127.0.0.1:18099/fetch-image'
 
@@ -50,13 +51,16 @@ const pickPort = (value, fallback) => {
 
 export const resolveFrontRuntimeConfig = ({ env = process.env, cwd = process.cwd(), nodeEnv = env.NODE_ENV } = {}) => {
   const { configPath, config } = readLocalStackConfig(env, cwd)
-  const backendPort = pickPort(config?.backend?.port, 18088)
+  const backendPort = pickPort(
+    config?.backend?.port ?? envValue(env, 'TERRAPEDIA_BACKEND_PORT'),
+    PROJECT_CONSTANTS.runtime.backendPort
+  )
   const minioPublicEndpointFromConfig = trimTrailingSlash(config?.minio?.publicEndpoint)
   const minioEndpointFromConfig = trimTrailingSlash(config?.minio?.endpoint)
 
   const backendOrigin = trimTrailingSlash(
     envValue(env, 'TERRAPEDIA_BACKEND_ORIGIN')
-    || (config ? `http://localhost:${backendPort}` : DEFAULT_BACKEND_ORIGIN),
+    || `http://localhost:${backendPort}`,
   )
 
   const minioPublicEndpoint = trimTrailingSlash(

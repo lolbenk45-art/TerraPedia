@@ -5,11 +5,12 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-import { getProjectRoot } from '../lib/project-root.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const require = createRequire(import.meta.url);
 const repoRoot = getProjectRoot();
-const DEFAULT_INPUT_JSON = '/home/lolben/data/terraPedia/generated/wiki-audio-assets.latest.json';
+const DEFAULT_INPUT_JSON = resolveSharedDataRoot('generated', 'wiki-audio-assets.latest.json');
 const PRIMARY_DB = 'terria_v1_local';
 const LOCAL_ITEM_STANDARDIZED_PATH = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
 const LOCAL_ITEM_ZH_MAP_PATH = path.join(repoRoot, 'data', 'generated', 'item-zh-map.json');
@@ -59,7 +60,7 @@ export function resolveImportOptions(rawArgs = {}, options = {}) {
   return {
     apply,
     allowNonPrimaryDb: booleanOption(rawArgs['allow-non-primary-db'] ?? rawArgs.allowNonPrimaryDb, false),
-    inputJsonPath: path.resolve(rawArgs['input-json'] ?? rawArgs.inputJson ?? DEFAULT_INPUT_JSON),
+    inputJsonPath: resolveOptionPath(rawArgs['input-json'] ?? rawArgs.inputJson, DEFAULT_INPUT_JSON, root),
     reportPath: rawArgs['report-json'] === 'false'
       ? null
       : path.resolve(root, rawArgs['report-json'] ?? path.join('reports', `audio-db-import-${apply ? 'apply' : 'dry-run'}-${dateTag}.json`)),
@@ -71,6 +72,12 @@ export function resolveImportOptions(rawArgs = {}, options = {}) {
       database: rawArgs.database ?? env.TERRAPEDIA_DB_NAME ?? PRIMARY_DB
     }
   };
+}
+
+function resolveOptionPath(value, fallback, root) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot: root, allowExternal: path.isAbsolute(candidate) });
 }
 
 export function assertPrimaryDb(database, shouldApply, allowNonPrimaryDb) {

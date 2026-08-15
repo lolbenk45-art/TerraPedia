@@ -9,20 +9,14 @@ import {
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const options = parseCliArgs(process.argv.slice(2));
-const rawPath = path.resolve(
-  process.cwd(),
-  options.input ?? sharedDataPath('raw', 'wiki', 'module__iteminfo__data.latest.json')
-);
-const outputPath = path.resolve(
-  process.cwd(),
-  options.output ?? sharedDataPath('normalized', 'items.wiki.json')
-);
-const overridesPath = path.resolve(
-  process.cwd(),
-  options.overrides ?? sharedDataPath('mappings', 'category-overrides.json')
-);
+const repoRoot = getProjectRoot();
+const rawPath = resolveOptionPath(options.input, sharedDataPath('raw', 'wiki', 'module__iteminfo__data.latest.json'));
+const outputPath = resolveOptionPath(options.output, sharedDataPath('normalized', 'items.wiki.json'));
+const overridesPath = resolveOptionPath(options.overrides, sharedDataPath('mappings', 'category-overrides.json'));
 const reportDir = sharedDataPath('reports', 'normalize');
 const limit = numericOption(options.limit ?? options.max, null);
 
@@ -88,6 +82,17 @@ writeJson(reportPath, {
 
 console.log(`Normalized input: ${rawPath}`);
 console.log(`Output: ${outputPath}`);
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
+}
 console.log(`Wiki version: ${wikiVersion ?? 'unknown'}`);
 console.log(`Module generated: ${moduleGeneratedAt ?? 'unknown'}`);
 console.log(`Selected items: ${normalizedItems.length}`);

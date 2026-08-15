@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { getProjectRoot, resolveSharedDataRoot } from '../../data/lib/project-root.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,10 +54,21 @@ const config = {
   writeState: booleanOption(options['write-state'], true),
   failOnChange: booleanOption(options['fail-on-change'], false),
   format: String(options.format ?? 'json').trim().toLowerCase(),
-  stateFile: path.resolve(process.cwd(), String(options['state-file'] ?? defaultStateFile)),
-  outputFile: path.resolve(process.cwd(), String(options['output-file'] ?? defaultOutputFile)),
-  manifestPath: path.resolve(process.cwd(), String(options['manifest-path'] ?? defaultManifestPath))
+  stateFile: resolveOptionPath(options['state-file'], defaultStateFile),
+  outputFile: resolveOptionPath(options['output-file'], defaultOutputFile),
+  manifestPath: resolveOptionPath(options['manifest-path'], defaultManifestPath)
 };
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
+}
 
 if (!['json', 'text'].includes(config.format)) {
   failWithUsage(`Unsupported --format value: ${config.format}`);

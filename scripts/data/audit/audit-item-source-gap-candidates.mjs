@@ -16,8 +16,15 @@ import {
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const MUTATION_FLAGS = new Set(['apply', 'write-db', 'sync']);
+const repoRoot = getProjectRoot();
+const DEFAULT_RAW_ITEM_PAGE_DIR = sharedDataPath('raw', 'wiki', 'item-pages');
+const DEFAULT_STANDARDIZED_NPCS_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['npcs.standardized.json'] });
+const DEFAULT_STANDARDIZED_ITEMS_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['items.standardized.json'] });
+const DEFAULT_ITEM_SOURCES_DIR = resolveProjectConstantPath('dataLayers.standardizedView', { repoRoot, suffix: ['item_relations', 'itemSources'] });
 
 export function parseAuditItemSourceGapCandidatesArgs(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -28,11 +35,11 @@ export function parseAuditItemSourceGapCandidatesArgs(argv = process.argv.slice(
   }
 
   return {
-    rawItemPageDir: options['raw-dir'] ?? options.rawDir ?? '/home/lolben/data/terraPedia/raw/wiki/item-pages',
+    rawItemPageDir: options['raw-dir'] ?? options.rawDir ?? DEFAULT_RAW_ITEM_PAGE_DIR,
     npcParsedPath: options.npcs ?? sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
-    standardizedNpcsPath: options['standardized-npcs'] ?? path.join(process.cwd(), 'data', 'standardized', 'npcs.standardized.json'),
-    standardizedItemsPath: options.items ?? options['standardized-items'] ?? path.join(process.cwd(), 'data', 'standardized', 'items.standardized.json'),
-    itemSourcesDir: options['item-sources-dir'] ?? options.itemSourcesDir ?? path.join(process.cwd(), 'data', 'standardized-view', 'item_relations', 'itemSources'),
+    standardizedNpcsPath: options['standardized-npcs'] ?? DEFAULT_STANDARDIZED_NPCS_PATH,
+    standardizedItemsPath: options.items ?? options['standardized-items'] ?? DEFAULT_STANDARDIZED_ITEMS_PATH,
+    itemSourcesDir: options['item-sources-dir'] ?? options.itemSourcesDir ?? DEFAULT_ITEM_SOURCES_DIR,
     sample: options.sample ?? null,
     limit: numericOption(options.limit, null),
     outputPath: options.output ?? null
@@ -40,11 +47,11 @@ export function parseAuditItemSourceGapCandidatesArgs(argv = process.argv.slice(
 }
 
 export function auditItemSourceGapCandidates({
-  rawItemPageDir = '/home/lolben/data/terraPedia/raw/wiki/item-pages',
+  rawItemPageDir = DEFAULT_RAW_ITEM_PAGE_DIR,
   npcParsedPath = sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
-  standardizedNpcsPath = path.join(process.cwd(), 'data', 'standardized', 'npcs.standardized.json'),
-  standardizedItemsPath = path.join(process.cwd(), 'data', 'standardized', 'items.standardized.json'),
-  itemSourcesDir = path.join(process.cwd(), 'data', 'standardized-view', 'item_relations', 'itemSources'),
+  standardizedNpcsPath = DEFAULT_STANDARDIZED_NPCS_PATH,
+  standardizedItemsPath = DEFAULT_STANDARDIZED_ITEMS_PATH,
+  itemSourcesDir = DEFAULT_ITEM_SOURCES_DIR,
   npcLookup = null,
   sample = null,
   limit = null
@@ -222,29 +229,29 @@ function loadItemSourceCounts(dirPath) {
 
 function loadNpcLookup(filePath, fallbackFilePath) {
   const lookup = new Map();
-  const resolvedFilePath = fs.existsSync(filePath) ? filePath : fallbackFilePath;
-  if (!fs.existsSync(resolvedFilePath)) {
-    return lookup;
-  }
-
-  const payload = JSON.parse(fs.readFileSync(resolvedFilePath, 'utf8'));
-  const npcs = Array.isArray(payload?.npcs)
-    ? payload.npcs
-    : Array.isArray(payload?.records)
-      ? payload.records
-      : Array.isArray(payload)
-        ? payload
-        : [];
-  for (const npc of npcs) {
-    const name = normalizeText(npc?.name);
-    if (!name) continue;
-    const meta = { boss: npc?.boss === true || npc?.boss === 1 || npc?.flags?.boss === true };
-    rememberNpcLookupAlias(lookup, name, meta);
-    if (!name.toLowerCase().endsWith('s')) {
-      rememberNpcLookupAlias(lookup, `${name}s`, meta);
+  for (const resolvedFilePath of [...new Set([filePath, fallbackFilePath].filter(Boolean))]) {
+    if (!fs.existsSync(resolvedFilePath)) {
+      continue;
     }
-    rememberNpcLookupAlias(lookup, npc?.internalName ?? npc?.internal_name, meta);
-    rememberNpcLookupAlias(lookup, normalizeImageFileTitleAlias(npc?.imageFileTitle ?? npc?.image_file_title), meta);
+    const payload = JSON.parse(fs.readFileSync(resolvedFilePath, 'utf8'));
+    const npcs = Array.isArray(payload?.npcs)
+      ? payload.npcs
+      : Array.isArray(payload?.records)
+        ? payload.records
+        : Array.isArray(payload)
+          ? payload
+          : [];
+    for (const npc of npcs) {
+      const name = normalizeText(npc?.name);
+      if (!name) continue;
+      const meta = { boss: npc?.boss === true || npc?.boss === 1 || npc?.flags?.boss === true };
+      rememberNpcLookupAlias(lookup, name, meta);
+      if (!name.toLowerCase().endsWith('s')) {
+        rememberNpcLookupAlias(lookup, `${name}s`, meta);
+      }
+      rememberNpcLookupAlias(lookup, npc?.internalName ?? npc?.internal_name, meta);
+      rememberNpcLookupAlias(lookup, normalizeImageFileTitleAlias(npc?.imageFileTitle ?? npc?.image_file_title), meta);
+    }
   }
   return lookup;
 }

@@ -5,11 +5,23 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  DEFAULT_OUTPUT,
+  DEFAULT_RAW_DIR,
+  DEFAULT_SOURCE_DATA_DIR,
+  DEFAULT_VIEW_DIR,
   buildItemPageMetadataPayload,
   runItemPageMetadataRefresh
 } from './refresh-item-page-standardized-metadata.mjs';
+import { resolveProjectConstantPath, resolveSharedDataConstantPath } from '../../lib/project-constants.mjs';
 
 const fixtureDir = path.join(import.meta.dirname, 'fixtures', 'item-pages');
+
+test('default item-page metadata paths come from project constants', () => {
+  assert.equal(DEFAULT_RAW_DIR, resolveSharedDataConstantPath('crawler.itemPageRawRoot'));
+  assert.equal(DEFAULT_OUTPUT, resolveProjectConstantPath('dataLayers.standardized', { suffix: ['item_pages.standardized.json'] }));
+  assert.equal(DEFAULT_VIEW_DIR, resolveProjectConstantPath('dataLayers.standardizedView', { suffix: ['item_pages'] }));
+  assert.match(DEFAULT_SOURCE_DATA_DIR, /data[\\/]terraPedia$/);
+});
 
 test('buildItemPageMetadataPayload writes metadata records without raw body fields', async () => {
   const payload = await buildItemPageMetadataPayload({

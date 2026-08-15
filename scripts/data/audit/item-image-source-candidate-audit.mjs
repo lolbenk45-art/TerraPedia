@@ -10,10 +10,16 @@ import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { parseItemRawPagePayload } from '../parse/parse-item-raw-pages.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
+import {
+  resolveConfiguredPath,
+  resolveProjectConstantPath,
+  resolveSharedDataConstantPath
+} from '../../lib/project-constants.mjs';
 
-const DEFAULT_ITEMS_PATH = 'data/standardized/items.standardized.json';
-const DEFAULT_ITEM_PAGES_PATH = 'data/standardized/item_pages.standardized.json';
-const DEFAULT_RAW_DIR = '/home/lolben/data/terraPedia/raw/wiki/item-pages';
+const repoRoot = getProjectRoot();
+const DEFAULT_ITEMS_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['items.standardized.json'] });
+const DEFAULT_ITEM_PAGES_PATH = resolveProjectConstantPath('dataLayers.standardized', { repoRoot, suffix: ['item_pages.standardized.json'] });
+const DEFAULT_RAW_DIR = resolveSharedDataConstantPath('crawler.itemPageRawRoot');
 const FORMAL_DATABASES = Object.freeze({
   local: 'terria_v1_local',
   relation: 'terria_v1_relation'
@@ -563,21 +569,18 @@ function normalizeOptions(rawOptions) {
   const generatedAt = rawOptions.generatedAt ?? new Date().toISOString();
   const dateTag = generatedAt.slice(0, 10);
   return {
-    itemsPath: path.resolve(rawOptions.itemsPath ?? rawOptions.items ?? DEFAULT_ITEMS_PATH),
-    itemPagesPath: path.resolve(
-      rawOptions.itemPagesPath ?? rawOptions['item-pages'] ?? DEFAULT_ITEM_PAGES_PATH
-    ),
-    rawDir: path.resolve(rawOptions.rawDir ?? rawOptions['raw-dir'] ?? DEFAULT_RAW_DIR),
+    itemsPath: resolveOptionPath(rawOptions.itemsPath ?? rawOptions.items, DEFAULT_ITEMS_PATH),
+    itemPagesPath: resolveOptionPath(rawOptions.itemPagesPath ?? rawOptions['item-pages'], DEFAULT_ITEM_PAGES_PATH),
+    rawDir: resolveOptionPath(rawOptions.rawDir ?? rawOptions['raw-dir'], DEFAULT_RAW_DIR),
     localComparisonPath: optionalPath(rawOptions.localComparisonPath ?? rawOptions['local-comparison']),
     existingLineagePath: optionalPath(rawOptions.existingLineagePath ?? rawOptions['existing-lineage']),
     databaseComparison: booleanOption(
       rawOptions.databaseComparison ?? rawOptions['database-comparison'],
       false
     ),
-    outputPath: path.resolve(
-      rawOptions.outputPath
-        ?? rawOptions.output
-        ?? `reports/audit/item-image-source-candidates-${dateTag}.json`
+    outputPath: resolveOptionPath(
+      rawOptions.outputPath ?? rawOptions.output,
+      resolveProjectConstantPath('evidence.runtime', { repoRoot, suffix: [`item-image-source-candidates-${dateTag}.json`] })
     ),
     generatedAt
   };
@@ -590,7 +593,13 @@ async function readOptionalRecords(filePath) {
 }
 
 function optionalPath(value) {
-  return text(value) ? path.resolve(value) : null;
+  return text(value) ? resolveOptionPath(value, null) : null;
+}
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot, allowExternal: path.isAbsolute(candidate) });
 }
 
 function booleanOption(value, fallback = false) {

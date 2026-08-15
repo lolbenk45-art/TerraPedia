@@ -1,14 +1,9 @@
 # Dependency directories
-front/node_modules/
 data-query-app/node_modules/
 back/.m2/
 
 # Frontend build outputs
 .vite/
-front/dist/
-front/coverage/
-front/.vite/
-front/.turbo/
 front-nuxt/node_modules/
 front-nuxt/.nuxt/
 front-nuxt/.output/

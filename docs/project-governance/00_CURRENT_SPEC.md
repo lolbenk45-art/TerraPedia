@@ -11,6 +11,10 @@ TerraPedia is a Terraria Chinese data platform with four maintained lines:
 - Spring Boot backend: `back/`
 - data crawl, standardization, import, sync, and audit tooling: `scripts/data/` and `data/`
 
+The retired untracked `front/` directory has been removed. `front-nuxt/` is the
+only maintained public frontend path; do not recreate or add compatibility code
+under `front/`.
+
 ## Current Authority
 
 Read order for project facts:

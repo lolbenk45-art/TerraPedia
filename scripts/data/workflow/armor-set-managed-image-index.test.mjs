@@ -7,12 +7,18 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 import {
+  DEFAULT_MINIO_ROOT,
   buildArmorSetManagedImageIndex,
   applyManagedArmorSetImageUrls,
   mergeWikiArmorSetSourceImages,
   parseArgs,
   listManagedArmorSetUrls
 } from './armor-set-managed-image-index.mjs';
+
+test('default MinIO root is portable and no longer tied to a developer home directory', () => {
+  assert.match(DEFAULT_MINIO_ROOT, /\.local[\\/]share[\\/]terrapedia[\\/]minio[\\/]data[\\/]terrapedia-images[\\/]items[\\/]wiki[\\/]armor-sets$/);
+  assert.doesNotMatch(DEFAULT_MINIO_ROOT, /ClaudeCode|TerraPedia-dev/);
+});
 
 test('buildArmorSetManagedImageIndex matches MinIO object names by source file title', () => {
   const index = buildArmorSetManagedImageIndex({

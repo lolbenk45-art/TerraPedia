@@ -1,8 +1,9 @@
 $ErrorActionPreference = "Stop"
 
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $logDir = $env:TERRAPEDIA_LOG_DIR
 if ([string]::IsNullOrWhiteSpace($logDir)) {
-  $logDir = "G:\ClaudeCode\terraPedia\reports\2026-03-18-batch25"
+  $logDir = Join-Path $repoRoot 'reports\runtime\admin-build'
 }
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $logFile = Join-Path $logDir "admin-build.log"

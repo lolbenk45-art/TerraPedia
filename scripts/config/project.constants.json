@@ -1,0 +1,88 @@
+{
+  "project": {
+    "id": "terrapedia",
+    "displayName": "TerraPedia",
+    "schemaVersion": 1
+  },
+  "roots": {
+    "scripts": "scripts",
+    "data": "data",
+    "reports": "reports",
+    "docs": "docs",
+    "artifacts": "reports/runtime"
+  },
+  "applications": {
+    "publicWeb": {
+      "currentPath": "front-nuxt",
+      "targetPath": "apps/public-web",
+      "packageName": "terrapedia-public-web",
+      "status": "maintained"
+    },
+    "adminConsole": {
+      "currentPath": "data-query-app",
+      "targetPath": "apps/admin-console",
+      "packageName": "terrapedia-admin-console",
+      "status": "maintained"
+    },
+    "catalogApi": {
+      "currentPath": "back",
+      "targetPath": "services/catalog-api",
+      "artifactId": "terrapedia-catalog-api",
+      "status": "maintained"
+    }
+  },
+  "dataLayers": {
+    "raw": "data/raw",
+    "normalized": "data/normalized",
+    "canonical": "data/canonical",
+    "exports": "data/exports",
+    "legacy": "data/legacy",
+    "backups": "data/backups",
+    "generated": "data/generated",
+    "standardized": "data/standardized",
+    "standardizedView": "data/standardized-view",
+    "compatibility": "data/terraPedia"
+  },
+  "evidence": {
+    "durable": "docs/audits",
+    "runtime": "reports/runtime",
+    "authorization": "reports/authorization",
+    "canonicalMigration": "reports/canonical-migration",
+    "crawlerMonitor": "reports/crawler-monitor",
+    "backendRefresh": "reports/backend-refresh",
+    "backendRefreshSummary": "reports/backend-data-refresh.json"
+  },
+  "crawler": {
+    "sourceManifest": "generated/wiki-source-manifest.latest.json",
+    "monitorState": "generated/wiki-monitor-state.latest.json",
+    "syncPlan": "generated/wiki-sync-plan.latest.json",
+    "monitorProgress": "generated/wiki-sync-progress.latest.json",
+    "rawRoot": "raw/wiki",
+    "itemPageRawRoot": "raw/wiki/item-pages",
+    "resumeRoot": "generated/resume",
+    "operationReportRoot": "reports/crawler-monitor"
+  },
+  "runtime": {
+    "backendOrigin": "http://localhost:18088",
+    "backendPort": 18088,
+    "imageOrigin": "http://localhost:19000",
+    "publicWebPort": 5176,
+    "adminConsolePort": 3001,
+    "databasePort": 3306,
+    "redisPort": 6380
+  },
+  "externalDefaults": {
+    "minioDataDir": "~/.local/share/terrapedia/minio/data"
+  },
+  "commands": {
+    "start": "scripts/dev/start-local-stack.sh",
+    "stop": "scripts/dev/stop-local-stack.sh",
+    "qualityGate": "scripts/dev/quality-gate.sh"
+  },
+  "compatibility": {
+    "sharedDataRootEnv": "TERRAPEDIA_SHARED_DATA_ROOT",
+    "projectRootEnv": "TERRAPEDIA_PROJECT_ROOT",
+    "worktreeRootEnv": "WORKTREE_ROOT",
+    "crawlerProgressEnv": "TERRAPEDIA_CRAWLER_PROGRESS_PATH"
+  }
+}

@@ -7,12 +7,22 @@ import { fileURLToPath } from 'node:url';
 import { extractItemSellStat } from '../maint/item-page-statistics-parser.mjs';
 import { extractItemImageMemberEvidence } from '../lib/item-image-member-evidence.mjs';
 import { extractItemInfoboxImages } from '../lib/wiki-page-utils.mjs';
+import {
+  resolveProjectConstantPath,
+  resolveSharedDataConstantPath
+} from '../../lib/project-constants.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 
-const DEFAULT_RAW_DIR = '/home/lolben/data/terraPedia/raw/wiki/item-pages';
-const DEFAULT_OUTPUT = 'data/generated/item-raw-pages-parsed.latest.json';
-const DEFAULT_REPORT = `reports/item-raw-pages-parse-${new Date().toISOString().slice(0, 10)}.json`;
-const DEFAULT_PROGRESS_PATH = 'data/generated/wiki-sync-progress.latest.json';
+export const DEFAULT_RAW_DIR = resolveSharedDataConstantPath('crawler.itemPageRawRoot');
+export const DEFAULT_OUTPUT = resolveProjectConstantPath('dataLayers.generated', {
+  suffix: ['item-raw-pages-parsed.latest.json']
+});
+export const DEFAULT_REPORT = resolveProjectConstantPath('evidence.runtime', {
+  suffix: [`item-raw-pages-parse-${new Date().toISOString().slice(0, 10)}.json`]
+});
+export const DEFAULT_PROGRESS_PATH = resolveProjectConstantPath('dataLayers.generated', {
+  suffix: ['wiki-sync-progress.latest.json']
+});
 const ACTION_ID = 'item-raw-pages-parse';
 
 export function buildItemRawPageParseProgressPayload({

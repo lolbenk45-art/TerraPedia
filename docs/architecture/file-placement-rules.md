@@ -31,7 +31,7 @@
 
 ```text
 back/
-front/
+front-nuxt/
 data-query-app/
 scripts/
 data/
@@ -100,8 +100,9 @@ back/src/test/
 放置位置：
 
 ```text
-front/src/
-front/public/
+front-nuxt/pages/
+front-nuxt/components/
+front-nuxt/public/
 ```
 
 适用文件：
@@ -113,9 +114,9 @@ front/public/
 
 禁止：
 
-- 把管理端页面放入 `front/`。
-- 把爬虫数据或导入报告放入 `front/public/`。
-- 提交 `front/dist/`。
+- 把管理端页面放入 `front-nuxt/`。
+- 把爬虫数据或导入报告放入 `front-nuxt/public/`。
+- 提交 `front-nuxt/.output/` 或 `front-nuxt/.nuxt/`。
 
 ### 管理或查询端代码
 
@@ -396,7 +397,7 @@ scripts/dev/config/credentials.json
 禁止提交：
 
 ```text
-front/dist/
+front-nuxt/dist/
 data-query-app/.nuxt/
 data-query-app/.output/
 node_modules/
@@ -473,7 +474,7 @@ AI 助手创建文件前必须遵守：
 data/
 scripts/
 back/
-front/
+front-nuxt/
 data-query-app/
 ```
 
@@ -485,7 +486,7 @@ data-query-app/
 | --- | --- | --- | --- |
 | 后端源码 | `back/src/main/` | 是 | Java、资源、Mapper |
 | 后端测试 | `back/src/test/` | 是 | 单元或集成测试 |
-| 前台源码 | `front/src/` | 是 | 用户前台 |
+| 前台源码 | `front-nuxt/` | 是 | 用户前台 |
 | 管理端源码 | `data-query-app/` | 是 | 后台或查询端 |
 | 数据脚本 | `scripts/data/` | 是 | 采集、规范化、审计、写库 |
 | 启动脚本 | `scripts/dev/` | 是 | 本地联调入口 |

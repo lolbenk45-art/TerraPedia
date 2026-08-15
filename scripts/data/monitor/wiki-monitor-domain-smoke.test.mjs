@@ -81,6 +81,23 @@ test('wiki monitor domain smoke plan rejects unknown selected domains', () => {
   );
 });
 
+test('wiki monitor domain smoke resolves relative outputs from the repository root and rejects traversal', () => {
+  const plan = buildDomainSmokePlan({
+    'run-id': 'relative-path-contract',
+    'output-dir': 'reports/crawler-monitor/relative-path-contract',
+    'report-path': 'reports/crawler-monitor/relative-path-contract.json',
+    'progress-path': 'reports/crawler-monitor/relative-path-progress.json'
+  });
+
+  assert.equal(plan.outputDir, path.join(repoRoot, 'reports', 'crawler-monitor', 'relative-path-contract'));
+  assert.equal(plan.reportPath, path.join(repoRoot, 'reports', 'crawler-monitor', 'relative-path-contract.json'));
+  assert.equal(plan.progressPath, path.join(repoRoot, 'reports', 'crawler-monitor', 'relative-path-progress.json'));
+  assert.throws(
+    () => buildDomainSmokePlan({ 'output-dir': '../outside' }),
+    /escapes outside repository root/
+  );
+});
+
 test('wiki monitor domain smoke progress carries exact V2 attempt identity offline', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tp-domain-smoke-v2-'));
   const fixturePath = path.join(tempDir, 'fixture.json');

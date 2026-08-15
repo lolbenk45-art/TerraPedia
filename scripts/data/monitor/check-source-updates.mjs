@@ -24,6 +24,7 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { resolveConfiguredPath } from '../../lib/project-constants.mjs';
 import { compareWikiSourceFingerprint } from './source-update-comparison.mjs';
 import {
   probeSupplementarySource,
@@ -36,15 +37,15 @@ const OFFICIAL_SOURCE_MONITOR_USER_AGENT = 'TerraPedia-source-monitor/2.0 (+http
 const options = parseCliArgs(process.argv.slice(2));
 const checkedAt = new Date().toISOString();
 const timestamp = checkedAt.replaceAll(':', '-');
-const reportDir = path.resolve(process.cwd(), options['report-dir'] ?? sharedDataPath('reports', 'fetch'));
-const statePath = path.resolve(
-  process.cwd(),
-  options['state-file'] ?? sharedDataPath('generated', 'source-update-monitor.latest.json')
+const reportDir = resolveOptionPath(options['report-dir'], sharedDataPath('reports', 'fetch'));
+const statePath = resolveOptionPath(
+  options['state-file'],
+  sharedDataPath('generated', 'source-update-monitor.latest.json')
 );
-const manifestPath = path.resolve(process.cwd(), options['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
-const progressPath = path.resolve(
-  process.cwd(),
-  options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? sharedDataPath('generated', 'source-update-monitor-progress.latest.json')
+const manifestPath = resolveOptionPath(options['manifest-path'], DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
+const progressPath = resolveOptionPath(
+  options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
+  sharedDataPath('generated', 'source-update-monitor-progress.latest.json')
 );
 const wikiApiUrl = options['wiki-api-url'] ?? DEFAULT_WIKI_API_URL;
 const officialCheckMode = resolveOfficialCheckMode(options);
@@ -61,6 +62,17 @@ writeMonitorProgress({
   current: 0,
   total: buildWikiSources().length + (officialCheckMode !== 'never' ? buildOfficialSources().length : 0)
 });
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') {
+    return fallback;
+  }
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, {
+    repoRoot: terraPediaRoot,
+    allowExternal: path.isAbsolute(candidate)
+  });
+}
 
 const sources = [];
 

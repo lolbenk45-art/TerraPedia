@@ -26,7 +26,7 @@ public class AdminAudioAssetStreamService {
     @Autowired
     public AdminAudioAssetStreamService(
         JdbcTemplate jdbcTemplate,
-        @Value("${terrapedia.audio-media-root:/home/lolben/data/terraPedia/media/audio/wiki}") String audioMediaRoot
+        @Value("${terrapedia.audio-media-root:${user.home}/data/terraPedia/media/audio/wiki}") String audioMediaRoot
     ) {
         this(jdbcTemplate, Path.of(audioMediaRoot));
     }

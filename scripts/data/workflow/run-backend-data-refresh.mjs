@@ -27,8 +27,13 @@ import {
 } from './backend-refresh-runtime-state.mjs';
 import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import { finalizeBackendRefreshActionIngestionManifest } from './backend-refresh-manifest-finalize.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
+import { fileURLToPath } from 'node:url';
 
 const options = parseArgs(process.argv.slice(2));
+const repoRoot = getProjectRoot();
+const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const mode = String(options.mode ?? 'plan').trim().toLowerCase();
 const itemPageLimit = options['item-page-limit'] ?? options.itemPageLimit;
 const steps = options.steps;
@@ -36,9 +41,13 @@ const resume = options.resume === 'true';
 const timeoutMs = options['timeout-ms'] ?? options.timeoutMs;
 const heartbeatMs = normalizePositiveInteger(options['heartbeat-ms'] ?? options.heartbeatMs, 30 * 1000);
 const plan = buildBackendDataRefreshPlan({ itemPageLimit, steps, timeoutMs });
-const outputPath = path.resolve(
+const outputPath = resolveConfiguredPath(
   options.output
-  ?? path.join(process.cwd(), 'reports', `backend-data-refresh-${new Date().toISOString().slice(0, 10)}.json`)
+    ?? resolveProjectConstantPath('evidence.backendRefresh', {
+      repoRoot,
+      suffix: [`backend-data-refresh-${new Date().toISOString().slice(0, 10)}.json`]
+    }),
+  { repoRoot, allowExternal: Boolean(options.output && path.isAbsolute(String(options.output))) }
 );
 
 if (mode === 'plan') {
@@ -114,7 +123,7 @@ for (const action of actionsToRun) {
   writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));
   const result = await runAction(command, action.args, {
     action,
-    cwd: process.cwd(),
+    cwd: sourceRoot,
     heartbeatMs,
     canonicalProgressPath,
     childProgressPath,

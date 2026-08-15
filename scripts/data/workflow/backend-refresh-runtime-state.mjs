@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 export function buildActionRuntimePaths({ outputPath, actionId } = {}) {
-  const resolvedOutputPath = path.resolve(String(outputPath ?? 'reports/backend-data-refresh.json'));
+  const resolvedOutputPath = path.resolve(String(
+    outputPath ?? resolveProjectConstantPath('evidence.backendRefreshSummary')
+  ));
   const parsed = path.parse(resolvedOutputPath);
   const runtimeDir = path.join(parsed.dir, `${parsed.name}.runtime`);
   const safeActionId = sanitizeActionId(actionId);

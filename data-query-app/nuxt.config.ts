@@ -1,8 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
+import { getProjectConstants } from '../scripts/lib/project-constants.mjs'
 
-const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
-const terrapediaImageOrigin = (process.env.TERRAPEDIA_IMAGE_ORIGIN || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT || 'http://localhost:19000').replace(/\/$/, '')
+const projectConstants = getProjectConstants()
+const backendPort = Number(process.env.TERRAPEDIA_BACKEND_PORT || projectConstants.runtime.backendPort)
+const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || `http://localhost:${backendPort}`).replace(/\/$/, '')
+const terrapediaImageOrigin = (process.env.TERRAPEDIA_IMAGE_ORIGIN || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT || projectConstants.runtime.imageOrigin).replace(/\/$/, '')
 const articleRuntimeDir = fileURLToPath(new URL('../shared/article-runtime', import.meta.url))
 
 export default defineNuxtConfig({
@@ -10,7 +13,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   devServer: {
-    port: 3001,
+    port: Number(process.env.TERRAPEDIA_ADMIN_PORT || projectConstants.runtime.adminConsolePort),
     host: 'localhost',
   },
 

@@ -10,6 +10,7 @@ import {
   getCategoryDisplayName,
   resolveItemCategoryCode,
 } from '../lib/item-category-normalization.mjs';
+import { resolveConfiguredPath, resolveProjectConstantPath } from '../../lib/project-constants.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -231,8 +232,17 @@ function buildItemPayload(raw, categoryByCode) {
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
-const dataRoot = args.dataRoot || 'G:\\ClaudeCode\\data\\terraPedia\\standardized';
-const output = args.output || path.join(repoRoot, 'reports', `items标准化补全汇总_${new Date().toISOString().slice(0, 10)}.json`);
+const dataRoot = resolveOptionPath(
+  args.dataRoot,
+  resolveProjectConstantPath('dataLayers.standardized', { repoRoot })
+);
+const output = resolveOptionPath(
+  args.output,
+  resolveProjectConstantPath('evidence.runtime', {
+    repoRoot,
+    suffix: [`items标准化补全汇总_${new Date().toISOString().slice(0, 10)}.json`]
+  })
+);
 
 const db = {
   host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
@@ -244,6 +254,12 @@ const db = {
 
 const itemsDataset = loadStandardizedDataset(dataRoot, 'items');
 const itemRecords = Array.isArray(itemsDataset.records) ? itemsDataset.records : [];
+
+function resolveOptionPath(value, fallback) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const candidate = String(value);
+  return resolveConfiguredPath(candidate, { repoRoot, allowExternal: path.isAbsolute(candidate) });
+}
 
 const conn = await mysql.createConnection(db);
 

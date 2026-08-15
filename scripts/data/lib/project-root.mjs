@@ -37,7 +37,7 @@ export function getProjectRoot() {
 }
 
 export function resolveProjectPath(...segments) {
-  return path.join(getProjectRoot(), ...segments);
+  return resolveContainedPath(getProjectRoot(), segments, 'repository root');
 }
 
 export function resolveSharedDataRoot(...segments) {
@@ -46,12 +46,22 @@ export function resolveSharedDataRoot(...segments) {
     process.env.TERRAPEDIA_SOURCE_DATA_DIR
   );
   if (configuredRoot) {
-    return path.join(configuredRoot, ...segments);
+    return resolveContainedPath(configuredRoot, segments, 'shared data root');
   }
 
   const projectRoot = getProjectRoot();
   const sharedDataOwnerRoot = resolvePrimaryWorktreeRoot(projectRoot) ?? deriveWorkspaceRoot(projectRoot);
-  return path.join(sharedDataOwnerRoot, 'data', 'terraPedia', ...segments);
+  return resolveContainedPath(path.join(sharedDataOwnerRoot, 'data', 'terraPedia'), segments, 'shared data root');
+}
+
+function resolveContainedPath(root, segments, label) {
+  const normalizedRoot = path.resolve(root);
+  const resolved = path.resolve(normalizedRoot, ...segments.map((segment) => String(segment)));
+  const relative = path.relative(normalizedRoot, resolved);
+  if (relative !== '' && (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))) {
+    throw new Error(`Resolved path escapes ${label}: ${resolved}`);
+  }
+  return resolved;
 }
 
 function resolveGitTopLevel() {
