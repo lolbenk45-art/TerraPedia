@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:40 CST by Codex
+Last updated: 2026-08-16 03:46 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
@@ -18,7 +18,9 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   follow-up: `32a308ae`; documentation correction: `data/wiki-crawler/README.md`
   now points to `pipelines/crawler`; review repairs also canonicalize the
   authoritative workflow/build defaults and portable PowerShell build paths;
-  review repair commit: `322a540f`; timestamp closeout: `9b2d7c53`.
+  review repair commit: `322a540f`; timestamp closeout: `9b2d7c53`; second
+  review pass synchronized the remaining current governance companions and
+  crawler workflow skill.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:

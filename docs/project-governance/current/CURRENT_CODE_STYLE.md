@@ -10,9 +10,10 @@ contracts still control execution, validation, data safety, and API behavior.
 
 ## Scope And Authority
 
-Apply this document to the maintained public Nuxt frontend under `front-nuxt/`,
-the admin Nuxt frontend under `data-query-app/`, the Spring Boot backend under
-`back/`, and maintained scripts under `scripts/`.
+Apply this document to the maintained public Nuxt frontend under
+`apps/public-web/`, the admin Nuxt frontend under `apps/admin-console/`, the
+Spring Boot backend under `services/catalog-api/`, and maintained scripts under
+`platform/` and `pipelines/`.
 
 For an edited file, use this order:
 

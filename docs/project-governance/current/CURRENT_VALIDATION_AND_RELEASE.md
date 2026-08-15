@@ -1,7 +1,7 @@
 # Current Validation And Release
 
 Status: current
-Last updated: 2026-07-12
+Last updated: 2026-08-16
 
 This file records current validation and release boundaries for development
 planning. It does not claim that any gate has passed unless this file cites a
@@ -24,49 +24,49 @@ and stale/current routing touched by the task.
 Backend focused tests:
 
 ```bash
-cd back
+cd services/catalog-api
 mvn -Dtest=ClassA,ClassB test
 ```
 
 Backend broad tests:
 
 ```bash
-cd back
+cd services/catalog-api
 mvn test
 ```
 
 Public frontend checks:
 
 ```bash
-cd front-nuxt
+cd apps/public-web
 pnpm run check
 ```
 
 Admin frontend checks:
 
 ```bash
-cd data-query-app
+cd apps/admin-console
 pnpm run check
 ```
 
 Admin full package gate:
 
 ```bash
-cd data-query-app
+cd apps/admin-console
 pnpm run test
 ```
 
 Full local quality gate:
 
 ```bash
-bash ./scripts/dev/quality-gate.sh
+bash ./platform/local/quality-gate.sh
 ```
 
 Isolated user-auth browser suites:
 
 ```bash
-bash scripts/dev/run-user-auth-e2e.sh --smoke
-bash scripts/dev/run-user-auth-e2e.sh --regression
+bash platform/local/run-user-auth-e2e.sh --smoke
+bash platform/local/run-user-auth-e2e.sh --regression
 ```
 
 Before the full local gate, explicitly export the runner's required isolated
@@ -79,7 +79,7 @@ export TERRAPEDIA_E2E_MYSQL_USERNAME='<isolated-mysql-user>'
 export TERRAPEDIA_E2E_MYSQL_PASSWORD='<isolated-mysql-password>'
 export TERRAPEDIA_E2E_BACKEND_PORT=18080
 export TERRAPEDIA_E2E_FRONTEND_PORT=15176
-export TERRAPEDIA_E2E_CHROMIUM_EXECUTABLE="$(cd front-nuxt && node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")"
+export TERRAPEDIA_E2E_CHROMIUM_EXECUTABLE="$(cd apps/public-web && node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")"
 # Optional loopback-only overrides: TERRAPEDIA_E2E_MYSQL_HOST/PORT and TERRAPEDIA_E2E_REDIS_HOST/PORT.
 ```
 
@@ -90,7 +90,7 @@ ordinary local-stack configuration such as `TERRAPEDIA_DB_URL` or
 
 ## Quality Gate Contents
 
-`scripts/dev/quality-gate.sh` currently includes:
+`platform/local/quality-gate.sh` currently includes:
 
 - Node test suites for local stack, data source, crawler/source layout, wiki request/fetch boundaries, domain readiness, freshness, refresh plan, and report generation.
 - Crawler source layout warning-only check.
@@ -98,16 +98,16 @@ ordinary local-stack configuration such as `TERRAPEDIA_DB_URL` or
 - Domain acceptance A-grade gate with blocked failure enabled.
 - Cross-DB referential integrity audit in quick mode by default, or full mode with `--full-data-audit`.
 - Backend domain acceptance focused tests and broad Maven tests unless skipped.
-- Public frontend package test followed by the mandatory isolated user-auth browser smoke unless skipped. Keep `front-nuxt/package.json` scripts aligned with this gate before relying on a full run.
+- Public frontend package test followed by the mandatory isolated user-auth browser smoke unless skipped. Keep `apps/public-web/package.json` scripts aligned with this gate before relying on a full run.
 - Admin package test unless skipped.
 
 The gate supports skip flags for scoped validation:
 
 ```bash
-bash ./scripts/dev/quality-gate.sh --skip-back
-bash ./scripts/dev/quality-gate.sh --skip-front
-bash ./scripts/dev/quality-gate.sh --skip-admin
-bash ./scripts/dev/quality-gate.sh --full-data-audit
+bash ./platform/local/quality-gate.sh --skip-back
+bash ./platform/local/quality-gate.sh --skip-front
+bash ./platform/local/quality-gate.sh --skip-admin
+bash ./platform/local/quality-gate.sh --full-data-audit
 ```
 
 Use skip flags only when the task scope justifies them and record the limitation.
@@ -135,8 +135,8 @@ fail-closed check before browser work begins.
 Maintained local lifecycle commands:
 
 ```bash
-bash ./scripts/dev/start-local-stack.sh
-bash ./scripts/dev/stop-local-stack.sh
+bash ./platform/local/start-local-stack.sh
+bash ./platform/local/stop-local-stack.sh
 ```
 
 Startup and smoke evidence are runtime-oriented. They do not replace acceptance

@@ -118,3 +118,10 @@ from the project constants adapter; crawler boundary docs and skill examples
 were synchronized; and duplicate platform ignore rules were removed. The
 portable build contract is covered by the Shell/PowerShell suite (`14/14`).
 Review repair commit: `322a540f`; devlog timestamp closeout: `9b2d7c53`.
+
+The second review pass found and repaired remaining legacy references in the
+current governance companions (`CURRENT_TECH_STACK`,
+`CURRENT_VALIDATION_AND_RELEASE`, `CURRENT_API_CONTRACTS`, `CURRENT_CODE_STYLE`,
+`CURRENT_ARCHITECTURE`, `01_OVERVIEW`, and the homepage task note) plus the
+crawler workflow skill. These are documentation/instruction updates only; the
+canonical runtime paths and focused gates remain unchanged.

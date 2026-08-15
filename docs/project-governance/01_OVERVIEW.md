@@ -14,7 +14,7 @@
 截至 **2026-04-10**，仓库内已经形成四条并行主线：
 
 1. **前台玩家站点**
-   - Nuxt 4（`front-nuxt`）
+   - Nuxt 4（`apps/public-web`）
    - 已有首页、物品列表、物品详情、文章列表/详情、文章评论、用户登录注册与个人中心
 2. **后台管理端**
    - Nuxt 4
@@ -59,9 +59,9 @@
   - 回填修复
   - 完整性审计
 - 本地联调主链路已经具备：
-  - Bash/WSL 主路径目标：`scripts/dev/start-local-stack.sh`
-  - Bash/WSL 主路径目标：`scripts/dev/stop-local-stack.sh`
-  - Bash/WSL 主路径目标：`scripts/dev/verify-local-stack.sh`
+  - Bash/WSL 主路径目标：`platform/local/start-local-stack.sh`
+  - Bash/WSL 主路径目标：`platform/local/stop-local-stack.sh`
+  - Bash/WSL 主路径目标：`platform/local/verify-local-stack.sh`
   - 同名 `.ps1` 在迁移窗口内仅作为临时兼容 wrapper，不作为主路径
 
 ### 当前数据基线

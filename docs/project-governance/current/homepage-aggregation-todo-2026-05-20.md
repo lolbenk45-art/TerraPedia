@@ -22,7 +22,7 @@ This note records the homepage aggregation/data gaps intentionally left out of t
 - [ ] Decide whether `trendingArticles` should be real popularity data or be replaced with a non-popularity section such as recently published articles.
 - [ ] If real popularity is needed, add article/item view tracking first; current article DTOs do not expose `views` or `viewCount`.
 - [ ] Add backend support for article stage/type filters before relying on homepage links like `/articles?stage=early` or `/articles?type=guide`.
-- [ ] Move curated homepage blocks out of `front-nuxt/composables/useHomeData.ts` once the backend contract has a real source of truth.
+- [ ] Move curated homepage blocks out of `apps/public-web/composables/useHomeData.ts` once the backend contract has a real source of truth.
 - [ ] Keep frontend fallback data so the homepage does not blank when the aggregation endpoint fails.
 
 ## Current Known Dynamic Data

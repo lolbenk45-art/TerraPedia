@@ -1,7 +1,7 @@
 # Current Tech Stack
 
 Status: current
-Last updated: 2026-07-10
+Last updated: 2026-08-16
 
 This file records the maintained implementation stack for current development.
 It replaces old Astro/SSG planning documents as the technology entrypoint. Use
@@ -12,14 +12,14 @@ when this summary and code diverge.
 
 | Line | Path | Current role |
 | --- | --- | --- |
-| Public frontend | `front-nuxt/` | Player-facing Nuxt app for public TerraPedia pages. |
-| Admin/data-query frontend | `data-query-app/` | Maintained Nuxt app for admin, data query, and operational views. |
-| Backend | `back/` | Spring Boot API and service layer. |
-| Data tooling | `scripts/data/` and `data/` | Crawl, normalize, import, sync, audit, and acceptance workflow assets. |
-| Local stack and gates | `scripts/dev/` | Bash/WSL startup, shutdown, smoke, and quality-gate automation. |
+| Public frontend | `apps/public-web/` | Player-facing Nuxt app for public TerraPedia pages. |
+| Admin/data-query frontend | `apps/admin-console/` | Maintained Nuxt app for admin, data query, and operational views. |
+| Backend | `services/catalog-api/` | Spring Boot API and service layer. |
+| Data tooling | `pipelines/` and `data/` | Crawl, normalize, import, sync, audit, and acceptance workflow assets. |
+| Local stack and gates | `platform/local/` | Bash/WSL startup, shutdown, smoke, and quality-gate automation. |
 
 The retired `front/` directory has been removed. Do not recreate it; use
-`front-nuxt/` for public frontend work.
+`apps/public-web/` for public frontend work.
 
 ## Frontend Stack
 
@@ -27,19 +27,19 @@ Public frontend:
 
 - Nuxt 4, Vue 3, TypeScript, Pinia.
 - Tailwind CSS through Vite plugin and local CSS token/domain files.
-- Runtime API/image origins are configured through `front-nuxt/utils/runtimeConfig.mjs` and `front-nuxt/nuxt.config.ts`.
+- Runtime API/image origins are configured through `apps/public-web/utils/runtimeConfig.mjs` and `apps/public-web/nuxt.config.ts`.
 - Default dev port in package/config: `5176`.
-- Current check command: `cd front-nuxt && pnpm run check`.
-- `scripts/dev/quality-gate.sh` invokes `pnpm run test` for this package when the front gate is not skipped; keep package scripts and quality-gate expectations aligned before relying on the full gate.
+- Current check command: `cd apps/public-web && pnpm run check`.
+- `platform/local/quality-gate.sh` invokes `pnpm run test` for this package when the front gate is not skipped; keep package scripts and quality-gate expectations aligned before relying on the full gate.
 
 Admin/data-query frontend:
 
 - Nuxt 4, Vue 3, TypeScript, Pinia.
 - Tailwind module, VueUse, lucide icons, MySQL client dependency for data-query workflows.
-- Runtime backend/image origins are configured in `data-query-app/nuxt.config.ts`.
+- Runtime backend/image origins are configured in `apps/admin-console/nuxt.config.ts`.
 - Default dev port in config: `3001`.
-- Current check command: `cd data-query-app && pnpm run check`.
-- Full package gate: `cd data-query-app && pnpm run test`.
+- Current check command: `cd apps/admin-console && pnpm run check`.
+- Full package gate: `cd apps/admin-console && pnpm run test`.
 
 ## Backend Stack
 
@@ -54,14 +54,14 @@ Backend:
 - MinIO client for object storage integration.
 - Caffeine for bounded local caches.
 - Springdoc OpenAPI for API documentation.
-- Current focused test command: run Maven from `back/`, for example `mvn -Dtest=ClassA,ClassB test`.
-- Broad backend gate: `cd back && mvn test`.
+- Current focused test command: run Maven from `services/catalog-api/`, for example `mvn -Dtest=ClassA,ClassB test`.
+- Broad backend gate: `cd services/catalog-api && mvn test`.
 
 ## Data And Workflow Stack
 
 Data/tooling stack:
 
-- Node.js scripts under `scripts/data/` for source fetch, crawler, normalization, import, sync, audit, and workflow gates.
+- Node.js scripts under `pipelines/` for source fetch, crawler, normalization, import, sync, audit, and workflow gates.
 - Python helpers appear in wiki/crawler lanes where needed.
 - Tracked data layers live under `data/`, including standardized, canonical, generated, reports, crawler, and compatibility areas.
 - Default local database name in current spec: `terria_v1_local`.
@@ -84,9 +84,9 @@ Data/tooling stack:
 Bash/WSL is the maintained automation path:
 
 ```bash
-bash ./scripts/dev/start-local-stack.sh
-bash ./scripts/dev/stop-local-stack.sh
-bash ./scripts/dev/quality-gate.sh
+bash ./platform/local/start-local-stack.sh
+bash ./platform/local/stop-local-stack.sh
+bash ./platform/local/quality-gate.sh
 ```
 
 Matching `.ps1` files are compatibility wrappers or historical references unless

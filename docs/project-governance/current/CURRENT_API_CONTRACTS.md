@@ -1,7 +1,7 @@
 # Current API Contracts
 
 Status: current
-Last updated: 2026-07-16
+Last updated: 2026-08-16
 
 This file is the current API contract entrypoint for TerraPedia development. It
 summarizes the source-of-truth order, route families, response envelope,
@@ -14,25 +14,25 @@ runtime smoke evidence.
 Use this order when API documentation and implementation disagree:
 
 1. Running route behavior in the correct local stack.
-2. Backend controllers under `back/src/main/java/com/terraria/skills/controller/`.
-3. DTOs under `back/src/main/java/com/terraria/skills/dto/`.
+2. Backend controllers under `services/catalog-api/src/main/java/com/terraria/skills/controller/`.
+3. DTOs under `services/catalog-api/src/main/java/com/terraria/skills/dto/`.
 4. Shared response and error handling:
-   - `back/src/main/java/com/terraria/skills/common/ApiResponse.java`
-   - `back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java`
+   - `services/catalog-api/src/main/java/com/terraria/skills/common/ApiResponse.java`
+   - `services/catalog-api/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java`
 5. Authentication and request interceptors:
-   - `back/src/main/java/com/terraria/skills/auth/`
-   - `back/src/main/java/com/terraria/skills/config/WebConfig.java`
+   - `services/catalog-api/src/main/java/com/terraria/skills/auth/`
+   - `services/catalog-api/src/main/java/com/terraria/skills/config/WebConfig.java`
 6. Frontend API clients and call sites:
-   - `front-nuxt/composables/usePublicApi.ts`
-   - `front-nuxt/composables/useUserApi.ts`
-   - `data-query-app/composables/useApi.ts`
+   - `apps/public-web/composables/usePublicApi.ts`
+   - `apps/public-web/composables/useUserApi.ts`
+   - `apps/admin-console/composables/useApi.ts`
 7. Generated OpenAPI from a running backend:
    - `/api/v3/api-docs`
    - `/api/swagger-ui.html`
 8. This summary document.
 
 The backend servlet context path is `/api`, configured in
-`back/src/main/resources/application.yml`. Controller mappings are written
+`services/catalog-api/src/main/resources/application.yml`. Controller mappings are written
 without that servlet prefix, so a controller route such as `/public/items` is
 reached through `/api/public/items` from Nuxt/browser clients.
 
@@ -42,8 +42,8 @@ Both maintained Nuxt apps proxy `/api` to the Spring Boot backend in development
 
 | App | Config | API client boundary |
 | --- | --- | --- |
-| Public frontend | `front-nuxt/nuxt.config.ts` | `front-nuxt/composables/usePublicApi.ts` and `useUserApi.ts` |
-| Admin/data-query frontend | `data-query-app/nuxt.config.ts` | `data-query-app/composables/useApi.ts` |
+| Public frontend | `apps/public-web/nuxt.config.ts` | `apps/public-web/composables/usePublicApi.ts` and `useUserApi.ts` |
+| Admin/data-query frontend | `apps/admin-console/nuxt.config.ts` | `apps/admin-console/composables/useApi.ts` |
 
 Rules:
 
@@ -267,7 +267,7 @@ Admin authentication:
 - The admin interceptor protects `/admin/**`, `/auth/me`,
   `/statistics/admin/**`, write access to `/items/**` and `/categories/**`,
   `/items/import/**`, and protected file routes.
-- `data-query-app/composables/useApi.ts` reads the admin token cookie
+- `apps/admin-console/composables/useApi.ts` reads the admin token cookie
   `tp_admin_token` and adds the Bearer header.
 
 User authentication:
@@ -282,7 +282,7 @@ User authentication:
   actions.
 - Cookie-backed user write requests are guarded by local-origin checks in
   `UserWriteOriginInterceptor`.
-- `front-nuxt/composables/useUserApi.ts` uses `credentials: include` and
+- `apps/public-web/composables/useUserApi.ts` uses `credentials: include` and
   forwards server-side cookies where needed.
 
 Public read APIs:
@@ -299,11 +299,11 @@ Current backend route families are grouped as follows.
 
 | Family | Examples | Primary consumer |
 | --- | --- | --- |
-| Public catalog/domain | `/public/items`, `/public/bosses`, `/public/npcs`, `/public/buffs`, `/public/projectiles`, `/public/armor-sets`, `/public/biomes`, `/public/home/focus-item`, `/public/content-references` | `front-nuxt/` public pages and article editor references |
+| Public catalog/domain | `/public/items`, `/public/bosses`, `/public/npcs`, `/public/buffs`, `/public/projectiles`, `/public/armor-sets`, `/public/biomes`, `/public/home/focus-item`, `/public/content-references` | `apps/public-web/` public pages and article editor references |
 | Public legacy/read | `/items`, `/categories`, `/articles`, `/biomes`, `/npcs`, `/statistics/overview`, `/users/{id}` | Existing public/admin callers; compatibility surface |
-| User account/content | `/user-auth`, `/user/articles`, `/user/favorites`, `/user/history`, `/user/saved-routes`, `/user/notifications`, `/user/preferences`, article comment write routes | `front-nuxt/` user module |
-| Admin CRUD/domain | `/admin/items`, `/admin/categories`, `/admin/buffs`, `/admin/biomes`, `/admin/npcs`, `/admin/bosses`, `/admin/projectiles`, `/admin/armor-sets`, `/admin/world-contexts`, `/admin/condition-terms` | `data-query-app/` admin views |
-| Admin operations | `/admin/crawler-monitor`, `/admin/domain-acceptance`, `/admin/data-source-acceptance`, `/admin/operations/classification-audit`, `/admin/relation`, `/admin/storage`, `/admin/audio-assets`, `/admin/recipe-imports` | `data-query-app/` operations views |
+| User account/content | `/user-auth`, `/user/articles`, `/user/favorites`, `/user/history`, `/user/saved-routes`, `/user/notifications`, `/user/preferences`, article comment write routes | `apps/public-web/` user module |
+| Admin CRUD/domain | `/admin/items`, `/admin/categories`, `/admin/buffs`, `/admin/biomes`, `/admin/npcs`, `/admin/bosses`, `/admin/projectiles`, `/admin/armor-sets`, `/admin/world-contexts`, `/admin/condition-terms` | `apps/admin-console/` admin views |
+| Admin operations | `/admin/crawler-monitor`, `/admin/domain-acceptance`, `/admin/data-source-acceptance`, `/admin/operations/classification-audit`, `/admin/relation`, `/admin/storage`, `/admin/audio-assets`, `/admin/recipe-imports` | `apps/admin-console/` operations views |
 | Files/storage | `/files/images`, `/files/objects/{objectKey}` | Public/user/admin upload and object access |
 
 When adding a route, choose the family first. Do not add a public route under
@@ -322,7 +322,7 @@ a focused contract file under `docs/contracts/`.
 
 - Status: current | planned | legacy-compatible | deprecated
 - Owner surface: public frontend | admin/data-query | user module | backend-only
-- Backend source: `back/src/main/java/.../Controller.java`
+- Backend source: `services/catalog-api/src/main/java/.../Controller.java`
 - Request DTO: `...RequestDTO`
 - Response DTO: `...ResponseDTO`
 - Auth: public | admin Bearer | user cookie/Bearer | service/internal
@@ -354,8 +354,8 @@ a focused contract file under `docs/contracts/`.
   - `403`: forbidden
   - `404`: not found
 - Frontend consumers:
-  - `front-nuxt/...`
-  - `data-query-app/...`
+  - `apps/public-web/...`
+  - `apps/admin-console/...`
 - Compatibility notes:
   - none
 - Validation:
@@ -373,8 +373,8 @@ runtime payload.
 - Status: current
 - Owner surface: public frontend
 - Backend source:
-  - `back/src/main/java/com/terraria/skills/controller/CategoryController.java`
-  - `back/src/main/java/com/terraria/skills/service/impl/CategoryNavigationServiceImpl.java`
+  - `services/catalog-api/src/main/java/com/terraria/skills/controller/CategoryController.java`
+  - `services/catalog-api/src/main/java/com/terraria/skills/service/impl/CategoryNavigationServiceImpl.java`
 - Response DTO: `CategoryNavigationVO` with `CategoryNavigationChildVO`
 - Auth: public
 - Query params: none
@@ -430,9 +430,9 @@ runtime payload.
   - `503`: any configured category code is missing; `success=false`,
     `statusCode=503`, and no partial `data` list.
 - Frontend consumers:
-  - `front-nuxt/pages/categories/index.vue`
-  - `front-nuxt/pages/categories/[id].vue`
-  - `front-nuxt/pages/items/index.vue`
+  - `apps/public-web/pages/categories/index.vue`
+  - `apps/public-web/pages/categories/[id].vue`
+  - `apps/public-web/pages/items/index.vue`
 - Compatibility notes:
   - existing `/api/categories` and `/api/categories/items` responses remain
     unchanged;
@@ -445,14 +445,14 @@ runtime payload.
   - `CategoryNavigationServiceImplTest`
   - `CategoryControllerTest`
   - `ItemMapperCategoryNavigationAggregateSqlTest`
-  - `front-nuxt/scripts/check-category-navigation-contract.mjs`
+  - `apps/public-web/scripts/check-category-navigation-contract.mjs`
   - restarted local-stack API and page acceptance recorded in the task devlog.
 
 ## DTO And Type Boundary
 
 Backend:
 
-- Request and response DTOs belong under `back/src/main/java/com/terraria/skills/dto/`.
+- Request and response DTOs belong under `services/catalog-api/src/main/java/com/terraria/skills/dto/`.
 - Controller methods should expose DTOs rather than entity objects unless an
   existing route is intentionally legacy.
 - Validation annotations on request DTOs are part of the API contract.
@@ -460,7 +460,7 @@ Backend:
 
 Frontend:
 
-- Public frontend types live mainly in `front-nuxt/types/public-api.ts` and
+- Public frontend types live mainly in `apps/public-web/types/public-api.ts` and
   nearby composables.
 - Admin frontend types may be local to stores/pages or shared composables.
 - When a backend response changes, update the matching frontend type,
@@ -494,13 +494,13 @@ Use the narrowest validation that proves the API contract change:
   - focused Maven tests for the changed controller/service/DTO path.
   - OpenAPI or route smoke only when runtime behavior matters.
 - Public frontend API consumption changes:
-  - `cd front-nuxt && pnpm run check`
+  - `cd apps/public-web && pnpm run check`
   - relevant contract/page scripts when they cover the changed surface.
 - Admin API consumption changes:
-  - `cd data-query-app && pnpm run check` or `pnpm run test`
+  - `cd apps/admin-console && pnpm run check` or `pnpm run test`
   - relevant store/page tests when they cover the changed surface.
 - Cross-surface or release-sensitive changes:
-  - `bash ./scripts/dev/quality-gate.sh`, or scoped skip flags with the
+  - `bash ./platform/local/quality-gate.sh`, or scoped skip flags with the
     limitation recorded.
 
 Do not claim API runtime readiness from this document alone. Runtime readiness

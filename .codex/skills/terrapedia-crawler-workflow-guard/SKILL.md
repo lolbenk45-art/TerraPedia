@@ -106,7 +106,7 @@ node --test pipelines/workflow/run-wiki-sync.test.mjs
 If a crawler change alters monitor progress shape or backend-refresh handoff, also run the relevant monitor contract checks:
 
 ```powershell
-cd back
+cd services/catalog-api
 mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test
 ```
 
