@@ -97,3 +97,11 @@ commit.
 This entry is closed after staged-scope review and focused validation. The
 implementation commit is `be8ffe02`; this follow-up records the durable
 closeout state before integration into the feature branch.
+
+## Post-integration follow-up
+
+The integrated branch added the missing machine-readable compatibility alias
+`scripts/data -> pipelines` in `scripts/config/project.constants.json`, with a
+regression assertion in `scripts/lib/project-constants.test.mjs`. The red-green
+check was observed (`1` expected failure, then `9/9` passing); follow-up commit
+`32a308ae` is included in the feature branch.

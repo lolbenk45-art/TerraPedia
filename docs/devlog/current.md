@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:26 CST by Codex
+Last updated: 2026-08-16 03:31 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
@@ -14,7 +14,8 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   service, shared package, pipeline, and platform boundaries are migrated with
   one-way legacy symlinks. Focused gates pass; public sitemap and existing data
   baseline drift remain documented variances. Source commits: `be8ffe02`,
-  `b5b81385`; integrated commits: `4599eb67`, `e7a3c99d`.
+  `b5b81385`; integrated commits: `4599eb67`, `e7a3c99d`; alias contract
+  follow-up: `32a308ae`.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
