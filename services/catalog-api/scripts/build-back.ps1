@@ -1,14 +1,28 @@
 $ErrorActionPreference = "Stop"
 
-# 可自定义本地 Maven 仓库路径，默认使用项目内 services/catalog-api/.m2/repository
+# 可自定义本地 Maven 仓库路径，默认使用 canonical service 目录内的 .m2/repository
+$repoRoot = $null
+$probe = [IO.DirectoryInfo]::new($PSScriptRoot)
+while ($null -ne $probe) {
+  if (Test-Path (Join-Path $probe.FullName 'scripts\config\project.constants.json')) {
+    $repoRoot = $probe.FullName
+    break
+  }
+  $probe = $probe.Parent
+}
+if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+  throw "Unable to resolve TerraPedia project root from $PSScriptRoot"
+}
+. (Join-Path $repoRoot 'scripts\lib\project-constants.ps1')
+$serviceRoot = Get-TerraPediaApplicationPath -Application 'catalogApi'
 $repo = $env:MAVEN_REPO_LOCAL
 if ([string]::IsNullOrWhiteSpace($repo)) {
-  $repo = "G:\ClaudeCode\terraPedia\back\.m2\repository"
+  $repo = Join-Path $serviceRoot '.m2\repository'
 }
 
 $logDir = $env:TERRAPEDIA_LOG_DIR
 if ([string]::IsNullOrWhiteSpace($logDir)) {
-  $logDir = "G:\ClaudeCode\terraPedia\reports\2026-03-18-batch26"
+  $logDir = Get-TerraPediaConstantPath -Key 'evidence.runtime' -Suffix @('catalog-api-build')
 }
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $logFile = Join-Path $logDir "backend-build.log"
@@ -22,7 +36,7 @@ Write-Host "Using BACK_BUILD_JAVA_OPTS: $($env:BACK_BUILD_JAVA_OPTS)"
 $env:MAVEN_OPTS = "-Dmaven.repo.local=$repo $($env:BACK_BUILD_JAVA_OPTS)"
 $stderrFile = Join-Path $logDir "backend-build.stderr.log"
 Remove-Item $logFile, $stderrFile -Force -ErrorAction SilentlyContinue
-$process = Start-Process -FilePath "mvn.cmd" -ArgumentList "-DskipTests", "package" -WorkingDirectory (Get-Location).Path -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logFile -RedirectStandardError $stderrFile
+$process = Start-Process -FilePath "mvn.cmd" -ArgumentList "-DskipTests", "package" -WorkingDirectory $serviceRoot -NoNewWindow -Wait -PassThru -RedirectStandardOutput $logFile -RedirectStandardError $stderrFile
 $exitCode = $process.ExitCode
 
 Write-Host "Build log saved to $logFile"

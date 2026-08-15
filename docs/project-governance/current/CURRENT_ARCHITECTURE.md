@@ -1,7 +1,7 @@
 # Current Architecture
 
 Status: current
-Last updated: 2026-07-09
+Last updated: 2026-08-16
 
 This file summarizes the current TerraPedia system architecture for planning and
 handoff. It is a document-level view, not runtime validation evidence. Runtime,
@@ -12,30 +12,30 @@ evidence.
 
 TerraPedia currently has four maintained implementation lines:
 
-1. Public Nuxt frontend: `front-nuxt/`
-2. Admin/data-query Nuxt frontend: `data-query-app/`
-3. Spring Boot backend: `back/`
-4. Data crawl, standardization, import, sync, and audit tooling: `scripts/data/` and `data/`
+1. Public Nuxt frontend: `apps/public-web/`
+2. Admin/data-query Nuxt frontend: `apps/admin-console/`
+3. Spring Boot backend: `services/catalog-api/`
+4. Data crawl, standardization, import, sync, and audit tooling: `pipelines/` and `data/`
 
-The local stack is orchestrated by `scripts/dev/` Bash scripts.
+The local stack is orchestrated by `platform/local/` Bash scripts.
 
 ## Runtime Shape
 
 ```text
-front-nuxt/          data-query-app/
+apps/public-web/     apps/admin-console/
      |                     |
      | /api via Nuxt proxy | /api via Nuxt proxy
      v                     v
-             back/ Spring Boot API
+      services/catalog-api/ Spring Boot API
                      |
         MySQL / Redis / MinIO integrations
                      |
-     scripts/data/ and data/ produce tracked or durable evidence
+     pipelines/ and data/ produce tracked or durable evidence
 ```
 
-`front-nuxt/nuxt.config.ts` proxies `/api` to the backend origin and
+`apps/public-web/nuxt.config.ts` proxies `/api` to the backend origin and
 `/terrapedia-images` to the configured image origin during development.
-`data-query-app/nuxt.config.ts` uses the same general backend/image-origin
+`apps/admin-console/nuxt.config.ts` uses the same general backend/image-origin
 pattern for admin/data-query workflows.
 
 ## Data And Acceptance Chain
@@ -71,7 +71,8 @@ Important data areas include:
 - `data/canonical/` for canonical data structures.
 - `data/generated/` for generated source or evidence outputs, subject to durability rules.
 - `data/reports/` and `reports/` for generated audit/runtime artifacts; durable conclusions should be promoted to `docs/audits/`.
-- `data/wiki-crawler/` and `scripts/data/crawler/` for crawler implementation and tests.
+- `data/wiki-crawler/` for crawler data and rerunnable outputs; crawler
+  implementation and tests live under `pipelines/crawler/`.
 
 Do not move data blindly. Check current workflow, source-of-truth chain, and
 prior reports before changing data ownership.

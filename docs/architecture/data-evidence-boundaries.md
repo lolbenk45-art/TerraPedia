@@ -50,7 +50,7 @@ The manifest describes standardized outputs that already exist; upstream freshne
 
 ### `data/wiki-crawler/**`
 
-`data/wiki-crawler/**` is reserved for crawler data, reports, normalized outputs, canonical candidates, audits, and other rerunnable artifacts. Crawler source and tests live under `scripts/data/crawler/**`; this data directory should not regain script-source responsibility.
+`data/wiki-crawler/**` is reserved for crawler data, reports, normalized outputs, canonical candidates, audits, and other rerunnable artifacts. Crawler source and tests live under `pipelines/crawler/**`; this data directory should not regain script-source responsibility.
 
 Crawler output under this path is not promoted into long-term facts until the relevant milestone gate accepts it.
 

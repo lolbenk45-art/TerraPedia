@@ -8,7 +8,7 @@ Start from:
 
 - `reports/*.md` summary files
 - `reports/*.json` structured results only when the markdown is insufficient
-- direct target modules under `services/catalog-api/`, `front/`, or `apps/admin-console/`
+- direct target modules under `services/catalog-api/`, `apps/public-web/`, or `apps/admin-console/`
 
 ## What To Deprioritize
 
@@ -54,7 +54,7 @@ Lower-value intermediate artifacts often contain:
 - backend implementation: `services/catalog-api/src/main/java`
 - backend tests: `services/catalog-api/src/test/java`
 - frontend app: `apps/admin-console/`
-- older frontend or static assets: `front/`
+- public frontend: `apps/public-web/`
 - reports and handoff material: `reports/`
 
 Do not search all modules unless the interface boundary is clearly cross-cutting.

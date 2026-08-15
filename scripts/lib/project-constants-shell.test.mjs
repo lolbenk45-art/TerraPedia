@@ -58,6 +58,13 @@ test('PowerShell adapter exposes the same semantic contract', () => {
   }
 });
 
+test('backend PowerShell build derives portable canonical paths', () => {
+  const source = fs.readFileSync(path.join(repoRoot, 'services', 'catalog-api', 'scripts', 'build-back.ps1'), 'utf8');
+  assert.match(source, /Get-TerraPediaApplicationPath/);
+  assert.match(source, /Get-TerraPediaConstantPath/);
+  assert.doesNotMatch(source, /G:\\ClaudeCode\\terraPedia/i);
+});
+
 test('platform common resolver is independent of the caller working directory', () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-common-root-'));
   try {

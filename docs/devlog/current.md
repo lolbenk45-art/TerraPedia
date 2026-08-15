@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:35 CST by Codex
+Last updated: 2026-08-16 03:46 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
@@ -16,7 +16,8 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   baseline drift remain documented variances. Source commits: `be8ffe02`,
   `b5b81385`; integrated commits: `4599eb67`, `e7a3c99d`; alias contract
   follow-up: `32a308ae`; documentation correction: `data/wiki-crawler/README.md`
-  now points to `pipelines/crawler`.
+  now points to `pipelines/crawler`; review repairs also canonicalize the
+  authoritative workflow/build defaults and portable PowerShell build paths.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
@@ -195,7 +196,7 @@ Root governance files `03`, `04`, and `07-12` were removed from the current tree
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
-  route V1 until they run `scripts/dev/crawler-v2-cutover.sh`.
+  route V1 until they run `platform/local/crawler-v2-cutover.sh`.
 - Do not run real crawler force/apply actions, Redis reset, or database writes
   without explicit operation-level authorization.
 

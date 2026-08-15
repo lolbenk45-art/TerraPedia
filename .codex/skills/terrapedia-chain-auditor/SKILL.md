@@ -58,7 +58,7 @@ git worktree list
 2. Locate chain entrypoints with `rg`:
 
 ```powershell
-rg -n "data-source-acceptance|freshness|refresh-plan|manifest|quality-gate|reportPattern|generatorCommand" scripts back apps/admin-console front project-plan
+rg -n "data-source-acceptance|freshness|refresh-plan|manifest|quality-gate|reportPattern|generatorCommand" pipelines services apps platform docs
 ```
 
 3. Verify evidence safety:
@@ -81,7 +81,7 @@ rg -n "data-source-acceptance|freshness|refresh-plan|manifest|quality-gate|repor
 
 ```powershell
 node --test pipelines/workflow/data-source-acceptance-report-manifest.test.mjs pipelines/workflow/data-source-acceptance-freshness-audit.test.mjs pipelines/workflow/data-source-acceptance-refresh-plan.test.mjs
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\platform\local\quality-gate.ps1
 ```
 
 Use narrower tests first while editing. Run full quality gate before claiming the chain is stable or committing.
@@ -121,4 +121,3 @@ Report in this shape:
 - Warnings:
 - Blocked:
 ```
-

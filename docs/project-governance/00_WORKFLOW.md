@@ -26,9 +26,9 @@
 ### 2.1 默认环境
 
 - 默认本地数据库：`terria_v1_local`
-- 默认启动入口：`scripts/dev/start-local-stack.sh`
-- 默认停止入口：`scripts/dev/stop-local-stack.sh`
-- 默认本地配置模板：`scripts/dev/config/local-stack.config.example.json`
+- 默认启动入口：`platform/local/start-local-stack.sh`
+- 默认停止入口：`platform/local/stop-local-stack.sh`
+- 默认本地配置模板：`platform/local/config/local-stack.config.example.json`
 - Bash / WSL 是本地自动化主路径；同名 `.ps1` 文件在迁移窗口内只作为临时兼容 wrapper，不作为主入口维护重复逻辑。
 
 ### 2.2 默认命令
@@ -36,54 +36,54 @@
 启动本地三端：
 
 ```bash
-bash ./scripts/dev/start-local-stack.sh
+bash ./platform/local/start-local-stack.sh
 ```
 
 停止本地三端：
 
 ```bash
-bash ./scripts/dev/stop-local-stack.sh
+bash ./platform/local/stop-local-stack.sh
 ```
 
 后端精确测试：
 
 ```bash
-cd back
+cd services/catalog-api
 mvn -Dtest=ClassA,ClassB test
 ```
 
 后端常规测试：
 
 ```bash
-cd back
+cd services/catalog-api
 mvn test
 ```
 
 管理端类型检查：
 
 ```bash
-cd data-query-app
+cd apps/admin-console
 pnpm run check
 ```
 
 前台完整门禁：
 
 ```bash
-cd front-nuxt
+cd apps/public-web
 pnpm run check
 ```
 
 管理端完整门禁：
 
 ```bash
-cd data-query-app
+cd apps/admin-console
 pnpm run test
 ```
 
 三端完整质量门禁：
 
 ```bash
-bash ./scripts/dev/quality-gate.sh
+bash ./platform/local/quality-gate.sh
 ```
 
 提交前最小检查：
@@ -581,8 +581,8 @@ git diff --cached --stat
 
 先看：
 
-- `scripts/dev/config/local-stack.config.json`（仅本地使用，不提交）
-- `scripts/dev/start-local-stack.sh`
+- `platform/local/config/local-stack.config.json`（仅本地使用，不提交）
+- `platform/local/start-local-stack.sh`
 
 禁止：
 

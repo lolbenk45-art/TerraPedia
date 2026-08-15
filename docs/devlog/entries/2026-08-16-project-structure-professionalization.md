@@ -109,3 +109,11 @@ check was observed (`1` expected failure, then `9/9` passing); follow-up commit
 The same follow-up corrected the current `data/wiki-crawler/README.md` source
 location from the legacy alias to `pipelines/crawler`; no crawler data or
 execution behavior changed.
+
+Review repairs on the integrated branch then completed the canonical-boundary
+closeout: `docs/project-governance/00_WORKFLOW.md` and current architecture
+references now use canonical roots; `services/catalog-api/scripts/build-back.ps1`
+derives its Maven cache, runtime logs, service root, and Maven working directory
+from the project constants adapter; crawler boundary docs and skill examples
+were synchronized; and duplicate platform ignore rules were removed. The
+portable build contract is covered by the Shell/PowerShell suite (`14/14`).
