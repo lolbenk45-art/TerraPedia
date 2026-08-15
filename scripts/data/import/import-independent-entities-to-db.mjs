@@ -3,15 +3,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import { resolveIndependentEntityImportApply } from './independent-entity-import-mode.mjs';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
 import { reconcileChildRows } from '../lib/base-domain-row-reconcile.mjs';
 import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
-
-const require = createRequire(import.meta.url);
+import { resolveEntities } from '../pipeline/independent-entity-sync-args.mjs';
 
 const repoRoot = getProjectRoot();
 
@@ -25,6 +24,10 @@ function parseArgs(argv) {
     else args[body] = 'true';
   }
   return args;
+}
+
+export function resolveSelectedEntities(args = {}) {
+  return new Set(resolveEntities(args.entity));
 }
 
 function toNullableString(value) {
@@ -1103,32 +1106,45 @@ function buildIndependentArmorSetColumnValueMap(record, sourceKey) {
   };
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
+export async function runIndependentEntityImport(args = {}, {
+  connection = null,
+  mysqlModule = null,
+  transactionOwner = 'self',
+  datasets = null,
+} = {}) {
   const apply = resolveIndependentEntityImportApply(args);
+  const selectedEntities = resolveSelectedEntities(args);
   const dataDir = path.resolve(
     args['data-dir']
     ?? process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR
     ?? path.join(repoRoot, 'data', 'standardized')
   );
-  const mysql = require('mysql2/promise');
-
-  const conn = await mysql.createConnection({
-    host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
-    port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? 3306),
-    user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? 'root',
-    password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? 'root',
-    database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? 'terria_v1_local',
-    multipleStatements: true,
-  });
+  if (!['self', 'caller'].includes(transactionOwner)) {
+    throw new Error('transactionOwner must be self or caller');
+  }
+  if (transactionOwner === 'caller' && !apply) {
+    throw new Error('caller-owned independent import requires apply=true');
+  }
+  const ownsConnection = connection == null;
+  const conn = connection ?? await (mysqlModule ?? loadMysqlModule()).createConnection({
+      host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
+      port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? 3306),
+      user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? 'root',
+      password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? 'root',
+      database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? 'terria_v1_local',
+      multipleStatements: true,
+    });
 
   assertPrimaryDb(conn.config.database, args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true');
 
-  const buffs = loadStandardizedDataset(dataDir, 'buffs').records ?? [];
-  const npcs = loadStandardizedDataset(dataDir, 'npcs').records ?? [];
-  const projectiles = loadStandardizedDataset(dataDir, 'projectiles').records ?? [];
-  const armorSets = loadStandardizedDataset(dataDir, 'armor_sets').records ?? [];
-  const sourceItems = loadStandardizedDataset(dataDir, 'items').records ?? [];
+  const loadRecords = (entity) => datasets == null
+    ? loadStandardizedDataset(dataDir, entity).records ?? []
+    : datasets[entity]?.records ?? [];
+  const buffs = loadRecords('buffs');
+  const npcs = loadRecords('npcs');
+  const projectiles = loadRecords('projectiles');
+  const armorSets = loadRecords('armor_sets');
+  const sourceItems = loadRecords('items');
   const sourceItemLookup = loadSourceItemLookup(sourceItems);
 
   const summary = {
@@ -1149,27 +1165,42 @@ async function main() {
 
   try {
     await conn.query('SET NAMES utf8mb4');
-    await ensureSchema(conn);
+    if (transactionOwner === 'self') await ensureSchema(conn);
     const itemLookup = await loadItemsLookup(conn);
     const categoryByCode = await loadCategoryCodeMap(conn);
 
-    await conn.beginTransaction();
-    await importBuffs(conn, buffs, itemLookup, sourceItemLookup, summary.buffs, summary.buffSourceItems);
-    await importNpcs(conn, npcs, itemLookup, sourceItemLookup, categoryByCode, summary.npcs, summary.npcItemLinks);
-    await importProjectiles(conn, projectiles, summary.projectiles);
-    await importArmorSets(conn, armorSets, itemLookup, sourceItemLookup, summary.armorSets, summary.armorSetItems);
-    if (apply) {
+    if (transactionOwner === 'self') await conn.beginTransaction();
+    if (selectedEntities.has('buffs')) {
+      await importBuffs(conn, buffs, itemLookup, sourceItemLookup, summary.buffs, summary.buffSourceItems);
+    }
+    if (selectedEntities.has('npcs')) {
+      await importNpcs(conn, npcs, itemLookup, sourceItemLookup, categoryByCode, summary.npcs, summary.npcItemLinks);
+    }
+    if (selectedEntities.has('projectiles')) {
+      await importProjectiles(conn, projectiles, summary.projectiles);
+    }
+    if (selectedEntities.has('armor_sets')) {
+      await importArmorSets(conn, armorSets, itemLookup, sourceItemLookup, summary.armorSets, summary.armorSetItems);
+    }
+    if (transactionOwner === 'caller') {
+      // The automation adapter commits the entity rows and its governance evidence together.
+    } else if (apply) {
       await conn.commit();
     } else {
       await conn.rollback();
     }
   } catch (error) {
-    await conn.rollback();
+    if (transactionOwner === 'self') await conn.rollback();
     throw error;
   } finally {
-    await conn.end();
+    if (ownsConnection) await conn.end();
   }
 
+  return summary;
+}
+
+async function main() {
+  const summary = await runIndependentEntityImport(parseArgs(process.argv.slice(2)));
   console.log(JSON.stringify(summary, null, 2));
 }
 

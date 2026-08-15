@@ -109,8 +109,21 @@ test('the extraction pipeline owns ordered progress and completes only after the
 test('the parent heartbeat advances while a delayed langlink child is resolving', async () => {
   const fixture = createFixture('heartbeat');
   const progress = [];
+  const attemptIdentity = {
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-shimmer',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-shimmer',
+    TERRAPEDIA_CRAWLER_FENCE_TOKEN: '149',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-shimmer',
+    TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION: '2',
+    TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE: '100',
+  };
 
   try {
+    writeJson(fixture.progressPath, {
+      actionId: 'domain-source-shimmer',
+      status: 'running',
+      progressSequence: 101,
+    });
     await runPipeline(fixture, {
       heartbeatIntervalMs: 5,
       fetchRaw: async ({ onPhase }) => {
@@ -125,7 +138,7 @@ test('the parent heartbeat advances while a delayed langlink child is resolving'
         return langlinkEvidence(titles);
       },
       writeProgress: (snapshot) => progress.push({ ...snapshot })
-    });
+    }, { env: attemptIdentity });
 
     const resolving = progress.filter((snapshot) => (
       snapshot.status === 'running' && snapshot.phase === 'resolve_langlinks'
@@ -135,6 +148,16 @@ test('the parent heartbeat advances while a delayed langlink child is resolving'
       new Set(resolving.map((snapshot) => snapshot.lastHeartbeatAt)).size >= 2,
       'heartbeat writes must advance the heartbeat timestamp'
     );
+    assert.ok(resolving.every((snapshot) => (
+      snapshot.queueId === 'queue-shimmer'
+      && snapshot.attemptId === 'attempt-shimmer'
+      && snapshot.fenceToken === 149
+      && snapshot.stateStoreEpoch === 'epoch-shimmer'
+      && snapshot.progressSequence > 101
+    )), 'heartbeats must carry the current V2 attempt identity after the outer progress snapshot');
+    assert.ok(resolving.slice(1).every((snapshot, index) => (
+      snapshot.progressSequence > resolving[index].progressSequence
+    )), 'heartbeat progressSequence must strictly advance');
   } finally {
     fs.rmSync(fixture.tempDir, { recursive: true, force: true });
   }

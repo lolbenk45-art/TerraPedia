@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { SHIMMER_TABLE_ROLE_SEQUENCE } from '../maint/shimmer-structured-parser.mjs';
-import { buildShimmerGeneration } from './shimmer-generation-builder.mjs';
+import { buildShimmerGeneration, collectShimmerCandidateTitles } from './shimmer-generation-builder.mjs';
 
 test('buildShimmerGeneration is byte-identical across different wall clocks', () => {
   const realNow = Date.now;
@@ -148,8 +148,8 @@ test('buildShimmerGeneration classifies an explicit no-output marker as none', (
   input.raw.html = input.raw.html.replace(anchor('铂金剑'), anchor('无'));
   input.langlinkEvidence = [
     { nameZh: '金币', nameEn: 'Coins' },
-    { nameZh: '无', nameEn: null },
   ];
+  assert.equal(collectShimmerCandidateTitles(input.raw).includes('无'), false);
   const generation = buildShimmerGeneration(input);
   assert.equal(generation.itemTransforms[0].inputKind, 'item_group');
   assert.equal(generation.itemTransforms[0].outputKind, 'none');

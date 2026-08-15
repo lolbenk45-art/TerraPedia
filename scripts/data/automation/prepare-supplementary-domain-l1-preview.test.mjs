@@ -9,10 +9,19 @@ import {
   connectionOptions,
   DOMAIN_PREVIEW_CONFIG,
   prepareSupplementaryDomainL1Preview,
+  resolveSupplementaryPreviewExecutionMode,
   runDomainSource,
 } from './prepare-supplementary-domain-l1-preview.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+test('manual preview CLI keeps the owner-authorized execution mode by default', () => {
+  assert.equal(resolveSupplementaryPreviewExecutionMode({}), 'MANUAL_OWNER_L1');
+  assert.equal(
+    resolveSupplementaryPreviewExecutionMode({ 'execution-mode': 'ACTIVATION_GATED_AUTO' }),
+    'ACTIVATION_GATED_AUTO',
+  );
+});
 
 test('uses string dates when freezing supplementary L1 baselines', () => {
   assert.equal(connectionOptions({
@@ -97,6 +106,81 @@ test('shimmer bootstrap preview can reuse only the verified current generation',
     }),
     /only supported for shimmer/,
   );
+});
+
+test('fresh automatic shimmer preview builds its import proposal without overwriting canonical authorization evidence', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-shimmer-automatic-'));
+  const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
+  fs.mkdirSync(path.dirname(pointerPath), { recursive: true });
+  fs.writeFileSync(pointerPath, JSON.stringify({ manifestPath: 'generations/fresh/wiki-shimmer-manifest.json' }));
+  const proposal = {
+    inputContract: { generationId: 'fresh-generation' },
+    previewSha256: 'sha256:preview',
+    targetFingerprintSha256: 'sha256:target',
+    preview: { summary: { records: 1 } },
+  };
+  let sourceRan = false;
+
+  const result = await runDomainSource({
+    domainId: 'shimmer',
+    repoRoot,
+    progressPath: '/tmp/shimmer-progress.json',
+  }, {
+    env: { TERRAPEDIA_DB_NAME: 'terria_v1_local' },
+    runId: 'shimmer_l1_automatic',
+    resumeMode: 'fresh',
+    persistCanonicalShimmerProposal: false,
+  }, {
+    runNodeImpl: async () => { sourceRan = true; },
+    runProposalImpl: async () => { throw new Error('automatic preview must not overwrite canonical proposal evidence'); },
+    runReadOnlyProposalImpl: async () => proposal,
+  });
+
+  assert.equal(sourceRan, true);
+  assert.deepEqual(result, { sourcePayload: proposal.inputContract, proposal });
+});
+
+test('local automatic shimmer preview reuses the current generation without legacy canonical proposal evidence', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-shimmer-local-automatic-'));
+  const pointerPath = path.join(repoRoot, 'data/generated/shimmer/wiki-shimmer-current-generation.json');
+  fs.mkdirSync(path.dirname(pointerPath), { recursive: true });
+  fs.writeFileSync(pointerPath, JSON.stringify({
+    generationId: 'current-generation',
+    manifestPath: 'generations/current-generation/wiki-shimmer-manifest.json',
+    manifestSha256: 'sha256:manifest',
+    dataBundleSha256: 'sha256:data',
+  }));
+  const proposal = {
+    inputContract: {
+      generationId: 'current-generation',
+      manifestPath: 'data/generated/shimmer/generations/current-generation/wiki-shimmer-manifest.json',
+      manifestSha256: 'sha256:manifest',
+      dataBundleSha256: 'sha256:data',
+      providerScope: { provider: 'wiki_zh' },
+    },
+    previewSha256: 'sha256:preview',
+    targetFingerprintSha256: 'sha256:target',
+    preview: { summary: { records: 1 } },
+  };
+
+  const result = await runDomainSource({
+    domainId: 'shimmer', repoRoot, progressPath: '/tmp/shimmer-progress.json',
+  }, {
+    env: { TERRAPEDIA_DB_NAME: 'terria_v1_local' },
+    runId: 'shimmer_l1_local_automatic',
+    resumeMode: 'fresh',
+    reuseCurrentGeneration: true,
+    reuseCurrentSource: true,
+    persistCanonicalShimmerProposal: false,
+  }, {
+    runNodeImpl: async () => { throw new Error('local automatic preview must not crawl'); },
+    runProposalImpl: async () => { throw new Error('local automatic preview must not write canonical proposal evidence'); },
+    runReadOnlyProposalImpl: async () => proposal,
+    readInputContractImpl: () => { throw new Error('local automatic preview must not require legacy input evidence'); },
+    readProposalImpl: () => { throw new Error('local automatic preview must not require legacy proposal evidence'); },
+  });
+
+  assert.deepEqual(result, { sourcePayload: proposal.inputContract, proposal });
 });
 
 for (const domainId of ['audio', 'bosses', 'shimmer']) {
@@ -197,6 +281,36 @@ test('acknowledges only a stable supplementary source snapshot after the frozen 
   assert.equal(drifted.sourceAcknowledged, false);
   assert.equal(drifted.sourceAcknowledgementReason, 'source_changed_during_preview');
   assert.equal(acknowledgements.length, 1);
+});
+
+test('automatic preview defers a stable source acknowledgement until database apply succeeds', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-deferred-ack-'));
+  const snapshot = {
+    sourceKey: 'wiki.bosses.catalog', locator: 'Bosses', entityFamily: 'bosses',
+    sourceKind: 'page_catalog', contentHash: 'stable', checkedAt: '2026-08-14T06:00:00.000Z',
+  };
+  const acknowledgements = [];
+  const result = await prepareSupplementaryDomainL1Preview({
+    domainId: 'bosses',
+    repoRoot,
+    generatedAt: '2026-08-14T06:00:00.000Z',
+    runId: 'bosses_l1_20260814_deferred',
+    deferSourceAcknowledgement: true,
+  }, {
+    runSource: async () => ({ sourcePayload: { records: [] } }),
+    loadPolicyContext: async () => ({
+      policy: { domainId: 'bosses', level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH('a'), policySetHash: HASH('b') },
+      baseline: { environmentId: 'local', generations: DOMAIN_PREVIEW_CONFIG.bosses.ownedTables.map((scope) => ({ ...scope, generation: 0 })), projectionHash: HASH('c') },
+    }),
+    buildImportPlan: async () => ({ records: [] }),
+    probeSource: async () => snapshot,
+    acknowledgeSource: (input) => acknowledgements.push(input),
+  });
+
+  assert.equal(result.sourceAcknowledged, false);
+  assert.equal(result.sourceAcknowledgementReason, 'deferred_until_apply');
+  assert.deepEqual(result.stableSourceSnapshot, snapshot);
+  assert.equal(acknowledgements.length, 0);
 });
 
 test('keeps a valid frozen preview completed but does not acknowledge when the post-probe fails', async () => {

@@ -123,6 +123,18 @@ test('scheduler activation records bounded eligibility without changing policy s
   assert.equal(db.calls.some(([name]) => name === 'updatePolicy'), false);
 });
 
+test('global crawler scheduler activation does not fabricate domain L1 apply history', () => {
+  const operationId = 'automation-crawler-v2-scheduler-activation';
+  const plan = buildPlan(operationId, {
+    domainId: 'crawler_v2_scheduler',
+    minimumSuccessfulL1Runs: 2,
+  });
+  assert.equal(plan.domainId, 'crawler_v2_scheduler');
+  assert.equal(plan.currentLevel, 'L1');
+  assert.equal(plan.decisionKind, 'SCHEDULER_ACTIVATION');
+  assert.equal(plan.requiresSuccessfulL1Runs, false);
+});
+
 test('policy decision input and current identity fail closed', async () => {
   for (const invalid of [
     input('automation-biomes-l1-policy-promotion', { domainId: 'items' }),

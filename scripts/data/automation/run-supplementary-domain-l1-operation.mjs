@@ -7,17 +7,17 @@ import { fileURLToPath } from 'node:url';
 
 import { runAudioAssetImport } from '../import/import-wiki-audio-assets-to-db.mjs';
 import { runBossImport } from '../import/import-wiki-bosses-to-db.mjs';
+import { runIndependentEntityImport } from '../import/import-independent-entities-to-db.mjs';
 import {
   applyBundleChanges as applyShimmerBundleChanges,
   assertShimmerImportScopeMatchesPreview,
   buildShimmerImportPreview,
   loadCurrentShimmerScope,
   loadTargetFingerprint,
-  loadVerifiedShimmerImportBundleFromInputContract,
+  loadVerifiedShimmerImportBundle,
 } from '../import/import-wiki-shimmer-to-db.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { loadAuthorizedOperationContext } from './authorized-operation-context.mjs';
-import { readCanonicalShimmerImportInputContract } from './canonical-shimmer-import-input-contract.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 import { validateSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 
@@ -39,6 +39,7 @@ export async function executeSupplementaryL1Operation({
     assertCurrentContext({ current, bundle, authorizationContext });
     await adapter.persistRunChain(bundle, authorizationContext);
     const importSummary = await adapter.applyFrozenImport(bundle.importPlan, bundle);
+    assertImportSummaryHealthy(importSummary);
     await adapter.advanceMutationGenerations(bundle);
     const completedAt = executionTime;
     await adapter.persistCommittedApply({ bundle, importSummary, completedAt });
@@ -57,6 +58,30 @@ export async function executeSupplementaryL1Operation({
   } catch (error) {
     await adapter.rollback();
     throw error;
+  }
+}
+
+export function assertImportSummaryHealthy(value) {
+  const errors = [];
+  collectImportErrors(value, '$', errors);
+  if (errors.length > 0) {
+    throw new Error(`import summary contains ${errors.length} error(s): ${errors.slice(0, 3).join('; ')}`);
+  }
+}
+
+function collectImportErrors(value, location, errors) {
+  if (!value || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => collectImportErrors(entry, `${location}[${index}]`, errors));
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    const childLocation = `${location}.${key}`;
+    if ((key === 'errors' || key === 'failures') && Array.isArray(child)) {
+      child.forEach((entry) => errors.push(`${childLocation}: ${String(entry)}`));
+      continue;
+    }
+    collectImportErrors(child, childLocation, errors);
   }
 }
 
@@ -107,6 +132,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
         + ' (run_id, evidence_hash, manifest_json, policy_set_hash, baseline_fingerprint)'
         + ' VALUES (?, ?, CAST(? AS JSON), ?, ?)',
         [bundle.runId, bundle.evidenceHash, JSON.stringify({
+          automaticSourceFingerprint: bundle.importPlan.automaticSourceFingerprint ?? null,
           bundleFileHash,
           privatePath: frozenBundlePath,
           source: bundle.source,
@@ -121,6 +147,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
           bundle.logicalDiffHash, bundle.baselineFingerprint, bundle.operationId,
           frozenBundlePath, bundleBytes.length, expiresAt],
       );
+      const automatic = bundle.executionMode === 'ACTIVATION_GATED_AUTO';
       await connection.query(
         'INSERT INTO crawler_automation_decision'
         + ' (run_id, decision, decision_hash, reason_codes_json, counts_ratios_json,'
@@ -128,13 +155,14 @@ export function createMysqlSupplementaryL1Adapter(connection, {
         + ' logical_diff_identity_json, baseline_fingerprint, snapshot_required,'
         + ' planned_apply_action_id) VALUES (?, ?, ?, CAST(? AS JSON), CAST(? AS JSON),'
         + ' CAST(? AS JSON), ?, ?, ?, ?, CAST(? AS JSON), ?, 1, ?)',
-        [bundle.runId, 'REQUIRES_OWNER_L1', bundle.decisionHash,
-          JSON.stringify(['LEVEL_L1_REQUIRES_OWNER']), JSON.stringify({}), JSON.stringify([true]),
+        [bundle.runId, automatic ? 'AUTO_APPLY_L2' : 'REQUIRES_OWNER_L1', bundle.decisionHash,
+          JSON.stringify([automatic ? 'ACTIVATION_GATED_AUTOMATIC' : 'LEVEL_L1_REQUIRES_OWNER']), JSON.stringify({}), JSON.stringify([true]),
           bundle.policy.policySetHash, bundle.evidenceHash, bundle.bundleHash,
           bundle.logicalDiffHash, JSON.stringify(bundle.logicalDiffIdentity),
           bundle.baselineFingerprint, bundle.operationId],
       );
-      const [approval] = await connection.query(
+      if (!automatic) {
+        const [approval] = await connection.query(
         'INSERT INTO crawler_automation_approval'
         + ' (request_key, run_id, decision_hash, policy_set_hash, evidence_hash, bundle_hash,'
         + ' logical_diff_hash, logical_diff_identity_json, baseline_fingerprint,'
@@ -145,10 +173,11 @@ export function createMysqlSupplementaryL1Adapter(connection, {
           bundle.logicalDiffHash, JSON.stringify(bundle.logicalDiffIdentity),
           bundle.baselineFingerprint, bundle.operationId, authorizationContext.actor,
           'APPROVE', authorizationContext.reason, authorizationContext.authorizationReference],
-      );
-      state.approvalId = Number(approval?.insertId);
-      if (!Number.isSafeInteger(state.approvalId) || state.approvalId < 1) {
-        throw new Error('supplementary L1 approval insert did not return an id');
+        );
+        state.approvalId = Number(approval?.insertId);
+        if (!Number.isSafeInteger(state.approvalId) || state.approvalId < 1) {
+          throw new Error('supplementary L1 approval insert did not return an id');
+        }
       }
       await connection.query(
         'INSERT INTO crawler_automation_snapshot'
@@ -163,7 +192,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
         + ' (run_id, bundle_hash, policy_set_hash, decision_hash, approval_id, mode, status,'
         + ' before_generation_json, commit_protocol) VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?)',
         [bundle.runId, bundle.bundleHash, bundle.policy.policySetHash, bundle.decisionHash,
-          state.approvalId, 'APPROVED_OWNER_L1', 'APPLYING',
+          state.approvalId, automatic ? 'AUTO_APPLY_L2' : 'APPROVED_OWNER_L1', 'APPLYING',
           JSON.stringify(bundle.baseline.generations), 'SINGLE_TXN'],
       );
       state.applyId = Number(apply?.insertId);
@@ -284,6 +313,16 @@ export async function readCurrentSupplementaryContext(connection, {
     generations,
     projectionHash: hashJson(tables),
   };
+  const [activationRows] = await connection.query(
+    'SELECT decision_identity AS activationDecisionIdentity, packet_hash AS activationPacketHash,'
+    + ' policy_set_hash AS activationPolicySetHash, authorized_at AS activationAuthorizedAt,'
+    + ' expires_at AS activationExpiresAt'
+    + ' FROM crawler_automation_activation_decision'
+    + ' WHERE decision_kind = ? AND domain_id = ?'
+    + ' ORDER BY authorized_at DESC, id DESC LIMIT 1',
+    ['SCHEDULER_ACTIVATION', 'crawler_v2_scheduler'],
+  );
+  const activation = activationRows?.[0] ?? null;
   return {
     ownerUsername: ownerRows?.[0]?.username ?? null,
     ownerStatus: ownerRows?.[0]?.status ?? null,
@@ -295,8 +334,14 @@ export async function readCurrentSupplementaryContext(connection, {
     operationalState: policy.operationalState,
     baselineFingerprint: hashJson(baseline),
     approvalMode: 'APPROVED_OWNER_L1',
+    executionMode: 'MANUAL_OWNER_L1',
     approvalConsumed: false,
     baseline,
+    activationDecisionIdentity: activation?.activationDecisionIdentity ?? null,
+    activationPacketHash: activation?.activationPacketHash ?? null,
+    activationPolicySetHash: activation?.activationPolicySetHash ?? null,
+    activationAuthorizedAt: activation?.activationAuthorizedAt ?? null,
+    activationExpiresAt: activation?.activationExpiresAt ?? null,
   };
 }
 
@@ -304,6 +349,19 @@ async function applyFrozenDomainImport({ connection, bundle, repoRoot }) {
   const sourcePath = path.resolve(repoRoot, bundle.source.path);
   const sourcePayload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
   if (sha256Json(sourcePayload) !== bundle.source.sha256) throw new Error('frozen source hash drifted before apply');
+  if (['npcs', 'buffs', 'armor_sets'].includes(bundle.domainId)) {
+    const domainDataset = sourcePayload?.datasets?.[bundle.domainId];
+    const itemDataset = sourcePayload?.datasets?.items;
+    if (domainDataset?.entity !== bundle.domainId || !Array.isArray(domainDataset.records)
+        || itemDataset?.entity !== 'items' || !Array.isArray(itemDataset.records)) {
+      throw new Error(`frozen ${bundle.domainId} source is missing exact domain and Item dependency datasets`);
+    }
+    return runIndependentEntityImport({ apply: 'true', entity: bundle.domainId }, {
+      connection,
+      transactionOwner: 'caller',
+      datasets: sourcePayload.datasets,
+    });
+  }
   if (bundle.domainId === 'audio') {
     return runAudioAssetImport({
       apply: true,
@@ -339,14 +397,18 @@ async function applyFrozenDomainImport({ connection, bundle, repoRoot }) {
 }
 
 export function loadFrozenShimmerImportBundle({ repoRoot, frozenSource }, {
-  readInputContractImpl = readCanonicalShimmerImportInputContract,
-  loadBundleImpl = loadVerifiedShimmerImportBundleFromInputContract,
+  loadBundleImpl = loadVerifiedShimmerImportBundle,
 } = {}) {
-  const canonicalInput = readInputContractImpl({ repoRoot });
-  if (hashJson(canonicalInput.contract) !== hashJson(frozenSource)) {
-    throw new Error('frozen Shimmer source does not match the canonical input contract');
+  const bundle = loadBundleImpl({
+    bundleManifestPath: requireText(frozenSource?.manifestPath, 'frozen Shimmer manifest path'),
+    repoRoot,
+  });
+  if (bundle.generationId !== frozenSource?.generationId
+      || bundle.manifestSha256 !== frozenSource?.manifestSha256
+      || bundle.dataBundleSha256 !== frozenSource?.dataBundleSha256) {
+    throw new Error('frozen Shimmer source does not match the verified generation');
   }
-  return loadBundleImpl({ repoRoot });
+  return bundle;
 }
 
 export async function runSupplementaryL1OperationCli({
@@ -413,6 +475,11 @@ function validateAuthorizationContext(context, operationId, executionTime) {
       || Date.parse(executionTime) >= Date.parse(expiresAt)) {
     throw new Error('authorization context is not currently valid');
   }
+  if (context.executionMode === 'ACTIVATION_GATED_AUTO') {
+    requireHash(context.activationPolicySetHash, 'activationPolicySetHash');
+    requireText(context.activationDecisionIdentity, 'activationDecisionIdentity');
+    requireHash(context.activationPacketHash, 'activationPacketHash');
+  }
 }
 
 function assertCurrentContext({ current, bundle, authorizationContext }) {
@@ -428,11 +495,23 @@ function assertCurrentContext({ current, bundle, authorizationContext }) {
     ['policy level', 'L1', current.currentLevel],
     ['policy operational state', 'ACTIVE', current.operationalState],
     ['baseline fingerprint', bundle.baselineFingerprint, current.baselineFingerprint],
-    ['approval mode', 'APPROVED_OWNER_L1', current.approvalMode],
   ]) {
     if (actual !== expected) throw new Error(`current ${label} does not match the frozen L1 bundle`);
   }
   if (current.approvalConsumed === true) throw new Error('L1 approval was already consumed');
+  if (bundle.executionMode === 'ACTIVATION_GATED_AUTO') {
+    for (const [label, expected, actual] of [
+      ['activation decision identity', authorizationContext.activationDecisionIdentity, current.activationDecisionIdentity],
+      ['activation packet hash', authorizationContext.activationPacketHash, current.activationPacketHash],
+      ['activation policy set hash', authorizationContext.activationPolicySetHash, current.activationPolicySetHash],
+    ]) {
+      if (actual !== expected) throw new Error(`current ${label} does not match the activation gate`);
+    }
+    const expiresAt = requireTimestamp(current.activationExpiresAt, 'activation expiry');
+    if (Date.parse(expiresAt) <= Date.parse(new Date().toISOString())) {
+      throw new Error('scheduler activation decision is stale or expired');
+    }
+  }
 }
 
 function requireHash(value, label) {

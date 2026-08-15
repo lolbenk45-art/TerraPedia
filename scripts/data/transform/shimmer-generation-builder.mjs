@@ -75,7 +75,7 @@ export function buildShimmerGeneration(input = {}) {
 }
 
 export function collectShimmerCandidateTitles(raw) {
-  return collectCandidateTitles(extractShimmerStructuredRecords(raw));
+  return collectCandidateTitles(extractShimmerStructuredRecords(raw)).filter((title) => title !== '无');
 }
 
 export function resolveFrozenTitleMeta({ parsed, itemRecords, npcRecords, langlinkEvidence } = {}) {

@@ -25,6 +25,19 @@ const OPERATION_DEFINITIONS = Object.freeze({
   'automation-audio-l1-policy-promotion': Object.freeze({ domainId: 'audio', ...L1_PROMOTION }),
   'automation-bosses-l1-policy-promotion': Object.freeze({ domainId: 'bosses', ...L1_PROMOTION }),
   'automation-shimmer-l1-policy-promotion': Object.freeze({ domainId: 'shimmer', ...L1_PROMOTION }),
+  'automation-npcs-l1-policy-promotion': Object.freeze({ domainId: 'npcs', ...L1_PROMOTION }),
+  'automation-buffs-l1-policy-promotion': Object.freeze({ domainId: 'buffs', ...L1_PROMOTION }),
+  'automation-armor-sets-l1-policy-promotion': Object.freeze({ domainId: 'armor_sets', ...L1_PROMOTION }),
+  'automation-crawler-v2-scheduler-l1-policy-promotion': Object.freeze({ domainId: 'crawler_v2_scheduler', ...L1_PROMOTION }),
+  'automation-crawler-v2-scheduler-activation': Object.freeze({
+    domainId: 'crawler_v2_scheduler',
+    currentLevel: 'L1',
+    currentStates: Object.freeze(['ACTIVE']),
+    targetLevel: null,
+    targetOperationalState: null,
+    decisionKind: 'SCHEDULER_ACTIVATION',
+    requiresSuccessfulL1Runs: false,
+  }),
   'automation-biomes-l2-promotion': Object.freeze({
     domainId: 'biomes',
     currentLevel: 'L1',
@@ -60,9 +73,11 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
   if (input.domainId !== definition.domainId) {
     throw new Error(`domainId must be ${definition.domainId}`);
   }
+  const requiresSuccessfulL1Runs = definition.requiresSuccessfulL1Runs !== false;
   const minimumSuccessfulL1Runs = Number(input.minimumSuccessfulL1Runs);
-  if (!Number.isSafeInteger(minimumSuccessfulL1Runs) || minimumSuccessfulL1Runs < 2) {
-    throw new Error('minimumSuccessfulL1Runs must be an integer of at least 2');
+  const minimum = 2;
+  if (!Number.isSafeInteger(minimumSuccessfulL1Runs) || minimumSuccessfulL1Runs < minimum) {
+    throw new Error(`minimumSuccessfulL1Runs must be an integer of at least ${minimum}`);
   }
   const policyVersion = Number(input.policyVersion);
   if (!Number.isSafeInteger(policyVersion) || policyVersion < 1) {
@@ -93,6 +108,7 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
     minimumSuccessfulL1Runs,
     authorizedAt,
     expiresAt,
+    requiresSuccessfulL1Runs,
     ...definition,
   });
 }
@@ -133,12 +149,14 @@ export async function executeAutomationPolicyDecision({
     }
 
     let successfulL1Runs = null;
-    if (plan.decisionKind !== null) {
+    if (plan.decisionKind !== null && plan.requiresSuccessfulL1Runs) {
       successfulL1Runs = Number(await adapter.countSuccessfulL1Applies(plan.domainId));
       if (!Number.isSafeInteger(successfulL1Runs)
           || successfulL1Runs < plan.minimumSuccessfulL1Runs) {
         throw new Error(`at least ${plan.minimumSuccessfulL1Runs} successful L1 applies are required`);
       }
+    }
+    if (plan.decisionKind !== null) {
       await adapter.insertActivationDecision({
         decisionKind: plan.decisionKind,
         domainId: plan.domainId,

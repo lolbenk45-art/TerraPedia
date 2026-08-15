@@ -78,6 +78,8 @@ test('compareWikiSourceFingerprint falls back to revision fields and missing man
   });
   assert.equal(missing.changed, true);
   assert.equal(missing.status, 'missing_ingestion_manifest');
+  assert.equal(missing.currentValue, 7);
+  assert.equal(missing.meta.compareField, 'revisionId');
 
   const revisionId = compareWikiSourceFingerprint({
     source: { key: 'wiki.page.biomes_anchor', category: 'wiki_page', locator: 'Forest' },

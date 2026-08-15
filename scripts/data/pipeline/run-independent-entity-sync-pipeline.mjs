@@ -10,9 +10,9 @@ const repoRoot = getProjectRoot();
 
 const options = parseCliArgs(process.argv.slice(2));
 
-runScript('scripts/data/workflow/run-wiki-sync.mjs', buildIndependentEntityFetchArgs(), 'independent entity fetch');
+runScript('scripts/data/workflow/run-wiki-sync.mjs', buildIndependentEntityFetchArgs(options.entity), 'independent entity fetch');
 runScript('scripts/data/transform/standardize-existing-data.mjs', [], 'standardize independent entities');
-runScript('scripts/data/import/import-independent-entities-to-db.mjs', buildIndependentEntityImportArgs(options), 'independent entity import');
+runScript('scripts/data/import/import-independent-entities-to-db.mjs', buildIndependentEntityImportArgs({ ...options, entity: options.entity }), 'independent entity import');
 
 console.log('Independent entity sync pipeline finished successfully');
 

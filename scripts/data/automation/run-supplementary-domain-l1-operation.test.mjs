@@ -164,23 +164,24 @@ test('rejects expired or mismatched authorization before a transaction', async (
   assert.equal(begun, false);
 });
 
-test('loads shimmer generation only through the matching canonical input contract', () => {
+test('loads shimmer generation through the frozen automatic source contract', () => {
   const frozenSource = {
     generationId: 'verified-generation',
+    manifestPath: 'data/generated/shimmer/generations/verified-generation/wiki-shimmer-manifest.json',
     manifestSha256: HASH('a'),
     dataBundleSha256: HASH('b'),
   };
   const calls = [];
-  const verifiedBundle = { generationId: frozenSource.generationId };
+  const verifiedBundle = {
+    generationId: frozenSource.generationId,
+    manifestSha256: frozenSource.manifestSha256,
+    dataBundleSha256: frozenSource.dataBundleSha256,
+  };
 
   const result = operationModule.loadFrozenShimmerImportBundle({
     repoRoot: '/repo',
     frozenSource,
   }, {
-    readInputContractImpl: (options) => {
-      calls.push(['contract', options]);
-      return { contract: { ...frozenSource } };
-    },
     loadBundleImpl: (options) => {
       calls.push(['bundle', options]);
       return verifiedBundle;
@@ -189,7 +190,69 @@ test('loads shimmer generation only through the matching canonical input contrac
 
   assert.equal(result, verifiedBundle);
   assert.deepEqual(calls, [
-    ['contract', { repoRoot: '/repo' }],
-    ['bundle', { repoRoot: '/repo' }],
+    ['bundle', { bundleManifestPath: frozenSource.manifestPath, repoRoot: '/repo' }],
   ]);
+
+  assert.throws(
+    () => operationModule.loadFrozenShimmerImportBundle({ repoRoot: '/repo', frozenSource }, {
+      loadBundleImpl: () => ({ ...verifiedBundle, manifestSha256: HASH('c') }),
+    }),
+    /frozen Shimmer source does not match the verified generation/,
+  );
+});
+
+test('activation-gated automatic apply fails before transaction without activation identity', async () => {
+  const frozen = buildSupplementaryL1Bundle({
+    ...bundle('audio'),
+    executionMode: 'ACTIVATION_GATED_AUTO',
+  });
+  let begun = false;
+  await assert.rejects(
+    executeSupplementaryL1Operation({
+      adapter: { begin: async () => { begun = true; } },
+      bundle: frozen,
+      authorizationContext: {
+        ...authorization(frozen.operationId),
+        executionMode: 'ACTIVATION_GATED_AUTO',
+      },
+      now: '2026-08-14T06:02:00.000Z',
+    }),
+    /activationPolicySetHash/,
+  );
+  assert.equal(begun, false);
+});
+
+test('import summaries with swallowed row errors roll back before generation advancement', async () => {
+  const frozen = bundle('audio');
+  const calls = [];
+  const adapter = {
+    begin: async () => calls.push('begin'),
+    lockCurrentContext: async () => ({
+      ownerUsername: 'admin', ownerStatus: 'ACTIVE', domainId: 'audio',
+      policyVersion: 1, policyHash: HASH('a'), policySetHash: HASH('b'),
+      currentLevel: 'L1', operationalState: 'ACTIVE',
+      baselineFingerprint: frozen.baselineFingerprint,
+      approvalMode: 'APPROVED_OWNER_L1', approvalConsumed: false,
+    }),
+    persistRunChain: async () => calls.push('persist'),
+    applyFrozenImport: async () => {
+      calls.push('apply');
+      return { summary: { insertedAssets: 0 }, failures: ['invalid audio row'] };
+    },
+    advanceMutationGenerations: async () => calls.push('generation'),
+    persistCommittedApply: async () => calls.push('result'),
+    commit: async () => calls.push('commit'),
+    rollback: async () => calls.push('rollback'),
+  };
+
+  await assert.rejects(
+    executeSupplementaryL1Operation({
+      adapter,
+      bundle: frozen,
+      authorizationContext: authorization(frozen.operationId),
+      now: '2026-08-14T06:02:00.000Z',
+    }),
+    /import summary contains 1 error/,
+  );
+  assert.deepEqual(calls, ['begin', 'persist', 'apply', 'rollback']);
 });

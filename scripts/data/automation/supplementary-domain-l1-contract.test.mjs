@@ -114,3 +114,17 @@ test('detects bundle content drift', () => {
     /hash or content mismatch/,
   );
 });
+
+test('builds an activation-gated automatic execution identity', () => {
+  const bundle = buildSupplementaryL1Bundle(input({ executionMode: 'ACTIVATION_GATED_AUTO' }));
+  assert.equal(bundle.executionMode, 'ACTIVATION_GATED_AUTO');
+  assert.equal(bundle.approvalMode, 'AUTO_APPLY_ACTIVATED');
+  assert.equal(validateSupplementaryL1Bundle(bundle), true);
+});
+
+test('rejects unknown supplementary execution modes', () => {
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({ executionMode: 'BYPASS' })),
+    /execution mode/,
+  );
+});

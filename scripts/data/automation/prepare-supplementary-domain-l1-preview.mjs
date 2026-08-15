@@ -112,15 +112,20 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       },
       ownedTables: config.ownedTables,
       importPlan,
+      executionMode: options.executionMode,
     });
     writeJsonFile(bundlePath, bundle);
     let sourceAcknowledged = false;
+    let stableSourceSnapshot = null;
     let sourceAcknowledgementReason = firstSnapshot ? 'post_probe_failed' : 'probe_not_configured';
     if (firstSnapshot) {
       try {
         const secondSnapshot = await probeSource({ domainId });
         if (firstSnapshot.contentHash !== secondSnapshot.contentHash) {
           sourceAcknowledgementReason = 'source_changed_during_preview';
+        } else if (options.deferSourceAcknowledgement === true) {
+          stableSourceSnapshot = firstSnapshot;
+          sourceAcknowledgementReason = 'deferred_until_apply';
         } else if (typeof acknowledgeSource !== 'function') {
           sourceAcknowledgementReason = 'acknowledger_not_configured';
         } else {
@@ -144,7 +149,15 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       outputPath: sourcePath,
       reportPath: bundlePath,
     });
-    return Object.freeze({ domainId, sourcePath, bundlePath, bundle, sourceAcknowledged, sourceAcknowledgementReason });
+    return Object.freeze({
+      domainId,
+      sourcePath,
+      bundlePath,
+      bundle,
+      sourceAcknowledged,
+      sourceAcknowledgementReason,
+      stableSourceSnapshot,
+    });
   } catch (error) {
     progress({
       status: 'failed',
@@ -176,6 +189,9 @@ export async function runSupplementaryDomainL1PreviewCli({
       generatedAt: now,
       runId,
       progressPath: args['progress-path'],
+      manifestPath: args['manifest-path'],
+      executionMode: resolveSupplementaryPreviewExecutionMode(args),
+      deferSourceAcknowledgement: args['defer-source-acknowledgement'] === 'true',
     }, {
       runSource: (input) => runDomainSource(input, {
         env,
@@ -183,6 +199,8 @@ export async function runSupplementaryDomainL1PreviewCli({
         resumeMode: args['resume-mode'] ?? 'fresh',
         resumeState: args['resume-state'],
         reuseCurrentGeneration: args['reuse-current-generation'] === 'true',
+        reuseCurrentSource: args['reuse-current-source'] === 'true',
+        persistCanonicalShimmerProposal: args['persist-canonical-shimmer-proposal'] !== 'false',
       }),
       loadPolicyContext: async () => {
         const current = await readCurrentSupplementaryContext(connection, {
@@ -210,12 +228,18 @@ export async function runSupplementaryDomainL1PreviewCli({
   }
 }
 
+export function resolveSupplementaryPreviewExecutionMode(args = {}) {
+  return args['execution-mode'] ?? 'MANUAL_OWNER_L1';
+}
+
 export async function runDomainSource({ domainId, repoRoot, progressPath }, {
   env,
   runId,
   resumeMode,
   resumeState,
   reuseCurrentGeneration = false,
+  reuseCurrentSource = false,
+  persistCanonicalShimmerProposal = true,
 }, {
   runNodeImpl = runNode,
   runProposalImpl = runCanonicalShimmerImportProposal,
@@ -226,7 +250,10 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
   if (reuseCurrentGeneration && domainId !== 'shimmer') {
     throw new Error('--reuse-current-generation=true is only supported for shimmer');
   }
-  if (!reuseCurrentGeneration) {
+  if (reuseCurrentSource && domainId === 'shimmer' && !reuseCurrentGeneration) {
+    throw new Error('shimmer current source reuse requires --reuse-current-generation=true');
+  }
+  if (!reuseCurrentGeneration && !reuseCurrentSource) {
     await runNodeImpl(buildDomainSourceCommand({
       domainId,
       progressPath,
@@ -243,6 +270,22 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
   }
   const pointer = readJson(path.join(repoRoot, 'data', 'generated', 'shimmer', 'wiki-shimmer-current-generation.json'));
   if (reuseCurrentGeneration) {
+    if (!persistCanonicalShimmerProposal) {
+      const proposal = await runReadOnlyProposalImpl({
+        bundleManifestPath: path.join('data', 'generated', 'shimmer', pointer.manifestPath),
+        database: 'terria_v1_local',
+        env,
+        generatedAt: new Date().toISOString(),
+        repoRoot,
+      });
+      assertReusableShimmerGeneration({
+        pointer,
+        inputContract: proposal.inputContract,
+        proposal,
+        allowPreviewRefresh: true,
+      });
+      return { sourcePayload: proposal.inputContract, proposal };
+    }
     const inputContract = readInputContractImpl({ repoRoot });
     const canonicalProposal = readProposalImpl({ repoRoot });
     assertReusableShimmerGeneration({
@@ -265,7 +308,8 @@ export async function runDomainSource({ domainId, repoRoot, progressPath }, {
     });
     return { sourcePayload: inputContract.contract, proposal: refreshedProposal };
   }
-  const proposal = await runProposalImpl({
+  const proposalRunner = persistCanonicalShimmerProposal ? runProposalImpl : runReadOnlyProposalImpl;
+  const proposal = await proposalRunner({
     bundleManifestPath: path.join('data', 'generated', 'shimmer', pointer.manifestPath),
     database: 'terria_v1_local',
     env,

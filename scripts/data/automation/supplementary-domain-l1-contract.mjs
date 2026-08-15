@@ -9,13 +9,43 @@ export const SUPPLEMENTARY_L1_DOMAINS = Object.freeze([
   'shimmer',
 ]);
 
+export const INDEPENDENT_L1_DOMAINS = Object.freeze([
+  'npcs',
+  'buffs',
+  'armor_sets',
+]);
+
+const GOVERNED_L1_DOMAINS = Object.freeze([
+  ...INDEPENDENT_L1_DOMAINS,
+  ...SUPPLEMENTARY_L1_DOMAINS,
+]);
+
+export const SUPPLEMENTARY_EXECUTION_MODES = Object.freeze([
+  'MANUAL_OWNER_L1',
+  'ACTIVATION_GATED_AUTO',
+]);
+
 const OPERATION_BY_DOMAIN = Object.freeze({
+  npcs: 'automation-npcs-l1',
+  buffs: 'automation-buffs-l1',
+  armor_sets: 'automation-armor-sets-l1',
   audio: 'automation-audio-first-l1',
   bosses: 'automation-bosses-first-l1',
   shimmer: 'automation-shimmer-first-l1',
 });
 
 const OWNED_TABLES_BY_DOMAIN = Object.freeze({
+  npcs: Object.freeze([
+    Object.freeze({ databaseRole: 'local', table: 'npcs' }),
+  ]),
+  buffs: Object.freeze([
+    Object.freeze({ databaseRole: 'local', table: 'buffs' }),
+    Object.freeze({ databaseRole: 'local', table: 'buff_source_items' }),
+  ]),
+  armor_sets: Object.freeze([
+    Object.freeze({ databaseRole: 'local', table: 'armor_sets' }),
+    Object.freeze({ databaseRole: 'local', table: 'armor_set_items' }),
+  ]),
   audio: Object.freeze([
     Object.freeze({ databaseRole: 'local', table: 'audio_assets' }),
     Object.freeze({ databaseRole: 'local', table: 'audio_asset_links' }),
@@ -48,6 +78,7 @@ export function buildSupplementaryL1Bundle(input = {}) {
   assertSupplementaryOwnedTables(domainId, ownedTables);
   const baseline = normalizeBaseline(input.baseline, ownedTables);
   const source = normalizeSource(input.source);
+  const executionMode = normalizeExecutionMode(input.executionMode);
   const importPlan = cloneObject(input.importPlan, 'importPlan');
   const baselineFingerprint = hashJson(baseline);
   const logicalDiffIdentity = {
@@ -61,7 +92,7 @@ export function buildSupplementaryL1Bundle(input = {}) {
   const decisionHash = hashJson({
     runId,
     domainId,
-    decision: 'REQUIRES_OWNER_L1',
+    decision: executionMode === 'ACTIVATION_GATED_AUTO' ? 'AUTO_APPLY_ACTIVATED' : 'REQUIRES_OWNER_L1',
     policySetHash: policy.policySetHash,
     evidenceHash,
     logicalDiffHash,
@@ -74,7 +105,8 @@ export function buildSupplementaryL1Bundle(input = {}) {
     domainId,
     databaseName: 'terria_v1_local',
     generatedAt,
-    approvalMode: 'APPROVED_OWNER_L1',
+    approvalMode: executionMode === 'ACTIVATION_GATED_AUTO' ? 'AUTO_APPLY_ACTIVATED' : 'APPROVED_OWNER_L1',
+    executionMode,
     policy,
     baseline,
     baselineFingerprint,
@@ -99,7 +131,7 @@ export function validateSupplementaryL1Bundle(value) {
     throw new Error('supplementary L1 bundle hash or content mismatch');
   }
   if (value.schemaVersion !== 1 || value.databaseName !== 'terria_v1_local'
-      || value.approvalMode !== 'APPROVED_OWNER_L1') {
+      || !SUPPLEMENTARY_EXECUTION_MODES.includes(value.executionMode)) {
     throw new Error('supplementary L1 bundle execution identity is invalid');
   }
   const rebuilt = buildSupplementaryL1Bundle({
@@ -112,6 +144,7 @@ export function validateSupplementaryL1Bundle(value) {
     source: value.source,
     ownedTables: value.ownedTables,
     importPlan: value.importPlan,
+    executionMode: value.executionMode,
   });
   if (rebuilt.bundleHash !== bundleHash
       || rebuilt.baselineFingerprint !== value.baselineFingerprint
@@ -121,6 +154,14 @@ export function validateSupplementaryL1Bundle(value) {
     throw new Error('supplementary L1 bundle derived identity is invalid');
   }
   return true;
+}
+
+function normalizeExecutionMode(value) {
+  const mode = value == null ? 'MANUAL_OWNER_L1' : requireText(value, 'executionMode');
+  if (!SUPPLEMENTARY_EXECUTION_MODES.includes(mode)) {
+    throw new Error('supplementary execution mode must be MANUAL_OWNER_L1 or ACTIVATION_GATED_AUTO');
+  }
+  return mode;
 }
 
 export function assertSupplementaryOwnedTables(domainId, ownedTables) {
@@ -207,8 +248,8 @@ function normalizeOwnedTables(ownedTables) {
 
 function requireDomain(value) {
   const domain = requireText(value, 'domainId');
-  if (!SUPPLEMENTARY_L1_DOMAINS.includes(domain)) {
-    throw new Error(`unsupported supplementary L1 domain: ${domain}`);
+  if (!GOVERNED_L1_DOMAINS.includes(domain)) {
+    throw new Error(`unsupported governed L1 domain: ${domain}`);
   }
   return domain;
 }

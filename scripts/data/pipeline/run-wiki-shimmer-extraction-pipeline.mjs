@@ -26,6 +26,7 @@ import {
 import {
   buildActionProgressPayload,
   buildCrawlerWorkSummary,
+  createCrawlerAttemptProgressSequencer,
   createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
@@ -96,11 +97,15 @@ export async function runWikiShimmerExtractionPipeline(options = {}, dependencie
   const publishGeneration = dependencies.publishGeneration ?? publishShimmerGeneration;
   const verifyGeneration = dependencies.verifyGeneration ?? verifyShimmerGeneration;
   const writePrimaryProgress = dependencies.writeProgress ?? ((snapshot) => writeJsonFile(progressPath, snapshot));
+  const progressSequencer = createCrawlerAttemptProgressSequencer(env);
   const writeProgress = (snapshot) => {
-    writePrimaryProgress(snapshot);
+    const sequenced = progressSequencer.next(snapshot, {
+      observedProgressSequence: readProgressSequence(progressPath)
+    });
+    writePrimaryProgress(sequenced);
     if (path.resolve(progressPath) !== path.resolve(canonicalProgressPath)) {
       writeJsonFile(canonicalProgressPath, {
-        ...snapshot,
+        ...sequenced,
         childStatusPath: canonicalProgressPath
       });
     }
@@ -380,6 +385,15 @@ function buildPipelineProgress({
     shardCount: shards ? Object.keys(shards).length : 0,
     unresolvedCount: generation ? unresolvedCount(generation) : 0
   };
+}
+
+function readProgressSequence(progressPath) {
+  try {
+    const value = JSON.parse(fs.readFileSync(progressPath, 'utf8'))?.progressSequence;
+    return Number.isFinite(Number(value)) ? Number(value) : null;
+  } catch {
+    return null;
+  }
 }
 
 function readStandardizedInput(filePath, label, repoRoot) {

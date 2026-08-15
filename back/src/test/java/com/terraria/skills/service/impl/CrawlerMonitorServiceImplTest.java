@@ -3509,9 +3509,9 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorServiceImpl.LaunchRequest launch = launcher.lastRequest;
         assertEquals(List.of(
             "node",
-            "scripts/data/workflow/run-backend-data-refresh.mjs",
-            "--mode=apply",
-            "--steps=wiki-items-refresh",
+            "scripts/data/automation/run-base-domain-automatic-operation.mjs",
+            "--domain=items",
+            "--manifest-path=data/generated/wiki-source-manifest.latest.json",
             "--output=" + result.getReportPath()
         ), launch.command());
         assertEquals(repoRoot.toFile(), launch.directory());
@@ -3868,20 +3868,39 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldPauseFailedNonResumableSourceInsteadOfStartingFreshAutomation() {
+    void shouldRetryTimedOutNonResumableSourceThroughV2WhenRetryIsAllowed() throws Exception {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        CrawlerQueueV2OverviewDTO.AttemptDTO failedArmor = v2Attempt(
-            "queue-armor", "attempt-armor-failed", "failed", "armor_sets",
-            "domain-source-armor-sets", false, List.of("retry")
+        CrawlerQueueV2OverviewDTO.AttemptDTO timedOutShimmer = v2Attempt(
+            "queue-shimmer", "attempt-shimmer-timeout", "timed_out", "shimmer",
+            "domain-source-shimmer", false, List.of("retry", "cleanup")
         );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedArmor)));
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(timedOutShimmer)));
+        when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-shimmer", "attempt-shimmer-retry", null, 1L,
+            CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "status", "completed",
+            "detected", List.of(),
+            "skipped", List.of(),
+            "dispatched", List.of(Map.of(
+                "actionId", "domain-source-shimmer",
+                "sourceFingerprint", "wiki.shimmer.page_and_langlinks=shimmer-hash"
+            ))
+        ));
         SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
             repoRoot,
             Map.of(
                 "checkedAt", "2026-06-20T03:00:00Z",
-                "sources", List.of(Map.of("key", "wiki.module.armorsetbonuses", "changed", true, "status", "ok"))
+                "sources", List.of(Map.of(
+                    "key", "wiki.shimmer.page_and_langlinks",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "shimmer-hash"
+                ))
             )
         );
         CrawlerMonitorServiceImpl service = v2Service(
@@ -3897,11 +3916,14 @@ class CrawlerMonitorServiceImplTest {
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
-        assertTrue(sweep.getDispatched().isEmpty());
-        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
-            "automatic_retry_not_resumable".equals(item.get("reason"))
-        ));
-        verify(v2Service, never()).control(any());
+        assertEquals("attempt-shimmer-retry", sweep.getDispatched().get(0).get("attemptId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.ControlCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.ControlCommand.class
+        );
+        verify(v2Service).control(command.capture());
+        assertEquals("queue-shimmer", command.getValue().queueId());
+        assertEquals("attempt-shimmer-timeout", command.getValue().attemptId());
+        assertEquals("retry", command.getValue().controlAction());
         verify(v2Service, never()).enqueue(any());
     }
 
@@ -3914,6 +3936,10 @@ class CrawlerMonitorServiceImplTest {
             "queue-buff", "attempt-buff-running", "running", "buffs",
             "buff-page-immunity-refresh", true, List.of("cancel")
         );
+        CrawlerQueueV2OverviewDTO.AttemptDTO completedBuff = v2Attempt(
+            "queue-buff", "attempt-buff-running", "completed", "buffs",
+            "buff-page-immunity-refresh", true, List.of("cleanup")
+        );
         CrawlerQueueV2OverviewDTO.AttemptDTO completedArmor = v2Attempt(
             "queue-armor", "attempt-armor-completed", "completed", "armor_sets",
             "domain-source-armor-sets", false, List.of("cleanup")
@@ -3924,18 +3950,24 @@ class CrawlerMonitorServiceImplTest {
             "status", "completed",
             "detected", List.of(),
             "skipped", List.of(),
-            "dispatched", List.of(Map.of(
-                "actionId", "domain-source-armor-sets",
-                "sourceFingerprint", "wiki.module.armorsetbonuses=armor-hash"
-            ))
+            "dispatched", List.of(
+                Map.of(
+                    "actionId", "domain-source-armor-sets",
+                    "sourceFingerprint", "wiki.module.armorsetbonuses=armor-hash"
+                ),
+                Map.of(
+                    "actionId", "buff-page-immunity-refresh",
+                    "sourceFingerprint", "wiki.page.template_getbuffinfo=buff-hash"
+                )
+            )
         ));
         SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
             repoRoot,
             Map.of(
                 "checkedAt", "2026-06-20T03:00:00Z",
                 "sources", List.of(
-                    Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"),
-                    Map.of("key", "wiki.module.armorsetbonuses", "changed", true, "status", "ok", "currentValue", "armor-hash")
+                    Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok", "currentValue", "buff-hash", "previousValue", "buff-hash"),
+                    Map.of("key", "wiki.module.armorsetbonuses", "changed", true, "status", "ok", "currentValue", "armor-hash", "previousValue", "armor-hash")
                 )
             )
         );
@@ -3958,6 +3990,31 @@ class CrawlerMonitorServiceImplTest {
         ));
         assertTrue(sweep.getSkipped().stream().anyMatch(item ->
             "automatic_attempt_completed".equals(item.get("reason"))
+        ));
+
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedBuff, completedArmor)));
+        SourceUpdateThenDispatchLauncher nextLauncher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T04:00:00Z",
+                "sources", List.of(
+                    Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok", "currentValue", "buff-hash", "previousValue", "buff-hash"),
+                    Map.of("key", "wiki.module.armorsetbonuses", "changed", true, "status", "ok", "currentValue", "armor-hash", "previousValue", "armor-hash")
+                )
+            )
+        );
+        CrawlerMonitorServiceImpl restartedService = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            nextLauncher
+        );
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO afterCompletion = restartedService.runV2AutomationSweepOnce();
+
+        assertTrue(afterCompletion.getDispatched().isEmpty());
+        assertTrue(afterCompletion.getSkipped().stream().anyMatch(item ->
+            "buff-page-immunity-refresh".equals(item.get("actionId"))
+                && "automatic_attempt_completed".equals(item.get("reason"))
         ));
         verify(v2Service, never()).control(any());
         verify(v2Service, never()).enqueue(any());
@@ -4015,6 +4072,116 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("attempt-armor-new", sweep.getDispatched().get(0).get("attemptId"));
         assertEquals(
             "wiki.module.armorsetbonuses=new-armor-hash",
+            sweep.getDispatched().get(0).get("sourceFingerprint")
+        );
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldStartFreshAutomationWhenCompletedAttemptDidNotAcknowledgeCanonicalSource() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO completedItems = v2Attempt(
+            "queue-items", "attempt-items-completed", "completed", "items",
+            "wiki-items-refresh", false, List.of("cleanup")
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedItems)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items-new", "attempt-items-new", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "status", "completed",
+            "detected", List.of(),
+            "skipped", List.of(),
+            "dispatched", List.of(Map.of(
+                "actionId", "wiki-items-refresh",
+                "sourceFingerprint", "wiki.module.iteminfo=live-items-hash"
+            ))
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "live-items-hash",
+                    "previousValue", "stale-canonical-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-items-new", sweep.getDispatched().get(0).get("attemptId"));
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldStartFreshAutomationWhenFailedAttemptHasNoPriorFingerprintCheckpoint() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO failedNpc = v2Attempt(
+            "queue-npc", "attempt-npc-failed", "failed", "npcs",
+            "wiki-npcs-refresh", false, List.of("cleanup")
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedNpc)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-npc-new", "attempt-npc-new", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "status", "completed",
+            "detected", List.of(),
+            "skipped", List.of(),
+            "dispatched", List.of(Map.of("actionId", "wiki-npcs-refresh"))
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.npcinfo",
+                    "changed", true,
+                    "status", "missing_ingestion_manifest",
+                    "currentValue", "npc-source-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-npc-new", sweep.getDispatched().get(0).get("attemptId"));
+        assertEquals(
+            "wiki.module.npcinfo=npc-source-hash",
             sweep.getDispatched().get(0).get("sourceFingerprint")
         );
         verify(v2Service).enqueue(any());
@@ -4126,8 +4293,9 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("data/generated/domain-source-bosses-progress.latest.json", result.getProgressPath());
         assertEquals(List.of(
             "node",
-            "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+            "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
             "--domain=bosses",
+            "--manifest-path=data/generated/wiki-source-manifest.latest.json",
             "--progress-path=data/generated/domain-source-bosses-progress.latest.json"
         ), launcher.lastRequest.command());
         assertEquals("domain-source-bosses", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));

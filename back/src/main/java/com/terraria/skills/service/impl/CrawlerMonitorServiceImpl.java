@@ -4330,9 +4330,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         for (Map.Entry<String, List<CrawlerMonitorActionDefinition>> entry : changedByAction.entrySet()) {
             List<CrawlerMonitorActionDefinition> rules = entry.getValue();
             String sourceFingerprint = v2AutomationSourceFingerprint(rules, sourceByKey);
+            String acknowledgedSourceFingerprint = v2AutomationAcknowledgedSourceFingerprint(rules, sourceByKey);
             String previousSourceFingerprint = v2AutomationSourceFingerprint(previousSweep, entry.getKey());
             if (!settings.isEnabled()) {
-                sweep.getSkipped().add(Map.of("actionId", entry.getKey(), "reason", "automation_disabled", "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()));
+                sweep.getSkipped().add(v2AutomationSkipped(entry.getKey(), "automation_disabled", rules, sourceFingerprint));
                 continue;
             }
             V2AutomationDispatchOutcome outcome = queueEngineRouter.withMutationPermit(permit -> {
@@ -4349,6 +4350,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     rules,
                     entry.getKey(),
                     sourceFingerprint,
+                    acknowledgedSourceFingerprint,
                     previousSourceFingerprint
                 );
                 if (decision.skipReason() != null) {
@@ -4378,15 +4380,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 );
             });
             if (outcome == null) {
-                sweep.getSkipped().add(Map.of("actionId", entry.getKey(), "reason", "automation_disabled", "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()));
+                sweep.getSkipped().add(v2AutomationSkipped(entry.getKey(), "automation_disabled", rules, sourceFingerprint));
                 continue;
             }
             if (outcome.skipReason() != null) {
-                sweep.getSkipped().add(Map.of(
-                    "actionId", entry.getKey(),
-                    "reason", outcome.skipReason(),
-                    "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()
-                ));
+                sweep.getSkipped().add(v2AutomationSkipped(entry.getKey(), outcome.skipReason(), rules, sourceFingerprint));
                 continue;
             }
             CrawlerMonitorDispatchResultDTO result = outcome.result();
@@ -4412,6 +4410,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         List<CrawlerMonitorActionDefinition> rules,
         String actionId,
         String sourceFingerprint,
+        String acknowledgedSourceFingerprint,
         String previousSourceFingerprint
     ) {
         List<CrawlerQueueV2OverviewDTO.AttemptDTO> live = snapshot == null ? List.of() : snapshot.liveQueue();
@@ -4431,19 +4430,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             )
             .orElseThrow();
         if ("completed".equals(latest.status())) {
-            return sameV2AutomationSourceFingerprint(sourceFingerprint, previousSourceFingerprint)
+            return sameV2AutomationSourceFingerprint(sourceFingerprint, acknowledgedSourceFingerprint)
                 ? V2AutomationRecoveryDecision.skip("automatic_attempt_completed")
                 : V2AutomationRecoveryDecision.fresh();
         }
-        if (!"failed".equals(latest.status())) {
+        if (!List.of("failed", "timed_out", "interrupted").contains(latest.status())) {
             return V2AutomationRecoveryDecision.skip("automatic_retry_not_failed");
         }
-        if (sourceFingerprint != null && previousSourceFingerprint != null
+        if (sourceFingerprint != null
             && !Objects.equals(sourceFingerprint, previousSourceFingerprint)) {
             return V2AutomationRecoveryDecision.fresh();
-        }
-        if (!latest.resumeSupported()) {
-            return V2AutomationRecoveryDecision.skip("automatic_retry_not_resumable");
         }
         if (!latest.allowedActions().contains("retry")) {
             return V2AutomationRecoveryDecision.skip("automatic_retry_unavailable");
@@ -4496,6 +4492,23 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return values.isEmpty() ? null : String.join("|", values);
     }
 
+    private String v2AutomationAcknowledgedSourceFingerprint(
+        List<CrawlerMonitorActionDefinition> rules,
+        Map<String, Map<String, Object>> sourceByKey
+    ) {
+        List<String> values = rules.stream()
+            .map(CrawlerMonitorActionDefinition::sourceKey)
+            .sorted()
+            .map(sourceKey -> {
+                Map<String, Object> source = sourceByKey.get(sourceKey);
+                String value = asString(source == null ? null : source.get("previousValue"));
+                return value == null ? null : sourceKey + "=" + value;
+            })
+            .filter(Objects::nonNull)
+            .toList();
+        return values.isEmpty() ? null : String.join("|", values);
+    }
+
     private String v2AutomationSourceFingerprint(
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep,
         String actionId
@@ -4503,12 +4516,28 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (sweep == null) {
             return null;
         }
-        return sweep.getDispatched().stream()
+        return Stream.concat(sweep.getDispatched().stream(), sweep.getSkipped().stream())
             .filter(dispatched -> Objects.equals(actionId, asString(dispatched.get("actionId"))))
             .map(dispatched -> asString(dispatched.get("sourceFingerprint")))
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
+    }
+
+    private Map<String, Object> v2AutomationSkipped(
+        String actionId,
+        String reason,
+        List<CrawlerMonitorActionDefinition> rules,
+        String sourceFingerprint
+    ) {
+        LinkedHashMap<String, Object> skipped = new LinkedHashMap<>();
+        skipped.put("actionId", actionId);
+        skipped.put("reason", reason);
+        skipped.put("domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList());
+        if (sourceFingerprint != null) {
+            skipped.put("sourceFingerprint", sourceFingerprint);
+        }
+        return skipped;
     }
 
     private boolean sameV2AutomationSourceFingerprint(String current, String previous) {

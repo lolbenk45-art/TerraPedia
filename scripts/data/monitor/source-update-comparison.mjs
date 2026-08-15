@@ -4,14 +4,19 @@ export function compareWikiSourceFingerprint({
   ingestedRecord
 } = {}) {
   if (!ingestedRecord) {
+    const compareField = apiFingerprint?.contentHash != null
+      ? 'contentHash'
+      : apiFingerprint?.revisionId != null
+        ? 'revisionId'
+        : 'revisionTimestamp';
     return buildResult({
       changed: true,
       status: 'missing_ingestion_manifest',
       source,
       apiFingerprint,
       ingestedRecord,
-      compareField: null,
-      currentValue: null,
+      compareField,
+      currentValue: apiFingerprint?.[compareField] ?? null,
       ingestedValue: null
     });
   }

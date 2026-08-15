@@ -27,6 +27,26 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
+    void allFiveBaseAutoDomainsUseTheActivationGatedAutomaticRunner() {
+        CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
+        for (String domain : List.of("items", "npcs", "projectiles", "armor_sets", "buffs")) {
+            CrawlerMonitorActionDefinition action = registry.requireDefaultOperation(domain);
+            assertEquals("scripts/data/automation/run-base-domain-automatic-operation.mjs", action.command().get(1));
+            assertTrue(action.command().contains("--domain=" + domain));
+            assertTrue(action.command().contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
+        }
+        for (String domain : List.of("audio", "bosses", "shimmer")) {
+            assertTrue(registry.requireDefaultOperation(domain).command()
+                .contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
+        }
+        assertEquals("read", registry.requireDefaultOperation("items").databaseAccess());
+        assertEquals("read", registry.requireDefaultOperation("projectiles").databaseAccess());
+        assertEquals("write", registry.requireDefaultOperation("npcs").databaseAccess());
+        assertEquals("write", registry.requireDefaultOperation("armor_sets").databaseAccess());
+        assertEquals("write", registry.requireDefaultOperation("buffs").databaseAccess());
+    }
+
+    @Test
     void exposesTwentyFiveOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
@@ -46,9 +66,9 @@ class CrawlerMonitorActionRegistryTest {
         assertTrue(registry.requireOperation("bosses", "fresh").resumeSupported());
         assertFalse(registry.requireOperation("armor_sets", "fresh").resumeSupported());
         assertTrue(registry.requireOperation("buffs", "fresh").command()
-            .contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
+            .contains("scripts/data/automation/run-base-domain-automatic-operation.mjs"));
         assertTrue(registry.requireOperation("armor_sets", "fresh").command()
-            .contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
+            .contains("scripts/data/automation/run-base-domain-automatic-operation.mjs"));
         assertEquals(
             List.of("buffs", "bosses", "town_npc_maintenance"),
             registry.all().stream()
@@ -236,8 +256,9 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                 "--domain=bosses",
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                 "--progress-path=reports/crawler-monitor/v2/2026-07-11/attempt-1/progress.json"
             ),
             bosses.renderCommand(
@@ -259,8 +280,9 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                 "--domain=bosses",
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json",
                 "--resume-mode=auto",
                 "--resume-state=data/generated/resume/domain-source-bosses.resume.json"
@@ -290,8 +312,9 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                 "--domain=shimmer",
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
             ),
             shimmer.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "fresh")
@@ -302,8 +325,9 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                 "--domain=audio",
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
             ),
             audio.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "fresh")
@@ -318,8 +342,9 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             List.of(
                 "node",
-                "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                 "--domain=bosses",
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                 "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
             ),
             bosses.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json")
@@ -329,7 +354,7 @@ class CrawlerMonitorActionRegistryTest {
     @Test
     void backendActionMustRejectMissingReportPathWhenItsCommandNeedsThePlaceholder() {
         CrawlerMonitorActionDefinition items = CrawlerMonitorActionRegistry.defaults()
-            .require("items", "wiki-items-refresh");
+            .require("items", "wiki-items-force-refresh");
 
         assertThrows(
             IllegalArgumentException.class,

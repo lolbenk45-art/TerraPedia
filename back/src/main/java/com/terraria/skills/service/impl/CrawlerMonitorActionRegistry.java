@@ -203,12 +203,12 @@ public class CrawlerMonitorActionRegistry {
 
     private static List<CrawlerMonitorActionDefinition> defaultActions() {
         return List.of(
-            backend(
+            baseAutomatic(
                 "items", "检查物品模块更新", "wiki.module.iteminfo", "Module:Iteminfo/data",
                 "wiki-items-refresh", "check", "check_sync", "check",
                 "检查 Wiki 模块 revision，仅在变化或缺少本地文件时抓取。",
-                "按需更新物品模块来源和标准化文件", "none", 1L, false,
-                "summary", true, true, true
+                "按需更新来源并执行冻结输入 dry-run", "read", 1L,
+                "data/generated/domain-source-items-progress.latest.json", null
             ),
             backend(
                 "items", "强制重抓物品模块", "wiki.module.iteminfo", "Module:Iteminfo/data",
@@ -226,12 +226,12 @@ public class CrawlerMonitorActionRegistry {
                 "summary", false, true, true
             ),
             itemsSample(),
-            backend(
+            baseAutomatic(
                 "npcs", "检查 NPC 模块更新", "wiki.module.npcinfo", "Module:Npcinfo/data",
                 "wiki-npcs-refresh", "check", "check_sync", "check",
                 "检查 NPC 信息模块 revision；这不是逐 NPC 页面抓取。",
-                "按需更新 NPC 模块来源文件", "none", 1L, false,
-                "summary", true, true, true
+                "按需更新 NPC 来源并执行 activation-gated 入库", "write", 1L,
+                "data/generated/domain-source-npcs-progress.latest.json", null
             ),
             backend(
                 "npcs", "强制重抓 NPC 模块", "wiki.module.npcinfo", "Module:Npcinfo/data",
@@ -240,12 +240,12 @@ public class CrawlerMonitorActionRegistry {
                 "覆盖 NPC 模块来源文件", "none", 1L, false,
                 "destructive", false, true, true
             ),
-            backend(
+            baseAutomatic(
                 "projectiles", "检查射弹模块更新", "wiki.module.projectileinfo", "Module:Projectileinfo/data",
                 "wiki-projectiles-refresh", "check", "check_sync", "check",
                 "检查射弹信息模块 revision，仅在需要时抓取。",
-                "按需更新射弹模块来源文件", "none", 1L, false,
-                "summary", true, true, true
+                "按需更新来源并执行冻结输入 dry-run", "read", 1L,
+                "data/generated/domain-source-projectiles-progress.latest.json", null
             ),
             backend(
                 "projectiles", "强制重抓射弹模块", "wiki.module.projectileinfo", "Module:Projectileinfo/data",
@@ -254,7 +254,7 @@ public class CrawlerMonitorActionRegistry {
                 "覆盖射弹模块来源文件", "none", 1L, false,
                 "destructive", false, true, true
             ),
-            resumableDirect(
+            baseAutomatic(
                 "buffs",
                 "重新抓取 Buff 数据",
                 "wiki.page.template_getbuffinfo",
@@ -265,16 +265,12 @@ public class CrawlerMonitorActionRegistry {
                 "fresh",
                 "抓取 Buff 模板和免疫相关页面，并保留数据级断点。",
                 "更新 Buff 来源、解析结果、报告和断点文件",
+                "write",
+                null,
                 "data/generated/fetch-wiki-buffs-progress.latest.json",
-                List.of(
-                    "node",
-                    "scripts/data/fetch/fetch-wiki-buffs.mjs",
-                    "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json",
-                    "--manifest-path=data/generated/wiki-source-manifest.latest.json"
-                ),
                 BUFF_RESUME
             ),
-            direct(
+            baseAutomatic(
                 "armor_sets",
                 "重新抓取盔甲套装模块",
                 "wiki.module.armorsetbonuses",
@@ -285,15 +281,10 @@ public class CrawlerMonitorActionRegistry {
                 "fresh",
                 "直接重新抓取一个 Armor Set Bonuses 模块。",
                 "更新盔甲套装来源、标准化文件和报告",
+                "write",
                 1L,
-                true,
                 "data/generated/domain-source-armor-sets-progress.latest.json",
-                List.of(
-                    "node",
-                    "scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs",
-                    "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json",
-                    "--manifest-path=data/generated/wiki-source-manifest.latest.json"
-                )
+                null
             ),
             backend(
                 "recipes", "预览配方关系差异", "wiki.zh.recipes", "本地物品和配方关系来源",
@@ -337,8 +328,9 @@ public class CrawlerMonitorActionRegistry {
                 "data/generated/domain-source-bosses-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                    "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                     "--domain=bosses",
+                    "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                     "--progress-path=data/generated/domain-source-bosses-progress.latest.json"
                 ),
                 BOSS_RESUME
@@ -378,8 +370,9 @@ public class CrawlerMonitorActionRegistry {
                 "data/generated/domain-source-shimmer-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                    "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                     "--domain=shimmer",
+                    "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                     "--progress-path=data/generated/domain-source-shimmer-progress.latest.json"
                 )
             ),
@@ -399,8 +392,9 @@ public class CrawlerMonitorActionRegistry {
                 "data/generated/wiki-audio-assets-progress.latest.json",
                 List.of(
                     "node",
-                    "scripts/data/automation/prepare-supplementary-domain-l1-preview.mjs",
+                    "scripts/data/automation/run-supplementary-domain-automatic-operation.mjs",
                     "--domain=audio",
+                    "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                     "--progress-path=data/generated/wiki-audio-assets-progress.latest.json"
                 )
             ),
@@ -569,6 +563,71 @@ public class CrawlerMonitorActionRegistry {
             estimatedRequests,
             null,
             shortTask,
+            true,
+            "summary",
+            true
+        );
+    }
+
+    private static CrawlerMonitorActionDefinition baseAutomatic(
+        String domain,
+        String label,
+        String sourceKey,
+        String locator,
+        String actionId,
+        String operationId,
+        String category,
+        String mode,
+        String descriptionZh,
+        String fileWriteSummary,
+        String databaseAccess,
+        Long estimatedRequests,
+        String progressPath,
+        String resumeStatePath
+    ) {
+        boolean backendRefresh = Set.of("items", "npcs", "projectiles").contains(domain);
+        String effectiveProgressPath = backendRefresh
+            ? "reports/backend-refresh/history/<run>.runtime/" + actionId + ".child-status.json"
+            : progressPath;
+        List<String> command = backendRefresh
+            ? List.of(
+                "node",
+                "scripts/data/automation/run-base-domain-automatic-operation.mjs",
+                "--domain=" + domain,
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
+                "--output=<reportPath>"
+            )
+            : List.of(
+                "node",
+                "scripts/data/automation/run-base-domain-automatic-operation.mjs",
+                "--domain=" + domain,
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
+                "--progress-path=" + effectiveProgressPath
+            );
+        return new CrawlerMonitorActionDefinition(
+            domain,
+            label,
+            sourceKey,
+            locator,
+            actionId,
+            effectiveProgressPath,
+            command,
+            backendRefresh,
+            true,
+            resumeStatePath != null,
+            "fresh",
+            resumeStatePath,
+            resumeStatePath == null ? "fresh" : "resume-dispatch",
+            operationId,
+            category,
+            mode,
+            descriptionZh,
+            true,
+            fileWriteSummary,
+            databaseAccess,
+            estimatedRequests,
+            null,
+            false,
             true,
             "summary",
             true
