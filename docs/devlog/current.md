@@ -17,7 +17,8 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   `b5b81385`; integrated commits: `4599eb67`, `e7a3c99d`; alias contract
   follow-up: `32a308ae`; documentation correction: `data/wiki-crawler/README.md`
   now points to `pipelines/crawler`; review repairs also canonicalize the
-  authoritative workflow/build defaults and portable PowerShell build paths.
+  authoritative workflow/build defaults and portable PowerShell build paths;
+  review repair commit: `322a540f`; timestamp closeout: `9b2d7c53`.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
