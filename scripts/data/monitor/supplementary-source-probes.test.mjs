@@ -200,6 +200,22 @@ test('shimmer probe uses one source revision and source-page HTML, then batches 
   }]);
 });
 
+test('shimmer probe ignores volatile MediaWiki NewPP diagnostics when hashing a frozen source', async () => {
+  const first = createShimmerDependencies({
+    html: '<table><tr><td>source only</td></tr></table>\n<!-- NewPP limit report\nCached time: 20260815081745\nCPU time usage: 8.702 seconds\n-->'
+      + '\n<!-- Transclusion expansion time report\n100.00% 6087.428\n-->\n<!-- Saved in parser cache with key ... timestamp 20260815081745 -->'
+  });
+  const second = createShimmerDependencies({
+    html: '<table><tr><td>source only</td></tr></table>\n<!-- NewPP limit report\nCached time: 20260815091811\nCPU time usage: 8.528 seconds\n-->'
+      + '\n<!-- Transclusion expansion time report\n100.00% 6123.901\n-->\n<!-- Saved in parser cache with key ... timestamp 20260815091811 -->'
+  });
+
+  const firstResult = await probeSupplementarySource({ domainId: 'shimmer', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, first.dependencies);
+  const secondResult = await probeSupplementarySource({ domainId: 'shimmer', wikiApiUrl: WIKI_API_URL, zhWikiApiUrl: ZH_WIKI_API_URL }, second.dependencies);
+
+  assert.equal(firstResult.contentHash, secondResult.contentHash);
+});
+
 function createAudioDependencies({
   reverseRows = false,
   truncated = false,
@@ -288,7 +304,7 @@ function defaultBossSections() {
   ];
 }
 
-function createShimmerDependencies({ sourceRevisionId = 701 } = {}) {
+function createShimmerDependencies({ sourceRevisionId = 701, html = '<table><tr><td>source only</td></tr></table>' } = {}) {
   const requests = [];
   const metadataCalls = [];
   return {
@@ -309,7 +325,7 @@ function createShimmerDependencies({ sourceRevisionId = 701 } = {}) {
             }
           };
         }
-        return { parse: { title: '微光', text: '<table><tr><td>source only</td></tr></table>' } };
+        return { parse: { title: '微光', text: html } };
       },
       collectShimmerCandidateTitles: (raw) => {
         assert.equal(raw.pageTitle, '微光');

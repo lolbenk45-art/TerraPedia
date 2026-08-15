@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-15 04:20 CST by Codex
+Last updated: 2026-08-15 18:54 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 
@@ -78,9 +78,33 @@ all-sources-unchanged runtime case remains a residual acceptance gap.
   `docs/superpowers/plans/2026-08-15-dual-path-domain-ingestion-acceptance-execution.zh.md`、
   `docs/superpowers/plans/2026-08-15-dual-path-domain-ingestion-acceptance-execution.en.md`；
   entry: `docs/devlog/entries/2026-08-15-dual-path-domain-ingestion-acceptance.md`。
+  Latest runtime evidence: all eight domain runs are `COMPLETED/COMMITTED` in
+  `terria_v1_local`; live V2 queue is empty and the reconciler is healthy. The
+  supplementary runner now isolates preview progress from the canonical V2
+  attempt progress. The `17:17 CST` natural sweep kept the other seven domains
+  unchanged but dispatched and committed Shimmer again under a new fingerprint;
+  Shimmer source hashing is therefore active repair work, not accepted. The
+  root cause is now isolated to volatile MediaWiki diagnostic comments in the
+  rendered HTML; probe fingerprinting removes only those comments. Focused
+  monitor/source regression is `19/19` with `git diff --check` passing. See the
+  active entry's `Shimmer Determinism Repair`; no manual sweep is permitted.
+  The first post-restart natural sweep acknowledged `09019d44...`; the second
+  at `10:40:06Z` reported Shimmer unchanged with no dispatch and stable
+  generation. Per user request, the authenticated local scheduler interval is
+  now `1` minute (`enabled=true`, `changed-only`).
   Items/Projectiles 使用本地数据和真实探针，其余六域使用真实受限来源和
   WSL 本地库事务；自动写库取消逐次批准，但必须受 canonical automation
-  activation 总闸门约束。当前仅进入书面评审，尚未启动 crawler 或写库。
+  activation 总闸门约束。Items/Projectiles 仍为 dry-run；其余六域已有本地或自然 scheduler 的真实事务证据。
+  当前代码已统一 8 域 canonical manifest、content-derived run identity、committed evidence reconciliation 和
+  V2 heartbeat/progress identity；missing-manifest fingerprint 丢失及 failed-attempt 首次 checkpoint 恢复已按 TDD 修复。
+  12:14 CST 自然 sweep 暴露并已修复两项运行态问题：base 域已判 changed 后内层 source sync 未强制刷新，
+  以及 Shimmer heartbeat sequence 未继承 V2 已观测序号而被判 timeout；`timed_out`/`interrupted` 且允许 retry
+  的终态也已纳入同队列最多三次的有界恢复。14:15 CST 第二轮自然 sweep 又确认两个缺口：Items completed
+  去重未验证 canonical manifest 是否真正确认当前 fingerprint；Shimmer preview 在 extraction 前的慢 probe 没有父级 heartbeat，
+  因而 extraction 开始前已进入 `stalled`。两项均按 TDD 修复，分组回归 Node `109/109`、Maven `218/218`、
+  `git diff --check` 通过。下一步用 Bash 重启加载修复，等待 15:15 CST 后的自然 sweep 验证 Items fresh enqueue、
+  Shimmer bounded retry、canonical acknowledgement 及后续同 fingerprint 全域去重。完整 WSL 栈验证使用 WSL-local
+  Playwright Chrome，未调用 Windows 浏览器。
 
 
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.

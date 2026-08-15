@@ -210,7 +210,7 @@ async function probeShimmerSource({ zhWikiApiUrl, dependencies }) {
         requestedTitle: '微光',
         revisionId: source.revisionId,
         revisionTimestamp: source.revisionTimestamp,
-        htmlHash: createContentHash(source.html)
+        htmlHash: createContentHash(normalizeShimmerHtmlForFingerprint(source.html))
       },
       candidates: normalizedCandidates
     }
@@ -419,6 +419,13 @@ function compareByCanonicalJson(left, right) {
 
 function createContentHash(value) {
   return crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
+}
+
+function normalizeShimmerHtmlForFingerprint(html) {
+  return String(html).replace(
+    /<!--[\t\r\n ]*(?:NewPP limit report|Transclusion expansion time report|Saved in parser cache with key)[\s\S]*?-->/gi,
+    ''
+  );
 }
 
 function canonicalJson(value) {
