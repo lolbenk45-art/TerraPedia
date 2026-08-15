@@ -1,18 +1,20 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:21 CST by Codex
+Last updated: 2026-08-16 03:26 CST by Codex
 
-Active branch: `refactor/project-structure-migration` (dedicated migration worktree)
+Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
 ## Recently Closed
 
 - **Project structure professionalization migration**; owner: Codex; status:
-  closed; branch: `refactor/project-structure-migration`; worktree:
+  closed; integrated branch: `feat/supplementary-domains-readiness`; source
+  branch/worktree: `refactor/project-structure-migration` /
   `/home/lolben/TerraPedia/.worktrees/project-structure-migration`; entry:
   `entries/2026-08-16-project-structure-professionalization.md`; canonical app,
   service, shared package, pipeline, and platform boundaries are migrated with
   one-way legacy symlinks. Focused gates pass; public sitemap and existing data
-  baseline drift remain documented variances. Implementation commit: `be8ffe02`.
+  baseline drift remain documented variances. Source commits: `be8ffe02`,
+  `b5b81385`; integrated commits: `4599eb67`, `e7a3c99d`.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
@@ -93,9 +95,9 @@ all-sources-unchanged runtime case remains a residual acceptance gap.
 
 Root governance files `03`, `04`, and `07-12` were removed from the current tree on 2026-07-10. Do not recreate removed root governance files `03`, `04`, or `07-12`; use Git history only for audit or rollback.
 
-- The dedicated structure migration worktree has completed physical moves and
-  is ready for staged-scope review. The primary worktree remains untouched with
-  its Shimmer data, authorization reports, and unrelated active work.
+- The structure migration is integrated into the primary feature branch. The
+  Shimmer data, authorization reports, and unrelated active work remain
+  uncommitted and untouched.
 
 - Public-page fidelity rebuild remains active. Item is committed at `8d459fe1`; NPC is committed at `3d9045fa`. The Article split is implemented but uncommitted: `/articles` keeps the production fold with mast search and six non-duplicated latest rows, while `/articles/archive` owns twelve-card search/pagination. Task 7 is now closed: the full static gate, direct-route/SSR-302 proof, the three server-dependent cross-route gates, the twelve-probe three-theme matrix, and the design-system review all pass, and the two compact-card defects found by that review (kicker/date spacing and fallback-cover typography) are repaired under two new contract assertions. Only user visual acceptance remains. No API/data repair is part of it.
 
