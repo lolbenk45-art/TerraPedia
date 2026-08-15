@@ -22,6 +22,7 @@ test('loads the project constants and exposes semantic roots', () => {
   assert.equal(constants.applications.catalogApi.currentPath, 'services/catalog-api');
   assert.equal(constants.dataLayers.standardized, 'data/standardized');
   assert.equal(constants.crawler.monitorProgress, 'generated/wiki-sync-progress.latest.json');
+  assert.equal(constants.compatibility.aliases['scripts/data'], 'pipelines');
 });
 
 test('resolves relative constants from an explicit repository root', () => {

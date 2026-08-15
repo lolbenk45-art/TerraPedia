@@ -102,7 +102,8 @@
       "shared/article-runtime": "packages/content-runtime",
       "scripts/dev": "platform/local",
       "scripts/ops": "platform/operations",
-      "scripts/tooling": "platform/tooling"
+      "scripts/tooling": "platform/tooling",
+      "scripts/data": "pipelines"
     },
     "migrationStatus": "compatibility-window",
     "canonicalRoots": {
