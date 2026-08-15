@@ -6,14 +6,19 @@ This file is the current project fact sheet. It is intentionally short. It decid
 
 TerraPedia is a Terraria Chinese data platform with four maintained lines:
 
-- public Nuxt frontend: `front-nuxt/`
-- admin/data-query Nuxt frontend: `data-query-app/`
-- Spring Boot backend: `back/`
-- data crawl, standardization, import, sync, and audit tooling: `scripts/data/` and `data/`
+- public Nuxt frontend: `apps/public-web/`
+- admin/data-query Nuxt frontend: `apps/admin-console/`
+- Spring Boot backend: `services/catalog-api/`
+- data crawl, standardization, import, sync, and audit tooling: `pipelines/` and `data/`
 
-The retired untracked `front/` directory has been removed. `front-nuxt/` is the
-only maintained public frontend path; do not recreate or add compatibility code
-under `front/`.
+The legacy application and script roots remain symlinks during the compatibility
+window (`front-nuxt/`, `data-query-app/`, `back/`, `shared/article-runtime/`,
+`scripts/dev/`, `scripts/ops/`, `scripts/tooling/`, and `scripts/data/`). They
+are compatibility aliases only; canonical consumers and new writes use the
+target roots documented in `docs/architecture/project-structure-v2.md`.
+
+The retired untracked `front/` directory has been removed. Do not recreate it or
+add a second public frontend implementation under any legacy path.
 
 ## Current Authority
 
@@ -31,18 +36,18 @@ Historical docs do not override current spec or workflow.
 ## Default Local Workflow
 
 - Default local database: `terria_v1_local`
-- Start stack: `bash ./scripts/dev/start-local-stack.sh`
-- Stop stack: `bash ./scripts/dev/stop-local-stack.sh`
-- Full quality gate: `bash ./scripts/dev/quality-gate.sh`
+- Start stack: `bash ./platform/local/start-local-stack.sh`
+- Stop stack: `bash ./platform/local/stop-local-stack.sh`
+- Full quality gate: `bash ./platform/local/quality-gate.sh`
 - Shared local Redis persists outside individual worktrees under
   `~/.local/share/terrapedia/redis/redis-<port>` by default; each worktree uses
   its allocated logical database, and startup refuses a reachable Redis whose
   configured persistence directory does not match.
-- Isolated user-auth browser smoke: `bash ./scripts/dev/run-user-auth-e2e.sh --smoke`
-- Isolated user-auth browser regression: `bash ./scripts/dev/run-user-auth-e2e.sh --regression`
-- Backend focused tests: run Maven from `back/`
-- Public frontend checks: run `pnpm run check` from `front-nuxt/`
-- Admin frontend checks: run `pnpm run check` or `pnpm run test` from `data-query-app/`
+- Isolated user-auth browser smoke: `bash ./platform/local/run-user-auth-e2e.sh --smoke`
+- Isolated user-auth browser regression: `bash ./platform/local/run-user-auth-e2e.sh --regression`
+- Backend focused tests: run Maven from `services/catalog-api/`
+- Public frontend checks: run `pnpm run check` from `apps/public-web/`
+- Admin frontend checks: run `pnpm run check` or `pnpm run test` from `apps/admin-console/`
 
 Bash/WSL is the primary local automation path. Matching `.ps1` files are compatibility wrappers unless a current runbook says otherwise.
 

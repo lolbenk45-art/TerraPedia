@@ -62,12 +62,12 @@ Add when available:
 
 ## Implementation Rules
 
-- Prefer `buildActionProgressPayload` and `writeJsonFile` from `scripts/data/workflow/backend-refresh-runtime-state.mjs`.
+- Prefer `buildActionProgressPayload` and `writeJsonFile` from `pipelines/workflow/backend-refresh-runtime-state.mjs`.
 - If the script supports `--progress-path`, explicit paths must be honored.
 - If the script has a canonical monitor path and also accepts custom paths, mirror to the canonical monitor path unless doing so would make tests mutate the real repo path; tests must isolate with temp `WORKTREE_ROOT`.
 - Writes must be atomic or temp-file-plus-rename. Never stream partial JSON into a progress file.
 - Ignore and never commit `*.tmp` progress artifacts.
-- Long item-page crawls must use `scripts/data/fetch/start-detached-item-page-crawl.mjs` or another detached/scheduled entrypoint.
+- Long item-page crawls must use `pipelines/fetch/start-detached-item-page-crawl.mjs` or another detached/scheduled entrypoint.
 
 ## Creation Checklist
 
@@ -85,11 +85,11 @@ Before adding a crawler task:
 Use the narrow commands for the touched lane, for example:
 
 ```bash
-node --test scripts/data/fetch/fetch-wiki-item-pages.test.mjs
-node --test scripts/data/fetch/refresh-target-buff-page-evidence.test.mjs
-node --test scripts/data/workflow/run-wiki-sync.test.mjs
+node --test pipelines/fetch/fetch-wiki-item-pages.test.mjs
+node --test pipelines/fetch/refresh-target-buff-page-evidence.test.mjs
+node --test pipelines/workflow/run-wiki-sync.test.mjs
 cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test
-cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs
+cd apps/admin-console && node --test tests/crawler-monitor-page-contract.test.mjs
 ```
 
 ## Review Failure

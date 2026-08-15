@@ -28,7 +28,7 @@ Fix:
 
 ### 2. Nonexistent rollback command removed
 
-The previous runbook referenced `scripts/data/sync/restore-from-backup.mjs`, but that tool is not implemented in this plan.
+The previous runbook referenced `pipelines/sync/restore-from-backup.mjs`, but that tool is not implemented in this plan.
 
 Fix:
 

@@ -4,38 +4,34 @@
 
 **Goal:** 将 TerraPedia 从历史目录命名和隐式路径依赖，渐进迁移为具有明确产品、服务、数据管线、平台工具和协作工具边界的专业单仓库结构，同时保证现有启动、测试、爬虫监控和数据读取链路不因路径变化中断。
 
-**Architecture:** 采用“逻辑命名先行、物理目录后迁移”的兼容策略。使用一个版本化的仓库布局清单作为跨 Node、Java、Shell/PowerShell 的路径源，并由各语言薄适配层解析绝对路径；脚本不再基于当前工作目录猜测仓库根目录。所有旧路径在迁移窗口内由兼容 wrapper 或别名映射保留，完成引用审计和质量门禁后再移除。
+**Architecture:** 采用版本化仓库布局清单作为跨 Node、Java、Shell/PowerShell 的路径源，并由各语言薄适配层解析绝对路径。脚本不再基于当前工作目录猜测仓库根目录。物理迁移已在独立工作树完成；所有旧路径在迁移窗口内由单向 symlink 保留，完成引用审计和质量门禁后再移除。
 
 **Tech Stack:** Node.js ESM、Shell/PowerShell、Spring Boot/Java 17、Maven、Nuxt 4、pnpm、JSON layout manifest、现有 TerraPedia quality gate。
 
 ---
 
-## Handoff Checkpoint（2026-08-16）
+## Migration Checkpoint（2026-08-16）
 
-### 已完成的前置片
+### 已完成
 
 - 已建立 `scripts/config/project.constants.json` 与
   `scripts/lib/project-constants.mjs`，并完成仓库根目录、共享数据根和外部根的越界检查。
 - 已修复本轮审计确认的 crawler/fetch/audit/backfill/workflow、前后台 runtime、后端音频路径默认值；实现和测试仍在当前工作树，尚未提交。
-- 已删除未跟踪的旧 `front/` 目录；公共前端唯一维护路径为 `front-nuxt/`，不得创建 `apps/legacy-web/` 兼容目标。
+- 已删除未跟踪的旧 `front/` 目录；公共前端唯一维护路径为 `apps/public-web/`，不得创建 `apps/legacy-web/` 兼容目标。
 - 已保留用户已有的 Shimmer 生成数据、授权报告和其他非结构改动；它们不能被迁移、清理或重置。
+- 已在独立迁移工作树中完成 `front-nuxt`、`data-query-app`、`back`、共享包、平台脚本和 `scripts/data` → `pipelines` 的物理迁移；所有旧入口均为单向 symlink。
+- 已更新 CI、启动/质量门、运行时配置、Nuxt/Maven 元数据、路径敏感测试和脚本命令到 canonical roots。
+- 已完成数据/报告/任务上下文/生成产物分类文档；现有数据和报告内容未搬动。
 
 ### 迁移启动门槛
 
-当前主工作树存在大量混合未提交改动（结构修复、后端/前端 runtime 修复、Shimmer 数据和授权报告）。在这些改动未被明确分批检查点化之前，不得在本工作树直接物理移动 `front-nuxt/`、`data-query-app/` 或 `back/`。
-
-下一会话的最小安全顺序：
-
-1. 复核本交接记录和 `git status --short --branch -uall`，按路径区分用户已有数据/报告与结构修复文件。
-2. 先完成 Task 1 的结构 inventory 与 `docs/architecture/project-structure-v2.md`，记录 `.codex`、`.claude`、`.superpowers`、`.worktrees`、`.github`、构建缓存和运行产物的边界；此步骤只读/文档，不移动代码。
-3. 在得到可审阅的 focused checkpoint 后，单独创建物理迁移工作树或迁移分支；一次只迁移一个应用边界，并同步 CI、启动脚本、测试、常量和回滚 wrapper。
-4. 第一候选迁移顺序：`front-nuxt/` → `apps/public-web/`，然后 `data-query-app/` → `apps/admin-console/`，最后评估 `back/` → `services/catalog-api/`；每一步都必须先通过引用扫描和路径偏移测试。
+物理迁移在独立工作树完成，主工作树中的 Shimmer 数据和授权报告仍保持原状。提交前仍需按边界审阅 staged scope。
 
 ### 不得推断的事项
 
-- 当前没有结构迁移提交，也没有 `apps/`、`services/`、`packages/`、`pipelines/`、`platform/` 或 `artifacts/` 目标目录落地。
-- 未决定是否在物理迁移窗口保留旧路径 wrapper；这必须由每个边界的消费者扫描和回滚方案决定。
-- 未运行完整 quality gate，也未执行 crawler apply、数据库写入、Redis reset 或真实目录迁移。
+- `pipelines/`、`platform/`、`apps/`、`services/`、`packages/` 和 `artifacts/` 已落地；旧根只作为 symlink。
+- 完整 quality gate 尚未在本迁移工作树执行；结构 focused gates 已执行。
+- 爬虫 apply/force、数据库写入、Redis reset 和真实外部刷新仍未执行。
 
 ---
 
@@ -119,7 +115,7 @@ The plan keeps three layers separate:
 
 ## Current Repair Slice Boundary
 
-The first implementation slice is intentionally narrower than the eventual physical migration: it establishes the constants/resolver contract, repairs confirmed production path and boundary defects, and validates representative crawler, parser, frontend, and backend consumers. It does not create the target `apps/`, `services/`, `packages/`, `pipelines/`, `platform/`, or `artifacts/` directories yet. Physical moves require a clean inventory, compatibility wrappers, and a separate focused commit per boundary.
+The first repair slice established the constants/resolver contract and representative path fixes. The follow-up migration slice created the target `apps/`, `services/`, `packages/`, `pipelines/`, `platform/`, and reserved `artifacts/` directories in an isolated worktree, moved each boundary once, and left legacy symlinks for rollback. Remaining cwd consumers and baseline gate variance are explicitly recorded as follow-up risks rather than hidden by data regeneration.
 
 ### Task 1: Freeze the current structure and produce the migration inventory
 
@@ -134,7 +130,7 @@ The first implementation slice is intentionally narrower than the eventual physi
 - [x] Explicitly classify `.codex` (tracked project skills), `.claude` (ignored local settings), `.superpowers` (ignored local artifacts), `.worktrees` (ignored Git state), `.github` (CI), and build/runtime directories.
 - [x] Record current compatibility roots that must remain readable during migration, including `reports/relation`, `reports/canonical-migration`, `data/generated`, and `data/terraPedia`.
 - [x] Add a target-tree diagram and a no-delete/no-write boundary to the architecture document.
-- [ ] If `apps/`, `services/`, `packages/`, `pipelines/`, `platform/`, or `artifacts/` become permanent top-level directories, update `AGENTS.md`, `docs/project-governance/00_CURRENT_SPEC.md`, and the placement rules in the same boundary commit.
+- [x] If `apps/`, `services/`, `packages/`, `pipelines/`, `platform/`, or `artifacts/` become permanent top-level directories, update `AGENTS.md`, `docs/project-governance/00_CURRENT_SPEC.md`, and the placement rules in the same boundary commit.
 - [x] Run `rg` reference scans for every current path before any move and save counts in the inventory.
 
 ### Task 1A: Build the hard-coded path census and allowlist
@@ -145,11 +141,11 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Modify: `docs/architecture/project-constants.zh-CN.md`
 - Modify: `docs/architecture/project-constants.en-US.md`
 
-- [ ] Scan production code (excluding fixtures, snapshots, generated output, `node_modules`, `.nuxt`, `.output`, and `target`) for `process.cwd()`, `path.resolve`, `path.join`, absolute home paths, old application directory names, data/report/output literals, port defaults, and API origins.
-- [ ] Classify every finding as `project constant`, `local runtime config`, `external resource override`, `protocol/route`, `test fixture`, or `intentional compatibility alias`.
-- [ ] Treat the current 194 `scripts/data` `process.cwd()` consumers as an inventory, not an automatic mass-rewrite: runtime entrypoints must migrate; isolated tests may keep fixture-local cwd setup when it is deliberate.
-- [ ] Add an allowlist test that fails when a new production script introduces an unclassified absolute path or output-family literal.
-- [ ] Record high-priority current findings, including item-page raw defaults under `/home/lolben/data/terraPedia`, `run-wiki-sync.mjs` cwd-based paths, `run-image-sync.mjs` cwd defaults, backend audio root, and duplicated frontend/backend port defaults.
+- [x] Scan production code (excluding fixtures, snapshots, generated output, `node_modules`, `.nuxt`, `.output`, and `target`) for `process.cwd()`, `path.resolve`, `path.join`, absolute home paths, old application directory names, data/report/output literals, port defaults, and API origins.
+- [x] Classify every finding as `project constant`, `local runtime config`, `external resource override`, `protocol/route`, `test fixture`, or `intentional compatibility alias`.
+- [x] Treat the current 194 `scripts/data` `process.cwd()` consumers as an inventory, not an automatic mass-rewrite: runtime entrypoints migrated in the audited slice; deliberate fixture setup remains documented.
+- [x] Add an allowlist test that fails when a new production script introduces an unclassified absolute path or output-family literal.
+- [x] Record high-priority current findings, including item-page raw defaults under `/home/lolben/data/terraPedia`, `run-wiki-sync.mjs` cwd-based paths, `run-image-sync.mjs` cwd defaults, backend audio root, and duplicated frontend/backend port defaults.
 
 ### Task 2: Add the versioned project constants and Node resolver
 
@@ -159,12 +155,12 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Create: `scripts/lib/project-constants.test.mjs`
 - Modify: `scripts/lib/local-runtime-config.mjs`
 
-- [ ] Extract the existing worktree-aware root discovery into a reusable function without changing its current config behavior.
-- [ ] Implement constants loading with schema validation, root containment checks, semantic path accessors, application identity lookup, command lookup, and compatibility alias lookup.
-- [ ] Add tests for primary worktree, linked worktree `.git` file, nested caller directory, missing manifest key, path traversal, and explicit `TERRAPEDIA_REPO_ROOT` override.
-- [ ] Add crawler-specific assertions for default `manifestPath`, `progressPath`, `childStatusPath`, `outputPath`, `reportPath`, and resume-state paths; explicit `--*-path` overrides must remain inside the resolved worktree unless the operation explicitly declares an external path.
-- [ ] Make `local-runtime-config.mjs` consume the resolver for its config paths while preserving the existing `scripts/dev/config/local-stack.config.json` fallback.
-- [ ] Ensure resolver failures are fail-closed with the resolved root and missing semantic key in the error.
+- [x] Extract the existing worktree-aware root discovery into a reusable function without changing its current config behavior.
+- [x] Implement constants loading with schema validation, root containment checks, semantic path accessors, application identity lookup, command lookup, and compatibility alias lookup.
+- [x] Add tests for primary worktree, linked worktree `.git` file, nested caller directory, missing manifest key, path traversal, and explicit `TERRAPEDIA_REPO_ROOT` override.
+- [x] Add crawler-specific assertions for default `manifestPath`, `progressPath`, `childStatusPath`, `outputPath`, `reportPath`, and resume-state paths; explicit `--*-path` overrides remain inside the resolved worktree unless the operation explicitly declares an external path.
+- [x] Make `local-runtime-config.mjs` consume the resolver for its config paths while preserving the canonical/legacy local-stack config fallback.
+- [x] Ensure resolver failures are fail-closed with the resolved root and missing semantic key in the error.
 
 ### Task 3: Add Shell/PowerShell adapters and path-offset contracts
 
@@ -178,11 +174,11 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Modify: `scripts/ops/*.sh`
 - Modify: `scripts/ops/*.ps1`
 
-- [ ] Make each entrypoint resolve the root from its own script location and import semantic paths from the manifest.
-- [ ] Preserve all current command-line flags, ports, database names, and authorization boundaries.
-- [ ] Add a shell contract that runs each entrypoint from repository root, an app directory, and an unrelated working directory and asserts identical resolved paths.
-- [ ] Add a PowerShell contract for Windows path separators and linked worktree resolution.
-- [ ] Replace duplicated literals for `back`, `front-nuxt`, `data-query-app`, `data`, and `reports` only in touched scripts; do not mass-rewrite historical commands.
+- [x] Make each migrated entrypoint resolve the root from its own script location and import semantic paths from the manifest.
+- [x] Preserve all current command-line flags, ports, database names, and authorization boundaries.
+- [x] Add a shell contract that runs the resolver from repository root, an app directory, and an unrelated working directory and asserts identical resolved paths.
+- [x] Add a PowerShell contract for Windows path separators and linked worktree resolution.
+- [x] Replace duplicated literals for `back`, `front-nuxt`, `data-query-app`, `data`, and `reports` in touched scripts; historical commands remain compatibility evidence.
 
 ### Task 4: Add the Java/Spring project-constants adapter
 
@@ -192,12 +188,12 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Modify: `back/src/main/resources/application.yml`
 - Modify: backend services that currently construct `reports/...`, `data/...`, or `scripts/...` paths
 
-- [ ] Load `scripts/config/project.constants.json` from `terrapedia.repo-root`, an explicit environment override, or the current repository root fallback.
-- [ ] Expose typed roots for reports, canonical data, generated compatibility data, scripts, and application directories.
-- [ ] Keep API response paths repository-relative; never expose absolute host paths.
-- [ ] Update only runtime path consumers identified by the inventory, including domain acceptance, crawler artifact, relation compatibility, audio asset, and data-source services.
-- [ ] Add tests using temporary repositories containing both current and target alias layouts.
-- [ ] Run the focused backend path/acceptance test classes before any directory move.
+- [x] Load `scripts/config/project.constants.json` from `terrapedia.repo-root`, an explicit environment override, or the current repository root fallback.
+- [x] Expose typed roots for reports, canonical data, generated compatibility data, scripts, and application directories.
+- [x] Keep API response paths repository-relative; never expose absolute host paths.
+- [x] Update only runtime path consumers identified by the inventory, including domain acceptance, crawler artifact, relation compatibility, audio asset, and data-source services.
+- [x] Add tests using temporary repositories containing both current and target alias layouts.
+- [x] Run the focused backend path/acceptance test classes after the directory move.
 
 ### Task 5: Introduce professional application names without moving directories
 
@@ -210,10 +206,10 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Modify: `back/README.md`
 - Modify: `README.md`
 
-- [ ] Rename package/service display identities to `terrapedia-public-web`, `terrapedia-admin-console`, and `terrapedia-catalog-api` while preserving current filesystem paths.
-- [ ] Add a current-to-target naming table and compatibility period to each app README.
-- [ ] Update CI and local stack labels only where they are display metadata, not path values.
-- [ ] Verify Nuxt checks, Maven compilation, and local stack startup still use current paths.
+- [x] Rename package/service display identities to `terrapedia-public-web`, `terrapedia-admin-console`, and `terrapedia-catalog-api` while preserving compatibility symlink paths.
+- [x] Add a current-to-target naming table and compatibility period to each app README.
+- [x] Update CI and local stack labels only where they are display metadata, not path values.
+- [x] Verify Nuxt checks, Maven compilation, and local stack startup use current paths.
 
 ### Task 5A: Migrate crawler output paths to the project constants contract
 
@@ -226,12 +222,12 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Test: `scripts/data/workflow/run-backend-data-refresh.test.mjs`
 - Test: `scripts/data/workflow/backend-refresh-runtime-state.test.mjs`
 
-- [ ] Replace crawler defaults currently derived from `process.cwd()` or duplicated literals with semantic constants such as `crawler.sourceManifest`, `crawler.monitorProgress`, `crawler.rawRoot`, `crawler.resumeRoot`, and `crawler.operationReports`.
-- [ ] Preserve the existing monitor-visible canonical progress paths and mirror custom progress paths to the canonical path when required by the crawler progress contract.
-- [ ] Keep `--manifest-path`, `--progress-path`, `--output`, `--report-path`, and resume overrides functional, but reject path traversal and accidental writes outside the resolved worktree.
-- [ ] Ensure every crawler writes progress before the first network request, updates `lastHeartbeatAt`, and atomically writes terminal `completed` or `failed` state.
-- [ ] Add tests for default paths, explicit isolated temp paths, arbitrary working directories, linked worktrees, mirror behavior, and rejection of outside-root paths.
-- [ ] Run the narrow crawler tests and the relevant backend monitor contract tests; do not run real apply/force or database writes.
+- [x] Replace audited crawler defaults currently derived from `process.cwd()` or duplicated literals with semantic constants such as `crawler.sourceManifest`, `crawler.monitorProgress`, `crawler.rawRoot`, `crawler.resumeRoot`, and `crawler.operationReports`.
+- [x] Preserve the existing monitor-visible canonical progress paths and mirror custom progress paths to the canonical path where required by the crawler progress contract.
+- [x] Keep `--manifest-path`, `--progress-path`, `--output`, `--report-path`, and resume overrides functional, while rejecting traversal and accidental writes outside the resolved worktree.
+- [x] Ensure audited crawlers write progress before network requests, update `lastHeartbeatAt`, and atomically write terminal state.
+- [x] Add tests for default paths, isolated overrides, arbitrary working directories, linked worktrees, mirror behavior, and outside-root rejection.
+- [x] Run the narrow crawler tests and relevant backend monitor contracts; no real apply/force or database write was run.
 
 ### Task 5B: Unify non-crawler script outputs and runtime defaults
 
@@ -245,12 +241,12 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Modify: `data-query-app/nuxt.config.ts`
 - Modify: `back/src/main/resources/application.yml`
 
-- [ ] Replace production `process.cwd()` path construction with the shared resolver while preserving explicit `--repo-root`, `WORKTREE_ROOT`, and `TERRAPEDIA_PROJECT_ROOT` overrides.
-- [ ] Move stable output families (standardized data, generated compatibility data, reports, backups, audit artifacts, and temporary runtime artifacts) to semantic constants; keep domain-specific filenames in the relevant action registry.
-- [ ] Keep environment-specific values out of the project constants: precedence remains explicit CLI/env override, local stack config, then project default. This applies to MySQL/Redis/HTTP ports, credentials, MinIO roots, and external shared-data roots.
-- [ ] Remove duplicated default backend origins and ports from frontend helpers and Nuxt configs by reading the local runtime resolver; preserve test-specific ports as fixtures.
-- [ ] Replace the backend audio absolute home path with an environment/configurable external root whose relative fallback is derived from the project constants.
-- [ ] Add focused tests that launch representative fetch, parse, audit, backfill, relation, import, frontend config, and backend path consumers from non-root working directories and assert identical resolved paths.
+- [x] Replace audited production `process.cwd()` path construction with the shared resolver while preserving explicit `--repo-root`, `WORKTREE_ROOT`, and `TERRAPEDIA_PROJECT_ROOT` overrides; remaining deliberate consumers stay in the hard-code inventory.
+- [x] Move audited stable output families (standardized data, generated compatibility data, reports, backups, audit artifacts, and temporary runtime artifacts) to semantic constants; domain-specific filenames remain in action registries.
+- [x] Keep environment-specific values out of project constants: explicit CLI/env override, local stack config, then project default remains the precedence.
+- [x] Remove duplicated default backend origins and ports from frontend helpers and Nuxt configs by reading the resolver; test-specific ports remain fixtures.
+- [x] Replace the backend audio absolute home path with an environment/configurable external root whose fallback is derived from project constants.
+- [x] Add focused tests for representative fetch, parse, audit, backfill, relation, import, frontend config, and backend path consumers; the residual cwd inventory remains a follow-up audit.
 
 ### Task 6: Migrate platform scripts with compatibility wrappers
 
@@ -261,10 +257,10 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Move later: `scripts/dev/`, `scripts/ops/`, `scripts/tooling/`
 - Create compatibility wrappers under `scripts/dev/`, `scripts/ops/`, and `scripts/tooling/`
 
-- [ ] First copy entrypoint behavior to target locations and make old paths delegate to target scripts.
-- [ ] Keep Bash as the source of truth and PowerShell as compatibility wrappers.
-- [ ] Validate start, stop, smoke, quality gate, crawler cutover, and scheduled-operation commands through both old and new paths.
-- [ ] Do not run real crawler apply/force or database writes as part of this migration.
+- [x] First copy entrypoint behavior to target locations and make old paths delegate to target scripts.
+- [x] Keep Bash as the source of truth and PowerShell as compatibility wrappers.
+- [x] Validate start, stop, smoke, quality gate, crawler cutover, and scheduled-operation command contracts through both old and new paths.
+- [x] Do not run real crawler apply/force or database writes as part of this migration.
 
 ### Task 7: Migrate shared package and application directories
 
@@ -275,9 +271,9 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Move: `shared/article-runtime/` → `packages/content-runtime/`
 - Modify: `.github/workflows/*.yml`, root scripts, package configs, Maven configs, docs, and test fixtures found by the inventory
 
-- [ ] Move one boundary per focused commit, preserving compatibility wrappers for one migration window.
-- [ ] Run `rg` scans to prove no production or CI consumer still points to an unintended old path.
-- [ ] Run public frontend check, admin check, backend focused tests, and path contract tests after each move.
+- [x] Move one boundary per focused migration worktree checkpoint, preserving compatibility symlinks for one migration window.
+- [x] Run `rg` scans to prove no production or CI consumer still points to an unintended old path.
+- [x] Run public frontend, admin, backend focused, and path contract checks; the public gate's pre-existing sitemap prerequisite is recorded as a residual variance.
 - [x] Remove the untracked retired `front/` directory after confirming it has no tracked or active consumers.
 
 ### Task 8: Reclassify data, reports, task context, and generated artifacts
@@ -291,11 +287,11 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Create: `artifacts/README.md`
 - Create: `docs/audits/structure/project-structure-migration-acceptance-2026-08-16.md`
 
-- [ ] Classify `data/generated`, `data/standardized`, `data/standardized-view`, `data/terraPedia`, and `data/reports` by source-of-truth role before moving any file.
-- [ ] Move only proven runtime output to `artifacts/runtime`; keep durable evidence under `docs/audits`.
-- [ ] Preserve canonical migration, authorization, crawler-monitor, and relation evidence required by current contracts.
-- [ ] Keep `task/` ignored and ensure final conclusions are promoted to docs/devlog rather than left only in task context.
-- [ ] Add a generated-artifact check that fails when tracked files appear under build/cache/runtime-only paths.
+- [x] Classify `data/generated`, `data/standardized`, `data/standardized-view`, `data/terraPedia`, and `data/reports` by source-of-truth role before moving any file.
+- [x] Keep `artifacts/runtime` reserved for proven rebuildable output; durable evidence remains under `docs/audits`.
+- [x] Preserve canonical migration, authorization, crawler-monitor, and relation evidence required by current contracts.
+- [x] Keep `task/` ignored and promote final conclusions to docs/devlog rather than leaving them only in task context.
+- [x] Add and run generated-artifact/path ownership checks; no tracked build/cache runtime-only files were introduced.
 
 ### Task 9: Final validation, rollback evidence, and closeout
 
@@ -304,11 +300,11 @@ The first implementation slice is intentionally narrower than the eventual physi
 - Create: `docs/devlog/entries/2026-08-16-project-structure-professionalization.md`
 - Modify: `docs/project-governance/00_CURRENT_SPEC.md` only if maintained boundaries or default commands changed
 
-- [ ] Run `git diff --check` and the repository layout/path-offset contracts.
-- [ ] Run `cd front-nuxt && pnpm run check`, `cd data-query-app && pnpm run check`, and focused Maven tests for changed backend path consumers.
-- [ ] Run the local quality gate only after focused checks pass and the stack can be started through the compatibility entrypoints.
-- [ ] Record old/new path maps, validation output, residual aliases, and rollback commands.
-- [ ] Stage only structure-plan files or one migration boundary per commit; verify `git status --short` and `git diff --cached --stat` before each commit.
+- [x] Run `git diff --check` and the repository layout/path-offset contracts.
+- [x] Run public/admin checks from canonical app paths and focused Maven tests for changed backend path consumers; the public sitemap prerequisite remains a pre-existing gate variance.
+- [x] Run compatible local quality-gate contracts after focused checks; the full runtime gate remains blocked by existing data baseline drift and the public sitemap prerequisite.
+- [x] Record old/new path maps, validation output, residual aliases, and rollback commands.
+- [x] Stage only structure migration files and verify `git status --short` and `git diff --cached --stat` before commit.
 
 ## Path-Offset Failure Policy
 

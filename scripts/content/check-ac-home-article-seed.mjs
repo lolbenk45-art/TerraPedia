@@ -9,10 +9,10 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const failures = [];
 
-const sqlSeedPath = path.join(repoRoot, 'back/src/main/resources/db/migration/V55__seed_ac_home_original_articles.sql');
+const sqlSeedPath = path.join(repoRoot, 'services/catalog-api/src/main/resources/db/migration/V55__seed_ac_home_original_articles.sql');
 const dataPath = path.join(repoRoot, 'scripts/content/ac-home-articles.mjs');
 const seedPath = path.join(repoRoot, 'scripts/content/seed-ac-home-articles.mjs');
-const homeDataPath = path.join(repoRoot, 'front-nuxt/composables/useHomeData.ts');
+const homeDataPath = path.join(repoRoot, 'apps/public-web/composables/useHomeData.ts');
 
 const expectedSlugs = [
   'ac-home-starting-route-2026-06-08',
@@ -126,7 +126,7 @@ if (existsSync(dataPath)) {
 }
 
 if (!existsSync(homeDataPath)) {
-  failures.push('Missing front-nuxt/composables/useHomeData.ts');
+  failures.push('Missing apps/public-web/composables/useHomeData.ts');
 } else {
   const homeData = readFileSync(homeDataPath, 'utf8');
   for (const slug of expectedSlugs) {

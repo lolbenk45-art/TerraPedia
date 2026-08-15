@@ -1,6 +1,6 @@
 ---
 name: xlab-image-generation
-description: Use when the user wants Codex to generate images through the local XLab gpt-image-2 setup, including requests to make, create, preview, or save AI-generated raster images from prompts using scripts/tooling/image-2/xlab.json.
+description: Use when the user wants Codex to generate images through the local XLab gpt-image-2 setup, including requests to make, create, preview, or save AI-generated raster images from prompts using platform/tooling/image-2/xlab.json.
 ---
 
 # XLab Image Generation
@@ -9,13 +9,13 @@ Generate raster images through the repository-local XLab API configuration.
 
 ## Workflow
 
-1. Treat `scripts/tooling/image-2/xlab.json` as a local secret. Never print its contents, API key, request headers, or raw API response.
+1. Treat `platform/tooling/image-2/xlab.json` as a local secret. Never print its contents, API key, request headers, or raw API response.
 2. Use the bundled generator script:
 
 ```bash
-node scripts/tooling/image-2/generate-image.mjs \
+node platform/tooling/image-2/generate-image.mjs \
   --prompt "<image prompt>" \
-  --output-dir scripts/tooling/image-2/generated
+  --output-dir platform/tooling/image-2/generated
 ```
 
 3. If the user wants a custom filename stem, add `--filename-prefix "<slug>"`.
@@ -24,11 +24,11 @@ node scripts/tooling/image-2/generate-image.mjs \
 
 ## Validation
 
-- Run `node --test scripts/tooling/image-2/generate-image.test.mjs` after editing the script.
+- Run `node --test platform/tooling/image-2/generate-image.test.mjs` after editing the script.
 - For live generation, verify the saved file with `file <path>` or an equivalent image check before claiming success.
 
 ## Failure Handling
 
-- `Config file not found`: ask the user to restore `scripts/tooling/image-2/xlab.json`.
+- `Config file not found`: ask the user to restore `platform/tooling/image-2/xlab.json`.
 - `Config is missing apikey` or `baseURL`: report the missing field name only.
 - HTTP errors: summarize the status and non-sensitive message; do not paste raw response bodies.

@@ -1,0 +1,142 @@
+package com.terraria.skills.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.dto.DataSourceAcceptanceOverviewDTO;
+import com.terraria.skills.service.DataSourceAcceptanceService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.time.Instant;
+
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(MockitoExtension.class)
+class AdminDataSourceAcceptanceControllerTest {
+
+    @Mock
+    private DataSourceAcceptanceService dataSourceAcceptanceService;
+
+    @InjectMocks
+    private AdminDataSourceAcceptanceController adminDataSourceAcceptanceController;
+
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(adminDataSourceAcceptanceController)
+            .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+            .build();
+    }
+
+    @Test
+    void shouldReturnDataSourceAcceptanceOverview() throws Exception {
+        DataSourceAcceptanceOverviewDTO overview = new DataSourceAcceptanceOverviewDTO();
+        overview.setGeneratedAt(Instant.parse("2026-05-03T00:00:00Z"));
+        overview.setOverallStatus("warning");
+        overview.setRelationHealth(panel("relationHealth", "pass"));
+        overview.setReplacementReadiness(panel("replacementReadiness", "pass"));
+        overview.setSourceDatasetLanding(panel("sourceDatasetLanding", "pass"));
+        overview.setSourceGroupAudit(panel("sourceGroupAudit", "pass"));
+        overview.setNpcCanonicalReadiness(panel("npcCanonicalReadiness", "pass"));
+        overview.setImageReadiness(panel("imageReadiness", "missing"));
+        overview.setCrawlerMonitor(panel("crawlerMonitor", "warning"));
+        overview.setEntitySourceCoverage(panel("entitySourceCoverage", "pass"));
+
+        when(dataSourceAcceptanceService.getOverview()).thenReturn(overview);
+
+        mockMvc.perform(get("/admin/data-source-acceptance/overview"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.overallStatus").value("warning"))
+            .andExpect(jsonPath("$.data.relationHealth.status").value("pass"))
+            .andExpect(jsonPath("$.data.relationHealth.freshnessStatus").value("fresh"))
+            .andExpect(jsonPath("$.data.relationHealth.staleAfterHours").value(24))
+            .andExpect(jsonPath("$.data.relationHealth.ageHours").value(12))
+            .andExpect(jsonPath("$.data.relationHealth.failureSamples[0].status").value("blocked"))
+            .andExpect(jsonPath("$.data.relationHealth.failureSamples[0].sampleSource").value("report-check"))
+            .andExpect(jsonPath("$.data.relationHealth.failureSamples[0].notGateEvidence").value(false))
+            .andExpect(jsonPath("$.data.relationHealth.nextEvidenceCommand").doesNotExist())
+            .andExpect(jsonPath("$.data.replacementReadiness.status").value("pass"))
+            .andExpect(jsonPath("$.data.sourceDatasetLanding.status").value("pass"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.status").value("pass"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.reportPattern").value("reports/canonical-migration/canonical-item-group-readiness*.json"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.generatorCommand").value("node pipelines/item-groups/item-group-readiness.mjs"))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.writesDatabase").value(false))
+            .andExpect(jsonPath("$.data.sourceGroupAudit.requiresDatabase").value(true))
+            .andExpect(jsonPath("$.data.npcCanonicalReadiness.status").value("pass"))
+            .andExpect(jsonPath("$.data.npcCanonicalReadiness.reportPattern").value("reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json"))
+            .andExpect(jsonPath("$.data.npcCanonicalReadiness.generatorCommand").value("node pipelines/npc-canonical/npc-canonical-readiness.mjs"))
+            .andExpect(jsonPath("$.data.imageReadiness.status").value("missing"))
+            .andExpect(jsonPath("$.data.imageReadiness.freshnessStatus").value("missing"))
+            .andExpect(jsonPath("$.data.imageReadiness.staleAfterHours").value(24))
+            .andExpect(jsonPath("$.data.imageReadiness.generatorCommand").value("node pipelines/audit/image-asset-readiness-audit.mjs --source=db"))
+            .andExpect(jsonPath("$.data.imageReadiness.nextEvidenceCommand").value("node pipelines/audit/image-asset-readiness-audit.mjs --source=db"))
+            .andExpect(jsonPath("$.data.imageReadiness.executeMode").value("manual"))
+            .andExpect(jsonPath("$.data.imageReadiness.executionPolicy").value("plan-only"))
+            .andExpect(jsonPath("$.data.imageReadiness.writesDatabase").value(false))
+            .andExpect(jsonPath("$.data.imageReadiness.requiresDatabase").value(true))
+            .andExpect(jsonPath("$.data.imageReadiness.notes").value("Feeds imageReadiness from the latest image asset readiness audit report."))
+            .andExpect(jsonPath("$.data.crawlerMonitor.status").value("warning"))
+            .andExpect(jsonPath("$.data.entitySourceCoverage.status").value("pass"));
+
+        verify(dataSourceAcceptanceService).getOverview();
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel(String id, String status) {
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = new DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO();
+        panel.setId(id);
+        panel.setStatus(status);
+        panel.setFound(!"missing".equals(status));
+        panel.setReadable(!"missing".equals(status));
+        panel.setStaleAfterHours(24);
+        if ("relationHealth".equals(id)) {
+            panel.setFreshnessStatus("fresh");
+            panel.setAgeHours(12L);
+            DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = new DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO();
+            sample.setStatus("blocked");
+            sample.setSampleSource("report-check");
+            sample.setNotGateEvidence(false);
+            panel.getFailureSamples().add(sample);
+        }
+        if ("imageReadiness".equals(id)) {
+            panel.setGeneratorCommand("node pipelines/audit/image-asset-readiness-audit.mjs --source=db");
+            panel.setNextEvidenceCommand("node pipelines/audit/image-asset-readiness-audit.mjs --source=db");
+            panel.setExecuteMode("manual");
+            panel.setExecutionPolicy("plan-only");
+            panel.setWritesDatabase(false);
+            panel.setRequiresDatabase(true);
+            panel.setNotes("Feeds imageReadiness from the latest image asset readiness audit report.");
+            panel.setFreshnessStatus("missing");
+        }
+        if ("sourceGroupAudit".equals(id)) {
+            panel.setReportPattern("reports/canonical-migration/canonical-item-group-readiness*.json");
+            panel.setGeneratorCommand("node pipelines/item-groups/item-group-readiness.mjs");
+            panel.setWritesDatabase(false);
+            panel.setRequiresDatabase(true);
+        }
+        if ("npcCanonicalReadiness".equals(id)) {
+            panel.setReportPattern("reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json");
+            panel.setGeneratorCommand("node pipelines/npc-canonical/npc-canonical-readiness.mjs");
+            panel.setWritesDatabase(false);
+            panel.setRequiresDatabase(true);
+        }
+        return panel;
+    }
+}

@@ -115,3 +115,19 @@ scripts/tooling/       -> platform/tooling/
 ## 后续检查点
 
 Task 1 的产物是本 inventory 与 [`docs/architecture/project-structure-v2.md`](../../architecture/project-structure-v2.md)。下一步才可在专用迁移工作树中进行 `front-nuxt/` 的引用扫描和路径偏移合同测试；本工作树不得直接开始目录移动。
+
+## 迁移后附录（2026-08-16）
+
+上述表格保留迁移前事实，不回写历史观察。专用工作树
+`/home/lolben/TerraPedia/.worktrees/project-structure-migration` 已按边界
+完成物理迁移：`apps/public-web`、`apps/admin-console`、
+`services/catalog-api`、`packages/content-runtime`、`pipelines`、
+`platform/local`、`platform/operations`、`platform/tooling` 成为唯一物理
+目录；旧入口全部是单向 symlink。`artifacts/` 仅保留分类说明，不承接未证明
+的 runtime 输出。
+
+迁移后再次扫描确认：CI、平台入口、Nuxt/Maven 配置和生产导入路径使用
+canonical roots；旧名称仅出现在 constants 兼容映射、README/历史证据、
+测试 fixture 或兼容 symlink。生产脚本仍有一批显式 `process.cwd()` 用于
+相对 CLI 输入，这些数字已在 hard-code inventory 中作为 allowlist 后续项，
+没有通过大规模重写掩盖 fixture 和外部共享数据语义。

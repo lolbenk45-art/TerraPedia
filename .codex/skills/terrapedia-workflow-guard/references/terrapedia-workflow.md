@@ -5,25 +5,25 @@ This is the skill reference copy of the TerraPedia repo workflow. If the active 
 ## Repo Defaults
 
 - Default local DB: `terria_v1_local`
-- Default start entrypoint: `scripts/dev/start-local-stack.sh`
-- Default stop entrypoint: `scripts/dev/stop-local-stack.sh`
-- Default local config template: `scripts/dev/config/local-stack.config.example.json`
+- Default start entrypoint: `platform/local/start-local-stack.sh`
+- Default stop entrypoint: `platform/local/stop-local-stack.sh`
+- Default local config template: `platform/local/config/local-stack.config.example.json`
 - Bash / WSL is the local automation path. Same-name `.ps1` files are temporary compatibility wrappers only.
 
 Common commands:
 
 ```bash
-bash ./scripts/dev/start-local-stack.sh
-bash ./scripts/dev/stop-local-stack.sh
+bash ./platform/local/start-local-stack.sh
+bash ./platform/local/stop-local-stack.sh
 cd back
 mvn -Dtest=ClassA,ClassB test
 mvn test
-cd data-query-app
+cd apps/admin-console
 pnpm run check
 pnpm run test
-cd front-nuxt
+cd apps/public-web
 pnpm run check
-bash ./scripts/dev/quality-gate.sh
+bash ./platform/local/quality-gate.sh
 git status --short
 git diff --cached --stat
 ```
@@ -283,9 +283,9 @@ Recommended order:
 
 Check first:
 
-- `scripts/dev/config/local-stack.config.json` for local-only config
-- `scripts/dev/config/local-stack.config.example.json` for committed template
-- `scripts/dev/start-local-stack.sh`
+- `platform/local/config/local-stack.config.json` for local-only config
+- `platform/local/config/local-stack.config.example.json` for committed template
+- `platform/local/start-local-stack.sh`
 
 ## Emergency Exception Template
 

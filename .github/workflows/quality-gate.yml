@@ -46,10 +46,10 @@ jobs:
           java-version: 17
 
       - name: Run crawler regression baseline
-        run: node --test scripts/data/crawler/tests/regression-baseline.test.mjs
+        run: node --test pipelines/crawler/tests/regression-baseline.test.mjs
 
       - name: Run item import regression baseline
-        working-directory: back
+        working-directory: services/catalog-api
         run: mvn -Dtest=ItemImportRegressionTest test
 
       - name: Enable pnpm
@@ -61,22 +61,22 @@ jobs:
           sudo apt-get install --yes mysql-client redis-tools
 
       - name: Install front Nuxt dependencies
-        working-directory: front-nuxt
+        working-directory: apps/public-web
         run: pnpm install --frozen-lockfile
 
       - name: Install admin dependencies
-        working-directory: data-query-app
+        working-directory: apps/admin-console
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        working-directory: front-nuxt
+        working-directory: apps/public-web
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Discover isolated Chromium executable
         id: chromium
-        working-directory: front-nuxt
+        working-directory: apps/public-web
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
         run: |
@@ -102,8 +102,8 @@ jobs:
         run: |
           # Bash-first migration target. If P1 has not landed yet, fail with
           # an explicit migration message instead of silently using PowerShell.
-          if [[ ! -f ./scripts/dev/quality-gate-ci.sh ]]; then
-            echo "::error::Missing Bash target ./scripts/dev/quality-gate-ci.sh; see docs/plans/2026-05-14_wsl-bash-script-migration-plan.md P1."
+          if [[ ! -f ./platform/local/quality-gate-ci.sh ]]; then
+            echo "::error::Missing Bash target ./platform/local/quality-gate-ci.sh; see docs/plans/2026-05-14_wsl-bash-script-migration-plan.md P1."
             exit 1
           fi
-          bash ./scripts/dev/quality-gate-ci.sh
+          bash ./platform/local/quality-gate-ci.sh

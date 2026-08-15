@@ -39,7 +39,7 @@ The automated upstream-reading code is now isolated in:
 Main script:
 
 ```powershell
-node TerraPedia-dev/scripts/tooling/upstream-monitor/check-upstream-updates.mjs
+node TerraPedia-dev/platform/tooling/upstream-monitor/check-upstream-updates.mjs
 ```
 
 This monitor output is intentionally separate from `_manifest.standardized.json`.
@@ -51,7 +51,7 @@ The upstream monitor files describe whether upstream wiki or official release so
 From workspace root (`G:\ClaudeCode`):
 
 ```powershell
-node TerraPedia-dev/scripts/data/transform/standardize-existing-data.mjs
+node TerraPedia-dev/pipelines/transform/standardize-existing-data.mjs
 ```
 
 Optional overrides:
@@ -64,7 +64,7 @@ Example:
 ```powershell
 $env:TERRAPEDIA_SOURCE_DATA_DIR="G:\ClaudeCode\data\terraPedia"
 $env:TERRAPEDIA_STANDARDIZED_OUTPUT_DIR="G:\ClaudeCode\data\terraPedia\standardized"
-node TerraPedia-dev/scripts/data/transform/standardize-existing-data.mjs
+node TerraPedia-dev/pipelines/transform/standardize-existing-data.mjs
 ```
 
 ## Monitor Upstream Freshness
@@ -74,7 +74,7 @@ This repo can run upstream freshness checks directly from the redesign workspace
 From workspace root (`G:\ClaudeCode`):
 
 ```powershell
-node TerraPedia-dev/scripts/tooling/upstream-monitor/check-upstream-updates.mjs
+node TerraPedia-dev/platform/tooling/upstream-monitor/check-upstream-updates.mjs
 ```
 
 The monitoring flow writes:

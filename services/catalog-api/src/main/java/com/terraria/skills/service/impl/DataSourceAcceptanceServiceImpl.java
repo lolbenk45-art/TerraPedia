@@ -1,0 +1,1068 @@
+package com.terraria.skills.service.impl;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.DataSourceAcceptanceOverviewDTO;
+import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.DataSourceAcceptanceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
+
+@Service
+public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceService {
+
+    private static final int DEFAULT_STALE_AFTER_HOURS = 24;
+    private static final int FAILURE_SAMPLE_LIMIT = 50;
+
+    private static final ReportDefinition RELATION_HEALTH = new ReportDefinition(
+        "relationHealth",
+        Path.of("reports", "relation"),
+        "relation-health",
+        ".json",
+        "reports/relation/relation-health*.json",
+        "node pipelines/relation/relation-health-report.mjs --write-report=true",
+        false,
+        true,
+        "Feeds relationHealth from the latest relation health report."
+    );
+    private static final ReportDefinition REPLACEMENT_READINESS = new ReportDefinition(
+        "replacementReadiness",
+        Path.of("reports", "relation"),
+        "replacement-readiness",
+        ".json",
+        "reports/relation/replacement-readiness*.json",
+        "node pipelines/relation/replacement-readiness-audit.mjs",
+        false,
+        true,
+        "Feeds replacementReadiness from the latest read-only replacement readiness audit report."
+    );
+    private static final ReportDefinition SOURCE_DATASET_LANDING = new ReportDefinition(
+        "sourceDatasetLanding",
+        Path.of("reports"),
+        "source-dataset-landing-audit",
+        ".json",
+        "reports/source-dataset-landing-audit*.json",
+        "node pipelines/landing/audit-source-dataset-landings.mjs",
+        false,
+        true,
+        "Feeds sourceDatasetLanding from the latest landing dataset audit report."
+    );
+    private static final ReportDefinition SOURCE_GROUP_AUDIT = new ReportDefinition(
+        "sourceGroupAudit",
+        Path.of("reports", "canonical-migration"),
+        "canonical-item-group-readiness",
+        ".json",
+        "reports/canonical-migration/canonical-item-group-readiness*.json",
+        "node pipelines/item-groups/item-group-readiness.mjs",
+        false,
+        true,
+        "Feeds sourceGroupAudit from the fail-closed canonical item-group readiness report."
+    );
+    private static final ReportDefinition NPC_CANONICAL_READINESS = new ReportDefinition(
+        "npcCanonicalReadiness",
+        Path.of("reports", "canonical-migration"),
+        "canonical-npc-crawler-facts-readiness",
+        ".json",
+        "reports/canonical-migration/canonical-npc-crawler-facts-readiness*.json",
+        "node pipelines/npc-canonical/npc-canonical-readiness.mjs",
+        false,
+        true,
+        "Feeds npcCanonicalReadiness from the fail-closed canonical NPC crawler-fact readiness report."
+    );
+    private static final ReportDefinition IMAGE_READINESS = new ReportDefinition(
+        "imageReadiness",
+        Path.of("reports", "audit"),
+        "image-asset-readiness",
+        ".json",
+        "reports/audit/image-asset-readiness*.json",
+        "node pipelines/audit/image-asset-readiness-audit.mjs --source=db",
+        false,
+        true,
+        "Feeds imageReadiness from the latest image asset readiness audit report."
+    );
+    private static final ReportDefinition ENTITY_SOURCE_COVERAGE = new ReportDefinition(
+        "entitySourceCoverage",
+        Path.of("reports", "relation"),
+        "entity-coverage-baseline",
+        ".json",
+        "reports/relation/entity-coverage-baseline*.json",
+        "node pipelines/relation/entity-coverage-baseline.mjs",
+        false,
+        true,
+        "Feeds entitySourceCoverage from the latest entity source coverage baseline report."
+    );
+
+    private final ObjectMapper objectMapper;
+    private final CrawlerMonitorService crawlerMonitorService;
+    private final Path repoRootOverride;
+    private final Clock clock;
+
+    @Autowired
+    public DataSourceAcceptanceServiceImpl(ObjectMapper objectMapper, CrawlerMonitorService crawlerMonitorService) {
+        this(objectMapper, crawlerMonitorService, null, Clock.systemUTC());
+    }
+
+    DataSourceAcceptanceServiceImpl(
+        ObjectMapper objectMapper,
+        CrawlerMonitorService crawlerMonitorService,
+        Path repoRootOverride
+    ) {
+        this(objectMapper, crawlerMonitorService, repoRootOverride, Clock.systemUTC());
+    }
+
+    DataSourceAcceptanceServiceImpl(
+        ObjectMapper objectMapper,
+        CrawlerMonitorService crawlerMonitorService,
+        Path repoRootOverride,
+        Clock clock
+    ) {
+        this.objectMapper = objectMapper;
+        this.crawlerMonitorService = crawlerMonitorService;
+        this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
+        this.clock = clock == null ? Clock.systemUTC() : clock;
+    }
+
+    @Override
+    public DataSourceAcceptanceOverviewDTO getOverview() {
+        Path repoRoot = resolveRepoRoot();
+        DataSourceAcceptanceOverviewDTO overview = new DataSourceAcceptanceOverviewDTO();
+        overview.setGeneratedAt(Instant.now(clock));
+        overview.setRelationHealth(readReportPanel(repoRoot, RELATION_HEALTH, this::fillRelationHealth));
+        overview.setReplacementReadiness(readReportPanel(repoRoot, REPLACEMENT_READINESS, this::fillReplacementReadiness));
+        overview.setSourceDatasetLanding(readReportPanel(repoRoot, SOURCE_DATASET_LANDING, this::fillSourceDatasetLanding));
+        overview.setSourceGroupAudit(readReportPanel(repoRoot, SOURCE_GROUP_AUDIT, this::fillSourceGroupAudit));
+        overview.setNpcCanonicalReadiness(readReportPanel(repoRoot, NPC_CANONICAL_READINESS, this::fillNpcCanonicalReadiness));
+        overview.setImageReadiness(readReportPanel(repoRoot, IMAGE_READINESS, this::fillImageReadiness));
+        overview.setCrawlerMonitor(buildCrawlerMonitorPanel());
+        overview.setEntitySourceCoverage(readReportPanel(repoRoot, ENTITY_SOURCE_COVERAGE, this::fillEntitySourceCoverage));
+        aggregateStatus(overview);
+        return overview;
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO readReportPanel(
+        Path repoRoot,
+        ReportDefinition definition,
+        BiConsumer<JsonNode, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO> parser
+    ) {
+        Path reportsRoot = repoRoot.resolve("reports").normalize();
+        Path dir = repoRoot.resolve(definition.relativeDir()).normalize();
+        if (!dir.startsWith(reportsRoot)) {
+            return blockedPanel(definition, "Report directory is outside the reports allowlist.");
+        }
+        if (!Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) {
+            return missingPanel(definition);
+        }
+        Path reportPath;
+        try {
+            reportPath = findLatestReport(dir, definition.prefix(), definition.suffix());
+            if (reportPath == null) {
+                return missingPanel(definition);
+            }
+        } catch (IOException exception) {
+            return blockedPanel(definition, exception.getMessage());
+        }
+
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = basePanel(definition);
+        panel.setFound(true);
+        panel.setReadable(true);
+        panel.setReportPath(toDisplayPath(repoRoot, reportPath));
+        panel.setGeneratedAt(readLastModifiedInstant(reportPath));
+        panel.setUpdatedAt(formatInstant(panel.getGeneratedAt()));
+        try {
+            JsonNode root = objectMapper.readTree(reportPath.toFile());
+            Instant generatedAt = parseInstant(text(root.path("generatedAt")));
+            if (generatedAt != null) {
+                panel.setGeneratedAt(generatedAt);
+            }
+            panel.setUpdatedAt(formatInstant(panel.getGeneratedAt()));
+            try {
+                parser.accept(root, panel);
+                ensureStatus(panel);
+                applyReportFreshness(panel, definition);
+                if ("blocked".equals(panel.getStatus()) && panel.getNextEvidenceCommand() == null) {
+                    applyBlockedFreshness(panel, definition);
+                }
+                fillFailureSamples(root, panel);
+            } catch (RuntimeException exception) {
+                panel.setStatus("blocked");
+                panel.setBlockingCount(1);
+                panel.setWarningCount(0);
+                panel.setErrorMessage(exception.getMessage());
+                applyBlockedFreshness(panel, definition);
+            }
+            return panel;
+        } catch (IOException exception) {
+            panel.setReadable(false);
+            panel.setStatus("blocked");
+            panel.setBlockingCount(1);
+            panel.setWarningCount(0);
+            panel.setErrorMessage(exception.getMessage());
+            applyBlockedFreshness(panel, definition);
+            return panel;
+        }
+    }
+
+    private void fillFailureSamples(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        for (DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check : panel.getChecks()) {
+            if (panel.getFailureSamples().size() >= FAILURE_SAMPLE_LIMIT) {
+                return;
+            }
+            if (!isFailureStatus(check.getStatus())) {
+                continue;
+            }
+            panel.getFailureSamples().add(sampleFromCheck(panel, check));
+        }
+
+        if (panel.getChecks().isEmpty() && root.path("checks").isArray()) {
+            for (DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check : toChecks(root.path("checks"))) {
+                if (panel.getFailureSamples().size() >= FAILURE_SAMPLE_LIMIT) {
+                    return;
+                }
+                if (!isFailureStatus(check.getStatus())) {
+                    continue;
+                }
+                panel.getFailureSamples().add(sampleFromCheck(panel, check));
+            }
+        }
+
+        addReasonSamples(panel, strings(root.path("blockingReasons")), "blocked");
+        addReasonSamples(panel, strings(root.path("warningReasons")), "warning");
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sampleFromCheck(
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel,
+        DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check
+    ) {
+        DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = baseFailureSample(panel);
+        sample.setEntityId(check.getId());
+        sample.setStatus(firstNonBlank(normalizeSampleStatus(check.getStatus()), panel.getStatus()));
+        sample.setReason(check.getMessage());
+        sample.setEvidencePath(check.getReportPath());
+        sample.setSampleSource("report-check");
+        return sample;
+    }
+
+    private void addReasonSamples(
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel,
+        List<String> reasons,
+        String status
+    ) {
+        for (String reason : reasons) {
+            if (panel.getFailureSamples().size() >= FAILURE_SAMPLE_LIMIT) {
+                return;
+            }
+            if (reason == null || reason.isBlank()) {
+                continue;
+            }
+            DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = baseFailureSample(panel);
+            sample.setStatus(status);
+            sample.setReason(reason);
+            sample.setSampleSource("report-reason");
+            panel.getFailureSamples().add(sample);
+        }
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO baseFailureSample(
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel
+    ) {
+        DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = new DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO();
+        sample.setEntityType(panel.getId());
+        sample.setRecommendedAction(firstNonBlank(panel.getNextEvidenceCommand(), panel.getGeneratorCommand()));
+        sample.setFreshnessStatus(panel.getFreshnessStatus());
+        sample.setReportPath(panel.getReportPath());
+        sample.setNotGateEvidence(false);
+        return sample;
+    }
+
+    private boolean isFailureStatus(String status) {
+        String normalized = normalizeSampleStatus(status);
+        return "blocked".equals(normalized) || "warning".equals(normalized);
+    }
+
+    private String normalizeSampleStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toLowerCase();
+        if ("blocked".equals(normalized) || "error".equals(normalized) || "fail".equals(normalized)) {
+            return "blocked";
+        }
+        if ("warning".equals(normalized) || "warn".equals(normalized)) {
+            return "warning";
+        }
+        if ("missing".equals(normalized)) {
+            return "missing";
+        }
+        if ("pass".equals(normalized) || "success".equals(normalized) || "ok".equals(normalized)) {
+            return "pass";
+        }
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO buildCrawlerMonitorPanel() {
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = new DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO();
+        panel.setId("crawlerMonitor");
+        panel.setStatus("pass");
+        panel.setFound(true);
+        panel.setReadable(true);
+        panel.setReportPattern("GET /admin/crawler-monitor/overview");
+        panel.setGeneratorCommand("read-only monitor overview: GET /admin/crawler-monitor/overview");
+        panel.setWritesDatabase(false);
+        panel.setRequiresDatabase(false);
+        panel.setNotes("Feeds crawlerMonitor through the existing read-only crawler monitor overview, without running crawler, data load, or mutation flows.");
+        panel.setBlockingCount(0);
+        panel.setWarningCount(0);
+        panel.setStaleAfterHours(DEFAULT_STALE_AFTER_HOURS);
+        try {
+            CrawlerMonitorOverviewDTO overview = crawlerMonitorService.getOverview();
+            if (overview == null) {
+                panel.setStatus("blocked");
+                panel.setFound(false);
+                panel.setReadable(false);
+                panel.setBlockingCount(1);
+                panel.setErrorMessage("Crawler monitor overview is unavailable.");
+                applyBlockedFreshness(panel, panel.getGeneratorCommand());
+                return panel;
+            }
+            panel.setGeneratedAt(overview.getGeneratedAt());
+            applyCrawlerFreshness(panel, overview);
+            panel.getMetrics().put("refreshStale", overview.isRefreshStale());
+            panel.getMetrics().put("refreshLastActivityAt", overview.getRefreshLastActivityAt());
+            panel.getMetrics().put("refreshStaleReason", overview.getRefreshStaleReason());
+            panel.getMetrics().put("recentReportCount", sizeOf(overview.getRecentReports()));
+            panel.getMetrics().put("registeredTaskCount", sizeOf(overview.getRegisteredTasks()));
+            CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun = overview.getLatestRun();
+            if (latestRun != null) {
+                panel.setReportPath(firstNonBlank(latestRun.getPath(), latestRun.getSummaryPath()));
+                panel.getMetrics().put("latestRunFound", latestRun.isFound());
+                panel.getMetrics().put("latestRunReadable", latestRun.isReadable());
+                panel.getMetrics().put("latestRunTotalActions", latestRun.getTotalActions());
+                panel.getMetrics().put("latestRunCompletedActions", latestRun.getCompletedActions());
+                panel.getMetrics().put("latestRunFailedActions", latestRun.getFailedActions());
+                panel.getMetrics().put("latestRunTimedOutActions", latestRun.getTimedOutActions());
+                if (!latestRun.isFound() || !latestRun.isReadable()) {
+                    panel.setStatus("blocked");
+                    panel.setBlockingCount(1);
+                    panel.setErrorMessage(firstNonBlank(latestRun.getErrorMessage(), "Latest crawler monitor run is missing or unreadable."));
+                    applyBlockedFreshness(panel, panel.getGeneratorCommand());
+                } else if (latestRun.getFailedActions() > 0 || latestRun.getTimedOutActions() > 0) {
+                    panel.setStatus("blocked");
+                    panel.setBlockingCount((int) (latestRun.getFailedActions() + latestRun.getTimedOutActions()));
+                    applyBlockedFreshness(panel, panel.getGeneratorCommand());
+                }
+            }
+            if (!"blocked".equals(panel.getStatus()) && overview.isRefreshStale()) {
+                panel.setStatus("warning");
+                panel.setWarningCount(1);
+                panel.setNextEvidenceCommand(panel.getGeneratorCommand());
+            }
+            return panel;
+        } catch (Exception exception) {
+            panel.setStatus("blocked");
+            panel.setReadable(false);
+            panel.setBlockingCount(1);
+            panel.setErrorMessage(exception.getMessage());
+            applyBlockedFreshness(panel, panel.getGeneratorCommand());
+            return panel;
+        }
+    }
+
+    private void fillRelationHealth(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        JsonNode summary = root.path("summary");
+        int blockingCount = intValue(summary.path("blockingCount"));
+        int warningCount = intValue(summary.path("warningCount"));
+        panel.setBlockingCount(blockingCount);
+        panel.setWarningCount(warningCount);
+        panel.setRawSummary(toMap(summary));
+        panel.setChecks(toChecks(root.path("checks")));
+        if (blockingCount > 0 || hasCheckStatus(panel.getChecks(), List.of("fail", "error", "blocked"))) {
+            panel.setStatus("blocked");
+        } else if (warningCount > 0 || hasCheckStatus(panel.getChecks(), List.of("warn", "warning"))) {
+            panel.setStatus("warning");
+        } else {
+            panel.setStatus(statusFromRaw(text(summary.path("status"))));
+        }
+    }
+
+    private void fillReplacementReadiness(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        JsonNode summary = root.path("summary");
+        int blockedDomains = arraySize(summary.path("blockedDomains"));
+        int switchableDomains = arraySize(summary.path("switchableDomains"));
+        int blockingFields = countBlockingFields(root.path("domainResults"));
+        panel.setRawSummary(toMap(summary));
+        panel.getMetrics().put("switchableDomainCount", switchableDomains);
+        panel.getMetrics().put("blockedDomainCount", blockedDomains);
+        panel.getMetrics().put("blockingFieldCount", blockingFields);
+        panel.setBlockingCount(blockedDomains + blockingFields);
+        panel.setWarningCount(0);
+        panel.setStatus(blockedDomains > 0 || blockingFields > 0 || hasDomainStatus(root.path("domainResults"), "blocked") ? "blocked" : "pass");
+    }
+
+    private void fillSourceDatasetLanding(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        int totalRows = intValue(root.path("landing").path("totalRows"));
+        int nonZeroDeltaCount = 0;
+        for (JsonNode businessRow : iterable(root.path("business"))) {
+            if (businessRow.path("deltaLocalMinusCompare").isNumber() && businessRow.path("deltaLocalMinusCompare").asInt() != 0) {
+                nonZeroDeltaCount++;
+            }
+        }
+        panel.getMetrics().put("totalRows", totalRows);
+        panel.getMetrics().put("businessDeltaCount", nonZeroDeltaCount);
+        panel.setBlockingCount(totalRows <= 0 ? 1 : 0);
+        panel.setWarningCount(nonZeroDeltaCount);
+        panel.setStatus(totalRows <= 0 ? "blocked" : nonZeroDeltaCount > 0 ? "warning" : "pass");
+    }
+
+    private void fillSourceGroupAudit(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        JsonNode summary = root.path("summary");
+        List<String> blockingReasons = validateCanonicalItemGroupReadiness(root);
+        panel.setRawSummary(toMap(summary));
+        panel.setChecks(toChecks(root.path("checks")));
+        panel.getMetrics().put("landingGroupCount", intValue(root.path("counts").path("landing").path("groupCount")));
+        panel.getMetrics().put("maintGroupCount", intValue(root.path("counts").path("maint").path("groupCount")));
+        panel.getMetrics().put("relationGroupCount", intValue(root.path("counts").path("relation").path("groupCount")));
+        panel.getMetrics().put("localGroupCount", intValue(root.path("counts").path("local").path("groupCount")));
+        panel.setBlockingCount(blockingReasons.size());
+        panel.setWarningCount(0);
+        panel.setStatus(blockingReasons.isEmpty() ? "pass" : "blocked");
+        if (!blockingReasons.isEmpty()) {
+            panel.setErrorMessage(blockingReasons.get(0));
+        }
+    }
+
+    private List<String> validateCanonicalItemGroupReadiness(JsonNode root) {
+        List<String> reasons = new ArrayList<>();
+        require(reasons, root.path("schemaVersion").asInt(-1) == 1, "Canonical item-group schemaVersion must be 1.");
+        require(reasons, "canonical_item_group_readiness".equals(text(root.path("reportKind"))), "Canonical item-group reportKind is invalid.");
+        require(reasons, parseInstant(text(root.path("generatedAt"))) != null, "Canonical item-group generatedAt must be a valid timestamp.");
+        require(reasons, root.path("writesDatabase").isBoolean() && !root.path("writesDatabase").asBoolean(), "Canonical readiness must be read-only.");
+        require(reasons, "t2-readonly".equals(text(root.path("databaseRole"))), "Canonical readiness database role must be t2-readonly.");
+        require(reasons, "T2_CUTOVER_VERIFIED".equals(text(root.path("cutoverIdentity").path("state"))), "Canonical item-group cutover is not T2_CUTOVER_VERIFIED.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("operationId")), "Canonical item-group cutover operationId is missing.");
+
+        requireCount(reasons, root, "landing", "sourceCount", 4);
+        requireCount(reasons, root, "landing", "groupCount", 64);
+        requireCount(reasons, root, "maint", "groupCount", 35);
+        requireCount(reasons, root, "maint", "memberCount", 163);
+        requireCount(reasons, root, "maint", "aliasCount", 72);
+        requireCount(reasons, root, "maint", "exclusionCount", 2);
+        requireCount(reasons, root, "relation", "groupCount", 35);
+        requireCount(reasons, root, "relation", "memberCount", 163);
+        requireCount(reasons, root, "relation", "aliasCount", 72);
+        requireCount(reasons, root, "relation", "unresolvedCount", 0);
+        requireCount(reasons, root, "relation", "ambiguousCount", 0);
+        requireCount(reasons, root, "relation", "rejectedCount", 2);
+        requireCount(reasons, root, "local", "groupCount", 34);
+        requireCount(reasons, root, "local", "memberCount", 161);
+        requireCount(reasons, root, "local", "aliasCount", 70);
+
+        JsonNode hashes = root.path("hashes");
+        for (String stage : List.of("landing", "maint", "relation", "local")) {
+            require(reasons, isSha256(text(hashes.path(stage))), stage + " hash must be SHA-256.");
+        }
+        String localHash = text(hashes.path("local"));
+        for (String consumer : List.of("adminItemGroups", "adminRecipeGroups", "recipeTree")) {
+            JsonNode shadow = root.path("shadows").path(consumer);
+            require(reasons, shadow.path("parity").asBoolean(false), consumer + " shadow parity must pass.");
+            require(reasons, localHash != null && localHash.equals(text(shadow.path("snapshotHash"))), consumer + " snapshot hash must match local.");
+        }
+        require(reasons, root.path("consumerContract").path("directJsonReaders").asInt(-1) == 0, "Direct JSON reader count must be zero.");
+        require(reasons, root.path("consumerContract").path("fallbackEnabled").isBoolean()
+            && !root.path("consumerContract").path("fallbackEnabled").asBoolean(), "JSON fallback must be disabled.");
+        require(reasons, localHash != null && localHash.equals(text(root.path("api").path("snapshotHash"))), "API snapshot hash must match local.");
+
+        Map<String, JsonNode> exports = new LinkedHashMap<>();
+        for (JsonNode entry : iterable(root.path("exports"))) {
+            String artifact = text(entry.path("artifact"));
+            if (artifact != null) {
+                exports.put(artifact, entry);
+            }
+        }
+        Set<String> expectedExports = Set.of(
+            "recipe-material-reference.json",
+            "recipe-group-overrides.json",
+            "item-group-overrides.json"
+        );
+        require(reasons, root.path("exports").isArray()
+            && root.path("exports").size() == expectedExports.size()
+            && exports.keySet().equals(expectedExports), "All three compatibility exports are required.");
+        for (String artifact : expectedExports) {
+            JsonNode entry = exports.get(artifact);
+            require(reasons, entry != null && entry.path("fresh").asBoolean(false), artifact + " export must be fresh.");
+            require(reasons, entry != null && localHash != null && localHash.equals(text(entry.path("snapshotHash"))), artifact + " snapshot hash must match local.");
+        }
+        require(reasons, "pass".equals(text(root.path("summary").path("status"))), "Canonical readiness summary status must be pass.");
+        require(reasons, intValue(root.path("summary").path("blockingCount")) == 0, "Canonical readiness blockingCount must be zero.");
+        require(reasons, intValue(root.path("summary").path("warningCount")) == 0, "Canonical readiness warningCount must be zero.");
+        return reasons;
+    }
+
+    private void fillNpcCanonicalReadiness(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        JsonNode summary = root.path("summary");
+        List<String> blockingReasons = validateNpcCanonicalReadiness(root);
+        panel.setRawSummary(toMap(summary));
+        panel.setChecks(toChecks(root.path("checks")));
+        panel.getMetrics().put("readinessLevel", text(root.path("readinessLevel")));
+        panel.getMetrics().put("maintFactCount", intValue(root.path("maint").path("factCount")));
+        panel.getMetrics().put("matchedFactCount", intValue(root.path("maint").path("matchCounts").path("MATCHED")));
+        panel.getMetrics().put("relationBuffCount", intValue(root.path("relation").path("npcBuff").path("count")));
+        panel.getMetrics().put("relationShopCount", intValue(root.path("relation").path("npcShop").path("count")));
+        panel.getMetrics().put("relationLootCount", intValue(root.path("relation").path("npcLoot").path("count")));
+        panel.setBlockingCount(blockingReasons.size());
+        panel.setWarningCount(0);
+        panel.setStatus(blockingReasons.isEmpty() ? "pass" : "blocked");
+        if (!blockingReasons.isEmpty()) {
+            panel.setErrorMessage(blockingReasons.get(0));
+        }
+    }
+
+    private List<String> validateNpcCanonicalReadiness(JsonNode root) {
+        List<String> reasons = new ArrayList<>();
+        require(reasons, root.path("schemaVersion").asInt(-1) == 1, "Canonical NPC schemaVersion must be 1.");
+        require(reasons, "canonical_npc_crawler_facts_readiness".equals(text(root.path("reportKind"))), "Canonical NPC reportKind is invalid.");
+        require(reasons, parseInstant(text(root.path("generatedAt"))) != null, "Canonical NPC generatedAt must be a valid timestamp.");
+        require(reasons, root.path("writesDatabase").isBoolean() && !root.path("writesDatabase").asBoolean(), "Canonical NPC readiness must be read-only.");
+        require(reasons, "formal-t2".equals(text(root.path("evidenceScope"))), "Canonical NPC evidence scope must be formal-t2.");
+        require(reasons, "T2_CUTOVER_VERIFIED".equals(text(root.path("readinessLevel"))), "Canonical NPC readiness must reach T2_CUTOVER_VERIFIED.");
+        require(reasons, "t2-readonly".equals(text(root.path("databaseRole"))), "Canonical NPC database role must be t2-readonly.");
+        require(reasons, "T2_CUTOVER_VERIFIED".equals(text(root.path("cutoverIdentity").path("state"))), "Canonical NPC cutover is not T2_CUTOVER_VERIFIED.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("operationId")), "Canonical NPC cutover operationId is missing.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("runId")), "Canonical NPC cutover runId is missing.");
+        require(reasons, hasText(root.path("cutoverIdentity").path("decisionIdentity")), "Canonical NPC cutover decision identity is missing.");
+        for (String field : List.of("schemaBundleSha256", "dataBundleSha256", "serverFingerprint", "policySetHash")) {
+            require(reasons, isSha256(text(root.path("cutoverIdentity").path(field))),
+                "Canonical NPC cutover " + field + " must be SHA-256.");
+        }
+
+        JsonNode base = root.path("landing").path("base");
+        JsonNode crawler = root.path("landing").path("crawlerFacts");
+        require(reasons, base.path("fresh").asBoolean(false), "NPC base landing must be fresh.");
+        require(reasons, base.path("currentCount").asInt(-1) == 1, "NPC base landing must have exactly one current row.");
+        require(reasons, isSha256(text(base.path("snapshotHash"))), "NPC base landing hash must be SHA-256.");
+        int crawlerCount = crawler.path("currentCount").asInt(-1);
+        require(reasons, crawler.path("fresh").asBoolean(false), "NPC crawler-fact landing must be fresh.");
+        require(reasons, crawlerCount > 0, "NPC crawler-fact landing must be non-empty.");
+        require(reasons, crawler.path("normalizedCount").asInt(-1) == crawlerCount
+            && crawler.path("auditCount").asInt(-1) == crawlerCount,
+            "NPC crawler normalized and audit counts must match current facts.");
+        require(reasons, isSha256(text(crawler.path("snapshotHash"))), "NPC crawler-fact landing hash must be SHA-256.");
+
+        JsonNode maint = root.path("maint");
+        JsonNode matchCounts = maint.path("matchCounts");
+        int factCount = maint.path("factCount").asInt(-1);
+        int matched = matchCounts.path("MATCHED").asInt(-1);
+        int unmatched = matchCounts.path("UNMATCHED").asInt(-1);
+        int ambiguous = matchCounts.path("AMBIGUOUS").asInt(-1);
+        int rejected = matchCounts.path("REJECTED").asInt(-1);
+        require(reasons, factCount > 0, "NPC maint crawler facts must be non-empty.");
+        require(reasons, matched > 0, "NPC maint requires at least one MATCHED crawler fact.");
+        require(reasons, unmatched >= 0 && ambiguous >= 0 && rejected >= 0
+            && matched + unmatched + ambiguous + rejected == factCount,
+            "NPC maint four-state counts must equal factCount.");
+        require(reasons, isSha256(text(maint.path("snapshotHash"))), "NPC maint hash must be SHA-256.");
+
+        for (String stage : List.of("relation", "local")) {
+            JsonNode projection = root.path(stage);
+            for (String lane : List.of("npcBuff", "npcShop", "npcLoot")) {
+                require(reasons, projection.path(lane).path("count").asInt(-1) > 0,
+                    "NPC " + stage + " " + lane + " rows must be non-empty.");
+                require(reasons, isSha256(text(projection.path(lane).path("snapshotHash"))),
+                    "NPC " + stage + " " + lane + " hash must be SHA-256.");
+            }
+            require(reasons, isSha256(text(projection.path("snapshotHash"))),
+                "NPC " + stage + " hash must be SHA-256.");
+        }
+
+        String localHash = text(root.path("local").path("snapshotHash"));
+        require(reasons, root.path("runtime").path("sampleCount").asInt(-1) > 0, "NPC runtime requires a positive sample.");
+        require(reasons, localHash != null && localHash.equals(text(root.path("runtime").path("snapshotHash"))),
+            "NPC runtime snapshot hash must match local.");
+        for (String api : List.of("admin", "public")) {
+            require(reasons, root.path("api").path(api).path("sampleCount").asInt(-1) > 0,
+                "NPC " + api + " API requires a positive sample.");
+            require(reasons, localHash != null && localHash.equals(text(root.path("api").path(api).path("snapshotHash"))),
+                "NPC " + api + " API snapshot hash must match local.");
+        }
+        require(reasons, root.path("bridgeRetirement").path("referenceCount").asInt(-1) == 0,
+            "NPC bridge production reference count must be zero.");
+        require(reasons, isSha256(text(root.path("bridgeRetirement").path("snapshotHash"))),
+            "NPC bridge retirement hash must be SHA-256.");
+        return reasons;
+    }
+
+    private void requireCount(List<String> reasons, JsonNode root, String stage, String field, int expected) {
+        require(reasons, root.path("counts").path(stage).path(field).asInt(Integer.MIN_VALUE) == expected,
+            stage + "." + field + " must equal " + expected + ".");
+    }
+
+    private void require(List<String> reasons, boolean condition, String message) {
+        if (!condition) {
+            reasons.add(message);
+        }
+    }
+
+    private boolean hasText(JsonNode node) {
+        String value = text(node);
+        return value != null && !value.isBlank();
+    }
+
+    private boolean isSha256(String value) {
+        return value != null && value.matches("(?:sha256:)?[a-f0-9]{64}");
+    }
+
+    private void fillImageReadiness(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        List<String> blockingReasons = strings(root.path("blockingReasons"));
+        List<String> warningReasons = strings(root.path("warningReasons"));
+        panel.setBlockingCount(blockingReasons.size());
+        panel.setWarningCount(warningReasons.size());
+        panel.getMetrics().put("blockingReasonCount", blockingReasons.size());
+        panel.getMetrics().put("warningReasonCount", warningReasons.size());
+        panel.getMetrics().putAll(sumImageEntityMetrics(root.path("entities")));
+        String rawStatus = text(root.path("status"));
+        if (!blockingReasons.isEmpty() || "blocked".equals(rawStatus)) {
+            panel.setStatus("blocked");
+        } else if (!warningReasons.isEmpty() || "warning".equals(rawStatus)) {
+            panel.setStatus("warning");
+        } else {
+            panel.setStatus(statusFromRaw(rawStatus));
+        }
+    }
+
+    private void fillEntitySourceCoverage(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        JsonNode summary = root.path("fieldAudit").path("summary");
+        int domainCount = intValue(summary.path("domainCount"));
+        int totalGaps = intValue(summary.path("totalGaps"));
+        panel.setRawSummary(toMap(summary));
+        panel.getMetrics().put("domainCount", domainCount);
+        panel.getMetrics().put("totalGaps", totalGaps);
+        panel.setBlockingCount(0);
+        panel.setWarningCount(totalGaps);
+        panel.setStatus(totalGaps > 0 ? "warning" : "pass");
+    }
+
+    private void aggregateStatus(DataSourceAcceptanceOverviewDTO overview) {
+        List<DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO> panels = List.of(
+            overview.getRelationHealth(),
+            overview.getReplacementReadiness(),
+            overview.getSourceDatasetLanding(),
+            overview.getSourceGroupAudit(),
+            overview.getNpcCanonicalReadiness(),
+            overview.getImageReadiness(),
+            overview.getCrawlerMonitor(),
+            overview.getEntitySourceCoverage()
+        );
+        int blockingCount = 0;
+        int warningCount = 0;
+        int missingCount = 0;
+        for (DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel : panels) {
+            if (panel == null) {
+                continue;
+            }
+            if ("blocked".equals(panel.getStatus())) {
+                blockingCount += positiveOrOne(panel.getBlockingCount());
+                overview.getBlockingReasons().add(reason(panel, "blocked"));
+            } else if ("warning".equals(panel.getStatus())) {
+                warningCount += positiveOrOne(panel.getWarningCount());
+                overview.getWarningReasons().add(reason(panel, "warning"));
+            } else if ("missing".equals(panel.getStatus())) {
+                missingCount++;
+            }
+        }
+        overview.setBlockingCount(blockingCount);
+        overview.setWarningCount(warningCount);
+        overview.setMissingCount(missingCount);
+        if (blockingCount > 0) {
+            overview.setOverallStatus("blocked");
+        } else if (warningCount > 0) {
+            overview.setOverallStatus("warning");
+        } else if (missingCount > 0) {
+            overview.setOverallStatus("missing");
+        } else {
+            overview.setOverallStatus("pass");
+        }
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO basePanel(ReportDefinition definition) {
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = new DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO();
+        panel.setId(definition.id());
+        panel.setReportPattern(definition.reportPattern());
+        panel.setGeneratorCommand(definition.generatorCommand());
+        panel.setWritesDatabase(definition.writesDatabase());
+        panel.setRequiresDatabase(definition.requiresDatabase());
+        panel.setNotes(definition.notes());
+        panel.setExecuteMode("manual");
+        panel.setExecutionPolicy("plan-only");
+        panel.setStaleAfterHours(DEFAULT_STALE_AFTER_HOURS);
+        panel.setBlockingCount(0);
+        panel.setWarningCount(0);
+        return panel;
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO missingPanel(ReportDefinition definition) {
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = basePanel(definition);
+        panel.setStatus(isFailClosed(definition) ? "blocked" : "missing");
+        panel.setFound(false);
+        panel.setReadable(false);
+        panel.setBlockingCount(isFailClosed(definition) ? 1 : 0);
+        panel.setFreshnessStatus("missing");
+        panel.setFreshnessReason("Missing acceptance report evidence.");
+        if (isFailClosed(definition)) {
+            panel.setErrorMessage("npcCanonicalReadiness".equals(definition.id())
+                ? "Canonical NPC readiness evidence is missing."
+                : "Canonical item-group readiness evidence is missing.");
+        }
+        panel.setNextEvidenceCommand(definition.generatorCommand());
+        return panel;
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO blockedPanel(ReportDefinition definition, String message) {
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = basePanel(definition);
+        panel.setStatus("blocked");
+        panel.setFound(false);
+        panel.setReadable(false);
+        panel.setBlockingCount(1);
+        panel.setErrorMessage(message);
+        applyBlockedFreshness(panel, definition);
+        return panel;
+    }
+
+    private void applyReportFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, ReportDefinition definition) {
+        if (panel.getGeneratedAt() == null) {
+            panel.setFreshnessStatus("unknown");
+            panel.setFreshnessReason("Acceptance report generatedAt is unavailable.");
+            panel.setNextEvidenceCommand(definition.generatorCommand());
+            if ("pass".equals(panel.getStatus())) {
+                applyFreshnessStatus(panel, definition);
+            }
+            return;
+        }
+        long ageHours = Math.max(0, Duration.between(panel.getGeneratedAt(), Instant.now(clock)).toHours());
+        panel.setAgeHours(ageHours);
+        panel.setFreshnessStatus(ageHours > DEFAULT_STALE_AFTER_HOURS ? "stale" : "fresh");
+        if ("stale".equals(panel.getFreshnessStatus())) {
+            panel.setFreshnessReason("Evidence is older than " + DEFAULT_STALE_AFTER_HOURS + " hours.");
+            panel.setNextEvidenceCommand(definition.generatorCommand());
+            if ("pass".equals(panel.getStatus())) {
+                applyFreshnessStatus(panel, definition);
+            }
+        }
+    }
+
+    private void applyFreshnessStatus(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, ReportDefinition definition) {
+        if (isFailClosed(definition)) {
+            panel.setStatus("blocked");
+            panel.setBlockingCount(positiveOrOne(panel.getBlockingCount()));
+        } else {
+            panel.setStatus("warning");
+            panel.setWarningCount(positiveOrOne(panel.getWarningCount()));
+        }
+    }
+
+    private boolean isFailClosed(ReportDefinition definition) {
+        return "sourceGroupAudit".equals(definition.id())
+            || "npcCanonicalReadiness".equals(definition.id());
+    }
+
+    private void applyCrawlerFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, CrawlerMonitorOverviewDTO overview) {
+        panel.setStaleAfterHours(staleAfterHours(overview.getRefreshStaleThresholdMs()));
+        if (overview.isRefreshStale()) {
+            panel.setFreshnessStatus("stale");
+            panel.setFreshnessReason(firstNonBlank(overview.getRefreshStaleReason(), "Crawler monitor refresh evidence is stale."));
+            panel.setNextEvidenceCommand(panel.getGeneratorCommand());
+        } else {
+            panel.setFreshnessStatus("fresh");
+        }
+        if (panel.getGeneratedAt() != null) {
+            panel.setAgeHours(Math.max(0, Duration.between(panel.getGeneratedAt(), Instant.now(clock)).toHours()));
+        }
+    }
+
+    private void applyBlockedFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, ReportDefinition definition) {
+        applyBlockedFreshness(panel, definition.generatorCommand());
+    }
+
+    private void applyBlockedFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, String nextEvidenceCommand) {
+        if (panel.getFreshnessStatus() == null) {
+            panel.setFreshnessStatus(panel.isFound() ? "unknown" : "missing");
+        }
+        if (panel.getFreshnessReason() == null || panel.getFreshnessReason().isBlank()) {
+            panel.setFreshnessReason(firstNonBlank(panel.getErrorMessage(), "Acceptance evidence is blocked or unreadable."));
+        }
+        panel.setNextEvidenceCommand(nextEvidenceCommand);
+    }
+
+    private int staleAfterHours(Long staleThresholdMs) {
+        if (staleThresholdMs == null || staleThresholdMs <= 0) {
+            return DEFAULT_STALE_AFTER_HOURS;
+        }
+        return (int) Math.max(1, Math.ceil(staleThresholdMs / 3_600_000.0));
+    }
+
+    private void ensureStatus(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        if (panel.getStatus() == null || panel.getStatus().isBlank()) {
+            panel.setStatus("warning");
+            panel.setWarningCount(positiveOrOne(panel.getWarningCount()));
+        }
+    }
+
+    private Path findLatestReport(Path dir, String prefix, String suffix) throws IOException {
+        try (Stream<Path> stream = Files.list(dir)) {
+            return stream
+                .filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+                .filter(path -> !Files.isSymbolicLink(path))
+                .filter(path -> {
+                    String fileName = path.getFileName().toString();
+                    return fileName.startsWith(prefix) && fileName.endsWith(suffix);
+                })
+                .max(Comparator
+                    .comparingLong(this::safeLastModifiedMillis)
+                    .thenComparing(path -> path.getFileName().toString()))
+                .orElse(null);
+        }
+    }
+
+    private Path resolveRepoRoot() {
+        if (repoRootOverride != null) {
+            return repoRootOverride;
+        }
+        Path current = Path.of("").toAbsolutePath().normalize();
+        while (current != null) {
+            if (looksLikeRepoRoot(current)) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return Path.of("").toAbsolutePath().normalize();
+    }
+
+    private boolean looksLikeRepoRoot(Path path) {
+        return path != null
+            && Files.exists(path.resolve("services/catalog-api"))
+            && Files.exists(path.resolve("apps/admin-console"))
+            && Files.exists(path.resolve("scripts"));
+    }
+
+    private String toDisplayPath(Path repoRoot, Path path) {
+        if (path == null) {
+            return null;
+        }
+        Path normalized = path.toAbsolutePath().normalize();
+        try {
+            if (normalized.startsWith(repoRoot)) {
+                return repoRoot.relativize(normalized).toString().replace('\\', '/');
+            }
+        } catch (IllegalArgumentException ignored) {
+            return normalized.toString();
+        }
+        return normalized.toString();
+    }
+
+    private Instant readLastModifiedInstant(Path path) {
+        try {
+            if (path == null || !Files.exists(path)) {
+                return null;
+            }
+            FileTime fileTime = Files.getLastModifiedTime(path);
+            return fileTime.toInstant();
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private long safeLastModifiedMillis(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException ignored) {
+            return Long.MIN_VALUE;
+        }
+    }
+
+    private List<DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO> toChecks(JsonNode node) {
+        if (!node.isArray()) {
+            return List.of();
+        }
+        List<DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO> checks = new ArrayList<>();
+        for (JsonNode row : node) {
+            DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check = new DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO();
+            check.setId(text(row.path("id")));
+            check.setStatus(text(row.path("status")));
+            check.setMessage(text(row.path("message")));
+            check.setReportPath(text(row.path("reportPath")));
+            checks.add(check);
+        }
+        return checks;
+    }
+
+    private boolean hasCheckStatus(List<DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO> checks, List<String> statuses) {
+        return checks.stream().anyMatch(check -> statuses.contains(nullToBlank(check.getStatus()).toLowerCase()));
+    }
+
+    private boolean hasDomainStatus(JsonNode domainResults, String expectedStatus) {
+        for (JsonNode domain : iterable(domainResults)) {
+            if (expectedStatus.equals(text(domain.path("status")))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int countBlockingFields(JsonNode domainResults) {
+        int count = 0;
+        for (JsonNode domain : iterable(domainResults)) {
+            count += arraySize(domain.path("blockingFields"));
+        }
+        return count;
+    }
+
+    private Map<String, Object> sumImageEntityMetrics(JsonNode entities) {
+        Map<String, Object> metrics = new LinkedHashMap<>();
+        int totalWithImage = 0;
+        int cachedHitCount = 0;
+        int wikiFallbackOnlyCount = 0;
+        int missingImageCount = 0;
+        for (JsonNode entity : iterable(entities)) {
+            totalWithImage += intValue(entity.path("totalWithImage"));
+            cachedHitCount += intValue(entity.path("cachedHitCount"));
+            wikiFallbackOnlyCount += intValue(entity.path("wikiFallbackOnlyCount"));
+            missingImageCount += intValue(entity.path("missingImageCount"));
+        }
+        metrics.put("totalWithImage", totalWithImage);
+        metrics.put("cachedHitCount", cachedHitCount);
+        metrics.put("wikiFallbackOnlyCount", wikiFallbackOnlyCount);
+        metrics.put("missingImageCount", missingImageCount);
+        return metrics;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toMap(JsonNode node) {
+        if (node == null || !node.isObject()) {
+            return new LinkedHashMap<>();
+        }
+        return objectMapper.convertValue(node, LinkedHashMap.class);
+    }
+
+    private Iterable<JsonNode> iterable(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return List.of();
+        }
+        if (node.isObject()) {
+            return () -> node.elements();
+        }
+        if (node.isArray()) {
+            return node;
+        }
+        return List.of();
+    }
+
+    private List<String> strings(JsonNode node) {
+        if (!node.isArray()) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        for (JsonNode value : node) {
+            values.add(value.asText());
+        }
+        return values;
+    }
+
+    private String statusFromRaw(String rawStatus) {
+        String normalizedStatus = rawStatus == null ? "" : rawStatus.trim().toLowerCase();
+        if ("blocked".equals(normalizedStatus) || "error".equals(normalizedStatus) || "fail".equals(normalizedStatus)) {
+            return "blocked";
+        }
+        if ("warning".equals(normalizedStatus) || "warn".equals(normalizedStatus)) {
+            return "warning";
+        }
+        if ("missing".equals(normalizedStatus)) {
+            return "missing";
+        }
+        if ("pass".equals(normalizedStatus) || "success".equals(normalizedStatus) || "ok".equals(normalizedStatus)) {
+            return "pass";
+        }
+        return "warning";
+    }
+
+    private String reason(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, String fallback) {
+        if (panel.getErrorMessage() != null && !panel.getErrorMessage().isBlank()) {
+            return panel.getId() + ": " + panel.getErrorMessage();
+        }
+        if (panel.getBlockingCount() != null && panel.getBlockingCount() > 0) {
+            return panel.getId() + ": blockingCount=" + panel.getBlockingCount();
+        }
+        if (panel.getWarningCount() != null && panel.getWarningCount() > 0) {
+            return panel.getId() + ": warningCount=" + panel.getWarningCount();
+        }
+        return panel.getId() + ": " + fallback;
+    }
+
+    private int positiveOrOne(Integer value) {
+        return value == null || value <= 0 ? 1 : value;
+    }
+
+    private int intValue(JsonNode node) {
+        return node == null || !node.isNumber() ? 0 : node.asInt();
+    }
+
+    private int arraySize(JsonNode node) {
+        return node == null || !node.isArray() ? 0 : node.size();
+    }
+
+    private int sizeOf(List<?> values) {
+        return values == null ? 0 : values.size();
+    }
+
+    private String text(JsonNode node) {
+        return node == null || node.isMissingNode() || node.isNull() ? null : node.asText();
+    }
+
+    private Instant parseInstant(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String formatInstant(Instant instant) {
+        return instant == null ? null : instant.toString();
+    }
+
+    private String nullToBlank(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first == null || first.isBlank() ? second : first;
+    }
+
+    private record ReportDefinition(
+        String id,
+        Path relativeDir,
+        String prefix,
+        String suffix,
+        String reportPattern,
+        String generatorCommand,
+        boolean writesDatabase,
+        boolean requiresDatabase,
+        String notes
+    ) {
+    }
+}

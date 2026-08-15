@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -84,4 +84,7 @@ The focused command set passed `51/51` immediately before this handoff update. S
 
 ## Commits
 
-- Pending.
+- Superseded by the dedicated physical migration entry
+  `docs/devlog/entries/2026-08-16-project-structure-professionalization.md`.
+- The original repair checkpoint remains uncommitted on its source branch;
+  canonical migration changes are staged only in the dedicated worktree.

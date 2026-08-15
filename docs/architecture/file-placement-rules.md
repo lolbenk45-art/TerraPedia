@@ -30,17 +30,23 @@
 允许存在的顶层目录只有：
 
 ```text
-back/
-front-nuxt/
-data-query-app/
+apps/
+services/
+packages/
+pipelines/
+platform/
 scripts/
 data/
 docs/
 reports/
+artifacts/
 task/
 .worktrees/
 .superpowers/
 ```
+
+`back/`、`front-nuxt/`、`data-query-app/` 以及 `shared/` 只允许作为
+兼容 symlink 存在，不得重新创建物理副本。
 
 新增顶层目录必须同时满足：
 
@@ -78,8 +84,8 @@ task/
 放置位置：
 
 ```text
-back/src/main/
-back/src/test/
+services/catalog-api/src/main/
+services/catalog-api/src/test/
 ```
 
 适用文件：
@@ -91,18 +97,18 @@ back/src/test/
 
 禁止：
 
-- 把后端临时验证脚本放进 `back/src/main/`。
-- 把数据库导出 JSON 放进 `back/`。
-- 把本地 IDE 元数据提交到 `back/.idea/`。
+- 把后端临时验证脚本放进 `services/catalog-api/src/main/`。
+- 把数据库导出 JSON 放进 `services/catalog-api/`。
+- 把本地 IDE 元数据提交到 `services/catalog-api/.idea/`。
 
 ### 前台代码
 
 放置位置：
 
 ```text
-front-nuxt/pages/
-front-nuxt/components/
-front-nuxt/public/
+apps/public-web/pages/
+apps/public-web/components/
+apps/public-web/public/
 ```
 
 适用文件：
@@ -114,16 +120,16 @@ front-nuxt/public/
 
 禁止：
 
-- 把管理端页面放入 `front-nuxt/`。
-- 把爬虫数据或导入报告放入 `front-nuxt/public/`。
-- 提交 `front-nuxt/.output/` 或 `front-nuxt/.nuxt/`。
+- 把管理端页面放入 `apps/public-web/`。
+- 把爬虫数据或导入报告放入 `apps/public-web/public/`。
+- 提交 `apps/public-web/.output/` 或 `apps/public-web/.nuxt/`。
 
 ### 管理或查询端代码
 
 放置位置：
 
 ```text
-data-query-app/
+apps/admin-console/
 ```
 
 适用文件：
@@ -135,26 +141,26 @@ data-query-app/
 
 禁止：
 
-- 把用户前台页面放入 `data-query-app/`。
-- 提交 `data-query-app/.nuxt/` 或 `data-query-app/.output/`。
+- 把用户前台页面放入 `apps/admin-console/`。
+- 提交 `apps/admin-console/.nuxt/` 或 `apps/admin-console/.output/`。
 
 ### 脚本代码
 
 放置位置：
 
 ```text
-scripts/dev/
-scripts/data/
-scripts/ops/
+platform/local/
+pipelines/
+platform/operations/
 scripts/lib/
 ```
 
 规则：
 
-- 启动、停止、联调验证脚本放 `scripts/dev/`。
-- 数据采集、规范化、审计、写库脚本放 `scripts/data/`。
-- 运维任务、Windows 计划任务、守护进程注册脚本放 `scripts/ops/`。
-- 跨脚本复用工具放 `scripts/lib/` 或 `scripts/data/lib/`。
+- 启动、停止、联调验证脚本放 `platform/local/`。
+- 数据采集、规范化、审计、写库脚本放 `pipelines/`。
+- 运维任务、Windows 计划任务、守护进程注册脚本放 `platform/operations/`。
+- 跨脚本复用工具放 `scripts/lib/` 或 `pipelines/lib/`。
 
 禁止：
 
@@ -375,21 +381,21 @@ logs/
 允许提交：
 
 ```text
-scripts/dev/config/local-stack.config.example.json
+platform/local/config/local-stack.config.example.json
 ```
 
 禁止提交：
 
 ```text
-scripts/dev/config/local-stack.config.json
-scripts/dev/config/credentials.json
+platform/local/config/local-stack.config.json
+platform/local/config/credentials.json
 ```
 
 规则：
 
-- 本地配置只放 `scripts/dev/config/`。
-- 文档中的推荐配置路径统一写 `scripts/dev/config/local-stack.config.json`。
-- 旧路径 `scripts/dev/local-stack.config.json` 只能作为兼容说明，不作为推荐路径。
+- 本地配置只放 `platform/local/config/`。
+- 文档中的推荐配置路径统一写 `platform/local/config/local-stack.config.json`。
+- 旧路径 `platform/local/local-stack.config.json` 只能作为兼容说明，不作为推荐路径。
 - 密钥、账号、密码、本地绝对路径不得写入 tracked 文件。
 
 ## 构建产物和依赖目录规则
@@ -397,11 +403,11 @@ scripts/dev/config/credentials.json
 禁止提交：
 
 ```text
-front-nuxt/dist/
-data-query-app/.nuxt/
-data-query-app/.output/
+apps/public-web/dist/
+apps/admin-console/.nuxt/
+apps/admin-console/.output/
 node_modules/
-back/target/
+services/catalog-api/target/
 ```
 
 规则：
@@ -474,8 +480,8 @@ AI 助手创建文件前必须遵守：
 data/
 scripts/
 back/
-front-nuxt/
-data-query-app/
+apps/public-web/
+apps/admin-console/
 ```
 
 除非该脚本职责就是生成对应目录下的正式文件。
@@ -484,13 +490,13 @@ data-query-app/
 
 | 文件类型 | 正确位置 | 是否进 git | 备注 |
 | --- | --- | --- | --- |
-| 后端源码 | `back/src/main/` | 是 | Java、资源、Mapper |
-| 后端测试 | `back/src/test/` | 是 | 单元或集成测试 |
-| 前台源码 | `front-nuxt/` | 是 | 用户前台 |
-| 管理端源码 | `data-query-app/` | 是 | 后台或查询端 |
-| 数据脚本 | `scripts/data/` | 是 | 采集、规范化、审计、写库 |
-| 启动脚本 | `scripts/dev/` | 是 | 本地联调入口 |
-| 运维脚本 | `scripts/ops/` | 是 | 计划任务、守护进程 |
+| 后端源码 | `services/catalog-api/src/main/` | 是 | Java、资源、Mapper |
+| 后端测试 | `services/catalog-api/src/test/` | 是 | 单元或集成测试 |
+| 前台源码 | `apps/public-web/` | 是 | 用户前台 |
+| 管理端源码 | `apps/admin-console/` | 是 | 后台或查询端 |
+| 数据脚本 | `pipelines/` | 是 | 采集、规范化、审计、写库 |
+| 启动脚本 | `platform/local/` | 是 | 本地联调入口 |
+| 运维脚本 | `platform/operations/` | 是 | 计划任务、守护进程 |
 | 原始数据 | `data/raw/` | 通常否 | 可重抓 |
 | 标准可信数据 | `data/canonical/` | 视体量决定 | 分类替换优先读取 |
 | 导出数据 | `data/exports/` | 视体量决定 | 可再生成 |
@@ -498,7 +504,7 @@ data-query-app/
 | 临时运行报告 | `reports/runtime/` | 否 | 可再生成 |
 | 当前计划 | `docs/plans/` 或 `docs/project-governance/current/` | 是 | 可执行计划 |
 | 本地任务上下文 | `task/<task>/` | 否 | 草稿、日志、过程材料 |
-| 本地配置 | `scripts/dev/config/local-stack.config.json` | 否 | 不提交 |
+| 本地配置 | `platform/local/config/local-stack.config.json` | 否 | 不提交 |
 | 构建产物 | `dist/`、`.nuxt/`、`.output/`、`target/` | 否 | 可重建 |
 
 ## 违反规则时的处理

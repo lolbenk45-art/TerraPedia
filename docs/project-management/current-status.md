@@ -11,6 +11,12 @@ active focus moves to P1 crawler monitor and resume/recovery reliability.
 
 ## Current State
 
+Code-style authority: `docs/project-governance/current/CURRENT_CODE_STYLE.md`
+and the root `.editorconfig` are the active baseline; formatter and linter
+adoption remains staged.
+
+Root governance files `03`, `04`, and `07-12` were removed from the current tree on 2026-07-10. Do not recreate removed root governance files; use Git history only for audit or rollback.
+
 - Item-image lineage is `6131/6131/6131/6131`; projection apply targeted 6,131
   rows and changed 6,126 existing image values.
 - Shimmer generation/import is complete. Domain acceptance is `45/0/0` and

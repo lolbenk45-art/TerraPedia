@@ -17,11 +17,14 @@ reference only unless the current spec explicitly promotes it.
 
 ## Project Map
 
-- `back/`: Spring Boot backend.
-- `front-nuxt/`: maintained public Nuxt frontend.
-- `data-query-app/`: maintained admin/data-query Nuxt frontend.
-- `scripts/dev/`: local stack, smoke, and quality-gate automation.
-- `scripts/data/`: crawl, standardize, import, sync, audit, and data workflow tooling.
+- `services/catalog-api/`: maintained Spring Boot backend (`back/` is a compatibility symlink during migration).
+- `apps/public-web/`: maintained public Nuxt frontend (`front-nuxt/` is a compatibility symlink during migration).
+- `apps/admin-console/`: maintained admin/data-query Nuxt frontend (`data-query-app/` is a compatibility symlink during migration).
+- `platform/local/`: local stack, smoke, and quality-gate automation (`scripts/dev/` is a compatibility symlink).
+- `platform/operations/`: scheduled/daemon wrappers (`scripts/ops/` is a compatibility symlink).
+- `platform/tooling/`: standalone developer tooling (`scripts/tooling/` is a compatibility symlink).
+- `pipelines/`: crawl, standardize, import, sync, audit, and data workflow tooling (`scripts/data/` is a compatibility symlink).
+- `packages/content-runtime/`: shared article/content runtime (`shared/article-runtime/` is a compatibility symlink).
 - `data/`: tracked data layers and compatibility inputs; never move data blindly.
 - `docs/project-governance/`: current project facts, workflow, long-term governance, reference, archive, and legacy plans.
 - `docs/devlog/`: active task traceability and handoff state.
@@ -50,12 +53,12 @@ For any public frontend visual work (new page, high-fidelity mockup, layout,
 theme, component styling, or visual review), agents **must read and follow**
 `docs/design/terrapedia-public-ui-design-system-v1.md` before proposing or
 editing UI. The document is the public design baseline and applies equally to
-brainstorming previews and production `front-nuxt/` work.
+brainstorming previews and production `apps/public-web/` work.
 
 - Use only the established runtime themes: `dark` / Forest Archive,
   `morning-paper` / Linen Paper, and `warm-slate` / Mist Workbench. Reuse the
-  semantic token flow in `front-nuxt/assets/css/hifi-preview.css` and
-  `front-nuxt/assets/css/tokens.css`; do not create a local palette or a new
+  semantic token flow in `apps/public-web/assets/css/hifi-preview.css` and
+  `apps/public-web/assets/css/tokens.css`; do not create a local palette or a new
   theme key without explicit user approval.
 - Select the required page archetype before visual work: homepage is a public
   index; item/NPC pages are data-rich entity archives; articles are editorial
@@ -79,12 +82,12 @@ Use the narrowest validation that proves the change.
 
 - Docs/process: `git diff --check` plus targeted path/term consistency scans.
 - Skill changes: skill validator plus `git diff --check`.
-- Backend focused tests: run Maven from `back/`, for example `mvn -Dtest=ClassA,ClassB test`.
-- Backend broad tests: `cd back && mvn test`.
-- Public frontend checks: `cd front-nuxt && pnpm run check`.
-- Admin checks: `cd data-query-app && pnpm run check` or `pnpm run test`.
-- Full local gate: `bash ./scripts/dev/quality-gate.sh`.
-- Local stack start/stop: `bash ./scripts/dev/start-local-stack.sh` and `bash ./scripts/dev/stop-local-stack.sh`.
+- Backend focused tests: run Maven from `services/catalog-api/`, for example `mvn -Dtest=ClassA,ClassB test`.
+- Backend broad tests: `cd services/catalog-api && mvn test`.
+- Public frontend checks: `cd apps/public-web && pnpm run check`.
+- Admin checks: `cd apps/admin-console && pnpm run check` or `pnpm run test`.
+- Full local gate: `bash ./platform/local/quality-gate.sh`.
+- Local stack start/stop: `bash ./platform/local/start-local-stack.sh` and `bash ./platform/local/stop-local-stack.sh`.
 
 Bash/WSL is the primary automation path. `.ps1` counterparts are compatibility
 wrappers unless a current runbook says otherwise.

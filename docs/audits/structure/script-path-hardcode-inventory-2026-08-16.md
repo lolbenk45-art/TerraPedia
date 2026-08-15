@@ -83,3 +83,19 @@ The project constants file may define semantic keys and portable relative fallba
 - Replace the backend audio default and armor MinIO default with portable external-root configuration.
 - Unify frontend runtime-origin defaults through the local runtime resolver while leaving test ports untouched.
 - Add shell/PowerShell and Java adapters only after the Node resolver contract is stable.
+
+## Migration follow-up (2026-08-16)
+
+The dedicated structure worktree completed the adapter and boundary portion of
+this audit. `scripts/lib/project-constants.sh`,
+`scripts/lib/project-constants.ps1`, and
+`services/catalog-api/src/main/java/com/terraria/skills/config/ProjectConstants.java`
+now consume the same manifest. Platform root resolution is script-location
+based and canonical application/pipeline paths are the only production write
+roots.
+
+The remaining `process.cwd()` count is intentionally not treated as a blanket
+failure: the residual files are legacy CLI relative-input consumers, test
+fixture setup, or child-process cwd declarations. A future allowlist-driven
+slice may migrate them one family at a time with focused tests. This migration
+does not claim those unrelated action semantics have been rewritten.

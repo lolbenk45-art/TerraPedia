@@ -26,26 +26,26 @@ jobs:
       - name: Domain acceptance freshness audit
         shell: bash
         run: |
-          node ./scripts/data/workflow/domain-acceptance-freshness-audit.mjs --generated-at="${{ github.run_started_at }}" > reports/workflow/domain-acceptance-freshness-audit.json
+          node ./pipelines/workflow/domain-acceptance-freshness-audit.mjs --generated-at="${{ github.run_started_at }}" > reports/workflow/domain-acceptance-freshness-audit.json
 
       - name: Domain acceptance refresh plan
         shell: bash
         run: |
-          node ./scripts/data/workflow/domain-acceptance-refresh-plan.mjs --generated-at="${{ github.run_started_at }}" --audit=reports/workflow/domain-acceptance-freshness-audit.json > reports/workflow/domain-acceptance-refresh-plan.json
+          node ./pipelines/workflow/domain-acceptance-refresh-plan.mjs --generated-at="${{ github.run_started_at }}" --audit=reports/workflow/domain-acceptance-freshness-audit.json > reports/workflow/domain-acceptance-refresh-plan.json
 
       - name: B1 exemption compliance reports
         shell: bash
         run: |
-          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.recipe > reports/workflow/b1-support.recipe.json
-          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.shimmer > reports/workflow/b1-support.shimmer.json
-          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.item_group > reports/workflow/b1-support.item_group.json
-          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.town_npc_maintenance > reports/workflow/b1-support.town_npc_maintenance.json
+          node ./pipelines/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.recipe > reports/workflow/b1-support.recipe.json
+          node ./pipelines/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.shimmer > reports/workflow/b1-support.shimmer.json
+          node ./pipelines/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.item_group > reports/workflow/b1-support.item_group.json
+          node ./pipelines/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.town_npc_maintenance > reports/workflow/b1-support.town_npc_maintenance.json
 
       - name: Build issue body and staleness history
         id: issue_payload
         shell: bash
         run: |
-          node ./scripts/data/workflow/create-staleness-alert-issue.mjs \
+          node ./pipelines/workflow/create-staleness-alert-issue.mjs \
             --generated-at="${{ github.run_started_at }}" \
             --audit=reports/workflow/domain-acceptance-freshness-audit.json \
             --plan=reports/workflow/domain-acceptance-refresh-plan.json \

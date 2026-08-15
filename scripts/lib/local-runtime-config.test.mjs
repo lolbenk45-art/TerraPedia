@@ -8,7 +8,7 @@ import { loadLocalStackConfig, resolveBackendApiBase } from './local-runtime-con
 
 test('resolveBackendApiBase reads backend port from local stack config', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-local-config-'));
-  const configDir = path.join(repoRoot, 'scripts', 'dev', 'config');
+  const configDir = path.join(repoRoot, 'platform', 'local', 'config');
   fs.mkdirSync(configDir, { recursive: true });
   fs.writeFileSync(
     path.join(configDir, 'local-stack.config.json'),
@@ -36,7 +36,7 @@ test('resolveBackendApiBase keeps explicit apiBase override first', () => {
 test('loadLocalStackConfig reads primary worktree config from linked worktrees', () => {
   const primaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-primary-config-'));
   const worktreeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-linked-config-'));
-  const configDir = path.join(primaryRoot, 'scripts', 'dev', 'config');
+  const configDir = path.join(primaryRoot, 'platform', 'local', 'config');
   const gitWorktreeDir = path.join(primaryRoot, '.git', 'worktrees', 'linked');
   fs.mkdirSync(configDir, { recursive: true });
   fs.mkdirSync(gitWorktreeDir, { recursive: true });

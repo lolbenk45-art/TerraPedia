@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getProjectRoot as discoverProjectRoot } from '../../pipelines/lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,7 +9,7 @@ const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..', '..');
 const configCache = new Map();
 
 export function getRepoRoot() {
-  return DEFAULT_REPO_ROOT;
+  return discoverProjectRoot() || DEFAULT_REPO_ROOT;
 }
 
 export function loadLocalStackConfig(repoRoot = DEFAULT_REPO_ROOT) {
@@ -52,7 +53,7 @@ export function resolveAdminAuth(rawOptions = {}, options = {}) {
   );
 
   if (requiredPassword && !password) {
-    const configPath = resolveLocalStackConfigPath(repoRoot) ?? path.join(repoRoot, 'scripts', 'dev', 'config', 'local-stack.config.json');
+    const configPath = resolveLocalStackConfigPath(repoRoot) ?? path.join(repoRoot, 'platform', 'local', 'config', 'local-stack.config.json');
     throw new Error(
       `Missing admin password. Set --${passwordKey}=..., TERRAPEDIA_ADMIN_PASSWORD, or auth.admin.password in ${configPath}.`
     );
@@ -102,8 +103,8 @@ function getConfigValue(root, segments) {
 function resolveLocalStackConfigPath(repoRoot) {
   for (const root of candidateRepoRoots(repoRoot)) {
     const candidates = [
-      path.join(root, 'scripts', 'dev', 'config', 'local-stack.config.json'),
-      path.join(root, 'scripts', 'dev', 'local-stack.config.json'),
+      path.join(root, 'platform', 'local', 'config', 'local-stack.config.json'),
+      path.join(root, 'platform', 'local', 'local-stack.config.json'),
     ];
     const resolved = candidates.find((candidate) => fs.existsSync(candidate));
     if (resolved) {

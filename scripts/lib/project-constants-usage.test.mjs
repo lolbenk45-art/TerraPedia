@@ -5,8 +5,8 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..');
 const productionRoots = [
-  path.join(repoRoot, 'scripts', 'data'),
-  path.join(repoRoot, 'scripts', 'tooling')
+  path.join(repoRoot, 'pipelines'),
+  path.join(repoRoot, 'platform', 'tooling')
 ];
 const forbiddenDeveloperPaths = [
   /\/home\/lolben\/data\/terraPedia/i,

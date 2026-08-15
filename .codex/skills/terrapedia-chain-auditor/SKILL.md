@@ -58,7 +58,7 @@ git worktree list
 2. Locate chain entrypoints with `rg`:
 
 ```powershell
-rg -n "data-source-acceptance|freshness|refresh-plan|manifest|quality-gate|reportPattern|generatorCommand" scripts back data-query-app front project-plan
+rg -n "data-source-acceptance|freshness|refresh-plan|manifest|quality-gate|reportPattern|generatorCommand" scripts back apps/admin-console front project-plan
 ```
 
 3. Verify evidence safety:
@@ -80,7 +80,7 @@ rg -n "data-source-acceptance|freshness|refresh-plan|manifest|quality-gate|repor
 5. Verify gate coverage:
 
 ```powershell
-node --test scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs
+node --test pipelines/workflow/data-source-acceptance-report-manifest.test.mjs pipelines/workflow/data-source-acceptance-freshness-audit.test.mjs pipelines/workflow/data-source-acceptance-refresh-plan.test.mjs
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1
 ```
 

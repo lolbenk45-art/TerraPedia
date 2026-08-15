@@ -1,32 +1,32 @@
 # Dependency directories
-data-query-app/node_modules/
-back/.m2/
+apps/admin-console/node_modules/
+services/catalog-api/.m2/
 
 # Frontend build outputs
 .vite/
-front-nuxt/node_modules/
-front-nuxt/.nuxt/
-front-nuxt/.output/
-front-nuxt/coverage/
-front-nuxt/test-results/
-front-nuxt/.vite/
-front-nuxt/.turbo/
-front-nuxt/tmp/
+apps/public-web/node_modules/
+apps/public-web/.nuxt/
+apps/public-web/.output/
+apps/public-web/coverage/
+apps/public-web/test-results/
+apps/public-web/.vite/
+apps/public-web/.turbo/
+apps/public-web/tmp/
 tmp/
-data-query-app/.nuxt/
-data-query-app/.output/
-data-query-app/coverage/
-data-query-app/.vite/
-data-query-app/.turbo/
+apps/admin-console/.nuxt/
+apps/admin-console/.output/
+apps/admin-console/coverage/
+apps/admin-console/.vite/
+apps/admin-console/.turbo/
 
 # Nuxt local runtime/cache folders
-data-query-app/.appdata/
-data-query-app/.home/
-data-query-app/.localappdata/
-data-query-app/--port/
-data-query-app/--host/
-front-nuxt/--port/
-front-nuxt/--host/
+apps/admin-console/.appdata/
+apps/admin-console/.home/
+apps/admin-console/.localappdata/
+apps/admin-console/--port/
+apps/admin-console/--host/
+apps/public-web/--port/
+apps/public-web/--host/
 
 # Local verification logs
 **/.verify-*.log
@@ -36,11 +36,11 @@ front-nuxt/--host/
 *.pid
 *.err
 *.out
-back/logs/
+services/catalog-api/logs/
 
 # Local-only design-draft preview (reads gitignored .superpowers/ source; never push)
-data-query-app/server/routes/design/
-data-query-app/tests/design-preview-route-contract.test.mjs
+apps/admin-console/server/routes/design/
+apps/admin-console/tests/design-preview-route-contract.test.mjs
 
 # Keep report policy and relation evidence, but ignore generated runtime folders
 reports/*
@@ -72,17 +72,24 @@ reports/db-backup/
 **/.env.local
 **/.env.*.local
 !**/.env.example
-scripts/dev/local-stack.config.json
-scripts/dev/config/local-stack.config.json
-scripts/dev/config/credentials.json
-scripts/dev/config/test_user.json
-scripts/tooling/powershell/start-vs2022-codex-devshells.config.json
-scripts/tooling/image-2/xlab.json
-scripts/tooling/image-2/generated/
+platform/local/local-stack.config.json
+platform/local/config/local-stack.config.json
+platform/local/config/credentials.json
+platform/local/config/test_user.json
+platform/local/local-stack.config.json
+platform/local/config/local-stack.config.json
+platform/local/config/credentials.json
+platform/local/config/test_user.json
+platform/tooling/powershell/start-vs2022-codex-devshells.config.json
+platform/tooling/powershell/start-vs2022-codex-devshells.config.json
+platform/tooling/image-2/xlab.json
+platform/tooling/image-2/generated/
+platform/tooling/image-2/xlab.json
+platform/tooling/image-2/generated/
 credentials.json
 credentials.local.json
 gittoken.json
-back/src/main/resources/application-*-local.yml
+services/catalog-api/src/main/resources/application-*-local.yml
 
 # PowerShell cache accidentally created under docs
 project-plan/plan-/Microsoft/Windows/PowerShell/ModuleAnalysisCache
@@ -107,7 +114,7 @@ crate_potion_parse.json
 generate_template_patch.py
 out.json
 tmp_debug.py
-data-query-app/false/
+apps/admin-console/false/
 .superpowers/
 
 # Large local data artifacts
@@ -151,5 +158,5 @@ data/generated/resume/
 !reports/wiki-town-npc-maintenance-2026-05-24.json
 
 # Local UI prototype exports
-front-nuxt/public/home-hifi-options.html
-front-nuxt/public/ui/home-hero-hifi/
+apps/public-web/public/home-hifi-options.html
+apps/public-web/public/ui/home-hero-hifi/

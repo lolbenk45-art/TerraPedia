@@ -1,10 +1,18 @@
 # Current Devlog
 
-Last updated: 2026-08-16 02:09 CST by Codex
+Last updated: 2026-08-16 03:10 CST by Codex
 
-Active branch: `feat/supplementary-domains-readiness`
+Active branch: `refactor/project-structure-migration` (dedicated migration worktree)
 
 ## Recently Closed
+
+- **Project structure professionalization migration**; owner: Codex; status:
+  closed; branch: `refactor/project-structure-migration`; worktree:
+  `/home/lolben/TerraPedia/.worktrees/project-structure-migration`; entry:
+  `entries/2026-08-16-project-structure-professionalization.md`; canonical app,
+  service, shared package, pipeline, and platform boundaries are migrated with
+  one-way legacy symlinks. Focused gates pass; public sitemap and existing data
+  baseline drift remain documented variances. Commit SHA pending in handoff.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
@@ -76,24 +84,18 @@ all-sources-unchanged runtime case remains a residual acceptance gap.
 
 ## Open Work
 
-- **Project structure hard-code boundary repair**; owner: Codex; status: active;
-  branch: `feat/supplementary-domains-readiness`; entry:
-  `entries/2026-08-16-project-structure-hardcode-boundary-repair.md`;
-  worktree: `/home/lolben/TerraPedia`; parent: none; dependencies: reviewable
-  focused checkpoint before physical migration; contract handoff:
-  `docs/architecture/project-structure-v2.md` + structure inventory; scope is
-  path hard-code census, containment contracts, narrow production fixes, and
-  removal of the retired untracked `front/` directory; no crawler apply or
-  database writes; Task 1 structure inventory and
-  `docs/architecture/project-structure-v2.md` are complete; next: review this
-  focused checkpoint and create a dedicated migration worktree before any
-  physical app move.
 
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.
 - Scheduler request: `reports/authorization/canonical/canonical-crawler-v2-scheduler-t1-acceptance-20260809-04.request.json`; packet `...-20260809-04.packet.json`; status: `AUTHORIZED` and consumed once under `canonical-crawler-v2-scheduler-t1-acceptance-20260809-admin-07`.
 
 ## Current State
+
+Root governance files `03`, `04`, and `07-12` were removed from the current tree on 2026-07-10. Do not recreate removed root governance files `03`, `04`, or `07-12`; use Git history only for audit or rollback.
+
+- The dedicated structure migration worktree has completed physical moves and
+  is ready for staged-scope review. The primary worktree remains untouched with
+  its Shimmer data, authorization reports, and unrelated active work.
 
 - Public-page fidelity rebuild remains active. Item is committed at `8d459fe1`; NPC is committed at `3d9045fa`. The Article split is implemented but uncommitted: `/articles` keeps the production fold with mast search and six non-duplicated latest rows, while `/articles/archive` owns twelve-card search/pagination. Task 7 is now closed: the full static gate, direct-route/SSR-302 proof, the three server-dependent cross-route gates, the twelve-probe three-theme matrix, and the design-system review all pass, and the two compact-card defects found by that review (kicker/date spacing and fallback-cover typography) are repaired under two new contract assertions. Only user visual acceptance remains. No API/data repair is part of it.
 

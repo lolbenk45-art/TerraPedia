@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getProjectRoot, resolveSharedDataRoot } from '../data/lib/project-root.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../../pipelines/lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,7 +118,7 @@ function validateConstants(value, constantsPath) {
   if (value.project?.id !== 'terrapedia') {
     throw new Error(`Project constants at ${constantsPath} must declare project.id=terrapedia`);
   }
-  for (const key of ['scripts', 'data', 'reports', 'docs']) {
+  for (const key of ['pipelines', 'reports', 'docs']) {
     if (typeof value.roots?.[key] !== 'string' || !value.roots[key].trim()) {
       throw new Error(`Project constants at ${constantsPath} is missing roots.${key}`);
     }

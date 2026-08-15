@@ -22,7 +22,7 @@ docs/                    <- governance/architecture/plans/audits/runbooks/devlog
 artifacts/              <- reproducible runtime output and generated artifacts
 ```
 
-Physical moves are deferred until logical naming, path resolution, and compatibility tests pass.
+Physical moves are complete in the dedicated migration worktree. Legacy paths remain single symlinks during the compatibility window; no second writable copies exist.
 
 ## Single project constants source
 
@@ -56,24 +56,23 @@ The design separates three layers: (1) `project.constants.json` for stable proje
 
 ### Migration start gate
 
-The primary worktree contains mixed uncommitted changes from the path repair, backend/frontend runtime work, Shimmer data, and authorization evidence. Do not physically move `front-nuxt/`, `data-query-app/`, or `back/` in this worktree until those changes have been explicitly separated into reviewable checkpoints.
+The primary worktree remains mixed and was not moved. The dedicated migration worktree contains the focused physical move and keeps the primary Shimmer data and authorization evidence untouched.
 
 The next session should follow this smallest safe sequence:
 
 1. Re-read this handoff and run `git status --short --branch -uall`; classify user-owned data/reports separately from structure-repair files.
 2. Complete Task 1's structure inventory and create `docs/architecture/project-structure-v2.md`, covering `.codex`, `.claude`, `.superpowers`, `.worktrees`, `.github`, build caches, and runtime artifacts. This step is read-only/documentation work and performs no code moves. **Completed in the current checkpoint; see the inventory and v2 baseline documents.**
-3. After a reviewable focused checkpoint exists, create a dedicated migration worktree or branch. Move one application boundary at a time and update CI, startup scripts, tests, constants, and rollback wrappers together.
-4. Candidate order: `front-nuxt/` -> `apps/public-web/`, then `data-query-app/` -> `apps/admin-console/`, and finally evaluate `back/` -> `services/catalog-api/`. Each move requires reference scans and path-offset tests first.
+3. The dedicated migration worktree has completed one-boundary-at-a-time moves in this order: public web, admin console, catalog API, shared runtime, platform scripts, and pipelines. CI, startup scripts, tests, constants, and rollback aliases were updated with each boundary.
 
 ### Unknowns that must not be guessed
 
-- No structure-migration commit exists, and no `apps/`, `services/`, `packages/`, `pipelines/`, `platform/`, or `artifacts/` target directory has been created.
-- Whether old-path wrappers remain during the physical migration window is undecided; each boundary requires a consumer scan and rollback design.
+- The migration worktree is not yet committed; its staged scope must be reviewed before checkpointing.
+- Legacy aliases are single symlinks during the compatibility window; removal requires a separate consumer-scan decision.
 - The full quality gate, crawler apply, database writes, Redis reset, and physical directory migration have not been run.
 
 ## Execution stages
 
-The first repair slice is deliberately narrower than the eventual physical migration: it establishes the constants/resolver contract, repairs confirmed production path and boundary defects, and validates representative crawler, parser, frontend, and backend consumers. It does not create the target `apps/`, `services/`, `packages/`, `pipelines/`, `platform/`, or `artifacts/` directories yet. Physical moves require a clean inventory, compatibility wrappers, and one focused commit per boundary.
+The repair slice established the constants contract; the migration slice now physically realizes each target boundary in a dedicated worktree. Data contents remain in place, and legacy aliases provide rollback for one compatibility window.
 
 1. **Inventory and freeze** — classify all top-level directories, including `.codex`, `.claude`, `.superpowers`, `.worktrees`, `.github`, build caches, logs, reports, and task context. Record tracked state, consumers, regeneration policy, and migration target.
 2. **Hard-coded path census** — scan production code for `process.cwd()`, absolute home paths, old app names, output literals, port defaults, and API origins. Classify each as a project constant, runtime configuration, external override, protocol, fixture, or intentional compatibility alias. Treat the current 194 `scripts/data` cwd consumers as an inventory; migrate runtime entrypoints, not deliberate fixture setup.
