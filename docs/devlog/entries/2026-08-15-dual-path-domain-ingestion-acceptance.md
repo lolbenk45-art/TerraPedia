@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -89,7 +89,8 @@
 
 ## Commits
 
-- `commit SHA pending in final response`.
+- `a416fe20` — `fix(crawler): stabilize shimmer source fingerprints`
+- `1623c708` — `feat(crawler): complete supplementary automation recovery`
 
 ## Latest Runtime Follow-up (2026-08-15 16:50 CST)
 
