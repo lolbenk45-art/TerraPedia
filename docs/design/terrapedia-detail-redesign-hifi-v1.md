@@ -10,7 +10,7 @@
 
 两份稿都是自包含 HTML，直接用浏览器打开即可。物品与 NPC 图片走本地对象存储
 `http://localhost:9000/terrapedia-images/...`（与既有 `docs/design/hifi-preview.html` 同一约定，
-由本地栈的 image-compat 代理提供），所以看图前需要 `bash ./scripts/dev/start-local-stack.sh`。
+由本地栈的 image-compat 代理提供），所以看图前需要 `bash ./platform/local/start-local-stack.sh`。
 
 对比用的线上现状截图（未入库，可随时重拍）：
 
@@ -23,7 +23,7 @@
 
 用户选择：**令牌内视觉升级**（不换风格，强化材质与层级）+ **双栏 + 粘性属性侧栏**。
 
-- 色值、圆角、间距、字号、动效时长全部取自 `front-nuxt/assets/css/hifi-preview.css` 与
+- 色值、圆角、间距、字号、动效时长全部取自 `apps/public-web/assets/css/hifi-preview.css` 与
   `tokens.css` 既有令牌。
 - 唯一新增语义色是物品稀有度（本例「浅红色」`#ff8f8f`），只用于立台光环与稀有度文本。
 - NPC 好感度三色复用既有暖色带（苔绿 / 暖金 / 砖红），未引入新品牌色。
@@ -32,14 +32,14 @@
 
 ## 线上现状的问题（截图取证）
 
-物品页（`front-nuxt/pages/items/[id].vue`）：
+物品页（`apps/public-web/pages/items/[id].vue`）：
 
 1. 六个模块里五个是「暂无 X」的全宽空卡，首屏之后基本是空白。
 2. 右侧「资料概览」只是一张写着「可查看 / 暂无」的目录，滚过 hero 就没了。
 3. 泰拉刃在库里有 3 层、67 KB 的完整合成树，页面却显示「暂无配方」（见下「待排查」）。
 4. 没有「怎么拿到 → 能拿去做什么」的链路表达。
 
-NPC 页（`front-nuxt/pages/npcs/[id].vue`）：
+NPC 页（`apps/public-web/pages/npcs/[id].vue`）：
 
 1. 底部「出售相关」6 行与上方「出售物品」是同一批数据的两种画法，纯重复。
 2. 掉落物、状态效果对友好 NPC 本就不适用，却各占一张全宽空卡。
@@ -92,7 +92,7 @@ NPC 页（`front-nuxt/pages/npcs/[id].vue`）：
 3. **商人 5 项节日商品的 `imageUrl` 与名称完全不匹配**：情人节戒指→永恒旅者兜帽、
    心箭→浪人浴衣、Wiesnbräu 啤酒→脊椎龙头、火鸡羽毛→细条纹裤、节日大礼帽→蚁狮卵。
    Wiki 抓取错位，需在数据侧修。本稿如实呈现并在商店页脚与事实条里标红。
-4. **本地栈预检依赖 snap chromium**：`front-nuxt` 的 runtime 检查脚本会启动 chromium，
+4. **本地栈预检依赖 snap chromium**：`apps/public-web` 的 runtime 检查脚本会启动 chromium，
    当前环境下 snap 版报 `cannot preserve mount namespace ... chromium.mnt` 导致
    `start-local-stack.sh` 整体失败。用
    `PLAYWRIGHT_CHROMIUM=~/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome`

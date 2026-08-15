@@ -2,24 +2,24 @@
 
 TerraPedia is a Terraria knowledge base project with:
 
-- `services/catalog-api`: Spring Boot backend (`back` remains a compatibility symlink)
-- `apps/public-web`: maintained user-facing Nuxt frontend (`front-nuxt` remains a compatibility symlink)
-- `apps/admin-console`: admin/data-query frontend (`data-query-app` remains a compatibility symlink)
-- `packages/content-runtime`: shared article/content runtime (`shared/article-runtime` remains a compatibility symlink)
-- `pipelines`: data acquisition, normalization, audit, import, and workflow tooling (`scripts/data` remains a compatibility symlink)
+- `services/catalog-api`: Spring Boot backend
+- `apps/public-web`: maintained user-facing Nuxt frontend
+- `apps/admin-console`: admin/data-query frontend
+- `packages/content-runtime`: shared article/content runtime
+- `pipelines`: data acquisition, normalization, audit, import, and workflow tooling
 - `data`: data layers and generated datasets used by import and sync tooling
 - `docs`: current architecture, audits, plans, project governance, runbooks, research notes, and `superpowers` outputs
 - `docs/project-governance`: current project facts, workflow, long-term plans, reference docs, and historical project planning records
 - `reports`: local logs, screenshots, benchmarks, and other generated run artifacts; long-lived reports should move to `docs/audits`
 - `platform`: local, operations, and developer tooling entrypoints
-- `scripts`: data automation and compatibility symlinks for platform entrypoints
+- `scripts`: shared adapters and repository tooling
 
-The physical structure migration is in its compatibility window. Target app
-and platform paths are now authoritative in this migration worktree; legacy
-paths are symlinks and must not become divergent write targets. See the [v2
-structure baseline](docs/architecture/project-structure-v2.md) and the
-[2026-08-16 inventory](docs/audits/structure/project-structure-inventory-2026-08-16.md)
-for the current-to-target map and compatibility boundaries.
+The physical structure migration is complete and its compatibility window is
+closed. The canonical roots above are the only maintained code entrypoints;
+former legacy paths are retired. See the [v2 structure baseline](docs/architecture/project-structure-v2.md),
+the [2026-08-16 inventory](docs/audits/structure/project-structure-inventory-2026-08-16.md),
+and the [closure audit](docs/audits/structure/project-structure-compatibility-window-closure-2026-08-16.md)
+for migration evidence and rollback details.
 
 ## Structure Governance
 
@@ -28,7 +28,7 @@ Current structure rules live in:
 - `AGENTS.md`
 - `docs/project-governance/00_CURRENT_SPEC.md`
 - `docs/project-governance/INDEX.md`
-- `docs/architecture/project-structure-redesign-2026-04-27.md`
+- `docs/architecture/project-structure-v2.md`
 - `docs/architecture/file-placement-rules.md`
 
 Before creating new files, decide whether they are code, data, reports, plans, logs, config, build output, or local task context. Do not create temporary files in the repo root.
@@ -55,7 +55,8 @@ This repository does not store live credentials.
 
 Detailed local acceptance boundaries live in `docs/runbooks/local-acceptance.md`.
 
-Bash/WSL is the primary local automation path. During the migration window, matching `.ps1` files are temporary compatibility wrappers only and must not be treated as the source of truth.
+Bash/WSL is the primary local automation path. Matching `.ps1` files are
+Windows-specific wrappers around the canonical platform commands.
 
 Bash-first target commands from the repo root:
 
@@ -75,7 +76,7 @@ Post-start smoke:
 bash ./platform/local/smoke-local-stack.sh
 ```
 
-`verify-local-stack.sh`, `start-local-stack.sh`, `smoke-local-stack.sh`, and `quality-gate.sh` are separate gates. Startup port checks do not prove business health, and smoke does not replace freshness audits, acceptance evidence, or the local full quality gate. The `.ps1` counterparts are compatibility wrappers while the Bash migration is being completed.
+`verify-local-stack.sh`, `start-local-stack.sh`, `smoke-local-stack.sh`, and `quality-gate.sh` are separate gates. Startup port checks do not prove business health, and smoke does not replace freshness audits, acceptance evidence, or the local full quality gate. The `.ps1` counterparts are Windows-specific wrappers around the same canonical commands.
 
 ## Quality Gate
 

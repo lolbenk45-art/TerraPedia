@@ -1,19 +1,30 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:46 CST by Codex
+Last updated: 2026-08-16 05:02 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
 ## Recently Closed
+
+- **Project structure compatibility-window closure**; owner: Codex; status:
+  closed; branch: `refactor/close-structure-compat-window`; worktree:
+  `/home/lolben/TerraPedia/.worktrees/close-structure-compat-window`; parent:
+  project structure professionalization migration; result: current consumers
+  use canonical roots and the eight legacy symlinks are removed; validation:
+  Node path suites 15/15, admin check, backend focused 307/307, shell checks,
+  and structural scans passed; residual: public sitemap and isolated-worktree
+  authorization fixture baselines are unrelated; commit SHA pending in final
+  response.
 
 - **Project structure professionalization migration**; owner: Codex; status:
   closed; integrated branch: `feat/supplementary-domains-readiness`; source
   branch/worktree: `refactor/project-structure-migration` /
   `/home/lolben/TerraPedia/.worktrees/project-structure-migration`; entry:
   `entries/2026-08-16-project-structure-professionalization.md`; canonical app,
-  service, shared package, pipeline, and platform boundaries are migrated with
-  one-way legacy symlinks. Focused gates pass; public sitemap and existing data
-  baseline drift remain documented variances. Source commits: `be8ffe02`,
+  service, shared package, pipeline, and platform boundaries are migrated. The
+  one-way legacy symlinks were subsequently closed by the separate
+  `refactor/close-structure-compat-window` task. Focused gates pass; public
+  sitemap and existing data baseline drift remain documented variances. Source commits: `be8ffe02`,
   `b5b81385`; integrated commits: `4599eb67`, `e7a3c99d`; alias contract
   follow-up: `32a308ae`; documentation correction: `data/wiki-crawler/README.md`
   now points to `pipelines/crawler`; review repairs also canonicalize the
@@ -91,7 +102,6 @@ manual sweep, apply, database write, L2, or Boss-loot command was run; the
 all-sources-unchanged runtime case remains a residual acceptance gap.
 
 ## Open Work
-
 
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.

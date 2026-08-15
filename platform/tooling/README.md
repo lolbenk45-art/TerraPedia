@@ -2,8 +2,8 @@
 
 `platform/tooling` owns repository maintenance helpers that are not local
 stack lifecycle, not ops scheduling wrappers, and not data lifecycle
-pipelines. During the compatibility window, legacy `scripts/tooling` is a
-symlink to this directory.
+pipelines. The former `scripts/tooling` entrypoint was removed when the
+compatibility window closed.
 
 Current responsibility examples:
 

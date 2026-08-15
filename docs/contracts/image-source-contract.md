@@ -70,7 +70,7 @@ Based on the current schema and sync topology:
 
 ## Audit Output
 
-`scripts/data/audit/image-source-lineage-report.mjs` emits one report entry per entity type with:
+`pipelines/audit/image-source-lineage-report.mjs` emits one report entry per entity type with:
 
 - `contractKey`
 - `contractReady`

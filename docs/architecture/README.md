@@ -4,9 +4,8 @@
 
 ## 当前入口
 
-- [项目结构 v2 基线](./project-structure-v2.md)：物理迁移前的顶层边界、目标树、兼容根和 no-delete/no-write 规则。
+- [项目结构 v2 基线](./project-structure-v2.md)：当前 canonical 顶层边界、已关闭的兼容窗口和 no-delete/no-write 规则。
 - [项目结构迁移 inventory](../audits/structure/project-structure-inventory-2026-08-16.md)：2026-08-16 的目录职责、状态与引用计数快照。
-- [项目结构重设计方案](./project-structure-redesign-2026-04-27.md)
 - [文件创建与目录落位规则](./file-placement-rules.md)
 - [数据与证据边界](./data-evidence-boundaries.md)
 - [前端导航组件架构](./frontend/navigation-components.md)：旧前台导航文档迁移后的当前架构入口。
@@ -17,3 +16,7 @@
 - 任务级执行计划放 `docs/plans/`，项目级长期计划和 SOP 放 `docs/project-governance/`。
 - 已过期的架构讨论不要继续放这里，应迁入 `docs/project-governance/archive/` 或保留在原历史位置并由索引标注。
 - 临时分析先放 `task/<date>_<topic>/docs/`，确认后再提升到本目录。
+
+## 历史参考
+
+- [项目结构重设计方案（迁移前）](./project-structure-redesign-2026-04-27.md)：保留原始设计和审计上下文，不是当前目录或命令规则。

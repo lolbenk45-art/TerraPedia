@@ -11,11 +11,12 @@ TerraPedia is a Terraria Chinese data platform with four maintained lines:
 - Spring Boot backend: `services/catalog-api/`
 - data crawl, standardization, import, sync, and audit tooling: `pipelines/` and `data/`
 
-The legacy application and script roots remain symlinks during the compatibility
-window (`front-nuxt/`, `data-query-app/`, `back/`, `shared/article-runtime/`,
-`scripts/dev/`, `scripts/ops/`, `scripts/tooling/`, and `scripts/data/`). They
-are compatibility aliases only; canonical consumers and new writes use the
-target roots documented in `docs/architecture/project-structure-v2.md`.
+The legacy application and script roots were retired when the 2026-08-16
+compatibility window closed (`front-nuxt/`, `data-query-app/`, `back/`,
+`shared/article-runtime/`, `scripts/dev/`, `scripts/ops/`, `scripts/tooling/`,
+and `scripts/data/`). They must not be recreated. Canonical consumers and
+new writes use the target roots documented in
+`docs/architecture/project-structure-v2.md`.
 
 The retired untracked `front/` directory has been removed. Do not recreate it or
 add a second public frontend implementation under any legacy path.

@@ -2,7 +2,9 @@
 
 日期：2026-04-27
 
-状态：设计方案，尚未执行目录迁移。
+状态：历史设计方案。目录迁移与兼容窗口关闭均已完成；当前规则见
+`docs/architecture/project-structure-v2.md`。以下内容保留为 2026-04-27 的
+原始设计与审计上下文，不作为当前路径或命令入口。
 
 依据：[项目结构审计报告](../audits/structure/project-structure-audit-2026-04-27.md)
 

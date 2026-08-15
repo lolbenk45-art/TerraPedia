@@ -2,8 +2,8 @@
 
 `platform/operations` owns machine-level automation wrappers for scheduled
 tasks, daemon hosts, heartbeat checks, recovery, and registration or
-unregistration flows. During the compatibility window, legacy `scripts/ops` is
-a symlink to this directory.
+unregistration flows. The former `scripts/ops` entrypoint was removed when the
+compatibility window closed.
 
 ## WSL/Linux Entrypoints
 

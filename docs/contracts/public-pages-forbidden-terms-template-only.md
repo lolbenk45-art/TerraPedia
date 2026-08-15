@@ -4,7 +4,7 @@
 
 ## 背景
 
-`front-nuxt/scripts/check-public-pages.mjs` 的 `forbiddenPublicTerms`
+`apps/public-web/scripts/check-public-pages.mjs` 的 `forbiddenPublicTerms`
 (`sourceItems` / `inflictingNpcs` / `immuneNpcs`)原本对全部 scanFiles
 **全文件**扫描。这些词是后端字段名,禁词的本意是防止它们泄漏到**用户可见文案**;
 但业务代码消费后端返回时必然要访问同名字段,全文件扫描导致正常代码也中弹,

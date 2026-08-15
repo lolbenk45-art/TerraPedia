@@ -45,14 +45,14 @@ task/
 .superpowers/
 ```
 
-`back/`、`front-nuxt/`、`data-query-app/` 以及 `shared/` 只允许作为
-兼容 symlink 存在，不得重新创建物理副本。
+`back/`、`front-nuxt/`、`data-query-app/` 以及 `shared/` 下的旧入口已在
+兼容窗口关闭时删除，不得重新创建；代码必须落在 canonical 边界中。
 
 新增顶层目录必须同时满足：
 
 - 现有目录无法表达它的职责。
 - 它会长期存在，而不是一次性任务产物。
-- 已更新 `docs/architecture/project-structure-redesign-2026-04-27.md`。
+- 已更新 `docs/architecture/project-structure-v2.md`。
 - 已在本规则中补充落位说明。
 
 ## 根目录规则
@@ -479,7 +479,6 @@ AI 助手创建文件前必须遵守：
 .
 data/
 scripts/
-back/
 apps/public-web/
 apps/admin-console/
 ```

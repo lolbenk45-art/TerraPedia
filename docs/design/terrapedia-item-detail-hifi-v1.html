@@ -7,7 +7,7 @@
     <style>
       :root {
         color-scheme: dark;
-        /* 与 front-nuxt/assets/css/hifi-preview.css 同源，勿另起色值 */
+        /* 与 apps/public-web/assets/css/hifi-preview.css 同源，勿另起色值 */
         --bg: #050806;
         --bg-2: #0a110b;
         --panel: rgba(14, 21, 16, 0.9);
@@ -282,7 +282,7 @@
         background: var(--elev-sunken-bg); box-shadow: var(--elev-sunken-shadow);
         font-size: 12px; font-weight: 800; color: var(--text-faint);
       }
-      /* 币种标签取自 front-nuxt/utils/price.ts 词表：铂金币 / 金币 / 银币 / 铜币 */
+      /* 币种标签取自 apps/public-web/utils/price.ts 词表：铂金币 / 金币 / 银币 / 铜币 */
       .coins { display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); font-size: 13px; color: var(--paper-3); }
       .coins .n { font-variant-numeric: tabular-nums; font-weight: 800; }
       .coins .u { font-family: var(--font-sans); font-size: 11px; font-weight: 800; color: var(--text-subtle); }
@@ -931,7 +931,7 @@
           <li><b>动效</b>（静态图看不到）：稀有度光环 5.4s 呼吸、节点 hover 上浮 1px、层间连接线渐显、锚点切换高亮位移，均在 180–280ms 区间。</li>
           <li><b>高度阶梯（第二轮质感修复）</b>：初版三层嵌套用同一套「1px 暖金 hairline + 2% 表面」，明度差不足读成一层。现改为 L0 页面底（压深并加暗角）→ L1 卡片浮起（顶部高光 + 可见投影）→ L2 分组带下沉（内阴影凹槽）→ L3 条目再浮起（高光 + 落影），物品图标另做凹槽。主线模块（合成链 / 商店）加金点与金色渐隐标题栏，次级模块降一档亮度。</li>
           <li>色值、圆角、间距、字号全部取自 <b>hifi-preview.css / tokens.css</b> 既有令牌，稀有度色是唯一新增语义色（浅红 #ff8f8f，仅用于光环与稀有度文本）。</li>
-          <li><b>价格用具体币种</b>：数值后带「铂金币 / 金币 / 银币 / 铜币」，词表取自 <code>front-nuxt/utils/price.ts</code>，复合价格如「2 银币 50 铜币」按段拆分。</li>
+          <li><b>价格用具体币种</b>：数值后带「铂金币 / 金币 / 银币 / 铜币」，词表取自 <code>apps/public-web/utils/price.ts</code>，复合价格如「2 银币 50 铜币」按段拆分。</li>
         </ol>
       </div>
     </div>

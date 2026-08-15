@@ -1,8 +1,8 @@
 # DataQuery - TerraPedia 管理端（Nuxt）
 
 正式应用身份：`terrapedia-admin-console`，canonical 路径：
-`apps/admin-console/`。兼容窗口内历史 `data-query-app/` 仅作为指向本目录的
-symlink；新命令统一使用 canonical 路径，删除别名需单独完成引用审计。
+`apps/admin-console/`。历史 `data-query-app/` 入口已在兼容窗口关闭时删除；
+新命令统一使用 canonical 路径。
 
 基于 Vue 3.5 + Nuxt 构建的 TerraPedia 后台管理端，支持分类与物品数据管理。
 

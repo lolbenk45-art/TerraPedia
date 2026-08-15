@@ -23,7 +23,8 @@ Do not write successful 2xx or 3xx public traffic to MySQL.
 
 ## Rolling Files
 
-The backend writes bounded local files through `back/src/main/resources/logback-spring.xml`.
+The backend writes bounded local files through
+`services/catalog-api/src/main/resources/logback-spring.xml`.
 
 Defaults:
 

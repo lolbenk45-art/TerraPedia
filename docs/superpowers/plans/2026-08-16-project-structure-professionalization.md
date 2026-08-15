@@ -4,7 +4,7 @@
 
 **Goal:** 将 TerraPedia 从历史目录命名和隐式路径依赖，渐进迁移为具有明确产品、服务、数据管线、平台工具和协作工具边界的专业单仓库结构，同时保证现有启动、测试、爬虫监控和数据读取链路不因路径变化中断。
 
-**Architecture:** 采用版本化仓库布局清单作为跨 Node、Java、Shell/PowerShell 的路径源，并由各语言薄适配层解析绝对路径。脚本不再基于当前工作目录猜测仓库根目录。物理迁移已在独立工作树完成；所有旧路径在迁移窗口内由单向 symlink 保留，完成引用审计和质量门禁后再移除。
+**Architecture:** 采用版本化仓库布局清单作为跨 Node、Java、Shell/PowerShell 的路径源，并由各语言薄适配层解析绝对路径。脚本不再基于当前工作目录猜测仓库根目录。物理迁移已在独立工作树完成；兼容窗口关闭 follow-up 已完成全仓当前入口审计并移除旧 symlink，历史引用仅保留为证据。
 
 **Tech Stack:** Node.js ESM、Shell/PowerShell、Spring Boot/Java 17、Maven、Nuxt 4、pnpm、JSON layout manifest、现有 TerraPedia quality gate。
 
@@ -19,7 +19,7 @@
 - 已修复本轮审计确认的 crawler/fetch/audit/backfill/workflow、前后台 runtime、后端音频路径默认值；实现和测试仍在当前工作树，尚未提交。
 - 已删除未跟踪的旧 `front/` 目录；公共前端唯一维护路径为 `apps/public-web/`，不得创建 `apps/legacy-web/` 兼容目标。
 - 已保留用户已有的 Shimmer 生成数据、授权报告和其他非结构改动；它们不能被迁移、清理或重置。
-- 已在独立迁移工作树中完成 `front-nuxt`、`data-query-app`、`back`、共享包、平台脚本和 `scripts/data` → `pipelines` 的物理迁移；所有旧入口均为单向 symlink。
+- 已在独立迁移工作树中完成 `front-nuxt`、`data-query-app`、`back`、共享包、平台脚本和 `scripts/data` → `pipelines` 的物理迁移；兼容窗口关闭 follow-up 已删除全部八个旧 symlink。
 - 已更新 CI、启动/质量门、运行时配置、Nuxt/Maven 元数据、路径敏感测试和脚本命令到 canonical roots。
 - 已完成数据/报告/任务上下文/生成产物分类文档；现有数据和报告内容未搬动。
 
@@ -27,9 +27,16 @@
 
 物理迁移在独立工作树完成，主工作树中的 Shimmer 数据和授权报告仍保持原状。提交前仍需按边界审阅 staged scope。
 
+### Compatibility-window closure follow-up（2026-08-16）
+
+- 已完成 `.github/`、canonical code roots、脚本适配层、当前治理文档和 runbook 的引用扫描；生产/CI 无旧入口依赖。
+- 已将 `scripts/config/project.constants.json` 的迁移状态设为 `closed`，移除旧路径 alias 和 legacy command keys。
+- 已删除 `front-nuxt`、`data-query-app`、`back`、`shared/article-runtime`、`scripts/dev`、`scripts/ops`、`scripts/tooling`、`scripts/data` 八个 symlink。
+- 详见 `docs/superpowers/plans/2026-08-16-project-structure-compatibility-window-closure.md` 与 `docs/audits/structure/project-structure-compatibility-window-closure-2026-08-16.md`。
+
 ### 不得推断的事项
 
-- `pipelines/`、`platform/`、`apps/`、`services/`、`packages/` 和 `artifacts/` 已落地；旧根只作为 symlink。
+- `pipelines/`、`platform/`、`apps/`、`services/`、`packages/` 和 `artifacts/` 已落地；旧根 symlink 已由 closure follow-up 删除。
 - 完整 quality gate 尚未在本迁移工作树执行；结构 focused gates 已执行。
 - 爬虫 apply/force、数据库写入、Redis reset 和真实外部刷新仍未执行。
 
@@ -320,7 +327,7 @@ When a failure is found: stop the affected move, add a focused resolver/fixture 
 
 ## Plan Self-Review
 
-- Goal coverage: directory naming, hidden tool directories, script path stability, cross-language constants, compatibility aliases, data/report boundaries, and rollback are covered by Tasks 1–9.
+- Goal coverage: directory naming, hidden tool directories, script path stability, cross-language constants, data/report boundaries, rollback, and the separate closed compatibility-window follow-up are covered by Tasks 1–9 plus the linked closure plan.
 - Placeholder scan: no implementation step depends on an unspecified path or a future decision; historical data classification is explicitly preceded by inventory and source-reference scans.
-- Source-of-truth: `scripts/config/project.constants.json` owns project paths, names, commands, and compatibility aliases; current canonical data and runtime queue authorities remain unchanged.
+- Source-of-truth: `scripts/config/project.constants.json` owns project paths, names, canonical commands, and the closed migration status; current canonical data and runtime queue authorities remain unchanged.
 - Safety: no database writes, crawler apply/force, Redis reset, or destructive deletion is included.

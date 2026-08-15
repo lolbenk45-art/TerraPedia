@@ -19,10 +19,10 @@ its data.
 
 When a design decision conflicts, use this order:
 
-1. Current production token ownership in `front-nuxt/assets/css/hifi-preview.css`
-   and `front-nuxt/assets/css/tokens.css`.
-2. The approved homepage information framing in `front-nuxt/pages/index.vue`
-   and `front-nuxt/components/home/`.
+1. Current production token ownership in `apps/public-web/assets/css/hifi-preview.css`
+   and `apps/public-web/assets/css/tokens.css`.
+2. The approved homepage information framing in `apps/public-web/pages/index.vue`
+   and `apps/public-web/components/home/`.
 3. Approved high-fidelity references:
    - item/NPC: `.superpowers/brainstorm/339185-1785149609/content/`
    - articles: `.superpowers/brainstorm/3542442-1785229764/content/articles-story-led-v22.html`
@@ -105,7 +105,7 @@ an ink/control family; amber is a small archival signal only.
 - Use existing semantic variables such as `--tp-color-*`, `--button-*`,
   `--index-*`, and `--theme-*`; no raw local hex values in a page component.
 - Preserve the existing `dark`, `morning-paper`, and `warm-slate` keys in
-  `front-nuxt/stores/theme.ts`.
+  `apps/public-web/stores/theme.ts`.
 - Entity rarity, danger, completion, and source type are semantic data colors.
   They can tint a chip, icon, or narrow edge but cannot replace the page theme.
 - Light themes use flat low-saturation control surfaces, an inset 3px primary
