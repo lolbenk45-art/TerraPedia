@@ -105,3 +105,7 @@ The integrated branch added the missing machine-readable compatibility alias
 regression assertion in `scripts/lib/project-constants.test.mjs`. The red-green
 check was observed (`1` expected failure, then `9/9` passing); follow-up commit
 `32a308ae` is included in the feature branch.
+
+The same follow-up corrected the current `data/wiki-crawler/README.md` source
+location from the legacy alias to `pipelines/crawler`; no crawler data or
+execution behavior changed.

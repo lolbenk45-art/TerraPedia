@@ -1,6 +1,6 @@
 # Wiki Crawler
 
-Crawler source and crawler tests now live under `scripts/data/crawler/src` and `scripts/data/crawler/tests`.
+Crawler source and crawler tests now live under `pipelines/crawler/src` and `pipelines/crawler/tests`.
 `data/wiki-crawler/` is reserved for crawler data, reports, normalized outputs, and other rerunnable artifacts.
 
 The following directories are treated as rerunnable outputs by default and should not be promoted into long-term mainline facts without milestone validation:
