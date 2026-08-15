@@ -25,6 +25,8 @@ Manual and automatic paths must share the same source validation, frozen-input, 
 
 `boss_loot`, `npc_loot`, L2, production databases, Windows services, Redis reset, and unrelated repairs are out of scope.
 
+NPC/Boss base-data refreshes do not implicitly refresh loot. `npc-loot-backfill`/`npc-loot-apply` and `boss-loot-backfill`/`boss-loot-apply` are separate actions and are not in `AUTO_DISPATCH_DOMAINS`. `run-boss-sync-pipeline.mjs` is a special hazard because it explicitly appends the Boss loot pipeline; this acceptance must not use that composite entry point and must split Boss fetch from Boss base-data import.
+
 ## Automation Gate
 
 Automatic apply requires all of the following:

@@ -32,6 +32,8 @@ mysql --protocol=TCP -h127.0.0.1 -P13306 -uroot -proot terria_v1_local -e \
 
 If a table is missing, stop and record a schema blocker; do not create tables ad hoc.
 
+- [ ] Confirm the dependency boundary: NPC/Boss base-data refresh does not implicitly update `npc_loot_entries`. Do not call `run-boss-sync-pipeline.mjs`, because it explicitly appends Boss loot. Keep every `npc-loot-*` and `boss-loot-*` action out of this run.
+
 ## Task 1: Add the automatic activation gate
 
 **Modify:**
@@ -118,6 +120,7 @@ node scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs \
 ## Task 5: Bosses real manual path
 
 - [ ] Run `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=boss-sync` and confirm Boss loot is absent.
+- [ ] Do not execute `scripts/data/pipeline/run-boss-sync-pipeline.mjs`; that composite entry point appends Boss loot. Execute only the split Boss base-data fetch/import below.
 - [ ] Use isolated output/report paths for the real manual fetch/import:
 
 ```bash

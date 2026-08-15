@@ -32,6 +32,8 @@ mysql --protocol=TCP -h127.0.0.1 -P13306 -uroot -proot terria_v1_local -e \
 
 若某表不存在，停止并记录 schema blocker，不得自行建表。
 
+- [ ] 依赖边界确认：NPC/Boss 主数据更新不会隐式更新 `npc_loot_entries`；不要调用 `run-boss-sync-pipeline.mjs`，因为它会显式追加 Boss loot。`npc-loot-*` 和 `boss-loot-*` action 全部保持不调用。
+
 ## Task 1：先补自动 apply 的 activation gate
 
 **修改：**
@@ -117,7 +119,8 @@ node scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs \
 
 ## Task 5：Bosses 真实手动链
 
-- [ ] 先执行 `node scripts/data/pipeline/run-backend-data-refresh.mjs --mode=plan --steps=boss-sync`，确认计划不包含 Boss loot。
+- [ ] 先执行 `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=boss-sync`，确认计划不包含 Boss loot。
+- [ ] 不执行 `scripts/data/pipeline/run-boss-sync-pipeline.mjs`；该组合入口会追加 Boss loot。只执行下面拆开的 Boss base-data fetch/import。
 - [ ] 手动真实抓取与 import 使用独立输出和报告路径：
 
 ```bash

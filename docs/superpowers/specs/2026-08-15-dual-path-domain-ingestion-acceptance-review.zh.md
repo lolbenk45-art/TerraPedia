@@ -25,6 +25,8 @@
 
 `boss_loot`、`npc_loot`、L2、生产库、Windows 服务、Redis reset 和无关数据修复不在范围内。
 
+NPC/Boss 主数据更新不会隐式更新 loot。`npc-loot-backfill`/`npc-loot-apply` 与 `boss-loot-backfill`/`boss-loot-apply` 是独立 action，当前不在 `AUTO_DISPATCH_DOMAINS`。注意 `run-boss-sync-pipeline.mjs` 会显式追加 Boss loot pipeline，因此本轮禁止使用该组合入口，必须拆成 Boss fetch 与 Boss base-data import。
+
 ## 自动化总闸门
 
 自动写库需要同时满足：
