@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-16 10:59 CST by Codex
+Last updated: 2026-08-16 11:04 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
@@ -26,11 +26,11 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   source branch/worktree: `docs/mixed-agent-structure-convergence` /
   `/home/lolben/TerraPedia/.worktrees/mixed-agent-structure-convergence`;
   fast-forward integrated into `feat/supplementary-domains-readiness` at
-  `0db183d3`. The common `agent/skills` source, generated runtime views,
-  deployable boundaries, local-artifact rules, and legacy-alias closeout are
-  recorded in `entries/2026-08-16-mixed-agent-structure-convergence.md`.
-  The three protected Shimmer/authorization paths and 24 local generation files
-  were restored unstaged after integration; `stash@{0}` remains preserved.
+  `0db183d3`. The post-integration plugin/handoff checkpoint is `acaf6487`,
+  and the archived-summary contract repair passed the focused 20-test structure
+  suite; commit SHA pending in final response. The three protected
+  Shimmer/authorization paths and 24 local generation files remain unstaged;
+  `stash@{0}` remains preserved.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
@@ -101,7 +101,6 @@ manual sweep, apply, database write, L2, or Boss-loot command was run; the
 all-sources-unchanged runtime case remains a residual acceptance gap.
 
 ## Open Work
-
 
 - **Push/merge `design/crawler-auto-ingestion-readiness`**: independent owner decision.
 - Item request: `reports/authorization/canonical/canonical-crawler-v2-items-t1-acceptance-20260809-07.request.json`; packet `...-20260809-07.packet.json`; status: `AUTHORIZED` and consumed under `canonical-crawler-v2-items-t1-acceptance-20260809-admin-07`.

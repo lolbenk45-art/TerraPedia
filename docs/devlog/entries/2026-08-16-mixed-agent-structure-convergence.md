@@ -187,6 +187,17 @@
   separate `data/generated` and `reports/authorization` directories; the
   primary Shimmer/authorization modifications predate the gate and no causal
   write from this task was found.
+- Post-integration validation on `feat/supplementary-domains-readiness` reran
+  the structure Node suite and found 19/20 passing. The only failure is
+  `historical summaries are archived byte-for-byte`: its test still runs
+  `git show HEAD:<root-summary>` even though `cdc63cc0` intentionally removed
+  the root source. The task is reopened to derive the original from that file's
+  deletion commit and rerun the focused suite. No data, crawler, database,
+  Redis, or local-stack action was run.
+- The repair now derives each summary from its root-file deletion commit. Fresh
+  validation passes: the focused structure suite is 20/20, project-constants
+  usage is 1/1, Shell/PowerShell path contracts are 5/5, the portable skill
+  synchronizer reports 79 source files in sync, and `git diff --check` passes.
 
 ## Result
 
@@ -202,6 +213,9 @@
   current-source scan and focused validation passed, then the four focused
   commits were fast-forwarded into `feat/supplementary-domains-readiness` at
   `0db183d3`.
+- The post-integration handoff/plugin correction is checkpointed in
+  `acaf6487`. Its stale archived-summary test is repaired and the follow-up
+  validation now passes; see the final validation note above.
 
 ## Residual Risks
 
@@ -251,6 +265,8 @@
 - Integration: the source branch fast-forwarded into
   `feat/supplementary-domains-readiness` at `0db183d3`; literal `main` was not
   touched.
-- Post-integration correction: restore the protected local data, ignore the
-  external/plugin directory exactly, and reconcile the handoff record;
-  `commit SHA pending in final response`.
+- Post-integration correction: `acaf6487` restores the protected local data,
+  ignores the external/plugin directory exactly, and reconciles the handoff
+  record.
+- Post-integration test repair: derive archived summaries from their deletion
+  commit rather than current `HEAD`; `commit SHA pending in final response`.

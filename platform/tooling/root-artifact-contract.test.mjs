@@ -14,6 +14,17 @@ import {
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..');
 
+function readRootSummaryBeforeRemoval(name) {
+  const deletionCommit = execFileSync(
+    'git',
+    ['-C', repoRoot, 'log', '--format=%H', '--diff-filter=D', '-1', '--', name],
+    { encoding: 'utf8' }
+  ).trim();
+
+  assert.notEqual(deletionCommit, '', `expected a deletion commit for ${name}`);
+  return execFileSync('git', ['-C', repoRoot, 'show', `${deletionCommit}^:${name}`]);
+}
+
 test('root artifact scanner rejects new root temporary and summary references', () => {
   const findings = scanText(
     'tmp/audit-shots\nlogs/server.log\nreports/tmp/result.json\nPLAN_FIXES_SUMMARY.md\n',
@@ -81,7 +92,7 @@ test('audit shoot defaults to the governed local temporary output directory', ()
 test('historical summaries are archived byte-for-byte', () => {
   for (const name of ['PLAN_FIXES_SUMMARY.md', 'REFACTORING_SUMMARY.md']) {
     const archivePath = path.join(repoRoot, 'docs/project-governance/archive', name);
-    const original = execFileSync('git', ['-C', repoRoot, 'show', `HEAD:${name}`]);
+    const original = readRootSummaryBeforeRemoval(name);
 
     assert.equal(fs.existsSync(path.join(repoRoot, name)), false, `${name} must leave the root`);
     assert.deepEqual(fs.readFileSync(archivePath), original, `${name} archive must be unchanged`);
