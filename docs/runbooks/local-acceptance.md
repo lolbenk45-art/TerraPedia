@@ -9,10 +9,10 @@ Bash/WSL is the primary acceptance path. During the migration window, matching `
 Use the Bash-first sequence:
 
 ```bash
-bash ./scripts/dev/verify-local-stack.sh
-bash ./scripts/dev/start-local-stack.sh
-bash ./scripts/dev/smoke-local-stack.sh
-bash ./scripts/dev/stop-local-stack.sh
+bash ./platform/local/verify-local-stack.sh
+bash ./platform/local/start-local-stack.sh
+bash ./platform/local/smoke-local-stack.sh
+bash ./platform/local/stop-local-stack.sh
 ```
 
 ## Boundaries
@@ -37,7 +37,7 @@ Successful local smoke cannot make stale evidence fresh, cannot make planned-pub
 
 ## ForcePorts
 
-Use `bash ./scripts/dev/stop-local-stack.sh --force-ports` only when pid files are missing or stale and the configured TerraPedia ports are known to belong to the current repo run.
+Use `bash ./platform/local/stop-local-stack.sh --force-ports` only when pid files are missing or stale and the configured TerraPedia ports are known to belong to the current repo run.
 
 Before using it:
 

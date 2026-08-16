@@ -1,8 +1,8 @@
 # TerraPedia Catalog API
 
 `services/catalog-api` is the maintained Spring Boot backend with formal Maven
-identity `terrapedia-catalog-api`. During the compatibility window, historical
-`back/` is a symlink to this directory; new commands use the canonical path.
+identity `terrapedia-catalog-api`. The historical `back/` entrypoint was
+retired when the compatibility window closed; commands use this canonical path.
 
 ## Local Requirements
 

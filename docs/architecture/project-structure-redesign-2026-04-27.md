@@ -2,7 +2,8 @@
 
 日期：2026-04-27
 
-状态：设计方案，尚未执行目录迁移。
+状态：历史设计方案；目录迁移已完成，当前规则以
+`project-structure-v2.md` 为准。
 
 依据：[项目结构审计报告](../audits/structure/project-structure-audit-2026-04-27.md)
 

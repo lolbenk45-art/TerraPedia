@@ -4,9 +4,10 @@
 
 ## 当前入口
 
-- [项目结构 v2 基线](./project-structure-v2.md)：物理迁移前的顶层边界、目标树、兼容根和 no-delete/no-write 规则。
+- [项目结构 v2 基线](./project-structure-v2.md)：物理迁移后的顶层边界、目标树、退役入口和 no-recreate/no-write 规则。
+- [Deployable components](./deployable-components.md)：apps、services、packages、pipelines、platform 和 agent 的运行时边界与依赖方向。
 - [项目结构迁移 inventory](../audits/structure/project-structure-inventory-2026-08-16.md)：2026-08-16 的目录职责、状态与引用计数快照。
-- [项目结构重设计方案](./project-structure-redesign-2026-04-27.md)
+- [项目结构重设计方案](./project-structure-redesign-2026-04-27.md)：历史设计记录，当前规则以 v2 基线为准。
 - [文件创建与目录落位规则](./file-placement-rules.md)
 - [数据与证据边界](./data-evidence-boundaries.md)
 - [前端导航组件架构](./frontend/navigation-components.md)：旧前台导航文档迁移后的当前架构入口。

@@ -12,7 +12,8 @@ Machine-readable source: `scripts/config/project.constants.json`
 - `crawler`: relative templates for manifests, progress, raw output, resume state, and operation reports; the actual shared-data root is selected by runtime configuration.
 - `runtime`: portable local default ports/origins; environment variables or local-stack config take precedence.
 - `externalDefaults`: default roots that may live outside the repository, such as MinIO data.
-- `compatibility`: legacy environment-variable and entrypoint names.
+- `compatibility`: environment override names and the closed migration status;
+  retired entrypoint aliases are not part of the manifest.
 
 ## Rules
 

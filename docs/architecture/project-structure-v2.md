@@ -1,6 +1,6 @@
 # TerraPedia project structure v2
 
-状态：物理迁移完成，兼容窗口仍开放（2026-08-16）。
+状态：物理迁移完成，兼容窗口已关闭（2026-08-16）。
 
 本文件是当前目录边界、路径来源和回滚规则的架构基线。机器可读路径
 唯一来源是 `scripts/config/project.constants.json`；Node、Shell、PowerShell
@@ -22,6 +22,7 @@ TerraPedia/
 │   ├── local/               # local stack, smoke, acceptance, quality gates
 │   ├── operations/          # daemon and scheduled-operation wrappers
 │   └── tooling/             # repository/developer tooling
+├── agent/                   # shared portable skills and agent adapters
 ├── scripts/lib/             # shared script adapters and project resolver
 ├── data/                    # source, normalized, canonical, compatibility layers
 ├── docs/                    # governance, architecture, plans, audits, devlog
@@ -29,22 +30,23 @@ TerraPedia/
 └── artifacts/               # reserved for proven rebuildable runtime output
 ```
 
-Legacy roots are compatibility symlinks only:
+The former legacy roots were one-way symlinks during the migration window and
+were removed after the current-consumer audit:
 
-| Legacy path | Canonical target | Write rule |
+| Retired path | Canonical target | Closure rule |
 | --- | --- | --- |
-| `front-nuxt` | `apps/public-web` | one canonical directory |
-| `data-query-app` | `apps/admin-console` | one canonical directory |
-| `back` | `services/catalog-api` | one canonical directory |
-| `shared/article-runtime` | `packages/content-runtime` | one canonical directory |
-| `scripts/dev` | `platform/local` | one canonical directory |
-| `scripts/ops` | `platform/operations` | one canonical directory |
-| `scripts/tooling` | `platform/tooling` | one canonical directory |
-| `scripts/data` | `pipelines` | one canonical directory |
+| `front-nuxt` | `apps/public-web` | removed; do not recreate |
+| `data-query-app` | `apps/admin-console` | removed; do not recreate |
+| `back` | `services/catalog-api` | removed; do not recreate |
+| `shared/article-runtime` | `packages/content-runtime` | removed; do not recreate |
+| `scripts/dev` | `platform/local` | removed; do not recreate |
+| `scripts/ops` | `platform/operations` | removed; do not recreate |
+| `scripts/tooling` | `platform/tooling` | removed; do not recreate |
+| `scripts/data` | `pipelines` | removed; do not recreate |
 
 New code, CI, reports, commands, and generated action metadata must use the
-canonical target. A legacy path may be read for compatibility or historical
-evidence, but it must never become a second output root.
+canonical target. Old path strings may remain in archived evidence, but no
+runtime reader or writer may depend on a retired entrypoint.
 
 ## Data and evidence ownership
 
@@ -57,14 +59,17 @@ evidence, but it must never become a second output root.
   evidence roots. Durable conclusions belong in `docs/audits`.
 - `artifacts/runtime` is reserved, not an implicit replacement for `reports`.
   A separate classification and rebuild proof is required before any move.
-- `task/`, `.superpowers/`, `.worktrees/`, and `.claude/` are local tool state;
-  they are not application or data ownership boundaries. `.codex/` is tracked
-  project skill and governance source and remains at the root.
+- `task/`, `.superpowers/`, `.worktrees/`, and local settings under `.claude/`
+  are local tool state; they are not application or data ownership boundaries.
+  `agent/skills/` is the editable common skill source, while `.codex/skills/`
+  and `.claude/skills/` are generated runtime views with tool-specific metadata.
 
 ## Path contract
 
 `scripts/config/project.constants.json` defines roots, application identities,
-runtime defaults, crawler output families, commands, and compatibility aliases.
+runtime defaults, crawler output families, and canonical commands. Its
+compatibility section records environment override names and the closed
+migration status; it contains no retired-path aliases.
 `scripts/lib/project-constants.mjs` enforces repository containment and explicit
 external-root opt-in. `scripts/lib/project-constants.sh`,
 `scripts/lib/project-constants.ps1`, and the backend
@@ -93,9 +98,8 @@ directory.
 
 The durable acceptance record is
 `docs/audits/structure/project-structure-migration-acceptance-2026-08-16.md`.
-The old symlink entrypoints provide the compatibility rollback surface during
-the migration window. After all consumers have migrated and the window is
-explicitly closed, symlink removal is a separate reviewed task.
+Rollback is a Git revert of the focused closure commit; do not manually restore
+divergent legacy directories.
 
 Focused acceptance currently passes the Node/structure contracts, Shell and
 PowerShell adapter contract, admin checks, and backend path/acceptance tests.

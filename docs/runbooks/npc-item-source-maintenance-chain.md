@@ -17,9 +17,9 @@ Move source evidence from landing and maint into relation, projection, and local
 ## Entrypoints
 
 ```bash
-node scripts/data/relation/relation-health-report.mjs --print-checklist=true
-node scripts/data/relation/relation-health-report.mjs --print-sql=true
-node scripts/data/relation/relation-health-report.mjs --write-report=false
+node pipelines/relation/relation-health-report.mjs --print-checklist=true
+node pipelines/relation/relation-health-report.mjs --print-sql=true
+node pipelines/relation/relation-health-report.mjs --write-report=false
 ```
 
 ## Read-Only Preflight
@@ -31,13 +31,13 @@ Confirm no DB apply, crawler apply, recipe apply, relation apply, projection app
 2. Source / landing read-only audit
 
 ```bash
-node scripts/data/landing/audit-source-dataset-landings.mjs --output=reports/source-dataset-landing-audit-YYYY-MM-DD.json
+node pipelines/landing/audit-source-dataset-landings.mjs --output=reports/source-dataset-landing-audit-YYYY-MM-DD.json
 ```
 
 3. Generate or refresh the NPC item relation bundle
 
 ```bash
-node scripts/data/fetch/build-npc-item-relations-bundle.mjs --output=data/generated/npc-item-relations.bundle.json
+node pipelines/fetch/build-npc-item-relations-bundle.mjs --output=data/generated/npc-item-relations.bundle.json
 ```
 
 This prepares an input artifact only. It does not authorize any apply.
@@ -45,13 +45,13 @@ This prepares an input artifact only. It does not authorize any apply.
 4. Maint dry-run
 
 ```bash
-node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --database=terria_v1_maint --scopes=npcs
+node pipelines/maint/sync-landing-to-maint.mjs --apply=false --database=terria_v1_maint --scopes=npcs
 ```
 
 5. Relation dry-run
 
 ```bash
-node scripts/data/relation/sync-maint-to-relation.mjs --apply=false --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation
+node pipelines/relation/sync-maint-to-relation.mjs --apply=false --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 Review relation facts, shop and loot relations, audit rows, and unresolved/exportable reports.
@@ -59,7 +59,7 @@ Review relation facts, shop and loot relations, audit rows, and unresolved/expor
 6. Relation health
 
 ```bash
-node scripts/data/relation/relation-health-report.mjs --write-report=false --maint-database=terria_v1_maint --relation-database=terria_v1_relation --local-database=terria_v1_local
+node pipelines/relation/relation-health-report.mjs --write-report=false --maint-database=terria_v1_maint --relation-database=terria_v1_relation --local-database=terria_v1_local
 ```
 
 Gate policy:
@@ -71,25 +71,25 @@ Gate policy:
 7. Projection / local core dry-run
 
 ```bash
-node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=items,npcs,projectiles
+node pipelines/relation/sync-projection-to-local-core-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=items,npcs,projectiles
 ```
 
 8. Local compatibility dry-run
 
 ```bash
-node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation
+node pipelines/relation/sync-relation-to-local-compat-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 9. Replacement readiness audit
 
 ```bash
-node scripts/data/relation/replacement-readiness-audit.mjs --local-database=terria_v1_local --relation-database=terria_v1_relation
+node pipelines/relation/replacement-readiness-audit.mjs --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 10. Local compatibility smoke
 
 ```bash
-node scripts/data/relation/local-core-compat-smoke-check.mjs
+node pipelines/relation/local-core-compat-smoke-check.mjs
 ```
 
 Only after steps 1-10 pass may the coordinator open an apply window.
@@ -101,25 +101,25 @@ Before every command below, repeat the active-writer check, confirm the matching
 1. Maint apply
 
 ```bash
-node scripts/data/maint/sync-landing-to-maint.mjs --apply=true --database=terria_v1_maint --scopes=npcs
+node pipelines/maint/sync-landing-to-maint.mjs --apply=true --database=terria_v1_maint --scopes=npcs
 ```
 
 2. Relation apply
 
 ```bash
-node scripts/data/relation/sync-maint-to-relation.mjs --apply=true --create-database=true --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation
+node pipelines/relation/sync-maint-to-relation.mjs --apply=true --create-database=true --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 3. Projection / local core apply
 
 ```bash
-node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=items,npcs,projectiles
+node pipelines/relation/sync-projection-to-local-core-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=items,npcs,projectiles
 ```
 
 4. Local compatibility apply
 
 ```bash
-node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation
+node pipelines/relation/sync-relation-to-local-compat-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 ## Publish Decision
@@ -135,9 +135,9 @@ Treat the chain as A2 publishable input only when relation health has no blockin
 ## Validation
 
 ```bash
-node --test scripts/data/relation/relation-health-report.test.mjs
-node --check scripts/data/relation/relation-health-report.mjs
-node scripts/data/relation/relation-health-report.mjs --print-checklist=true
+node --test pipelines/relation/relation-health-report.test.mjs
+node --check pipelines/relation/relation-health-report.mjs
+node pipelines/relation/relation-health-report.mjs --print-checklist=true
 rg -n "unresolved_item_npc_relation_audits" docs/audits/relation-warning-policy.md
 rg -n "Do not run two DB apply scripts in parallel" docs/runbooks/npc-item-source-maintenance-chain.md
 ```

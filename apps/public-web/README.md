@@ -3,9 +3,8 @@
 `apps/public-web` is the maintained public Nuxt application. Its formal package
 identity is `terrapedia-public-web`.
 
-During the compatibility window, the historical `front-nuxt/` path is a
-symlink to this directory. New commands and documentation use the canonical
-path; removing the alias requires a separate consumer-scan checkpoint.
+The historical `front-nuxt/` entrypoint was retired after the compatibility
+window closure. New commands and documentation use this canonical path.
 
 ```bash
 cd apps/public-web

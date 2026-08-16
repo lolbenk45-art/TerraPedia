@@ -2,24 +2,30 @@
 
 TerraPedia is a Terraria knowledge base project with:
 
-- `services/catalog-api`: Spring Boot backend (`back` remains a compatibility symlink)
-- `apps/public-web`: maintained user-facing Nuxt frontend (`front-nuxt` remains a compatibility symlink)
-- `apps/admin-console`: admin/data-query frontend (`data-query-app` remains a compatibility symlink)
-- `packages/content-runtime`: shared article/content runtime (`shared/article-runtime` remains a compatibility symlink)
-- `pipelines`: data acquisition, normalization, audit, import, and workflow tooling (`scripts/data` remains a compatibility symlink)
+- `services/catalog-api`: Spring Boot backend
+- `apps/public-web`: maintained user-facing Nuxt frontend
+- `apps/admin-console`: admin/data-query frontend
+- `packages/content-runtime`: shared article/content runtime
+- `pipelines`: data acquisition, normalization, audit, import, and workflow tooling
 - `data`: data layers and generated datasets used by import and sync tooling
 - `docs`: current architecture, audits, plans, project governance, runbooks, research notes, and `superpowers` outputs
 - `docs/project-governance`: current project facts, workflow, long-term plans, reference docs, and historical project planning records
 - `reports`: local logs, screenshots, benchmarks, and other generated run artifacts; long-lived reports should move to `docs/audits`
 - `platform`: local, operations, and developer tooling entrypoints
-- `scripts`: data automation and compatibility symlinks for platform entrypoints
+- `agent`: shared portable skill source and cross-model entry adapters
+- `scripts`: shared adapters and repository tooling
 
-The physical structure migration is in its compatibility window. Target app
-and platform paths are now authoritative in this migration worktree; legacy
-paths are symlinks and must not become divergent write targets. See the [v2
-structure baseline](docs/architecture/project-structure-v2.md) and the
+The physical structure migration is complete and its compatibility window is
+closed. The canonical roots above are the only maintained code entrypoints;
+former legacy paths are retired. See the [v2 structure baseline](docs/architecture/project-structure-v2.md) and the
 [2026-08-16 inventory](docs/audits/structure/project-structure-inventory-2026-08-16.md)
 for the current-to-target map and compatibility boundaries.
+
+Deployable relationships are indexed in
+[docs/architecture/deployable-components.md](docs/architecture/deployable-components.md):
+`apps/` contains browser deployables, `services/` contains independently
+running APIs, `packages/` contains libraries, and `pipelines/`/`platform/`
+contain operational code with separate validation and write boundaries.
 
 ## Structure Governance
 
@@ -28,7 +34,7 @@ Current structure rules live in:
 - `AGENTS.md`
 - `docs/project-governance/00_CURRENT_SPEC.md`
 - `docs/project-governance/INDEX.md`
-- `docs/architecture/project-structure-redesign-2026-04-27.md`
+- `docs/architecture/project-structure-v2.md`
 - `docs/architecture/file-placement-rules.md`
 
 Before creating new files, decide whether they are code, data, reports, plans, logs, config, build output, or local task context. Do not create temporary files in the repo root.
@@ -39,9 +45,34 @@ Important target boundaries:
 - Long-lived audit reports: `docs/audits/`
 - Task-level execution plans: `docs/plans/`
 - Local task context: `task/`
-- Runtime reports and logs: `reports/runtime/`
+- Ephemeral per-worktree state and logs: `.local/tmp/` and `.local/logs/`
+- Reproducible runtime reports: `reports/runtime/<operation>/`
 - Trusted import inputs: `data/canonical/`
 - Legacy comparison data: `data/legacy/`
+
+`task/` is local process context, never a source of project facts. The tracked
+root `tmp/home-hero-hi-fi/` specimens are historical visual evidence and are
+not a destination for new output. Root `logs/` and `reports/tmp/` are not
+valid output locations. Historical root summaries belong in
+`docs/project-governance/archive/`.
+
+## Agent Assets
+
+`AGENTS.md` is the repository-wide agent entrypoint; `CLAUDE.md` and
+`GEMINI.md` are thin adapters to the same governance sources. Common project
+skills are edited in `agent/skills/` and generated into `.codex/skills/` and
+`.claude/skills/` by `platform/tooling/sync-agent-skills.mjs`.
+
+Run the documented sync after a clean clone or an approved portable-skill
+change:
+
+```bash
+node platform/tooling/sync-agent-skills.mjs --write
+node platform/tooling/sync-agent-skills.mjs --check
+```
+
+The runtime views are generated artifacts. Do not edit them directly or add
+local settings, worktrees, caches, or plugin state to `agent/`.
 
 ## Local Secrets
 

@@ -12,7 +12,7 @@ This repair is a classification and sync task. It does not require crawler execu
 ## Audit
 
 ```bash
-node scripts/data/audit/audit-item-category-taxonomy.mjs \
+node pipelines/audit/audit-item-category-taxonomy.mjs \
   --rawItemPagesDir=/path/to/raw/wiki/item-pages \
   --format=json
 ```
@@ -26,7 +26,7 @@ Expected successful audit shape:
 ## Dry Run
 
 ```bash
-node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
+node pipelines/sync/sync-item-categories-from-wiki-pages.mjs \
   --itemPagesDir=/path/to/raw/wiki/item-pages \
   --apply=false \
   --report=reports/items-wiki-category-sync-$(date +%F).json
@@ -44,7 +44,7 @@ Review the report before applying:
 ## Manual Apply
 
 ```bash
-node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
+node pipelines/sync/sync-item-categories-from-wiki-pages.mjs \
   --itemPagesDir=/path/to/raw/wiki/item-pages \
   --apply=true \
   --report=reports/items-wiki-category-sync-$(date +%F).apply.json
@@ -63,7 +63,7 @@ Do not use this fallback when raw pages are available, when broad taxonomy clean
 Audit:
 
 ```bash
-node scripts/data/audit/audit-item-category-taxonomy.mjs \
+node pipelines/audit/audit-item-category-taxonomy.mjs \
   --fallbackMode=standardized_inference \
   --format=json
 ```
@@ -71,7 +71,7 @@ node scripts/data/audit/audit-item-category-taxonomy.mjs \
 Dry run:
 
 ```bash
-node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
+node pipelines/sync/sync-item-categories-from-wiki-pages.mjs \
   --fallbackMode=standardized_inference \
   --apply=false \
   --report=reports/items-standardized-inference-category-sync-$(date +%F).json

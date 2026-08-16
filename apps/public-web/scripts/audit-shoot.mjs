@@ -1,12 +1,12 @@
 // 审计截图取证:全公开路由 × 双视口(桌面 1440/移动 375),记录状态码、
-// 页高与横向溢出。R2 审查(2026-07-17)的验收基线工具,自 tmp/ 入库。
-// 用法:AUDIT_BASE=http://localhost:15177 AUDIT_OUT=tmp/audit-shots node scripts/audit-shoot.mjs
+// 页高与横向溢出。R2 审查(2026-07-17)的验收基线工具,输出到本地临时目录。
+// 用法:AUDIT_BASE=http://localhost:15177 AUDIT_OUT=.local/tmp/audit-shots node scripts/audit-shoot.mjs
 import { chromium } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
 const BASE = process.env.AUDIT_BASE || 'http://localhost:15177'
-const OUT = path.resolve(process.env.AUDIT_OUT || 'tmp/audit-shots')
+const OUT = path.resolve(process.env.AUDIT_OUT || '.local/tmp/audit-shots')
 mkdirSync(OUT, { recursive: true })
 
 const parseJsonEnv = (name, fallback) => {

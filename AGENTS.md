@@ -17,23 +17,51 @@ reference only unless the current spec explicitly promotes it.
 
 ## Project Map
 
-- `services/catalog-api/`: maintained Spring Boot backend (`back/` is a compatibility symlink during migration).
-- `apps/public-web/`: maintained public Nuxt frontend (`front-nuxt/` is a compatibility symlink during migration).
-- `apps/admin-console/`: maintained admin/data-query Nuxt frontend (`data-query-app/` is a compatibility symlink during migration).
-- `platform/local/`: local stack, smoke, and quality-gate automation (`scripts/dev/` is a compatibility symlink).
-- `platform/operations/`: scheduled/daemon wrappers (`scripts/ops/` is a compatibility symlink).
-- `platform/tooling/`: standalone developer tooling (`scripts/tooling/` is a compatibility symlink).
-- `pipelines/`: crawl, standardize, import, sync, audit, and data workflow tooling (`scripts/data/` is a compatibility symlink).
-- `packages/content-runtime/`: shared article/content runtime (`shared/article-runtime/` is a compatibility symlink).
+- `services/catalog-api/`: maintained Spring Boot backend and only backend source root.
+- `apps/public-web/`: maintained public Nuxt frontend and only public-web source root.
+- `apps/admin-console/`: maintained admin/data-query Nuxt frontend and only admin-console source root.
+- `platform/local/`: local stack, smoke, and quality-gate automation.
+- `platform/operations/`: scheduled/daemon wrappers.
+- `platform/tooling/`: standalone developer tooling.
+- `pipelines/`: crawl, standardize, import, sync, audit, and data workflow tooling.
+- `packages/content-runtime/`: shared article/content runtime.
+- `agent/`: shared portable skill source and thin cross-model agent adapters; runtime views are generated under `.codex/skills/` and `.claude/skills/`.
 - `data/`: tracked data layers and compatibility inputs; never move data blindly.
 - `docs/project-governance/`: current project facts, workflow, long-term governance, reference, archive, and legacy plans.
 - `docs/devlog/`: active task traceability and handoff state.
 - `docs/plans/` and `docs/superpowers/plans/`: task-level executable plans.
 - `docs/audits/`: durable audit evidence and accepted review reports.
 - `reports/`: generated runtime or audit artifacts; promote durable conclusions to `docs/audits/`.
-- `task/`: local task context only, not final authority.
+- `.local/`: ignored per-worktree temporary state and logs; use `.local/tmp/` or `.local/logs/`.
+- `task/`: local task context only, never a source of project facts.
 
 The old `project-plan/` root is retired. Use `docs/project-governance/`.
+
+The 2026-08-16 compatibility window is closed. The former roots
+`front-nuxt/`, `data-query-app/`, `back/`, `shared/article-runtime/`,
+`scripts/dev/`, `scripts/ops/`, `scripts/tooling/`, and `scripts/data/` are
+retired and must not be recreated. Use the canonical roots above; historical
+references belong only in archived or audit evidence.
+
+## Cross-Model Entrypoints
+
+`AGENTS.md` is the repository-wide entrypoint. `CLAUDE.md` and `GEMINI.md` are
+thin adapters that use the same read order and governance sources. All agents
+read `AGENTS.md`, `docs/project-governance/00_CURRENT_SPEC.md`, and
+`docs/project-governance/00_WORKFLOW.md` before task-specific material.
+
+`agent/skills/` is the editable common source for project skills marked
+`portable`. `.codex/skills/` and `.claude/skills/` are generated runtime views;
+do not edit them directly. Generate or refresh views with:
+
+```bash
+node platform/tooling/sync-agent-skills.mjs --write
+```
+
+Check runtime parity with `node platform/tooling/sync-agent-skills.mjs --check`.
+Select a skill by its `description` and read only the skills relevant to the
+task. Tool-specific metadata and local agent state remain outside the common
+source.
 
 ## Work Rules
 
@@ -120,6 +148,9 @@ pointed at open work.
 - Task plans: `docs/plans/` or `docs/superpowers/plans/`
 - Runbooks: `docs/runbooks/`
 - Durable audits: `docs/audits/`
+- Reproducible runtime reports: `reports/runtime/<operation>/`
+- Local temporary state and logs: `.local/tmp/` and `.local/logs/`
+- Historical task summaries: `docs/project-governance/archive/`
 
 ## Commit Checklist
 

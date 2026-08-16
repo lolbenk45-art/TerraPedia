@@ -2,9 +2,9 @@
 
 `pipelines/` is the canonical data lifecycle boundary. It owns source fetch,
 normalization, transformation, canonical projection, audit, import/backfill,
-relation sync, and workflow orchestration. `scripts/data` remains a symlink
-compatibility entrypoint for one migration window; it is not a second writable
-source.
+relation sync, and workflow orchestration. The former `scripts/data` entrypoint
+was removed when the compatibility window closed; this is the only writable
+pipeline source.
 
 Use paths under `pipelines/` in new commands, CI, reports, and generated action
 metadata. Existing reports and historical documents may retain

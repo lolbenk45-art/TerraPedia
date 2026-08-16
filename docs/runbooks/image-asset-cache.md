@@ -26,7 +26,7 @@
 
 ```bash
 git status --short
-cd back
+cd services/catalog-api
 mvn "-Dtest=WikiImageSyncServiceImplTest,ItemImageServiceImplTest,AdminBuffControllerTest" test
 ```
 

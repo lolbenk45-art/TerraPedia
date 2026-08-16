@@ -11,11 +11,19 @@ TerraPedia is a Terraria Chinese data platform with four maintained lines:
 - Spring Boot backend: `services/catalog-api/`
 - data crawl, standardization, import, sync, and audit tooling: `pipelines/` and `data/`
 
-The legacy application and script roots remain symlinks during the compatibility
-window (`front-nuxt/`, `data-query-app/`, `back/`, `shared/article-runtime/`,
-`scripts/dev/`, `scripts/ops/`, `scripts/tooling/`, and `scripts/data/`). They
-are compatibility aliases only; canonical consumers and new writes use the
-target roots documented in `docs/architecture/project-structure-v2.md`.
+Project skills marked `portable` have one editable common source under
+`agent/skills/`. `platform/tooling/sync-agent-skills.mjs` generates the
+tool-discovery views under `.codex/skills/` and `.claude/skills/`; their
+tool-specific metadata remains runtime-owned. `AGENTS.md` is the primary agent
+entrypoint, with `CLAUDE.md` and `GEMINI.md` as thin adapters to the same
+governance sources.
+
+The legacy application and script roots were retired when the 2026-08-16
+compatibility window closed (`front-nuxt/`, `data-query-app/`, `back/`,
+`shared/article-runtime/`, `scripts/dev/`, `scripts/ops/`, `scripts/tooling/`,
+and `scripts/data/`). They must not be recreated. Canonical consumers and new
+writes use the target roots documented in
+`docs/architecture/project-structure-v2.md`.
 
 The retired untracked `front/` directory has been removed. Do not recreate it or
 add a second public frontend implementation under any legacy path.
@@ -99,6 +107,9 @@ or group/other-readable artifact path before it creates a report.
 ## Documentation Placement
 
 - Agent quickstart: `AGENTS.md`
+- Cross-model agent adapters: `CLAUDE.md` and `GEMINI.md`
+- Common project skill source: `agent/skills/`; generated runtime views:
+  `.codex/skills/` and `.claude/skills/`
 - Current project governance: `docs/project-governance/`
 - Active handoff and task traceability: `docs/devlog/`
 - Task-level plans: `docs/plans/` and `docs/superpowers/plans/`

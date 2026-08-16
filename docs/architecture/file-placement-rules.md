@@ -35,6 +35,7 @@ services/
 packages/
 pipelines/
 platform/
+agent/
 scripts/
 data/
 docs/
@@ -45,14 +46,18 @@ task/
 .superpowers/
 ```
 
-`back/`、`front-nuxt/`、`data-query-app/` 以及 `shared/` 只允许作为
-兼容 symlink 存在，不得重新创建物理副本。
+`back/`、`front-nuxt/`、`data-query-app/` 以及 `shared/` 下的旧入口已在
+兼容窗口关闭时删除，不得重新创建；代码必须落在 canonical 边界中。
+
+`agent/` 保存共享 agent 资产；portable skill 源位于 `agent/skills/`，
+运行时副本由同步器生成。`.claude/settings.json`、`.claude/worktrees/`、
+`.superpowers/` 和其他插件/缓存状态不属于该目录，也不得进入 git。
 
 新增顶层目录必须同时满足：
 
 - 现有目录无法表达它的职责。
 - 它会长期存在，而不是一次性任务产物。
-- 已更新 `docs/architecture/project-structure-redesign-2026-04-27.md`。
+- 已更新 `docs/architecture/project-structure-v2.md`。
 - 已在本规则中补充落位说明。
 
 ## 根目录规则
@@ -307,6 +312,22 @@ reports/runtime/
 
 默认不进入 git。
 
+### 本地临时状态和日志
+
+放置位置：
+
+```text
+.local/tmp/
+.local/logs/
+```
+
+规则：
+
+- `.local/` 按 worktree 隔离且默认忽略，不得作为提交、审计或项目事实的唯一来源。
+- 可复现的运行报告必须写入 `reports/runtime/<operation>/`，不能写入 `.local/`。
+- 根 `logs/` 与 `reports/tmp/` 不是有效的新输出位置。
+- 根 `tmp/home-hero-hi-fi/` 是已跟踪的历史高保真标本；保留原状，但不再接受新输出。
+
 ### 历史兼容报告
 
 当前兼容：
@@ -420,6 +441,8 @@ services/catalog-api/target/
 临时文件只能放：
 
 ```text
+.local/tmp/
+.local/logs/
 task/<task>/artifacts/
 task/<task>/logs/
 reports/runtime/
@@ -469,7 +492,7 @@ AI 助手创建文件前必须遵守：
 
 - 输出目录可配置。
 - 默认输出不污染根目录。
-- 默认输出到 `reports/runtime/`、`task/<task>/data/` 或明确的数据层目录。
+- 默认输出到 `.local/tmp/`、`.local/logs/`、`reports/runtime/<operation>/`、`task/<task>/data/` 或明确的数据层目录。
 - 执行日志打印实际输出路径。
 - 写数据库脚本必须打印目标数据库、目标表、输入文件。
 
@@ -479,7 +502,6 @@ AI 助手创建文件前必须遵守：
 .
 data/
 scripts/
-back/
 apps/public-web/
 apps/admin-console/
 ```
