@@ -1,6 +1,6 @@
 ---
 name: git-task-archiver
-description: Route work between git-only execution and lightweight task archiving under a project's `task/` directory. Use when Codex needs to create per-task folders, keep compact Markdown handoff files, classify structured data and non-code artifacts, reduce token waste on repeated follow-up work, or preserve task context without copying code diffs into reports.
+description: Use when repository work needs a compact task archive, handoff folder, artifact classification, or context-preserving summary alongside Git history.
 ---
 
 # Git Task Archiver

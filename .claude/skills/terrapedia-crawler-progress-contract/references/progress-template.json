@@ -1,0 +1,22 @@
+{
+  "actionId": "crawler-task-id",
+  "status": "running",
+  "phase": "fetch",
+  "message": "processed 0/100 records",
+  "current": 0,
+  "total": 100,
+  "startedAt": "2026-05-15T00:00:00.000Z",
+  "generatedAt": "2026-05-15T00:00:00.000Z",
+  "lastHeartbeatAt": "2026-05-15T00:00:00.000Z",
+  "childStatusPath": "reports/backend-refresh/history/backend-data-refresh-YYYY-MM-DDTHH-mm-ss-SSSZ.runtime/crawler-task-id.child-status.json",
+  "batchOffset": 0,
+  "batchLimit": 100,
+  "overallCurrent": 0,
+  "overallTotal": 1000,
+  "percent": 0,
+  "queue": "crawler queue name",
+  "dataStage": "wiki source -> raw/generated output",
+  "nextStep": "standardize output, then run downstream validation",
+  "reportPath": "reports/fetch/crawler-task-id-YYYY-MM-DD.json",
+  "outputPath": "data/generated/crawler-task-output.latest.json"
+}

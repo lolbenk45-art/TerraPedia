@@ -1,6 +1,6 @@
 ---
 name: error-fast-locator
-description: Rapidly triage high-noise failures into minimal, high-signal diagnostics for LLM handoff. Use when Codex sees network errors, missing files, wrong paths, command-not-found output, DNS failures, timeouts, permission errors, import/module lookup failures, or similar execution errors and needs to localize root cause while minimizing token usage.
+description: Use when an agent sees network errors, missing files, wrong paths, command-not-found output, DNS failures, timeouts, permission errors, import failures, or similar noisy execution errors.
 ---
 
 # Error Fast Locator

@@ -31,6 +31,9 @@ apps/public-web/--host/
 # Local verification logs
 **/.verify-*.log
 
+# Per-worktree temporary state and logs
+.local/
+
 # Runtime logs and pid files
 *.log
 *.pid
@@ -93,6 +96,10 @@ Thumbs.db
 *:Zone.Identifier
 .worktrees/
 .claude/
+!.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 
 # Local run artifacts
 reports/run-logs/

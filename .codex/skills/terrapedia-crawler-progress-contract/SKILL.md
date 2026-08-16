@@ -88,7 +88,7 @@ Use the narrow commands for the touched lane, for example:
 node --test pipelines/fetch/fetch-wiki-item-pages.test.mjs
 node --test pipelines/fetch/refresh-target-buff-page-evidence.test.mjs
 node --test pipelines/workflow/run-wiki-sync.test.mjs
-cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test
+cd services/catalog-api && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test
 cd apps/admin-console && node --test tests/crawler-monitor-page-contract.test.mjs
 ```
 

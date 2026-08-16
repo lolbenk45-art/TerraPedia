@@ -1,6 +1,6 @@
 ---
 name: terrapedia-data-refresh-stack-restart
-description: Use when Codex is asked to refresh, update, reload, sync, backfill, or repair TerraPedia data or database and then restart or verify the local project stack, project group, backend, front, admin, or services, including requests like "更新数据和重启项目组", "更新数据库并重启项目", "刷新数据后重启服务", "restart stack after data refresh", or "refresh database and restart local stack".
+description: Use when a TerraPedia data refresh, database repair, or reload must be followed by a local stack restart or verification.
 ---
 
 # Terrapedia Data Refresh Stack Restart

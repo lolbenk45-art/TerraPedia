@@ -1,6 +1,6 @@
 ---
 name: terrapedia-workflow-guard
-description: Enforce the TerraPedia repository workflow for coding, debugging, data backfills, local stack operations, validation, review, and git commits. Use when Codex is asked to fix, modify, implement, investigate, backfill, integrate, test, review, or commit TerraPedia repo work and should follow the project SOP before editing. Not for casual Q&A, translation, or non-repo tasks.
+description: Use when a TerraPedia repository change needs the project workflow for implementation, debugging, data work, local operations, validation, review, or Git closeout.
 ---
 
 # TerraPedia Workflow Guard

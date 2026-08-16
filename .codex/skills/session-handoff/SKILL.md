@@ -110,11 +110,11 @@ When blocked, report the evidence and the smallest safe recovery action. Never r
 ## Portability Contract
 
 - Keep `SKILL.md` standard Markdown with simple YAML frontmatter containing only `name` and `description`.
-- Do not require Codex-only MCP tools, Claude-only tools, plugins, hooks, or proprietary APIs.
+- Do not require vendor-only tools, plugins, hooks, or proprietary APIs.
 - Refer to generic shell execution and Git commands; provide an equivalent command for the host shell when needed.
 - Use relative links inside the skill directory and repository-relative paths in handoff records.
-- `agents/openai.yaml` is optional UI metadata for Codex and must not be required by the workflow.
-- The same `SKILL.md` and references should be byte-identical when installed under `.codex/skills/session-handoff/` and `.claude/skills/session-handoff/`.
+- Runtime metadata is optional UI information and must not be required by the workflow.
+- The same `SKILL.md` and references should be byte-identical in every generated runtime view.
 
 ## Never Do Automatically
 

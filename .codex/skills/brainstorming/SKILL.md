@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: Use when a task involves new behavior, features, components, or other creative implementation decisions that need intent and design clarified first.
 ---
 
 # Brainstorming Ideas Into Designs
@@ -63,7 +63,7 @@ digraph brainstorming {
 }
 ```
 
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**The terminal state is invoking writing-plans.** Do NOT invoke an implementation skill before the design is approved. The next process skill is writing-plans.
 
 ## The Process
 

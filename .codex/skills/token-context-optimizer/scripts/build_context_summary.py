@@ -3,8 +3,8 @@
 Generate a compact markdown summary skeleton for a task handoff.
 
 Usage:
-    python build_context_summary.py --topic "items image backfill" --out G:\\repo\\reports\\context-summaries\\items-image-backfill.md
-    python build_context_summary.py --topic "recipe cn audit" --goal "Audit recipe Chinese names" --files back\\src\\... reports\\recipes中文名回填汇总_2026-04-02.md
+    python build_context_summary.py --topic "items image backfill" --out reports/context-summaries/items-image-backfill.md
+    python build_context_summary.py --topic "recipe cn audit" --goal "Audit recipe Chinese names" --files services\\catalog-api\\src\\... reports\\recipes中文名回填汇总_2026-04-02.md
 """
 
 from __future__ import annotations

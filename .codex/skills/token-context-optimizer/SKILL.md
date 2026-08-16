@@ -1,6 +1,6 @@
 ---
 name: token-context-optimizer
-description: Reduce token waste and context bloat for coding, data, audit, and summary tasks by forcing scoped reads, summary reuse, and staged context compression. Use when Codex is working in long or repeated threads, when a repo contains many reports/logs/generated artifacts, when the user asks to save tokens or optimize context, or when the task risks repeated full-repo or full-log scanning.
+description: Use when coding, data, audit, or summary work spans repeated threads, large reports, generated artifacts, or a context-heavy repository.
 ---
 
 # Token Context Optimizer

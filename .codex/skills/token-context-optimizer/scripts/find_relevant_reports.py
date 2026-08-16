@@ -3,8 +3,8 @@
 Find likely relevant report artifacts in a report-heavy repository.
 
 Usage:
-    python find_relevant_reports.py --root G:\\repo --query "items image backfill"
-    python find_relevant_reports.py --root G:\\repo --query "recipe chinese name" --limit 8
+    python find_relevant_reports.py --root . --query "items image backfill"
+    python find_relevant_reports.py --root . --query "recipe chinese name" --limit 8
 """
 
 from __future__ import annotations

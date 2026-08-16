@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "hash": {
+    "algorithm": "sha256",
+    "normalizeLineEndings": "lf"
+  },
+  "skills": [
+    {
+      "id": "brainstorming",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "scripts/frame-template.html", "scripts/helper.js", "scripts/server.cjs", "scripts/start-server.sh", "scripts/stop-server.sh", "spec-document-reviewer-prompt.md", "visual-companion.md"]
+    },
+    {
+      "id": "dispatching-parallel-agents",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "error-fast-locator",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "references/common-error-patterns.md", "scripts/analyze_error.py"]
+    },
+    {
+      "id": "executing-plans",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "finishing-a-development-branch",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "git-hygiene-guard",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "git-task-archiver",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "assets/dir-readme-template.md", "assets/root-readme-template.md", "assets/summary-template.md", "references/mode-selection.md", "references/summary-rules.md", "references/task-layout.md"]
+    },
+    {
+      "id": "receiving-code-review",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "requesting-code-review",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "code-reviewer.md"]
+    },
+    {
+      "id": "session-handoff",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "references/handoff-template.md"]
+    },
+    {
+      "id": "subagent-driven-development",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "code-quality-reviewer-prompt.md", "implementer-prompt.md", "spec-reviewer-prompt.md"]
+    },
+    {
+      "id": "systematic-debugging",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["CREATION-LOG.md", "SKILL.md", "condition-based-waiting-example.ts", "condition-based-waiting.md", "defense-in-depth.md", "find-polluter.sh", "root-cause-tracing.md", "test-academic.md", "test-pressure-1.md", "test-pressure-2.md", "test-pressure-3.md"]
+    },
+    {
+      "id": "terrapedia-chain-auditor",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-crawler-progress-contract",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "references/progress-template.json"]
+    },
+    {
+      "id": "terrapedia-crawler-workflow-guard",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-daily-project-summary",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-data-refresh-stack-restart",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-devlog-guard",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-plan-auditor",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-task-commit",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "terrapedia-workflow-guard",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "references/terrapedia-workflow.md"]
+    },
+    {
+      "id": "test-driven-development",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "testing-anti-patterns.md"]
+    },
+    {
+      "id": "token-context-optimizer",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "assets/summary-template.md", "references/context-compression-rules.md", "references/project-patterns.md", "references/summary-templates.md", "references/task-routing.md", "references/terrapedia-profile.md", "scripts/build_context_summary.py", "scripts/find_relevant_reports.py"]
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "classification": "external/plugin"
+    },
+    {
+      "id": "using-git-worktrees",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "using-superpowers",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "references/codex-tools.md", "references/copilot-tools.md", "references/gemini-tools.md"]
+    },
+    {
+      "id": "verification-before-completion",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md"]
+    },
+    {
+      "id": "web-access",
+      "classification": "codex-only"
+    },
+    {
+      "id": "writing-plans",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "plan-document-reviewer-prompt.md"]
+    },
+    {
+      "id": "writing-skills",
+      "classification": "portable",
+      "targets": ["codex", "claude"],
+      "files": ["SKILL.md", "anthropic-best-practices.md", "examples/CLAUDE_MD_TESTING.md", "graphviz-conventions.dot", "persuasion-principles.md", "render-graphs.js", "testing-skills-with-subagents.md"]
+    },
+    {
+      "id": "xlab-image-generation",
+      "classification": "codex-only"
+    }
+  ]
+}

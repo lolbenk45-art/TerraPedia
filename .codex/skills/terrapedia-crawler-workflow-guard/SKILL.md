@@ -1,6 +1,6 @@
 ---
 name: terrapedia-crawler-workflow-guard
-description: Use only when Codex is asked to add, edit, review, debug, or run TerraPedia crawler source, crawler tests, or crawler execution scripts, including data/wiki-crawler/src, data/wiki-crawler/tests, pipelines/crawler, crawler-related pipelines/fetch files, and crawler lanes in pipelines/workflow such as item_pages refresh. Do not use for crawler monitor UI/API-only work, generic normalization/import/backfill/relation tasks, docs-only edits, reports-only inspection, or casual Q&A unless the task also edits or runs crawler files.
+description: Use when asked to add, edit, review, debug, or run TerraPedia crawler source, crawler tests, or crawler execution scripts; do not use for monitor-only, normalization, import, or docs-only work.
 ---
 
 # TerraPedia Crawler Workflow Guard

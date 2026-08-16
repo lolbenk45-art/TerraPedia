@@ -1,6 +1,6 @@
 ---
 name: terrapedia-chain-auditor
-description: Audit TerraPedia data, workflow, and acceptance chains before adding or changing features. Use when Codex needs to inspect a TerraPedia chain, verify source-of-truth flow, evidence freshness, refresh plans, quality-gate coverage, manual-only safety boundaries, or decide whether the project foundation is stable enough for the next feature.
+description: Use when auditing a TerraPedia data, workflow, or acceptance chain before adding or changing a feature.
 ---
 
 # TerraPedia Chain Auditor

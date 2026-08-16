@@ -15,7 +15,7 @@ Common commands:
 ```bash
 bash ./platform/local/start-local-stack.sh
 bash ./platform/local/stop-local-stack.sh
-cd back
+cd services/catalog-api
 mvn -Dtest=ClassA,ClassB test
 mvn test
 cd apps/admin-console
