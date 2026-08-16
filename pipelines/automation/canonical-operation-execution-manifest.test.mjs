@@ -82,10 +82,10 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 54 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('manifest builder covers 55 governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 54);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 53);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 55);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 54);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -853,6 +853,7 @@ test('formal child executors bind the exact packet verifier into their code bund
     'automation-biomes-l1-policy-promotion',
     'automation-biomes-l2-promotion',
     'automation-biomes-scheduler-activation',
+    'automation-crawler-v2-scheduler-activation',
   ]) {
     const manifest = buildCanonicalOperationExecutionManifest({
       repoRoot,
@@ -1024,6 +1025,13 @@ test('formal cutover and activation manifests freeze exact safety-critical argum
       '--operation-id=automation-biomes-scheduler-activation',
       '--input=reports/authorization/canonical/automation-biomes-scheduler-activation.input.json',
       '--output=reports/authorization/canonical/automation-biomes-scheduler-activation.result.json',
+      '--apply=true',
+    ],
+    'automation-crawler-v2-scheduler-activation': [
+      'node', 'pipelines/automation/run-automation-policy-decision.mjs',
+      '--operation-id=automation-crawler-v2-scheduler-activation',
+      '--input=reports/authorization/canonical/automation-crawler-v2-scheduler-activation.input.json',
+      '--output=reports/authorization/canonical/automation-crawler-v2-scheduler-activation.result.json',
       '--apply=true',
     ],
   };

@@ -291,6 +291,11 @@ const CODE_PATHS = Object.freeze({
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
   ]),
+  'automation-crawler-v2-scheduler-activation': Object.freeze([
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+  ]),
   ...Object.fromEntries(['audio', 'bosses', 'shimmer'].flatMap((domainId) => [
     [`automation-${domainId}-l0-bootstrap`, Object.freeze([
       'pipelines/automation/bootstrap-automation-policy.mjs',
@@ -1221,6 +1226,7 @@ function buildDefinition(
     'automation-biomes-second-l1': biomesApplyDefinition({ operationId }),
     'automation-biomes-l2-promotion': policyDecisionDefinition({ operationId }),
     'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
+    'automation-crawler-v2-scheduler-activation': policyDecisionDefinition({ operationId }),
     ...Object.fromEntries(['audio', 'bosses', 'shimmer'].flatMap((domainId) => [
       [`automation-${domainId}-l0-bootstrap`, supplementaryBootstrapDefinition({
         operationId: `automation-${domainId}-l0-bootstrap`,

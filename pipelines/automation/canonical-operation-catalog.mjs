@@ -43,6 +43,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-second-l1',
   'automation-biomes-l2-promotion',
   'automation-biomes-scheduler-activation',
+  'automation-crawler-v2-scheduler-activation',
   'automation-audio-l0-bootstrap',
   'automation-audio-l1-policy-promotion',
   'automation-audio-first-l1',
@@ -222,6 +223,9 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'automation-biomes-scheduler-activation': Object.freeze([
     'reports/authorization/canonical/automation-biomes-scheduler-activation.input.json',
   ]),
+  'automation-crawler-v2-scheduler-activation': Object.freeze([
+    'reports/authorization/canonical/automation-crawler-v2-scheduler-activation.input.json',
+  ]),
   'automation-audio-l0-bootstrap': Object.freeze([
     'reports/authorization/canonical/automation-audio-l0-bootstrap.input.json',
   ]),
@@ -310,6 +314,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-biomes-second-l1': 'pipelines/automation/run-biomes-automation-operation.mjs',
   'automation-biomes-l2-promotion': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-biomes-scheduler-activation': 'pipelines/automation/run-automation-policy-decision.mjs',
+  'automation-crawler-v2-scheduler-activation': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-audio-l0-bootstrap': 'pipelines/automation/bootstrap-automation-policy.mjs',
   'automation-audio-l1-policy-promotion': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-audio-first-l1': 'pipelines/automation/run-supplementary-domain-l1-operation.mjs',

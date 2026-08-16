@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-16 11:04 CST by Codex
+Last updated: 2026-08-16 21:51 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
@@ -38,6 +38,13 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   Shimmer deterministic probe repair and two natural-sweep acceptance complete;
   commits `a416fe20`, `1623c708`.
 
+- **Shimmer evidence reconciliation**；owner: Codex；status: closed；branch:
+  `feat/supplementary-domains-readiness`；entry:
+  `docs/devlog/entries/2026-08-16-shimmer-evidence-reconciliation.md`；the
+  governed activation bridge and local automatic-L1 idempotent reconciliation
+  are verified. The commit scope excludes private generation, authorization,
+  and runtime evidence artifacts, which remain preserved locally.
+
 - **附加域 L1 自动化入库**（Shimmer、Audio、Bosses）；owner: Codex；status: closed；branch: `feat/supplementary-domains-readiness`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: three first-L1 Owner applies, source-only scheduler preflight, and reviewer re-check complete；contract handoff: `docs/superpowers/specs/2026-08-14-supplementary-domains-l1-automation-design.md`；implementation plan: `docs/superpowers/plans/2026-08-14-supplementary-domains-l1-automation.md`；result: three formal applies completed and scheduler is enabled for changed-only default previews；boundary: `L1/ACTIVE`, one Owner approval per apply, no L2 or Boss loot；commit: `c698a034`. Runtime restart and regenerated scheduler preflight are deferred until the unrelated live Buff task is terminal.
 - 已确认的物品、NPC 与文章高保真稿正在正式接入；Item 已在 `8d459fe1` 建立检查点，NPC 已在 `3d9045fa` 建立检查点。Article 最终裁决保留正式 `/articles` 舞台，将搜索上移到 mast、首页最新投稿收敛为 6 篇，并新增无侧栏的四列 `/articles/archive` 承担 12 篇分页与搜索。owner: Codex；status: active；branch: `ux/detail-pages-redesign`；worktree: `/home/lolben/TerraPedia`；parent: none；dependencies: 书面设计复核、实施计划、合同优先实现与用户视觉验收；contract handoff: `docs/superpowers/specs/2026-07-30-article-discovery-archive-split-design.md`，只消费真实 DTO 或明确标注的展示派生值。
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
@@ -52,11 +59,20 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
 ## Active Focus
 
-Supplementary-domain scheduler activation is now **enabled**, `changed-only`,
-with a 60-minute interval. The prior Buff task is terminal (`388/388`, zero
-failures), and no manual sweep was invoked. The next scheduler preflight must
-be collected after the supplementary source-probe follow-on is implemented and
-the backend is restarted with the final source-only filter.
+Shimmer's bounded local automatic-L1 verification is complete as an idempotent
+reconciliation. The standard stack is live on backend `18091`, public `5177`,
+admin `3004`, MySQL `13306`, and Redis `6380`; the maintained backend uses the
+explicit `TERRAPEDIA_CRAWLER_QUEUE_V2_REPO_ROOT` override. The governed
+activation bridge consumed decision identity
+`automation-crawler-v2-scheduler-activation-20260816-01` (DB row `4`, policy
+set hash `sha256:b4eb34d...`). One local-source Shimmer run reached terminal
+progress and reconciled the already committed run
+`shimmer_l1_auto_ced80850ba13fc759bca53f54ca9cafb`; no duplicate write or fresh
+`8 -> 9` transaction occurred. Read-only reconciliation remains
+`279/248/121/29`, generation `8`, with scheduler restored to `enabled=true`,
+`changed-only`, one minute, and healthy queue/reconciler state. No full Wiki
+extraction, L2 promotion, Boss loot, direct SQL mutation, commit, push, or
+merge was performed.
 
 The follow-up `Crawler Auto-Domain Consumption And Resume` task is active on
 this branch. It repairs source-manifest consumption and three-attempt checkpoint
@@ -191,6 +207,16 @@ Root governance files `03`, `04`, and `07-12` were removed from the current tree
   and backend test compilation.
 
 ## Next Agent Should Start Here
+
+- Shimmer automation has a verified idempotent local-source result. Read
+  `entries/2026-08-16-shimmer-evidence-reconciliation.md` and
+  `reports/backend-refresh/history/shimmer-local-automatic-l1-20260816-01/`:
+  both runner and preview progress are terminal `completed`, the committed run
+  is `COMPLETED/COMMITTED` at generation `8`, and the current scheduler is
+  enabled in `changed-only` mode at one minute. The current source produced no
+  fresh `8 -> 9` write; preserve the protected generation and authorization
+  artifacts. Do not rerun, apply, or synthesize a decision unless the local
+  source changes and a new operation-level authorization is present.
 
 - The dark discovery page was repaired after acceptance was withheld: all four `--article-approved-*` surfaces were transparent tints of `--tp-color-page` and therefore resolved back to the ground in dark, and the latest-submission rows now use the user-selected G3 two-column card grid at the darkest L0 fill. Details, the one-for-one contract migration, and byte-level light-theme non-regression proof are in `entries/2026-07-29-approved-public-pages-production.md`.
 
