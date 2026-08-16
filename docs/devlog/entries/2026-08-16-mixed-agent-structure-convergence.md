@@ -10,6 +10,8 @@
 - Branch: `docs/mixed-agent-structure-convergence`
 - Worktree: `/home/lolben/TerraPedia/.worktrees/mixed-agent-structure-convergence`
 - Base: `9f386e40`
+- Integration: fast-forwarded into `feat/supplementary-domains-readiness` at
+  `0db183d3`; literal `main` was not changed.
 - Related docs: `docs/superpowers/plans/2026-08-16-mixed-agent-structure-convergence.zh-CN.md`, `docs/superpowers/plans/2026-08-16-mixed-agent-structure-convergence.en-US.md`, `docs/architecture/project-structure-v2.md`
 - Related prior entries: `docs/devlog/entries/2026-08-16-project-structure-professionalization.md`
 
@@ -65,9 +67,9 @@
   descriptions, provider-tool references, example paths, and external links.
   Shared fallback guidance covers missing subagents, browser tools, and
   PowerShell; no provider-specific tool is a portable runtime dependency.
-- Generated views are currently unstaged by design. The final focused commit
-  must run `--check` immediately before and after explicitly staging its
-  generated file list; no commit or push has been authorized.
+- Generated views are committed as part of the focused task commits. Future
+  portable-skill changes must run `node platform/tooling/sync-agent-skills.mjs
+  --check` before staging their explicit generated file list.
 
 ## Task 5 Deployable Boundaries
 
@@ -195,32 +197,31 @@
 - Completed: Task 6 temporary-artifact inventory and historical-summary
   archival, Task 7 current-reference repair and evidence scan, and Task 8
   focused acceptance evidence in the dedicated worktree.
-- Completed: the eight compatibility symlinks are removed in this worktree and
-  the stale compatibility contract and live E2E consumer are repaired. The
-  final current-source scan and focused validation pass; the explicit staging/
-  commit gate is now the only remaining step.
+- Completed: the eight compatibility symlinks are removed and the stale
+  compatibility contract and live E2E consumer are repaired. The final
+  current-source scan and focused validation passed, then the four focused
+  commits were fast-forwarded into `feat/supplementary-domains-readiness` at
+  `0db183d3`.
 
 ## Residual Risks
 
-- The current primary worktree contains unrelated Shimmer and authorization
-  changes; all future implementation must use this dedicated worktree and
-  explicit staging.
+- The primary worktree's user-owned Shimmer and authorization changes were
+  restored after integration and remain unstaged. `stash@{0}` is retained as an
+  additional recovery point until the user explicitly authorizes removal.
 - The five quality-gate fixture failures remain environment evidence gaps owned
   by the protected primary worktree. The compatibility-window closeout is
   limited to alias deletion, the related current consumers, and documented
   path-contract evidence.
   Generated skill views must not drift while later structure documentation is
   edited.
-- The approved plan and handoff files remain uncommitted. They are present only
-  in the primary and dedicated implementation worktrees until a later focused
-  documentation commit is explicitly authorized.
+- The local external/plugin `ui-ux-pro-max` directory must stay ignored while
+  generated portable `.claude/skills/**` views remain tracked.
 
 ## Follow-up
 
-- The user has authorized the focused closeout. The next action is to re-run
-  the path/structure contracts after the compatibility-contract repair, stage
-  only this task's files, and commit. Do not copy protected authorization
-  fixtures or touch Shimmer data to make the quality gate green.
+- No further structure implementation is pending. Do not push, remove the
+  dedicated worktree, delete its source branch, or drop `stash@{0}` without
+  separate user authorization.
 
 ## Optional: Cross-Review
 
@@ -246,5 +247,10 @@
 
 ## Commits
 
-- User authorization covers this focused structure closeout. Validation and
-  review gates are clear; `commit SHA pending in final response`.
+- Focused task commits: `c7f28af5`, `1b9d68e9`, `cdc63cc0`, `0db183d3`.
+- Integration: the source branch fast-forwarded into
+  `feat/supplementary-domains-readiness` at `0db183d3`; literal `main` was not
+  touched.
+- Post-integration correction: restore the protected local data, ignore the
+  external/plugin directory exactly, and reconcile the handoff record;
+  `commit SHA pending in final response`.

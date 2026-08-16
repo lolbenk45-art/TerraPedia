@@ -100,6 +100,8 @@ Thumbs.db
 .claude/*
 !.claude/skills/
 !.claude/skills/**
+# This externally installed plugin is local state, not a generated portable view.
+.claude/skills/ui-ux-pro-max/
 
 # Local run artifacts
 reports/run-logs/

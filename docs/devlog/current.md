@@ -1,9 +1,8 @@
 # Current Devlog
 
-Last updated: 2026-08-16 10:16 CST by Codex
+Last updated: 2026-08-16 10:59 CST by Codex
 
-Active branch: `docs/mixed-agent-structure-convergence` (dedicated worktree;
-primary worktree remains protected)
+Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
 ## Recently Closed
 
@@ -22,6 +21,16 @@ primary worktree remains protected)
   review repair commit: `322a540f`; timestamp closeout: `9b2d7c53`; second
   review pass synchronized the remaining current governance companions and
   crawler workflow skill.
+
+- **Mixed-agent structure convergence**; owner: Codex; status: closed;
+  source branch/worktree: `docs/mixed-agent-structure-convergence` /
+  `/home/lolben/TerraPedia/.worktrees/mixed-agent-structure-convergence`;
+  fast-forward integrated into `feat/supplementary-domains-readiness` at
+  `0db183d3`. The common `agent/skills` source, generated runtime views,
+  deployable boundaries, local-artifact rules, and legacy-alias closeout are
+  recorded in `entries/2026-08-16-mixed-agent-structure-convergence.md`.
+  The three protected Shimmer/authorization paths and 24 local generation files
+  were restored unstaged after integration; `stash@{0}` remains preserved.
 
 - **手动与自动双路径真实入库验收**；owner: Codex；status: closed；branch:
   `feat/supplementary-domains-readiness`；entry:
