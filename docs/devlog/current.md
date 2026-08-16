@@ -1,8 +1,9 @@
 # Current Devlog
 
-Last updated: 2026-08-16 03:46 CST by Codex
+Last updated: 2026-08-16 10:16 CST by Codex
 
-Active branch: `feat/supplementary-domains-readiness` (primary worktree)
+Active branch: `docs/mixed-agent-structure-convergence` (dedicated worktree;
+primary worktree remains protected)
 
 ## Recently Closed
 

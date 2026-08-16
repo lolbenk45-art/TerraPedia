@@ -602,7 +602,7 @@ e2e_environment=(
 )
 
 port_is_unbound "$backend_port"
-start_owned_group 'backend' "$repo_root/back" backend_pid backend_group mvn -q spring-boot:run
+start_owned_group 'backend' "$repo_root/services/catalog-api" backend_pid backend_group mvn -q spring-boot:run
 wait_for_owned_listener 'backend' "$backend_port" "$backend_group"
 
 for attempt in $(seq 1 60); do

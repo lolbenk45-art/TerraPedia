@@ -19,21 +19,18 @@
   "applications": {
     "publicWeb": {
       "currentPath": "apps/public-web",
-      "legacyPath": "front-nuxt",
       "targetPath": "apps/public-web",
       "packageName": "terrapedia-public-web",
       "status": "maintained"
     },
     "adminConsole": {
       "currentPath": "apps/admin-console",
-      "legacyPath": "data-query-app",
       "targetPath": "apps/admin-console",
       "packageName": "terrapedia-admin-console",
       "status": "maintained"
     },
     "catalogApi": {
       "currentPath": "services/catalog-api",
-      "legacyPath": "back",
       "targetPath": "services/catalog-api",
       "artifactId": "terrapedia-catalog-api",
       "status": "maintained"
@@ -85,27 +82,14 @@
   "commands": {
     "start": "platform/local/start-local-stack.sh",
     "stop": "platform/local/stop-local-stack.sh",
-    "qualityGate": "platform/local/quality-gate.sh",
-    "legacyStart": "scripts/dev/start-local-stack.sh",
-    "legacyStop": "scripts/dev/stop-local-stack.sh",
-    "legacyQualityGate": "scripts/dev/quality-gate.sh"
+    "qualityGate": "platform/local/quality-gate.sh"
   },
-    "compatibility": {
+  "compatibility": {
     "sharedDataRootEnv": "TERRAPEDIA_SHARED_DATA_ROOT",
     "projectRootEnv": "TERRAPEDIA_PROJECT_ROOT",
     "worktreeRootEnv": "WORKTREE_ROOT",
     "crawlerProgressEnv": "TERRAPEDIA_CRAWLER_PROGRESS_PATH",
-    "aliases": {
-      "front-nuxt": "apps/public-web",
-      "data-query-app": "apps/admin-console",
-      "back": "services/catalog-api",
-      "shared/article-runtime": "packages/content-runtime",
-      "scripts/dev": "platform/local",
-      "scripts/ops": "platform/operations",
-      "scripts/tooling": "platform/tooling",
-      "scripts/data": "pipelines"
-    },
-    "migrationStatus": "compatibility-window",
+    "migrationStatus": "closed",
     "canonicalRoots": {
       "publicWeb": "apps/public-web",
       "adminConsole": "apps/admin-console",

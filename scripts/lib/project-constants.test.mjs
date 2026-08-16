@@ -17,12 +17,14 @@ test('loads the project constants and exposes semantic roots', () => {
 
   assert.equal(constants.project.id, 'terrapedia');
   assert.equal(constants.applications.publicWeb.currentPath, 'apps/public-web');
-  assert.equal(constants.applications.publicWeb.legacyPath, 'front-nuxt');
   assert.equal(constants.applications.adminConsole.currentPath, 'apps/admin-console');
   assert.equal(constants.applications.catalogApi.currentPath, 'services/catalog-api');
   assert.equal(constants.dataLayers.standardized, 'data/standardized');
   assert.equal(constants.crawler.monitorProgress, 'generated/wiki-sync-progress.latest.json');
-  assert.equal(constants.compatibility.aliases['scripts/data'], 'pipelines');
+  assert.equal(constants.compatibility.migrationStatus, 'closed');
+  assert.equal('aliases' in constants.compatibility, false);
+  assert.equal('legacyPath' in constants.applications.publicWeb, false);
+  assert.equal('legacyStart' in constants.commands, false);
 });
 
 test('resolves relative constants from an explicit repository root', () => {
