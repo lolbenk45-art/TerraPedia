@@ -40,6 +40,8 @@ const HISTORICAL_DISPOSITION_CANDIDATE_ROOT =
   'reports/authorization/canonical/l1-historical-source-hash-disposition/';
 const HISTORICAL_DISPOSITION_CANDIDATE_PATH_PATTERN =
   /^reports\/authorization\/canonical\/l1-historical-source-hash-disposition\/(items|projectiles|shimmer)\/([a-f0-9]{64})\/candidate\.json$/;
+const HISTORICAL_DISPOSITION_PACKET_PATH_PATTERN =
+  /^reports\/authorization\/canonical\/l1-historical-source-hash-disposition\/(items|projectiles|shimmer)\/([a-f0-9]{64})\/packet\.json$/;
 const EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS = Object.freeze({
   'canonical-item-image-projection-apply': Object.freeze({
     attemptKey: 'itemImageProjectionAttempt',
@@ -252,13 +254,22 @@ export function buildCanonicalAuthorizationRequestForOperation({
   generatedAt = new Date().toISOString(),
   expiresAt = new Date(Date.parse(generatedAt) + 24 * 60 * 60 * 1000).toISOString(),
 } = {}) {
-  return buildCanonicalAuthorizationRequest({
-    ...resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest }),
+  const resolved = resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest });
+  const request = buildCanonicalAuthorizationRequest({
+    ...resolved,
     serverFingerprint,
     policyRows,
     generatedAt,
     expiresAt,
   });
+  if (operationId !== HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) return request;
+  const scope = resolved.executionManifest?.scope;
+  if (!scope || typeof scope !== 'object' || Array.isArray(scope)) {
+    throw new Error('historical disposition execution manifest scope is required');
+  }
+  const payload = { ...request, scope };
+  delete payload.requestHash;
+  return Object.freeze({ ...payload, requestHash: hashJson(payload) });
 }
 
 export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest = null }) {
@@ -1468,6 +1479,47 @@ function exactAttemptAuthorizationCliPaths({
   outputPath,
   requestPath = null,
 }) {
+  if (operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) {
+    const scope = executionManifest?.scope;
+    const domainId = requireText(scope?.domainId, 'historical disposition manifest scope domain');
+    const candidateArtifactHash = requireHash(
+      scope?.candidateArtifactHash,
+      'historical disposition manifest candidate artifact hash',
+    );
+    const expectedCandidatePath = `${HISTORICAL_DISPOSITION_CANDIDATE_ROOT}${domainId}/${candidateArtifactHash.slice(7)}/candidate.json`;
+    const candidateBinding = executionManifest?.historicalSourceHashDisposition
+      ?? executionManifest?.historicalSourceHashDispositionCandidate
+      ?? executionManifest?.historicalDispositionCandidate
+      ?? executionManifest?.candidate;
+    if (!candidateBinding || requireNormalizedPath(
+      candidateBinding.candidatePath ?? candidateBinding.path,
+      'historical disposition candidate path',
+    ) !== expectedCandidatePath) {
+      throw new Error('historical disposition manifest candidate path does not match its scope');
+    }
+    const expectedPacketPath = `${HISTORICAL_DISPOSITION_CANDIDATE_ROOT}${domainId}/${candidateArtifactHash.slice(7)}/packet.json`;
+    const expectedRequestPath = `${HISTORICAL_DISPOSITION_CANDIDATE_ROOT}${domainId}/${candidateArtifactHash.slice(7)}/request.json`;
+    if (!HISTORICAL_DISPOSITION_PACKET_PATH_PATTERN.test(expectedPacketPath)) {
+      throw new Error('historical disposition manifest scope is not a supported candidate path');
+    }
+    const normalizedOutput = requireNormalizedPath(outputPath, 'historical disposition authorization output path');
+    const expectedOutput = mode === 'request' ? expectedRequestPath : expectedPacketPath;
+    if (normalizedOutput !== expectedOutput) {
+      throw new Error(`historical disposition ${mode} output must be the exact candidate-scoped ${path.posix.basename(expectedOutput)} path`);
+    }
+    if (mode === 'authorize') {
+      const normalizedRequest = requireNormalizedPath(requestPath, 'historical disposition request path');
+      if (normalizedRequest !== expectedRequestPath) {
+        throw new Error('historical disposition authorization must read the exact candidate-scoped request path');
+      }
+    }
+    const output = assertRepositoryPathConfinement({
+      repoRoot,
+      filePath: path.resolve(repoRoot, normalizedOutput),
+      label: `historical disposition ${mode} output`,
+    });
+    return { output, noOverwrite: true };
+  }
   const operation = EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS[operationId];
   if (operation == null) {
     return { output: path.resolve(outputPath), noOverwrite: false };

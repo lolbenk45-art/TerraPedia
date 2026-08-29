@@ -83,6 +83,34 @@ test('approval changes only the review envelope and preserves the exact content 
   });
 });
 
+test('binds each disposition to its candidate-scoped packet path so independent packets can coexist', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-scoped-packet-'));
+  const fixture = authorizedFixture({
+    repoRoot,
+    domainId: 'items',
+    sourceBytes: Buffer.from('{"records":[21]}\n'),
+  });
+  const packetPathRelative = `reports/authorization/canonical/l1-historical-source-hash-disposition/items/${fixture.candidate.artifactHash.slice(7)}/packet.json`;
+  const packetPath = path.join(repoRoot, packetPathRelative);
+  const packetBytes = fs.readFileSync(fixture.packetPath);
+  fs.mkdirSync(path.dirname(packetPath), { recursive: true });
+  fs.writeFileSync(packetPath, packetBytes, { mode: 0o600 });
+  const authorizationContext = {
+    ...fixture.authorizationContext,
+    packetPath,
+    packetPathRelative,
+    packetFileSha256: byteHash(packetBytes),
+  };
+
+  assert.doesNotThrow(() => approveHistoricalSourceHashDisposition({
+    candidate: fixture.candidate,
+    authorizationContext,
+    currentTechnicalInput: fixture.currentTechnicalInput,
+    repoRoot,
+    now: '2026-08-29T05:03:00.000Z',
+  }));
+});
+
 test('approval rejects bare Owner fields even when they look valid', () => {
   const candidate = buildHistoricalSourceHashDisposition({
     domainId: 'items',

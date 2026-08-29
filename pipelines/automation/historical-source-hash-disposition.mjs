@@ -40,10 +40,25 @@ const REQUIRED_TECHNICAL_FIELDS = Object.freeze([
   'executionManifestHash',
 ]);
 const PACKET_FLAT_PATH = 'reports/authorization/canonical/automation-l1-historical-source-hash-disposition.packet.json';
+const PACKET_SCOPED_PATH_PATTERN = new RegExp(
+  `^${escapeRegExp(DISPOSITION_ROOT)}(items|projectiles|shimmer)/([a-f0-9]{64})/packet\\.json$`,
+);
 const MAX_AUTHORIZATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID = 'automation-l1-historical-source-hash-disposition';
 export const HISTORICAL_SOURCE_HASH_DISPOSITION_DOMAINS = Object.freeze(Object.keys(DOMAIN_RUN_IDS));
+
+/**
+ * Return the immutable packet path for one candidate scope. The legacy flat
+ * path remains readable for backwards compatibility, while new packets use
+ * this candidate-scoped path so independent dispositions cannot overwrite
+ * each other's packet bytes.
+ */
+export function historicalSourceHashDispositionPacketPath({ domainId, candidateArtifactHash } = {}) {
+  const domain = requireDomain(domainId);
+  const hash = requireHash(candidateArtifactHash, 'historical disposition candidate artifact hash');
+  return `${DISPOSITION_ROOT}${domain}/${hash.slice(7)}/packet.json`;
+}
 
 export function buildHistoricalSourceHashDisposition({
   domainId,
@@ -156,6 +171,10 @@ function verifyBoundAuthorizationContext({
     authorizationContext.packetPathRelative,
     packetPath,
     root,
+    {
+      domainId: candidate.domainId,
+      candidateArtifactHash: candidate.artifactHash,
+    },
   );
   const confinedPacket = assertRepositoryOrdinaryFile({
     repoRoot: root,
@@ -237,14 +256,31 @@ function verifyBoundAuthorizationContext({
   };
 }
 
-function requireCanonicalPacketPath(value, absolutePath, repoRoot) {
+function requireCanonicalPacketPath(value, absolutePath, repoRoot, scope = {}) {
   const relative = requireText(value, 'authorization packet relative path').replaceAll('\\', '/');
   const expectedAbsolute = path.resolve(repoRoot, relative);
-  if (expectedAbsolute !== absolutePath
-      || relative !== PACKET_FLAT_PATH) {
+  if (expectedAbsolute !== absolutePath) {
     throw new Error('authorization packet path must be the exact canonical historical-disposition packet path');
   }
+  assertCanonicalPacketScope(relative, scope);
   return relative;
+}
+
+function assertCanonicalPacketScope(relative, { domainId, candidateArtifactHash } = {}) {
+  if (relative === PACKET_FLAT_PATH) return;
+  const match = PACKET_SCOPED_PATH_PATTERN.exec(relative);
+  if (!match) {
+    throw new Error('authorization packet path must be the exact canonical historical-disposition packet path');
+  }
+  if (domainId != null && match[1] !== domainId) {
+    throw new Error('authorization packet path domain does not match the disposition scope');
+  }
+  if (candidateArtifactHash != null && match[2] !== requireHash(
+    candidateArtifactHash,
+    'historical disposition candidate artifact hash',
+  ).slice(7)) {
+    throw new Error('authorization packet path artifact hash does not match the disposition scope');
+  }
 }
 
 function assertCompletePacketTechnicalIdentity(packet) {
@@ -500,7 +536,10 @@ export function readHistoricalSourceHashDisposition({
 
 function readAndVerifyBoundAuthorizationPacket(repoRoot, disposition, { now = new Date().toISOString() } = {}) {
   const approval = disposition.approval;
-  const packetPath = requireCanonicalPacketRelativePath(approval.packetPath);
+  const packetPath = requireCanonicalPacketRelativePath(approval.packetPath, {
+    domainId: disposition.domainId,
+    candidateArtifactHash: disposition.scope?.candidateArtifactHash,
+  });
   const absolute = assertRepositoryOrdinaryFile({
     repoRoot,
     filePath: path.resolve(repoRoot, packetPath),
@@ -570,12 +609,10 @@ function assertAuthorizationWindow(packet, now) {
   }
 }
 
-function requireCanonicalPacketRelativePath(value) {
+function requireCanonicalPacketRelativePath(value, scope = {}) {
   const normalized = requireText(value, 'historical disposition authorization packet path')
     .replaceAll('\\', '/');
-  if (normalized !== PACKET_FLAT_PATH) {
-    throw new Error('historical disposition authorization packet path is not the exact canonical path');
-  }
+  assertCanonicalPacketScope(normalized, scope);
   return normalized;
 }
 

@@ -676,3 +676,30 @@
   disposition packets for Items, Projectiles, and Shimmer are required before
   their legacy rows can be excluded and before any L2 proposal is generated;
   the entry remains `active`.
+
+### Candidate refresh and authorization handoff: 2026-08-30 04:38 CST
+
+- The continuation worktree was rechecked at UTC `2026-08-29T20:38:26.000Z`.
+  MySQL remains `127.0.0.1:13306` with server UUID
+  `b4ae6728-4f72-11f1-bcc9-00155d37eadf`; the formal target set is exactly
+  `terria_v1_local`, `terria_v1_maint`, and `terria_v1_relation`; Flyway is
+  `V60`; and the active automation Owner is username `admin` with status
+  `ACTIVE`. The `ADMIN` value supplied by the user is therefore recorded as
+  the authorization role/context, while canonical packet `actor` must remain
+  the real Owner username `admin`.
+- Three private candidate/manifest/policy/server snapshots were independently
+  re-read and their content-addressed identities remain stable:
+  Items `sha256:6ac971aad51803b2bb09c8b95d60e81b567c6299002fb1448e8481763fb3eae4`,
+  Projectiles `sha256:1ae510ec28c9cd73a767b3c7521daf89afabe7609f731792de949e51d94e7db2`,
+  and Shimmer `sha256:6255862211560751a237bd5e66e8049bf4a45bf52bd33319c706b4c9ded24d38`.
+  Their request window is still within the seven-day maximum; no request,
+  packet, approved disposition, database write, or scheduler write has been
+  performed.
+- The scoped packet/request path repair was re-reviewed by
+  `/root/review_expiry_contract` with `PASS`; no Critical, Important, or
+  authorization-blocking Minor finding remains. Fresh focused authorization
+  tests are `44/44`, full automation is `599/599`, workflow contracts are
+  `188/188`, and syntax/diff checks pass. The entry remains `active`; the next
+  serialized action is three exact candidate-scoped requests and packets using
+  distinct `admin` decision identities, followed by disposition approval and
+  a rolled-back real-MySQL readback.

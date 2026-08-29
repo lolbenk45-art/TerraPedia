@@ -639,6 +639,21 @@ test('historical disposition authorization resolves the manifest-bound candidate
   assert.deepEqual(resolved.dataEntries.map((entryValue) => entryValue.path), [candidatePath]);
   assert.equal(resolved.dataEntries[0].bytes.toString('utf8'), candidateBytes.toString('utf8'));
   assert.deepEqual(resolved.executionManifest, executionManifest);
+  const request = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: executionManifest.operationId,
+    serverFingerprint: {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'historical-request-server',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
+    policyRows: [{ domainId: 'items', policyVersion: 1, policyHash: HASH }],
+    executionManifest,
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.deepEqual(request.scope, executionManifest.scope);
 });
 
 test('historical disposition resolver rejects path, hash, alias, and scope drift before loading a candidate', () => {
@@ -751,6 +766,88 @@ test('historical disposition resolver can be independently re-run in a fresh pro
     bytes: fixture.candidateBytes.length,
     dataBundleSha256: expectedDataBundleSha256,
   });
+});
+
+test('historical disposition authorization CLI binds request and packet outputs to the candidate scope without overwrite', () => {
+  const fixture = historicalResolverFixture();
+  const manifestPath = path.join(fixture.repoRoot, 'manifest.json');
+  const serverFingerprintPath = path.join(fixture.repoRoot, 'server-fingerprint.json');
+  const policyRowsPath = path.join(fixture.repoRoot, 'policy-rows.json');
+  fs.writeFileSync(manifestPath, `${JSON.stringify(fixture.executionManifest)}\n`, { mode: 0o600 });
+  fs.writeFileSync(serverFingerprintPath, `${JSON.stringify({
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'historical-cli-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  })}\n`, { mode: 0o600 });
+  fs.writeFileSync(policyRowsPath, `${JSON.stringify([{ domainId: 'items', policyVersion: 1, policyHash: HASH }])}\n`, { mode: 0o600 });
+  const candidateDirectory = path.posix.dirname(fixture.candidatePath);
+  const requestPath = `${candidateDirectory}/request.json`;
+  const packetPath = `${candidateDirectory}/packet.json`;
+  const script = path.join(path.resolve(import.meta.dirname, '..'), 'automation', 'build-canonical-cutover-authorization.mjs');
+  const commonArgs = [
+    script,
+    '--mode=request',
+    '--operation-id=automation-l1-historical-source-hash-disposition',
+    '--execution-manifest=manifest.json',
+    '--server-fingerprint=server-fingerprint.json',
+    '--policy-rows=policy-rows.json',
+    '--generated-at=2026-07-27T15:00:00.000Z',
+    '--expires-at=2026-07-28T15:00:00.000Z',
+  ];
+  execFileSync(process.execPath, [...commonArgs, `--output=${requestPath}`], {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.equal(fs.existsSync(path.join(fixture.repoRoot, requestPath)), true);
+  assert.equal((fs.lstatSync(path.join(fixture.repoRoot, requestPath)).mode & 0o077), 0);
+  assert.throws(() => execFileSync(process.execPath, [...commonArgs, `--output=${requestPath}`], {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }), /exists|overwrite/i);
+
+  const request = JSON.parse(fs.readFileSync(path.join(fixture.repoRoot, requestPath), 'utf8'));
+  const ownerInputPath = path.join(fixture.repoRoot, 'owner-input.json');
+  const usedDecisionsPath = path.join(fixture.repoRoot, 'used-decisions.json');
+  fs.writeFileSync(ownerInputPath, `${JSON.stringify({
+    actor: 'admin',
+    reason: 'Review one legacy source hash mismatch.',
+    authorizationReference: 'user://conversation/2026-08-30/historical-disposition',
+    decisionIdentity: 'historical-disposition-cli-items-01',
+    authorizedAt: '2026-07-27T15:01:00.000Z',
+  })}\n`, { mode: 0o600 });
+  fs.writeFileSync(usedDecisionsPath, '[]\n', { mode: 0o600 });
+  const authorizeArgs = [
+    script,
+    '--mode=authorize',
+    '--operation-id=automation-l1-historical-source-hash-disposition',
+    '--execution-manifest=manifest.json',
+    '--server-fingerprint=server-fingerprint.json',
+    '--policy-rows=policy-rows.json',
+    `--request=${requestPath}`,
+    `--request-hash=${request.requestHash}`,
+    '--owner-input=owner-input.json',
+    '--used-decisions=used-decisions.json',
+    `--output=${packetPath}`,
+  ];
+  execFileSync(process.execPath, authorizeArgs, {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.equal(fs.existsSync(path.join(fixture.repoRoot, packetPath)), true);
+  assert.equal((fs.lstatSync(path.join(fixture.repoRoot, packetPath)).mode & 0o077), 0);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(fixture.repoRoot, packetPath), 'utf8')).scope,
+    fixture.executionManifest.scope,
+  );
+  assert.throws(() => execFileSync(process.execPath, authorizeArgs, {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }), /exists|overwrite/i);
 });
 
 test('every operation resolves its exact frozen data inputs and fails closed when one is missing', () => {
