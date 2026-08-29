@@ -1,18 +1,19 @@
 {
   "schemaVersion": 1,
   "operationId": "automation-bosses-first-l1",
-  "runId": "bosses_l1_20260814_02",
+  "runId": "bosses_l1_auto_1554417ca5e7c72a7a64ad8c377c04de",
   "domainId": "bosses",
   "databaseName": "terria_v1_local",
-  "generatedAt": "2026-08-14T14:35:15.312Z",
-  "approvalMode": "APPROVED_OWNER_L1",
+  "generatedAt": "2026-08-17T00:22:42.250Z",
+  "approvalMode": "AUTO_APPLY_ACTIVATED",
+  "executionMode": "ACTIVATION_GATED_AUTO",
   "policy": {
     "domainId": "bosses",
     "level": "L1",
     "operationalState": "ACTIVE",
     "policyVersion": 1,
     "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
-    "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8"
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
   },
   "baseline": {
     "environmentId": "local",
@@ -20,24 +21,24 @@
       {
         "databaseRole": "local",
         "table": "boss_groups",
-        "generation": 0
+        "generation": 6
       },
       {
         "databaseRole": "local",
         "table": "npcs",
-        "generation": 0
+        "generation": 8
       }
     ],
-    "projectionHash": "sha256:84ace6972e4f2639da74a77ba18c6361fc9ae352be66e0653f7e944068ec5b16"
+    "projectionHash": "sha256:d530d2fbe4be0b25bd950b41122f320290bbbab893b35bab57fd79e647c9f844"
   },
-  "baselineFingerprint": "sha256:a7e8ca8b9a978c0c9073581ad695b6c4b35e8c19b16956bdc18c271172ce8fe3",
+  "baselineFingerprint": "sha256:90a2113195dcd72c9c758cf33c1d7c501bce881576146029b4e6d2bcec36c422",
   "source": {
     "path": "reports/authorization/canonical/automation-bosses-first-l1.source.json",
     "sha256": "sha256:d90a4d330972ba7e2238369f81a925ffcd7345bc3ded6a8c6ed5c5f8adbb867f"
   },
-  "evidenceHash": "sha256:0993b5756ebd319053b9d75314bf96c785bf4704ca4e0cee1b38ad7642b7f77f",
+  "evidenceHash": "sha256:0142aa2ed616a61749e5876b402720fb916740fb2ed586cd68c91b63fab16814",
   "logicalDiffIdentity": {
-    "baselineFingerprint": "sha256:a7e8ca8b9a978c0c9073581ad695b6c4b35e8c19b16956bdc18c271172ce8fe3",
+    "baselineFingerprint": "sha256:90a2113195dcd72c9c758cf33c1d7c501bce881576146029b4e6d2bcec36c422",
     "ownedTables": [
       {
         "databaseRole": "local",
@@ -52,11 +53,12 @@
     "importPlan": {
       "summary": {
         "records": 33
-      }
+      },
+      "automaticSourceFingerprint": "77189afba4f2a14e23e69bf54d419549e052ab83d2ec0850a35be5c32f09bdb9"
     }
   },
-  "logicalDiffHash": "sha256:e9da93af7512b3c1fda8a5f3a2182cd9362eefccf6ead51dcd94789799d84467",
-  "decisionHash": "sha256:1967d2754ea24a879cc80f20dfa389e2b56016f6d9eb729a80e26a41b874b910",
+  "logicalDiffHash": "sha256:ec2da7bfcfa0e65f2fa0f13b4b2adffef0464d9688f4e96b689fb9059794a449",
+  "decisionHash": "sha256:a966159a32f3e3c0a4e2d95a815eb60601637b02efa8299ea59aaa3519d88283",
   "ownedTables": [
     {
       "databaseRole": "local",
@@ -70,7 +72,8 @@
   "importPlan": {
     "summary": {
       "records": 33
-    }
+    },
+    "automaticSourceFingerprint": "77189afba4f2a14e23e69bf54d419549e052ab83d2ec0850a35be5c32f09bdb9"
   },
-  "bundleHash": "sha256:7a6b0bc6618e6efe2f3beb4bad7d06f2963f11767aebdad25349eecff6c99c46"
+  "bundleHash": "sha256:33ac38adfe3c40be88912974b9e6e7b55a1b43df03bc97082ec4a64a387ce66e"
 }

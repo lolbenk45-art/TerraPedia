@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-audio-first-l1",
+  "domainId": "audio",
+  "runId": "audio_l1_20260829_serial02",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run audio 02",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-audio-serial02",
+  "decisionIdentity": "eight-domain-l1-audio-serial02",
+  "authorizedAt": "2026-08-29T01:09:22.887Z",
+  "expiresAt": "2026-08-29T03:09:22.887Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:d1671ba82801d812c7cc90b225a2bab83fd739abdc578f0c1b8230057d0a7a65"
+}

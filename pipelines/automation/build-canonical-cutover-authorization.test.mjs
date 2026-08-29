@@ -279,15 +279,43 @@ test('authorized packet rejects mutation of Owner and technical identity fields'
   }
 });
 
-test('operation request builder exposes all 55 stable governed IDs', () => {
+test('operation request builder exposes all governed IDs', () => {
   assert.deepEqual(CANONICAL_CUTOVER_OPERATION_IDS, [
     'automation-biomes-l0-bootstrap',
+    'automation-items-l0-bootstrap',
+    'automation-items-l1-policy-promotion',
+    'automation-projectiles-l0-bootstrap',
+    'automation-projectiles-l1-policy-promotion',
+    'automation-items-l1',
+    'automation-npcs-l1',
+    'automation-projectiles-l1',
+    'automation-armor-sets-l1',
+    'automation-buffs-l1',
     'canonical-item-image-source-verification',
     'canonical-item-image-source-promotion',
     'canonical-item-image-lineage-apply',
     'canonical-item-image-projection-apply',
     'canonical-item-image-projection-missing-row-insert',
+    'canonical-item-image-provenance-patch',
+    'canonical-buff-image-projection-patch',
+    'canonical-npc-buff-relation-recovery',
+    'canonical-npc-loot-identity-restoration',
+    'canonical-npc-loot-duplicate-relation-retirement',
+    'canonical-item-image-origin-normalization',
+    'canonical-npc-image-origin-normalization',
+    'canonical-projectile-image-origin-normalization',
+    'canonical-biome-image-origin-normalization',
+    'canonical-armor-set-projection-restoration',
+    'canonical-two-item-image-quarantine-repair',
     'canonical-item-base-entity-restoration',
+    'canonical-item-source-local-npc-admission',
+    'canonical-item-projection-parity-apply',
+    'canonical-npc-projection-parity-apply',
+    'canonical-boss-projection-parity-apply',
+    'canonical-boss-source-refresh-offline',
+    'canonical-projection-recovery-from-relation',
+    'canonical-item-source-relation-recovery-from-maint',
+    'canonical-projection-recovery-from-relation-v2',
     'canonical-image-sync',
     'canonical-boss-import',
     'canonical-boss-loot-import',
@@ -296,6 +324,7 @@ test('operation request builder exposes all 55 stable governed IDs', () => {
     'canonical-projectile-t1-acceptance',
     'canonical-buff-t1-acceptance',
     'canonical-biome-t1-acceptance',
+    'canonical-biome-image-contract-apply',
     'canonical-crawler-v2-scheduler-t1-acceptance',
     'canonical-crawler-v2-items-t1-acceptance',
     'canonical-crawler-v2-scheduler-activation',
@@ -322,8 +351,25 @@ test('operation request builder exposes all 55 stable governed IDs', () => {
     'automation-biomes-first-l1',
     'automation-biomes-second-l1',
     'automation-biomes-l2-promotion',
+    'automation-items-l2-promotion',
+    'automation-npcs-l2-promotion',
+    'automation-projectiles-l2-promotion',
+    'automation-armor-sets-l2-promotion',
+    'automation-buffs-l2-promotion',
+    'automation-audio-l2-promotion',
+    'automation-bosses-l2-promotion',
+    'automation-shimmer-l2-promotion',
+    'automation-items-l2-policy-ceiling-registration',
+    'automation-npcs-l2-policy-ceiling-registration',
+    'automation-projectiles-l2-policy-ceiling-registration',
+    'automation-armor-sets-l2-policy-ceiling-registration',
+    'automation-buffs-l2-policy-ceiling-registration',
+    'automation-audio-l2-policy-ceiling-registration',
+    'automation-bosses-l2-policy-ceiling-registration',
+    'automation-shimmer-l2-policy-ceiling-registration',
     'automation-biomes-scheduler-activation',
     'automation-crawler-v2-scheduler-activation',
+    'automation-crawler-v2-scheduler-reactivation',
     'automation-audio-l0-bootstrap',
     'automation-audio-l1-policy-promotion',
     'automation-audio-first-l1',
@@ -336,6 +382,15 @@ test('operation request builder exposes all 55 stable governed IDs', () => {
     'canonical-npc-base-maint-nontown-apply',
     'canonical-npc-base-maint-town-apply',
     'canonical-npc-item-relation-lineage-repair',
+    'canonical-npc-external-relation-scope-apply',
+    'canonical-npc-duplicate-quarantine',
+    'canonical-npc-stale-lineage-retirement',
+    'canonical-npc-stale-lineage-parent-conflict-retirement',
+    'canonical-npc-independent-wiki-gg-variant-retirement',
+    'canonical-npc-projection-text-identity-repair',
+    'canonical-npc-projection-text-identity-residual-repair',
+    'canonical-npc-projection-gap-wiki-gg-variant-retirement',
+    'canonical-npc-local-loot-compatibility-retirement',
   ]);
 
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-authorization-request-'));
@@ -378,6 +433,10 @@ test('operation request builder exposes all 55 stable governed IDs', () => {
   fs.writeFileSync(
     path.join(repoRoot, 'reports', 'authorization', 'canonical', 'canonical-npc-crawler.targets.json'),
     '{"targets":[]}',
+  );
+  fs.writeFileSync(
+    path.join(repoRoot, 'reports', 'authorization', 'canonical', 'canonical-npc-duplicate-quarantine.input.json'),
+    '{"schemaVersion":1,"operationId":"canonical-npc-duplicate-quarantine","targets":[]}',
   );
 
   const bootstrap = buildCanonicalAuthorizationRequestForOperation({
@@ -468,6 +527,41 @@ test('operation request builder exposes all 55 stable governed IDs', () => {
   assert.ok(secondL1.requiredTechnicalFields.includes('dataBundleSha256'));
 });
 
+test('L2 authorization data bundles include the exact policy artifact and proposal bytes', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-l2-data-bundle-'));
+  const operationId = 'automation-items-l2-promotion';
+  const inputPath = path.join(repoRoot, `reports/authorization/canonical/${operationId}.input.json`);
+  const proposalPath = path.join(repoRoot, `reports/authorization/canonical/${operationId}/${'b'.repeat(64)}/proposal.json`);
+  const policyPath = path.join(repoRoot, `reports/authorization/canonical/l2-policy-ceiling/items/${'c'.repeat(64)}/artifact.json`);
+  const registrationResultPath = path.join(repoRoot, 'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json');
+  const registrationMarkerPath = `${registrationResultPath}.commit.json`;
+  fs.mkdirSync(path.dirname(proposalPath), { recursive: true, mode: 0o700 });
+  fs.mkdirSync(path.dirname(policyPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(proposalPath, '{"proposalOnly":true}\n', { mode: 0o600 });
+  fs.writeFileSync(policyPath, '{"status":"approved"}\n', { mode: 0o600 });
+  fs.writeFileSync(registrationResultPath, '{"status":"pending"}\n', { mode: 0o600 });
+  fs.writeFileSync(registrationMarkerPath, '{"status":"committed"}\n', { mode: 0o600 });
+  const hashFile = (filePath) => `sha256:${createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')}`;
+  fs.writeFileSync(inputPath, `${JSON.stringify({
+    proposalPath: path.relative(repoRoot, proposalPath).replaceAll('\\', '/'),
+    proposalSha256: hashFile(proposalPath),
+    policyArtifactPath: path.relative(repoRoot, policyPath).replaceAll('\\', '/'),
+    policyArtifactFileSha256: hashFile(policyPath),
+    policyRegistrationResultPath: path.relative(repoRoot, registrationResultPath).replaceAll('\\', '/'),
+    policyRegistrationResultFileSha256: hashFile(registrationResultPath),
+    policyRegistrationCommitMarkerPath: path.relative(repoRoot, registrationMarkerPath).replaceAll('\\', '/'),
+    policyRegistrationCommitMarkerFileSha256: hashFile(registrationMarkerPath),
+  })}\n`, { mode: 0o600 });
+  const resolved = resolveCanonicalOperationTechnicalInput({ repoRoot, operationId });
+  assert.deepEqual(resolved.dataEntries.map((entry) => entry.path), [
+    `reports/authorization/canonical/${operationId}.input.json`,
+    `reports/authorization/canonical/${operationId}/${'b'.repeat(64)}/proposal.json`,
+    `reports/authorization/canonical/l2-policy-ceiling/items/${'c'.repeat(64)}/artifact.json`,
+    'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json',
+    'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json.commit.json',
+  ]);
+});
+
 test('every operation resolves its exact frozen data inputs and fails closed when one is missing', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-data-'));
   const write = (relativePath, content = '{}') => {
@@ -494,14 +588,19 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
     if (operationId === 'canonical-item-image-lineage-apply'
         || operationId === 'canonical-item-image-projection-apply'
         || operationId === 'canonical-item-image-projection-missing-row-insert'
-        || operationId === 'canonical-item-base-entity-restoration') continue;
+        || operationId === 'canonical-item-base-entity-restoration'
+        || operationId === 'canonical-item-source-local-npc-admission') continue;
+    if (operationId.startsWith('automation-')
+        && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) continue;
     const request = buildCanonicalAuthorizationRequestForOperation({
       repoRoot,
       operationId,
       generatedAt: GENERATED_AT,
       expiresAt: EXPIRES_AT,
     });
-    const expectedPaths = operationId === 'canonical-npc-t1-acceptance'
+    const expectedPaths = operationId === 'canonical-npc-external-relation-scope-apply'
+      ? CANONICAL_OPERATION_DATA_PATHS[operationId]
+      : operationId === 'canonical-npc-t1-acceptance'
       || operationId === 'canonical-npc-t2-cutover-verification'
       || operationId === 'canonical-npc-apply'
       || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
@@ -532,6 +631,12 @@ test('lineage authorization binds the fresh attempt input and bundle paths', () 
   const sourceRoot = path.resolve(import.meta.dirname, '../..');
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-lineage-attempt-request-'));
   fs.cpSync(path.join(sourceRoot, 'scripts'), path.join(repoRoot, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(sourceRoot, 'pipelines', 'automation'), path.join(repoRoot, 'pipelines', 'automation'), { recursive: true });
+  fs.mkdirSync(path.join(repoRoot, 'pipelines', 'relation'), { recursive: true });
+  fs.copyFileSync(
+    path.join(sourceRoot, 'pipelines', 'relation', 'apply-item-image-lineage.mjs'),
+    path.join(repoRoot, 'pipelines', 'relation', 'apply-item-image-lineage.mjs'),
+  );
   const attemptRoot = 'reports/authorization/canonical/item-image-lineage-apply/'
     + 'b'.repeat(64);
   const write = (relativePath, value, mode = 0o600) => {
@@ -757,7 +862,7 @@ test('operation manifests are bound to the exact governed entrypoint and missing
     },
     generatedAt: GENERATED_AT,
     expiresAt: EXPIRES_AT,
-  }), /entrypoint must be scripts\/data\/workflow\/run-image-sync\.mjs/i);
+  }), /entrypoint must be pipelines\/workflow\/run-image-sync\.mjs/i);
 
   assert.throws(() => buildCanonicalAuthorizationRequestForOperation({
     repoRoot,
@@ -1000,6 +1105,33 @@ test('item image projection authorization expands and verifies the complete froz
   }
 });
 
+test('item image projection authorization binds the origin-repair artifact into the data bundle', () => {
+  const fixture = createProjectionAuthorizationFixture();
+  try {
+    bindOriginRepairEvidence(fixture);
+    const request = buildProjectionAuthorizationRequest(fixture);
+    assert.deepEqual(request.dataBundleEntries.map((entry) => entry.path), [
+      fixture.paths.inputPath,
+      fixture.paths.proposalPath,
+      fixture.paths.snapshotPath,
+      fixture.paths.proposalReadOwnerInputPath,
+      'reports/runtime/item-image-origin-repair.result.json',
+      'pipelines/relation/managed-image-url-policy.mjs',
+    ]);
+    const originPath = path.join(
+      fixture.repoRoot,
+      'reports/runtime/item-image-origin-repair.result.json',
+    );
+    fs.appendFileSync(originPath, ' ');
+    assert.throws(
+      () => buildProjectionAuthorizationRequest(fixture),
+      /origin repair result hash drifted|origin repair result/i,
+    );
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test('item image projection authorization rejects private, packet, and confinement drift', () => {
   for (const mutate of [
     (fixture) => fs.chmodSync(path.join(fixture.repoRoot, fixture.paths.snapshotPath), 0o644),
@@ -1233,6 +1365,7 @@ function createProjectionAuthorizationFixture({
   const sourceRoot = path.resolve(import.meta.dirname, '../..');
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-authorization-'));
   fs.cpSync(path.join(sourceRoot, 'scripts'), path.join(fixtureRoot, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(sourceRoot, 'pipelines'), path.join(fixtureRoot, 'pipelines'), { recursive: true });
   const paths = buildItemImageProjectionAttemptPaths(decisionIdentity);
   const write = (relativePath, value, { mode = 0o600, json = true } = {}) => {
     const output = path.join(fixtureRoot, relativePath);
@@ -1411,15 +1544,68 @@ function createProjectionAuthorizationFixture({
     repoRoot: fixtureRoot,
     paths,
     input,
+    proposal,
     manifest,
     manifestOptions,
     serverFingerprint,
     policyRows,
     dataPaths,
+    managedPolicyPath,
     historicalPacketPath,
     write,
     cleanup: () => fs.rmSync(fixtureRoot, { recursive: true, force: true }),
   };
+}
+
+function bindOriginRepairEvidence(fixture) {
+  const originRepairResultPath = 'reports/runtime/item-image-origin-repair.result.json';
+  const originRepairResultBytes = fixture.write(originRepairResultPath, {
+    operationId: 'canonical-item-image-origin-repair',
+    scopeHash: `sha256:${'b'.repeat(64)}`,
+    status: 'COMPLETED',
+    externalRequests: false,
+  });
+  const originRepairLineage = {
+    kind: 'origin-repair-bound',
+    originRepairResultPath,
+    originRepairResultSha256: `sha256:${createHash('sha256').update(originRepairResultBytes).digest('hex')}`,
+    originRepairScopeHash: `sha256:${'b'.repeat(64)}`,
+    originRepairOperationId: 'canonical-item-image-origin-repair',
+    originRepairStatus: 'COMPLETED',
+    quarantineIdentities: ['FallenStar', 'SeveredHandBanner'],
+    externalRequests: false,
+    freshnessUpdates: false,
+    completedRowCount: 1,
+  };
+  const proposal = buildItemImageProjectionProposal({
+    ...fixture.proposal,
+    lineage: originRepairLineage,
+    lineageKeys: fixture.proposal.keys,
+    relationRows: fixture.proposal.relationRows.map((row) => ({
+      ...row, role: 'icon', isPrimary: 1, status: 1, deleted: 0,
+    })),
+    projectionRows: fixture.proposal.projectionBeforeRows.map((row) => ({
+      ...row, status: 1, deleted: 0,
+    })),
+  });
+  const proposalBytes = fixture.write(fixture.paths.proposalPath, proposal);
+  const input = buildItemImageProjectionInputContract({
+    proposal,
+    proposalPath: fixture.paths.proposalPath,
+    proposalSha256: `sha256:${createHash('sha256').update(proposalBytes).digest('hex')}`,
+  });
+  fixture.write(fixture.paths.inputPath, input);
+  fixture.input = input;
+  fixture.proposal = proposal;
+  fixture.manifest = buildCanonicalOperationExecutionManifest(fixture.manifestOptions);
+  fixture.dataPaths = [
+    fixture.paths.inputPath,
+    fixture.paths.proposalPath,
+    fixture.paths.snapshotPath,
+    fixture.paths.proposalReadOwnerInputPath,
+    originRepairResultPath,
+    'pipelines/relation/managed-image-url-policy.mjs',
+  ];
 }
 
 function buildProjectionAuthorizationRequest(fixture) {

@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-08-21T05:40:00.000Z",
+  "expiresAt": "2026-08-22T05:40:00.000Z",
+  "operationId": "canonical-biome-image-contract-apply",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:af529511c554cfa1796b97860159d287b14e990e0763d3bf7d65fd0563766ec1",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-biome-image-contract-apply.input.json",
+      "sizeBytes": 4508,
+      "contentHash": "sha256:be8b489a379cb2f5e24bad9cb93ade5796590a6fa19bea3c4486c4d56ba5a148"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:d5232646803aafb109c2ef4b1568cd5b44b0c6b55c59def342cb3d8e8974e676",
+  "executionManifest": {
+    "artifactDate": "2026-08-21",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:9d3d4e2a39c04827dba67ded8a061544f74884f0454b83a6ca48a791c02f3c5a",
+        "path": "pipelines/relation/apply-biome-image-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:12ec247442be0cddd193f91236df7321b98ba9bf8000ed436e7352cba118d4db",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:3fc2080604e001fc5cd8ff4ce19563c1908271ab986ea6576972c7cc6c6e6b3f",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:fe390600e7c3bea10d0112b892ca5af4915094f7620f3bc9d4c7bf752493b7b4",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:9c7b89a56fa9ccaf672728504d5e1040f2bd7c7a374ee8a7e8ca56b507629ec9",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/relation/apply-biome-image-contract.mjs",
+      "--input=reports/authorization/canonical/canonical-biome-image-contract-apply.input.json",
+      "--apply=true",
+      "--output=reports/authorization/canonical/canonical-biome-image-contract-apply.result.json"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_biome_image_schema_contract",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-biome-image-contract-apply.input.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-biome-image-contract-apply",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-biome-image-contract-apply.result.json"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:d8ea24262177892249fb12b8a8dbf0426f838a959fb80ed694b78f9d1ece6d2b"
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-shimmer-first-l1",
+  "runId": "shimmer_l1_20260829_serial01_retry01",
+  "domainId": "shimmer",
+  "status": "completed",
+  "bundleHash": "sha256:3a7c8e9485f8d2cacc886460093a3c8a9741ae489ce1b1048be9679ca75927e9",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "completedAt": "2026-08-29T01:36:00.000Z"
+}

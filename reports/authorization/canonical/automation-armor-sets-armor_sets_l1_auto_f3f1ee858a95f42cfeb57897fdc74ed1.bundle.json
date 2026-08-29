@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-armor-sets-l1",
+  "runId": "armor_sets_l1_auto_f3f1ee858a95f42cfeb57897fdc74ed1",
+  "domainId": "armor_sets",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-16T23:42:33.141Z",
+  "approvalMode": "AUTO_APPLY_ACTIVATED",
+  "executionMode": "ACTIVATION_GATED_AUTO",
+  "policy": {
+    "domainId": "armor_sets",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:ecf35935ed3681939f9d0b4fab8760a6cd802cccb8647f73a486e25de42c3871",
+    "policySetHash": "sha256:b4eb34d84c604e15677cc5075599fc7d91a1af571bdf6351e7a4dba234ba6468"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "armor_sets",
+        "generation": 1
+      },
+      {
+        "databaseRole": "local",
+        "table": "armor_set_items",
+        "generation": 1
+      }
+    ],
+    "projectionHash": "sha256:858820c3d34be0f13aaa178fbdc74a3e034d64e626d1385ac064d92372625fe1"
+  },
+  "baselineFingerprint": "sha256:c41e74cda1c7fc4da69cb1eaa0d253459bcb7605a8eb59ed41ca5c1f8eba1021",
+  "source": {
+    "path": "reports/authorization/canonical/automation-armor-sets-armor_sets_l1_auto_f3f1ee858a95f42cfeb57897fdc74ed1.source.json",
+    "sha256": "sha256:3fa78145d93005e680f038d8b23ce3d30963d05e875f217d23b5b49d5d2270be"
+  },
+  "evidenceHash": "sha256:c34f6be8c51db7c13ad63a649f8fa4a3b598bd878df43e67e5817be0a626d401",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:c41e74cda1c7fc4da69cb1eaa0d253459bcb7605a8eb59ed41ca5c1f8eba1021",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "armor_sets"
+      },
+      {
+        "databaseRole": "local",
+        "table": "armor_set_items"
+      }
+    ],
+    "sourceSha256": "sha256:3fa78145d93005e680f038d8b23ce3d30963d05e875f217d23b5b49d5d2270be",
+    "importPlan": {
+      "entity": "armor_sets",
+      "recordCount": 63,
+      "itemDependencyCount": 6131,
+      "automaticSourceFingerprint": "sha256:823915f0c6410b515189396b737324df89fc11d3e58d30879c213a00a8e6b996"
+    }
+  },
+  "logicalDiffHash": "sha256:dc14d2a5bab5208c781aae1a8e3e1fcd1533cde1ba31d0f39bbd56fa38c2b95d",
+  "decisionHash": "sha256:330b944a8ec822f3e4d39145798aeb5bb8360e8f789d970a126350eb73e65996",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "armor_sets"
+    },
+    {
+      "databaseRole": "local",
+      "table": "armor_set_items"
+    }
+  ],
+  "importPlan": {
+    "entity": "armor_sets",
+    "recordCount": 63,
+    "itemDependencyCount": 6131,
+    "automaticSourceFingerprint": "sha256:823915f0c6410b515189396b737324df89fc11d3e58d30879c213a00a8e6b996"
+  },
+  "bundleHash": "sha256:73186ddd1fbb3558714e702122a692fc3cb8c1322f7b7e4de4c911580f871b25"
+}

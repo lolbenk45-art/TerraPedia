@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "l2_policy_ceiling_registration_commit",
+  "status": "committed",
+  "authoritative": true,
+  "registrationStatus": "registered",
+  "operationId": "automation-projectiles-l2-policy-ceiling-registration",
+  "domainId": "projectiles",
+  "policyVersion": 2,
+  "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+  "policySetHash": "sha256:84827bda93ac0d79f4118707ec6ea5e945cf8015afc76c4d6bea78437dcbaee2",
+  "artifactHash": "sha256:b594c5f3c55eb44f344051de0b15d54147df403cd51a8c776c34cb2ddd3273f8",
+  "registrationActor": "admin",
+  "registrationAuthorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "registrationDecisionIdentity": "automation-projectiles-l2-policy-ceiling-registration-20260828-owner-01",
+  "registrationPacketHash": "sha256:fff358389a361bc11f3ad1803210b7c3ccf90e2bd6bb64a95c7144bec053e2bf"
+}

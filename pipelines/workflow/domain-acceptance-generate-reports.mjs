@@ -8,6 +8,7 @@ import {
   buildDomainReadinessReport,
   resolveDomainReportPath,
 } from '../audit/domain-readiness-audit.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 import { buildDomainAcceptanceReportManifest } from './domain-acceptance-report-manifest.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,12 +18,14 @@ export function buildDomainAcceptanceReportGeneration({
   manifest = buildDomainAcceptanceReportManifest(),
   domains = null,
   generatedAt = new Date().toISOString(),
+  outputRoot = null,
 } = {}) {
   return generateDomainAcceptanceReports({
     repoRoot,
     manifest,
     domains,
     generatedAt,
+    outputRoot,
     write: false,
   });
 }
@@ -33,6 +36,7 @@ export function generateDomainAcceptanceReports({
   domains = null,
   generatedAt = new Date().toISOString(),
   write = false,
+  outputRoot = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const selectedDomains = normalizeDomains(domains);
@@ -43,24 +47,35 @@ export function generateDomainAcceptanceReports({
     repoRoot: root,
     entry,
     generatedAt,
-    write,
+    outputRoot,
   }));
+
+  if (write) {
+    preflightReportWrites({ repoRoot: root, reports, outputRoot });
+    writeReports({ repoRoot: root, reports, outputRoot });
+  }
+
+  const publicReports = reports.map(({ report, bytes, ...summary }) => summary);
 
   return {
     generatedAt,
     write,
-    summary: summarizeReports(reports),
-    reports,
+    summary: summarizeReports(publicReports),
+    reports: publicReports,
   };
 }
 
-function buildReportRecord({ repoRoot, entry, generatedAt, write }) {
+function buildReportRecord({ repoRoot, entry, generatedAt, outputRoot }) {
   const outputPath = resolveDomainReportPath({
     domainId: entry.domainId,
     panel: entry.panelId,
     generatedAt,
+    outputRoot,
   });
-  assertDomainOutputPath(outputPath);
+  assertDomainOutputPath(outputPath, { outputRoot });
+  if (outputRoot != null) {
+    assertImmutableAncestorPaths({ repoRoot, outputPath });
+  }
   const report = buildDomainReadinessReport({
     repoRoot,
     domainId: entry.domainId,
@@ -69,26 +84,74 @@ function buildReportRecord({ repoRoot, entry, generatedAt, write }) {
     reportPath: outputPath,
   });
 
-  if (write) {
-    const fullPath = path.resolve(repoRoot, outputPath);
-    const domainReportsRoot = path.resolve(repoRoot, 'reports/domain');
-    if (!fullPath.startsWith(domainReportsRoot)) {
-      throw new Error(`Refusing to write outside reports/domain: ${outputPath}`);
-    }
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  }
-
   return {
     domainId: entry.domainId,
     panelId: entry.panelId,
     status: report.status,
     outputPath,
-    writePlanned: write === true,
-    written: write === true,
+    report,
+    bytes: `${JSON.stringify(report, null, 2)}\n`,
+    writePlanned: false,
+    written: false,
     blockingCount: report.summary?.blockedCount ?? report.blockingReasons?.length ?? 0,
     warningCount: report.summary?.warningCount ?? report.warningReasons?.length ?? 0,
   };
+}
+
+function preflightReportWrites({ repoRoot, reports, outputRoot }) {
+  const immutable = outputRoot != null;
+  const seen = new Set();
+  const targets = reports.map((record) => {
+    const fullPath = path.resolve(repoRoot, record.outputPath);
+    if (seen.has(fullPath)) {
+      throw new Error(`Report output collision: ${record.outputPath}`);
+    }
+    seen.add(fullPath);
+    if (immutable) {
+      assertImmutableOutputRoot(outputRoot);
+      assertImmutableAncestorPaths({ repoRoot, outputPath: record.outputPath });
+      if (pathEntryExists(fullPath)) {
+        throw new Error(`Immutable domain report already exists: ${record.outputPath}`);
+      }
+    } else {
+      assertDomainOutputPath(record.outputPath, { outputRoot: null });
+    }
+    return fullPath;
+  });
+  return targets;
+}
+
+function pathEntryExists(filePath) {
+  try {
+    fs.lstatSync(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+function writeReports({ repoRoot, reports, outputRoot }) {
+  const immutable = outputRoot != null;
+  for (const record of reports) {
+    const fullPath = path.resolve(repoRoot, record.outputPath);
+    if (immutable) {
+      assertRepositoryPathConfinement({
+        repoRoot,
+        filePath: fullPath,
+        label: 'immutable domain report',
+        createParent: true,
+      });
+    }
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(
+      fullPath,
+      record.bytes,
+      immutable ? { encoding: 'utf8', flag: 'wx', mode: 0o600 } : 'utf8',
+    );
+    record.written = true;
+    record.writePlanned = true;
+  }
 }
 
 function summarizeReports(reports) {
@@ -104,10 +167,54 @@ function summarizeReports(reports) {
   };
 }
 
-function assertDomainOutputPath(outputPath) {
+function assertDomainOutputPath(outputPath, { outputRoot = null } = {}) {
   const normalized = normalizePath(outputPath);
+  if (outputRoot != null) {
+    const normalizedRoot = assertImmutableOutputRoot(outputRoot);
+    if (!normalized.startsWith(`${normalizedRoot}/`)
+      || normalized.includes('..') || normalized.includes(':')) {
+      throw new Error(`Invalid immutable domain report output path: ${outputPath}`);
+    }
+    return;
+  }
   if (!normalized.startsWith('reports/domain/') || normalized.includes('..') || normalized.includes(':')) {
     throw new Error(`Invalid domain acceptance report output path: ${outputPath}`);
+  }
+}
+
+function assertImmutableOutputRoot(outputRoot) {
+  const normalized = normalizePath(outputRoot).replace(/\/+$/, '');
+  if (!/^reports\/runtime\/local-data-chain-closure\/\d{8}\/l2-readiness\/[A-Za-z0-9._-]+\/domain$/.test(normalized)) {
+    throw new Error(`Invalid immutable report output root: ${outputRoot}`);
+  }
+  return normalized;
+}
+
+function assertImmutableAncestorPaths({ repoRoot, outputPath }) {
+  const root = path.resolve(repoRoot);
+  const target = path.resolve(root, outputPath);
+  const relative = path.relative(root, target);
+  if (!relative || relative.startsWith(`..${path.sep}`) || relative === '..' || path.isAbsolute(relative)) {
+    throw new Error(`Immutable domain report must remain inside the repository root: ${outputPath}`);
+  }
+  let current = root;
+  for (const segment of relative.split(path.sep).slice(0, -1)) {
+    current = path.join(current, segment);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if (error?.code === 'ENOENT') break;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) throw new Error(`Immutable domain report has a symbolic-link ancestor: ${outputPath}`);
+    if (!stat.isDirectory()) throw new Error(`Immutable domain report has a non-directory ancestor: ${outputPath}`);
+    const realRoot = fs.realpathSync(root);
+    const realCurrent = fs.realpathSync(current);
+    const realRelative = path.relative(realRoot, realCurrent);
+    if (realRelative.startsWith(`..${path.sep}`) || realRelative === '..' || path.isAbsolute(realRelative)) {
+      throw new Error(`Immutable domain report ancestor escapes the repository: ${outputPath}`);
+    }
   }
 }
 
@@ -141,6 +248,7 @@ function main(argv = process.argv.slice(2)) {
     repoRoot: args['repo-root'] ?? process.cwd(),
     generatedAt: args['generated-at'] ?? new Date().toISOString(),
     domains: args.domains ?? null,
+    outputRoot: args['output-root'] ?? null,
     write: args.write === 'true',
   });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

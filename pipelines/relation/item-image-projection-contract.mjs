@@ -67,6 +67,18 @@ const LINEAGE_KEYS = Object.freeze([
   'dispatchPermitHash',
   'completedRowCount',
 ]);
+const ORIGIN_REPAIR_BINDING_KEYS = Object.freeze([
+  'kind',
+  'originRepairResultPath',
+  'originRepairResultSha256',
+  'originRepairScopeHash',
+  'originRepairOperationId',
+  'originRepairStatus',
+  'quarantineIdentities',
+  'externalRequests',
+  'freshnessUpdates',
+  'completedRowCount',
+]);
 const TARGET_KEYS = Object.freeze([
   'host',
   'port',
@@ -753,6 +765,47 @@ function normalizeFailedError(error) {
 }
 
 function normalizeLineage(lineage) {
+  if (lineage?.kind === 'origin-repair-bound') {
+    assertExactKeys(lineage, ORIGIN_REPAIR_BINDING_KEYS, 'origin repair binding');
+    const quarantineIdentities = sortedUniqueText(
+      lineage.quarantineIdentities,
+      'origin repair quarantine identities',
+    );
+    if (!quarantineIdentities.includes('FallenStar')
+        || !quarantineIdentities.includes('SeveredHandBanner')) {
+      throw new Error('origin repair binding must preserve both quarantine identities');
+    }
+    if (lineage.externalRequests !== false || lineage.freshnessUpdates !== false) {
+      throw new Error('origin repair binding must record no external requests or freshness updates');
+    }
+    return {
+      kind: 'origin-repair-bound',
+      originRepairResultPath: requireRelativePath(
+        lineage.originRepairResultPath,
+        'origin repair resultPath',
+      ),
+      originRepairResultSha256: requireSha256(
+        lineage.originRepairResultSha256,
+        'origin repair resultSha256',
+      ),
+      originRepairScopeHash: requireSha256(
+        lineage.originRepairScopeHash,
+        'origin repair scopeHash',
+      ),
+      originRepairOperationId: requireText(
+        lineage.originRepairOperationId,
+        'origin repair operationId',
+      ),
+      originRepairStatus: requireText(lineage.originRepairStatus, 'origin repair status'),
+      quarantineIdentities,
+      externalRequests: false,
+      freshnessUpdates: false,
+      completedRowCount: requirePositiveInteger(
+        lineage.completedRowCount,
+        'origin repair completedRowCount',
+      ),
+    };
+  }
   assertExactKeys(lineage, LINEAGE_KEYS, 'lineage binding');
   return {
     inputContractPath: requireRelativePath(lineage.inputContractPath, 'lineage inputContractPath'),

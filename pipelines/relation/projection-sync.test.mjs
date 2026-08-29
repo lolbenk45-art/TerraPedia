@@ -290,6 +290,25 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   });
 });
 
+test('buildProjectionPayload reads nested NPC combat and dimension facts', () => {
+  const actual = buildProjectionPayload({
+    relationNpcs: [{
+      recordKey: 'nested-npc-rk',
+      sourceId: -65,
+      internalName: 'BigHornetStingy',
+      englishName: 'Hornet',
+      rawJson: JSON.stringify({
+        combat: { lifeMax: 45, knockBackResist: 0.474 },
+        dimensions: { scale: 1.21 },
+      }),
+    }],
+  });
+
+  assert.equal(actual.projectionNpcs[0].lifeMax, 45);
+  assert.equal(actual.projectionNpcs[0].knockBackResist, 0.474);
+  assert.equal(actual.projectionNpcs[0].scale, 1.21);
+});
+
 test('buildProjectionPayload maps equipment effect attributes into compact projection rows', () => {
   const actual = buildProjectionPayload({
     relationEquipmentEffectAttributes: [

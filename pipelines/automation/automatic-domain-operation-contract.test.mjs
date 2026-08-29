@@ -19,16 +19,16 @@ test('automatic operation contract covers exactly the eight scheduler domains', 
   ]);
 });
 
-test('Items and Projectiles are immutable dry-run lanes', () => {
+test('Items and Projectiles use activation-gated base-table applies', () => {
   for (const domain of ['items', 'projectiles']) {
     const config = requireAutoDomainOperation(domain);
-    assert.equal(config.databaseMode, 'DRY_RUN');
-    assert.deepEqual(config.ownedTables, []);
+    assert.equal(config.databaseMode, 'ACTIVATION_GATED_APPLY');
+    assert.deepEqual(config.ownedTables, [{ databaseRole: 'local', table: domain }]);
   }
 });
 
-test('the remaining six domains require activation-gated database apply', () => {
-  for (const domain of ['npcs', 'buffs', 'armor_sets', 'audio', 'bosses', 'shimmer']) {
+test('all eight domains require activation-gated database apply', () => {
+  for (const domain of ['items', 'npcs', 'projectiles', 'buffs', 'armor_sets', 'audio', 'bosses', 'shimmer']) {
     const config = requireAutoDomainOperation(domain);
     assert.equal(config.databaseMode, 'ACTIVATION_GATED_APPLY');
     assert.ok(config.ownedTables.length > 0);

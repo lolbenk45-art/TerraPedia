@@ -294,6 +294,12 @@ test('manifest command dispatch uses no shell and rejects credential-shaped argu
   let observed;
   const result = await runExecutionManifestCommand({
     cwd: '/tmp/worktree',
+    authorizedServerFingerprint: {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'server-uuid',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
     authorizationPacketPath: '/tmp/private/packet.json',
     authorizationDispatchPermit: {
       path: '/tmp/private/dispatch-permit.json',
@@ -315,6 +321,12 @@ test('manifest command dispatch uses no shell and rejects credential-shaped argu
   assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_PACKET_PATH, '/tmp/private/packet.json');
   assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH, '/tmp/private/dispatch-permit.json');
   assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_DISPATCH_NONCE, 'dispatch-nonce');
+  assert.equal(observed.options.env.TERRAPEDIA_AUTHORIZED_SERVER_FINGERPRINT, JSON.stringify({
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'server-uuid',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  }));
   await assert.rejects(() => runExecutionManifestCommand({
     cwd: '/tmp/worktree',
     manifest: { command: ['node', 'script.mjs', '--password=secret'] },

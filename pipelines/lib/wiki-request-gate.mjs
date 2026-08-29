@@ -153,7 +153,8 @@ export function createWikiRequestGate({
             rawBody,
             maybeJson,
             sourceKey,
-            requestProfile
+            requestProfile,
+            retryAfterMs: parseRetryAfterMs(response, Number(nowFn()))
           });
         }
 
@@ -185,6 +186,9 @@ export function createWikiRequestGate({
       } catch (error) {
         const retryable = isRetryableError(error);
         noteFailure(error, requestProfile);
+        if (error?.status === 429) {
+          throw error;
+        }
         if (!retryable || attempt >= requestProfile.maxAttempts) {
           throw error;
         }
@@ -247,11 +251,13 @@ export function createWikiRequestGate({
     const nextFailureCount = retryable
       ? Number(state.consecutiveThrottleFailures ?? 0) + 1
       : Number(state.consecutiveThrottleFailures ?? 0);
-    const shouldCooldown = retryable && nextFailureCount >= 3;
+    const retryAfterMs = normalizeNonNegativeNumber(error?.retryAfterMs);
+    const shouldCooldown = retryable && (error?.status === 429 || nextFailureCount >= 3);
+    const cooldownDurationMs = retryAfterMs ?? profile.cooldownMs;
     state = {
       ...state,
       consecutiveThrottleFailures: nextFailureCount,
-      cooldownUntil: shouldCooldown ? new Date(Number(nowFn()) + profile.cooldownMs).toISOString() : state.cooldownUntil,
+      cooldownUntil: shouldCooldown ? new Date(Number(nowFn()) + cooldownDurationMs).toISOString() : state.cooldownUntil,
       lastError: compactError(error),
       lastFailureAt: new Date(Number(nowFn())).toISOString(),
       failureCount: Number(state.failureCount ?? 0) + 1,
@@ -525,7 +531,7 @@ function isApiActionNeedingFormat(url) {
   return action === 'query' || action === 'parse' || action === 'expandtemplates' || action === 'help';
 }
 
-function buildHttpError({ response, rawBody, maybeJson, sourceKey, requestProfile }) {
+function buildHttpError({ response, rawBody, maybeJson, sourceKey, requestProfile, retryAfterMs = null }) {
   const errorCode = maybeJson?.error?.code ?? null;
   const errorInfo = maybeJson?.error?.info ?? null;
   const statusText = `HTTP ${response.status} ${response.statusText}`;
@@ -534,8 +540,30 @@ function buildHttpError({ response, rawBody, maybeJson, sourceKey, requestProfil
   const error = new Error(message);
   error.retryable = isRetryableStatus(response.status) || isRetryableApiCode(errorCode);
   error.status = response.status;
+  error.retryAfterMs = retryAfterMs;
   error.profile = requestProfile;
   return error;
+}
+
+function parseRetryAfterMs(response, nowMs) {
+  const rawValue = response?.headers?.get?.('retry-after')
+    ?? response?.headers?.['retry-after']
+    ?? response?.headers?.['Retry-After'];
+  const raw = String(rawValue ?? '').trim();
+  if (!raw) {
+    return null;
+  }
+
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.ceil(seconds * 1000);
+  }
+
+  const retryAt = Date.parse(raw);
+  if (!Number.isFinite(retryAt) || !Number.isFinite(nowMs)) {
+    return null;
+  }
+  return Math.max(0, retryAt - nowMs);
 }
 
 function buildApiError({ errorPayload, sourceKey, requestProfile }) {
@@ -600,6 +628,14 @@ function compactText(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 240);
+}
+
+function normalizeNonNegativeNumber(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue >= 0 ? numericValue : null;
 }
 
 function parseJsonSafely(value) {

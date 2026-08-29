@@ -1,0 +1,13 @@
+{
+  "actionId": "wiki-projectiles-source-refresh",
+  "generatedAt": "2026-08-29T01:00:34.554Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/projectiles/projectiles_l1_20260829_serial03/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T01:00:34.554Z",
+  "message": "frozen projectiles source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T01:00:34.554Z",
+  "total": 1
+}

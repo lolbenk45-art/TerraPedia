@@ -1,0 +1,19 @@
+{
+  "operationId": "canonical-npc-external-relation-scope-apply",
+  "status": "COMPLETED",
+  "apply": true,
+  "databaseWrites": true,
+  "scopeSha256": "sha256:759c022a34a243ed17c93630727bb07d965b95064ed296740ecdf5d01cc6ca39",
+  "serverFingerprintSha256": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "rowCounts": {
+    "landing.npc_item_relations_bundle_raw": 1,
+    "maint.maint_item_sources": 1071,
+    "maint.maint_npc_crawler_facts": 0,
+    "relation.item_source_facts": 1071,
+    "relation.item_source_details": 1071,
+    "relation.item_npc_loot_relations": 655,
+    "relation.item_npc_shop_relations": 408,
+    "local.npc_loot_entries": 655,
+    "local.npc_shop_entries": 408
+  }
+}

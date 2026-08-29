@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l1-policy-promotion",
+  "domainId": "items",
+  "status": "completed",
+  "policyVersion": 1,
+  "policyHash": "sha256:a3c7701fb6170b8a09171194328ce672a58665982c0c3649cf77b82e2eb11cc6",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": null,
+  "decisionIdentity": "automation-items-l1-policy-promotion-20260817-01",
+  "successfulL1Runs": null,
+  "completedAt": "2026-08-17T00:18:39.648Z"
+}

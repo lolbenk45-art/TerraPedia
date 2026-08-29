@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -308,9 +308,10 @@ function noDbSteps(nowIso, sharedDataRoot, timestamp, acceptanceDir) {
 
   const crawlerWrapperPath = path.join(acceptanceDir, `crawler-layout-wrapper-${timestamp}.mjs`);
   const relativeCrawlerWrapper = path.relative(repoRoot, crawlerWrapperPath).replaceAll(path.sep, '/');
+  const crawlerSourceUrl = pathToFileURL(path.join(repoRoot, 'pipelines', 'crawler', 'source-layout-check.mjs')).href;
   writeUtf8NoBom(
     crawlerWrapperPath,
-    "import { checkCrawlerSourceLayout } from '../../pipelines/crawler/source-layout-check.mjs';\nconsole.log(JSON.stringify(checkCrawlerSourceLayout(), null, 2));\n",
+    `import { checkCrawlerSourceLayout } from ${JSON.stringify(crawlerSourceUrl)};\nconsole.log(JSON.stringify(checkCrawlerSourceLayout(), null, 2));\n`,
   );
   steps.splice(7, 0, {
     stepId: 'crawler-layout',

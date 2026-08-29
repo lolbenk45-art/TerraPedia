@@ -1,0 +1,6 @@
+{
+  "actor": "Codex",
+  "reason": "User selected方案A; one minimal timestamp serialization repair after known transaction rollback; restore relation source chain from local maint/local evidence with exact relation-table allow-list and no network.",
+  "authorizationReference": "reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/proposal.json",
+  "decisionIdentity": "canonical-item-source-relation-recovery-from-maint-20260823-retry-04-owner-04"
+}

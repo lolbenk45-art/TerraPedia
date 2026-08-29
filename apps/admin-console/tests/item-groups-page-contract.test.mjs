@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const repoRoot = path.resolve(import.meta.dirname, '..', '..')
+const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..')
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n')

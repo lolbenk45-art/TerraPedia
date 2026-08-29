@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l1-policy-promotion",
+  "databaseName": "terria_v1_local",
+  "domainId": "items",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "policyVersion": 1,
+  "policyHash": "sha256:a3c7701fb6170b8a09171194328ce672a58665982c0c3649cf77b82e2eb11cc6",
+  "minimumSuccessfulL1Runs": 2
+}

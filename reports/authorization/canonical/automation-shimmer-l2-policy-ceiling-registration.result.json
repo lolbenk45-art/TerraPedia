@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "status": "pending",
+  "authoritative": false,
+  "operationId": "automation-shimmer-l2-policy-ceiling-registration",
+  "domainId": "shimmer",
+  "policyVersion": 2,
+  "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+  "policySetHash": "sha256:d6d742db267b6765a6d50ab5944e107333aa7feae59aa26899d33e45079540cc",
+  "artifactHash": "sha256:40bfcbed13e490a4d968bfc7aeceacc1e048e343d95d239f94f1ff2dd6a27c16",
+  "actor": "admin",
+  "reason": "Register user-approved L2 policy ceiling for shimmer; do not promote L2 or activate scheduler in this checkpoint.",
+  "authorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "decisionIdentity": "automation-shimmer-l2-policy-ceiling-registration-20260828-owner-01",
+  "packetHash": "sha256:0d3714670b881dd63f372b114cb891059cf1dadb36e70834e40ef2f75ba460c0"
+}

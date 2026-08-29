@@ -261,6 +261,13 @@ source artifacts / source_dataset_landings
 - 并发、重试、超时引用
 - 创建者、批准者、原因和时间
 
+策略 JSON 必须分别绑定四类 mutation 的 ratio 与 absolute ceiling。L2
+artifact 的规范字段为 `ratioInsertCap`/`absoluteInsertCap`、
+`ratioUpdateCap`/`absoluteUpdateCap`、
+`ratioRelationshipDeleteCap`/`absoluteRelationshipDeleteCap`，以及
+`ratioDisableCap`/`absoluteDisableCap`。不得用单一 disable ratio 或缺省
+字段代表其它 mutation 类；策略 hash 必须覆盖完整字段集。
+
 历史趋势只能额外阻止，不得自动提高阈值或修改策略版本。
 
 ### 6.2 初始阈值

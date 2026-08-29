@@ -30,6 +30,8 @@ import {
   probeSupplementarySource,
   SUPPLEMENTARY_SOURCE_DEFINITIONS
 } from './supplementary-source-probes.mjs';
+import { createSourceUpdateProgressHeartbeat } from './source-update-progress-heartbeat.mjs';
+import { resolveOfficialCheckMode } from './source-update-monitor-options.mjs';
 
 const terraPediaRoot = resolveProjectPath();
 const OFFICIAL_SOURCE_MONITOR_USER_AGENT = 'TerraPedia-source-monitor/2.0 (+https://terraria.wiki.gg/api.php)';
@@ -52,10 +54,14 @@ const officialCheckMode = resolveOfficialCheckMode(options);
 const previousState = readJsonIfExists(statePath);
 const previousSourceMap = buildPreviousSourceMap(previousState);
 const ingestionManifest = loadWikiSourceManifest(manifestPath);
+const monitorProgress = createSourceUpdateProgressHeartbeat({
+  heartbeatMs: options['heartbeat-ms'] ?? options.heartbeatMs,
+  writeProgress: writeMonitorProgress,
+});
 
 ensureDir(reportDir);
 ensureDir(path.dirname(statePath));
-writeMonitorProgress({
+monitorProgress.publish({
   status: 'running',
   phase: 'start',
   message: 'checking source update fingerprints',
@@ -78,7 +84,7 @@ const sources = [];
 
 for (const source of buildWikiSources()) {
   sources.push(await checkWikiSource(source));
-  writeMonitorProgress({
+  monitorProgress.publish({
     status: 'running',
     phase: 'wiki',
     message: `checked ${source.key}`,
@@ -90,7 +96,7 @@ for (const source of buildWikiSources()) {
 if (officialCheckMode !== 'never') {
   for (const source of buildOfficialSources()) {
     sources.push(await checkOfficialSource(source));
-    writeMonitorProgress({
+    monitorProgress.publish({
       status: 'running',
       phase: 'official',
       message: `checked ${source.key}`,
@@ -119,7 +125,7 @@ writeJson(reportPath, {
   ...payload,
   reportFile: toWorkspaceRelative(reportPath)
 });
-writeMonitorProgress({
+monitorProgress.publish({
   status: 'completed',
   phase: 'write',
   message: `checked ${summary.checkedSources} source(s); changed=${summary.changedSources}`,
@@ -128,6 +134,7 @@ writeMonitorProgress({
   outputPath: statePath,
   reportPath
 });
+monitorProgress.stop();
 
 console.log(`Checked at: ${checkedAt}`);
 console.log(`Sources checked: ${summary.checkedSources}`);
@@ -407,14 +414,6 @@ function buildRecommendedActions(summary) {
       ]
     }
   ];
-}
-
-function resolveOfficialCheckMode(rawOptions) {
-  const mode = String(rawOptions['official-check-mode'] ?? rawOptions.officialCheckMode ?? 'always').trim().toLowerCase();
-  if (mode === 'always' || mode === 'never') {
-    return mode;
-  }
-  return 'always';
 }
 
 function buildPreviousSourceMap(previousState) {

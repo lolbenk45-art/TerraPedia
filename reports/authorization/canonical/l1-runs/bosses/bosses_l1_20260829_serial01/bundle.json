@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-first-l1",
+  "runId": "bosses_l1_20260829_serial01",
+  "domainId": "bosses",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T01:22:00.000Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "bosses",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "boss_groups",
+        "generation": 6
+      },
+      {
+        "databaseRole": "local",
+        "table": "npcs",
+        "generation": 11
+      }
+    ],
+    "projectionHash": "sha256:d530d2fbe4be0b25bd950b41122f320290bbbab893b35bab57fd79e647c9f844"
+  },
+  "baselineFingerprint": "sha256:68a8f5188a3fcce20fd20a2aba841ff9ac8f80daeeecdc6f288d2f8a06cae48c",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/bosses/bosses_l1_20260829_serial01/source.json",
+    "sha256": "sha256:6948ef0e38cee482031ca9c066b54081b6d5469e4b70e8487b7a173016a7b00d"
+  },
+  "evidenceHash": "sha256:7267acb8cb7077ec85d253f68236a984df85a1e543c875710e8fa83570a682a4",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:68a8f5188a3fcce20fd20a2aba841ff9ac8f80daeeecdc6f288d2f8a06cae48c",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "boss_groups"
+      },
+      {
+        "databaseRole": "local",
+        "table": "npcs"
+      }
+    ],
+    "sourceSha256": "sha256:6948ef0e38cee482031ca9c066b54081b6d5469e4b70e8487b7a173016a7b00d",
+    "importPlan": {
+      "summary": {
+        "records": 33
+      }
+    }
+  },
+  "logicalDiffHash": "sha256:0262b3ba44a99e8a6dfb60263fc455193292956a8b2883044c67f0664768ac76",
+  "decisionHash": "sha256:d1ab70131bc4b7edbef1790a177901dc38f07df05a36c5b19a43c6aa41ab6d39",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "boss_groups"
+    },
+    {
+      "databaseRole": "local",
+      "table": "npcs"
+    }
+  ],
+  "importPlan": {
+    "summary": {
+      "records": 33
+    }
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/bosses/bosses_l1_20260829_serial01/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/bosses/bosses_l1_20260829_serial01/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/bosses/bosses_l1_20260829_serial01/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/bosses/bosses_l1_20260829_serial01/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:82846372bc34e6b73e5317d3197002a9d97c91f72162779b97ff81a612c9fafe"
+}

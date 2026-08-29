@@ -34,7 +34,8 @@ export async function runCli(argv, {
       targetPriority: readOption(argv, 'target-priority'),
       limit: readNumberOption(argv, 'limit'),
       writeFiles: hasFlag(argv, 'write-files'),
-      outputRoot: readOption(argv, 'output-root')
+      outputRoot: readOption(argv, 'output-root'),
+      progressPath: readOption(argv, 'progress-path')
     }), {
       runCliImpl: (singleArgv) => runCli(singleArgv, {
         readFileImpl,
@@ -62,7 +63,8 @@ export async function runCli(argv, {
       domain: readOption(argv, 'domain') ?? '',
       sourceStandardizedDir: readOption(argv, 'source-standardized-dir'),
       crawlerOutputRoot: readOption(argv, 'crawler-output-root'),
-      outputRoot: readOption(argv, 'output-root')
+      outputRoot: readOption(argv, 'output-root'),
+      progressPath: readOption(argv, 'progress-path')
     });
   }
 

@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-08-23T06:17:43.818Z",
+  "dateTag": "20260823-shop-condition-preflight-nontown",
+  "apply": false,
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation",
+  "summary": {
+    "totalPlannedRows": 6187
+  },
+  "tables": {
+    "item_acquisition_sources": {
+      "tableName": "item_acquisition_sources",
+      "plannedRows": 4465,
+      "sampleRows": [
+        {
+          "item_internal_name": "DirtBlock",
+          "source_type": "worldgen",
+          "source_ref_type": "world",
+          "source_ref_name": "Dirt Block worldgen"
+        },
+        {
+          "item_internal_name": "Mushroom",
+          "source_type": "mining",
+          "source_ref_type": "world",
+          "source_ref_name": "Mushroom vein"
+        },
+        {
+          "item_internal_name": "Mushroom",
+          "source_type": "worldgen",
+          "source_ref_type": "world",
+          "source_ref_name": "Mushroom worldgen"
+        },
+        {
+          "item_internal_name": "IronOre",
+          "source_type": "worldgen",
+          "source_ref_type": "world",
+          "source_ref_name": "Iron Ore worldgen"
+        },
+        {
+          "item_internal_name": "CopperOre",
+          "source_type": "worldgen",
+          "source_ref_type": "world",
+          "source_ref_name": "Copper Ore worldgen"
+        }
+      ]
+    },
+    "npc_loot_entries": {
+      "tableName": "npc_loot_entries",
+      "plannedRows": 1542,
+      "sampleRows": [
+        {
+          "npc_internal_name": "BigSlimedZombie",
+          "item_internal_name": "Gel",
+          "chance_text": "100%"
+        },
+        {
+          "npc_internal_name": "BigSlimedZombie",
+          "item_internal_name": "SlimeStaff",
+          "chance_text": "{{modes|0.01%|0.014%}}"
+        },
+        {
+          "npc_internal_name": "SmallSlimedZombie",
+          "item_internal_name": "Gel",
+          "chance_text": "100%"
+        },
+        {
+          "npc_internal_name": "SmallSlimedZombie",
+          "item_internal_name": "SlimeStaff",
+          "chance_text": "{{modes|0.01%|0.014%}}"
+        },
+        {
+          "npc_internal_name": "BigPincushionZombie",
+          "item_internal_name": "WoodenArrow",
+          "chance_text": "100%"
+        }
+      ]
+    },
+    "npc_shop_entries": {
+      "tableName": "npc_shop_entries",
+      "plannedRows": 180,
+      "sampleRows": [
+        {
+          "npc_internal_name": "BoundGoblin",
+          "item_internal_name": "SpikyBall",
+          "price_text": null
+        },
+        {
+          "npc_internal_name": "BoundGoblin",
+          "item_internal_name": "Toolbelt",
+          "price_text": null
+        },
+        {
+          "npc_internal_name": "BoundGoblin",
+          "item_internal_name": "GrapplingHook",
+          "price_text": null
+        },
+        {
+          "npc_internal_name": "BoundGoblin",
+          "item_internal_name": "TinkerersWorkshop",
+          "price_text": null
+        },
+        {
+          "npc_internal_name": "BoundGoblin",
+          "item_internal_name": "Ruler",
+          "price_text": null
+        }
+      ]
+    },
+    "npc_shop_conditions": {
+      "tableName": "npc_shop_conditions",
+      "plannedRows": 0,
+      "sampleRows": []
+    },
+    "npc_buff_relations": {
+      "tableName": "npc_buff_relations",
+      "plannedRows": 0,
+      "sampleRows": []
+    }
+  }
+}

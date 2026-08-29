@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-08-23T21:12:30.803Z",
+  "expiresAt": "2026-08-24T21:12:30.803Z",
+  "operationId": "automation-shimmer-first-l1",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:ff2eacfedbaf80b2ee31b0a05e1076a296e9948568efc83db14d7fbbd84ae1b7",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
+      "sizeBytes": 3407,
+      "contentHash": "sha256:e046ef44badb8f1af2701341d093b1fb8b176c9760fbb50637c6723aed468b54"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:e6e37c5a297f3ce09aae029ad5f42824664e615f4f14361b1746f856a717225d",
+  "executionManifest": {
+    "artifactDate": "2026-08-24",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:d4b2f40cc6420cbda47abc57c91332c7e50b0c2c9ecbcf4db1085f18e7852ce0",
+        "path": "pipelines/automation/run-supplementary-domain-l1-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:f8359c5832cbb31712d602686deb76b507a39a57884fe08fd8acde3aeddc8768",
+        "path": "pipelines/automation/supplementary-domain-l1-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:410020efd395459413da1cf170ab6e6561a49aa19d9d5a5a9bb7756588b2a33d",
+        "path": "pipelines/import/import-wiki-audio-assets-to-db.mjs"
+      },
+      {
+        "contentHash": "sha256:081b26159ecba94825c1778815153b97a1e74ae8ce544b958e86b903d07df23e",
+        "path": "pipelines/import/import-wiki-bosses-to-db.mjs"
+      },
+      {
+        "contentHash": "sha256:12f86831291dc5cfabe8fcf501b132a4a6be1e22f34d7e3d761d9508b2e29bbe",
+        "path": "pipelines/import/import-wiki-shimmer-to-db.mjs"
+      },
+      {
+        "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:f2b0c106011b2de850409622499b0a1b0e49482798508be3b0c125f1f65c8f49",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:2d903199d17d190dccbd5d27ca77f15a34754a12eaa71ccd01e6ffaae4a744b6",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:4c2937947222949a6073db2b09dd2c42cc1c9eca71473c29e92f51651c91c7e6",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:9c7b89a56fa9ccaf672728504d5e1040f2bd7c7a374ee8a7e8ca56b507629ec9",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:028779c0321214c1f74821be261fb7415c70976e75dfbd0f674fb3053b2fffef",
+        "path": "pipelines/import/import-independent-entities-to-db.mjs"
+      },
+      {
+        "contentHash": "sha256:435fb0d5675358a135816f37321a27b86dd2e7f98ca2cb277e3053c5caab5526",
+        "path": "pipelines/import/import-standardized-to-db.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:2b70b9a5b5639ab8adb11cf1db7089d563d5d78c2dbcc978a5a72683b059360a",
+        "path": "scripts/lib/project-constants.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:ba44c3398e8ccd5e059ada1127c347cc0031eb9eb6eaef0a8771b56189fed8eb",
+        "path": "pipelines/import/boss-import-strict-mode.mjs"
+      },
+      {
+        "contentHash": "sha256:be87454f1d8e160b006b787c52f01f615ecf32b97d924a1e2188a1a8debb82cb",
+        "path": "pipelines/import/boss-reference-source.mjs"
+      },
+      {
+        "contentHash": "sha256:2d5b9621d356c8f65d3862c8590dc793a0ae2841b672e71e383f63e89873bd57",
+        "path": "pipelines/lib/wiki-page-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:7ab8888bb426dc07db064ab444742964908e0a8286ba58ed63c55e104c490e04",
+        "path": "pipelines/lib/minio-image-upload.mjs"
+      },
+      {
+        "contentHash": "sha256:9a3f10b4181df874f2d48085916df8c579d51069e12edb537b6629fe4e198981",
+        "path": "pipelines/lib/wiki-item-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:57837476d3a9880821122b7f2174f7f459595044e4e592416f8389f2b6d9f1cf",
+        "path": "pipelines/import/independent-entity-import-mode.mjs"
+      },
+      {
+        "contentHash": "sha256:00616a9c77ef05b81bc79e072ae63735acc09803909f8b6a4f2ca7386d137837",
+        "path": "pipelines/lib/load-standardized-dataset.mjs"
+      },
+      {
+        "contentHash": "sha256:db30cbcfeb04dd4193ef0f6d6e918d5ca64061941162a0ac749702a998e06018",
+        "path": "pipelines/lib/base-domain-row-reconcile.mjs"
+      },
+      {
+        "contentHash": "sha256:d21deca553ec25c9217805b35e6cd2f1ba28885aa59fc18c50adea9d11d5ff00",
+        "path": "pipelines/lib/projectile-name-resolver.mjs"
+      },
+      {
+        "contentHash": "sha256:d48c96f0a4baab28c17935f305f478189387335f29396e7c1e8e24964a90f87d",
+        "path": "pipelines/pipeline/independent-entity-sync-args.mjs"
+      },
+      {
+        "contentHash": "sha256:ac151ed9efb272a57077ee2efeba92d02e16295384b87edf4cdb6db0acbca669",
+        "path": "pipelines/lib/base-domain-primary-db-guard.mjs"
+      },
+      {
+        "contentHash": "sha256:15822677ebce9eaccdec5c2777a8b12638fbe5f00a05165187faae4a0ef18f1d",
+        "path": "pipelines/lib/public-item-cache.mjs"
+      },
+      {
+        "contentHash": "sha256:4d0c808271f37571ca3a00e677d0360d0c7e648db058079b3e72c5327d1050d8",
+        "path": "pipelines/lib/item-category-normalization.mjs"
+      },
+      {
+        "contentHash": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650",
+        "path": "pipelines/lib/recipe-material-reference.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:b19bcd0b9eb2f23b730e753e96eae9e4ce455b51a9b5ec0b480b7257e755a91d",
+        "path": "pipelines/lib/wiki-request-gate.mjs"
+      },
+      {
+        "contentHash": "sha256:cc5ec3ea555bf6404a650c314a4407c686e9fd088c3c8d2373a73bcc8cd8bba3",
+        "path": "pipelines/lib/wiki-user-agent.mjs"
+      },
+      {
+        "contentHash": "sha256:57de54a75212d1657321e418a232194d51f80bbbb59a5287bdd03314760df42d",
+        "path": "pipelines/lib/crawler-heartbeat.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:f3c420eae97379c43554e875e31ab2c6d3f827131bcf5970265d1408c6d22fdc",
+        "path": "pipelines/lib/crawler-alerts.mjs"
+      },
+      {
+        "contentHash": "sha256:4e820dc1cc5cfc52d3490e46f375e36b352dc77478257338722aa33d6109e395",
+        "path": "pipelines/lib/flaresolverr-bridge.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2ee2102f5feba92acfaaca41945f6c0952b2f5d72f04e3af144e1fb907883801",
+        "path": "pipelines/workflow/backend-refresh-runtime-state.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/automation/run-supplementary-domain-l1-operation.mjs",
+      "--operation-id=automation-shimmer-first-l1",
+      "--input=reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
+      "--output=reports/authorization/canonical/automation-shimmer-first-l1.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_automation_l1_apply",
+    "inputPaths": [
+      "reports/authorization/canonical/automation-shimmer-first-l1.bundle.json"
+    ],
+    "networkAccess": false,
+    "operationId": "automation-shimmer-first-l1",
+    "outputPaths": [
+      "reports/authorization/canonical/automation-shimmer-first-l1.result.json"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:14803edb4a04b3451fd64e857bfb5aae0e17e8e211e19c234c6d221cb3e21d62"
+}

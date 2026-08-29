@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-independent-wiki-gg-variant-retirement",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:78fa79a468bf72f4c289fc82056e6e250cea41c33da8dbd449e2fae9f93c052c",
+  "previewPath": "reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-independent-wiki-gg-variant-retirement-preview.json",
+  "previewSha256": "sha256:b01a9d5dd6010a1ea30ad60f2d9107001e800da95478b82ecb6b1f61d09afd7c",
+  "expectedCounts": {
+    "relationLoot": 52
+  },
+  "writeTargets": [
+    "relation.item_npc_loot_relations.independent_wiki_gg_variant"
+  ],
+  "disposition": {
+    "status": 0,
+    "deleted": 1
+  }
+}

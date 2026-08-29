@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "authorizationKind": "canonical_read_only_proposal_authorization",
+  "operationId": "canonical-item-image-projection-apply",
+  "action": "read-only-proposal",
+  "actor": "admin",
+  "reason": "Bind the completed Item origin-only repair to a zero-change projection evidence refresh.",
+  "authorizationReference": "devlog://2026-08-22/item-image-evidence-refresh",
+  "decisionIdentity": "canonical-item-image-projection-proposal-read-20260822-admin-12",
+  "authorizedAt": "2026-08-21T20:33:56.002Z",
+  "expiresAt": "2026-08-21T21:33:56.002Z",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "noWrite": true,
+  "authorizationHash": "sha256:5768166f2c7532bf4ae267c7d530a851edf5baad8bc547229cdd2660466d0c94"
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-projectiles-l1",
+  "domainId": "projectiles",
+  "runId": "projectiles_l1_20260829_serial01",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run projectiles 01",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-projectiles-serial01",
+  "decisionIdentity": "eight-domain-l1-projectiles-serial01",
+  "authorizedAt": "2026-08-29T00:59:14.485Z",
+  "expiresAt": "2026-08-29T02:59:14.485Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:d81ff6db368ee8e7975019ee8a90cfb5000d6ef98f95d32d024f1b47aea1e762"
+}

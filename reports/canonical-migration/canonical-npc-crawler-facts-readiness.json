@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "reportKind": "canonical_npc_crawler_facts_readiness",
-  "generatedAt": "2026-08-05T17:38:56.749Z",
+  "generatedAt": "2026-08-27T19:09:37.642Z",
   "readinessLevel": "T2_CUTOVER_VERIFIED",
   "evidenceScope": "formal-t2",
   "writesDatabase": false,
@@ -242,33 +242,33 @@
       "snapshotHash": "sha256:49515c135557825f1422c66906e9f074dbd6b3651a1c017a8aa19ae0c6bfa7b3"
     },
     "npcShop": {
-      "count": 1116,
-      "snapshotHash": "sha256:febae6ac333338d08ed8c592cfc8d7c2a4f646fda482f91e70ee6a0dbc2511ce"
+      "count": 959,
+      "snapshotHash": "sha256:6b3927c8b3e7fec1b229fa6f39edc0ffaff22edecafee5e1f598ef10854f9546"
     },
     "npcLoot": {
-      "count": 1544,
-      "snapshotHash": "sha256:92771a2b250c83717466896b168bdb5fbe770e2c01550e582bdada33c9e6cc09"
+      "count": 1549,
+      "snapshotHash": "sha256:7fa8705650b23f0656b811f41830e18401d2eda48a23a6a5bf39a1c1ce3f6d31"
     },
-    "snapshotHash": "sha256:4c105a5a1a325e2d2986502c3dd04cda360c94bd9cea0cf05db7bfe8ea644bd6"
+    "snapshotHash": "sha256:4004326267f15002e1c0161496613da7e441cf0a72537ef51df13b0bb259eebf"
   },
   "local": {
     "npcBuff": {
       "count": 1270,
-      "snapshotHash": "sha256:c35a4e2fb395fd395749a796c427732a638da39318b8e50e6160ab218e777bd4"
+      "snapshotHash": "sha256:2b6da48ade8716c0477947c5985844c5bc80b51ca1924848a3511f8f3fb2bef9"
     },
     "npcShop": {
       "count": 1116,
-      "snapshotHash": "sha256:6aba01425ca9e21c132e801c57da9aeb6a273fb994732736bc822c21fea4334a"
+      "snapshotHash": "sha256:442553f159167a3140961a29a913fe960ac3b6031b6b569fec907febeed83a84"
     },
     "npcLoot": {
-      "count": 1880,
-      "snapshotHash": "sha256:9c942e658b69e07a90120ea305ddc6dd2d15bc12449844884caa105736a0da52"
+      "count": 1888,
+      "snapshotHash": "sha256:1663ff606e71f85ff7eff8a514053bead8dd9c0ed11e193b1f6f6df0f2125fa7"
     },
-    "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37"
+    "snapshotHash": "sha256:a4bf0a219656f05d38363ca27b39abd2bb48830eb3f961ca0fe285d3b4bc6664"
   },
   "runtime": {
     "sampleCount": 1,
-    "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37",
+    "snapshotHash": "sha256:a4bf0a219656f05d38363ca27b39abd2bb48830eb3f961ca0fe285d3b4bc6664",
     "sample": {
       "id": -65,
       "internalName": "BigHornetStingy"
@@ -277,12 +277,12 @@
   "api": {
     "admin": {
       "sampleCount": 1,
-      "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37",
+      "snapshotHash": "sha256:a4bf0a219656f05d38363ca27b39abd2bb48830eb3f961ca0fe285d3b4bc6664",
       "error": null
     },
     "public": {
       "sampleCount": 1,
-      "snapshotHash": "sha256:58545f6cd8d2f40f30ca5f6d74ee5654f1c41deece8e217849ad9dbeacafdb37",
+      "snapshotHash": "sha256:a4bf0a219656f05d38363ca27b39abd2bb48830eb3f961ca0fe285d3b4bc6664",
       "error": null
     }
   },
@@ -659,5 +659,22 @@
     "status": "pass",
     "blockingCount": 0,
     "warningCount": 0
+  },
+  "reconciliation": {
+    "mode": "terminal-t2-current-readback",
+    "databaseWrites": false,
+    "inputRecreated": false,
+    "terminalGeneratedAt": "2026-08-05T17:38:56.749Z",
+    "terminalResultHash": "sha256:583292f85cacc32fe146bf1815b5af292f066f5e600a10af07d293da0d8f7356",
+    "inputHash": "sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+    "producerRunKey": "canonical-npc-landing:sha256:69f61c3b3bfa21c636be10a26711972454bacf4305a41707ec4ac241eb781d6e",
+    "crawlerFactCount": 25,
+    "maintSnapshotHash": "sha256:564aefa6d0191787c3433270f7229c2936e2c3ef128e38bf2978c241d38f1284",
+    "terminalAnchor": {
+      "commit": "0ad73c20d1bb204ebfc9aeb8d63cd039a20f99bf",
+      "path": "reports/canonical-migration/canonical-npc-crawler-facts-readiness.json",
+      "blob": "a3a6e56307aaffba52ba1107013801c93fb0e300",
+      "bytesSha256": "sha256:db6e150fdbfe8499ac4453a0d8da2d0a330b62c55c43eff42cf36739841a3bb5"
+    }
   }
 }

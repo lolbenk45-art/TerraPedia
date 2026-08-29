@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "status": "pending",
+  "authoritative": false,
+  "operationId": "automation-npcs-l2-policy-ceiling-registration",
+  "domainId": "npcs",
+  "policyVersion": 2,
+  "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+  "policySetHash": "sha256:70a5310245bef9dcdc15674bc4a6e83f281342bdf6f2da98cedd7139db8d95fc",
+  "artifactHash": "sha256:48a23d6a9e3193d99f82c7bbac8717071d84a8c49141344ed20490d7acd5c321",
+  "actor": "admin",
+  "reason": "Register user-approved L2 policy ceiling for npcs; do not promote L2 or activate scheduler in this checkpoint.",
+  "authorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "decisionIdentity": "automation-npcs-l2-policy-ceiling-registration-20260828-owner-01",
+  "packetHash": "sha256:091959a0a89719dd8cdb0ed9fb641111564f61646113d9042770cd1b10c2d7af"
+}

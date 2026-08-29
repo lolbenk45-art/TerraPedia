@@ -39,6 +39,17 @@ public interface CrawlerAutomationPolicyMapper extends BaseMapper<CrawlerAutomat
         """)
     List<PolicyRow> findCurrentPolicyRows();
 
+    @Select("""
+        SELECT p.domain_id AS domainId, p.current_version AS policyVersion,
+               pv.policy_hash AS policyHash, p.current_level AS currentLevel,
+               p.operational_state AS operationalState
+        FROM crawler_automation_policy p
+        JOIN crawler_automation_policy_version pv
+          ON pv.domain_id = p.domain_id AND pv.policy_version = p.current_version
+        ORDER BY p.domain_id
+        """)
+    List<PolicyState> findCurrentPolicyStates();
+
     @Update("""
         UPDATE crawler_automation_reauth_challenge
         SET consumed_at = CURRENT_TIMESTAMP

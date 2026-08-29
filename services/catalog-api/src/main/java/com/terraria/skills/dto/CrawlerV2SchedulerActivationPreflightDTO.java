@@ -19,6 +19,8 @@ public class CrawlerV2SchedulerActivationPreflightDTO {
     private CountsDTO counts;
     private ReconcilerDTO reconciler;
     private List<DomainReadinessDTO> domains = new ArrayList<>();
+    private List<PolicyRowDTO> policyRows = new ArrayList<>();
+    private String policySetHash;
     private boolean databaseWrites;
     private boolean networkAccess;
     private boolean isolatedResourceWrites;
@@ -59,5 +61,15 @@ public class CrawlerV2SchedulerActivationPreflightDTO {
         private Instant observedAt;
         private String evidencePath;
         private String stateStoreEpoch;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class PolicyRowDTO {
+        private String domainId;
+        private long policyVersion;
+        private String policyHash;
+        private String currentLevel;
+        private String operationalState;
     }
 }

@@ -28,6 +28,10 @@ import {
   buildItemImageProjectionInputContract,
   buildItemImageProjectionProposal,
 } from '../relation/item-image-projection-contract.mjs';
+import {
+  buildItemSourceLocalNpcAdmissionAttemptPaths,
+  buildItemSourceLocalNpcAdmissionInputContract,
+} from '../relation/item-source-local-npc-admission-contract.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
@@ -52,7 +56,29 @@ const IMAGE_SYNC_OPTIONS = Object.freeze({
   managedObjectOrigin: 'http://127.0.0.1:19100',
 });
 
+const GOVERNED_L1_OPERATION_CASES = Object.freeze([
+  { domainId: 'items', operationId: 'automation-items-l1' },
+  { domainId: 'npcs', operationId: 'automation-npcs-l1' },
+  { domainId: 'projectiles', operationId: 'automation-projectiles-l1' },
+  { domainId: 'armor_sets', operationId: 'automation-armor-sets-l1' },
+  { domainId: 'buffs', operationId: 'automation-buffs-l1' },
+  { domainId: 'audio', operationId: 'automation-audio-first-l1' },
+  { domainId: 'bosses', operationId: 'automation-bosses-first-l1' },
+  { domainId: 'shimmer', operationId: 'automation-shimmer-first-l1' },
+]);
+
+function governedL1ManifestOptions(operationId) {
+  const entry = GOVERNED_L1_OPERATION_CASES.find((candidate) => candidate.operationId === operationId);
+  if (!entry) return {};
+  const runId = `${entry.domainId}_l1_manifest_20260829`;
+  return {
+    l1RunRoot: `reports/authorization/canonical/l1-runs/${entry.domainId}/${runId}`,
+  };
+}
+
 function manifestOptions(operationId) {
+  const governed = governedL1ManifestOptions(operationId);
+  if (governed.l1RunRoot) return governed;
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)) {
     return {
       npcT1ConfigPath,
@@ -82,10 +108,240 @@ function manifestOptions(operationId) {
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
 
-test('manifest builder covers 55 governed operations and keeps NPC apply explicitly fail closed', () => {
+test('base-domain policy bootstrap and promotion operations are governed entrypoints', () => {
+  for (const domainId of ['items', 'projectiles']) {
+    const bootstrap = `automation-${domainId}-l0-bootstrap`;
+    const promotion = `automation-${domainId}-l1-policy-promotion`;
+    assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(bootstrap));
+    assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(promotion));
+    assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[bootstrap], 'pipelines/automation/bootstrap-automation-policy.mjs');
+    assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[promotion], 'pipelines/automation/run-automation-policy-decision.mjs');
+    assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[bootstrap], [
+      `reports/authorization/canonical/${bootstrap}.input.json`,
+    ]);
+    assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[promotion], [
+      `reports/authorization/canonical/${promotion}.input.json`,
+    ]);
+  }
+});
+
+test('governed exact manual L1 operations bind a dynamic run root', () => {
+  for (const { domainId, operationId } of GOVERNED_L1_OPERATION_CASES) {
+    const runId = `${domainId}_l1_20260829_run01`;
+    const l1RunRoot = `reports/authorization/canonical/l1-runs/${domainId}/${runId}`;
+    assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId), operationId);
+    assert.equal(
+      CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      'pipelines/automation/run-governed-l1-operation.mjs',
+    );
+    assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[operationId], []);
+
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-08-29',
+      l1RunRoot,
+    });
+    assert.equal(manifest.executionClass, 'formal_automation_l1_apply');
+    assert.equal(manifest.l1RunRoot, l1RunRoot);
+    assert.deepEqual(manifest.command, [
+      'node',
+      'pipelines/automation/run-governed-l1-operation.mjs',
+      `--domain=${domainId}`,
+      `--run-id=${runId}`,
+      '--source-mode=local',
+      '--full-reconciliation=false',
+      `--repo-root=${repoRoot}`,
+    ]);
+    assert.deepEqual(manifest.inputPaths, [`${l1RunRoot}/authorization-context.json`]);
+    assert.deepEqual(manifest.outputPaths, [`${l1RunRoot}/result.json`]);
+    assert.deepEqual(manifest.progressPaths, [`${l1RunRoot}/progress.json`]);
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+
+    const alternateRoot = `reports/authorization/canonical/l1-runs/${domainId}/${domainId}_l1_20260829_run02`;
+    const alternate = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-08-29',
+      l1RunRoot: alternateRoot,
+    });
+    assert.notEqual(alternate.l1RunRoot, manifest.l1RunRoot);
+    assert.notDeepEqual(alternate.outputPaths, manifest.outputPaths);
+    assert.doesNotThrow(() => assertCanonicalOperationExecutionManifestContract({
+      repoRoot,
+      operationId,
+      manifest,
+    }));
+  }
+});
+
+test('governed exact manual L1 manifests reject fixed or mismatched run roots', () => {
+  for (const [operationId, l1RunRoot] of [
+    ['automation-items-l1', 'reports/authorization/canonical/automation-items-l1.bundle.json'],
+    ['automation-items-l1', 'reports/authorization/canonical/l1-runs/projectiles/items_l1_20260829_run01'],
+    ['automation-items-l1', 'reports/authorization/canonical/l1-runs/items/items_l1_bad'],
+  ]) {
+    assert.throws(() => buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-08-29',
+      l1RunRoot,
+    }), /L1 run root|run root|runId|domain/i);
+  }
+});
+
+test('scheduler reactivation uses a distinct frozen policy input', () => {
+  const operationId = 'automation-crawler-v2-scheduler-reactivation';
+  assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
+  assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[operationId], 'pipelines/automation/run-automation-policy-decision.mjs');
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[operationId], [
+    'reports/authorization/canonical/automation-crawler-v2-scheduler-reactivation.input.json',
+  ]);
+});
+
+test('narrow image provenance and Buff projection operations have independent governed manifests', () => {
+  const cases = [
+    ['canonical-item-image-provenance-patch', 'pipelines/relation/item-image-provenance-patch.mjs'],
+    ['canonical-buff-image-projection-patch', 'pipelines/relation/buff-image-projection-patch.mjs'],
+    ['canonical-two-item-image-quarantine-repair', 'pipelines/relation/two-item-image-quarantine-repair.mjs'],
+  ];
+  for (const [operationId, entrypoint] of cases) {
+    assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
+    assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[operationId], entrypoint);
+    assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[operationId], operationId === 'canonical-two-item-image-quarantine-repair'
+      ? [
+          'reports/authorization/canonical/canonical-two-item-image-quarantine-repair.input.json',
+          'reports/runtime/local-data-chain-closure/20260821/remaining-image-repair/two-item-quarantine-repair.preview.json',
+        ]
+      : [
+          `reports/authorization/canonical/${operationId}.input.json`,
+          `reports/runtime/local-data-chain-closure/20260820/image-provenance-closure/${operationId}.preview.json`,
+        ]);
+    const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+    assert.deepEqual(manifest.ownershipKeys, operationId === 'canonical-item-image-provenance-patch'
+      ? [
+        'maint.maint_item_images.source_page',
+        'maint.maint_item_images.source_revision_timestamp',
+        'maint.maint_item_images.original_url',
+        'relation.relation_item_images.source_page',
+        'relation.relation_item_images.source_revision_timestamp',
+        'relation.relation_item_images.original_url',
+        'local.item_images.source_page',
+        'local.item_images.source_revision_timestamp',
+        'local.item_images.original_url',
+      ]
+      : operationId === 'canonical-buff-image-projection-patch'
+        ? ['relation.projection_buffs.image']
+        : [
+          'maint.maint_item_images.source_file_title',
+          'maint.maint_item_images.source_page',
+          'maint.maint_item_images.source_revision_timestamp',
+          'maint.maint_item_images.original_url',
+          'maint.maint_item_images.cached_url',
+          'relation.relation_item_images.source_file_title',
+          'relation.relation_item_images.source_page',
+          'relation.relation_item_images.source_revision_timestamp',
+          'relation.relation_item_images.original_url',
+          'relation.relation_item_images.cached_url',
+          'local.item_images.source_file_title',
+          'local.item_images.source_page',
+          'local.item_images.source_revision_timestamp',
+          'local.item_images.original_url',
+      'local.item_images.cached_url',
+      'relation.projection_items.image',
+      'local.items.image',
+    ]);
+  }
+});
+
+test('NPC Buff relation recovery is one Buff-owned exact governed operation', () => {
+  const operationId = 'canonical-npc-buff-relation-recovery';
+  assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
+  assert.equal(
+    CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+    'pipelines/relation/npc-buff-relation-recovery.mjs',
+  );
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[operationId], [
+    'reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-02.input.json',
+    'reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-buff-relation-recovery.proposal.json',
+  ]);
+  const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+  assert.equal(manifest.databaseWrites, true);
+  assert.equal(manifest.networkAccess, false);
+  assert.deepEqual(manifest.ownershipKeys, ['relation.npc_buff_relations.buffs']);
+  assert.deepEqual(manifest.command, [
+    'node',
+    'pipelines/relation/npc-buff-relation-recovery.mjs',
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-02.result.json',
+  ]);
+});
+
+test('image-origin and Armor restoration lanes are separate governed operations', () => {
+  const cases = [
+    {
+      operationId: 'canonical-item-image-origin-normalization',
+      entrypoint: 'pipelines/relation/projection-image-origin-normalization.mjs',
+      proposal: 'item-image-origin-normalization.proposal.json',
+      ownership: [
+        'relation.relation_item_images.cached_url',
+        'relation.projection_items.image',
+      ],
+    },
+    {
+      operationId: 'canonical-npc-image-origin-normalization',
+      entrypoint: 'pipelines/relation/projection-image-origin-normalization.mjs',
+      proposal: 'npc-image-origin-normalization.proposal.json',
+      ownership: ['relation.projection_npcs.image_url'],
+    },
+    {
+      operationId: 'canonical-projectile-image-origin-normalization',
+      entrypoint: 'pipelines/relation/projection-image-origin-normalization.mjs',
+      proposal: 'projectile-image-origin-normalization.proposal.json',
+      ownership: ['relation.projection_projectiles.image_url'],
+    },
+    {
+      operationId: 'canonical-biome-image-origin-normalization',
+      entrypoint: 'pipelines/relation/projection-image-origin-normalization.mjs',
+      proposal: 'biome-image-origin-normalization.proposal.json',
+      ownership: ['relation.projection_biomes.icon_url'],
+    },
+    {
+      operationId: 'canonical-armor-set-projection-restoration',
+      entrypoint: 'pipelines/relation/armor-set-projection-restoration.mjs',
+      proposal: 'armor-set-projection-restoration.retry-02.proposal.json',
+      ownership: ['relation.projection_armor_sets.insert'],
+    },
+  ];
+  for (const { operationId, entrypoint, proposal, ownership } of cases) {
+    assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
+    assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[operationId], entrypoint);
+    const attempt = operationId === 'canonical-armor-set-projection-restoration' ? 'retry-05' : 'retry-01';
+    assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[operationId], [
+      `reports/authorization/canonical/${operationId}.${attempt}.input.json`,
+      `reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/${proposal}`,
+    ]);
+    const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+    assert.deepEqual(manifest.ownershipKeys, ownership);
+    assert.ok(manifest.command.includes(`--operation-id=${operationId}`));
+    assert.ok(manifest.command.includes('--apply=true'));
+    assert.deepEqual(manifest.outputPaths, [
+      `reports/authorization/canonical/${operationId}.${attempt}.result.json`,
+    ]);
+  }
+});
+
+test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 55);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 54);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 110);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 109);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
@@ -102,7 +358,8 @@ test('manifest builder covers 55 governed operations and keeps NPC apply explici
 
   try {
     for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
-      if (operationId === 'canonical-item-image-projection-apply') continue;
+      if (operationId === 'canonical-item-image-projection-apply'
+          || operationId === 'canonical-item-source-local-npc-admission') continue;
       const operationRepoRoot = operationId === 'canonical-shimmer-import'
         ? shimmerFixture.repoRoot
         : repoRoot;
@@ -167,6 +424,56 @@ test('NPC T2 manifest binds one no-write attempt and the exact formal evidence',
   assert.ok(manifest.command.includes('--no-write=true'));
   assert.ok(manifest.command.includes('--apiBase=http://127.0.0.1:18191'));
   assert.ok(manifest.command.includes(`--output=${attemptRoot}/result.json`));
+});
+
+test('Item-source local NPC admission manifest binds its exact decision-derived transaction attempt', () => {
+  const decisionIdentity = 'owner-item-source-local-npc-manifest-test-01';
+  const paths = buildItemSourceLocalNpcAdmissionAttemptPaths(decisionIdentity);
+  const proposal = itemSourceAdmissionProposal();
+  const proposalBytes = Buffer.from(`${JSON.stringify(proposal)}\n`);
+  const proposalPath = paths.proposalPath;
+  const input = buildItemSourceLocalNpcAdmissionInputContract({
+    proposal,
+    proposalPath,
+    proposalSha256: `sha256:${createHash('sha256').update(proposalBytes).digest('hex')}`,
+    decisionIdentity,
+  });
+  const attemptDirectory = path.join(repoRoot, paths.attemptRoot);
+  fs.mkdirSync(attemptDirectory, { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, proposalPath), proposalBytes, { mode: 0o600 });
+  fs.writeFileSync(path.join(repoRoot, paths.inputPath), `${JSON.stringify(input)}\n`, { mode: 0o600 });
+  try {
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: 'canonical-item-source-local-npc-admission',
+      artifactDate: '2026-08-25',
+      itemSourceLocalNpcAdmissionAttemptRoot: paths.attemptRoot,
+    });
+
+    assert.equal(manifest.databaseWrites, true);
+    assert.equal(manifest.networkAccess, false);
+    assert.deepEqual(manifest.inputPaths, [paths.inputPath]);
+    assert.deepEqual(manifest.outputPaths, [paths.resultPath]);
+    assert.deepEqual(manifest.command, [
+      'node',
+      'pipelines/relation/apply-item-source-local-npc-admission.mjs',
+      `--input-contract=${paths.inputPath}`,
+      '--apply=true',
+      `--output=${paths.resultPath}`,
+    ]);
+    assert.deepEqual(manifest.itemSourceLocalNpcAdmissionAttempt, paths);
+    assert.deepEqual(manifest.ownershipKeys, [
+      'local.source_dataset_landings.item_source_npc_admission_insert',
+      'maint.maint_npc_crawler_facts.item_source_npc_admission_insert',
+      'relation.item_source_facts.item_source_npc_admission_insert',
+      'relation.item_source_details.item_source_npc_admission_insert',
+      'relation.item_npc_shop_relations.item_source_npc_admission_insert',
+      'relation.item_npc_loot_relations.item_source_npc_admission_insert',
+      'local.item_acquisition_sources.item_source_npc_admission_reconciliation',
+    ]);
+  } finally {
+    fs.rmSync(attemptDirectory, { recursive: true, force: true });
+  }
 });
 
 test('image sync manifest freezes the local reuse evidence bundle and managed origin', () => {
@@ -434,6 +741,7 @@ function createShimmerManifestFixture() {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-shimmer-manifest-'));
   const sourceScripts = path.join(repoRoot, 'scripts');
   fs.symlinkSync(sourceScripts, path.join(fixtureRoot, 'scripts'), 'dir');
+  fs.symlinkSync(path.join(repoRoot, 'pipelines'), path.join(fixtureRoot, 'pipelines'), 'dir');
   const publication = publishShimmerGeneration({
     rawBytes: Buffer.from(JSON.stringify({ pageTitle: 'Shimmer', html: '<table></table>' })),
     shards: {
@@ -793,6 +1101,35 @@ test('manifest CLI preserves the exact legacy-origin repair arguments', () => {
   }
 });
 
+test('manifest CLI forwards a dynamic governed L1 run root', () => {
+  const outputDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-l1-manifest-cli-'));
+  const outputPath = path.join(outputDirectory, 'manifest.json');
+  const l1RunRoot = 'reports/authorization/canonical/l1-runs/items/items_l1_cli_20260829';
+  try {
+    execFileSync(process.execPath, [
+      'pipelines/automation/canonical-operation-execution-manifest.mjs',
+      `--repo-root=${repoRoot}`,
+      '--operation-id=automation-items-l1',
+      '--artifact-date=2026-08-29',
+      `--l1-run-root=${l1RunRoot}`,
+      `--output=${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    const manifest = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    assert.equal(manifest.l1RunRoot, l1RunRoot);
+    assert.deepEqual(manifest.command, [
+      'node',
+      'pipelines/automation/run-governed-l1-operation.mjs',
+      '--domain=items',
+      '--run-id=items_l1_cli_20260829',
+      '--source-mode=local',
+      '--full-reconciliation=false',
+      `--repo-root=${repoRoot}`,
+    ]);
+  } finally {
+    fs.rmSync(outputDirectory, { recursive: true, force: true });
+  }
+});
+
 test('bootstrap, recipe, and NPC manifests freeze exact safety-critical arguments', () => {
   const bootstrap = buildCanonicalOperationExecutionManifest({
     repoRoot,
@@ -866,14 +1203,23 @@ test('formal child executors bind the exact packet verifier into their code bund
   }
 });
 
-test('supplementary L1 operations bind exact governed executors without L2 operations', () => {
+test('supplementary L1 operations bind exact governed executors and exact-domain L2 operations', () => {
+  const l2OperationIds = {
+    audio: 'automation-audio-l2-promotion',
+    bosses: 'automation-bosses-l2-promotion',
+    shimmer: 'automation-shimmer-l2-promotion',
+  };
   for (const domainId of ['audio', 'bosses', 'shimmer']) {
     const bootstrapId = `automation-${domainId}-l0-bootstrap`;
     const promotionId = `automation-${domainId}-l1-policy-promotion`;
-    const applyId = `automation-${domainId}-first-l1`;
+    const applyId = GOVERNED_L1_OPERATION_CASES.find((entry) => entry.domainId === domainId).operationId;
     const bootstrap = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: bootstrapId });
     const promotion = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: promotionId });
-    const apply = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: applyId });
+    const apply = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: applyId,
+      ...governedL1ManifestOptions(applyId),
+    });
 
     assert.deepEqual(bootstrap.command, [
       'node', 'pipelines/automation/bootstrap-automation-policy.mjs',
@@ -889,22 +1235,24 @@ test('supplementary L1 operations bind exact governed executors without L2 opera
       '--apply=true',
     ]);
     assert.deepEqual(apply.command, [
-      'node', 'pipelines/automation/run-supplementary-domain-l1-operation.mjs',
-      `--operation-id=${applyId}`,
-      `--input=reports/authorization/canonical/${applyId}.bundle.json`,
-      `--output=reports/authorization/canonical/${applyId}.result.json`,
-      '--apply=true',
+      'node', 'pipelines/automation/run-governed-l1-operation.mjs',
+      `--domain=${domainId}`,
+      `--run-id=${domainId}_l1_manifest_20260829`,
+      '--source-mode=local',
+      '--full-reconciliation=false',
+      `--repo-root=${repoRoot}`,
     ]);
     assert.equal(bootstrap.databaseWrites, true);
     assert.equal(promotion.databaseWrites, true);
     assert.equal(apply.databaseWrites, true);
-    assert.throws(
-      () => buildCanonicalOperationExecutionManifest({
-        repoRoot,
-        operationId: `automation-${domainId}-l2-promotion`,
-      }),
-      /unsupported operationId/,
-    );
+    assert.equal(apply.networkAccess, false);
+    assert.equal(apply.l1RunRoot, governedL1ManifestOptions(applyId).l1RunRoot);
+    const l2 = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: l2OperationIds[domainId],
+    });
+    assert.equal(l2.databaseWrites, true);
+    assert.equal(l2.networkAccess, false);
   }
 });
 
@@ -941,7 +1289,8 @@ test('every manifest binds all repository-local static imports of its code bundl
   const shimmerFixture = createShimmerManifestFixture();
   try {
     for (const operationId of CANONICAL_EXECUTABLE_OPERATION_IDS) {
-      if (operationId === 'canonical-item-image-projection-apply') continue;
+      if (operationId === 'canonical-item-image-projection-apply'
+          || operationId === 'canonical-item-source-local-npc-admission') continue;
       const operationRepoRoot = operationId === 'canonical-shimmer-import'
         ? shimmerFixture.repoRoot
         : repoRoot;
@@ -1050,6 +1399,70 @@ test('formal cutover and activation manifests freeze exact safety-critical argum
     operationId: 'canonical-npc-apply',
     artifactDate: '2026-07-28',
   }), /no governed executor.*canonical-npc-apply/i);
+});
+
+test('L2 policy ceiling registration manifests include an immutable post-commit marker output', () => {
+  const domains = ['items', 'npcs', 'projectiles', 'armor-sets', 'buffs', 'audio', 'bosses', 'shimmer'];
+  for (const domain of domains) {
+    const operationId = `automation-${domain}-l2-policy-ceiling-registration`;
+    const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+    const manifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-08-26',
+    });
+    assert.deepEqual(manifest.command, [
+      'node', 'pipelines/automation/register-l2-policy-ceiling.mjs',
+      `--operation-id=${operationId}`,
+      `--input=reports/authorization/canonical/${operationId}.input.json`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ], operationId);
+    assert.deepEqual(manifest.outputPaths, [resultPath, `${resultPath}.commit.json`], operationId);
+  }
+});
+
+test('L2 policy ceiling registration recovery manifests bind the retained pending result', () => {
+  const operationId = 'automation-items-l2-policy-ceiling-registration';
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+  const markerPath = `${resultPath}.commit.json`;
+  const recovery = buildCanonicalOperationExecutionManifest({
+    repoRoot, operationId, artifactDate: '2026-08-26', policyCeilingRegistrationMode: 'recover',
+  });
+  assert.deepEqual(recovery.command, [
+    'node', 'pipelines/automation/register-l2-policy-ceiling.mjs',
+    `--operation-id=${operationId}`, `--input=${inputPath}`, `--output=${resultPath}`, '--recover=true',
+  ]);
+  assert.deepEqual(recovery.inputPaths, [inputPath, resultPath]);
+  assert.deepEqual(recovery.outputPaths, [markerPath]);
+  assert.deepEqual(recovery.policyCeilingRegistration, { mode: 'recover' });
+  assert.equal(recovery.databaseWrites, true);
+  assert.equal(assertCanonicalOperationExecutionManifestContract({ repoRoot, operationId, manifest: recovery }), true);
+
+});
+
+test('L2 policy decision manifests expose the pending result and immutable commit marker', () => {
+  for (const operationId of [
+    'automation-biomes-l2-promotion',
+    'automation-items-l2-promotion',
+    'automation-npcs-l2-promotion',
+    'automation-projectiles-l2-promotion',
+    'automation-armor-sets-l2-promotion',
+    'automation-buffs-l2-promotion',
+    'automation-audio-l2-promotion',
+    'automation-bosses-l2-promotion',
+    'automation-shimmer-l2-promotion',
+  ]) {
+    const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+    const markerPath = `${resultPath}.commit.json`;
+    const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+    assert.deepEqual(manifest.outputPaths, [resultPath, markerPath], operationId);
+    assert.deepEqual(manifest.policyDecisionPublication, {
+      pendingResultPath: resultPath,
+      commitMarkerPath: markerPath,
+    }, operationId);
+  }
 });
 
 test('scheduler activation manifest consumes explicit preflight and T1 paths without writes', () => {
@@ -1243,6 +1656,7 @@ test('item image projection manifest binds one decision-derived attempt root', (
       'pipelines/relation/apply-item-image-projection.mjs',
       'pipelines/relation/build-item-image-projection-proposal.mjs',
       'pipelines/relation/item-image-lineage-db.mjs',
+      'pipelines/relation/item-image-origin-repair-evidence-adapter.mjs',
       'pipelines/relation/item-image-projection-contract.mjs',
       'pipelines/relation/item-image-projection-db.mjs',
       'pipelines/relation/managed-image-url-policy.mjs',
@@ -1383,6 +1797,7 @@ function createProjectionManifestFixture({
 } = {}) {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-projection-manifest-'));
   fs.cpSync(path.join(repoRoot, 'scripts'), path.join(fixtureRoot, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(repoRoot, 'pipelines'), path.join(fixtureRoot, 'pipelines'), { recursive: true });
   const paths = buildItemImageProjectionAttemptPaths(decisionIdentity);
   const hash = `sha256:${'a'.repeat(64)}`;
   const managedPrefix = 'http://127.0.0.1:9000/terrapedia-images/items/';
@@ -1507,6 +1922,34 @@ function projectionInputBinding(input) {
     projectionAfterSha256: input.projectionAfterSha256,
     targetRowCount: input.targetRowCount,
     changedRowCount: input.changedRowCount,
+  };
+}
+
+function itemSourceAdmissionProposal() {
+  const hash = `sha256:${'a'.repeat(64)}`;
+  return {
+    schemaVersion: 'item-source-local-npc-admission-proposal-v1',
+    operationId: 'canonical-item-source-local-npc-admission',
+    readOnly: true,
+    authorizationAllowed: true,
+    databaseFingerprint: {
+      host: '127.0.0.1', port: 13306, serverUuid: 'manifest-test',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
+    sourceFreeze: {
+      partition: { path: 'reports/runtime/frozen-partition.json', sha256: hash, scopeHash: hash, candidateCount: 1 },
+      snapshotPairs: [{
+        entityId: 'dryad', normalizedPath: 'data/npc/dryad.json', normalizedSha256: hash,
+        auditPath: 'data/audit/dryad.json', auditSha256: hash,
+      }],
+    },
+    selectedIdentityHash: hash,
+    tableBeforeFingerprints: { 'terria_v1_local.item_acquisition_sources': hash },
+    beforeFingerprint: hash,
+    afterFingerprint: hash,
+    scopeHash: hash,
+    changedRowCount: 16,
+    summary: { accepted: 1, blocked: 0, unclassified: 0, localSourceReconciliation: 9 },
   };
 }
 

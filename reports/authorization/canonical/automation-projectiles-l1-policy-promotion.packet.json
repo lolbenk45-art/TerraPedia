@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-08-17T00:18:15.696Z",
+  "expiresAt": "2026-08-18T00:18:15.696Z",
+  "operationId": "automation-projectiles-l1-policy-promotion",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:a85707c4fd8e354ca66e6c9b4db4a09733dc5a2e808fe513d7786ea8f6124572",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/automation-projectiles-l1-policy-promotion.input.json",
+      "sizeBytes": 393,
+      "contentHash": "sha256:7a333a9b57a154f890ee246415e4a71e068ee2dd4ed6ff1d7fce21dd789602d2"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:e3aa56e77dccd40c9914ab3406ed36b28586c458b05bec6d9236d11ea6c96422",
+  "executionManifest": {
+    "artifactDate": "2026-08-17",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:a14a33a287dd9e9b3477f3405dac607e89b0dc7d8f5dfb849d1db576283064b9",
+        "path": "pipelines/automation/run-automation-policy-decision.mjs"
+      },
+      {
+        "contentHash": "sha256:fe448b7491b36e7e521c6f47938802d3bb89460450f8504fc621ecf86f76a8f6",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:5a442a4c16fa032da9e3f506c7dccd6e4a9f0e3b996e5ab320e8e17dd57046d4",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:387924b2696137c1bab2418cd884cc1456b3f2f5da97bacc14908fad7aa637b8",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:8bd70474073eb415a3c9629847e76426bab8f6ac06adfc29f8814293d0197950",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:f6be3d6419b894b12ee311c5122374238a6e09aef1238a4b687fcbb978970fee",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/automation/run-automation-policy-decision.mjs",
+      "--operation-id=automation-projectiles-l1-policy-promotion",
+      "--input=reports/authorization/canonical/automation-projectiles-l1-policy-promotion.input.json",
+      "--output=reports/authorization/canonical/automation-projectiles-l1-policy-promotion.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_policy_decision",
+    "inputPaths": [
+      "reports/authorization/canonical/automation-projectiles-l1-policy-promotion.input.json"
+    ],
+    "networkAccess": false,
+    "operationId": "automation-projectiles-l1-policy-promotion",
+    "outputPaths": [
+      "reports/authorization/canonical/automation-projectiles-l1-policy-promotion.result.json"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "User-authorized local eight-domain automation: promote the frozen Projectiles policy from L0/DISABLED to L1/ACTIVE.",
+  "authorizationReference": "user://conversation/2026-08-17/eight-domain-base-automation",
+  "decisionIdentity": "automation-projectiles-l1-policy-promotion-20260817-01",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:36f1ad0ee5e8fe6c56cffa62ef28cdd18c54ad0810f72c6e0d04015036a3175a",
+  "authorizedAt": "2026-08-17T00:18:29.568Z",
+  "packetHash": "sha256:d2b766fc6a32d409d640cc337ee212edaf8fd80c93a273379f148d24befa6859"
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-stale-lineage-parent-conflict-retirement",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:51efc81d854b9ff9bb3bf508e04edc4ac39ac3dab6b3c194d23710fbf697d001",
+  "previewPath": "reports/runtime/local-data-chain-closure/20260819/post-stale-lineage/npc-stale-lineage-parent-conflict-preview.json",
+  "previewSha256": "sha256:ca964ae6746553e8ae39a1cf6c973ae1649e92313d4e11f03b42dd81cf2d6134",
+  "expectedCounts": {
+    "relationLoot": 84
+  },
+  "writeTargets": [
+    "relation.item_npc_loot_relations.parent_conflict_old_generated"
+  ],
+  "disposition": {
+    "status": 0,
+    "deleted": 1
+  }
+}

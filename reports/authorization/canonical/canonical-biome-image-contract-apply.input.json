@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-biome-image-contract-apply",
+  "generatedAt": "2026-08-21T05:39:59.355Z",
+  "readOnly": false,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "mirrorEvidence": "reports/runtime/local-data-chain-closure/20260821/remaining-image-repair/biome-managed-mirror/mirror-result.json",
+  "ownership": {
+    "maint": "terria_v1_maint.maint_biome_images",
+    "relation": "terria_v1_relation.relation_biome_images",
+    "projection": "terria_v1_relation.projection_biomes",
+    "local": "terria_v1_local.biomes"
+  },
+  "rows": [
+    {
+      "id": 1,
+      "code": "forest",
+      "nameEn": "Forest",
+      "nameZh": "森林",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/fabe11eeca58449788462e9901988eb1.png",
+      "sourcePage": "Forest",
+      "recordKey": "c1146217055d671dc6e6a60c55eb67a01cde9a17083f3da99bfe186d10cd8405",
+      "originalUrl": "https://terraria.wiki.gg/images/thumb/Mountain_Cave_map_view.png/320px-Mountain_Cave_map_view.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/fabe11eeca58449788462e9901988eb1.png",
+      "contentType": "image/png"
+    },
+    {
+      "id": 2,
+      "code": "jungle",
+      "nameEn": "Jungle",
+      "nameZh": "丛林",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/d611ac33e2cf431a895f6c15fa065a29.png",
+      "sourcePage": "Jungle",
+      "recordKey": "aa273443b695392ac8d48ae202cf1b96fb82d3daf3009da60f7bf59358267b6e",
+      "originalUrl": "https://terraria.wiki.gg/images/thumb/Large_World_Jungle.png/260px-Large_World_Jungle.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/d611ac33e2cf431a895f6c15fa065a29.png",
+      "contentType": "image/png"
+    },
+    {
+      "id": 3,
+      "code": "desert",
+      "nameEn": "Desert",
+      "nameZh": "沙漠",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/0be89ce7548f415a93df195dd67418cc.png",
+      "sourcePage": "Desert",
+      "recordKey": "8c1ddf5ba4d86b578a5eec0cb0e14b3a9034bdd86b88c34a8748a64019b1c91e",
+      "originalUrl": "https://terraria.wiki.gg/images/thumb/Corrupted_Desert.png/300px-Corrupted_Desert.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/0be89ce7548f415a93df195dd67418cc.png",
+      "contentType": "image/png"
+    },
+    {
+      "id": 5,
+      "code": "crimson",
+      "nameEn": "The Crimson",
+      "nameZh": "猩红之地",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/f140fe5db5ea4e6ebb92a0076dbe9466.png",
+      "sourcePage": "The Crimson",
+      "recordKey": "b99e8095f7bfe30bf2814c369c465a14edd92273ca19106c4f6119f699f84b4e",
+      "originalUrl": "https://terraria.wiki.gg/images/Crimson_Thorns.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/f140fe5db5ea4e6ebb92a0076dbe9466.png",
+      "contentType": "image/png"
+    },
+    {
+      "id": 6,
+      "code": "corruption",
+      "nameEn": "The Corruption",
+      "nameZh": "腐化之地",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/5645b13836e14fe9aeb646dea28fad06.png",
+      "sourcePage": "The Corruption",
+      "recordKey": "455c5b222c7f1f69b359cc970a2a1e102fc8f73daca466c96e179d5a089b9372",
+      "originalUrl": "https://terraria.wiki.gg/images/thumb/Corrupt_Desert_Biome.png/320px-Corrupt_Desert_Biome.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/5645b13836e14fe9aeb646dea28fad06.png",
+      "contentType": "image/png"
+    },
+    {
+      "id": 7,
+      "code": "hallow",
+      "nameEn": "The Hallow",
+      "nameZh": "神圣之地",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/03c74a8abd294f868ec7a7b50a32085d.png",
+      "sourcePage": "The Hallow",
+      "recordKey": "1abb44428d8548221967f4f136d63b4296496442c90b3d0be37b3fcdffc4f8ab",
+      "originalUrl": "https://terraria.wiki.gg/images/thumb/Crimson_Purge.png/320px-Crimson_Purge.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/03c74a8abd294f868ec7a7b50a32085d.png",
+      "contentType": "image/png"
+    },
+    {
+      "id": 241,
+      "code": "spike_caves",
+      "nameEn": "Spike Caves",
+      "nameZh": "尖刺洞穴",
+      "iconUrl": "/terrapedia-images/items/2026/08/21/110a9af6d5904ba5801da41e6996cd1c.png",
+      "sourcePage": "Biomes#Spike_Caves",
+      "recordKey": "f8545f201381d5763043e01bddc36098a1a50e39e637152c910c5c97ba210c79",
+      "originalUrl": "https://terraria.wiki.gg/images/thumb/Spike_Caves.png/180px-Spike_Caves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/08/21/110a9af6d5904ba5801da41e6996cd1c.png",
+      "contentType": "image/png"
+    }
+  ]
+}

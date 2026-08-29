@@ -18,6 +18,7 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Status;
+import com.terraria.skills.service.CrawlerAutomationPolicyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -62,6 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -723,7 +725,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorServiceImpl.ProcessLauncher launcher
     ) {
         configureMutationPermit(router);
-        return new CrawlerMonitorServiceImpl(
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
             new ObjectMapper(),
             repoRoot,
             Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
@@ -733,6 +735,12 @@ class CrawlerMonitorServiceImplTest {
             v2Service,
             legacyQueue
         );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        return service;
     }
 
     private static CrawlerQueueV2ApplicationService.OverviewSnapshot v2Overview(
@@ -924,8 +932,8 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldEnableScheduledAutoDispatchSweep() {
-        assertTrue(SkillsBackApplication.class.isAnnotationPresent(EnableScheduling.class));
+    void shouldDelegateSchedulingToConditionalConfiguration() {
+        assertFalse(SkillsBackApplication.class.isAnnotationPresent(EnableScheduling.class));
         assertTrue(Arrays.stream(CrawlerMonitorServiceImpl.class.getDeclaredMethods())
             .anyMatch(method -> method.isAnnotationPresent(Scheduled.class)
                 && method.getName().contains("AutoDispatch")));
@@ -975,6 +983,65 @@ class CrawlerMonitorServiceImplTest {
         service.scheduledV2AutomationSweep();
 
         verify(router).withMutationPermit(any());
+        verifyNoInteractions(launcher);
+    }
+
+    @Test
+    void blocksEnabledAutomationBeforeSourceCheckWithoutFreshSchedulerActivation() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            mock(CrawlerQueueV2ApplicationService.class),
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(
+                false,
+                List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED")
+            )
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
+            "enabled", true,
+            "mode", "changed-only",
+            "sweepIntervalMinutes", 1
+        ));
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals("scheduler_activation_required", sweep.getSkipped().get(0).get("reason"));
+        verifyNoInteractions(launcher);
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
+    }
+
+    @Test
+    void blocksEnabledAutomationWhenPolicyServiceIsUnavailable() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            mock(CrawlerQueueV2ApplicationService.class),
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        service.setCrawlerAutomationPolicyService(null);
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
+            "enabled", true,
+            "mode", "changed-only",
+            "sweepIntervalMinutes", 1
+        ));
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals("scheduler_activation_required", sweep.getSkipped().get(0).get("reason"));
+        assertEquals(List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE"), sweep.getSkipped().get(0).get("reasons"));
         verifyNoInteractions(launcher);
     }
 

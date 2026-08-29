@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "l2_policy_ceiling_registration_commit",
+  "status": "committed",
+  "authoritative": true,
+  "registrationStatus": "registered",
+  "operationId": "automation-armor-sets-l2-policy-ceiling-registration",
+  "domainId": "armor_sets",
+  "policyVersion": 2,
+  "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+  "policySetHash": "sha256:b5c6620538a1029e582440520ce7c90089d9dd807598219601253391daa9b57f",
+  "artifactHash": "sha256:a2bd7668eb475ee073999eec4b807b97068d67cf0f5b5ca0556a651be95c6cd0",
+  "registrationActor": "admin",
+  "registrationAuthorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "registrationDecisionIdentity": "automation-armor-sets-l2-policy-ceiling-registration-20260828-owner-01",
+  "registrationPacketHash": "sha256:109395ddb684bb955f45e8bb83d25d195130afd68486586d4cca551cba195ac9"
+}

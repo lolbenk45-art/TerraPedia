@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l2-policy-ceiling-registration",
+  "domainId": "projectiles",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/projectiles/b594c5f3c55eb44f344051de0b15d54147df403cd51a8c776c34cb2ddd3273f8/artifact.json",
+  "artifactFileSha256": "sha256:1f5977e332359c0eebc19a3ca537eb7c5ee5db348bb50c5ad8b978c0961ed231",
+  "artifactHash": "sha256:b594c5f3c55eb44f344051de0b15d54147df403cd51a8c776c34cb2ddd3273f8",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+  "targetPolicySetHash": "sha256:84827bda93ac0d79f4118707ec6ea5e945cf8015afc76c4d6bea78437dcbaee2",
+  "proposalOnly": false
+}

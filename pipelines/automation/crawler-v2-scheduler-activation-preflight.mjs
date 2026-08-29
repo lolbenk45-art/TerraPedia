@@ -5,11 +5,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
+import { canonicalizePolicySet, computePolicySetHash } from './policy-set-hash.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 
 const OPERATION_ID = 'canonical-crawler-v2-scheduler-activation';
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const V2_NAMESPACE_PATTERN = /^terrapedia:crawler:wiki-monitor:v2:/;
 const DEFAULT_MAX_AGE_MS = 15 * 60 * 1000;
+export const SCHEDULER_ACTION_BY_DOMAIN = Object.freeze({
+  items: 'wiki-items-refresh',
+  npcs: 'wiki-npcs-refresh',
+  projectiles: 'wiki-projectiles-refresh',
+  armor_sets: 'domain-source-armor-sets',
+  buffs: 'buff-page-immunity-refresh',
+  audio: 'wiki-audio-assets-refresh',
+  bosses: 'domain-source-bosses',
+  shimmer: 'domain-source-shimmer',
+});
 
 function sortedValue(value) {
   if (Array.isArray(value)) return value.map(sortedValue);
@@ -94,10 +106,18 @@ function assertSnapshot(snapshot, { nowMs, maxAgeMs }) {
   if (!Array.isArray(snapshot.domains) || snapshot.domains.length === 0) {
     throw new Error('preflight domain readiness is missing');
   }
+  const domainIds = new Set();
   const actionIds = new Set();
   for (const domain of snapshot.domains) {
-    requireText(domain?.domain, 'preflight domain');
+    const domainId = requireText(domain?.domain, 'preflight domain');
+    if (domainIds.has(domainId)) throw new Error(`preflight duplicate domain: ${domainId}`);
+    domainIds.add(domainId);
     const actionId = requireText(domain?.actionId, 'preflight actionId');
+    const expectedActionId = SCHEDULER_ACTION_BY_DOMAIN[domainId];
+    if (!expectedActionId) throw new Error(`preflight domain is not registered for scheduler activation: ${domainId}`);
+    if (actionId !== expectedActionId) {
+      throw new Error(`preflight actionId ${actionId} is not registered for domain ${domainId}; expected ${expectedActionId}`);
+    }
     if (actionIds.has(actionId)) throw new Error(`preflight duplicate actionId: ${actionId}`);
     actionIds.add(actionId);
     if (domain.readinessStatus !== 'eligible') throw new Error(`preflight domain is not ready: ${actionId}`);
@@ -107,6 +127,15 @@ function assertSnapshot(snapshot, { nowMs, maxAgeMs }) {
     if (domain.stateStoreEpoch != null && domain.stateStoreEpoch !== epoch) {
       throw new Error(`preflight domain epoch drifted: ${actionId}`);
     }
+  }
+
+  if (!Array.isArray(snapshot.policyRows) || snapshot.policyRows.length === 0) {
+    throw new Error('preflight current policy rows are missing');
+  }
+  const policyRows = canonicalizePolicySet(snapshot.policyRows);
+  requireHash(snapshot.policySetHash, 'preflight policySetHash');
+  if (computePolicySetHash(policyRows) !== snapshot.policySetHash) {
+    throw new Error('preflight policy-set hash does not match current policy rows');
   }
 
   if (snapshot.databaseWrites !== false || snapshot.networkAccess !== false || snapshot.isolatedResourceWrites !== false) {
@@ -153,6 +182,8 @@ export function buildCrawlerV2SchedulerActivationPreflight({
     counts: snapshot.counts,
     reconciler: snapshot.reconciler,
     domains: snapshot.domains,
+    policyRows: snapshot.policyRows,
+    policySetHash: snapshot.policySetHash,
     t1Report: { ...t1Report },
     codeBundle: codeBundle.map((entry) => ({ path: entry.path, sha256: entry.sha256 })),
     databaseWrites: false,
@@ -245,25 +276,39 @@ function assertInsideRepo(filePath, repoRoot, label) {
   return normalized;
 }
 
+export function writeSchedulerPreflightArtifact({ repoRoot = process.cwd(), outputPath, payload } = {}) {
+  const confined = assertRepositoryPathConfinement({
+    repoRoot: path.resolve(repoRoot),
+    filePath: path.resolve(repoRoot, requireText(outputPath, 'preflight output path')),
+    label: 'preflight output',
+    createParent: true,
+  });
+  writeAtomicNoOverwrite(confined, payload);
+  return confined;
+}
+
 function writeAtomicNoOverwrite(outputPath, payload) {
   const directory = path.dirname(outputPath);
-  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  assertNoExistingEntry(outputPath, 'preflight output');
   const temp = path.join(directory, `.${path.basename(outputPath)}.${process.pid}.tmp`);
   fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
   try {
-    fs.renameSync(temp, outputPath);
+    fs.linkSync(temp, outputPath);
+    fs.unlinkSync(temp);
   } catch (error) {
     try { fs.unlinkSync(temp); } catch {}
     throw error;
   }
 }
 
-function assertAuthorizationOutputPath(outputPath, repoRoot) {
-  const root = path.resolve(repoRoot, 'reports/authorization/canonical');
-  const normalized = path.resolve(outputPath);
-  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
-    throw new Error('preflight output must remain under reports/authorization/canonical');
+function assertNoExistingEntry(filePath, label) {
+  try {
+    fs.lstatSync(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
   }
+  throw new Error(`${label} already exists; overwrite is forbidden`);
 }
 
 async function main() {
@@ -277,9 +322,11 @@ async function main() {
     t1Report,
     codeBundle,
   });
-  const outputPath = path.resolve(repoRoot, args.output);
-  assertAuthorizationOutputPath(outputPath, repoRoot);
-  writeAtomicNoOverwrite(outputPath, preflight);
+  const outputPath = writeSchedulerPreflightArtifact({
+    repoRoot,
+    outputPath: args.output,
+    payload: preflight,
+  });
   process.stdout.write(`${JSON.stringify({ output: outputPath, preflightHash: preflight.preflightHash })}\n`);
 }
 

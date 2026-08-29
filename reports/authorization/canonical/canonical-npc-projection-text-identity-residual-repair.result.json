@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_projection_text_identity_residual_repair_result",
+  "operationId": "canonical-npc-projection-text-identity-residual-repair",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:3a6307c87d8713791310af9f0eb31231d8afc0c00c62546e0fd786f3ca826f74",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-projection-text-identity-residual-repair-20260819-admin-02",
+    "packetHash": "sha256:162db4e091b241dda5285be231ae4f0bd81a728a14be488f2bb85b324c040cd0"
+  },
+  "affected": {
+    "acceptedRelationLoot": 2,
+    "relationRowsToRetire": 2,
+    "projectionNpcsToReplace": 2,
+    "localRowsToRetire": 2
+  },
+  "readback": {
+    "relationRows": 4,
+    "retiredRelations": 2,
+    "activeRetiredRelations": 0,
+    "projectionNpcs": 2,
+    "localRows": 4,
+    "retiredLocalRows": 2,
+    "activeRetiredLocal": 0
+  },
+  "preserved": {
+    "sourceFacts": true,
+    "sourceDetails": true
+  },
+  "outputHash": "sha256:c29e20ff7f1cb9d6ee3847368cf35ed3d9c18be6c41f27d3ac36f91e31c491bb",
+  "completedAt": "2026-08-18T23:30:12.488Z"
+}

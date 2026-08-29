@@ -1,0 +1,379 @@
+{
+  "generatedAt": "2026-08-21T04:29:02.048Z",
+  "ok": false,
+  "failedDomains": [
+    "items",
+    "npcs",
+    "bosses"
+  ],
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6159,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6146,
+      "missingInProjectionCount": 5,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "HeartArrow",
+        "ValentineRing",
+        "TurkeyFeather",
+        "FestiveTopHat",
+        "Wiesnbrau"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS",
+        "ZH_RECIPE_TIMELESS_TRAVELER_S_SET",
+        "ZH_RECIPE_WANDERING_SET",
+        "ZH_RECIPE_TV_HEAD_SET"
+      ],
+      "blockingFields": [
+        {
+          "field": "knockback",
+          "localField": "knockback",
+          "projectionField": "knockback",
+          "localNonNull": 6132,
+          "projectionNonNull": 6127,
+          "gap": 5,
+          "missingExamples": [
+            {
+              "key": "RoninShirt",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "TimelessTravelerHood",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "TVHeadPants",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "AntlionEggs",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "BoneWhip",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 2,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "sell",
+          "localField": "sell",
+          "projectionField": "sell",
+          "localNonNull": 5263,
+          "projectionNonNull": 5260,
+          "gap": 3,
+          "missingExamples": [
+            {
+              "key": "RoninShirt",
+              "localField": "sell",
+              "projectionField": "sell",
+              "localValue": 100,
+              "projectionValue": null
+            },
+            {
+              "key": "TimelessTravelerHood",
+              "localField": "sell",
+              "projectionField": "sell",
+              "localValue": 100,
+              "projectionValue": null
+            },
+            {
+              "key": "TVHeadPants",
+              "localField": "sell",
+              "projectionField": "sell",
+              "localValue": 100,
+              "projectionValue": null
+            },
+            {
+              "key": "AntlionEggs",
+              "localField": "sell",
+              "projectionField": "sell",
+              "localValue": 50,
+              "projectionValue": null
+            },
+            {
+              "key": "BoneWhip",
+              "localField": "sell",
+              "projectionField": "sell",
+              "localValue": 15000,
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": true,
+      "keyMismatch": true,
+      "fieldMismatch": true
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "blocked",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [
+        {
+          "field": "life_max",
+          "localField": "life_max",
+          "projectionField": "life_max",
+          "localNonNull": 757,
+          "projectionNonNull": 0,
+          "gap": 757,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 45,
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 33,
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 48,
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 32,
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 41,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "knock_back_resist",
+          "localField": "knock_back_resist",
+          "projectionField": "knock_back_resist",
+          "localNonNull": 624,
+          "projectionNonNull": 0,
+          "gap": 624,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4740",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.6780",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4620",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.6710",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4050",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "scale",
+          "localField": "scale",
+          "projectionField": "scale",
+          "localNonNull": 119,
+          "projectionNonNull": 0,
+          "gap": 119,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.2100",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "0.8700",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.1600",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "0.7800",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.1000",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "blocked",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [
+        {
+          "field": "name_zh",
+          "localField": "name_zh",
+          "projectionField": "name_zh",
+          "localNonNull": 33,
+          "projectionNonNull": 29,
+          "gap": 4,
+          "missingExamples": [
+            {
+              "key": "SOLAR_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "日耀柱",
+              "projectionValue": null
+            },
+            {
+              "key": "NEBULA_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "星云柱",
+              "projectionValue": null
+            },
+            {
+              "key": "VORTEX_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "星旋柱",
+              "projectionValue": null
+            },
+            {
+              "key": "STARDUST_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "星尘柱",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "switchable",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "switchable",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    }
+  },
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation"
+}

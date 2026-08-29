@@ -8,11 +8,28 @@ import * as baseOperationModule from './run-base-domain-automatic-operation.mjs'
 
 const {
   buildBaseDomainSourceCommand,
+  buildReconciliationInputFromArgs,
   hashFrozenSourcePayload,
   runBaseDomainAutomaticOperation,
   validateItemDryRunDataset,
 } = baseOperationModule;
 import { createHash } from 'node:crypto';
+
+test('full reconciliation inputs are all-or-nothing and remain explicit read-only artifacts', () => {
+  assert.equal(buildReconciliationInputFromArgs({}), undefined);
+  assert.deepEqual(buildReconciliationInputFromArgs({
+    'source-coverage': 'reports/runtime/items/source.json',
+    'table-readback': 'reports/runtime/items/table.json',
+    'attempt-state': 'reports/runtime/items/attempt.json',
+    'reconciliation-output': 'reports/runtime/items/reconciliation.json',
+  }), {
+    sourceCoveragePath: 'reports/runtime/items/source.json',
+    ownedTableReadbackPath: 'reports/runtime/items/table.json',
+    attemptStatePath: 'reports/runtime/items/attempt.json',
+    outputPath: 'reports/runtime/items/reconciliation.json',
+  });
+  assert.throws(() => buildReconciliationInputFromArgs({ 'source-coverage': 'reports/runtime/items/source.json' }), /together/i);
+});
 
 test('base automatic runner fails closed before source work when activation is absent', async () => {
   let sourceRuns = 0;
@@ -68,7 +85,7 @@ test('base automatic acknowledgement resolves the scheduler canonical manifest i
   );
 });
 
-test('Items dry-run validates record identity instead of trusting the array length', () => {
+test('Items frozen input validates record identity instead of trusting the array length', () => {
   assert.deepEqual(validateItemDryRunDataset({ records: [
     { id: 1, internalName: 'IronPickaxe', name: 'Iron Pickaxe', stats: {}, stack: {} },
     { id: 2, internalName: 'DirtBlock', name: 'Dirt Block', stats: {}, stack: {} },
@@ -182,7 +199,7 @@ test('base runner progress preserves V2 identity and advances heartbeat sequence
   assert.ok(terminal.progressSequence > heartbeat.progressSequence);
 });
 
-test('local base dry-run does not acknowledge the live canonical manifest', async () => {
+test('local base reconciliation does not acknowledge the live canonical manifest', async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'base-local-no-ack-'));
   const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
   const manifestPath = path.join(repoRoot, 'data', 'generated', 'wiki-source-manifest.latest.json');
@@ -212,6 +229,7 @@ test('local base dry-run does not acknowledge the live canonical manifest', asyn
     ],
     env: { ...databaseEnv(), WORKTREE_ROOT: repoRoot },
     mysqlModule: { createConnection: async () => connection },
+    isCommittedRunImpl: async () => true,
   });
 
   assert.equal(fs.existsSync(manifestPath), false);

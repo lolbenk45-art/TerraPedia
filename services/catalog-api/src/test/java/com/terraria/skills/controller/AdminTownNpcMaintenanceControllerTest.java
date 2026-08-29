@@ -250,10 +250,6 @@ class AdminTownNpcMaintenanceControllerTest {
         generatedRecord.put("rawJson", rawJson);
 
         npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
-        when(objectMapper.readValue(eq(rawJson), any(TypeReference.class))).thenReturn(
-            Map.of("image_url", "https://terraria.wiki.gg/images/Guide.png")
-        );
-
         mockMvc.perform(get("/admin/town-npcs/maintenance"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.records[0].imageUrl").value(org.hamcrest.Matchers.nullValue()));

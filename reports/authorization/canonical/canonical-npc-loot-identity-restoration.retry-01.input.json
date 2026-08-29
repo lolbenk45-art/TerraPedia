@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-loot-identity-restoration",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-loot-identity-restoration.proposal.json",
+  "proposalSha256": "sha256:1f23a7f5dcdd0c5fe4a5f2db8a58b266c8902ce23cc64ac953c66c7dd05e8383",
+  "scopeSha256": "sha256:b88dd7eedc5ca39292a4a1399600603bbc9531a27e25fe8febffc253e4273595",
+  "beforeRowsSha256": "sha256:60fd9c6b6b232f429271d6582710bb166ad87e6beaf9272e2d448741c321d204",
+  "afterRowsSha256": "sha256:89011c401f2f31d30e9ceb4f4c00884204411de53ab56c8bdcd96465a86600cd",
+  "expectedCounts": {
+    "canonicalRelationInserts": 6,
+    "legacyRelationRetirements": 6,
+    "projectionReplacements": 6
+  },
+  "writeTargets": [
+    "relation.item_npc_loot_relations.canonical_insert",
+    "relation.item_npc_loot_relations.legacy_status_deleted",
+    "relation.projection_npcs.loot_items_json"
+  ]
+}

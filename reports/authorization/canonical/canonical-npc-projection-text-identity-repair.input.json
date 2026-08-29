@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-projection-text-identity-repair",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:4aff7398464c426f8e2f9fb55d7df392b969f814d4e8afd1342ac2ff0b2e3bf2",
+  "previewSha256": "sha256:89ee87fadca7d997236caf9c14e807e59ad0787840115d93543fbed386654b0f",
+  "expectedCounts": {
+    "relationLoot": 4,
+    "projectionNpcs": 4
+  },
+  "writeTargets": [
+    "relation.projection_npcs.loot_items_json"
+  ]
+}

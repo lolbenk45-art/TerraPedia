@@ -7,12 +7,25 @@ import { createRequire } from 'node:module';
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
 import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  isManagedImagePath,
+  resolveManagedImageUrlPrefixes
+} from '../relation/managed-image-url-policy.mjs';
 
 const repoRoot = getProjectRoot();
 const moduleRequire = createRequire(import.meta.url);
 
 const DEFAULT_LOCAL_DATABASE = 'terria_v1_local';
-const DEFAULT_MANAGED_URL_PREFIXES = ['http://localhost:9000/terrapedia-images'];
+const configuredManagedUrlPrefixes = resolveManagedImageUrlPrefixes({
+  repoRoot,
+  objectPrefixes: 'items'
+});
+const DEFAULT_MANAGED_URL_PREFIXES = configuredManagedUrlPrefixes.length > 0
+  ? configuredManagedUrlPrefixes
+  : [
+      'http://localhost:19000/terrapedia-images/items/',
+      'http://127.0.0.1:19000/terrapedia-images/items/'
+    ];
 const DEFAULT_SAMPLE_LIMIT = 50;
 const KNOWN_NO_REPRESENTATIVE_IMAGE_BIOMES = new Map([
   ['spike_caves', {
@@ -107,12 +120,12 @@ export function auditBiomeIconReadiness({
       missingIconBiomes.push({ ...identity(normalized), reason: 'missing_icon_url' });
       continue;
     }
-    if (!isValidHttpUrl(normalized.iconUrl)) {
-      invalidUrlBiomes.push({ ...identity(normalized), iconUrl: normalized.iconUrl, reason: 'invalid_icon_url' });
-      continue;
-    }
     if (isManagedUrl(normalized.iconUrl, managedUrlPrefixes)) {
       managedIconBiomes.push({ ...identity(normalized), iconUrl: normalized.iconUrl });
+      continue;
+    }
+    if (!isValidHttpUrl(normalized.iconUrl)) {
+      invalidUrlBiomes.push({ ...identity(normalized), iconUrl: normalized.iconUrl, reason: 'invalid_icon_url' });
       continue;
     }
     wikiFallbackBiomes.push({ ...identity(normalized), iconUrl: normalized.iconUrl, reason: 'unmanaged_or_wiki_fallback_icon_url' });
@@ -270,8 +283,7 @@ function identity(row) {
 }
 
 function isManagedUrl(value, prefixes) {
-  const lower = String(value ?? '').toLowerCase();
-  return prefixes.some((prefix) => lower.startsWith(String(prefix).toLowerCase()));
+  return isManagedImagePath(value, prefixes);
 }
 
 function isValidHttpUrl(value) {

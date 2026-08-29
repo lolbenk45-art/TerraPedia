@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
+import { buildLocalDbConnectionOptions } from '../audit/local-db-connection-options.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -398,11 +400,19 @@ FROM (
     AND f.deleted = 0
     AND f.status = 1
     AND f.review_status IN ('accepted', 'resolved', 'promoted')
+    AND COALESCE(n.is_town_npc, 0) <> 1
     AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
 ) expected
 CROSS JOIN (
   SELECT COUNT(*) AS localCount
-  FROM ${localCompatNpcShopConditions}
+  FROM ${localCompatNpcShopConditions} c
+  INNER JOIN ${localCompatNpcShop} se
+    ON se.id = c.shop_entry_id
+  INNER JOIN ${localNpcs} n
+    ON n.id = se.npc_id
+   AND n.deleted = 0
+   AND n.status = 1
+  WHERE COALESCE(n.is_town_npc, 0) <> 1
 ) local`
     })
   ];
@@ -659,14 +669,80 @@ function formatReportMarkdown(report) {
   return `${lines.join('\n')}\n`;
 }
 
-async function defaultWriteReport(report) {
-  const reportsDir = path.join(repoRoot, 'reports', 'relation');
+async function defaultWriteReport(report, options = {}) {
+  return writeRelationHealthReport(report, { ...options, repoRoot });
+}
+
+export async function writeRelationHealthReport(report, options = {}) {
+  const root = path.resolve(options.repoRoot ?? repoRoot);
+  const reportsDir = options.outputDir
+    ? path.resolve(root, options.outputDir)
+    : path.join(root, 'reports', 'relation');
+  if (options.noOverwrite) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(report?.dateTag ?? ''))) {
+      throw new Error(`Immutable relation health report dateTag must be YYYY-MM-DD: ${report?.dateTag ?? ''}`);
+    }
+    await assertImmutableRelationOutputDir(root, reportsDir);
+  }
   await fs.mkdir(reportsDir, { recursive: true });
   const jsonPath = path.join(reportsDir, `relation-health-${report.dateTag}.json`);
   const mdPath = path.join(reportsDir, `relation-health-${report.dateTag}.md`);
-  await fs.writeFile(jsonPath, JSON.stringify(report, null, 2));
-  await fs.writeFile(mdPath, formatReportMarkdown(report));
+  if (options.noOverwrite && (await fileExists(jsonPath) || await fileExists(mdPath))) {
+    throw new Error(`Immutable relation health report already exists: ${jsonPath}`);
+  }
+  await fs.writeFile(
+    jsonPath,
+    JSON.stringify(report, null, 2),
+    options.noOverwrite ? { flag: 'wx', mode: 0o600 } : undefined,
+  );
+  try {
+    await fs.writeFile(
+      mdPath,
+      formatReportMarkdown(report),
+      options.noOverwrite ? { flag: 'wx', mode: 0o600 } : undefined,
+    );
+  } catch (error) {
+    if (options.noOverwrite) await fs.rm(jsonPath, { force: true });
+    throw error;
+  }
   return { jsonPath, mdPath };
+}
+
+async function assertImmutableRelationOutputDir(root, reportsDir) {
+  const relative = path.relative(root, reportsDir).replaceAll(path.sep, '/');
+  if (!/^reports\/runtime\/local-data-chain-closure\/\d{8}\/l2-readiness\/[A-Za-z0-9._-]+\/relation$/.test(relative)) {
+    throw new Error(`Immutable relation report directory must use an L2 readiness run root: ${relative}`);
+  }
+  assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: reportsDir,
+    label: 'immutable relation report directory',
+    createParent: true,
+  });
+  let stat;
+  try {
+    stat = await fs.lstat(reportsDir);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new Error(`Immutable relation report directory must be an ordinary directory: ${relative}`);
+  }
+  const [realRoot, realDirectory] = await Promise.all([fs.realpath(root), fs.realpath(reportsDir)]);
+  const realRelative = path.relative(realRoot, realDirectory);
+  if (realRelative.startsWith(`..${path.sep}`) || realRelative === '..' || path.isAbsolute(realRelative)) {
+    throw new Error(`Immutable relation report directory escapes the repository: ${relative}`);
+  }
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function runRelationHealthReport(options = {}, dependencies = {}) {
@@ -678,12 +754,10 @@ export async function runRelationHealthReport(options = {}, dependencies = {}) {
   };
   const queries = buildRelationHealthQueries(normalized);
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
-  const mysqlOptions = {
-    host: config.database?.host ?? '127.0.0.1',
-    port: Number(config.database?.port ?? 3306),
-    user: config.database?.username ?? 'root',
-    password: config.database?.password ?? 'root'
-  };
+  const mysqlOptions = buildLocalDbConnectionOptions({
+    config,
+    env: dependencies.env ?? process.env
+  });
   const createConnection = dependencies.createConnection ?? mysql.createConnection;
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const connection = await createConnection(mysqlOptions);
@@ -708,7 +782,7 @@ export async function runRelationHealthReport(options = {}, dependencies = {}) {
       },
       checks
     });
-    const reportPaths = normalized.writeReport ? await writeReport(report) : null;
+    const reportPaths = normalized.writeReport ? await writeReport(report, normalized) : null;
     return { report, reportPaths };
   } finally {
     await connection.end();
@@ -739,6 +813,8 @@ export function parseArgs(argv) {
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? DEFAULTS.localDatabase,
     dateTag: raw['date-tag'] ?? raw.dateTag ?? null,
     writeReport: booleanOption(raw['write-report'] ?? raw.writeReport, true),
+    outputDir: raw['output-dir'] ?? raw.outputDir ?? null,
+    noOverwrite: booleanOption(raw['no-overwrite'] ?? raw.noOverwrite, false),
     printSql: booleanOption(raw['print-sql'] ?? raw.printSql, false),
     printChecklist: booleanOption(raw['print-checklist'] ?? raw.printChecklist, false)
   };

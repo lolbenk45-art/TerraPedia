@@ -130,6 +130,17 @@ function isAcceptedLocalOnlyRow(domain, row = {}, key) {
   if (domain !== 'items') {
     return false;
   }
+  const sourcePage = String(row.source_page ?? '').trim();
+  let decodedSourcePage = sourcePage;
+  try {
+    decodedSourcePage = decodeURIComponent(sourcePage);
+  } catch {
+    // Keep the raw source page when it is not URI-encoded.
+  }
+  const sourceProvider = String(row.source_provider ?? '').trim().toLowerCase();
+  if (decodedSourcePage.includes('旧版') && sourceProvider.includes('wiki')) {
+    return true;
+  }
   return String(key ?? row.internal_name ?? '').startsWith('ZH_RECIPE_')
     && String(row.source_provider ?? '').trim() === 'wiki_zh_recipe_import';
 }
@@ -193,6 +204,7 @@ function buildDomainAudit(name, config, localRows = [], projectionRows = []) {
     missingInProjection: sampleList(missingInProjection),
     extraInProjection: sampleList(extraInProjection),
     acceptedLocalOnlyExceptions: sampleList(acceptedLocalOnlyExceptions),
+    acceptedLocalOnlyExceptionCount: acceptedLocalOnlyExceptions.length,
     blockingFields
   };
 }

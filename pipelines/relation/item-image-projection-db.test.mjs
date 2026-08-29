@@ -62,6 +62,33 @@ test('projection apply locks and rechecks before permit, updates only image, and
   assert.ok(connection.sql.filter((statement) => /FOR UPDATE/i.test(statement)).length >= 2);
 });
 
+test('projection apply completes an exact zero-change evidence refresh without DML', async () => {
+  const database = databaseFixture();
+  database.projectionRows = database.relationRows.map((row, index) => (
+    projectionRow(index + 1, row.recordKey, row.internalName, row.cachedUrl)
+  ));
+  const input = inputFixture({ database });
+  const connection = recordingConnection(database);
+  const outcome = await executeItemImageProjectionTransaction({
+    connection,
+    inputContract: input,
+    consumeDispatchPermit: async () => connection.events.push('consume-permit'),
+  });
+
+  assert.equal(input.changedRowCount, 0);
+  assert.equal(outcome.changedRowCount, 0);
+  assert.deepEqual(connection.events, [
+    'begin',
+    'lock-relation',
+    'lock-projection',
+    'verify-fingerprint',
+    'consume-permit',
+    'read-after',
+    'commit',
+  ]);
+  assert.equal(connection.sql.some((statement) => /^(?:INSERT|UPDATE|DELETE|REPLACE)/i.test(statement.trim())), false);
+});
+
 test('projection apply rejects stale locked rows before permit or DML and rolls back', async () => {
   const input = inputFixture();
   const database = databaseFixture();
@@ -138,7 +165,7 @@ test('projection apply attaches exact rollback evidence to every transaction fai
   }
 });
 
-function inputFixture() {
+function inputFixture({ database = databaseFixture() } = {}) {
   const proposalDecisionIdentity = 'canonical-item-image-projection-proposal-read-20260804-01';
   const attemptPaths = buildItemImageProjectionAttemptPaths(proposalDecisionIdentity);
   const proposal = buildItemImageProjectionProposal({
@@ -180,8 +207,8 @@ function inputFixture() {
       ]),
     },
     managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/items/'],
-    relationRows: databaseFixture().relationRows,
-    projectionRows: databaseFixture().projectionRows,
+    relationRows: database.relationRows,
+    projectionRows: database.projectionRows,
   });
   return buildItemImageProjectionInputContract({
     proposal,

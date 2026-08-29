@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-buffs-l2-policy-ceiling-registration",
+  "domainId": "buffs",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/buffs/768a57ee88c2ead96c7aa142c9ce8b684f60b95fa3580c0920f849e291c605bc/artifact.json",
+  "artifactFileSha256": "sha256:7118a5ef22083681140ddb285b7f3137e494d3f8ab5913923763f53f0fbd8ecc",
+  "artifactHash": "sha256:768a57ee88c2ead96c7aa142c9ce8b684f60b95fa3580c0920f849e291c605bc",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+  "targetPolicySetHash": "sha256:6058acbfbb624ffec61786b5a46619652a44b07841fae8dadf1a2b4eed7cd2a9",
+  "proposalOnly": false
+}

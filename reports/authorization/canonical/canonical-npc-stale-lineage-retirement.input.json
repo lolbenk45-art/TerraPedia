@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-stale-lineage-retirement",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:09869c305cb89e5dfd084f5dc01f06d55e7cec9f17a666c1516586e92d87fb5d",
+  "previewPath": "reports/runtime/local-data-chain-closure/20260819/npc-stale-lineage-repair-preview.json",
+  "previewSha256": "sha256:5b8d66ab3ba91bdf06a2bfbae2dcdf7d04bdde89eef82f88e834d40f0330039a",
+  "expectedCounts": {
+    "relationLoot": 513,
+    "relationShop": 408,
+    "sourceFacts": 921,
+    "sourceDetails": 921
+  },
+  "disposition": {
+    "status": 0,
+    "deleted": 1
+  }
+}

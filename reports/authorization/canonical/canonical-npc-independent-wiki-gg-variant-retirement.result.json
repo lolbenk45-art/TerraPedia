@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_independent_wiki_gg_variant_retirement_result",
+  "operationId": "canonical-npc-independent-wiki-gg-variant-retirement",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:78fa79a468bf72f4c289fc82056e6e250cea41c33da8dbd449e2fae9f93c052c",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-independent-wiki-gg-variant-retirement-20260819-admin-11",
+    "packetHash": "sha256:e862bafea1f5c6b1d3abc932ea8cba5f20517def1c7da283640cfa007ee58e4d"
+  },
+  "affected": {
+    "relationLoot": 52
+  },
+  "readback": {
+    "relationLoot": 52,
+    "activeTargets": 0,
+    "activeSurvivors": 52
+  },
+  "outputHash": "sha256:57685df6c4fd2df7be306a9028ac79bf42f119f09c922e927e365532b5d93fef",
+  "completedAt": "2026-08-18T21:23:11.041Z"
+}

@@ -86,6 +86,12 @@ test('rejects mutable or escaping source paths', () => {
 });
 
 test('enforces exact domain table ownership and excludes boss loot', () => {
+  assert.equal(assertSupplementaryOwnedTables('items', [
+    { databaseRole: 'local', table: 'items' },
+  ]), true);
+  assert.equal(assertSupplementaryOwnedTables('projectiles', [
+    { databaseRole: 'local', table: 'projectiles' },
+  ]), true);
   assert.equal(assertSupplementaryOwnedTables('audio', input().ownedTables), true);
   assert.equal(assertSupplementaryOwnedTables('bosses', [
     { databaseRole: 'local', table: 'boss_groups' },
@@ -126,5 +132,23 @@ test('rejects unknown supplementary execution modes', () => {
   assert.throws(
     () => buildSupplementaryL1Bundle(input({ executionMode: 'BYPASS' })),
     /execution mode/,
+  );
+});
+
+test('binds an optional read-only full-reconciliation producer input to the L1 bundle', () => {
+  const reconciliationInput = {
+    sourceCoveragePath: 'reports/runtime/audio/source-coverage.json',
+    ownedTableReadbackPath: 'reports/runtime/audio/table-readback.json',
+    attemptStatePath: 'reports/runtime/audio/attempt-state.json',
+    outputPath: 'reports/runtime/audio/reconciliation-evidence.json',
+  };
+  const bundle = buildSupplementaryL1Bundle(input({ reconciliationInput }));
+  assert.deepEqual(bundle.reconciliationInput, reconciliationInput);
+  assert.equal(validateSupplementaryL1Bundle(bundle), true);
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({
+      reconciliationInput: { ...reconciliationInput, outputPath: '../outside.json' },
+    })),
+    /reports path|reconciliation/i,
   );
 });

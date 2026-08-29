@@ -12,6 +12,7 @@ import {
   buildDomainReadinessReport,
   resolveDomainReportPath,
 } from './domain-readiness-audit.mjs';
+import { buildSupplementaryL1Bundle } from '../automation/supplementary-domain-l1-contract.mjs';
 import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -1570,7 +1571,7 @@ test('buildDomainReadinessReport blocks item group support gate unresolved membe
   assert.ok(report.blockingReasons.some((reason) => /unresolvedMemberReferences=2/.test(reason)));
 });
 
-test('items image readiness accepts only a completed applied image-sync report', () => {
+test('items image readiness does not accept legacy image-sync reports as governed projection evidence', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/standardized/items.standardized.json', {
     totalRecords: 1,
@@ -1580,11 +1581,11 @@ test('items image readiness accepts only a completed applied image-sync report',
 
   const missing = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
   assert.equal(missing.status, 'warning');
-  assert.ok(missing.warningReasons.some((reason) => /workflow-image-sync/.test(reason)));
+  assert.ok(missing.warningReasons.some((reason) => /item-image-projection-apply/.test(reason)));
 
   writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', { apply: false, modules: {} });
   const incomplete = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
-  assert.notEqual(incomplete.status, 'pass');
+  assert.equal(incomplete.status, 'warning');
 
   writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', {
     apply: true,
@@ -1594,7 +1595,7 @@ test('items image readiness accepts only a completed applied image-sync report',
       items: { apply: true, total: 1, candidates: 1, alreadyManaged: 0, uploaded: 1, changed: 1, missingSource: 0 },
     },
   });
-  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'warning');
 
   writeJson(repoRoot, 'reports/workflow-image-sync-2026-07-27.json', {
     apply: true,
@@ -1604,7 +1605,97 @@ test('items image readiness accepts only a completed applied image-sync report',
       items: { apply: true, total: 1, candidates: 1, alreadyManaged: 1, uploaded: 0, changed: 0, missingSource: 0 },
     },
   });
-  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'warning');
+});
+
+test('items image readiness consumes the latest governed projection result and rejects bound artifact drift', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/items.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'CopperShortsword', imageUrl: '/terrapedia-images/items/copper.png' }],
+  });
+  writeText(
+    repoRoot,
+    'services/catalog-api/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java',
+    'class PublicItemRelationController {}',
+  );
+
+  const attemptRoot = 'reports/authorization/canonical/item-image-projection-apply/' + 'a'.repeat(64);
+  const inputPath = `${attemptRoot}/input.json`;
+  const proposalPath = `${attemptRoot}/proposal.json`;
+  const snapshotPath = `${attemptRoot}/snapshot.json`;
+  const policyPath = 'pipelines/relation/managed-image-url-policy.mjs';
+  writeJson(repoRoot, inputPath, { operationId: 'canonical-item-image-projection-apply' }, { mode: 0o600 });
+  writeJson(repoRoot, proposalPath, { targetRowCount: 1 }, { mode: 0o600 });
+  writeJson(repoRoot, snapshotPath, { targetRowCount: 1 }, { mode: 0o600 });
+  writeText(repoRoot, policyPath, 'export const MANAGED_IMAGE_POLICY = true;\n');
+  const originRepairResultPath = 'reports/runtime/item-image-origin-repair.result.json';
+  writeJson(repoRoot, originRepairResultPath, {
+    operationId: 'canonical-item-image-origin-repair',
+    status: 'COMPLETED',
+    scopeHash: 'sha256:' + 'd'.repeat(64),
+    externalRequests: false,
+  });
+  writeJson(repoRoot, `${attemptRoot}/result.json`, {
+    resultKind: 'canonical_item_image_projection_apply_result',
+    operationId: 'canonical-item-image-projection-apply',
+    contractVersion: 'item-image-projection-apply-v1',
+    status: 'completed',
+    apply: true,
+    inputContractPath: inputPath,
+    inputContractSha256: `sha256:${sha256Path(repoRoot, inputPath)}`,
+    proposalPath,
+    proposalSha256: `sha256:${sha256Path(repoRoot, proposalPath)}`,
+    snapshotPath,
+    snapshotSha256: `sha256:${sha256Path(repoRoot, snapshotPath)}`,
+    managedUrlPolicy: {
+      sourcePath: policyPath,
+      sourceSha256: `sha256:${sha256Path(repoRoot, policyPath)}`,
+      resolvedPrefixesSha256: 'sha256:' + 'b'.repeat(64),
+    },
+    lineage: {
+      kind: 'origin-repair-bound',
+      originRepairResultPath,
+      originRepairResultSha256: `sha256:${sha256Path(repoRoot, originRepairResultPath)}`,
+      originRepairScopeHash: 'sha256:' + 'd'.repeat(64),
+      originRepairOperationId: 'canonical-item-image-origin-repair',
+      originRepairStatus: 'COMPLETED',
+      quarantineIdentities: ['FallenStar', 'SeveredHandBanner'],
+      externalRequests: false,
+      freshnessUpdates: false,
+      completedRowCount: 1,
+    },
+    target: {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'item-image-readiness-test',
+      databases: {
+        local: 'terria_v1_local',
+        maint: 'terria_v1_maint',
+        relation: 'terria_v1_relation',
+      },
+      ownedDatabase: 'terria_v1_relation',
+      ownedTable: 'projection_items',
+      ownedColumn: 'image',
+      fingerprintSha256: 'sha256:' + 'e'.repeat(64),
+    },
+    keySetSha256: 'sha256:' + '1'.repeat(64),
+    relationRowsSha256: 'sha256:' + '2'.repeat(64),
+    projectionBeforeSha256: 'sha256:' + '3'.repeat(64),
+    projectionAfterSha256: 'sha256:' + '3'.repeat(64),
+    targetRowCount: 1,
+    changedRowCount: 0,
+    completedAt: '2026-08-22T00:00:00.000Z',
+  }, { mode: 0o600 });
+
+  const passed = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  assert.equal(passed.status, 'pass', JSON.stringify(passed, null, 2));
+  assert.match(passed.checks[1].evidencePath, /item-image-projection-apply\/.+\/result\.json$/);
+
+  fs.appendFileSync(path.join(repoRoot, inputPath), ' ');
+  const drifted = buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
+  assert.equal(drifted.status, 'blocked');
+  assert.match(drifted.blockingReasons.join('\n'), /input contract bytes do not match/i);
 });
 
 test('boss source readiness is independent of historical boss import reports', () => {
@@ -2004,6 +2095,96 @@ test('shimmer readiness requires the current verified generation and an exact co
   }
 });
 
+test('shimmer readiness accepts an exact current-generation automation L1 result', () => {
+  const repoRoot = createTempRepo();
+  const publication = publishShimmerReadinessGeneration(repoRoot);
+  const sourcePath = 'reports/authorization/canonical/automation-shimmer-first-l1.source.json';
+  const bundlePath = 'reports/authorization/canonical/automation-shimmer-first-l1.bundle.json';
+  const resultPath = 'reports/authorization/canonical/automation-shimmer-first-l1.result.json';
+  const providerScope = {
+    provider: 'wiki_zh',
+    sourcePage: '微光',
+    tables: [
+      'shimmer_item_transforms',
+      'shimmer_decraft_rules',
+      'shimmer_entity_transforms',
+      'shimmer_npc_transforms',
+    ],
+  };
+  const source = {
+    schemaVersion: 1,
+    operationId: 'canonical-shimmer-import',
+    generationId: publication.manifest.generationId,
+    manifestPath: `data/generated/shimmer/generations/${publication.manifest.generationId}/wiki-shimmer-manifest.json`,
+    manifestSha256: publication.manifest.manifestSha256,
+    dataBundleSha256: publication.manifest.dataBundleSha256,
+    previewSha256: sha256('automation-preview'),
+    targetFingerprintSha256: sha256('automation-target'),
+    providerScope,
+  };
+  const ownedTables = providerScope.tables.map((table) => ({ databaseRole: 'local', table }));
+  const bundle = buildSupplementaryL1Bundle({
+    operationId: 'automation-shimmer-first-l1',
+    runId: 'shimmer_l1_20260824closure',
+    domainId: 'shimmer',
+    generatedAt: '2026-08-24T00:00:00.000Z',
+    executionMode: 'MANUAL_OWNER_L1',
+    policy: {
+      domainId: 'shimmer',
+      level: 'L1',
+      operationalState: 'ACTIVE',
+      policyVersion: 1,
+      policyHash: sha256('shimmer-policy'),
+      policySetHash: sha256('policy-set'),
+    },
+    baseline: {
+      environmentId: 'local',
+      generations: ownedTables.map((table) => ({ ...table, generation: 8 })),
+      projectionHash: sha256('projection'),
+    },
+    source: { path: sourcePath, sha256: sha256(JSON.stringify(source)) },
+    ownedTables,
+    importPlan: {
+      previewSha256: source.previewSha256,
+      targetFingerprintSha256: source.targetFingerprintSha256,
+      summary: {},
+    },
+  });
+  const result = {
+    schemaVersion: 1,
+    operationId: bundle.operationId,
+    runId: bundle.runId,
+    domainId: bundle.domainId,
+    status: 'completed',
+    bundleHash: bundle.bundleHash,
+    policySetHash: bundle.policy.policySetHash,
+    completedAt: '2026-08-24T00:01:00.000Z',
+  };
+
+  try {
+    writeJson(
+      repoRoot,
+      'reports/authorization/canonical/canonical-shimmer-import.result.json',
+      { ...buildCompletedShimmerImportResult(publication.manifest), generationId: 'b'.repeat(64) },
+      { mode: 0o600 },
+    );
+    writeJson(repoRoot, sourcePath, source, { mode: 0o600 });
+    writeJson(repoRoot, bundlePath, bundle, { mode: 0o600 });
+    writeJson(repoRoot, resultPath, result, { mode: 0o600 });
+
+    const report = buildDomainReadinessReport({
+      repoRoot,
+      domainId: 'support.shimmer',
+      panel: 'blocking',
+      generatedAt: '2026-08-24T00:02:00.000Z',
+    });
+
+    assert.equal(report.status, 'pass');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
 test('shimmer readiness rejects noncanonical title-resolution evidence', () => {
   for (const kind of ['ambiguous', 'unresolved', 'mixed', 'unreported', 'other']) {
     const repoRoot = createTempRepo();
@@ -2245,6 +2426,43 @@ test('CLI prints JSON by default and writes report only when output is provided'
   assert.equal(JSON.parse(await fsPromises.readFile(outputPath, 'utf8')).status, 'pass');
 });
 
+test('CLI supports immutable runtime output roots and refuses overwrite', async () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/buffs.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'WellFed', englishName: 'Well Fed', type: 'buff' }],
+  });
+  writeJson(repoRoot, 'data/generated/buff-standardized-map.json', {
+    count: 1,
+    records: { WellFed: { id: 1 } },
+  });
+  const outputRoot = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-cli/domain';
+
+  const args = [
+    'pipelines/audit/domain-readiness-audit.mjs',
+    `--repo-root=${repoRoot}`,
+    '--domain=buffs',
+    '--panel=source',
+    '--generated-at=2026-05-03T12:00:00Z',
+    `--output-root=${outputRoot}`,
+    '--output=default',
+  ];
+  const first = await execFileAsync(process.execPath, args, { cwd: process.cwd() });
+  assert.equal(JSON.parse(first.stdout).status, 'pass');
+  const outputPath = path.join(repoRoot, outputRoot, 'buffs/source-readiness-2026-05-03.json');
+  const firstBytes = fs.readFileSync(outputPath);
+
+  await assert.rejects(
+    execFileAsync(process.execPath, args, { cwd: process.cwd() }),
+    (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /exists|overwrite|immutable/i);
+      return true;
+    },
+  );
+  assert.deepEqual(fs.readFileSync(outputPath), firstBytes);
+});
+
 test('CLI rejects output paths outside reports/domain', async () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/standardized/buffs.standardized.json', { records: [{ internalName: 'WellFed' }] });
@@ -2458,7 +2676,7 @@ function sha256(value) {
 }
 
 
-test('items image readiness accounts for reused objects and refuses a failed sync', () => {
+test('items image readiness ignores legacy sync accounting regardless of completion shape', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/standardized/items.standardized.json', {
     totalRecords: 1,
@@ -2477,7 +2695,6 @@ test('items image readiness accounts for reused objects and refuses a failed syn
     return buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' });
   };
 
-  // A run that reused most objects must still satisfy the completion equation.
   assert.equal(applied({
     total: 6131,
     candidates: 6131,
@@ -2487,10 +2704,8 @@ test('items image readiness accounts for reused objects and refuses a failed syn
     changed: 4012,
     missingSource: 0,
     failedKeys: [],
-  }).status, 'pass');
+  }).status, 'warning');
 
-  // A bounded legacy-origin repair reports only its 331 repair candidates;
-  // the remaining 5800 identities are already-managed and complete the total.
   assert.equal(applied({
     total: 6131,
     candidates: 331,
@@ -2501,10 +2716,9 @@ test('items image readiness accounts for reused objects and refuses a failed syn
     missingSource: 0,
     failedKeys: [],
     normalizedKeys: Array.from({ length: 331 }, (_, index) => `Legacy${index}`),
-  }).status, 'pass');
+  }).status, 'warning');
 
-  // Dropping reuse from the accounting must break the equation, not pass silently.
-  assert.notEqual(applied({
+  assert.equal(applied({
     total: 6131,
     candidates: 6131,
     alreadyManaged: 2119,
@@ -2513,9 +2727,8 @@ test('items image readiness accounts for reused objects and refuses a failed syn
     changed: 4012,
     missingSource: 0,
     failedKeys: [],
-  }).status, 'pass');
+  }).status, 'warning');
 
-  // A partially applied run must never satisfy the panel.
   writeJson(repoRoot, 'reports/workflow-image-sync-2026-08-01.json', {
     apply: true,
     status: 'failed',
@@ -2535,5 +2748,5 @@ test('items image readiness accounts for reused objects and refuses a failed syn
       },
     },
   });
-  assert.notEqual(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'pass');
+  assert.equal(buildDomainReadinessReport({ repoRoot, domainId: 'items', panel: 'image' }).status, 'warning');
 });

@@ -51,6 +51,78 @@ test('runNpcCoverageAudit writes coverage target and audit reports from standard
   assert.equal(targets.targets.length, 2);
 });
 
+test('runNpcCoverageAudit writes completed monitor progress to the explicit and canonical paths', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-coverage-audit-progress-'));
+  const sourceStandardizedDir = path.join(tempRoot, 'source-standardized');
+  const crawlerOutputRoot = path.join(tempRoot, 'crawler-output');
+  const outputRoot = path.join(tempRoot, 'wiki-crawler');
+  const progressPath = path.join(tempRoot, 'attempt', 'progress.json');
+  const canonicalProgressPath = path.join(tempRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+
+  await fs.mkdir(sourceStandardizedDir, { recursive: true });
+  await fs.writeFile(path.join(sourceStandardizedDir, 'npcs.standardized.json'), JSON.stringify({
+    entity: 'npcs',
+    records: [{ id: 17, internalName: 'Merchant', name: 'Merchant' }]
+  }, null, 2));
+
+  const result = await runNpcCoverageAudit({
+    sourceStandardizedDir,
+    crawlerOutputRoot,
+    outputRoot,
+    progressPath,
+    canonicalProgressPath,
+    fetchWikiPageMetadataBatchImpl: async ({ titles }) => titles.map((title) => ({
+      requestedTitle: title,
+      pageTitle: title,
+      pageId: 17,
+      missing: false
+    }))
+  });
+
+  const explicitProgress = JSON.parse(await fs.readFile(progressPath, 'utf8'));
+  const canonicalProgress = JSON.parse(await fs.readFile(canonicalProgressPath, 'utf8'));
+
+  assert.equal(result.progressPath, progressPath);
+  assert.equal(explicitProgress.actionId, 'npc-coverage-audit');
+  assert.equal(explicitProgress.status, 'completed');
+  assert.equal(explicitProgress.current, 3);
+  assert.equal(explicitProgress.total, 3);
+  assert.equal(explicitProgress.childStatusPath, progressPath);
+  assert.ok(explicitProgress.generatedAt);
+  assert.ok(explicitProgress.lastHeartbeatAt);
+  assert.equal(canonicalProgress.actionId, 'npc-coverage-audit');
+  assert.equal(canonicalProgress.status, 'completed');
+  assert.equal(canonicalProgress.childStatusPath, canonicalProgressPath);
+});
+
+test('runNpcCoverageAudit defaults progress to the canonical wiki sync path under the project root', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-coverage-audit-default-progress-'));
+  const sourceStandardizedDir = path.join(tempRoot, 'source-standardized');
+  const crawlerOutputRoot = path.join(tempRoot, 'crawler-output');
+  const outputRoot = path.join(tempRoot, 'wiki-crawler');
+  const defaultProgressPath = path.join(tempRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+
+  await fs.mkdir(sourceStandardizedDir, { recursive: true });
+  await fs.writeFile(path.join(sourceStandardizedDir, 'npcs.standardized.json'), JSON.stringify({
+    entity: 'npcs',
+    records: []
+  }, null, 2));
+
+  const result = await runNpcCoverageAudit({
+    sourceStandardizedDir,
+    crawlerOutputRoot,
+    outputRoot,
+    projectRoot: tempRoot,
+    fetchWikiPageMetadataBatchImpl: async () => []
+  });
+
+  assert.equal(result.progressPath, defaultProgressPath);
+  const progress = JSON.parse(await fs.readFile(defaultProgressPath, 'utf8'));
+  assert.equal(progress.actionId, 'npc-coverage-audit');
+  assert.equal(progress.status, 'completed');
+  assert.equal(progress.childStatusPath, defaultProgressPath);
+});
+
 test('runNpcCoverageAudit treats alias and group-member crawler outputs as already crawled', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-coverage-audit-alias-'));
   const sourceStandardizedDir = path.join(tempRoot, 'source-standardized');

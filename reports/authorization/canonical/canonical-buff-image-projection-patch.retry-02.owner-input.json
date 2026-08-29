@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized",
+  "reason": "Apply only the exact 388-row Buff projection image patch bound to retry-02; retain every relation-image evidence field and write only projection_buffs.image.",
+  "authorizationReference": "user://conversation/2026-08-20/buff-image-projection-patch-retry-02",
+  "decisionIdentity": "canonical-buff-image-projection-patch-20260820-admin-02"
+}

@@ -1,0 +1,54 @@
+{
+  "auditName": "npc-loot-closure-smoke-check",
+  "generatedAt": "2026-08-17T18:00:09.472Z",
+  "auditStatus": "blocked",
+  "evidenceHealth": "sufficient",
+  "summary": {
+    "domainReleaseBlockingCount": 0,
+    "remainingDomainBlockers": [],
+    "remainingCoverageBlockers": [],
+    "coverageCounts": {
+      "source_page_present_with_loot": 300,
+      "source_page_present_no_loot": 4,
+      "source_page_present_no_direct_item_loot": 17,
+      "group_page_present_variant_not_extracted": 113,
+      "no_source_required_expected_zero": 290,
+      "no_source_required_domain_separated": 38
+    },
+    "runtimeBlockingCount": 31,
+    "runtimeByStatus": {
+      "trusted_direct_loot": 387,
+      "api_gap": 19,
+      "duplicate_or_polluted": 12
+    },
+    "relationHealthStatus": "warning",
+    "relationHealthBlockingCount": 0,
+    "openLootAuditCount": 0
+  },
+  "blockers": [
+    {
+      "code": "runtime_blockers_present",
+      "blockingCount": 31,
+      "countsByStatus": {
+        "trusted_direct_loot": 387,
+        "api_gap": 19,
+        "duplicate_or_polluted": 12
+      }
+    }
+  ],
+  "reportPaths": {
+    "domainReportPath": "/home/lolben/TerraPedia/reports/audit/npc-domain-loot-chain-2026-08-17.json",
+    "coverageReportPath": "/home/lolben/TerraPedia/reports/audit/npc-source-coverage-inventory-2026-08-17.json",
+    "runtimeReportPath": "/home/lolben/TerraPedia/reports/audit/npc-loot-runtime-parity-2026-08-17.json",
+    "relationHealthReportPath": "/home/lolben/TerraPedia/reports/relation/relation-health-2026-08-17.json"
+  },
+  "options": {
+    "dateTag": "2026-08-17",
+    "domainReportPath": null,
+    "coverageReportPath": null,
+    "runtimeReportPath": null,
+    "relationHealthReportPath": null,
+    "writeReport": true,
+    "output": null
+  }
+}

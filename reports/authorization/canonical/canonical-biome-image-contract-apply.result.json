@@ -1,0 +1,11 @@
+{
+  "operationId": "canonical-biome-image-contract-apply",
+  "status": "COMPLETED",
+  "appliedAt": "2026-08-21T05:47:29.076Z",
+  "counts": {
+    "maint": 47,
+    "relation": 47,
+    "projection": 47,
+    "local": 47
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l1",
+  "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e",
+  "domainId": "projectiles",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-17T00:21:28.885Z",
+  "approvalMode": "AUTO_APPLY_ACTIVATED",
+  "executionMode": "ACTIVATION_GATED_AUTO",
+  "policy": {
+    "domainId": "projectiles",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "projectiles",
+        "generation": 0
+      }
+    ],
+    "projectionHash": "sha256:d77ba3465b0d7b92b66369c65ef82f473a5d986644abf4cd6231715cf7ef08d4"
+  },
+  "baselineFingerprint": "sha256:10a624001d36a415531f4d6fd29de17d4143336ac27b26ec762cf166d7d0aa5a",
+  "source": {
+    "path": "reports/authorization/canonical/automation-projectiles-projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e.source.json",
+    "sha256": "sha256:5eea01eed37d7fcfdf3cd50eb6b2ba519dd1a6671bf9b4c32b381a4fd2e6c651"
+  },
+  "evidenceHash": "sha256:5dcc01333344f0cbbd8053c73a784f3a1fccaa1293dcb2b87e8445ed257419d4",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:10a624001d36a415531f4d6fd29de17d4143336ac27b26ec762cf166d7d0aa5a",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "projectiles"
+      }
+    ],
+    "sourceSha256": "sha256:5eea01eed37d7fcfdf3cd50eb6b2ba519dd1a6671bf9b4c32b381a4fd2e6c651",
+    "importPlan": {
+      "entity": "projectiles",
+      "recordCount": 1111,
+      "itemDependencyCount": 6131,
+      "automaticSourceFingerprint": "sha256:f37d2af093cbcbc636d982b799fbf94696d11e7c982bcc9e8606790d8f014714"
+    }
+  },
+  "logicalDiffHash": "sha256:bad2dea5c105b95de875cc641804af0e23b0480c1211945d3cedcc159048b61f",
+  "decisionHash": "sha256:3cb5fa5100c03af1045c709b7bd49dce02f17ade073e6cc21cfbb7efd9af4457",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "projectiles"
+    }
+  ],
+  "importPlan": {
+    "entity": "projectiles",
+    "recordCount": 1111,
+    "itemDependencyCount": 6131,
+    "automaticSourceFingerprint": "sha256:f37d2af093cbcbc636d982b799fbf94696d11e7c982bcc9e8606790d8f014714"
+  },
+  "bundleHash": "sha256:0d3d3d5cd297941c08286b472f14971f1b8dd7fc4c7d422722ab03214a11b57f"
+}

@@ -40,6 +40,7 @@ export async function runBaseDomainAutomaticOperation({
   now = new Date().toISOString(),
   mysqlModule = null,
   runSourceImpl = runSource,
+  isCommittedRunImpl = isCommittedBaseAutomaticRun,
   heartbeatIntervalMs = undefined,
 } = {}) {
   const args = parseArgs(argv);
@@ -93,7 +94,7 @@ export async function runBaseDomainAutomaticOperation({
       return completedResult;
     }
 
-    const alreadyCommitted = await isCommittedBaseAutomaticRun(connection, {
+    const alreadyCommitted = await isCommittedRunImpl(connection, {
       runId,
       domainId: domain,
       sourceFingerprint,
@@ -140,6 +141,7 @@ export async function runBaseDomainAutomaticOperation({
         ...frozen.importPlan,
         automaticSourceFingerprint: sourceFingerprint,
       },
+      reconciliationInput: buildReconciliationInputFromArgs(args),
     });
     writeJsonAtomic(frozen.bundlePath, bundle);
     runnerProgress.publish({ status: 'running', phase: 'database-apply', runId });
@@ -170,6 +172,21 @@ export async function runBaseDomainAutomaticOperation({
 
 export function resolveBaseDomainManifestPath({ manifestPath, repoRoot }) {
   return path.resolve(repoRoot, manifestPath ?? 'data/generated/wiki-source-manifest.latest.json');
+}
+
+export function buildReconciliationInputFromArgs(args = {}) {
+  const keys = ['source-coverage', 'table-readback', 'attempt-state', 'reconciliation-output'];
+  const present = keys.filter((key) => args[key] != null);
+  if (present.length === 0) return undefined;
+  if (present.length !== keys.length) {
+    throw new Error('full reconciliation requires --source-coverage, --table-readback, --attempt-state, and --reconciliation-output together');
+  }
+  return {
+    sourceCoveragePath: args['source-coverage'],
+    ownedTableReadbackPath: args['table-readback'],
+    attemptStatePath: args['attempt-state'],
+    outputPath: args['reconciliation-output'],
+  };
 }
 
 export function freezeBaseAutomaticInput({

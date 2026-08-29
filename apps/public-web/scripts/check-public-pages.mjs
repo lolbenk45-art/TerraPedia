@@ -463,7 +463,7 @@ const forbiddenLightThemeTokens = [
 const readOptionalFile = (path) => existsSync(file(path)) ? readFileSync(file(path), 'utf8') : ''
 const robotsContent = readOptionalFile('public/robots.txt')
 const sitemapContent = readOptionalFile('public/sitemap.xml')
-const seoSourceReportContent = readOptionalFile('../docs/audits/2026-05-23_basic-public-site-v0.1-seo-source.md')
+const seoSourceReportContent = readOptionalFile('../../docs/audits/2026-05-23_basic-public-site-v0.1-seo-source.md')
 const sitemapBlocked = seoSourceReportContent.includes('sitemap blocked because public HTTPS site origin is not confirmed')
 
 const missing = requiredRoutes.filter((route) => !existsSync(file(route)))

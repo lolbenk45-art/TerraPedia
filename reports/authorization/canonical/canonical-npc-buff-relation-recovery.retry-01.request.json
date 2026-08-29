@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-08-24T03:54:13.515Z",
+  "expiresAt": "2026-08-25T03:54:13.515Z",
+  "operationId": "canonical-npc-buff-relation-recovery",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:53cff1402d344581204c9f46dda1f4b41cbfabe9639df3f0212c59f0ae75c36d",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-01.input.json",
+      "sizeBytes": 914,
+      "contentHash": "sha256:ecc1d4098ea47f8ce17c984fbc4e3d76e9bbdd69fef1c1bb7b6a5f883c3dff6f"
+    },
+    {
+      "path": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-buff-relation-recovery.proposal.json",
+      "sizeBytes": 1302476,
+      "contentHash": "sha256:8bca37734b271f52a3de83719c34cbc5d241853e7048953e62bb8e8599f33cd3"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:4d8149951dbb692cb33fbf4e94f6d03ea40ca44f357c79cffc61e945af261719",
+  "executionManifest": {
+    "artifactDate": "2026-08-24",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:ed33fc82ac0a1794853e0871245616d9eb2f660b46e4c968c70d2d185fca861a",
+        "path": "pipelines/relation/npc-buff-relation-recovery.mjs"
+      },
+      {
+        "contentHash": "sha256:685f76ad3d9217e073d54e6c313b8b20e6bea367e46a9ee41b3f1c8ba6a61122",
+        "path": "pipelines/relation/secondary-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:359d8f80b05ef750a33c7e8d9484208c7f1b80213b39af73e65afd581be4cf6d",
+        "path": "pipelines/relation/sync-maint-to-relation.mjs"
+      },
+      {
+        "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:f2b0c106011b2de850409622499b0a1b0e49482798508be3b0c125f1f65c8f49",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:c7606cfd9ca47195438090768a12c7eefb70dd6ddf04d52f2c3ac85456ab27a7",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:1fff33639a4bd3039987b1addcf2948d47e28e67069a02334c4bd2ca36956324",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:9c7b89a56fa9ccaf672728504d5e1040f2bd7c7a374ee8a7e8ca56b507629ec9",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:2e715633d9b4e8553eb09fe9f48c873e597b93bba2a602c7149110af260c2a57",
+        "path": "pipelines/relation/relation-trace.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:59dda823ba2543d3dfc78ce4814baf34191a9a963ef22e4b35cbb28657962424",
+        "path": "pipelines/relation/base-entity-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:ec8c6c9dfc5b34e144ff5de902e72846350b515ba3b572f0f6fb5db8fecc662b",
+        "path": "pipelines/relation/buff-entity-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:333eaa6af01cd2655450203f5bdb28743c9a6f95edcb8b8542cfd649ba90c210",
+        "path": "pipelines/relation/image-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:99d6a080328a8ac954c872c44c9570d9e11305c43038db393f611ab3fe336cf2",
+        "path": "pipelines/relation/category-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:75bdbf1e81f44a725e7742288874d45865f8ede9306702eaf8f417d80730988d",
+        "path": "pipelines/relation/recipe-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:4556429989a077793946f5b222c18d4c88052fb627e7a4e268caa18cefbde394",
+        "path": "pipelines/relation/recipe-expansion-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:b68da11446219dde35275322b8e0e11c4f40f56b899cf989cab4a53eb06b2101",
+        "path": "pipelines/item-groups/item-group-canonical-sync.mjs"
+      },
+      {
+        "contentHash": "sha256:7b86e70b7e1cc5d2874abed1cd10aabf4df2deb02cf4ef18138ef815af2ddeed",
+        "path": "pipelines/relation/item-source-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:8278617d80a7fde1e8b4d06504a40e044703321e2b4cc162b91450d039aedd9f",
+        "path": "pipelines/relation/sync-buffs-to-relation.mjs"
+      },
+      {
+        "contentHash": "sha256:7e40f57d4fb5da360802482c5536c6f06ec2006887104f8abd2f65b6d994d6e5",
+        "path": "pipelines/relation/boss-series-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:6125b0451ef5227c9631f35e0af8db2149eb1b552ad349357d3dcf064d42e3cf",
+        "path": "pipelines/relation/npc-series-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:da680ff94c459e209ea2b281c5f10f9a6ca841989dd9fb17d043b42920be6e30",
+        "path": "pipelines/relation/item-rarity-support-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:914e408cefb7a832181ff371ac7e9a0dc22c365da325e212ee154a89a345c675",
+        "path": "pipelines/relation/armor-set-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:be02edb22a84757c643a3cc91e852806802e2aa0fc36c25163a255142b941e55",
+        "path": "pipelines/relation/equivalent-armor-attribute-rules.mjs"
+      },
+      {
+        "contentHash": "sha256:de4984869318689d329dc9a99e78a8cd6247833cdda056f4ef0646dc71f41ece",
+        "path": "pipelines/relation/equipment-effect-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:f14b0545473e0f53e88d8612b512f32b735fb01353898d2fc7e7bf3a295e5dc5",
+        "path": "pipelines/relation/projection-sync.mjs"
+      },
+      {
+        "contentHash": "sha256:2afa155b24ac8d1f882a281beb9c305f04ef0d5cc9e9700ab3fb4854f13116c8",
+        "path": "pipelines/relation/relation-report.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650",
+        "path": "pipelines/lib/recipe-material-reference.mjs"
+      },
+      {
+        "contentHash": "sha256:bb9b6c0b0af532a5d5f0fc502b3cdde951087079166893778751883e57602b8f",
+        "path": "pipelines/relation/source-condition-normalizer.mjs"
+      },
+      {
+        "contentHash": "sha256:d926b6a07a14240e9683ddd4bc5598d7153e8e238377e7d6b4c3d63b5f54f5d0",
+        "path": "pipelines/lib/npc-loot-source-taxonomy.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/relation/npc-buff-relation-recovery.mjs",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_npc_buff_relation_recovery",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-01.input.json",
+      "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-buff-relation-recovery.proposal.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-npc-buff-relation-recovery",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-01.result.json"
+    ],
+    "ownershipKeys": [
+      "relation.npc_buff_relations.buffs"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:ed56897fc1def080b0539ac75d23be1f1f440d9cd9fccbb81dfcb380023714de"
+}

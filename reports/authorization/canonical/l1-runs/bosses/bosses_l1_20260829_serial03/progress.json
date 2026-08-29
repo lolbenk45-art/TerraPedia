@@ -1,0 +1,13 @@
+{
+  "actionId": "domain-source-bosses",
+  "generatedAt": "2026-08-29T01:20:33.113Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/bosses/bosses_l1_20260829_serial03/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T01:20:33.113Z",
+  "message": "frozen bosses source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T01:20:33.113Z",
+  "total": 1
+}

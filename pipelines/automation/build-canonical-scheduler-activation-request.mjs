@@ -8,6 +8,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { sha256Json } from './crawler-v2-scheduler-activation-preflight.mjs';
+import {
+  assertSchedulerPolicyBinding,
+  normalizeSchedulerEligibleDomains,
+} from './build-canonical-crawler-v2-scheduler-activation-proposal.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 
 const OPERATION_ID = 'canonical-crawler-v2-scheduler-activation';
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
@@ -32,26 +40,15 @@ function requireTimestamp(value, label) {
   return text;
 }
 
-function assertOutputPath(outputPath, repoRoot) {
-  const root = path.resolve(repoRoot, 'reports/authorization/canonical');
-  const normalized = path.resolve(outputPath);
-  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
-    throw new Error('request output must remain under reports/authorization/canonical');
-  }
-}
-
-function assertInsideRepo(filePath, repoRoot, label) {
-  const root = path.resolve(repoRoot);
-  const normalized = path.resolve(filePath);
-  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
-    throw new Error(`${label} must remain inside the repository`);
-  }
-  return normalized;
-}
-
 // 验证 proposal 文件字节 hash，并校验其内嵌 proposalHash 与内容自洽
 function readAndVerifyProposal(proposalPath, repoRoot) {
-  const absPath = assertInsideRepo(path.resolve(repoRoot, proposalPath), repoRoot, 'proposal');
+  const requestedPath = path.resolve(repoRoot, proposalPath);
+  assertAuthorizationRootPath(requestedPath, repoRoot, 'proposal');
+  const absPath = assertRepositoryOrdinaryFile({
+    repoRoot,
+    filePath: requestedPath,
+    label: 'proposal',
+  });
   const bytes = fs.readFileSync(absPath);
   const fileSha256 = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
   let proposal;
@@ -89,6 +86,11 @@ function assertProposalEligible(proposal) {
   if (proposal.isolatedResourceWrites !== false) {
     throw new Error('proposal must declare isolatedResourceWrites:false');
   }
+  const { proposalHash: embeddedProposalHash, ...proposalPayload } = proposal;
+  requireHash(embeddedProposalHash, 'proposal.proposalHash');
+  if (sha256Json(proposalPayload) !== embeddedProposalHash) {
+    throw new Error('proposal content does not match its embedded proposalHash');
+  }
   if (proposal.current?.enabled !== false) {
     throw new Error('proposal must record current.enabled:false');
   }
@@ -102,6 +104,12 @@ function assertProposalEligible(proposal) {
     requireText(entry?.path, 'codeBundle entry path');
     requireHash(entry?.sha256, 'codeBundle entry sha256');
   }
+  const eligibleDomains = normalizeSchedulerEligibleDomains(proposal.eligibleDomains);
+  assertSchedulerPolicyBinding({
+    policyRows: proposal.policyRows,
+    policySetHash: proposal.policySetHash,
+    expectedDomainIds: eligibleDomains.map((domain) => domain.domainId),
+  });
   if (!Array.isArray(proposal.forbidden) || proposal.forbidden.length === 0) {
     throw new Error('proposal must declare forbidden operations');
   }
@@ -130,6 +138,9 @@ export function buildSchedulerActivationRequest({
   requireText(proposalPath, 'proposalPath');
   requireHash(proposalFileSha256, 'proposalFileSha256');
   requireHash(proposalHash, 'proposalHash');
+  if (proposal.proposalHash !== proposalHash) {
+    throw new Error('supplied proposalHash does not match the proposal identity');
+  }
   const generated = requireTimestamp(generatedAt, 'generatedAt');
   const expires = requireTimestamp(
     expiresAt ?? new Date(Date.parse(generated) + DEFAULT_EXPIRY_MS).toISOString(),
@@ -161,8 +172,10 @@ export function buildSchedulerActivationRequest({
     mutation: proposal.mutation,
     t1Report: proposal.t1Report,
     codeBundle: proposal.codeBundle,
+    policyRows: proposal.policyRows,
+    policySetHash: proposal.policySetHash,
     current: proposal.current,
-    eligibleDomains: proposal.eligibleDomains,
+    eligibleDomains: normalizeSchedulerEligibleDomains(proposal.eligibleDomains),
     requested: proposal.requested,
     rollback: proposal.rollback,
     forbidden: proposal.forbidden,
@@ -207,7 +220,7 @@ function main() {
     if (!args[key]) throw new Error(`--${key}=<path> is required`);
   }
   const outputPath = path.resolve(args.output);
-  assertOutputPath(outputPath, repoRoot);
+  assertAuthorizationRootPath(outputPath, repoRoot, 'request output');
 
   const { proposal, fileSha256, proposalHash } = readAndVerifyProposal(args.proposal, repoRoot);
   const generatedAt = args['generated-at'] ?? new Date().toISOString();
@@ -220,13 +233,37 @@ function main() {
     expiresAt: args['expires-at'],
   });
 
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true, mode: 0o700 });
-  writeJsonAtomic(outputPath, request);
+  const confinedOutputPath = assertRepositoryPathConfinement({
+    repoRoot,
+    filePath: outputPath,
+    label: 'request output',
+    createParent: true,
+  });
+  assertNoExistingEntry(confinedOutputPath, 'request output');
+  writeJsonAtomic(confinedOutputPath, request);
   process.stdout.write(`${JSON.stringify({
     output: outputPath,
     requestHash: request.requestHash,
     authorizationStatus: request.authorizationStatus,
   })}\n`);
+}
+
+function assertAuthorizationRootPath(filePath, repoRoot, label) {
+  const root = path.resolve(repoRoot, 'reports/authorization/canonical');
+  const normalized = path.resolve(filePath);
+  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
+    throw new Error(`${label} must remain under reports/authorization/canonical`);
+  }
+}
+
+function assertNoExistingEntry(filePath, label) {
+  try {
+    fs.lstatSync(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+  throw new Error(`${label} already exists; overwrite is forbidden`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

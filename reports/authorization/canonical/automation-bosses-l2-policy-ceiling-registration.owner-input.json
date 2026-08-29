@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Register user-approved L2 policy ceiling for bosses; do not promote L2 or activate scheduler in this checkpoint.",
+  "authorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "decisionIdentity": "automation-bosses-l2-policy-ceiling-registration-20260828-owner-01"
+}

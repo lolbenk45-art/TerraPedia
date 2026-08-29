@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,10 +45,17 @@ const CANONICAL_INPUT_PATH = 'reports/authorization/canonical/canonical-npc-appl
 const CANONICAL_COMPLETION_PATH = 'reports/authorization/canonical/canonical-npc-apply.completion.json';
 const T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-npc-t1-acceptance.json';
 const DEFAULT_OUTPUT_PATH = 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json';
+const TERMINAL_T2_ANCHOR = Object.freeze({
+  commit: '0ad73c20d1bb204ebfc9aeb8d63cd039a20f99bf',
+  path: DEFAULT_OUTPUT_PATH,
+  blob: 'a3a6e56307aaffba52ba1107013801c93fb0e300',
+  bytesSha256: 'sha256:db6e150fdbfe8499ac4453a0d8da2d0a330b62c55c43eff42cf36739841a3bb5',
+});
 const BASE_MAINT_OPERATION_IDS = Object.freeze([
   'canonical-npc-base-maint-nontown-apply',
   'canonical-npc-base-maint-town-apply',
 ]);
+const CANONICAL_NPC_CRAWLER_SOURCE_PREFIX = 'wiki.npc.crawler_fact:';
 
 export function buildNpcCanonicalReadinessReport({
   evidence = {},
@@ -94,6 +102,80 @@ export function validateNpcCanonicalReadinessReport(report, { requiredLevel = nu
     result.blockingReasons.push('summary status does not match NPC canonical checks');
   }
   return { ...result, valid: result.blockingReasons.length === 0 };
+}
+
+export function reconcileNpcCanonicalReadinessReport({
+  terminalReport,
+  currentSnapshot,
+  sourceBinding,
+  api,
+  bridgeRetirement,
+  generatedAt = new Date().toISOString(),
+} = {}) {
+  if (!isValidTimestamp(generatedAt)) {
+    throw new Error('NPC reconciliation generatedAt must be a valid timestamp');
+  }
+  const terminalValidation = validateNpcCanonicalReadinessReport(terminalReport, {
+    requiredLevel: 'T2_CUTOVER_VERIFIED',
+  });
+  if (!terminalValidation.valid || terminalReport?.summary?.status !== 'pass') {
+    throw new Error('NPC reconciliation requires a passing terminal T2 readiness report');
+  }
+  const inputHash = terminalReport.cutoverIdentity?.inputHash;
+  const expectedProducerRunKey = `canonical-npc-landing:${inputHash}`;
+  const expectedCrawlerFactCount = Number(terminalReport.landing?.crawlerFacts?.currentCount);
+  const expectedMaintSnapshotHash = terminalReport.maint?.snapshotHash;
+  const currentCrawlerFacts = currentSnapshot?.landing?.crawlerFacts;
+  const currentMaint = currentSnapshot?.maint;
+  const drifted = sourceBinding?.inputHash !== inputHash
+    || sourceBinding?.producerRunKey !== expectedProducerRunKey
+    || Number(sourceBinding?.crawlerFactCount) !== expectedCrawlerFactCount
+    || sourceBinding?.maintSnapshotHash !== expectedMaintSnapshotHash
+    || currentCrawlerFacts?.fresh !== true
+    || Number(currentCrawlerFacts?.currentCount) !== expectedCrawlerFactCount
+    || Number(currentCrawlerFacts?.normalizedCount) !== expectedCrawlerFactCount
+    || Number(currentCrawlerFacts?.auditCount) !== expectedCrawlerFactCount
+    || Number(currentMaint?.factCount) !== expectedCrawlerFactCount
+    || currentMaint?.snapshotHash !== expectedMaintSnapshotHash;
+  if (drifted) {
+    throw new Error('NPC reconciliation source binding drifted from terminal T2 evidence');
+  }
+
+  const report = buildNpcCanonicalReadinessReport({
+    generatedAt,
+    evidence: {
+      evidenceScope: 'formal-t2',
+      writesDatabase: false,
+      databaseRole: 't2-readonly',
+      crawlerRunIdentity: terminalReport.crawlerRunIdentity,
+      t1Evidence: terminalReport.t1Evidence,
+      cutoverIdentity: terminalReport.cutoverIdentity,
+      landing: currentSnapshot.landing,
+      maint: {
+        ...currentSnapshot.maint,
+        baseCompletion: terminalReport.maint?.baseCompletion,
+      },
+      relation: currentSnapshot.relation,
+      local: currentSnapshot.local,
+      runtime: currentSnapshot.runtime,
+      api,
+      bridgeRetirement,
+    },
+  });
+  return {
+    ...report,
+    reconciliation: {
+      mode: 'terminal-t2-current-readback',
+      databaseWrites: false,
+      inputRecreated: false,
+      terminalGeneratedAt: terminalReport.generatedAt,
+      terminalResultHash: terminalReport.cutoverIdentity.resultHash,
+      inputHash,
+      producerRunKey: expectedProducerRunKey,
+      crawlerFactCount: expectedCrawlerFactCount,
+      maintSnapshotHash: expectedMaintSnapshotHash,
+    },
+  };
 }
 
 function evaluate(report, { requiredLevel = null } = {}) {
@@ -326,9 +408,25 @@ export async function writeNpcCanonicalReadinessReport({
   probeApi = probeNpcCanonicalReadinessApis,
   loadT1Evidence = readNpcCanonicalT1Evidence,
   loadBridgeRetirement = readNpcBridgeRetirementEvidence,
+  loadReconciliationSnapshot = loadNpcCanonicalReconciliationSnapshot,
+  loadTerminalAnchor = loadNpcCanonicalTerminalT2Anchor,
 } = {}) {
   const root = path.resolve(repoRoot);
-  const completionContext = await readCanonicalNpcOwnerPhaseCompletion({ repoRoot: root });
+  let completionContext;
+  try {
+    completionContext = await readCanonicalNpcOwnerPhaseCompletion({ repoRoot: root });
+  } catch (error) {
+    if (!isMissingCanonicalNpcPrivateInput(error)) throw error;
+    return writeNpcCanonicalReconciledReadinessReport({
+      repoRoot: root,
+      outputPath,
+      generatedAt,
+      loadTerminalAnchor,
+      loadReconciliationSnapshot,
+      probeApi,
+      loadBridgeRetirement,
+    });
+  }
   const collectionErrors = [];
   let snapshot = emptyReadOnlySnapshot();
   let baseCompletionContext = null;
@@ -439,6 +537,102 @@ export async function writeNpcCanonicalReadinessReport({
   const resolvedOutput = resolveWithinCanonicalMigration(root, outputPath, 'NPC readiness output');
   await writePrivateJsonAtomically(resolvedOutput, report);
   return report;
+}
+
+async function writeNpcCanonicalReconciledReadinessReport({
+  repoRoot,
+  outputPath,
+  generatedAt,
+  loadTerminalAnchor,
+  loadReconciliationSnapshot,
+  probeApi,
+  loadBridgeRetirement,
+}) {
+  const terminalAnchor = await loadTerminalAnchor({ repoRoot });
+  const terminalReport = terminalAnchor.report;
+  const { currentSnapshot, sourceBinding } = await loadReconciliationSnapshot({
+    repoRoot,
+    terminalReport,
+  });
+  const api = await probeApi({
+    repoRoot,
+    localSnapshotHash: currentSnapshot.local?.snapshotHash ?? null,
+    runtimeSample: currentSnapshot.runtime?.sample ?? null,
+  });
+  const apiError = Object.entries(api ?? {}).find(([, evidence]) => evidence?.error);
+  if (apiError) {
+    throw new Error(`NPC reconciliation ${apiError[0]} API probe failed: ${apiError[1].error}`);
+  }
+  const bridgeRetirement = loadBridgeRetirement(repoRoot);
+  const report = reconcileNpcCanonicalReadinessReport({
+    terminalReport,
+    currentSnapshot,
+    sourceBinding,
+    api,
+    bridgeRetirement,
+    generatedAt,
+  });
+  report.reconciliation.terminalAnchor = terminalAnchor.source;
+  const resolvedOutput = resolveWithinCanonicalMigration(repoRoot, outputPath, 'NPC readiness output');
+  await writePrivateJsonAtomically(resolvedOutput, report);
+  return report;
+}
+
+export async function loadNpcCanonicalTerminalT2Anchor({
+  repoRoot = process.cwd(),
+  commit = TERMINAL_T2_ANCHOR.commit,
+  artifactPath = TERMINAL_T2_ANCHOR.path,
+  blob = TERMINAL_T2_ANCHOR.blob,
+  expectedBytesSha256 = TERMINAL_T2_ANCHOR.bytesSha256,
+  readGitObject = readImmutableGitObject,
+} = {}) {
+  const root = path.resolve(repoRoot);
+  const object = `${commit}:${artifactPath}`;
+  const bytes = Buffer.from(await readGitObject({ repoRoot: root, object }));
+  const actualBytesSha256 = hashBytes(bytes);
+  if (actualBytesSha256 !== expectedBytesSha256) {
+    throw new Error('NPC terminal T2 anchor bytes drifted from the immutable Git object');
+  }
+  const report = parseJson(bytes, 'NPC terminal T2 anchor');
+  const validation = validateNpcCanonicalReadinessReport(report, {
+    requiredLevel: 'T2_CUTOVER_VERIFIED',
+  });
+  if (!validation.valid || report?.summary?.status !== 'pass') {
+    throw new Error('NPC terminal T2 anchor is not a passing T2 readiness report');
+  }
+  return {
+    report,
+    source: {
+      commit,
+      path: artifactPath,
+      blob,
+      bytesSha256: actualBytesSha256,
+    },
+  };
+}
+
+async function readImmutableGitObject({ repoRoot, object }) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'git',
+      ['-C', repoRoot, 'show', object],
+      { encoding: null, maxBuffer: 1024 * 1024 },
+      (error, stdout) => {
+        if (error) {
+          reject(new Error(`NPC terminal T2 Git object is unavailable: ${errorMessage(error)}`));
+          return;
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
+function isMissingCanonicalNpcPrivateInput(error) {
+  if (error?.code !== 'ENOENT') return false;
+  const missingPath = String(error?.path ?? '').replaceAll('\\', '/');
+  return missingPath.endsWith(`/${CANONICAL_INPUT_PATH}`)
+    || missingPath.endsWith(`/${CANONICAL_COMPLETION_PATH}`);
 }
 
 function buildValidatedCutoverIdentity({
@@ -632,6 +826,65 @@ export async function loadNpcCanonicalReadinessSnapshot({
   }
 }
 
+export async function loadNpcCanonicalReconciliationSnapshot({
+  repoRoot = process.cwd(),
+  terminalReport,
+  databases = FORMAL_DATABASES,
+  env = process.env,
+  connectionFactory = null,
+} = {}) {
+  const terminalValidation = validateNpcCanonicalReadinessReport(terminalReport, {
+    requiredLevel: 'T2_CUTOVER_VERIFIED',
+  });
+  if (!terminalValidation.valid || terminalReport?.summary?.status !== 'pass') {
+    throw new Error('NPC reconciliation requires valid terminal T2 evidence');
+  }
+  if (JSON.stringify(databases) !== JSON.stringify(FORMAL_DATABASES)) {
+    throw new Error('NPC reconciliation only permits the formal local, maint, and relation databases');
+  }
+  const root = path.resolve(repoRoot);
+  const config = loadLocalStackConfig(root);
+  const connection = await (connectionFactory ?? (async () => loadMysqlModule({ repoRoot: root }).createConnection({
+    host: env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: databases.local,
+  })))();
+  try {
+    await connection.query('START TRANSACTION READ ONLY');
+    const rows = await readNpcCanonicalReadinessRows(connection, databases);
+    const inputHash = terminalReport.cutoverIdentity.inputHash;
+    const evidencePairs = asRows(rows.maint).filter(isCanonicalNpcCrawlerFact).map((row) => ({
+      normalizedContentHash: row.normalizedContentHash,
+      auditContentHash: row.crawlerAuditHash,
+    }));
+    const currentSnapshot = buildNpcCanonicalReadinessSnapshot({
+      rows,
+      inputHash,
+      input: { evidencePairs },
+    });
+    const crawlerLandings = asRows(rows.landing)
+      .filter(isCanonicalNpcCrawlerLanding);
+    const producerRunKeys = new Set(crawlerLandings.map((row) => row.producerRunKey));
+    await connection.query('ROLLBACK');
+    return {
+      currentSnapshot,
+      sourceBinding: {
+        inputHash,
+        producerRunKey: producerRunKeys.size === 1 ? [...producerRunKeys][0] : null,
+        crawlerFactCount: crawlerLandings.length,
+        maintSnapshotHash: currentSnapshot.maint.snapshotHash,
+      },
+    };
+  } catch (error) {
+    await connection.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    await connection.end();
+  }
+}
+
 export async function readNpcCanonicalReadinessRows(connection, databases = FORMAL_DATABASES) {
   if (!connection || typeof connection.query !== 'function') {
     throw new TypeError('NPC readiness requires a query-capable database connection');
@@ -646,7 +899,7 @@ export async function readNpcCanonicalReadinessRows(connection, databases = FORM
   return {
     landing: await read(`SELECT id, dataset_type AS datasetType, source_key AS sourceKey, content_hash AS contentHash, producer_run_key AS producerRunKey, artifact_role AS artifactRole\n      FROM ${local}.\`source_dataset_landings\`\n      WHERE is_current = 1 AND dataset_type IN ('npcs_base_raw', 'npc_crawler_facts_raw')\n      ORDER BY dataset_type, id`),
     maintBase: await read(`SELECT source_id AS sourceId, internal_name AS internalName, landing_source_id AS landingSourceId, landing_source_key AS landingSourceKey, landing_content_hash AS landingContentHash\n      FROM ${maint}.\`maint_npcs\`\n      WHERE status = 1 AND deleted = 0\n      ORDER BY source_id, internal_name`),
-    maint: await read(`SELECT record_key AS recordKey, normalized_content_hash AS normalizedContentHash, crawler_audit_hash AS crawlerAuditHash, match_status AS matchStatus\n      FROM ${maint}.\`maint_npc_crawler_facts\`\n      WHERE status = 1 AND deleted = 0\n      ORDER BY record_key`),
+    maint: await read(`SELECT record_key AS recordKey, landing_source_key AS landingSourceKey, landing_source_id AS landingSourceId, landing_content_hash AS landingContentHash, normalized_content_hash AS normalizedContentHash, crawler_audit_hash AS crawlerAuditHash, match_status AS matchStatus\n      FROM ${maint}.\`maint_npc_crawler_facts\`\n      WHERE status = 1 AND deleted = 0\n      ORDER BY record_key`),
     relationBuff: await read(`SELECT record_key AS recordKey, npc_source_id AS npcSourceId, buff_source_id AS buffSourceId\n      FROM ${relation}.\`npc_buff_relations\`\n      ORDER BY record_key`),
     relationShop: await read(`SELECT record_key AS recordKey, npc_source_id AS npcSourceId, item_internal_name AS itemInternalName\n      FROM ${relation}.\`item_npc_shop_relations\`\n      ORDER BY record_key`),
     relationLoot: await read(`SELECT record_key AS recordKey, npc_source_id AS npcSourceId, item_internal_name AS itemInternalName\n      FROM ${relation}.\`item_npc_loot_relations\`\n      ORDER BY record_key`),
@@ -664,7 +917,7 @@ export function buildNpcCanonicalReadinessSnapshot({ rows = {}, input = {}, inpu
   const expectedRunKey = `canonical-npc-landing:${inputHash}`;
   const landingRows = asRows(rows.landing);
   const baseRows = landingRows.filter((row) => row.datasetType === 'npcs_base_raw');
-  const crawlerRows = landingRows.filter((row) => row.datasetType === 'npc_crawler_facts_raw');
+  const crawlerRows = landingRows.filter(isCanonicalNpcCrawlerLanding);
   const currentBaseLanding = baseRows.length === 1 ? baseRows[0] : null;
   const maintBaseRows = asRows(rows.maintBase);
   const currentMaintBaseRows = currentBaseLanding == null ? [] : maintBaseRows.filter((row) => (
@@ -676,7 +929,14 @@ export function buildNpcCanonicalReadinessSnapshot({ rows = {}, input = {}, inpu
   const localBaseCount = Number.isSafeInteger(localBaseCountValue) && localBaseCountValue >= 0
     ? localBaseCountValue
     : 0;
-  const maintRows = asRows(rows.maint).filter((row) => expectedNormalized.has(stripHash(row.normalizedContentHash)));
+  const maintRows = asRows(rows.maint)
+    .filter((row) => isCanonicalNpcCrawlerFact(row) && expectedNormalized.has(stripHash(row.normalizedContentHash)))
+    .map((row) => ({
+      recordKey: row.recordKey,
+      normalizedContentHash: row.normalizedContentHash,
+      crawlerAuditHash: row.crawlerAuditHash,
+      matchStatus: row.matchStatus,
+    }));
   const relationBuff = asRows(rows.relationBuff);
   const relationShop = asRows(rows.relationShop);
   const relationLoot = asRows(rows.relationLoot);
@@ -723,6 +983,16 @@ export function buildNpcCanonicalReadinessSnapshot({ rows = {}, input = {}, inpu
       sample: asRows(rows.runtime)[0] ?? null,
     },
   };
+}
+
+function isCanonicalNpcCrawlerLanding(row) {
+  return row?.datasetType === 'npc_crawler_facts_raw'
+    && String(row?.sourceKey ?? '').startsWith(CANONICAL_NPC_CRAWLER_SOURCE_PREFIX);
+}
+
+function isCanonicalNpcCrawlerFact(row) {
+  const sourceKey = String(row?.landingSourceKey ?? '').trim();
+  return !sourceKey || sourceKey.startsWith(CANONICAL_NPC_CRAWLER_SOURCE_PREFIX);
 }
 
 export async function probeNpcCanonicalReadinessApis({

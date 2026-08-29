@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-projection-gap-wiki-gg-variant-retirement",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:880fa2d9f9b14b3071400cfeac9af4de9e59757843481dbc0d65714c444ae4c8",
+  "previewSha256": "sha256:efba3349cdfa948176e0ebc211529609c9f413c86f53a29106c8d64c38f35747",
+  "expectedCounts": {
+    "relationLoot": 4
+  },
+  "writeTargets": [
+    "relation.item_npc_loot_relations.projection_gap_wiki_gg_variant"
+  ]
+}

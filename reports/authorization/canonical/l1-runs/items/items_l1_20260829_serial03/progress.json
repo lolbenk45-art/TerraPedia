@@ -1,0 +1,13 @@
+{
+  "actionId": "wiki-items-source-refresh",
+  "generatedAt": "2026-08-29T00:56:43.834Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/items/items_l1_20260829_serial03/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T00:56:43.834Z",
+  "message": "frozen items source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T00:56:43.834Z",
+  "total": 1
+}

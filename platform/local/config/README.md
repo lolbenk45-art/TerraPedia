@@ -58,6 +58,11 @@ Scheduler notes:
 - `19001` is the MinIO console port, not an image origin. Do not use it for `endpoint`, `publicEndpoint`, or `TERRAPEDIA_IMAGE_ORIGIN`.
 - Legacy `http://localhost:9000` and `http://127.0.0.1:9000` image URLs are compatibility origins only; local startup may proxy them to the canonical object API when the port is free.
 
+Local API acceptance notes:
+
+- `start-local-stack.sh` exports `TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED=true` by default and preserves an explicitly provided value. The generated `reports/local-start/run-manifest.json` records the effective value under `backend.httpRateLimitEnabled`.
+- A read-only NPC runtime parity audit may use `--fast-local-api` only with an API base URL on `localhost`, `127.0.0.1`, or `[::1]`; this sets its request interval to zero and rejects remote URLs. For a loopback acceptance run that needs the backend limiter disabled, set `TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED=false` for that stack process only, then restore the default for ordinary local development.
+
 - `dataRefresh.enabled`
   - Whether `run-backend-data-refresh-daemon.mjs` should run continuously
 - `dataRefresh.intervalMinutes`

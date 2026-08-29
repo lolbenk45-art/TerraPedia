@@ -1,0 +1,299 @@
+{
+  "generatedAt": "2026-08-23T06:02:15.979Z",
+  "ok": false,
+  "failedDomains": [
+    "items",
+    "npcs",
+    "projectiles",
+    "buffs"
+  ],
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6159,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6146,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "HeartArrow",
+        "ValentineRing",
+        "TurkeyFeather",
+        "FestiveTopHat",
+        "Wiesnbrau",
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS"
+      ],
+      "acceptedLocalOnlyExceptionCount": 13,
+      "blockingFields": [
+        {
+          "field": "image",
+          "localField": "image",
+          "projectionField": "image",
+          "localNonNull": 6131,
+          "projectionNonNull": 5800,
+          "gap": 331,
+          "missingExamples": [
+            {
+              "key": "ShadowOrb",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/08/629731dff1be46039698fc98f66ca29b.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "Hook",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/08/4c619c0265fe4fc2bfab12e3156b9321.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Flamarang",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/08/78a62197e64843bf8dde47af9354e3a1.png",
+              "projectionValue": null
+            },
+            {
+              "key": "MoltenFury",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/08/c177f89ceb8e41a284a77c55d725fc21.png",
+              "projectionValue": null
+            },
+            {
+              "key": "FieryGreatsword",
+              "localField": "image",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/08/67fb70f6bcb84cfa829388b820857f61.png",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "blocked",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [
+        {
+          "field": "image_url",
+          "localField": "image_url",
+          "projectionField": "image_url",
+          "localNonNull": 758,
+          "projectionNonNull": 0,
+          "gap": 758,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/npcs/2026/05/08/4d7e13d9e77b4d4ea81c80e307dc50ac.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/npcs/2026/05/08/1b82742d498a41a59f6fac4f0660fe4b.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/npcs/2026/05/08/068f89c2f1684182bf2dbd9d30e26d9d.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/npcs/2026/05/08/ab7ae21dc46f4673b426163ee5eef541.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/npcs/2026/05/08/8110b264399944429e358754a32e01f4.gif",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "switchable",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "blocked",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [
+        {
+          "field": "image_url",
+          "localField": "image_url",
+          "projectionField": "image_url",
+          "localNonNull": 1110,
+          "projectionNonNull": 0,
+          "gap": 1110,
+          "missingExamples": [
+            {
+              "key": "WoodenArrowFriendly",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/92ddf79f66844566a9db851856ae756e.png",
+              "projectionValue": null
+            },
+            {
+              "key": "FireArrow",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/766f4ff80e114ee29f5642ac4045ec6b.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Shuriken",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/0503613c211e4971bc2b22c7f93907d2.png",
+              "projectionValue": null
+            },
+            {
+              "key": "UnholyArrow",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/64934618adac4cf995555d4149fb26cc.png",
+              "projectionValue": null
+            },
+            {
+              "key": "JestersArrow",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/0f7bb6a12b714763ad817cf89051f856.png",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "blocked",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [
+        {
+          "field": "image_cached_url<=image",
+          "localField": "image_cached_url",
+          "projectionField": "image",
+          "localNonNull": 388,
+          "projectionNonNull": 0,
+          "gap": 388,
+          "missingExamples": [
+            {
+              "key": "ObsidianSkin",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/e8/e81a74cb058d02494e2da8dd8a833c4b0b57c5dc-obsidianskin.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Regeneration",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/b8/b8f2a10c891bfbd29be88537e97dd1a5b801e6ea-regeneration.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Swiftness",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/8b/8bc21cba2e4eb3a92deb2c7da198fb533d9802a3-swiftness.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Gills",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/e7/e71d034a643a82b0e026777a078ca03934e7e6ef-gills.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Ironskin",
+              "localField": "image_cached_url",
+              "projectionField": "image",
+              "localValue": "http://localhost:9000/terrapedia-images/buffs/wiki/c9/c964b2e7d53207ae046cec2512cdf791727a4d98-ironskin.png",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    }
+  },
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation"
+}

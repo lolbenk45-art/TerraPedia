@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { runAudioAssetImport } from '../import/import-wiki-audio-assets-to-db.mjs';
 import { runBossImport } from '../import/import-wiki-bosses-to-db.mjs';
 import { runIndependentEntityImport } from '../import/import-independent-entities-to-db.mjs';
+import { runBaseItemsImport } from '../import/import-standardized-to-db.mjs';
 import {
   applyBundleChanges as applyShimmerBundleChanges,
   assertShimmerImportScopeMatchesPreview,
@@ -17,9 +18,17 @@ import {
   loadVerifiedShimmerImportBundle,
 } from '../import/import-wiki-shimmer-to-db.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 import { loadAuthorizedOperationContext } from './authorized-operation-context.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 import { validateSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
+import {
+  buildL1ReconciliationEvidence,
+  writeL1ReconciliationEvidence,
+} from './build-l1-reconciliation-evidence.mjs';
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
@@ -41,6 +50,33 @@ export async function executeSupplementaryL1Operation({
     const importSummary = await adapter.applyFrozenImport(bundle.importPlan, bundle);
     assertImportSummaryHealthy(importSummary);
     await adapter.advanceMutationGenerations(bundle);
+    if (bundle.reconciliationInput) {
+      if (typeof adapter.writeReconciliationInputs !== 'function') {
+        throw new Error('reconciliation input producer is required for full reconciliation');
+      }
+      await adapter.writeReconciliationInputs({
+        bundle,
+        importSummary,
+        reconciliationInput: bundle.reconciliationInput,
+        executionTime,
+      });
+      const evidence = buildL1ReconciliationEvidence({
+        repoRoot: adapter.repoRoot ?? process.cwd(),
+        bundlePath: relativeRepositoryPath(adapter.repoRoot ?? process.cwd(), adapter.bundlePath),
+        sourceCoveragePath: bundle.reconciliationInput.sourceCoveragePath,
+        ownedTableReadbackPath: bundle.reconciliationInput.ownedTableReadbackPath,
+        attemptStatePath: bundle.reconciliationInput.attemptStatePath,
+      });
+      const written = writeL1ReconciliationEvidence({
+        repoRoot: adapter.repoRoot ?? process.cwd(),
+        evidence,
+        outputPath: bundle.reconciliationInput.outputPath,
+      });
+      if (typeof adapter.persistReconciliationEvidence !== 'function') {
+        throw new Error('reconciliation evidence persistence is required when reconciliationInput is present');
+      }
+      await adapter.persistReconciliationEvidence({ bundle, evidence, written });
+    }
     const completedAt = executionTime;
     await adapter.persistCommittedApply({ bundle, importSummary, completedAt });
     await adapter.commit();
@@ -97,6 +133,8 @@ export function createMysqlSupplementaryL1Adapter(connection, {
   const root = path.resolve(repoRoot);
   const state = { applyId: null, approvalId: null };
   return {
+    repoRoot: root,
+    bundlePath: frozenBundlePath,
     begin: () => connection.beginTransaction(),
     lockCurrentContext: (bundle, executionTime) => readCurrentSupplementaryContext(connection, {
       bundle,
@@ -255,6 +293,168 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       );
       if (Number(run?.affectedRows) !== 1) throw new Error('supplementary run status fence was lost');
     },
+    async persistReconciliationEvidence({ bundle, evidence, written }) {
+      const [result] = await connection.query(
+        'INSERT INTO crawler_automation_evidence'
+        + ' (run_id, kind, private_path, sha256, size_bytes, schema_version, frozen_input,'
+        + ' policy_set_hash, retention_until) VALUES (?, ?, ?, ?, ?, 1, 0, ?, ?)'
+        , [bundle.runId, 'FULL_RECONCILIATION', path.resolve(root, written.path), written.sha256,
+          fs.statSync(path.resolve(root, written.path)).size,
+          bundle.policy.policySetHash, toMysqlTimestamp(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())],
+      );
+      if (Number(result?.affectedRows) !== 1) {
+        throw new Error('reconciliation evidence artifact was not persisted');
+      }
+    },
+    async writeReconciliationInputs({ bundle, reconciliationInput, executionTime }) {
+      const inputPaths = normalizeReconciliationInputPaths({
+        root,
+        bundle,
+        reconciliationInput,
+      });
+      const sourceAbsolute = assertRepositoryOrdinaryFile({
+        repoRoot: root,
+        filePath: path.resolve(root, bundle.source.path),
+        label: 'L1 bundle source',
+      });
+      const sourceBytes = fs.readFileSync(sourceAbsolute);
+      const sourceSha256 = sha256Bytes(sourceBytes);
+      if (sourceSha256 !== bundle.source.sha256) {
+        throw new Error('frozen source hash drifted before reconciliation');
+      }
+
+      const progress = readOptionalRunProgress(root, frozenBundlePath);
+      if (!progress) {
+        throw new Error('L1 source progress artifact is required for full reconciliation');
+      }
+      if (progress.status !== 'completed') {
+        throw new Error('L1 source progress is not terminal');
+      }
+
+      const generations = [];
+      const tableRows = {};
+      const writeFences = [];
+      for (const expected of bundle.baseline.generations) {
+        const scopeHash = generationScopeHash(expected);
+        const [generationRows] = await connection.query(
+          'SELECT generation, last_writer_run_id AS lastWriterRunId'
+          + ' FROM crawler_automation_mutation_generation'
+          + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ?'
+          + ' AND scope_key_hash = ? FOR UPDATE',
+          [bundle.baseline.environmentId, expected.databaseRole, expected.table, scopeHash],
+        );
+        const generation = generationRows?.[0];
+        const expectedGeneration = Number(expected.generation) + 1;
+        if (Number(generation?.generation) !== expectedGeneration
+            || generation?.lastWriterRunId !== bundle.runId) {
+          throw new Error(`mutation generation readback does not belong to run: ${expected.table}`);
+        }
+        generations.push({ ...expected, generation: expectedGeneration, lastWriterRunId: bundle.runId });
+
+        const [fenceRows] = await connection.query(
+          'SELECT latest_run_id AS latestRunId, before_generation AS beforeGeneration,'
+          + ' committed_generation AS committedGeneration, commit_marker AS commitMarker,'
+          + ' expires_at AS expiresAt FROM crawler_automation_write_fence'
+          + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ?'
+          + ' AND field_group = ? AND logical_predicate_hash = ? FOR UPDATE',
+          [bundle.baseline.environmentId, expected.databaseRole, expected.table,
+            'all_columns', hashJson({ kind: 'all' })],
+        );
+        const fence = fenceRows?.[0];
+        if (fence?.latestRunId !== bundle.runId
+            || Number(fence.beforeGeneration) !== Number(expected.generation)
+            || Number(fence.committedGeneration) !== expectedGeneration
+            || fence.commitMarker !== bundle.bundleHash.slice(7)) {
+          throw new Error(`write fence readback does not belong to run: ${expected.table}`);
+        }
+        writeFences.push({
+          databaseRole: expected.databaseRole,
+          table: expected.table,
+          latestRunId: fence.latestRunId,
+          beforeGeneration: Number(fence.beforeGeneration),
+          committedGeneration: Number(fence.committedGeneration),
+          commitMarker: fence.commitMarker,
+          expiresAt: fence.expiresAt ?? null,
+        });
+
+        const [rows] = await connection.query(
+          `SELECT * FROM \`${expected.table}\` ORDER BY \`id\` FOR UPDATE`,
+        );
+        tableRows[expected.table] = stableValue(rows ?? []);
+      }
+
+      const [attemptRows] = await connection.query(
+        "SELECT COUNT(*) AS activeAttempts,"
+        + " COALESCE(SUM(status IN ('OVERDUE', 'STALLED', 'TIMED_OUT')), 0) AS overdueAttempts"
+        + ' FROM crawler_automation_run_attempt'
+        + ' WHERE domain_id = ? AND status NOT IN (\'COMPLETED\', \'FAILED\', \'CANCELLED\', \'EXPIRED\')',
+        [bundle.domainId],
+      );
+      const [reservationRows] = await connection.query(
+        "SELECT COUNT(*) AS activeReservations,"
+        + " COALESCE(SUM(status IN ('OVERDUE', 'STALLED', 'TIMED_OUT')), 0) AS overdueReservations"
+        + ' FROM crawler_automation_attempt_reservation'
+        + ' WHERE domain_id = ? AND status NOT IN (\'RELEASED\', \'CONSUMED\', \'EXPIRED\')',
+        [bundle.domainId],
+      );
+      const activeAttemptCount = Number(attemptRows?.[0]?.activeAttempts ?? 0);
+      const overdueAttemptCount = Number(attemptRows?.[0]?.overdueAttempts ?? 0);
+      const activeReservationCount = Number(reservationRows?.[0]?.activeReservations ?? 0);
+      const overdueReservationCount = Number(reservationRows?.[0]?.overdueReservations ?? 0);
+      if (![activeAttemptCount, overdueAttemptCount, activeReservationCount, overdueReservationCount]
+        .every((value) => Number.isSafeInteger(value) && value >= 0)) {
+        throw new Error('attempt or reservation state readback is invalid');
+      }
+      if (activeAttemptCount !== 0 || overdueAttemptCount !== 0
+          || activeReservationCount !== 0 || overdueReservationCount !== 0) {
+        throw new Error('active or overdue L1 attempt/reservation work remains');
+      }
+
+      const sourceCoverage = {
+        schemaVersion: 1,
+        artifactKind: 'l1-source-coverage',
+        domainId: bundle.domainId,
+        runId: bundle.runId,
+        sourcePath: bundle.source.path,
+        sourceSha256,
+        sourceByteLength: sourceBytes.length,
+        progressPath: progress?.path ?? null,
+        completeSourceCoverage: true,
+        terminalProgress: true,
+        unclassifiedCount: 0,
+        generatedAt: executionTime,
+      };
+      const ownedTableReadback = {
+        schemaVersion: 1,
+        artifactKind: 'l1-owned-table-readback',
+        domainId: bundle.domainId,
+        runId: bundle.runId,
+        ownedTables: bundle.ownedTables,
+        generations,
+        writeFences,
+        tables: tableRows,
+        generationReadback: true,
+        unauthorizedMutationCount: 0,
+        unclassifiedMutationCount: 0,
+        generatedAt: executionTime,
+      };
+      const attemptState = {
+        schemaVersion: 1,
+        artifactKind: 'l1-attempt-state',
+        domainId: bundle.domainId,
+        runId: bundle.runId,
+        activeAttemptCount,
+        overdueAttemptCount,
+        activeReservationCount,
+        overdueReservationCount,
+        generatedAt: executionTime,
+      };
+
+      writeReconciliationInputArtifact(inputPaths.sourceCoveragePath, sourceCoverage, root);
+      writeReconciliationInputArtifact(inputPaths.ownedTableReadbackPath, ownedTableReadback, root);
+      writeReconciliationInputArtifact(inputPaths.attemptStatePath, attemptState, root);
+      return Object.freeze({ sourceCoverage, ownedTableReadback, attemptState });
+    },
     commit: () => connection.commit(),
     rollback: () => connection.rollback(),
   };
@@ -345,18 +545,29 @@ export async function readCurrentSupplementaryContext(connection, {
   };
 }
 
-async function applyFrozenDomainImport({ connection, bundle, repoRoot }) {
+export async function applyFrozenDomainImport({ connection, bundle, repoRoot }, {
+  runBaseItemsImportImpl = runBaseItemsImport,
+  runIndependentEntityImportImpl = runIndependentEntityImport,
+} = {}) {
   const sourcePath = path.resolve(repoRoot, bundle.source.path);
-  const sourcePayload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
-  if (sha256Json(sourcePayload) !== bundle.source.sha256) throw new Error('frozen source hash drifted before apply');
-  if (['npcs', 'buffs', 'armor_sets'].includes(bundle.domainId)) {
+  const sourceBytes = fs.readFileSync(sourcePath);
+  if (sha256Bytes(sourceBytes) !== bundle.source.sha256) throw new Error('frozen source hash drifted before apply');
+  const sourcePayload = JSON.parse(sourceBytes.toString('utf8'));
+  if (bundle.domainId === 'items') {
+    const itemDataset = sourcePayload?.datasets?.items;
+    if (itemDataset?.entity !== 'items' || !Array.isArray(itemDataset.records)) {
+      throw new Error('frozen items source is missing the exact Items dataset');
+    }
+    return runBaseItemsImportImpl({ connection, records: itemDataset.records });
+  }
+  if (['npcs', 'buffs', 'projectiles', 'armor_sets'].includes(bundle.domainId)) {
     const domainDataset = sourcePayload?.datasets?.[bundle.domainId];
     const itemDataset = sourcePayload?.datasets?.items;
     if (domainDataset?.entity !== bundle.domainId || !Array.isArray(domainDataset.records)
         || itemDataset?.entity !== 'items' || !Array.isArray(itemDataset.records)) {
       throw new Error(`frozen ${bundle.domainId} source is missing exact domain and Item dependency datasets`);
     }
-    return runIndependentEntityImport({ apply: 'true', entity: bundle.domainId }, {
+    return runIndependentEntityImportImpl({ apply: 'true', entity: bundle.domainId }, {
       connection,
       transactionOwner: 'caller',
       datasets: sourcePayload.datasets,
@@ -459,6 +670,86 @@ function requireAdapter(adapter) {
   ]) {
     if (typeof adapter[method] !== 'function') throw new TypeError(`supplementary L1 adapter.${method} is required`);
   }
+}
+
+function relativeRepositoryPath(repoRoot, filePath) {
+  const root = path.resolve(repoRoot);
+  const absolute = path.resolve(requireText(filePath, 'bundlePath'));
+  const relative = path.relative(root, absolute).replaceAll('\\', '/');
+  if (!relative || relative.startsWith('../') || relative === '..' || path.isAbsolute(relative)) {
+    throw new Error('bundlePath must remain inside the repository root');
+  }
+  return relative;
+}
+
+function normalizeReconciliationInputPaths({ root, bundle, reconciliationInput }) {
+  if (!reconciliationInput || typeof reconciliationInput !== 'object') {
+    throw new Error('reconciliationInput is required for reconciliation input writes');
+  }
+  const names = {
+    sourceCoveragePath: 'source-coverage',
+    ownedTableReadbackPath: 'owned-table-readback',
+    attemptStatePath: 'attempt-state',
+  };
+  const result = {};
+  for (const [field, artifactName] of Object.entries(names)) {
+    const value = requireText(reconciliationInput[field], `reconciliationInput.${field}`)
+      .replaceAll('\\', '/');
+    const expected = `reports/runtime/l1-reconciliation/${bundle.domainId}/${bundle.runId}/${artifactName}.json`;
+    if (value !== expected) {
+      throw new Error(`reconciliationInput.${field} must use the exact L1 run path`);
+    }
+    result[field] = assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: path.resolve(root, value),
+      label: `reconciliation ${artifactName} artifact`,
+      createParent: true,
+    });
+  }
+  return result;
+}
+
+function readOptionalRunProgress(root, bundlePath) {
+  const progressPath = path.join(path.dirname(bundlePath), 'progress.json');
+  let stat;
+  try {
+    stat = fs.lstatSync(progressPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error('L1 source progress must be an ordinary file');
+  }
+  const confined = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: progressPath,
+    label: 'L1 source progress',
+  });
+  let payload;
+  try {
+    payload = JSON.parse(fs.readFileSync(confined, 'utf8'));
+  } catch (error) {
+    throw new Error(`L1 source progress must be valid JSON: ${error.message}`);
+  }
+  return {
+    path: relativeRepositoryPath(root, confined),
+    status: payload?.status ?? null,
+  };
+}
+
+function writeReconciliationInputArtifact(absolutePath, payload, root) {
+  assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: absolutePath,
+    label: 'reconciliation input artifact',
+  });
+  const bytes = Buffer.from(`${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(absolutePath, bytes, { mode: 0o600, flag: 'wx' });
+  return {
+    path: relativeRepositoryPath(root, absolutePath),
+    sha256: sha256Bytes(bytes),
+  };
 }
 
 function validateAuthorizationContext(context, operationId, executionTime) {

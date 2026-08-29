@@ -654,23 +654,19 @@ function relationKindForSourceType(sourceType) {
 
 function isGeneratedNpcShopSourceRow(row = {}, raw = {}, sourceType, sourceRefType) {
   if (sourceType !== 'shop' || sourceRefType !== 'npc') return false;
-  const relationType = normalizeText(raw.relationType ?? raw.relation_type)?.toLowerCase();
-  const sourceSection = normalizeText(raw.sourceSection ?? raw.source_section)?.toLowerCase();
   const recordKey = normalizeText(row.record_key ?? raw.recordKey ?? raw.record_key);
   return (
-    (relationType === 'shop' && sourceSection === 'shop') ||
     /^npc-item:/i.test(recordKey ?? '')
+    || /^generated\.npc_item_relations_bundle/i.test(normalizeText(row.landing_source_key ?? row.landingSourceKey))
   );
 }
 
 function isGeneratedNpcLootSourceRow(row = {}, raw = {}, sourceType, sourceRefType) {
   if (sourceType !== 'drop' || sourceRefType !== 'npc') return false;
-  const relationType = normalizeText(raw.relationType ?? raw.relation_type)?.toLowerCase();
-  const sourceSection = normalizeText(raw.sourceSection ?? raw.source_section)?.toLowerCase();
   const recordKey = normalizeText(row.record_key ?? raw.recordKey ?? raw.record_key);
   return (
-    (relationType === 'loot' && sourceSection === 'drops') ||
     /^npc-item:/i.test(recordKey ?? '')
+    || /^generated\.npc_item_relations_bundle/i.test(normalizeText(row.landing_source_key ?? row.landingSourceKey))
   );
 }
 

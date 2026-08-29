@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-npcs-l1",
+  "runId": "npcs_l1_20260829_serial03",
+  "domainId": "npcs",
+  "status": "completed",
+  "bundleHash": "sha256:f4ca7020bd2bf06e074b86a645e9326fb066a3b7b40f76d730daf62a87339f4b",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "importSummary": {
+    "generatedAt": "2026-08-29T00:58:36.718Z",
+    "database": "terria_v1_local",
+    "apply": true,
+    "buffs": {
+      "input": 0,
+      "created": 0,
+      "updated": 0,
+      "skipped": 0,
+      "errors": []
+    },
+    "npcs": {
+      "input": 762,
+      "created": 0,
+      "updated": 0,
+      "skipped": 762,
+      "errors": []
+    },
+    "projectiles": {
+      "input": 0,
+      "created": 0,
+      "updated": 0,
+      "skipped": 0,
+      "errors": []
+    },
+    "armorSets": {
+      "input": 0,
+      "created": 0,
+      "updated": 0,
+      "skipped": 0,
+      "errors": []
+    },
+    "buffSourceItems": {
+      "input": 0,
+      "created": 0,
+      "updated": 0,
+      "errors": [],
+      "unmatched": 0,
+      "unmatchedSamples": []
+    },
+    "armorSetItems": {
+      "input": 0,
+      "created": 0,
+      "updated": 0,
+      "errors": [],
+      "unmatched": 0,
+      "unmatchedSamples": []
+    },
+    "npcItemLinks": {
+      "banner": {
+        "checked": 497,
+        "resolved": 497,
+        "unmatched": 0,
+        "unmatchedSamples": []
+      },
+      "catchItem": {
+        "checked": 98,
+        "resolved": 98,
+        "unmatched": 0,
+        "unmatchedSamples": []
+      }
+    }
+  },
+  "completedAt": "2026-08-29T00:58:36.399Z"
+}

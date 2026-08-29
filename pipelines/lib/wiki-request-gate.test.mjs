@@ -94,6 +94,45 @@ test('runJsonRequest waits after throttle failures trigger cooldown, then retrie
   assert.equal(state.successCount, 1);
 });
 
+test('runJsonRequest stops immediately on 429 and persists Retry-After cooldown', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const now = Date.parse('2026-05-20T05:00:00.000Z');
+  let fetchCount = 0;
+  const gate = createWikiRequestGate({
+    statePath,
+    nowFn: () => now,
+    sleepFn: async () => {},
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 4, cooldownMs: 10_000 }
+    },
+    fetchFn: async () => {
+      fetchCount += 1;
+      return textResponse({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        headers: { 'retry-after': '120' },
+        body: 'rate limited'
+      });
+    }
+  });
+
+  await assert.rejects(
+    () => gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+      profile: 'revision',
+      sourceKey: '429 probe'
+    }),
+    /429 Too Many Requests/
+  );
+
+  assert.equal(fetchCount, 1);
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.cooldownUntil, '2026-05-20T05:02:00.000Z');
+  assert.equal(state.consecutiveThrottleFailures, 1);
+  assert.equal(state.throttleFailureCount, 1);
+});
+
 test('runJsonRequest records alert when Cloudflare failures reach threshold', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
   const statePath = path.join(tempDir, 'gate.json');
@@ -554,11 +593,16 @@ function okJsonResponse(body) {
   });
 }
 
-function textResponse({ ok, status, statusText, body }) {
+function textResponse({ ok, status, statusText, headers = {}, body }) {
   return {
     ok,
     status,
     statusText,
+    headers: {
+      get(name) {
+        return headers[String(name).toLowerCase()] ?? null;
+      }
+    },
     text: async () => body
   };
 }

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_stale_lineage_retirement_result",
+  "operationId": "canonical-npc-stale-lineage-retirement",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:09869c305cb89e5dfd084f5dc01f06d55e7cec9f17a666c1516586e92d87fb5d",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-stale-lineage-retirement-20260819-admin-02",
+    "packetHash": "sha256:efca6036bb4e55545bdd3388aca8a306c34595dee462ed3029369d8fc32edd0e"
+  },
+  "affected": {
+    "relationLoot": 513,
+    "relationShop": 408,
+    "sourceFacts": 921,
+    "sourceDetails": 921
+  },
+  "readback": {
+    "sourceFacts": 921,
+    "sourceDetails": 921,
+    "relationLoot": 513,
+    "relationShop": 408,
+    "activeTargets": 0
+  },
+  "outputHash": "sha256:6ee2b679886a903549e22ff8d2635de994f9e172dfd735584ea12015bd301b0d",
+  "completedAt": "2026-08-18T19:56:22.853Z"
+}

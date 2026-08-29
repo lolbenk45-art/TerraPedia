@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_projection_gap_wiki_gg_variant_retirement_result",
+  "operationId": "canonical-npc-projection-gap-wiki-gg-variant-retirement",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:880fa2d9f9b14b3071400cfeac9af4de9e59757843481dbc0d65714c444ae4c8",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-projection-gap-wiki-gg-variant-retirement-20260819-admin-13",
+    "packetHash": "sha256:6955775200bd227ec094e37ce58a5faabd24fd0b1b7f233d65b801e66c07d803"
+  },
+  "affected": {
+    "relationLoot": 4
+  },
+  "readback": {
+    "relationLoot": 4,
+    "activeTargets": 0,
+    "activeSurvivors": 4
+  },
+  "preserved": {
+    "sourceFacts": true,
+    "sourceDetails": true,
+    "projectionNpcs": true,
+    "localRows": true
+  },
+  "outputHash": "sha256:61db1ed682e5bb5857d5e5e3fb874a7a1579773ffbc1a0c8b70c6a71141b9aa3",
+  "completedAt": "2026-08-18T22:00:06.577Z"
+}

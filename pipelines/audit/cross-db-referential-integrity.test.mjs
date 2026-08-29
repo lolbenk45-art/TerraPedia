@@ -1,12 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { promisify } from 'node:util';
 
 import {
   buildCrossDbReferentialIntegrityQueries,
   buildCrossDbReferentialIntegrityReport,
   parseArgs,
+  resolveCrossDbConnectionConfig,
+  writeCrossDbReport,
 } from './cross-db-referential-integrity.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -22,6 +27,7 @@ test('parseArgs defaults cross-db referential integrity audit to quick mode', ()
     recentDays: 7,
     writeReport: true,
     output: null,
+    noOverwrite: false,
     generatedAt: null,
     dateTag: new Date().toISOString().slice(0, 10),
   });
@@ -43,8 +49,77 @@ test('parseArgs preserves generatedAt for acceptance report timestamps', () => {
       recentDays: 7,
       writeReport: true,
       output: null,
+      noOverwrite: false,
       generatedAt: '2026-05-07T05:11:02.000Z',
       dateTag: '2026-05-07',
+    },
+  );
+});
+
+test('parseArgs exposes the immutable report writer boundary', () => {
+  assert.equal(parseArgs(['--output=reports/runtime/x.json', '--no-overwrite=true']).noOverwrite, true);
+});
+
+test('cross-db immutable writer confines output and rejects a second write', async () => {
+  const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-cross-db-writer-'));
+  const output = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-01/cross-db.json';
+  const report = { generatedAt: '2026-05-07T05:11:02.000Z', summary: { status: 'warning' }, checks: [] };
+  try {
+    const written = await writeCrossDbReport(report, { repoRoot, output, noOverwrite: true });
+    const firstBytes = await fs.readFile(written.jsonPath);
+    await assert.rejects(
+      writeCrossDbReport(report, { repoRoot, output, noOverwrite: true }),
+      /exists|overwrite|immutable/i,
+    );
+    assert.deepEqual(await fs.readFile(written.jsonPath), firstBytes);
+    await assert.rejects(
+      writeCrossDbReport(report, { repoRoot, output: '../outside.json', noOverwrite: true }),
+      /immutable|runtime|confined|invalid/i,
+    );
+  } finally {
+    await fs.rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('cross-db immutable writer rejects a symbolic-link ancestor', async () => {
+  const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-cross-db-symlink-'));
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-cross-db-outside-'));
+  const link = path.join(repoRoot, 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/link');
+  const output = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/link/cross-db.json';
+  try {
+    await fs.mkdir(path.dirname(link), { recursive: true });
+    await fs.symlink(outside, link, 'dir');
+    await assert.rejects(
+      writeCrossDbReport({ generatedAt: '2026-05-07T05:11:02.000Z', summary: {}, checks: [] }, {
+        repoRoot,
+        output,
+        noOverwrite: true,
+      }),
+      /symbolic|symlink|confinement|ancestor/i,
+    );
+    assert.deepEqual(await fs.readdir(outside), []);
+  } finally {
+    await fs.rm(repoRoot, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true });
+  }
+});
+
+test('resolveCrossDbConnectionConfig prefers explicit local runtime environment over missing config', () => {
+  assert.deepEqual(
+    resolveCrossDbConnectionConfig({
+      config: {},
+      env: {
+        TERRAPEDIA_DB_HOST: '127.0.0.1',
+        TERRAPEDIA_DB_PORT: '13306',
+        TERRAPEDIA_DB_USERNAME: 'root',
+        TERRAPEDIA_DB_PASSWORD: 'root',
+      },
+    }),
+    {
+      host: '127.0.0.1',
+      port: 13306,
+      user: 'root',
+      password: 'root',
     },
   );
 });
@@ -136,7 +211,16 @@ test('CLI prints JSON report to stdout instead of human text', async () => {
         '--write-report=false',
         '--generated-at=2026-05-07T00:00:00.000Z',
       ],
-      { cwd: process.cwd() },
+      {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          TERRAPEDIA_DB_HOST: '127.0.0.1',
+          TERRAPEDIA_DB_PORT: '13306',
+          TERRAPEDIA_DB_USERNAME: 'root',
+          TERRAPEDIA_DB_PASSWORD: 'root',
+        },
+      },
     ));
   } catch (error) {
     stdout = error.stdout;

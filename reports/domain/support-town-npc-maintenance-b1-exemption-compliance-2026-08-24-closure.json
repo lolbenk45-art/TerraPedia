@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-08-23T21:26:07.447Z",
+  "domainId": "support.town_npc_maintenance",
+  "panelId": "b1ExemptionCompliance",
+  "status": "blocked",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedContractCount": 2,
+    "passedCount": 1,
+    "warningCount": 0,
+    "blockedCount": 1,
+    "modes": {
+      "retired": 1,
+      "canonical": 1
+    }
+  },
+  "blockingReasons": [
+    "Source contract data/standardized/npcs.standardized.json readiness report is 436h old, older than the 24h limit."
+  ],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json",
+      "mode": "retired",
+      "status": "pass",
+      "reportPath": "reports/canonical-migration/npc-bridge-retirement.json",
+      "referenceCount": 0,
+      "reason": null
+    },
+    {
+      "input": "data/standardized/npcs.standardized.json",
+      "mode": "canonical",
+      "status": "blocked",
+      "reportPath": "reports/canonical-migration/canonical-npc-crawler-facts-readiness.json",
+      "reason": "Source contract data/standardized/npcs.standardized.json readiness report is 436h old, older than the 24h limit."
+    }
+  ],
+  "reportPath": "reports/domain/support-town-npc-maintenance-b1-exemption-compliance-2026-08-24-closure.json"
+}

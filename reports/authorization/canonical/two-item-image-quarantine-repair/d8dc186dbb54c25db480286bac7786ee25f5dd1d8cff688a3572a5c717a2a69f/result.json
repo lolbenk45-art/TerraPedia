@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_two_item_image_quarantine_repair_result",
+  "operationId": "canonical-two-item-image-quarantine-repair",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:e082fd516465924fbe5517312fc2df580669111aa7926577cdee9f54eee78d26",
+  "affected": {
+    "maint": 2,
+    "relation": 2,
+    "local": 2,
+    "projection": 1,
+    "item": 1
+  },
+  "authorization": {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-07",
+    "packetHash": "sha256:f0393c6bd6283fc7ab0b99476d1a528ceb44b42360ca9c66eb85c94661d20d45"
+  },
+  "completedAt": "2026-08-21T05:04:04.318Z"
+}

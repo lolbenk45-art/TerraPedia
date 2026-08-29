@@ -564,9 +564,35 @@ test('canonical town shop projection counts condition rows after duplicate entry
 });
 
 test('production landing adapter supplies governed source-evidence metadata', async () => {
+  const fixtureRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-landing-repo-'));
+  fs.mkdirSync(path.join(fixtureRepoRoot, 'data/standardized'), { recursive: true });
+  fs.mkdirSync(path.join(fixtureRepoRoot, 'data/wiki-crawler/normalized-light/npc'), { recursive: true });
+  fs.mkdirSync(path.join(fixtureRepoRoot, 'data/wiki-crawler/audit/npc'), { recursive: true });
+  fs.copyFileSync(path.join(REPO_ROOT, 'data/standardized/npcs.standardized.json'), path.join(fixtureRepoRoot, 'data/standardized/npcs.standardized.json'));
+  const normalizedFiles = fs.readdirSync(path.join(REPO_ROOT, 'data/wiki-crawler/normalized-light/npc'))
+    .filter((name) => name.endsWith('.latest.json'))
+    .filter((name) => JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'data/wiki-crawler/audit/npc', name), 'utf8')).status === 'pass')
+    .sort().slice(0, 25);
+  for (const name of normalizedFiles) {
+    fs.copyFileSync(path.join(REPO_ROOT, 'data/wiki-crawler/normalized-light/npc', name), path.join(fixtureRepoRoot, 'data/wiki-crawler/normalized-light/npc', name));
+    fs.copyFileSync(path.join(REPO_ROOT, 'data/wiki-crawler/audit/npc', name), path.join(fixtureRepoRoot, 'data/wiki-crawler/audit/npc', name));
+  }
+  const landingPayload = {
+    schemaVersion: 1,
+    operationId: 'canonical-npc-apply',
+    pairCount: normalizedFiles.length,
+    databases: { local: 'terria_v1_local', maint: 'terria_v1_maint', relation: 'terria_v1_relation' },
+    evidencePairs: normalizedFiles.map((name, index) => ({
+      entityId: name.replace(/\.latest\.json$/, ''),
+      normalized: { path: `data/wiki-crawler/normalized-light/npc/${name}` },
+      normalizedContentHash: `sha256:${String(index + 1).padStart(64, '0')}`,
+    })),
+  };
+  const landingBytes = Buffer.from(`${JSON.stringify(landingPayload)}\n`);
   const plan = await buildNpcOwnerOperationPlan({
-    repoRoot: REPO_ROOT,
+    repoRoot: fixtureRepoRoot,
     operationId: 'canonical-npc-landing-apply',
+    input: { payload: landingPayload, bytes: landingBytes, path: 'pipelines/test-fixtures/canonical/npc-apply.input.fixture.json' },
   });
   const inserts = [];
   const connection = {
@@ -587,7 +613,7 @@ test('production landing adapter supplies governed source-evidence metadata', as
   const result = await executeNpcOwnerOperation({
     plan,
     adapter: createCanonicalNpcOwnerMysqlAdapter({
-      repoRoot: REPO_ROOT,
+      repoRoot: fixtureRepoRoot,
       plan,
       connectionFactory: async () => connection,
     }),

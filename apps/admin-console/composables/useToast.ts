@@ -1,15 +1,21 @@
-const toast = ref<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null)
+type ToastType = 'success' | 'error' | 'warning'
+
+type Toast = { message: string; type: ToastType }
+
+const toast = ref<Toast | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 
 // 失败提示 3 秒即逝会让用户误以为任务已成功（爬虫监控实测反馈）。
 // error 常驻直到手动关闭；warning 给足阅读时间；success 保持轻量。
-const AUTO_DISMISS_MS: Record<'success' | 'error' | 'warning', number | null> = {
+const AUTO_DISMISS_MS: Record<ToastType, number | null> = {
   success: 3000,
   warning: 6000,
   error: null,
 }
 
-export function showToast(message: string, type: 'success' | 'error' | 'warning' = 'success') {
+export function showToast(message: string, type: ToastType = 'success') {
+  if (import.meta.server) return
+
   if (typeof clearTimeout !== 'undefined' && timer) {
     clearTimeout(timer)
     timer = null
@@ -24,6 +30,8 @@ export function showToast(message: string, type: 'success' | 'error' | 'warning'
 }
 
 export function dismissToast() {
+  if (import.meta.server) return
+
   if (typeof clearTimeout !== 'undefined' && timer) {
     clearTimeout(timer)
     timer = null

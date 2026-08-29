@@ -77,6 +77,36 @@ test('matchNpcBridgeRecords maps group-page scoped infobox ids to standardized N
   );
 });
 
+test('matchNpcBridgeRecords prioritizes an expanded group member over page-wide infobox ids', () => {
+  const match = matchNpcBridgeRecords({
+    crawlerRecord: {
+      entityId: 'squire-slime',
+      display: { name: 'Squire Slime' },
+      source: { pageTitle: 'Town Slimes' },
+      groupMember: {
+        entityId: 'squire-slime',
+        name: 'Squire Slime',
+        pageTitle: 'Town Slimes'
+      },
+      sourceInfoboxes: [
+        { autoId: '670', image: '', name: 'Town Slimes' },
+        { autoId: '684', image: '', name: '' },
+        { autoId: '680', image: '', name: '' }
+      ]
+    },
+    standardizedRecords: [
+      { id: 684, internalName: 'TownSlimeCopper', name: 'Squire Slime' },
+      { id: 680, internalName: 'TownSlimePurple', name: 'Clumsy Slime' }
+    ]
+  });
+
+  assert.equal(match.reason, 'groupMemberName');
+  assert.deepEqual(
+    match.records.map((record) => record.internalName),
+    ['TownSlimeCopper']
+  );
+});
+
 test('matchNpcBridgeRecords keeps secondary exact image matches from multi-image infobox scope', () => {
   const match = matchNpcBridgeRecords({
     crawlerRecord: {

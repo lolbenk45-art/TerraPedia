@@ -62,5 +62,385 @@
   {
     "decisionIdentity": "automation-bosses-first-l1-20260814-retry-07",
     "dispatchPermitHash": "sha256:d79383ba1c3609e1c0502bc6023c22d1ddea80e4a168c39b66ea3a5fa12b2c99"
+  },
+  {
+    "decisionIdentity": "automation-items-l0-bootstrap-20260817-01",
+    "dispatchPermitHash": "sha256:0de5fce14ad5c7e7e606823219bc8b212e6470348b138d0dcfb080351a4f128e"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l0-bootstrap-20260817-retry-02",
+    "dispatchPermitHash": "sha256:05827a39d1b0072f0fe559676ba3fc1dbce5b2dffd72ba6c5f4460645351d229"
+  },
+  {
+    "decisionIdentity": "automation-items-l1-policy-promotion-20260817-01",
+    "dispatchPermitHash": "sha256:2e4ad505c26737b8bb94831130117cad2e5308507dcdb1d748add7e589c1d289"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l1-policy-promotion-20260817-01",
+    "dispatchPermitHash": "sha256:3b924ec9502b2c0a9f0759006e00acd463ea8c274ef37971e9ccbec7b36576c6"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-reactivation-20260817-01",
+    "dispatchPermitHash": "sha256:61d2cf242d2854ea860bca5fff4313b98ba77a1572cbf2e84c5a807d0eb6082a"
+  },
+  {
+    "decisionIdentity": "canonical-npc-duplicate-quarantine-20260818-admin-01",
+    "dispatchPermitHash": "sha256:2a9974a3fd29d7ed8910ca7d1b602475840c1610b7ea44a0b7d800ee85df7f55"
+  },
+  {
+    "decisionIdentity": "canonical-npc-duplicate-quarantine-20260818-admin-02",
+    "dispatchPermitHash": "sha256:76c983c99d8be8b915d78c81d8c33167ac0909b2149615e340b2dedc51d7ccf9"
+  },
+  {
+    "decisionIdentity": "canonical-npc-duplicate-quarantine-20260818-admin-03",
+    "dispatchPermitHash": "sha256:8abaeea07f373fbf1b9aaf98a69d47f2b2820985c8fc20096a8e1e42c80483b1"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-01",
+    "dispatchPermitHash": "sha256:71ce2ca852dd2b53ccb3abc7a7885819852c4ae6a1d87216e27447d5d067742a"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-02",
+    "dispatchPermitHash": "sha256:5385aa7ace545bd50b2487a79a72d290243a14ede9a8f899df5840e4ea45463e"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-03",
+    "dispatchPermitHash": "sha256:ed44d7169c246da3e4d3a3672236b59ce8d88c3f233621c0dc8e1b78c1da1118"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-04",
+    "dispatchPermitHash": "sha256:ad0aab8e0c1c4a81421955eccb13a0cabc94b76f6876083d763d873cbaff7f84"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-05",
+    "dispatchPermitHash": "sha256:93a182a272e18a1ee6923f778d6963ae8f6a3c88152d4f542a9170e800290c9a"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-06",
+    "dispatchPermitHash": "sha256:2d646ca8f1fcaca48f6b57cbf217724a0a5ca999dc0b8bc5f5d64b3a68c1ac7f"
+  },
+  {
+    "decisionIdentity": "npc-external-relation-scope-20260819-07",
+    "dispatchPermitHash": "sha256:a38d2ef673d38e80e3832541834824e6372dbff2dd54ee4195c31ac6424a41f0"
+  },
+  {
+    "decisionIdentity": "canonical-npc-stale-lineage-retirement-20260819-admin-01",
+    "dispatchPermitHash": "sha256:86f34f622d7bfc5b1066e6fe9918e37bf3759c560c95f99f6819be30a7b237bd"
+  },
+  {
+    "decisionIdentity": "canonical-npc-stale-lineage-retirement-20260819-admin-02",
+    "dispatchPermitHash": "sha256:351883bf46b4ab8d88d0771e43e45e28ecdc75187a566ee82eecbac8a119f08d"
+  },
+  {
+    "decisionIdentity": "canonical-npc-stale-lineage-parent-conflict-retirement-20260819-admin-01",
+    "dispatchPermitHash": "sha256:b1325f181c9747d51b1c513cd1a5f54b2da595b76e3a0e68686e9ff7825184ae"
+  },
+  {
+    "decisionIdentity": "canonical-npc-stale-lineage-parent-conflict-retirement-20260819-admin-02",
+    "dispatchPermitHash": "sha256:fe3467e61dbd31a12b380ecbc624bb6d451265afab10a570acb2d36b65b79fe6"
+  },
+  {
+    "decisionIdentity": "canonical-npc-stale-lineage-parent-conflict-retirement-20260819-admin-03",
+    "dispatchPermitHash": "sha256:5599b69ca7d0510dd302efd2efa462c94728a855b725dd4182d3314fecbc0f35"
+  },
+  {
+    "decisionIdentity": "canonical-npc-independent-wiki-gg-variant-retirement-20260819-admin-04",
+    "dispatchPermitHash": "sha256:e5a78778b547be497b885a71384176dbef363a8e7c01c6293be07b300cf9a111",
+    "operationId": "canonical-npc-independent-wiki-gg-variant-retirement",
+    "packetHash": "sha256:0a480b03f8b52a090114f13d73e7f42f37bf9c5caa03750fd6b20647b6282fe0",
+    "createdAt": "2026-08-19T05:35:00+08:00"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-text-identity-repair-20260819-admin-05",
+    "dispatchPermitHash": "sha256:705dfa985415f2dc4a4d9726081a8d8d2905c66b4fd52ac22c981cce4ed6bd1e",
+    "operationId": "canonical-npc-projection-text-identity-repair",
+    "packetHash": "sha256:318c5be5881dc272cae29b5396e7d233945c622e25ae689a60d9d1fd0d2d7d27",
+    "createdAt": "2026-08-19T05:35:00+08:00"
+  },
+  {
+    "decisionIdentity": "canonical-npc-independent-wiki-gg-variant-retirement-retry-20260819-admin-06",
+    "dispatchPermitHash": "sha256:13c99703bb19322b250fd7a7144bef5fa1899600be22828cc20cb9f13c8440f0",
+    "operationId": "canonical-npc-independent-wiki-gg-variant-retirement",
+    "packetHash": "sha256:6f2388c680a3d97ff66e708c997a73ec8540486051c1e40fe94746ee9f060cac",
+    "createdAt": "2026-08-19T05:42:00+08:00"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-text-identity-repair-retry-20260819-admin-07",
+    "dispatchPermitHash": "sha256:cb612f6b7f62efc326d80906e9ec9eef278407c97892e835f8d89431473681fd",
+    "operationId": "canonical-npc-projection-text-identity-repair",
+    "packetHash": "sha256:4d19f395a373333058ad74aede0b85330df6e36694ff469ddd0da1c99ada1e68",
+    "createdAt": "2026-08-19T05:42:00+08:00"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-text-identity-repair-20260819-admin-10",
+    "dispatchPermitHash": "sha256:7f2ebbd0c23b357f25ee5cf4ce5e88d5ca060d7e95127df7d5a6a98cb3cf169f",
+    "operationId": "canonical-npc-projection-text-identity-repair",
+    "packetHash": "sha256:b23b65fbd37d4099dd0af304e15af848b7e4d0f5bf578b668a68471854e25ced",
+    "createdAt": "2026-08-19T05:23:00+08:00"
+  },
+  {
+    "decisionIdentity": "canonical-npc-independent-wiki-gg-variant-retirement-20260819-admin-11",
+    "dispatchPermitHash": "sha256:2f9a793040ee04e694157d3751a66fa27de68c985f8f2191ee0c5172d4a4b38c",
+    "operationId": "canonical-npc-independent-wiki-gg-variant-retirement",
+    "packetHash": "sha256:e862bafea1f5c6b1d3abc932ea8cba5f20517def1c7da283640cfa007ee58e4d",
+    "createdAt": "2026-08-18T21:22:58.450Z"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-text-identity-repair-20260819-admin-12",
+    "dispatchPermitHash": "sha256:10b78503d15d9f4256c8aefde41c9f047c23ed41fbcd0f8c9b0e1ed2f4b95ecf",
+    "operationId": "canonical-npc-projection-text-identity-repair",
+    "packetHash": "sha256:97aa6b62fce5a1e16b586fc343300d3f29a24fd1ff5d64620067be588cb05d4f",
+    "createdAt": "2026-08-18T21:22:58.450Z"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-gap-wiki-gg-variant-retirement-20260819-admin-13",
+    "dispatchPermitHash": "sha256:df2af6631d82de2a985f11c172cae1a6bf075871755f8647fcb03cb2c3a870d5",
+    "operationId": "canonical-npc-projection-gap-wiki-gg-variant-retirement",
+    "packetHash": "sha256:6955775200bd227ec094e37ce58a5faabd24fd0b1b7f233d65b801e66c07d803",
+    "createdAt": "2026-08-19T05:58:30+08:00"
+  },
+  {
+    "decisionIdentity": "canonical-npc-local-loot-compatibility-retirement-20260819-admin-01",
+    "dispatchPermitHash": "sha256:037985b69554a88419de9a8cdd33a91b9f89713a2596b4cc02fc216c99a3b001"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-text-identity-residual-repair-20260819-admin-01",
+    "dispatchPermitHash": "sha256:767e35da286305b83d6ab880431790b1bec23aca72520cc11f79c7b0128bd176"
+  },
+  {
+    "decisionIdentity": "canonical-npc-projection-text-identity-residual-repair-20260819-admin-02",
+    "dispatchPermitHash": "sha256:d35e54c5b31b1f50e05dc9320c7c563ba75e0fb32b5d31aacd8dc278855b6f01"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-provenance-patch-20260820-admin-01",
+    "dispatchPermitHash": "sha256:30bc9696d16c324c8af00726fd63d0de8a62124d69951d44b9cbbfa5d564f207"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-provenance-patch-20260820-admin-02",
+    "dispatchPermitHash": "sha256:929a7deb82d9f442b6d0364fda0d5a635aab557ebf7b41b3771e732f3ef25120"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-provenance-patch-20260820-admin-03",
+    "dispatchPermitHash": "sha256:6fd21122ce2aa06c6dfb13c719d0a557a52e456cb6d3ae7b251fd36263f772cd"
+  },
+  {
+    "decisionIdentity": "canonical-buff-image-projection-patch-20260820-admin-02",
+    "dispatchPermitHash": "sha256:e47191194429b27ffcf7fe331ed24a62a4302f52dbde0964763a1b7e5209efd5"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-01",
+    "dispatchPermitHash": "sha256:c644e51952f841ce4bb35105215084d04c2eea6e2d673f5b83d44e0d99992935"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-retry-02",
+    "dispatchPermitHash": "sha256:89de99eac44652aa67a5ec8c0b013a10358fb08d3099725ae2d28d3f46398d67"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-retry-03",
+    "dispatchPermitHash": "sha256:390695f69aa002e638e164c0c27b38d6816057fa625e03ff011b09e61ed76b75"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-retry-04",
+    "dispatchPermitHash": "sha256:61235c96c06b8ddd011964a598a2f8fa7a76aa1c6891565d7975e17f3ce28af4"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-retry-05",
+    "dispatchPermitHash": "sha256:df1e88a17aa59e3985a1fe99d7096e6cb91e39462e33f1b5b2ff589569c8ed2a"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-lineage-apply-20260821-admin-02",
+    "dispatchPermitHash": "sha256:9b6232a06bc541a40b469b011004562e972f8da61c4103325f467cc18bc24eea"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-01",
+    "dispatchPermitHash": "sha256:07617f25b86d2de6707ceb1d38d8b0ee211ce42c5feee715785a72d9458cbe31"
+  },
+  {
+    "decisionIdentity": "canonical-biome-image-contract-apply-20260821-admin-01",
+    "dispatchPermitHash": "sha256:c3e303c81dd46f68c862bcf325b320a872f4268f194aaaa0a9d67247cba582e0"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-provenance-patch-20260821-admin-04",
+    "dispatchPermitHash": "sha256:f23720f3ef940c1e9599f5b01a631038f8ccc8b9340aeacf431d461212ffda48"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-provenance-patch-20260821-admin-05",
+    "dispatchPermitHash": "sha256:0a57aff7536dd45332207d386eb3f08d9daecfcb87f01ce79e4cfa96dd962ff5"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-06",
+    "dispatchPermitHash": "sha256:1224a552ea9cdcfb93f573a5d698d063abc3ddb465ff5b0b39689e1d0cbc51e2"
+  },
+  {
+    "decisionIdentity": "canonical-two-item-image-quarantine-repair-20260821-admin-07",
+    "dispatchPermitHash": "sha256:0e313d91d6ea5e17514c6cd80da9956b24151b8101300e14bdf7c2f5d42a2e93"
+  },
+  {
+    "decisionIdentity": "canonical-biome-image-contract-apply-20260821-admin-02",
+    "dispatchPermitHash": "sha256:b66fe43bb3bd8bb0549d3723c97f8c7286fc1b028498002427b3dbbcc753bc50"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-08",
+    "dispatchPermitHash": "sha256:07ef8eec1362d1ac3d8e88a4c067cb076596046e0e4f1b67a69917d4b40bcd88"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-09",
+    "dispatchPermitHash": "sha256:4ad4b48ecdcd71eaae4f3d19b50467f64aee9c0c613deda8c4f1adace4733ea4"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-projection-apply-20260822-admin-12",
+    "dispatchPermitHash": "sha256:18d89c24c6289a410035542ca3f314ca9bb958f4f05b6903e53ea6c20a0fcac4"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-projection-apply-20260822-admin-13",
+    "dispatchPermitHash": "sha256:6b471aa7e7dea7c7ed53975c56cc39e6bda547dc07a53d7b2c33d74aaa9abb44"
+  },
+  {
+    "decisionIdentity": "canonical-boss-source-refresh-offline-20260823-120218-owner-01",
+    "dispatchPermitHash": "sha256:3b8a79403e4b333ea0f58e9e90d23b7c8c7f3ca7dd10a07b362475aef2882783"
+  },
+  {
+    "decisionIdentity": "canonical-boss-source-refresh-offline-20260823-120218-owner-02",
+    "dispatchPermitHash": "sha256:a5247337ef47fe79322aab25eacdbe4618ceee69041d02c8b3b60e5c505efbcf"
+  },
+  {
+    "decisionIdentity": "canonical-boss-source-refresh-offline-20260823-120218-owner-03",
+    "dispatchPermitHash": "sha256:fa86c889195b7602cff59687526793fbd9a675a85ba6c8886db5f081544869f0"
+  },
+  {
+    "decisionIdentity": "canonical-boss-source-refresh-offline-20260823-120218-owner-04",
+    "dispatchPermitHash": "sha256:4099427fe4d58e35452290e600daa47e363b646baebba6d459012935bba7d239"
+  },
+  {
+    "decisionIdentity": "canonical-boss-source-refresh-offline-20260823-120218-owner-05",
+    "dispatchPermitHash": "sha256:a646c15ed16df386aeff9ece790ba480d30f3c5e067a6f8b62575efc4e1f674c"
+  },
+  {
+    "decisionIdentity": "canonical-projection-recovery-from-relation-20260823-120218-owner-01",
+    "dispatchPermitHash": "sha256:70c30d2001648eb80d03b7058a612e3548af8465a56abd063fc6ba7dc9448532"
+  },
+  {
+    "decisionIdentity": "canonical-item-source-relation-recovery-from-maint-20260823-retry-03-owner-03",
+    "dispatchPermitHash": "sha256:4ed4a866e95b90d110b72f97502aec1bfc10bc682e6e076405da2d0c1f24b65c"
+  },
+  {
+    "decisionIdentity": "canonical-item-source-relation-recovery-from-maint-20260823-retry-04-owner-04",
+    "dispatchPermitHash": "sha256:edca70ce80f0262cd7aaf7207d3b77a7bc55023254fe5e4b255dc3996109a5f0"
+  },
+  {
+    "decisionIdentity": "canonical-projection-recovery-from-relation-v2-20260823-retry-03-owner-03",
+    "dispatchPermitHash": "sha256:916cde28af3f92430b9ef438b6dc5956c51a8729dff54383c10046d82344e23a"
+  },
+  {
+    "decisionIdentity": "canonical-projection-recovery-from-relation-v2-20260823-retry-04-owner-04",
+    "dispatchPermitHash": "sha256:edc220ebbeed4fe6f1f37a1250531ec5e9065d0fcdba07676fdb75326086772b"
+  },
+  {
+    "decisionIdentity": "canonical-projection-recovery-from-relation-v2-20260823-retry-05-owner-05",
+    "dispatchPermitHash": "sha256:6db80f75e51bf15460635612fd699e833545d86b968d09343d71c669a70b07d3"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-first-l1-20260824-owner-06",
+    "dispatchPermitHash": "sha256:7f7e2d98355ca7d1eed64b927bf5f977b9e49feceece1f8c1605102f115dcf6d"
+  },
+  {
+    "decisionIdentity": "canonical-npc-buff-relation-recovery-20260824-owner-07",
+    "dispatchPermitHash": "sha256:f66f76bdfef7504d0db7d75698989312e071f9143cd36b854923738c9192ab84"
+  },
+  {
+    "decisionIdentity": "canonical-npc-loot-identity-restoration-20260824-owner-08",
+    "dispatchPermitHash": "sha256:dd11cd1899f3673537e418238d88f363438a271202a00d2f288c17345627548c"
+  },
+  {
+    "decisionIdentity": "canonical-item-image-origin-normalization-20260824-owner-09",
+    "dispatchPermitHash": "sha256:0c961eee440f471351ef6152cefe93fcc1f0873d515d05987df6965b6276ba69"
+  },
+  {
+    "decisionIdentity": "canonical-npc-image-origin-normalization-20260824-owner-10",
+    "dispatchPermitHash": "sha256:f32be238411f744aaf126b51c6b6be97c3b898e8a8d9c76574ea99fed6fc440f"
+  },
+  {
+    "decisionIdentity": "canonical-projectile-image-origin-normalization-20260824-owner-11",
+    "dispatchPermitHash": "sha256:0ac8d18b79a1c966ea2e887f2c87f05b2ef74f8bb5114ae31d06f48ac89a5658"
+  },
+  {
+    "decisionIdentity": "canonical-biome-image-origin-normalization-20260824-owner-12",
+    "dispatchPermitHash": "sha256:706307c2f069ec2e56ab8e9369ae368f8704d0d84c38a7da098e06977c05b9c1"
+  },
+  {
+    "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-owner-13",
+    "dispatchPermitHash": "sha256:431cad163e4a0cc69416d8f3f010b469c7377b5ad1bb3a70dee7de49f0e16168"
+  },
+  {
+    "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-02-owner-13",
+    "dispatchPermitHash": "sha256:7b25a1be5be65d96a4916340fe9c79f783ecca71316571c548f1339bffb60401"
+  },
+  {
+    "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-03-owner-13",
+    "dispatchPermitHash": "sha256:4d23f1e7fcaa09236d7eb80f75ce66416beba69a66e839dccf9e8f195cff2142"
+  },
+  {
+    "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-04-owner-13",
+    "dispatchPermitHash": "sha256:8f8732f513a4cd0b1d9077e2aa4847d01e4da70380329b301ece3750772370f7"
+  },
+  {
+    "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-05-owner-13",
+    "dispatchPermitHash": "sha256:f256e7e6d493f421b4d0b5bfc9fb69d2b4b4dac24b49e95edc6665de6443e6fb"
+  },
+  {
+    "decisionIdentity": "owner-item-source-local-npc-admission-20260825-060913-01",
+    "dispatchPermitHash": "sha256:a783744cd24b595c2fef6cb000ab5232d676b10cb28e658d494d1fc577d84072"
+  },
+  {
+    "decisionIdentity": "owner-item-source-local-npc-admission-20260825-071200-retry-01",
+    "dispatchPermitHash": "sha256:5297e33532e68e09e3000b3d110ba3518aeed3c480b9d696aa5734fc471399fc"
+  },
+  {
+    "decisionIdentity": "owner-item-source-local-npc-admission-20260825-081000-retry-02",
+    "dispatchPermitHash": "sha256:4e4b82718e8a2e6a79993bb9cdb6189ae28d02d2acf162d3002ec57acd4d176d"
+  },
+  {
+    "decisionIdentity": "owner-item-source-local-npc-admission-20260825-082759-retry-03",
+    "dispatchPermitHash": "sha256:651f9022ee927968db05c03756afd5251d3c17ad255d9fd1958d44d12ceaa802"
+  },
+  {
+    "decisionIdentity": "owner-item-source-local-npc-admission-20260825-085312-retry-04",
+    "dispatchPermitHash": "sha256:d2b25808a49e29bea7c3fc4ab87fcd5a9cc3e8a2a1a3229039668d4d6db9bd64"
+  },
+  {
+    "decisionIdentity": "owner-npc-loot-duplicate-relation-retirement-20260825-01",
+    "dispatchPermitHash": "sha256:8b1b5b489a9d906ac074c5ce456497cf23e2d60cc738524fcb20398f628fc523"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:45193f25137bbf48f9096a67292ca4a2cbd86fce50db146e72544bb823d26a7f"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:ba33ab2d904d79503e6a02aaa10b3bc1a1d4f6170a9e21508a1beca63dd7720f"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:92da6cc4f0bbf87a7f2014565deb016a770ce057947572bd9a6d1279bb1f9f59"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:1991cf30ced95434682cb1302d8e07cf64b9284004d648ccb85eef70dba5b480"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:baef1336445d37ee0761d34b99b8c16ad81ba779db986425868407775d854079"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:cb24b77cbe720271f846ff04712ce7bdddf937630f0a05ab9f7d174a5536ec47"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:9a6940bbdf8d43eab5d664c3fbe1f9c60cf45d6f56e198e65bc4b871558ae060"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l2-policy-ceiling-registration-20260828-owner-01",
+    "dispatchPermitHash": "sha256:8cf828b6ee2f6a007d550ddf87778f19975e12c8e3bb440b46d01f233c3b73f4"
   }
 ]

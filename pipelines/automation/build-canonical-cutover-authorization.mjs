@@ -33,6 +33,17 @@ import {
 } from '../relation/item-image-projection-contract.mjs';
 const ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID =
   'canonical-item-image-projection-missing-row-insert';
+const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
+const EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS = Object.freeze({
+  'canonical-item-image-projection-apply': Object.freeze({
+    attemptKey: 'itemImageProjectionAttempt',
+    label: 'projection',
+  }),
+  [ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID]: Object.freeze({
+    attemptKey: 'itemSourceLocalNpcAdmissionAttempt',
+    label: 'Item-source admission',
+  }),
+});
 
 export {
   CANONICAL_CUTOVER_OPERATION_IDS,
@@ -254,7 +265,15 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     ? readMigrationEntries(root)
     : [];
   let dataEntries;
-  if (operationId === 'canonical-item-image-projection-apply') {
+  if (operationId.startsWith('automation-')
+      && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) {
+    dataEntries = readL2AuthorizationDataEntries(root, operationId, verifiedExecutionManifest);
+  } else if (operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) {
+      throw new Error('Item-source admission execution manifest is required');
+    }
+    dataEntries = readItemSourceLocalNpcAdmissionDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-item-image-projection-apply') {
     if (verifiedExecutionManifest == null) {
       throw new Error('item image projection execution manifest is required');
     }
@@ -264,6 +283,12 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
       throw new Error('item image lineage execution manifest is required');
     }
     dataEntries = readItemImageLineageDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-item-image-provenance-patch'
+      && verifiedExecutionManifest?.itemImageProvenanceAttempt != null) {
+    dataEntries = readItemImageProvenanceDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-two-item-image-quarantine-repair'
+      && verifiedExecutionManifest?.twoItemImageQuarantineRepairAttempt != null) {
+    dataEntries = readTwoItemImageQuarantineRepairDataEntries(root, verifiedExecutionManifest);
   } else if (operationId === ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID) {
     if (verifiedExecutionManifest == null) {
       throw new Error('missing-row insert execution manifest is required');
@@ -285,6 +310,16 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
       || operationId === 'canonical-npc-apply'
       || operationId.startsWith('canonical-npc-') && operationId.endsWith('-apply')
       || operationId === 'canonical-npc-item-relation-lineage-repair') {
+    if (operationId === 'canonical-npc-external-relation-scope-apply') {
+      return {
+        operationId,
+        targetDatabases: [...FORMAL_DATABASES],
+        schemaEntries,
+        dataEntries,
+        executionManifest: verifiedExecutionManifest,
+        requiredTechnicalFields: requiredTechnicalFieldsForOperation(operationId),
+      };
+    }
     const crawlerEntries = readNpcCrawlerEntries(root);
     dataEntries = dataEntries === null || crawlerEntries === null
       ? null
@@ -298,6 +333,65 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     executionManifest: verifiedExecutionManifest,
     requiredTechnicalFields: requiredTechnicalFieldsForOperation(operationId),
   };
+}
+
+function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest = null) {
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const inputAbsolute = path.resolve(repoRoot, inputPath);
+  if (!fs.existsSync(inputAbsolute) || !fs.statSync(inputAbsolute).isFile()) return null;
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, {
+    label: `${operationId} input`,
+    privateFile: true,
+  });
+  const input = parseJsonBytes(inputEntry.bytes, `${operationId} input`);
+  const entries = [inputEntry];
+  if (operationId.endsWith('-l2-promotion')) {
+    entries.push(readProjectionBoundEntry(repoRoot, input.proposalPath, input.proposalSha256, {
+      label: `${operationId} proposal`,
+      privateFile: true,
+    }));
+    entries.push(readProjectionBoundEntry(repoRoot, input.policyArtifactPath, input.policyArtifactFileSha256, {
+      label: `${operationId} policy ceiling artifact`,
+      privateFile: true,
+    }));
+    if (operationId !== 'automation-biomes-l2-promotion') {
+      entries.push(readProjectionBoundEntry(
+        repoRoot,
+        input.policyRegistrationResultPath,
+        input.policyRegistrationResultFileSha256,
+        { label: `${operationId} policy registration result`, privateFile: true },
+      ));
+      entries.push(readProjectionBoundEntry(
+        repoRoot,
+        input.policyRegistrationCommitMarkerPath,
+        input.policyRegistrationCommitMarkerFileSha256,
+        { label: `${operationId} policy registration commit marker`, privateFile: true },
+      ));
+    }
+  } else {
+    entries.push(readProjectionBoundEntry(repoRoot, input.artifactPath, input.artifactFileSha256, {
+      label: `${operationId} policy ceiling artifact`,
+      privateFile: true,
+    }));
+    const registrationMode = executionManifest?.policyCeilingRegistration?.mode ?? 'register';
+    if (registrationMode === 'recover') {
+      const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+      if (!executionManifest?.command?.includes('--recover=true')
+          || !executionManifest?.inputPaths?.includes(resultPath)) {
+        throw new Error(`${operationId} recovery manifest does not bind the pending result`);
+      }
+      entries.push(readConfinedEntry(repoRoot, resultPath, {
+        label: `${operationId} pending result`,
+        privateFile: true,
+      }));
+    }
+  }
+  const seen = new Set();
+  for (const entry of entries) {
+    if (seen.has(entry.path)) throw new Error(`${operationId} data bundle contains duplicate path: ${entry.path}`);
+    seen.add(entry.path);
+  }
+  return entries;
 }
 
 function readItemImageLineageDataEntries(repoRoot, manifest) {
@@ -339,7 +433,187 @@ function readItemImageLineageDataEntries(repoRoot, manifest) {
   return [inputEntry, bundleEntry];
 }
 
+function readItemSourceLocalNpcAdmissionDataEntries(repoRoot, manifest) {
+  const attempt = manifest?.itemSourceLocalNpcAdmissionAttempt;
+  const attemptRoot = requireNormalizedPath(attempt?.attemptRoot, 'Item-source admission attempt root');
+  const prefix = 'reports/authorization/canonical/canonical-item-source-local-npc-admission/';
+  if (!attemptRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('Item-source admission execution manifest attempt root is invalid');
+  }
+  const inputPath = requireNormalizedPath(attempt?.inputPath, 'Item-source admission input path');
+  const proposalPath = requireNormalizedPath(attempt?.proposalPath, 'Item-source admission proposal path');
+  const expectedInputPath = `${attemptRoot}/input.json`;
+  const expectedProposalPath = `${attemptRoot}/proposal.json`;
+  const expectedManifestPath = `${attemptRoot}/execution-manifest.json`;
+  const expectedRequestPath = `${attemptRoot}/request.json`;
+  const expectedPacketPath = `${attemptRoot}/packet.json`;
+  const expectedPermitPath = `${attemptRoot}/permit.json`;
+  const expectedResultPath = `${attemptRoot}/result.json`;
+  if (inputPath !== expectedInputPath || proposalPath !== expectedProposalPath
+      || attempt?.manifestPath !== expectedManifestPath || attempt?.requestPath !== expectedRequestPath
+      || attempt?.packetPath !== expectedPacketPath || attempt?.permitPath !== expectedPermitPath
+      || attempt?.resultPath !== expectedResultPath) {
+    throw new Error('Item-source admission execution manifest paths must share the exact attempt root');
+  }
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, {
+    label: 'Item-source admission input contract', privateFile: true,
+  });
+  const input = parseJsonBytes(inputEntry.bytes, 'Item-source admission input contract');
+  assertItemSourceLocalNpcAdmissionInputContract(input);
+  const paths = buildItemSourceLocalNpcAdmissionAttemptPaths(
+    input.proposalAuthorization.decisionIdentity,
+  );
+  if (JSON.stringify(stableValue(paths)) !== JSON.stringify(stableValue(attempt))
+      || input.attemptId !== paths.attemptId || input.attemptRoot !== paths.attemptRoot
+      || input.proposalPath !== paths.proposalPath) {
+    throw new Error('Item-source admission attempt binding drifted from the input contract');
+  }
+  const proposalEntry = readProjectionBoundEntry(
+    repoRoot,
+    input.proposalPath,
+    input.proposalSha256,
+    { label: 'Item-source admission proposal', privateFile: true },
+  );
+  const proposal = parseJsonBytes(proposalEntry.bytes, 'Item-source admission proposal');
+  assertItemSourceLocalNpcAdmissionProposal(proposal);
+  if (!itemSourceLocalNpcAdmissionInputMatchesProposal(input, proposal)) {
+    throw new Error('Item-source admission input contract drifted from the proposal');
+  }
+  const entries = [
+    inputEntry,
+    proposalEntry,
+    readProjectionBoundEntry(repoRoot, input.sourceFreeze.partition.path,
+      input.sourceFreeze.partition.sha256, { label: 'Item-source admission frozen partition', privateFile: false }),
+  ];
+  for (const pair of input.sourceFreeze.snapshotPairs) {
+    entries.push(readProjectionBoundEntry(repoRoot, pair.normalizedPath,
+      pair.normalizedSha256, { label: 'Item-source admission normalized NPC snapshot', privateFile: false }));
+    entries.push(readProjectionBoundEntry(repoRoot, pair.auditPath,
+      pair.auditSha256, { label: 'Item-source admission NPC audit snapshot', privateFile: false }));
+  }
+  const seen = new Set();
+  for (const entry of entries) {
+    if (seen.has(entry.path)) throw new Error(`Item-source admission data bundle duplicates ${entry.path}`);
+    seen.add(entry.path);
+  }
+  return entries;
+}
+
+function buildItemSourceLocalNpcAdmissionAttemptPaths(decisionIdentity) {
+  const identity = requireText(decisionIdentity, 'Item-source admission decision identity');
+  const attemptId = createHash('sha256').update(identity, 'utf8').digest('hex');
+  const attemptRoot = `reports/authorization/canonical/${ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID}/${attemptId}`;
+  return {
+    attemptId,
+    attemptRoot,
+    proposalPath: `${attemptRoot}/proposal.json`,
+    inputPath: `${attemptRoot}/input.json`,
+    manifestPath: `${attemptRoot}/execution-manifest.json`,
+    requestPath: `${attemptRoot}/request.json`,
+    packetPath: `${attemptRoot}/packet.json`,
+    permitPath: `${attemptRoot}/permit.json`,
+    resultPath: `${attemptRoot}/result.json`,
+  };
+}
+
+function assertItemSourceLocalNpcAdmissionInputContract(input) {
+  if (!input || input.schemaVersion !== 'item-source-local-npc-admission-input-v1'
+      || input.operationId !== ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID || input.apply !== true) {
+    throw new Error('Item-source admission input contract identity is invalid');
+  }
+  const paths = buildItemSourceLocalNpcAdmissionAttemptPaths(
+    requireText(input.proposalAuthorization?.decisionIdentity, 'Item-source admission decision identity'),
+  );
+  if (input.attemptId !== paths.attemptId || input.attemptRoot !== paths.attemptRoot
+      || input.proposalPath !== paths.proposalPath || !HASH_PATTERN.test(input.proposalSha256 ?? '')
+      || !HASH_PATTERN.test(input.proposalScopeHash ?? '') || !HASH_PATTERN.test(input.selectedIdentityHash ?? '')
+      || !HASH_PATTERN.test(input.beforeFingerprint ?? '') || !HASH_PATTERN.test(input.afterFingerprint ?? '')
+      || !input.sourceFreeze?.partition || !Array.isArray(input.sourceFreeze.snapshotPairs)
+      || input.sourceFreeze.snapshotPairs.length === 0 || !input.tableBeforeFingerprints) {
+    throw new Error('Item-source admission input contract binding is invalid');
+  }
+  return input;
+}
+
+function assertItemSourceLocalNpcAdmissionProposal(proposal) {
+  if (!proposal || proposal.schemaVersion !== 'item-source-local-npc-admission-proposal-v1'
+      || proposal.operationId !== ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID
+      || proposal.readOnly !== true || proposal.authorizationAllowed !== true
+      || Number(proposal.summary?.accepted) < 1 || Number(proposal.summary?.blocked) !== 0
+      || Number(proposal.summary?.unclassified) !== 0) {
+    throw new Error('Item-source admission proposal is not authorization-eligible');
+  }
+  return proposal;
+}
+
+function itemSourceLocalNpcAdmissionInputMatchesProposal(input, proposal) {
+  return input.proposalScopeHash === proposal.scopeHash
+    && input.selectedIdentityHash === proposal.selectedIdentityHash
+    && input.beforeFingerprint === proposal.beforeFingerprint
+    && input.afterFingerprint === proposal.afterFingerprint
+    && Number(input.expectedChangedRowCount) === Number(proposal.changedRowCount)
+    && Number(input.expectedAcceptedCount) === Number(proposal.summary?.accepted)
+    && Number(input.expectedLocalSourceReconciliationCount)
+      === Number(proposal.summary?.localSourceReconciliation)
+    && JSON.stringify(stableValue(input.databaseFingerprint))
+      === JSON.stringify(stableValue(proposal.databaseFingerprint))
+    && JSON.stringify(stableValue(input.sourceFreeze))
+      === JSON.stringify(stableValue(proposal.sourceFreeze))
+    && JSON.stringify(stableValue(input.tableBeforeFingerprints))
+      === JSON.stringify(stableValue(proposal.tableBeforeFingerprints));
+}
+
+function readItemImageProvenanceDataEntries(repoRoot, manifest) {
+  const attempt = manifest?.itemImageProvenanceAttempt;
+  const attemptRoot = requireNormalizedPath(attempt?.attemptRoot, 'provenance attempt root');
+  const prefix = 'reports/authorization/canonical/item-image-provenance-patch/';
+  if (!attemptRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('provenance execution manifest attempt root is invalid');
+  }
+  const inputPath = requireNormalizedPath(attempt?.inputPath, 'provenance input path');
+  const previewPath = requireNormalizedPath(attempt?.previewPath, 'provenance preview path');
+  if (inputPath !== `${attemptRoot}/input.json` || previewPath !== `${attemptRoot}/preview.json`) {
+    throw new Error('provenance execution manifest paths must share the exact attempt root');
+  }
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, { label: 'provenance input contract', privateFile: true });
+  const previewEntry = readConfinedEntry(repoRoot, previewPath, { label: 'provenance preview', privateFile: true });
+  let input;
+  let preview;
+  try {
+    input = JSON.parse(inputEntry.bytes.toString('utf8'));
+    preview = JSON.parse(previewEntry.bytes.toString('utf8'));
+  } catch {
+    throw new Error('provenance input and preview must be valid JSON');
+  }
+  if (input?.operationId !== 'canonical-item-image-provenance-patch'
+      || preview?.operationId !== input.operationId
+      || input.previewSha256 !== `sha256:${createHash('sha256').update(previewEntry.bytes).digest('hex')}`) {
+    throw new Error('provenance input must bind the exact attempt preview');
+  }
+  return [inputEntry, previewEntry];
+}
+
+function readTwoItemImageQuarantineRepairDataEntries(repoRoot, manifest) {
+  const attempt = manifest?.twoItemImageQuarantineRepairAttempt;
+  const attemptRoot = requireNormalizedPath(attempt?.attemptRoot, 'two-item attempt root');
+  const prefix = 'reports/authorization/canonical/two-item-image-quarantine-repair/';
+  if (!attemptRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) throw new Error('two-item execution manifest attempt root is invalid');
+  const inputPath = requireNormalizedPath(attempt?.inputPath, 'two-item input path');
+  const previewPath = requireNormalizedPath(attempt?.previewPath, 'two-item preview path');
+  if (inputPath !== `${attemptRoot}/input.json` || previewPath !== `${attemptRoot}/preview.json`) throw new Error('two-item execution manifest paths must share the exact attempt root');
+  const inputEntry = readConfinedEntry(repoRoot, inputPath, { label: 'two-item input contract', privateFile: true });
+  const previewEntry = readConfinedEntry(repoRoot, previewPath, { label: 'two-item preview', privateFile: true });
+  let input; let preview;
+  try { input = JSON.parse(inputEntry.bytes.toString('utf8')); preview = JSON.parse(previewEntry.bytes.toString('utf8')); } catch { throw new Error('two-item input and preview must be valid JSON'); }
+  if (input?.operationId !== 'canonical-two-item-image-quarantine-repair' || preview?.operationId !== input.operationId || input.previewSha256 !== `sha256:${createHash('sha256').update(previewEntry.bytes).digest('hex')}`) throw new Error('two-item input must bind the exact attempt preview');
+  return [inputEntry, previewEntry];
+}
+
 function requiredTechnicalFieldsForOperation(operationId) {
+  if (operationId === 'canonical-npc-external-relation-scope-apply') {
+    return ['serverFingerprint', 'schemaBundleSha256', 'dataBundleSha256', 'executionManifestHash'];
+  }
   if (operationId === 'automation-biomes-l0-bootstrap') {
     return [...BOOTSTRAP_REQUIRED_TECHNICAL_FIELDS];
   }
@@ -668,27 +942,44 @@ function readItemImageProjectionDataEntries(repoRoot, manifest) {
   );
   assertProjectionProposalAuthorization(ownerAuthorization, input);
 
-  const lineageBindings = [
-    ['inputContractPath', 'inputContractSha256', 'lineage input contract', true],
-    ['resultPath', 'resultSha256', 'lineage result', true],
-    ['bundlePath', 'bundleSha256', 'lineage bundle', false],
-    ['applySnapshotPath', 'applySnapshotSha256', 'lineage apply snapshot', true],
-    ['authorizationPacketPath', 'authorizationPacketSha256', 'lineage authorization packet', true],
-  ];
-  const lineageEntries = lineageBindings.map(([pathKey, hashKey, label, privateFile]) => (
-    readProjectionBoundEntry(repoRoot, input.lineage[pathKey], input.lineage[hashKey], {
-      label,
-      privateFile,
-    })
-  ));
-  const historicalPacket = parseJsonBytes(
-    lineageEntries.at(-1).bytes,
-    'lineage authorization packet',
-  );
-  assertItemImageProjectionAuthorizationPacket(historicalPacket);
-  if (historicalPacket.decisionIdentity !== input.lineage.decisionIdentity
-      || historicalPacket.packetHash !== input.lineage.packetHash) {
-    throw new Error('lineage authorization packet identity drifted from projection input');
+  let lineageEntries;
+  if (input.lineage.kind === 'origin-repair-bound') {
+    lineageEntries = [readProjectionBoundEntry(
+      repoRoot,
+      input.lineage.originRepairResultPath,
+      input.lineage.originRepairResultSha256,
+      { label: 'origin repair result', privateFile: false },
+    )];
+    const originResult = parseJsonBytes(lineageEntries[0].bytes, 'origin repair result');
+    if (originResult.operationId !== input.lineage.originRepairOperationId
+        || originResult.status !== input.lineage.originRepairStatus
+        || originResult.scopeHash !== input.lineage.originRepairScopeHash
+        || originResult.externalRequests !== false) {
+      throw new Error('origin repair result identity drifted from projection input');
+    }
+  } else {
+    const lineageBindings = [
+      ['inputContractPath', 'inputContractSha256', 'lineage input contract', true],
+      ['resultPath', 'resultSha256', 'lineage result', true],
+      ['bundlePath', 'bundleSha256', 'lineage bundle', false],
+      ['applySnapshotPath', 'applySnapshotSha256', 'lineage apply snapshot', true],
+      ['authorizationPacketPath', 'authorizationPacketSha256', 'lineage authorization packet', true],
+    ];
+    lineageEntries = lineageBindings.map(([pathKey, hashKey, label, privateFile]) => (
+      readProjectionBoundEntry(repoRoot, input.lineage[pathKey], input.lineage[hashKey], {
+        label,
+        privateFile,
+      })
+    ));
+    const historicalPacket = parseJsonBytes(
+      lineageEntries.at(-1).bytes,
+      'lineage authorization packet',
+    );
+    assertItemImageProjectionAuthorizationPacket(historicalPacket);
+    if (historicalPacket.decisionIdentity !== input.lineage.decisionIdentity
+        || historicalPacket.packetHash !== input.lineage.packetHash) {
+      throw new Error('lineage authorization packet identity drifted from projection input');
+    }
   }
 
   const policyEntry = readProjectionBoundEntry(
@@ -1008,7 +1299,7 @@ function writeJsonAtomic(filePath, payload, { noOverwrite = false } = {}) {
   }
 }
 
-function projectionAuthorizationCliPaths({
+function exactAttemptAuthorizationCliPaths({
   repoRoot,
   operationId,
   executionManifestPath,
@@ -1017,61 +1308,63 @@ function projectionAuthorizationCliPaths({
   outputPath,
   requestPath = null,
 }) {
-  if (operationId !== 'canonical-item-image-projection-apply') {
+  const operation = EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS[operationId];
+  if (operation == null) {
     return { output: path.resolve(outputPath), noOverwrite: false };
   }
-  if (!executionManifest) throw new Error('projection execution manifest is required');
-  const attempt = executionManifest.itemImageProjectionAttempt;
+  const { attemptKey, label } = operation;
+  if (!executionManifest) throw new Error(`${label} execution manifest is required`);
+  const attempt = executionManifest[attemptKey];
   if (!attempt || typeof attempt !== 'object') {
-    throw new Error('projection execution manifest attempt binding is required');
+    throw new Error(`${label} execution manifest attempt binding is required`);
   }
   const retainedResultPath = path.resolve(
     repoRoot,
-    requireNormalizedPath(attempt.resultPath, 'projection result path'),
+    requireNormalizedPath(attempt.resultPath, `${label} result path`),
   );
   if (pathEntryExists(retainedResultPath)) {
-    throw new Error('projection retained result already exists; retry requires a new attempt');
+    throw new Error(`${label} retained result already exists; retry requires a new attempt`);
   }
   const normalizedManifestPath = requireNormalizedPath(
     executionManifestPath,
-    'projection execution manifest path',
+    `${label} execution manifest path`,
   );
   if (normalizedManifestPath !== attempt.manifestPath) {
-    throw new Error('projection execution manifest path must be the exact attempt manifest path');
+    throw new Error(`${label} execution manifest path must be the exact attempt manifest path`);
   }
   const absoluteManifestPath = path.resolve(repoRoot, normalizedManifestPath);
   assertRepositoryOrdinaryFile({
     repoRoot,
     filePath: absoluteManifestPath,
-    label: 'projection execution manifest',
+    label: `${label} execution manifest`,
   });
   if ((fs.statSync(absoluteManifestPath).mode & 0o077) !== 0) {
-    throw new Error('projection execution manifest must be private');
+    throw new Error(`${label} execution manifest must be private`);
   }
   const expectedOutput = mode === 'request' ? attempt.requestPath : attempt.packetPath;
-  const normalizedOutput = requireNormalizedPath(outputPath, `projection ${mode} output path`);
+  const normalizedOutput = requireNormalizedPath(outputPath, `${label} ${mode} output path`);
   if (normalizedOutput !== expectedOutput) {
-    throw new Error(`projection ${mode} output must be the exact attempt ${path.posix.basename(expectedOutput)} path`);
+    throw new Error(`${label} ${mode} output must be the exact attempt ${path.posix.basename(expectedOutput)} path`);
   }
   if (mode === 'authorize') {
-    const normalizedRequest = requireNormalizedPath(requestPath, 'projection request path');
+    const normalizedRequest = requireNormalizedPath(requestPath, `${label} request path`);
     if (normalizedRequest !== attempt.requestPath) {
-      throw new Error('projection authorization must read the exact same-attempt request path');
+      throw new Error(`${label} authorization must read the exact same-attempt request path`);
     }
     const absoluteRequestPath = path.resolve(repoRoot, normalizedRequest);
     assertRepositoryOrdinaryFile({
       repoRoot,
       filePath: absoluteRequestPath,
-      label: 'projection authorization request',
+      label: `${label} authorization request`,
     });
     if ((fs.statSync(absoluteRequestPath).mode & 0o077) !== 0) {
-      throw new Error('projection authorization request must be private');
+      throw new Error(`${label} authorization request must be private`);
     }
   }
   const output = assertRepositoryPathConfinement({
     repoRoot,
     filePath: path.resolve(repoRoot, normalizedOutput),
-    label: `projection ${mode} output`,
+    label: `${label} ${mode} output`,
   });
   return { output, noOverwrite: true };
 }
@@ -1095,11 +1388,11 @@ function main() {
   const serverFingerprint = readOptionalJson(args['server-fingerprint']);
   const policyRows = readOptionalJson(args['policy-rows']) ?? [];
   const executionManifest = readOptionalJson(args['execution-manifest']);
-  const cliExecutionManifest = operationId === 'canonical-item-image-projection-apply'
+  const cliExecutionManifest = Object.hasOwn(EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS, operationId)
     && executionManifest != null
     ? verifyExecutionManifestCodeBundle(repoRoot, executionManifest, operationId)
     : executionManifest;
-  const outputIdentity = projectionAuthorizationCliPaths({
+  const outputIdentity = exactAttemptAuthorizationCliPaths({
     repoRoot,
     operationId,
     executionManifestPath: args['execution-manifest'],
@@ -1116,7 +1409,7 @@ function main() {
       operationId,
       serverFingerprint,
       policyRows,
-      executionManifest,
+      executionManifest: cliExecutionManifest,
       generatedAt,
       expiresAt: args['expires-at'] ?? new Date(Date.parse(generatedAt) + 24 * 60 * 60 * 1000).toISOString(),
     });
@@ -1137,7 +1430,7 @@ function main() {
       ...resolveCanonicalOperationTechnicalInput({
         repoRoot,
         operationId: request.operationId,
-        executionManifest,
+        executionManifest: cliExecutionManifest,
       }),
       serverFingerprint,
       policyRows,

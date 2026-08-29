@@ -5,6 +5,8 @@ import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.DomainAcceptanceOverviewDTO;
+import com.terraria.skills.mapper.CrawlerAutomationPolicyMapper;
+import com.terraria.skills.service.CrawlerAutomationPolicyService.PolicyState;
 import com.terraria.skills.service.CrawlerMonitorService;
 import com.terraria.skills.service.DomainAcceptanceService;
 import org.junit.jupiter.api.Test;
@@ -179,6 +181,58 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
     }
 
     @Test
+    void refusesToHashEvidenceThroughASymlinkedRepositoryAncestor() throws Exception {
+        Path repoRoot = Files.createTempDirectory("crawler-preflight-repo");
+        Path outsideRoot = Files.createTempDirectory("crawler-preflight-outside");
+        Path outsideReport = outsideRoot.resolve("evidence.json");
+        Files.writeString(outsideReport, "{\"status\":\"pass\"}\n");
+        Path reportsRoot = repoRoot.resolve("reports");
+        Files.createDirectories(reportsRoot);
+        Files.createSymbolicLink(reportsRoot.resolve("linked"), outsideRoot);
+
+        CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+        DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setRepoRoot(repoRoot.toString());
+        overview.setStateStoreEpoch("epoch-current");
+        overview.setDomainStates(List.of(domainState("items", "items-refresh", "wiki-items-refresh")));
+        overview.setLiveQueue(List.of());
+        overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.now(), Instant.now(), 0L, 0L, 0L, null, null, null
+        ));
+        CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+        automation.setEnabled(false);
+        automation.setMode("changed-only");
+        when(monitor.getOverview()).thenReturn(overview);
+        when(monitor.getV2AutomationSettings()).thenReturn(automation);
+        when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+
+        DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
+        domain.setDomainId("items");
+        domain.setStatus("pass");
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
+        panel.setPanelId("sourceReadiness");
+        panel.setFound(true);
+        panel.setReadable(true);
+        panel.setStatus("pass");
+        panel.setFreshnessStatus("fresh");
+        panel.setWritesDatabase(false);
+        panel.setReportPath("reports/linked/evidence.json");
+        panel.setGeneratedAt(Instant.now());
+        domain.setPanels(List.of(panel));
+        DomainAcceptanceOverviewDTO acceptance = new DomainAcceptanceOverviewDTO();
+        acceptance.setDomains(List.of(domain));
+        when(domainAcceptance.getOverview()).thenReturn(acceptance);
+
+        var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(monitor, domainAcceptance, properties)
+            .getPreflight();
+
+        assertEquals("blocked", result.getDomains().get(0).getReadinessStatus());
+        assertNull(result.getDomains().get(0).getSourceHash());
+    }
+
+    @Test
     void emitsReadinessOnlyForAutoDispatchDomains() {
         CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
         DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
@@ -340,6 +394,43 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
 
         assertEquals(1, result.getDomains().size());
         assertEquals("wiki-audio-assets-refresh", result.getDomains().get(0).getActionId());
+    }
+
+    @Test
+    void includesExactCurrentActiveL2PolicyRowsAndPolicySetHashForSchedulerBinding() {
+        CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+        DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+        CrawlerAutomationPolicyMapper policyMapper = mock(CrawlerAutomationPolicyMapper.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setStateStoreEpoch("epoch-current");
+        overview.setLiveQueue(List.of());
+        overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.now(), Instant.now(), 0L, 0L, 0L, null, null, null
+        ));
+        CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+        automation.setEnabled(false);
+        automation.setMode("changed-only");
+        when(monitor.getOverview()).thenReturn(overview);
+        when(monitor.getV2AutomationSettings()).thenReturn(automation);
+        when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+        when(domainAcceptance.getOverview()).thenReturn(new DomainAcceptanceOverviewDTO());
+        when(policyMapper.findCurrentPolicyStates()).thenReturn(List.of(
+            new PolicyState("npcs", 2L, "sha256:" + "b".repeat(64), "L2", "ACTIVE"),
+            new PolicyState("items", 2L, "sha256:" + "a".repeat(64), "L2", "ACTIVE")
+        ));
+
+        var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(
+            monitor, domainAcceptance, properties, policyMapper
+        ).getPreflight();
+
+        assertEquals(2, result.getPolicyRows().size());
+        assertEquals("items", result.getPolicyRows().get(0).getDomainId());
+        assertEquals(2L, result.getPolicyRows().get(0).getPolicyVersion());
+        assertEquals("L2", result.getPolicyRows().get(0).getCurrentLevel());
+        assertEquals("ACTIVE", result.getPolicyRows().get(0).getOperationalState());
+        assertEquals("npcs", result.getPolicyRows().get(1).getDomainId());
+        assertEquals("sha256:33c5bf91c7f604178ee5658a533618fa8fb7d11ad51a264899b4703ec63eded1", result.getPolicySetHash());
     }
 
     private static DomainAcceptanceOverviewDTO.DomainPanelDTO sourcePanel(Path report, String status) {

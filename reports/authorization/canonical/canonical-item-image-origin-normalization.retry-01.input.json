@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-item-image-origin-normalization",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/item-image-origin-normalization.proposal.json",
+  "proposalSha256": "sha256:56716d02dabeb8a0ebeade7f65454b3f65b56eefc219454b7809dab89a2d08e5",
+  "scopeSha256": "sha256:2819897d7dcebeb6cd85cfc047513819296596263c5d49446d1a51ef583bafb3",
+  "keySetSha256": "sha256:c3e4bc6e21c00716e54f53fea27cf0a9ec4c472acc134225e6ecd3d174a007d2",
+  "beforeRowsSha256": "sha256:8d0d9984cbec54228860edfb82c35f04538f60689a093172559185e115d09486",
+  "afterRowsSha256": "sha256:c00586fc3694c30e802209e2192b22cbcf0c1d78f0176116fa20fa04ba44a1d6",
+  "expectedChangedRowCount": 331,
+  "expectedAffectedRowCount": 662,
+  "writeTargets": [
+    "relation.relation_item_images.cached_url",
+    "relation.projection_items.image"
+  ]
+}

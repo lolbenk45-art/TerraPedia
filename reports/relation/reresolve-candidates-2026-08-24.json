@@ -1,0 +1,835 @@
+{
+  "generatedAt": "2026-08-24T08:28:07.557Z",
+  "summary": {
+    "unresolvedAuditCount": 63,
+    "candidateCount": 43,
+    "autoMatchedCount": 43,
+    "manualReviewCount": 20,
+    "lowConfidenceCount": 0
+  },
+  "trend": {
+    "previousUnresolvedAuditCount": 63,
+    "currentUnresolvedAuditCount": 63,
+    "delta": 0,
+    "direction": "flat"
+  },
+  "candidates": [
+    {
+      "auditId": "0044b4ac629a752fb182281eca162f46c200a335d902fb4a8e1b5248c306bd20",
+      "proposedMatch": {
+        "npcSourceId": 105,
+        "npcInternalName": "BoundGoblin",
+        "npcName": "Bound Goblin"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Bound Goblin",
+        "sourceRefNormalized": "Bound Goblin",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:bound-goblin:shop:rubblemaker:6",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Goblin_Tinkerer"
+      }
+    },
+    {
+      "auditId": "0174ad1468e25a7095521915d1266eb0bfcf3ef3d92f0493b4b684cd8181e446",
+      "proposedMatch": {
+        "npcSourceId": 229,
+        "npcInternalName": "Pirate",
+        "npcName": "Pirate"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Pirate",
+        "sourceRefNormalized": "Pirate",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:pirate:shop:any-pylon:8",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Pirate"
+      }
+    },
+    {
+      "auditId": "098b52cf23725994a54c16f00946fd39a4e7bc08cd2991209b165866e942aa87",
+      "proposedMatch": {
+        "npcSourceId": 38,
+        "npcInternalName": "Demolitionist",
+        "npcName": "Demolitionist"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Demolitionist",
+        "sourceRefNormalized": "Demolitionist",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "89d9c623d576e881dcab264ecf2c290c4bf6ffe45d602fdbc0c3587ffbd6d2bb",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Demolitionist"
+      }
+    },
+    {
+      "auditId": "0ad4f0a03a32fedb272bd222c43d488851f6a9aff0f1e924e5c8f5d362e89a2e",
+      "proposedMatch": {
+        "npcSourceId": 54,
+        "npcInternalName": "Clothier",
+        "npcName": "Clothier"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Clothier",
+        "sourceRefNormalized": "Clothier",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "3989a1d5fbce08ea9987fba5cc0601361385e5dbf7e6caa71e518906250c3492",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Clothier"
+      }
+    },
+    {
+      "auditId": "0db30845a03a883d2f3375596ee064341a6dbd9e9565b491f911d6c741e18b21",
+      "proposedMatch": {
+        "npcSourceId": 209,
+        "npcInternalName": "Cyborg",
+        "npcName": "Cyborg"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Cyborg",
+        "sourceRefNormalized": "Cyborg",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:cyborg:shop:any-pylon:23",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Cyborg"
+      }
+    },
+    {
+      "auditId": "0ea046f211b20ce2501642aba43dd875ca76a9b6082687d6e53dc30a27ea96f5",
+      "proposedMatch": {
+        "npcSourceId": 20,
+        "npcInternalName": "Dryad",
+        "npcName": "Dryad"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dryad",
+        "sourceRefNormalized": "Dryad",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:dryad:shop:any-pylon:54",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Dryad"
+      }
+    },
+    {
+      "auditId": "0ecd5d0021150fe5dff188d1db16e51af423ff471e9f097fc9dce9593ebc972d",
+      "proposedMatch": {
+        "npcSourceId": 227,
+        "npcInternalName": "Painter",
+        "npcName": "Painter"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Painter",
+        "sourceRefNormalized": "Painter",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:painter:shop:graveyard-item:43",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Painter"
+      }
+    },
+    {
+      "auditId": "1bfe457da40c46f7309669cc6364632b45ebd4ab5ea54d9982965015b38561ce",
+      "proposedMatch": {
+        "npcSourceId": 20,
+        "npcInternalName": "Dryad",
+        "npcName": "Dryad"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dryad",
+        "sourceRefNormalized": "Dryad",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "c2028db9b846a4caa0c07623b08d7fd8acd71027c9d90401800b3d3348420510",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Dryad"
+      }
+    },
+    {
+      "auditId": "217c809f5adff52a6da5c6e6760427a7f6627f7be8385ebc18c1b5a6e4210eff",
+      "proposedMatch": {
+        "npcSourceId": 227,
+        "npcInternalName": "Painter",
+        "npcName": "Painter"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Painter",
+        "sourceRefNormalized": "Painter",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:painter:shop:any-pylon:23",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Painter"
+      }
+    },
+    {
+      "auditId": "2180edaef41d904916221abef118c07f0a3eed5afca9a244465e770b77292d8a",
+      "proposedMatch": {
+        "npcSourceId": 207,
+        "npcInternalName": "DyeTrader",
+        "npcName": "Dye Trader"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dye Trader",
+        "sourceRefNormalized": "Dye Trader",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:dye-trader:shop:any-pylon:11",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Dye_Trader"
+      }
+    },
+    {
+      "auditId": "2a37aa419de2469d4ff05fe9981040fb0f810a572888edf7d1ca3e736f98728b",
+      "proposedMatch": {
+        "npcSourceId": 178,
+        "npcInternalName": "Steampunker",
+        "npcName": "Steampunker"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Steampunker",
+        "sourceRefNormalized": "Steampunker",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:steampunker:shop:any-pylon:31",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Steampunker"
+      }
+    },
+    {
+      "auditId": "2e9f2885d4ef445e6d9450982f53f33807037cf9b9e63e13c2021086a551cb87",
+      "proposedMatch": {
+        "npcSourceId": 20,
+        "npcInternalName": "Dryad",
+        "npcName": "Dryad"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dryad",
+        "sourceRefNormalized": "Dryad",
+        "reasonCode": "item_ambiguous",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "c2028db9b846a4caa0c07623b08d7fd8acd71027c9d90401800b3d3348420510",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Dryad"
+      }
+    },
+    {
+      "auditId": "31c14343e67e01ee69a395d6a8e86081b2a32d8ec1556ec4eb4128b6bea36852",
+      "proposedMatch": {
+        "npcSourceId": 17,
+        "npcInternalName": "Merchant",
+        "npcName": "Merchant"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Merchant",
+        "sourceRefNormalized": "Merchant",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:merchant:shop:any-pylon:31",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Merchant"
+      }
+    },
+    {
+      "auditId": "3478365652e7ac3ec9e7d4e6067b1c227543eb5fe3f41dce8d8f090016bc2ce6",
+      "proposedMatch": {
+        "npcSourceId": 19,
+        "npcInternalName": "ArmsDealer",
+        "npcName": "Arms Dealer"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Arms Dealer",
+        "sourceRefNormalized": "Arms Dealer",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:arms-dealer:shop:any-pylon:19",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Arms_Dealer"
+      }
+    },
+    {
+      "auditId": "38d8359d4437840ce06c7e138a26f3aadfc7ddf0f0a403c3054f4ec5c6795238",
+      "proposedMatch": {
+        "npcSourceId": 106,
+        "npcInternalName": "BoundWizard",
+        "npcName": "Bound Wizard"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Bound Wizard",
+        "sourceRefNormalized": "Bound Wizard",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:bound-wizard:shop:any-pylon:11",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Wizard"
+      }
+    },
+    {
+      "auditId": "3aff9f1582721036d51a044bbd99d4b3373a220e7d5b3b4b1d6c44789ada1a46",
+      "proposedMatch": {
+        "npcSourceId": 54,
+        "npcInternalName": "Clothier",
+        "npcName": "Clothier"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Clothier",
+        "sourceRefNormalized": "Clothier",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:clothier:shop:any-pylon:60",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Clothier"
+      }
+    },
+    {
+      "auditId": "400415e87d12e2c4069acb3d657ab45e275357bd954ffd5b554c0575579281f3",
+      "proposedMatch": {
+        "npcSourceId": 353,
+        "npcInternalName": "Stylist",
+        "npcName": "Stylist"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Stylist",
+        "sourceRefNormalized": "Stylist",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:stylist:shop:any-pylon:14",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Stylist"
+      }
+    },
+    {
+      "auditId": "461a36e327fe0af911141b071ca23e2f2f203847b7383196a796d10e92a80479",
+      "proposedMatch": {
+        "npcSourceId": 178,
+        "npcInternalName": "Steampunker",
+        "npcName": "Steampunker"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Steampunker",
+        "sourceRefNormalized": "Steampunker",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:steampunker:shop:conveyor-belt:11",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Steampunker"
+      }
+    },
+    {
+      "auditId": "4b12fd7a11872632ed9513873ec4ac942162ddc25c177cdacca2c9c151f99139",
+      "proposedMatch": {
+        "npcSourceId": 20,
+        "npcInternalName": "Dryad",
+        "npcName": "Dryad"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dryad",
+        "sourceRefNormalized": "Dryad",
+        "reasonCode": "item_ambiguous",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "c2028db9b846a4caa0c07623b08d7fd8acd71027c9d90401800b3d3348420510",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Dryad"
+      }
+    },
+    {
+      "auditId": "4d7387da2eadc797ecbf116fc502f1f9830d6f5c575e5ad3dbffa241bba6533e",
+      "proposedMatch": {
+        "npcSourceId": 20,
+        "npcInternalName": "Dryad",
+        "npcName": "Dryad"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dryad",
+        "sourceRefNormalized": "Dryad",
+        "reasonCode": "item_ambiguous",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:dryad:shop:deathweed-planter-box:24",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Dryad"
+      }
+    },
+    {
+      "auditId": "57d78fc9b3c9380fa82475711d12792e3010cb9572201794ec87ee63defbb4d7",
+      "proposedMatch": {
+        "npcSourceId": 123,
+        "npcInternalName": "BoundMechanic",
+        "npcName": "Bound Mechanic"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Bound Mechanic",
+        "sourceRefNormalized": "Bound Mechanic",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:bound-mechanic:shop:any-pylon:32",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Mechanic"
+      }
+    },
+    {
+      "auditId": "5a082e3ca02eef82585288494360abf251d238358ad646563e2d95056f495962",
+      "proposedMatch": {
+        "npcSourceId": 208,
+        "npcInternalName": "PartyGirl",
+        "npcName": "Party Girl"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Party Girl",
+        "sourceRefNormalized": "Party Girl",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:party-girl:shop:any-pylon:40",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Party_Girl"
+      }
+    },
+    {
+      "auditId": "5d24cef6ff74cffc58699532d6d987bdd7bfcdd53f95c7043a7dce0931639537",
+      "proposedMatch": {
+        "npcSourceId": 633,
+        "npcInternalName": "BestiaryGirl",
+        "npcName": "Zoologist"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Zoologist",
+        "sourceRefNormalized": "Zoologist",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:bestiary-girl:shop:any-pylon:39",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Zoologist"
+      }
+    },
+    {
+      "auditId": "5eab82927b7d3a88b0bcbdf818f9f8454b4cc702cd5d63c10603ae949ed01407",
+      "proposedMatch": {
+        "npcSourceId": 588,
+        "npcInternalName": "Golfer",
+        "npcName": "Golfer"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Golfer",
+        "sourceRefNormalized": "Golfer",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:golfer-rescue:shop:any-pylon:42",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Golfer"
+      }
+    },
+    {
+      "auditId": "6025486ec125011dfc54d7bd2260f62cd9729ae7fd935eb9452c7e1706d30c13",
+      "proposedMatch": {
+        "npcSourceId": 54,
+        "npcInternalName": "Clothier",
+        "npcName": "Clothier"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Clothier",
+        "sourceRefNormalized": "Clothier",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:clothier:shop:princess-dress-clothier:40",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Clothier"
+      }
+    },
+    {
+      "auditId": "6174423bffb81e09f3e4f0dc621b86c043bb9dbdae1276e781008bcd0d4e6542",
+      "proposedMatch": {
+        "npcSourceId": 209,
+        "npcInternalName": "Cyborg",
+        "npcName": "Cyborg"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Cyborg",
+        "sourceRefNormalized": "Cyborg",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "058c7d310a7f598cf86ccc5aa5244880def93c407cb84b14c73e9a6c36a658e2",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Cyborg"
+      }
+    },
+    {
+      "auditId": "70ee72636d3b29b5604ead556f4db665ac9e3133f8522a10f98a5a7f7354c5f7",
+      "proposedMatch": {
+        "npcSourceId": 20,
+        "npcInternalName": "Dryad",
+        "npcName": "Dryad"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dryad",
+        "sourceRefNormalized": "Dryad",
+        "reasonCode": "item_ambiguous",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:dryad:shop:deathweed-planter-box:25",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Dryad"
+      }
+    },
+    {
+      "auditId": "72fab9c13f737038bd31569050d285884d321c18d856e7f9df0349974740c46e",
+      "proposedMatch": {
+        "npcSourceId": 38,
+        "npcInternalName": "Demolitionist",
+        "npcName": "Demolitionist"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Demolitionist",
+        "sourceRefNormalized": "Demolitionist",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:demolitionist:shop:any-pylon:13",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Demolitionist"
+      }
+    },
+    {
+      "auditId": "7cf7551003855e2fb5971d1042867dc8d2c6cca2ff96016da741de3b80194ac6",
+      "proposedMatch": {
+        "npcSourceId": 207,
+        "npcInternalName": "DyeTrader",
+        "npcName": "Dye Trader"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Dye Trader",
+        "sourceRefNormalized": "Dye Trader",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "284bea8d0413688c64e985f3801be6f5b86b58576cbff8990afff7f4792cb8b0",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Dye Trader"
+      }
+    },
+    {
+      "auditId": "7e8ccace5b45ef68eb0c657d0fde03b4f49438a2c64d69e6bf432f080252ded5",
+      "proposedMatch": {
+        "npcSourceId": 588,
+        "npcInternalName": "Golfer",
+        "npcName": "Golfer"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Golfer",
+        "sourceRefNormalized": "Golfer",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:golfer:shop:any-pylon:42",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Golfer"
+      }
+    },
+    {
+      "auditId": "8380681d90cd3af208ab2e9a831ac252f51553e39dfca5ce70bb6e63c70b885c",
+      "proposedMatch": {
+        "npcSourceId": 160,
+        "npcInternalName": "Truffle",
+        "npcName": "Truffle"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Truffle",
+        "sourceRefNormalized": "Truffle",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:truffle:shop:any-pylon:7",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Truffle"
+      }
+    },
+    {
+      "auditId": "88aaa00e5dee87a0d6f12de5c696fd77c2e0999658da71c240ce6e882ac316d5",
+      "proposedMatch": {
+        "npcSourceId": 107,
+        "npcInternalName": "GoblinTinkerer",
+        "npcName": "Goblin Tinkerer"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Goblin Tinkerer",
+        "sourceRefNormalized": "Goblin Tinkerer",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:goblin-tinkerer:shop:rubblemaker:6",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Goblin_Tinkerer"
+      }
+    },
+    {
+      "auditId": "8b4e0b232b21c39df57bfa819cdebf6cfd6e38903b4b437ad2f6ffc8174e74fe",
+      "proposedMatch": {
+        "npcSourceId": 663,
+        "npcInternalName": "Princess",
+        "npcName": "Princess"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Princess",
+        "sourceRefNormalized": "Princess",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:princess:shop:any-pylon:30",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Princess"
+      }
+    },
+    {
+      "auditId": "9776eb39390571cc001bc20fc4d78e01a6b99be734c721b1ac2d3bae6e3044e4",
+      "proposedMatch": {
+        "npcSourceId": 178,
+        "npcInternalName": "Steampunker",
+        "npcName": "Steampunker"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Steampunker",
+        "sourceRefNormalized": "Steampunker",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:steampunker:shop:logic-gates:7",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Steampunker"
+      }
+    },
+    {
+      "auditId": "9aa51fdf80427d3eddbffbd376d3d2f362d4771cdcb60a43dced67a832944e4b",
+      "proposedMatch": {
+        "npcSourceId": 108,
+        "npcInternalName": "Wizard",
+        "npcName": "Wizard"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Wizard",
+        "sourceRefNormalized": "Wizard",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:wizard:shop:any-pylon:11",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Wizard"
+      }
+    },
+    {
+      "auditId": "a86a6c9525fc69a41d8ba82110d36a185bcd65200bcc5bec0f0ac88b6d2eba62",
+      "proposedMatch": {
+        "npcSourceId": 105,
+        "npcInternalName": "BoundGoblin",
+        "npcName": "Bound Goblin"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Bound Goblin",
+        "sourceRefNormalized": "Bound Goblin",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:bound-goblin:shop:any-pylon:7",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Goblin_Tinkerer"
+      }
+    },
+    {
+      "auditId": "a896878a08cbc4abf41ce17e5faa407fdeade1d8afadb24faa57d3c14d8b1ffd",
+      "proposedMatch": {
+        "npcSourceId": 107,
+        "npcInternalName": "GoblinTinkerer",
+        "npcName": "Goblin Tinkerer"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Goblin Tinkerer",
+        "sourceRefNormalized": "Goblin Tinkerer",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:goblin-tinkerer:shop:any-pylon:7",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Goblin_Tinkerer"
+      }
+    },
+    {
+      "auditId": "b2a30690b276966b023e19db188e49f86afb9bf240c47edd793b20f0042b59a5",
+      "proposedMatch": {
+        "npcSourceId": 354,
+        "npcInternalName": "WebbedStylist",
+        "npcName": "Webbed Stylist"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Webbed Stylist",
+        "sourceRefNormalized": "Webbed Stylist",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:webbed-stylist:shop:any-pylon:14",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Stylist"
+      }
+    },
+    {
+      "auditId": "b5b65804d2c9242735079a02f06862ab0c166db05d7fab90768087a74fcca333",
+      "proposedMatch": {
+        "npcSourceId": 54,
+        "npcInternalName": "Clothier",
+        "npcName": "Clothier"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Clothier",
+        "sourceRefNormalized": "Clothier",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "3989a1d5fbce08ea9987fba5cc0601361385e5dbf7e6caa71e518906250c3492",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Clothier"
+      }
+    },
+    {
+      "auditId": "c1776866788951d715cd2c4195d0e42455dafa2847cf93dedcb9fb3964d0d3c4",
+      "proposedMatch": {
+        "npcSourceId": 142,
+        "npcInternalName": "SantaClaus",
+        "npcName": "Santa Claus"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Santa Claus",
+        "sourceRefNormalized": "Santa Claus",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:santa-claus:shop:any-pylon:39",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Santa_Claus"
+      }
+    },
+    {
+      "auditId": "c49f48e430c544a6874d305c34b9446b49bff2354554a0f4b06074823a038947",
+      "proposedMatch": {
+        "npcSourceId": 19,
+        "npcInternalName": "ArmsDealer",
+        "npcName": "Arms Dealer"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Arms Dealer",
+        "sourceRefNormalized": "Arms Dealer",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_npc_crawler_facts",
+        "sourceMaintRecordKey": "7d6c1e1bcb0b63d7d616e8ab84594039ed929338e420b6be510eadb1bc1f54a8",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Arms Dealer"
+      }
+    },
+    {
+      "auditId": "d985b2d611a2e97744f4e4cfbb8db423eb0992275bf15022dfa9557e6e3c05f1",
+      "proposedMatch": {
+        "npcSourceId": 124,
+        "npcInternalName": "Mechanic",
+        "npcName": "Mechanic"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Mechanic",
+        "sourceRefNormalized": "Mechanic",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:mechanic:shop:any-pylon:32",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Mechanic"
+      }
+    },
+    {
+      "auditId": "ec4151d41d47cada60d4efa7a6a04185e043b31ac93c236fb28f815dae73bd48",
+      "proposedMatch": {
+        "npcSourceId": 228,
+        "npcInternalName": "WitchDoctor",
+        "npcName": "Witch Doctor"
+      },
+      "confidence": "high",
+      "evidence": {
+        "matchBasis": "source_ref_exact",
+        "sourceRefName": "Witch Doctor",
+        "sourceRefNormalized": "Witch Doctor",
+        "reasonCode": "item_unresolved",
+        "sourceMaintTable": "maint_item_sources",
+        "sourceMaintRecordKey": "npc-item:witch-doctor:shop:any-pylon:24",
+        "sourceProvider": "terrapedia.generated",
+        "sourcePage": "https://terraria.wiki.gg/wiki/Witch_Doctor"
+      }
+    }
+  ]
+}

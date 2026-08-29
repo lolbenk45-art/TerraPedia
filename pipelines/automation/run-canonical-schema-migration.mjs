@@ -12,6 +12,7 @@ import {
   NPC_CRAWLER_FACT_RELATION_TARGETS,
   buildRelationSchemaSql,
 } from '../relation/relation-schema.mjs';
+import { buildProjectionSchemaStatements } from '../relation/projection-schema.mjs';
 import { loadAuthorizedOperationContext } from './authorized-operation-context.mjs';
 
 const OPERATION_ID = 'canonical-schema-v56-v58';
@@ -111,6 +112,7 @@ async function applyMaintRoleSchema({ mysql, base, v56Sql }) {
     const tables = [
       'maint_npc_crawler_facts', 'maint_item_groups', 'maint_item_group_members',
       'maint_item_group_aliases', 'maint_item_group_member_exclusions',
+      'maint_biome_images',
     ];
     await requireTables(connection, database, tables);
     return { database, v56Applied, requiredTableCount: tables.length, applied: true };
@@ -124,8 +126,12 @@ async function applyRelationRoleSchema({ mysql, base }) {
   const connection = await mysql.createConnection({ ...base, database });
   try {
     await connection.query(buildRelationSchemaSql());
+    for (const statement of buildProjectionSchemaStatements(database)) {
+      await connection.query(statement);
+    }
     const tables = [
       'relation_item_groups', 'relation_item_group_members', 'relation_item_group_aliases',
+      'relation_biome_images', 'projection_biomes',
       ...NPC_CRAWLER_FACT_RELATION_TARGETS,
     ];
     await requireTables(connection, database, [...new Set(tables)]);

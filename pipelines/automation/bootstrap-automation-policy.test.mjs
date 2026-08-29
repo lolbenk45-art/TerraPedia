@@ -359,6 +359,51 @@ test('formal bootstrap CLI consumes one frozen input, uses environment credentia
   assert.equal(JSON.stringify(written).includes('not-written-to-output'), false);
 });
 
+test('Items and Projectiles bootstrap inputs are accepted only at disabled L0', async () => {
+  for (const domainId of ['items', 'projectiles']) {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-${domainId}-bootstrap-`));
+    const inputPath = path.join(tempDir, 'bootstrap.input.json');
+    const outputPath = path.join(tempDir, 'bootstrap.result.json');
+    const operationId = `automation-${domainId}-l0-bootstrap`;
+    fs.writeFileSync(inputPath, `${JSON.stringify({
+      schemaVersion: 1,
+      operationId,
+      databaseName: 'terria_v1_local',
+      domainId,
+      level: 'L0',
+      operationalState: 'DISABLED',
+      policy: DEFAULT_POLICY,
+    })}\n`);
+    const connection = fakeConnection();
+    connection.end = async () => {};
+
+    const result = await runBootstrapCli({
+      argv: [`--input=${inputPath}`, `--output=${outputPath}`, '--apply=true'],
+      env: {
+        TERRAPEDIA_DB_HOST: '127.0.0.1',
+        TERRAPEDIA_DB_PORT: '13306',
+        TERRAPEDIA_DB_USERNAME: 'automation-owner',
+        TERRAPEDIA_DB_PASSWORD: 'not-written-to-output',
+      },
+      mysqlModule: { createConnection: async () => connection },
+      now: '2026-07-28T01:00:00.000Z',
+      loadAuthorizationContextImpl: ({ operationId: receivedOperationId }) => ({
+        operationId: receivedOperationId,
+        actor: 'system-owner',
+        reason: 'bootstrap base domain policy',
+        authorizationReference: 'decision://bootstrap',
+        decisionIdentity: `decision-${receivedOperationId}`,
+        packetHash: `sha256:${'b'.repeat(64)}`,
+        authorizedAt: '2026-07-28T00:30:00.000Z',
+        expiresAt: '2026-07-28T02:00:00.000Z',
+      }),
+    });
+
+    assert.equal(result.operationId, operationId);
+    assert.equal(result.operationalState, 'DISABLED');
+  }
+});
+
 test('formal bootstrap CLI supports the three governed supplementary L0 operations', async () => {
   for (const domainId of ['audio', 'bosses', 'shimmer']) {
     const operationId = `automation-${domainId}-l0-bootstrap`;

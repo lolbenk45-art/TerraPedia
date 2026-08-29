@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-image-origin-normalization",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-image-origin-normalization.proposal.json",
+  "proposalSha256": "sha256:a117c436fd8fb3221c3db05e6f89c809242a1684129a6a509e591cb83857f8ec",
+  "scopeSha256": "sha256:761d32c524d5961f9b32adbf8a9a3c7105b155ba31fa2eba9e45cc449cf414b4",
+  "keySetSha256": "sha256:b96991b464fcaf3eef036a27e3b24181179fdd099999dfa8f9cef7e434ee0e0a",
+  "beforeRowsSha256": "sha256:8ddde963b5acd0d0c61128060ef0a557ae0ced3f8b972dacbf488280a7dc749f",
+  "afterRowsSha256": "sha256:9c1909b5ef8143951c647ebe71d7a351e9b5d73d52a2b3405c1deae33a0df2dc",
+  "expectedChangedRowCount": 758,
+  "expectedAffectedRowCount": 758,
+  "writeTargets": [
+    "relation.projection_npcs.image_url"
+  ]
+}

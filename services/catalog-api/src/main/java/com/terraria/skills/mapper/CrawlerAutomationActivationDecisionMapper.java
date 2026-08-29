@@ -29,21 +29,23 @@ public interface CrawlerAutomationActivationDecisionMapper {
     );
 
     @Select("""
-        SELECT COUNT(DISTINCT a.id)
+        SELECT COUNT(DISTINCT a.run_id)
         FROM crawler_automation_apply a
         JOIN crawler_automation_run_policy rp
           ON rp.run_id = a.run_id AND rp.policy_set_hash = a.policy_set_hash
+        JOIN crawler_automation_apply_bundle b
+          ON b.run_id = a.run_id AND b.bundle_hash = a.bundle_hash
+        JOIN crawler_automation_policy_version pv
+          ON pv.domain_id = rp.domain_id
+         AND pv.policy_version = rp.policy_version
+         AND pv.policy_hash = rp.policy_hash
         WHERE rp.domain_id = #{domainId}
-          AND rp.policy_version = #{policyVersion}
-          AND rp.policy_hash = #{policyHash}
-          AND rp.policy_set_hash = #{policySetHash}
-          AND a.mode = 'APPROVED_OWNER_L1'
+          AND pv.level = 'L1'
+          AND rp.policy_version < #{currentPolicyVersion}
           AND a.status = 'COMMITTED'
         """)
     int countSuccessfulL1Applies(
         @Param("domainId") String domainId,
-        @Param("policyVersion") long policyVersion,
-        @Param("policyHash") String policyHash,
-        @Param("policySetHash") String policySetHash
+        @Param("currentPolicyVersion") long currentPolicyVersion
     );
 }

@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-08-24T08:10:00+08:00",
+  "domainId": "support.town_npc_maintenance",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedContractCount": 2,
+    "passedCount": 2,
+    "warningCount": 0,
+    "blockedCount": 0,
+    "modes": {
+      "retired": 1,
+      "canonical": 1
+    }
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json",
+      "mode": "retired",
+      "status": "pass",
+      "reportPath": "reports/canonical-migration/npc-bridge-retirement.json",
+      "referenceCount": 0,
+      "reason": null
+    },
+    {
+      "input": "data/standardized/npcs.standardized.json",
+      "mode": "canonical",
+      "status": "pass",
+      "reportPath": "reports/canonical-migration/canonical-npc-crawler-facts-readiness.json",
+      "reason": null
+    }
+  ],
+  "reportPath": "reports/domain/support.town_npc_maintenance/b1-exemption-compliance-2026-08-24.json"
+}

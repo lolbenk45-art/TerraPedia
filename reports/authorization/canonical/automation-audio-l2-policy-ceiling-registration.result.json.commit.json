@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "l2_policy_ceiling_registration_commit",
+  "status": "committed",
+  "authoritative": true,
+  "registrationStatus": "registered",
+  "operationId": "automation-audio-l2-policy-ceiling-registration",
+  "domainId": "audio",
+  "policyVersion": 2,
+  "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+  "policySetHash": "sha256:a3514c8010d6815cc6310e2574a4c26e1537d81eaa171524cec8fa44c0996c5e",
+  "artifactHash": "sha256:6a1d319f87255da87b8ad7cd7da7596e09fa48878a08ab8643575ec7584dcc8f",
+  "registrationActor": "admin",
+  "registrationAuthorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "registrationDecisionIdentity": "automation-audio-l2-policy-ceiling-registration-20260828-owner-01",
+  "registrationPacketHash": "sha256:67497794251b94d402f5fd61afddec029828074f0f2e2a08ee358cd3eba6645b"
+}

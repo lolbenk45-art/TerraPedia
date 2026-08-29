@@ -1,0 +1,206 @@
+{
+  "generatedAt": "2026-08-23T04:54:14.891Z",
+  "ok": false,
+  "failedDomains": [
+    "items",
+    "npcs",
+    "bosses",
+    "projectiles",
+    "buffs"
+  ],
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6159,
+      "projectionRowCount": 0,
+      "sharedRowCount": 0,
+      "missingInProjectionCount": 6146,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "IronPickaxe",
+        "DirtBlock",
+        "StoneBlock",
+        "IronBroadsword",
+        "Mushroom",
+        "IronShortsword",
+        "IronHammer",
+        "Torch",
+        "Wood",
+        "IronAxe"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "HeartArrow",
+        "ValentineRing",
+        "TurkeyFeather",
+        "FestiveTopHat",
+        "Wiesnbrau",
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS"
+      ],
+      "acceptedLocalOnlyExceptionCount": 13,
+      "blockingFields": [],
+      "ok": false,
+      "rowCountMismatch": true,
+      "keyMismatch": true,
+      "fieldMismatch": false
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "blocked",
+      "localRowCount": 762,
+      "projectionRowCount": 0,
+      "sharedRowCount": 0,
+      "missingInProjectionCount": 762,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "BigHornetStingy",
+        "LittleHornetStingy",
+        "BigHornetSpikey",
+        "LittleHornetSpikey",
+        "BigHornetLeafy",
+        "LittleHornetLeafy",
+        "BigHornetHoney",
+        "LittleHornetHoney",
+        "BigHornetFatty",
+        "LittleHornetFatty"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [],
+      "ok": false,
+      "rowCountMismatch": true,
+      "keyMismatch": true,
+      "fieldMismatch": false
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "blocked",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [
+        {
+          "field": "image_url",
+          "localField": "image_url",
+          "projectionField": "image_url",
+          "localNonNull": 33,
+          "projectionNonNull": 0,
+          "gap": 33,
+          "missingExamples": [
+            {
+              "key": "KING_SLIME",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/76b792f0c9c848a8ba1c36aaeceb061d.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "EYE_OF_CTHULHU",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/fa5c654168664131ae7987443cd48d8c.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "EATER_OF_WORLDS",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/9ccd86d459e24307b90ac3d91f107822.png",
+              "projectionValue": null
+            },
+            {
+              "key": "BRAIN_OF_CTHULHU",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/85a51c5d8ce14092ad51f009b62900cd.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "QUEEN_BEE",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/6eb4209f29ab4a25ada8ec2bedf59532.gif",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "blocked",
+      "localRowCount": 1111,
+      "projectionRowCount": 0,
+      "sharedRowCount": 0,
+      "missingInProjectionCount": 1111,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "WoodenArrowFriendly",
+        "FireArrow",
+        "Shuriken",
+        "UnholyArrow",
+        "JestersArrow",
+        "EnchantedBoomerang",
+        "VilethornBase",
+        "VilethornTip",
+        "Starfury",
+        "PurificationPowder"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [],
+      "ok": false,
+      "rowCountMismatch": true,
+      "keyMismatch": true,
+      "fieldMismatch": false
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "blocked",
+      "localRowCount": 388,
+      "projectionRowCount": 0,
+      "sharedRowCount": 0,
+      "missingInProjectionCount": 388,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "ObsidianSkin",
+        "Regeneration",
+        "Swiftness",
+        "Gills",
+        "Ironskin",
+        "ManaRegeneration",
+        "MagicPower",
+        "Featherfall",
+        "Spelunker",
+        "Invisibility"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [],
+      "ok": false,
+      "rowCountMismatch": true,
+      "keyMismatch": true,
+      "fieldMismatch": false
+    }
+  },
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation"
+}

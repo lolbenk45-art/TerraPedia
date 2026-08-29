@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized local eight-domain automation: refresh the scheduler activation after adding Items and Projectiles L1 policies.",
+  "authorizationReference": "user://conversation/2026-08-17/eight-domain-base-automation",
+  "decisionIdentity": "automation-crawler-v2-scheduler-reactivation-20260817-01"
+}

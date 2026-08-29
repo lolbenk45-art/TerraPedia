@@ -16,6 +16,15 @@ public interface PublicNpcService {
 
     NpcDetailDTO getNpcById(Long id);
 
+    /**
+     * Loads the aggregate base without applying multipart representative
+     * collapsing. Aggregate consumers need the requested segment identity so
+     * its structured loot rows remain attributable to the correct NPC.
+     */
+    default NpcDetailDTO getNpcAggregateBaseById(Long id) {
+        return getNpcById(id);
+    }
+
     List<NpcLootEntryDTO> getNpcLoot(Long npcId, Long gameId, String npcName);
 
     List<NpcShopEntryDTO> getNpcShopEntries(Long npcId);

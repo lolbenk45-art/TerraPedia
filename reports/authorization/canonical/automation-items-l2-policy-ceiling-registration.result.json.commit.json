@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "l2_policy_ceiling_registration_commit",
+  "status": "committed",
+  "authoritative": true,
+  "registrationStatus": "registered",
+  "operationId": "automation-items-l2-policy-ceiling-registration",
+  "domainId": "items",
+  "policyVersion": 2,
+  "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+  "policySetHash": "sha256:d11760266c60d1589f55e0e0ca278618a86bf2ad974d0193acc00b778ecf040a",
+  "artifactHash": "sha256:0afd6e5c471b31614ae31d4472cf9b2c5f16f2fd1786dd48c2529260d0c25d27",
+  "registrationActor": "admin",
+  "registrationAuthorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "registrationDecisionIdentity": "automation-items-l2-policy-ceiling-registration-20260828-owner-01",
+  "registrationPacketHash": "sha256:5774955dce69aa0fb379ec1fe2283103210b1c05df8f8aefc3cf2824a1d5c5a8"
+}

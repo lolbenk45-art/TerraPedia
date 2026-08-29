@@ -19,8 +19,15 @@ import {
 import { readCanonicalShimmerImportInputContract } from './canonical-shimmer-import-input-contract.mjs';
 import { readCurrentSupplementaryContext } from './run-supplementary-domain-l1-operation.mjs';
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
-import { acknowledgeWikiProbeSnapshot, DEFAULT_WIKI_SOURCE_MANIFEST_PATH } from '../lib/wiki-sync-manifest.mjs';
-import { probeSupplementarySource } from '../monitor/supplementary-source-probes.mjs';
+import {
+  acknowledgeWikiProbeSnapshot,
+  DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+  loadWikiSourceManifest,
+} from '../lib/wiki-sync-manifest.mjs';
+import {
+  probeSupplementarySource,
+  SUPPLEMENTARY_SOURCE_DEFINITIONS,
+} from '../monitor/supplementary-source-probes.mjs';
 
 export const DOMAIN_PREVIEW_CONFIG = Object.freeze({
   audio: Object.freeze({
@@ -68,6 +75,9 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
   const buildImportPlan = requireFunction(dependencies.buildImportPlan, 'buildImportPlan');
   const probeSource = dependencies.probeSource ?? null;
   const acknowledgeSource = dependencies.acknowledgeSource ?? null;
+  const reuseCurrentSourceSnapshot = options.reuseCurrentSourceSnapshot == null
+    ? null
+    : normalizeReusableCurrentSourceSnapshot(options.reuseCurrentSourceSnapshot, domainId);
   let phase = 'source';
 
   const progress = ({ status, message, current, total, outputPath = null, reportPath = null }) => {
@@ -90,7 +100,7 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
 
   try {
     progress({ status: 'running', message: `starting ${domainId} source refresh`, current: 0, total: 3 });
-    const firstSnapshot = probeSource ? await probeSource({ domainId }) : null;
+    const firstSnapshot = reuseCurrentSourceSnapshot ?? (probeSource ? await probeSource({ domainId }) : null);
     const sourceResult = await runSource({ domainId, config, repoRoot, progressPath });
     const sourcePayload = requireObject(sourceResult?.sourcePayload, 'sourcePayload');
     phase = 'freeze';
@@ -108,7 +118,7 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       baseline: context.baseline,
       source: {
         path: path.relative(repoRoot, sourcePath).replaceAll('\\', '/'),
-        sha256: sha256Json(sourcePayload),
+        sha256: sha256Bytes(fs.readFileSync(sourcePath)),
       },
       ownedTables: config.ownedTables,
       importPlan,
@@ -118,7 +128,10 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
     let sourceAcknowledged = false;
     let stableSourceSnapshot = null;
     let sourceAcknowledgementReason = firstSnapshot ? 'post_probe_failed' : 'probe_not_configured';
-    if (firstSnapshot) {
+    if (reuseCurrentSourceSnapshot) {
+      stableSourceSnapshot = reuseCurrentSourceSnapshot;
+      sourceAcknowledgementReason = 'local_source_reused';
+    } else if (firstSnapshot) {
       try {
         const secondSnapshot = await probeSource({ domainId });
         if (firstSnapshot.contentHash !== secondSnapshot.contentHash) {
@@ -181,6 +194,13 @@ export async function runSupplementaryDomainL1PreviewCli({
   const config = DOMAIN_PREVIEW_CONFIG[domainId];
   const root = path.resolve(repoRoot);
   const runId = args['run-id'] ?? `${domainId}_l1_${now.replace(/\D/g, '').slice(0, 14)}`;
+  const reuseCurrentSourceSnapshot = args['reuse-current-source'] === 'true'
+    ? loadReusableCurrentSourceSnapshot({
+        domainId,
+        repoRoot: root,
+        manifestPath: args['manifest-path'],
+      })
+    : null;
   const connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env));
   try {
     return await prepareSupplementaryDomainL1Preview({
@@ -192,6 +212,7 @@ export async function runSupplementaryDomainL1PreviewCli({
       manifestPath: args['manifest-path'],
       executionMode: resolveSupplementaryPreviewExecutionMode(args),
       deferSourceAcknowledgement: args['defer-source-acknowledgement'] === 'true',
+      reuseCurrentSourceSnapshot,
     }, {
       runSource: (input) => runDomainSource(input, {
         env,
@@ -220,12 +241,59 @@ export async function runSupplementaryDomainL1PreviewCli({
         };
       },
       buildImportPlan: ({ sourcePayload, sourceResult }) => buildDomainImportPlan(domainId, sourcePayload, sourceResult),
-      probeSource: ({ domainId: probeDomainId }) => probeSupplementarySource({ domainId: probeDomainId }),
+      probeSource: reuseCurrentSourceSnapshot
+        ? null
+        : ({ domainId: probeDomainId }) => probeSupplementarySource({ domainId: probeDomainId }),
       acknowledgeSource: acknowledgeWikiProbeSnapshot,
     });
   } finally {
     await connection.end();
   }
+}
+
+export function loadReusableCurrentSourceSnapshot({
+  domainId,
+  repoRoot = getProjectRoot(),
+  manifestPath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+} = {}) {
+  const normalizedDomainId = requireDomain(domainId);
+  const definition = SUPPLEMENTARY_SOURCE_DEFINITIONS[normalizedDomainId];
+  const root = path.resolve(repoRoot);
+  const manifest = loadWikiSourceManifest(path.resolve(root, manifestPath));
+  const record = (manifest.records ?? []).find((entry) => (
+    entry?.sourceKey === definition.sourceKey
+    && entry?.pageTitle === definition.locator
+    && entry?.requestedPageTitle === definition.locator
+    && entry?.entityFamily === definition.entityFamily
+    && entry?.sourceKind === definition.sourceKind
+    && entry?.status === 'ok'
+  ));
+  const contentHash = String(record?.contentHash ?? '').trim();
+  if (!/^[a-f0-9]{64}$/.test(contentHash)) {
+    throw new Error(`local ${normalizedDomainId} source reuse requires a canonical manifest snapshot`);
+  }
+  return Object.freeze({
+    ...definition,
+    contentHash,
+    checkedAt: requireTimestamp(record.lastParsedAt ?? record.lastFetchedAt),
+  });
+}
+
+function normalizeReusableCurrentSourceSnapshot(snapshot, domainId) {
+  const definition = SUPPLEMENTARY_SOURCE_DEFINITIONS[domainId];
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)
+      || snapshot.sourceKey !== definition.sourceKey
+      || snapshot.locator !== definition.locator
+      || snapshot.entityFamily !== definition.entityFamily
+      || snapshot.sourceKind !== definition.sourceKind
+      || !/^[a-f0-9]{64}$/.test(String(snapshot.contentHash ?? '').trim())) {
+    throw new Error(`local ${domainId} source reuse snapshot is invalid`);
+  }
+  return Object.freeze({
+    ...definition,
+    contentHash: String(snapshot.contentHash).trim(),
+    checkedAt: requireTimestamp(snapshot.checkedAt),
+  });
 }
 
 export function resolveSupplementaryPreviewExecutionMode(args = {}) {
@@ -435,8 +503,8 @@ function parseArgs(argv) {
   }));
 }
 
-function sha256Json(value) {
-  return `sha256:${createHash('sha256').update(JSON.stringify(value), 'utf8').digest('hex')}`;
+function sha256Bytes(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
 function requireDomain(value) {

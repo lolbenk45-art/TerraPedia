@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l1",
+  "runId": "items_l1_auto_0dfbd093f42b072192297f2a727d9c4d",
+  "domainId": "items",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-17T00:21:19.974Z",
+  "approvalMode": "AUTO_APPLY_ACTIVATED",
+  "executionMode": "ACTIVATION_GATED_AUTO",
+  "policy": {
+    "domainId": "items",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:a3c7701fb6170b8a09171194328ce672a58665982c0c3649cf77b82e2eb11cc6",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "items",
+        "generation": 0
+      }
+    ],
+    "projectionHash": "sha256:7e9449c14cad34013d09eb52acfd3251590a8d26b441f73ac764e9cf55fd75e1"
+  },
+  "baselineFingerprint": "sha256:cafff72489e0d6f8919e18ae50496ca69c42f5f1c2c772af48bbfb7fc0e9bc6c",
+  "source": {
+    "path": "reports/authorization/canonical/automation-items-items_l1_auto_0dfbd093f42b072192297f2a727d9c4d.source.json",
+    "sha256": "sha256:9f28924a73b57aab8a6305dc1cf0496a65d05387ef29d3f20cfd435a1cecaaec"
+  },
+  "evidenceHash": "sha256:d80d7cba36b79b28ebdee797336d4f8569d6710d378a4c8a298ad73532abb9a8",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:cafff72489e0d6f8919e18ae50496ca69c42f5f1c2c772af48bbfb7fc0e9bc6c",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "items"
+      }
+    ],
+    "sourceSha256": "sha256:9f28924a73b57aab8a6305dc1cf0496a65d05387ef29d3f20cfd435a1cecaaec",
+    "importPlan": {
+      "entity": "items",
+      "recordCount": 6131,
+      "itemDependencyCount": 6131,
+      "automaticSourceFingerprint": "sha256:20ea8b5f7fe89ab8f16256eedbf38c92b57d591fa284495eff73bdea8634accd"
+    }
+  },
+  "logicalDiffHash": "sha256:088726d2dd294bf124bf12d3ebf4d1a60f61adf8f0e2549596dab457b7fe7a60",
+  "decisionHash": "sha256:37833d31f090f0d6f5710ab4e752901a9a2ee0ec69460699e8df5267ba411767",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "items"
+    }
+  ],
+  "importPlan": {
+    "entity": "items",
+    "recordCount": 6131,
+    "itemDependencyCount": 6131,
+    "automaticSourceFingerprint": "sha256:20ea8b5f7fe89ab8f16256eedbf38c92b57d591fa284495eff73bdea8634accd"
+  },
+  "bundleHash": "sha256:1b97b50138fe2015bca1d15a5842434f90387910b42e08f107198dc27d18789e"
+}

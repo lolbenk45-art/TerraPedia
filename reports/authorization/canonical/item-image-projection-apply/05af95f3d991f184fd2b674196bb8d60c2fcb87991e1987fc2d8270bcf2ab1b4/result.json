@@ -1,0 +1,61 @@
+{
+  "resultKind": "canonical_item_image_projection_apply_result",
+  "operationId": "canonical-item-image-projection-apply",
+  "contractVersion": "item-image-projection-apply-v1",
+  "status": "completed",
+  "apply": true,
+  "inputContractPath": "reports/authorization/canonical/item-image-projection-apply/05af95f3d991f184fd2b674196bb8d60c2fcb87991e1987fc2d8270bcf2ab1b4/input.json",
+  "inputContractSha256": "sha256:4039d3a8d0e71df3bfc12a7039953452b984943c6778894faf614eb8709fd23c",
+  "proposalPath": "reports/authorization/canonical/item-image-projection-apply/05af95f3d991f184fd2b674196bb8d60c2fcb87991e1987fc2d8270bcf2ab1b4/proposal.json",
+  "proposalSha256": "sha256:08ee95922812c05077e8202b42b12a3686c6b44444f595b61552c385f168350b",
+  "snapshotPath": "reports/authorization/canonical/item-image-projection-apply/05af95f3d991f184fd2b674196bb8d60c2fcb87991e1987fc2d8270bcf2ab1b4/snapshot.json",
+  "snapshotSha256": "sha256:23e0424621164b777f0d065ef5c13b46a11b76c78166af4e72b5b6f3ad02a35c",
+  "proposalAuthorization": {
+    "path": "reports/authorization/canonical/item-image-projection-apply/05af95f3d991f184fd2b674196bb8d60c2fcb87991e1987fc2d8270bcf2ab1b4/proposal-read.owner-input.json",
+    "sha256": "sha256:5c7d68bfe686a1e107848181aac260e177284f47395e02c6b9616114a3249574",
+    "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-09",
+    "authorizationHash": "sha256:97bc789f2e36fdd0ee97242666b629025a912b65950cd12211567a481a5008ef"
+  },
+  "managedUrlPolicy": {
+    "sourcePath": "pipelines/relation/managed-image-url-policy.mjs",
+    "sourceSha256": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+    "resolvedPrefixesSha256": "sha256:1c691b5a16a94629c393895b67ba03fee294f25f644b4e99e2a10452ca1d046c"
+  },
+  "lineage": {
+    "inputContractPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/input.json",
+    "inputContractSha256": "sha256:42e74915e1b0259019587005f1d91a8601b14747d297963188aa5948bb474b41",
+    "resultPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/result.json",
+    "resultSha256": "sha256:0d301de02045d12a937d6ecc072d32470aa1466964b40c80e749977ffc26f708",
+    "bundlePath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/bundle.json",
+    "bundleSha256": "sha256:2c55c37a0fadaaafcaba3cb1fc4a0323fe6fbf76bc0cb9cf73ded8e6e0072f83",
+    "applySnapshotPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/snapshot.json",
+    "applySnapshotSha256": "sha256:4197e9ad0559e46be63c6493b90856a99a19e9c88e6cb2a914264c64c2e5a29b",
+    "authorizationPacketPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/packet.json",
+    "authorizationPacketSha256": "sha256:6bb5de7d013d73356644fca4cf24b73b56ef209847ec2c8288075d0d679ef589",
+    "decisionIdentity": "canonical-item-image-lineage-apply-20260821-admin-02",
+    "packetHash": "sha256:965ee76230b64a2082ccc9380a15b087bb5c2c42fff5daf6f226b7ce0c516ab1",
+    "dispatchPermitHash": "sha256:9b6232a06bc541a40b469b011004562e972f8da61c4103325f467cc18bc24eea",
+    "completedRowCount": 6131
+  },
+  "target": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "databases": {
+      "local": "terria_v1_local",
+      "maint": "terria_v1_maint",
+      "relation": "terria_v1_relation"
+    },
+    "ownedDatabase": "terria_v1_relation",
+    "ownedTable": "projection_items",
+    "ownedColumn": "image",
+    "fingerprintSha256": "sha256:f8290f4df272d5d0301e401e982e5b199c3a0e69f30d3642dfe1b18d139e3e5a"
+  },
+  "keySetSha256": "sha256:45631dd4d1de9095f523101e0ebc283233f8e847d87484930e1937c31b4d2359",
+  "relationRowsSha256": "sha256:c8a91f3666801ab7a2e4ea2e7fce7aa143617031a3a0835f99c794be35752f41",
+  "projectionBeforeSha256": "sha256:2f193faab0db4f07ba2dd916ff9df8bc10c4a6bd18781e2dae32708d63a42d23",
+  "projectionAfterSha256": "sha256:2f193faab0db4f07ba2dd916ff9df8bc10c4a6bd18781e2dae32708d63a42d23",
+  "targetRowCount": 6131,
+  "changedRowCount": 0,
+  "completedAt": "2026-08-21T07:48:29.404Z"
+}

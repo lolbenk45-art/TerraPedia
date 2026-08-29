@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized local eight-domain automation: promote the frozen Items policy from L0/DISABLED to L1/ACTIVE.",
+  "authorizationReference": "user://conversation/2026-08-17/eight-domain-base-automation",
+  "decisionIdentity": "automation-items-l1-policy-promotion-20260817-01"
+}

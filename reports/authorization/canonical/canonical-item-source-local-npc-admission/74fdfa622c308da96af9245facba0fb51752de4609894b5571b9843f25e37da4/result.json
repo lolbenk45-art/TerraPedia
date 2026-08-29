@@ -1,0 +1,27 @@
+{
+  "resultKind": "item_source_local_npc_admission_result",
+  "operationId": "canonical-item-source-local-npc-admission",
+  "status": "completed",
+  "apply": true,
+  "attemptId": "74fdfa622c308da96af9245facba0fb51752de4609894b5571b9843f25e37da4",
+  "attemptRoot": "reports/authorization/canonical/canonical-item-source-local-npc-admission/74fdfa622c308da96af9245facba0fb51752de4609894b5571b9843f25e37da4",
+  "inputContractPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/74fdfa622c308da96af9245facba0fb51752de4609894b5571b9843f25e37da4/input.json",
+  "proposalPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/74fdfa622c308da96af9245facba0fb51752de4609894b5571b9843f25e37da4/proposal.json",
+  "proposalSha256": "sha256:d35afe4b0ac1cc3a4eb4daf29fddbde0c1bfcc08fc2c0022ca41bafc9b9e9fe5",
+  "proposalScopeHash": "sha256:63cbd03487b7e7a898d5f2b92036e5b7d7ed145aa1ccce845d75781f92fdcdb4",
+  "selectedIdentityHash": "sha256:4811188258e31db264d66dfa5d0a43c4b62064d101ac167f3f0c6ef1087168f1",
+  "beforeFingerprint": "sha256:edfa956b8d3b9848a62044d5519c54ea4858001bf0b7f83d4c91bc5bc06dbe81",
+  "afterFingerprint": "sha256:ee83190d1db7b42eb2554813f2aa234fd0a581a4fbb561f8c777d248e012d195",
+  "changedRowCount": 112,
+  "insertedCounts": {
+    "terria_v1_local.source_dataset_landings": 8,
+    "terria_v1_maint.maint_npc_crawler_facts": 8,
+    "terria_v1_relation.item_source_facts": 22,
+    "terria_v1_relation.item_source_details": 22,
+    "terria_v1_relation.item_npc_shop_relations": 21,
+    "terria_v1_relation.item_npc_loot_relations": 1,
+    "terria_v1_local.item_acquisition_sources": 21
+  },
+  "reconciledCount": 9,
+  "completedAt": "2026-08-25T01:00:00.526Z"
+}

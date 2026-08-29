@@ -86,6 +86,51 @@ test('auditBiomeIconReadiness separates managed, wiki fallback, and invalid icon
   assert.deepEqual(report.invalidUrlBiomes.map((row) => row.code), ['bad']);
 });
 
+test('auditBiomeIconReadiness accepts relative managed object paths', () => {
+  const report = auditBiomeIconReadiness({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: ['http://localhost:19000/terrapedia-images'],
+    biomes: [{
+      id: 1,
+      code: 'forest',
+      nameEn: 'Forest',
+      nameZh: '森林',
+      iconUrl: '/terrapedia-images/items/2026/08/21/forest.png'
+    }]
+  });
+
+  assert.equal(report.status, 'ok');
+  assert.equal(report.summary.managedIconRows, 1);
+  assert.equal(report.summary.invalidUrlRows, 0);
+});
+
+test('auditBiomeIconReadiness rejects an absolute URL from an unconfigured origin', () => {
+  const report = auditBiomeIconReadiness({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: ['http://localhost:19000/terrapedia-images'],
+    biomes: [{
+      id: 1,
+      code: 'forest',
+      nameEn: 'Forest',
+      nameZh: '森林',
+      iconUrl: 'http://localhost:9000/terrapedia-images/items/2026/08/21/forest.png'
+    }]
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.equal(report.summary.managedIconRows, 0);
+  assert.equal(report.summary.wikiFallbackRows, 1);
+  assert.equal(report.summary.invalidUrlRows, 0);
+});
+
+test('parseAuditBiomeIconReadinessArgs resolves managed prefixes from local stack config', () => {
+  const options = parseAuditBiomeIconReadinessArgs([]);
+
+  assert.ok(options.managedUrlPrefixes.length > 0);
+  assert.ok(options.managedUrlPrefixes.every((prefix) => prefix.includes('/terrapedia-images/items/')));
+  assert.ok(options.managedUrlPrefixes.every((prefix) => !prefix.includes('localhost:9000')));
+});
+
 test('parseAuditBiomeIconReadinessArgs rejects mutation flags', () => {
   assert.throws(
     () => parseAuditBiomeIconReadinessArgs(['--write-db=true']),

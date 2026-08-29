@@ -1,0 +1,9 @@
+{
+  "actor": "Owner (user)",
+  "reason": "Approve the exact fresh Item local NPC source admission proposal after independent rebuild; admit 28 corroborated sources with 9 exact local reconciliation rows in one governed transaction.",
+  "authorizationReference": "devlog://2026-08-25/item-source-local-npc-admission/exact-owner-approval-20260825-060913",
+  "decisionIdentity": "owner-item-source-local-npc-admission-20260825-060913-01",
+  "operationId": "canonical-item-source-local-npc-admission",
+  "proposalSha256": "sha256:d35afe4b0ac1cc3a4eb4daf29fddbde0c1bfcc08fc2c0022ca41bafc9b9e9fe5",
+  "batchBindingSha256": "sha256:63cbd03487b7e7a898d5f2b92036e5b7d7ed145aa1ccce845d75781f92fdcdb4"
+}

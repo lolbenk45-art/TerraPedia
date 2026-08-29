@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-08-25T00:28:45.743Z",
+  "expiresAt": "2026-08-26T00:28:45.743Z",
+  "operationId": "canonical-item-source-local-npc-admission",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:745f20980cb045b391ecb97a8f6603cffe7f63c12abb21d3a013da05de7fd17f",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/input.json",
+      "sizeBytes": 11598,
+      "contentHash": "sha256:f02c3678835112ef33c4f0b0f3e1225999890da066c45fc64b03b28ad8eb16a8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/proposal.json",
+      "sizeBytes": 855435,
+      "contentHash": "sha256:d35afe4b0ac1cc3a4eb4daf29fddbde0c1bfcc08fc2c0022ca41bafc9b9e9fe5"
+    },
+    {
+      "path": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/item-source-partition.json",
+      "sizeBytes": 2262494,
+      "contentHash": "sha256:ffc11014fa5c0e64357850fc74e37186adaa710bf88879be0b8d3c7bf488b70a"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/angler.latest.json",
+      "sizeBytes": 3497,
+      "contentHash": "sha256:709618dc170584de7cc4a048251c89f8ca9f5f371e0d115c436967570d318da8"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/angler.latest.json",
+      "sizeBytes": 281,
+      "contentHash": "sha256:b86a4d18d6c6e347a57f4e3998b629654df15ffb0dcdfb61a167cf0e58ae6759"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/arms-dealer.latest.json",
+      "sizeBytes": 15993,
+      "contentHash": "sha256:0be71156a439823c0d80dc763157fee92b61da5fb686d9519e00b079cc02af87"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/arms-dealer.latest.json",
+      "sizeBytes": 291,
+      "contentHash": "sha256:9ee77fdc815cc202d64be4aa89136f5f5a8a770d0e5bac6e86889112ca82a486"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/clothier.latest.json",
+      "sizeBytes": 40973,
+      "contentHash": "sha256:10fb53aa0bcca3183110b81e81b61af37f854efc62097c1e6706d7cdb2e137a1"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/clothier.latest.json",
+      "sizeBytes": 285,
+      "contentHash": "sha256:6b45648846e112420306ec570e4d80ef0df659667576ec1efb54f144d23fab21"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/crawdad.latest.json",
+      "sizeBytes": 9078,
+      "contentHash": "sha256:c965a47474d2bac49c45090c1f28177c3844947b17e0e336413ff771c80a3910"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/crawdad.latest.json",
+      "sizeBytes": 283,
+      "contentHash": "sha256:57fdecf9376f728bcd2475eead1dc975fc1a928b36485f52fe0d07fdabd1ec22"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/dryad.latest.json",
+      "sizeBytes": 38022,
+      "contentHash": "sha256:2c636acf81074c46cd53a9d2102d4b1d5c239f5514afc1325b607c6db77c6775"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/dryad.latest.json",
+      "sizeBytes": 279,
+      "contentHash": "sha256:851db42c9576132d729eab15a9aab7cc84d365d46550afee7757f9dc11585f51"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/dye-trader.latest.json",
+      "sizeBytes": 9800,
+      "contentHash": "sha256:f203391490d439e1c0482b94f3861f4642be66c1e5dd30be453ac71970d70ce6"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/dye-trader.latest.json",
+      "sizeBytes": 289,
+      "contentHash": "sha256:af89cfe7257825df01d0ccd8ae902b69a72efce35f73f2af3042c9912aa643d3"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/giant-shelly.latest.json",
+      "sizeBytes": 7523,
+      "contentHash": "sha256:1724c67ca972cf1c372959f491a0fc79819378a5b2693e61129845837111131d"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/giant-shelly.latest.json",
+      "sizeBytes": 293,
+      "contentHash": "sha256:4821af44bea80daf84fea8d70709e27c57b7fafcd8a2f3952ef137ccd5a579cf"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/goblin-tinkerer.latest.json",
+      "sizeBytes": 7673,
+      "contentHash": "sha256:8613d1f5c8ceadb1dc8302f4ecb73e0b39d294b0b039ded55c71bc23d61c18f8"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/goblin-tinkerer.latest.json",
+      "sizeBytes": 299,
+      "contentHash": "sha256:563fc4f96441accad7234323a614f19e46d65a6e79a5cea4ad050edf7c5a669a"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/golfer.latest.json",
+      "sizeBytes": 27605,
+      "contentHash": "sha256:094a7ed5b499f6e46bce4ca091b9dfdf9d772822e17fedc1c2a1cebfbd284542"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/golfer.latest.json",
+      "sizeBytes": 281,
+      "contentHash": "sha256:ad4906702cb0b221cb5e5546c66f8924f957d7306764e178ccac88670a48addf"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/hemogoblin-shark.latest.json",
+      "sizeBytes": 5694,
+      "contentHash": "sha256:6a2b389a1252698045c77846686af891f9c777365d7d4ffc6cc5599fcc418768"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/hemogoblin-shark.latest.json",
+      "sizeBytes": 301,
+      "contentHash": "sha256:316dd6d24f9a6b942ff7f38c128b031d3a679ac443d61c8c35802fe49bf46b77"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/pirate.latest.json",
+      "sizeBytes": 7772,
+      "contentHash": "sha256:053acace1580db41fc1bf7940834d56f9d2a65a60e1cd84119348c38937576ff"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/pirate.latest.json",
+      "sizeBytes": 281,
+      "contentHash": "sha256:694d7180359caf571a4ce933d1e5b6ecddeda159d23e5a44383933807086c17e"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/princess.latest.json",
+      "sizeBytes": 22603,
+      "contentHash": "sha256:498245511ae87d2e4de1775342ce0ed69a83bb476ede0808e0cc476105089cb9"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/princess.latest.json",
+      "sizeBytes": 285,
+      "contentHash": "sha256:fba3d08bc10d7acc61b262ec303810c649d96905e4cc6f338c1d4ecfd56d36ea"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/salamander.latest.json",
+      "sizeBytes": 10688,
+      "contentHash": "sha256:e709452452998b2a405c15c086da93a44c6b3d8bb21f90d5ca6bfe31d6a4bc91"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/salamander.latest.json",
+      "sizeBytes": 289,
+      "contentHash": "sha256:21219869c9b4f830acd029c9239354b2a075039ba3ad07f971a3f3d1deae0930"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/santa-claus.latest.json",
+      "sizeBytes": 23571,
+      "contentHash": "sha256:e459b090fb0082037988a22dd1dc8ec1e817fe19614ab0883777c939701224db"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/santa-claus.latest.json",
+      "sizeBytes": 291,
+      "contentHash": "sha256:a0a184aedda028e0a8e6121562c698152b6232cf3385c38e2f40286b00459532"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/spore-skeleton.latest.json",
+      "sizeBytes": 6202,
+      "contentHash": "sha256:49b07e705067bf39c2a1787058a708f4db36ea9a039e218d3534a62248ea1296"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/spore-skeleton.latest.json",
+      "sizeBytes": 297,
+      "contentHash": "sha256:3daa542c220106c4cd7db1b9e29b8c6d160c845358be984df33e292a89c7e2a7"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/steampunker.latest.json",
+      "sizeBytes": 27511,
+      "contentHash": "sha256:ce1dbe12abbf8df576a098fef869bd60cad1844659a339e68e4a56cb221980ac"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/steampunker.latest.json",
+      "sizeBytes": 291,
+      "contentHash": "sha256:28c7c41c7ee4891299c3b6b3833e19e7d9aee8e0a10ac377daef2f6ce9ac72bd"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/stylist.latest.json",
+      "sizeBytes": 12960,
+      "contentHash": "sha256:54190d11bff28b84ecae5b8f2ba569467938071cca189ef440153b55320d33f3"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/stylist.latest.json",
+      "sizeBytes": 283,
+      "contentHash": "sha256:9d2983eb1411eba752e30bd81ca31ff62561460b9c6a600c384a9a7787a5dea3"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/tavernkeep.latest.json",
+      "sizeBytes": 29399,
+      "contentHash": "sha256:8340515578dddccc434fc34f39d0d196965d1a55e9f2bddf6ff03c4a4a014118"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/tavernkeep.latest.json",
+      "sizeBytes": 289,
+      "contentHash": "sha256:1d3a308bd6ce2891994a7151df11b857bb6d14e24a2ad3458f97084622778b57"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/traveling-merchant.latest.json",
+      "sizeBytes": 79687,
+      "contentHash": "sha256:793daaf9a1f0b17f43697e932b7470c517b79716648a39b9ff12bf0565dbb02e"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/traveling-merchant.latest.json",
+      "sizeBytes": 305,
+      "contentHash": "sha256:26c7786fc03c2f1d925d485cbc0f9974f089d4db6293580f605bc0a450878893"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/undead-miner.latest.json",
+      "sizeBytes": 7878,
+      "contentHash": "sha256:18531efdb005beee18bf06042c0d20fc7e9791a4c85b2e1f4225fe61638bb9b5"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/undead-miner.latest.json",
+      "sizeBytes": 293,
+      "contentHash": "sha256:e7461ab9a7a0de2d8541b616cd8f6d088e09510a28a3ca4422315ee14cb0cfab"
+    },
+    {
+      "path": "data/wiki-crawler/normalized-light/npc/witch-doctor.latest.json",
+      "sizeBytes": 17455,
+      "contentHash": "sha256:a749df843dc597951b0fd30c7f9331f9c7735eebc796d301fa74bf141259625b"
+    },
+    {
+      "path": "data/wiki-crawler/audit/npc/witch-doctor.latest.json",
+      "sizeBytes": 293,
+      "contentHash": "sha256:d4a94acc35cbc82a0e7d822aa4cf7826c8fe262f5320c358f5bffbe61d5ff35d"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:447e6fa153d8c7dbfb9d85e70539485be88e19b0ff8ff41e806d39db5107caee",
+  "executionManifest": {
+    "artifactDate": "2026-08-25",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:949f1f82e79992d4cd1271fe4193482073c435c5106aa872dd400cd207598ebb",
+        "path": "pipelines/relation/apply-item-source-local-npc-admission.mjs"
+      },
+      {
+        "contentHash": "sha256:ac1cce13d10907ade6c101b5d53a80da6051d7bc1b6b6901e8d899ad5951d32f",
+        "path": "pipelines/relation/build-item-source-local-npc-admission-proposal.mjs"
+      },
+      {
+        "contentHash": "sha256:8bfb585cba79275ecd74ec47814773b5981e89d2fec688be6df11f227549f57d",
+        "path": "pipelines/relation/item-source-local-npc-admission-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:87497c332e0ab11dd1e16a2a8315f54ab1f4a08b7ae619cf95165ca67182cf86",
+        "path": "pipelines/relation/item-source-local-npc-admission-db.mjs"
+      },
+      {
+        "contentHash": "sha256:5bc245c862e3ed915cfcb9e7e28474b43595d0569ba397e0ee6e0b8c39f975d6",
+        "path": "pipelines/relation/item-source-local-npc-admission.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:aa92e9fcbe01e4a342d76aa0fecbbc620e8ce520c995fa4937b3ce139844ced6",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:dc89c5cd194ada85f2aa6ba9a83ec8005599e350c6ca489305d54ac138275876",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:a5902791b9bc4d3190d0575355d62eece65b709f768f7aa188819dd5251a8541",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:8b40021ae3decd69eff8bae96c7c4653b283f50d8f69fddaef63b56baf5f191b",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:9a1ac7186763c5e9e773116399ac9f839cf99747bfa5a7ba37c4681b55b21f16",
+        "path": "pipelines/npc-canonical/npc-canonical-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:7b86e70b7e1cc5d2874abed1cd10aabf4df2deb02cf4ef18138ef815af2ddeed",
+        "path": "pipelines/relation/item-source-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:ff5b2aea26119759313f78116d4d9830a0688db3ab650a27209c8b14142df87c",
+        "path": "pipelines/audit/build-npc-bridge-retirement-report.mjs"
+      },
+      {
+        "contentHash": "sha256:2e715633d9b4e8553eb09fe9f48c873e597b93bba2a602c7149110af260c2a57",
+        "path": "pipelines/relation/relation-trace.mjs"
+      },
+      {
+        "contentHash": "sha256:bb9b6c0b0af532a5d5f0fc502b3cdde951087079166893778751883e57602b8f",
+        "path": "pipelines/relation/source-condition-normalizer.mjs"
+      },
+      {
+        "contentHash": "sha256:d926b6a07a14240e9683ddd4bc5598d7153e8e238377e7d6b4c3d63b5f54f5d0",
+        "path": "pipelines/lib/npc-loot-source-taxonomy.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/relation/apply-item-source-local-npc-admission.mjs",
+      "--input-contract=reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/input.json",
+      "--apply=true",
+      "--output=reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/result.json"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_item_source_local_npc_admission",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/input.json"
+    ],
+    "itemSourceLocalNpcAdmissionAttempt": {
+      "attemptId": "e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb",
+      "attemptRoot": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb",
+      "inputPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/input.json",
+      "manifestPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/execution-manifest.json",
+      "packetPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/packet.json",
+      "permitPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/permit.json",
+      "proposalPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/proposal.json",
+      "requestPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/request.json",
+      "resultPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/result.json"
+    },
+    "networkAccess": false,
+    "operationId": "canonical-item-source-local-npc-admission",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/result.json"
+    ],
+    "ownershipKeys": [
+      "local.source_dataset_landings.item_source_npc_admission_insert",
+      "maint.maint_npc_crawler_facts.item_source_npc_admission_insert",
+      "relation.item_source_facts.item_source_npc_admission_insert",
+      "relation.item_source_details.item_source_npc_admission_insert",
+      "relation.item_npc_shop_relations.item_source_npc_admission_insert",
+      "relation.item_npc_loot_relations.item_source_npc_admission_insert",
+      "local.item_acquisition_sources.item_source_npc_admission_reconciliation"
+    ],
+    "progressPaths": [],
+    "reportPaths": [
+      "reports/authorization/canonical/canonical-item-source-local-npc-admission/e503c8ac3693dc22c2131057e0b67fdb22d4cb7fe262b2b3ffdffa459806e8bb/result.json"
+    ],
+    "requiredOperationIds": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "Owner (user)",
+  "reason": "Approve the exact Item local NPC source admission retry-03 after archived-row, MySQL DATETIME boundary, and timezone-normalized readback repairs; admit 28 corroborated sources with 9 exact local reconciliations in one governed transaction.",
+  "authorizationReference": "devlog://2026-08-25/item-source-local-npc-admission/retry-03",
+  "decisionIdentity": "owner-item-source-local-npc-admission-20260825-082759-retry-03",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:bc412f51940b2920cdd6c141a3bc15c5e84dd790dd6014a5492b8c1438e32900",
+  "authorizedAt": "2026-08-25T00:39:03.251Z",
+  "packetHash": "sha256:53f927e3fae297a7ab00d4305d3351749092da3edda30891b85498905a07528f"
+}

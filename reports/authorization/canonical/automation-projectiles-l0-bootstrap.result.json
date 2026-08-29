@@ -1,0 +1,48 @@
+{
+  "databaseName": "terria_v1_local",
+  "domainId": "projectiles",
+  "ownerUsername": "admin",
+  "ownerAction": "unchanged",
+  "policyAction": "created",
+  "policyVersion": 1,
+  "previousLevel": null,
+  "level": "L0",
+  "policyHash": "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a",
+  "formalAuthorization": {
+    "reference": "user://conversation/2026-08-17/eight-domain-base-automation",
+    "approvedBy": "admin",
+    "decisionIdentity": "automation-projectiles-l0-bootstrap-20260817-retry-02",
+    "packetHash": "sha256:805b3f2c467a53e1f4b4d713c5676b49b6496dfe39a01309555d92a0cd184839"
+  },
+  "intendedStatements": [
+    {
+      "sql": "INSERT INTO crawler_automation_policy_version (domain_id, policy_version, level, policy_json, policy_hash, created_by, approved_by, reason) VALUES (?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?)",
+      "params": [
+        "projectiles",
+        1,
+        "L0",
+        "{\"absoluteDisableCap\":0,\"absoluteInsertCap\":1200,\"absoluteUpdateCap\":1200,\"ratioDisableCap\":0,\"requireSnapshot\":true}",
+        "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a",
+        "admin",
+        "admin",
+        "User-authorized local eight-domain automation: bootstrap the Projectiles L0 policy against the refreshed post-Items policy set."
+      ]
+    },
+    {
+      "sql": "INSERT INTO crawler_automation_policy (domain_id, current_version, current_level, operational_state) VALUES (?, ?, ?, ?)",
+      "params": [
+        "projectiles",
+        1,
+        "L0",
+        "DISABLED"
+      ]
+    }
+  ],
+  "applied": true,
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l0-bootstrap",
+  "operationalState": "DISABLED",
+  "decisionIdentity": "automation-projectiles-l0-bootstrap-20260817-retry-02",
+  "packetHash": "sha256:805b3f2c467a53e1f4b4d713c5676b49b6496dfe39a01309555d92a0cd184839",
+  "generatedAt": "2026-08-17T00:17:20.474Z"
+}

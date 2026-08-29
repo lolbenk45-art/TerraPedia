@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l0-bootstrap",
+  "databaseName": "terria_v1_local",
+  "domainId": "projectiles",
+  "level": "L0",
+  "operationalState": "DISABLED",
+  "policy": {
+    "absoluteInsertCap": 1200,
+    "absoluteUpdateCap": 1200,
+    "absoluteDisableCap": 0,
+    "ratioDisableCap": 0,
+    "requireSnapshot": true
+  }
+}

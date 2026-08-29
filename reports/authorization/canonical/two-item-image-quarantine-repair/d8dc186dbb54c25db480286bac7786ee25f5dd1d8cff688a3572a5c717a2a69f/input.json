@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-two-item-image-quarantine-repair",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:e082fd516465924fbe5517312fc2df580669111aa7926577cdee9f54eee78d26",
+  "previewSha256": "sha256:35d3fbb008c41416b03dc31c0774ef7b2e4c7a423dfdfb52aab7f7b28ae90af0",
+  "evidenceReportSha256": "sha256:a4af79c7a32835de72d18e3cfe76c2ac82fa9b1cc37502363534bc4b26cde05f",
+  "expectedCounts": {
+    "identities": 2,
+    "maint": 2,
+    "relation": 2,
+    "local": 2,
+    "projection": 2,
+    "item": 2
+  },
+  "writeTargets": [
+    "maint.maint_item_images.source_file_title",
+    "maint.maint_item_images.source_page",
+    "maint.maint_item_images.source_revision_timestamp",
+    "maint.maint_item_images.original_url",
+    "maint.maint_item_images.cached_url",
+    "relation.relation_item_images.source_file_title",
+    "relation.relation_item_images.source_page",
+    "relation.relation_item_images.source_revision_timestamp",
+    "relation.relation_item_images.original_url",
+    "relation.relation_item_images.cached_url",
+    "local.item_images.source_file_title",
+    "local.item_images.source_page",
+    "local.item_images.source_revision_timestamp",
+    "local.item_images.original_url",
+    "local.item_images.cached_url",
+    "relation.projection_items.image",
+    "local.items.image"
+  ]
+}

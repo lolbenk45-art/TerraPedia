@@ -1,0 +1,31 @@
+{
+  "auditName": "npc-loot-gap-closure",
+  "generatedAt": "2026-08-21T21:04:32.386Z",
+  "options": {
+    "maintDatabase": "terria_v1_maint",
+    "relationDatabase": "terria_v1_relation",
+    "localDatabase": "terria_v1_local",
+    "writeReport": true,
+    "dateTag": "2026-08-21"
+  },
+  "auditStatus": "pass",
+  "evidenceHealth": "sufficient",
+  "artifactStatuses": [],
+  "scanSummary": {
+    "relationAuditRows": 0,
+    "mimicVariantRows": 0
+  },
+  "summary": {
+    "totalGaps": 0,
+    "materializable": 0,
+    "blocked": 0,
+    "byClassification": {},
+    "totals": {
+      "maintCounts": 4279,
+      "relationCounts": 1542,
+      "projectionCounts": 418,
+      "localCompatCounts": 1888
+    }
+  },
+  "gaps": []
+}

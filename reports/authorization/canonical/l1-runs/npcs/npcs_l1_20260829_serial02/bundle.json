@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-npcs-l1",
+  "runId": "npcs_l1_20260829_serial02",
+  "domainId": "npcs",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T00:58:00.639Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "npcs",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:987a5b29c38804aa3d6284b00f0384f7acc8a127b940a1db54acdd9510d01d80",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "npcs",
+        "generation": 9
+      }
+    ],
+    "projectionHash": "sha256:d59c5dcb81761cf340c87d163a42c13117fdc03935ead4cf07c1995b362b9b3b"
+  },
+  "baselineFingerprint": "sha256:68c55b3f8efc58379b51a4c7d80697404f2080e382f6f20906f09594dbc76125",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/npcs/npcs_l1_20260829_serial02/source.json",
+    "sha256": "sha256:c70f3816220c434a9ff77b744ec2dbb926b1bf18658ad072ba5ce1324c1aeac1"
+  },
+  "evidenceHash": "sha256:1a21d5c64721b25b4f23dfd8b8a3dd12a58fd7f1e53409759ec3c5f337b01eba",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:68c55b3f8efc58379b51a4c7d80697404f2080e382f6f20906f09594dbc76125",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "npcs"
+      }
+    ],
+    "sourceSha256": "sha256:c70f3816220c434a9ff77b744ec2dbb926b1bf18658ad072ba5ce1324c1aeac1",
+    "importPlan": {
+      "entity": "npcs",
+      "recordCount": 762,
+      "itemDependencyCount": 6131,
+      "sourceKind": "module",
+      "sourceResult": "local"
+    }
+  },
+  "logicalDiffHash": "sha256:11e5ad942e7d70ddef74dcd1b11b2face06543f3e6c7acd2022924a19535b1c1",
+  "decisionHash": "sha256:efb2b11aa7ea71ec8e298619f075c4a7b93edfad7a70903f89be9de52a311bd7",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "npcs"
+    }
+  ],
+  "importPlan": {
+    "entity": "npcs",
+    "recordCount": 762,
+    "itemDependencyCount": 6131,
+    "sourceKind": "module",
+    "sourceResult": "local"
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/npcs/npcs_l1_20260829_serial02/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/npcs/npcs_l1_20260829_serial02/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/npcs/npcs_l1_20260829_serial02/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/npcs/npcs_l1_20260829_serial02/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:4a5dd40a29aa7e77b3e9a693bac6559c37e075c893e76e3bad4f2fdac099e7a9"
+}

@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-08-18T21:22:58.450Z",
+  "expiresAt": "2026-08-19T21:22:58.450Z",
+  "operationId": "canonical-npc-projection-text-identity-repair",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:3cc524afe79c04a5b4d3762ff4ea7e74311c96edbcafb6874e1d71cf63781028",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-npc-projection-text-identity-repair.input.json",
+      "sizeBytes": 495,
+      "contentHash": "sha256:97a281971ec1cc20ac7ebdeb1b55b2cfc104f3f99fc120d8c898f2f33fde04e2"
+    },
+    {
+      "path": "reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-text-identity-repair-preview.json",
+      "sizeBytes": 49690,
+      "contentHash": "sha256:89ee87fadca7d997236caf9c14e807e59ad0787840115d93543fbed386654b0f"
+    }
+  ],
+  "policySetHash": "sha256:b4eb34d84c604e15677cc5075599fc7d91a1af571bdf6351e7a4dba234ba6468",
+  "executionManifestHash": "sha256:01e117b3c4215b0f1d1f3f7b9493fe500bed5dd09c1b558700e6d33d6fb9556f",
+  "executionManifest": {
+    "artifactDate": "2026-08-19",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:5a5415360421153d03d3df6869513e526ffa687a6515d36c492c02e641ae74ad",
+        "path": "pipelines/npc-canonical/npc-projection-text-identity-repair.mjs"
+      },
+      {
+        "contentHash": "sha256:fe448b7491b36e7e521c6f47938802d3bb89460450f8504fc621ecf86f76a8f6",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:a6a5374d60505aa29c0b81bb109cc9db14448a2cc8612ab6356374529f28e8ae",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:2b96a3261542ac193265ce8e2614ad06b3eca8c49764c168bdc840bbc4d43826",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:9eb403a7d428f72447689d00fe478cf5ebf71dd6fe86b6793f7f04c153d515d9",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:f6be3d6419b894b12ee311c5122374238a6e09aef1238a4b687fcbb978970fee",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/npc-canonical/npc-projection-text-identity-repair.mjs",
+      "--input=reports/authorization/canonical/canonical-npc-projection-text-identity-repair.input.json",
+      "--preview=reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-text-identity-repair-preview.json",
+      "--output=reports/authorization/canonical/canonical-npc-projection-text-identity-repair.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_npc_projection_text_identity_repair",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-npc-projection-text-identity-repair.input.json",
+      "reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-text-identity-repair-preview.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-npc-projection-text-identity-repair",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-npc-projection-text-identity-repair.result.json"
+    ],
+    "ownershipKeys": [
+      "relation.projection_npcs.loot_items_json"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [
+      "canonical-npc-independent-wiki-gg-variant-retirement"
+    ],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "User authorized all remaining internal exact-scope NPC closure operations; no external requests.",
+  "authorizationReference": "user-authorization-2026-08-19-all-internal-exact-scopes",
+  "decisionIdentity": "canonical-npc-projection-text-identity-repair-20260819-admin-12",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:2f94baccd84939459a14c644174bcc5f7d2d50b9932ab5eafaa9c7b6b29653fb",
+  "authorizedAt": "2026-08-18T21:22:58.450Z",
+  "packetHash": "sha256:97aa6b62fce5a1e16b586fc343300d3f29a24fd1ff5d64620067be588cb05d4f"
+}

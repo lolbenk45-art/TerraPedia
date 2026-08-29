@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-items-l1",
+  "domainId": "items",
+  "runId": "items_l1_20260829_boundary02",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence repair items boundary validation",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-items-boundary02",
+  "decisionIdentity": "eight-domain-l1-items-boundary02",
+  "authorizedAt": "2026-08-29T00:38:00.000Z",
+  "expiresAt": "2026-08-29T02:38:00.000Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:bfed9a8da3fa0a017390a870b2d93ad65398d7addd19ddb23b7a986fdf0c5c4b"
+}

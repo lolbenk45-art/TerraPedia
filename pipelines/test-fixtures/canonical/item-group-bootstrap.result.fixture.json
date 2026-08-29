@@ -1,0 +1,16 @@
+{
+  "fixtureOnly": true,
+  "notAuthorization": true,
+  "schemaVersion": 1,
+  "operationId": "canonical-item-group-bootstrap",
+  "status": "completed",
+  "runKey": "ig_20260728a12639ff",
+  "runtimeSnapshotHash": "8d3fb0b1f8d995b8c356e1de032f12cf359bf31f438287e6f5f47907f89fe819",
+  "compatibilitySnapshotHash": "54130fe0f9c3ebaffef3b933380172e9ec20e9337d2cae0409d8cd22b40d000d",
+  "counts": {
+    "landing": { "sourceCount": 4, "groupCount": 64 },
+    "maint": { "groupCount": 35, "memberCount": 163, "aliasCount": 72, "exclusionCount": 2 },
+    "relation": { "groupCount": 35, "memberCount": 163, "aliasCount": 72, "unresolvedCount": 0, "ambiguousCount": 0, "rejectedCount": 2 },
+    "local": { "groupCount": 34, "memberCount": 161, "aliasCount": 70 }
+  }
+}

@@ -629,6 +629,7 @@ public class AdminBossController {
         List<Path> candidates = List.of(
             Path.of(System.getProperty("user.dir")).resolve("data").resolve(relativePath).normalize(),
             Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve(relativePath).normalize(),
+            Path.of(System.getProperty("user.dir")).resolve("..").resolve("..").resolve("data").resolve(relativePath).normalize(),
             Path.of("data").resolve(relativePath).normalize()
         );
         for (Path candidate : candidates) {

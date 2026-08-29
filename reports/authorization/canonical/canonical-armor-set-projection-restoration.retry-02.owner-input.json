@@ -1,0 +1,8 @@
+{
+  "actor": "Owner (user)",
+  "reason": "Close the Armor projection blocker using the exact retry-02 proposal and governed readback; preserve all Item-source blockers and do not use the obsolete retry-01 decision.",
+  "authorizationReference": "devlog://2026-08-24/ten-blocker-exact-authorization/armor-retry-02",
+  "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-02-owner-13",
+  "operationId": "canonical-armor-set-projection-restoration",
+  "batchBindingSha256": "sha256:6052f70a743d1bdaa30eba8749ef23d031cc13150ee08abfb3c78d986ba4c930"
+}

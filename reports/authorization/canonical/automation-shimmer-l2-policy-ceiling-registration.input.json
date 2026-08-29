@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-shimmer-l2-policy-ceiling-registration",
+  "domainId": "shimmer",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/shimmer/40bfcbed13e490a4d968bfc7aeceacc1e048e343d95d239f94f1ff2dd6a27c16/artifact.json",
+  "artifactFileSha256": "sha256:d4e29113737a970695463712e7bd2fa16c549fc681b9900dc0da8d814e95ce24",
+  "artifactHash": "sha256:40bfcbed13e490a4d968bfc7aeceacc1e048e343d95d239f94f1ff2dd6a27c16",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+  "targetPolicySetHash": "sha256:d6d742db267b6765a6d50ab5944e107333aa7feae59aa26899d33e45079540cc",
+  "proposalOnly": false
+}

@@ -1,0 +1,15 @@
+{
+  "actionId": "domain-source-bosses",
+  "generatedAt": "2026-08-17T00:22:42.390Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/data/generated/domain-source-bosses-progress.latest.preview.json",
+  "current": 3,
+  "lastHeartbeatAt": "2026-08-17T00:22:42.390Z",
+  "message": "prepared bosses L1 frozen bundle",
+  "outputPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-bosses-first-l1.source.json",
+  "percent": 100,
+  "phase": "preview",
+  "reportPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-bosses-first-l1.bundle.json",
+  "startedAt": "2026-08-17T00:22:42.250Z",
+  "total": 3
+}

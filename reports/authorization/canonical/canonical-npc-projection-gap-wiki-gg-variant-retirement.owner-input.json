@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "User authorized all remaining internal exact-scope NPC closure operations; retire only the four old wiki_gg relation rows corresponding to the repaired projection gaps; no external requests.",
+  "authorizationReference": "user-authorization-2026-08-19-all-internal-exact-scopes",
+  "decisionIdentity": "canonical-npc-projection-gap-wiki-gg-variant-retirement-20260819-admin-13"
+}

@@ -17,10 +17,12 @@ function fixture() {
     path.join(repoRoot, 'reports/canonical-migration/item-group-compatibility-export.json'),
     'utf8',
   ));
-  const bootstrapResult = JSON.parse(fs.readFileSync(
-    path.join(repoRoot, 'reports/authorization/canonical/canonical-item-group-bootstrap.result.json'),
-    'utf8',
-  ));
+  const fixturePath = path.join(repoRoot, 'pipelines/test-fixtures/canonical/item-group-bootstrap.result.fixture.json');
+  assert.equal(path.relative(repoRoot, fixturePath).startsWith('pipelines/test-fixtures/canonical/'), true);
+  const fixtureEnvelope = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+  assert.equal(fixtureEnvelope.fixtureOnly, true);
+  assert.equal(fixtureEnvelope.notAuthorization, true);
+  const { fixtureOnly: ignoredFixtureOnly, notAuthorization: ignoredNotAuthorization, ...bootstrapResult } = fixtureEnvelope;
   const cutoverReport = JSON.parse(fs.readFileSync(
     path.join(repoRoot, 'reports/canonical-migration/item-group-cutover-verification.json'),
     'utf8',

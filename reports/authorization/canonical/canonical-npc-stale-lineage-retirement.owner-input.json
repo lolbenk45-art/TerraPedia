@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized exact retirement of the stale terrapedia.generated NPC relation lineage; preserve all quarantine and local compatibility rows.",
+  "authorizationReference": "user://conversation/2026-08-19/npc-stale-lineage-retirement",
+  "decisionIdentity": "canonical-npc-stale-lineage-retirement-20260819-admin-02"
+}

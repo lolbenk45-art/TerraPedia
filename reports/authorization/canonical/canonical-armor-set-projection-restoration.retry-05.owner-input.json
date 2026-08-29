@@ -1,0 +1,8 @@
+{
+  "actor": "Owner (user)",
+  "reason": "Retry the approved Armor projection proposal after correcting MySQL DATETIME UTC readback normalization; exact rows, scope, source, and no-network boundary remain unchanged.",
+  "authorizationReference": "devlog://2026-08-24/ten-blocker-exact-authorization/armor-retry-05",
+  "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-05-owner-13",
+  "operationId": "canonical-armor-set-projection-restoration",
+  "batchBindingSha256": "sha256:6052f70a743d1bdaa30eba8749ef23d031cc13150ee08abfb3c78d986ba4c930"
+}

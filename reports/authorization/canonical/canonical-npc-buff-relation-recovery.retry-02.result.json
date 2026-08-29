@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_buff_relation_recovery_result",
+  "operationId": "canonical-npc-buff-relation-recovery",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "affected": {
+    "relationNpcBuff": 1270
+  },
+  "scopeSha256": "sha256:bf0f0674edbc2ff9b0b8d1917d924f6f1d86e03ca052b71b88e4aa84f19365cc",
+  "afterRowsSha256": "sha256:96109a7d338d4b122cd71e7f1a1c947cb818687324a036ea1c8f6ea826cb7bc9",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-buff-relation-recovery-20260824-owner-07",
+    "packetHash": "sha256:27b7e81c81feef612519c1b76fa957c9f04fa552d8bb0c8838783c827220c10f"
+  },
+  "completedAt": "2026-08-24T04:13:43.210Z"
+}

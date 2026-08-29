@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l1",
+  "runId": "items_l1_20260829_boundary02",
+  "domainId": "items",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T00:38:00.000Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "items",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:a3c7701fb6170b8a09171194328ce672a58665982c0c3649cf77b82e2eb11cc6",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "items",
+        "generation": 1
+      }
+    ],
+    "projectionHash": "sha256:5a4b60f99ed122a0730b727c787128b35f103f812894d27ccd323b0d20509c19"
+  },
+  "baselineFingerprint": "sha256:b9f14f624db3bdcaf0b578c5fc46096d01fc08ff88987335963f230e3ca2320d",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/items/items_l1_20260829_boundary02/source.json",
+    "sha256": "sha256:6647335f4d25bd20506eac433ae1e60b5f37b168ff3e390f229137365c9f8719"
+  },
+  "evidenceHash": "sha256:7155d47a64773a95535c8501ecda9b19cf09800e2b1c8c269a05b06085aad932",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:b9f14f624db3bdcaf0b578c5fc46096d01fc08ff88987335963f230e3ca2320d",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "items"
+      }
+    ],
+    "sourceSha256": "sha256:6647335f4d25bd20506eac433ae1e60b5f37b168ff3e390f229137365c9f8719",
+    "importPlan": {
+      "entity": "items",
+      "recordCount": 6131,
+      "itemDependencyCount": 6131,
+      "sourceKind": "module",
+      "sourceResult": "local"
+    }
+  },
+  "logicalDiffHash": "sha256:d8a07bd6664f71a175f8a69599697a06fea869ee5a510d41570e62768a1ef5d2",
+  "decisionHash": "sha256:e2db075e51823f4ed6d1e6d1fa08236b87e45dfa8287921a6c9f0652276f837f",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "items"
+    }
+  ],
+  "importPlan": {
+    "entity": "items",
+    "recordCount": 6131,
+    "itemDependencyCount": 6131,
+    "sourceKind": "module",
+    "sourceResult": "local"
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/items/items_l1_20260829_boundary02/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/items/items_l1_20260829_boundary02/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/items/items_l1_20260829_boundary02/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/items/items_l1_20260829_boundary02/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:6d67e4c7e752734af54dde3a10f58a703d930e5f5b7a414ac52a96aebf15c261"
+}

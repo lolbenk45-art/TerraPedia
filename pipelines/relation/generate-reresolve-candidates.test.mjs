@@ -191,28 +191,85 @@ test('buildReresolveCandidateReport keeps low-confidence fuzzy matches separate 
   assert.equal(report.candidates[0].evidence.matchBasis, 'source_ref_fuzzy');
 });
 
-test('readPreviousReport ignores same-date output and uses the most recent earlier report', () => {
+test('buildReresolveCandidateReport ignores a stale historical baseline', () => {
+  const report = buildReresolveCandidateReport({
+    generatedAt: '2026-08-24T12:00:00Z',
+    auditRows: [
+      {
+        audit_key: 'audit-current',
+        audit_status: 'unresolved',
+        source_ref_name: 'Merchant',
+        source_ref_normalized: 'Merchant',
+        evidence_json: '{}',
+      },
+    ],
+    npcRows: [
+      {
+        source_id: 17,
+        internal_name: 'Merchant',
+        english_name: 'Merchant',
+      },
+    ],
+    previousReport: {
+      generatedAt: '2026-05-24T00:00:00.000Z',
+      summary: {
+        unresolvedAuditCount: 34,
+      },
+    },
+  });
+
+  assert.deepEqual(report.trend, {
+    previousUnresolvedAuditCount: null,
+    currentUnresolvedAuditCount: 1,
+    delta: null,
+    direction: 'unknown',
+    baselineStatus: 'stale',
+  });
+});
+
+test('readPreviousReport uses the latest earlier generated report, including same-day output', () => {
   const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-reresolve-'));
   const reportsDir = path.join(projectRoot, 'reports', 'relation');
   fs.mkdirSync(reportsDir, { recursive: true });
   fs.writeFileSync(
     path.join(reportsDir, 'reresolve-candidates-2026-05-05.json'),
-    JSON.stringify({ summary: { unresolvedAuditCount: 9 } }),
+    JSON.stringify({ generatedAt: '2026-05-05T12:00:00.000Z', summary: { unresolvedAuditCount: 9 } }),
     'utf8',
   );
   fs.writeFileSync(
     path.join(reportsDir, 'reresolve-candidates-2026-05-06.json'),
-    JSON.stringify({ summary: { unresolvedAuditCount: 12 } }),
+    JSON.stringify({ generatedAt: '2026-05-06T11:00:00.000Z', summary: { unresolvedAuditCount: 12 } }),
+    'utf8',
+  );
+  fs.writeFileSync(
+    path.join(reportsDir, 'reresolve-candidates-2026-05-07.json'),
+    JSON.stringify({ generatedAt: '2026-05-07T11:00:00.000Z', summary: { unresolvedAuditCount: 15 } }),
+    'utf8',
+  );
+
+  const previousReport = readPreviousReport(projectRoot, '2026-05-07T12:00:00Z');
+
+  assert.deepEqual(previousReport, {
+    generatedAt: '2026-05-07T11:00:00.000Z',
+    summary: {
+      unresolvedAuditCount: 15,
+    },
+  });
+});
+
+test('readPreviousReport excludes a report generated at the same instant', () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-reresolve-'));
+  const reportsDir = path.join(projectRoot, 'reports', 'relation');
+  fs.mkdirSync(reportsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(reportsDir, 'reresolve-candidates-2026-05-06.json'),
+    JSON.stringify({ generatedAt: '2026-05-06T12:00:00.000Z', summary: { unresolvedAuditCount: 12 } }),
     'utf8',
   );
 
   const previousReport = readPreviousReport(projectRoot, '2026-05-06T12:00:00Z');
 
-  assert.deepEqual(previousReport, {
-    summary: {
-      unresolvedAuditCount: 9,
-    },
-  });
+  assert.equal(previousReport, null);
 });
 
 test('readPreviousReport returns null when no earlier dated report exists', () => {

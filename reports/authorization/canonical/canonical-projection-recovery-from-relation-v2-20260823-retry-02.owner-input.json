@@ -1,0 +1,6 @@
+{
+  "actor": "Codex",
+  "reason": "Fresh reauthorization after projection recovery code and snapshot changed; restore five projection tables from relation with maint overrides, Boss local image evidence, managed image prefixes, and no network.",
+  "authorizationReference": "reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/relation-snapshot.json",
+  "decisionIdentity": "canonical-projection-recovery-from-relation-v2-20260823-retry-02-owner-02"
+}

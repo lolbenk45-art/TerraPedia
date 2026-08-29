@@ -77,6 +77,21 @@ test('start writes a sanitized run manifest with preflight and health details', 
   assert.match(source, /running/i);
 });
 
+test('start defaults HTTP rate limiting on and records explicit local override in the manifest', () => {
+  const source = startSource();
+
+  assert.match(source, /export TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED="\$\{TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED:-true\}"/);
+  assert.match(
+    source,
+    /"backend":\s*\{[\s\S]*httpRateLimitEnabled:\s*process\.env\.TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED !== 'false'/,
+  );
+
+  const manifestRateLimitEnabled = (value) => value !== 'false';
+  assert.equal(manifestRateLimitEnabled(undefined), true);
+  assert.equal(manifestRateLimitEnabled('true'), true);
+  assert.equal(manifestRateLimitEnabled('false'), false);
+});
+
 test('start exports MinIO endpoint settings from local stack config', () => {
   const runtimeConfig = fs.readFileSync('platform/local/lib/runtime-config.sh', 'utf8');
   const source = startSource();

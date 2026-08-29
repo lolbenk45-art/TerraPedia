@@ -21,6 +21,7 @@ test('PROJECTION_TABLE_NAMES stays ordered and complete', () => {
     'projection_projectiles',
     'projection_buffs',
     'projection_armor_sets',
+    'projection_biomes',
     'projection_item_armor_attributes',
     'projection_equipment_effect_attributes'
   ]);
@@ -28,7 +29,11 @@ test('PROJECTION_TABLE_NAMES stays ordered and complete', () => {
 
 test('buildProjectionSchemaStatements emits schema-qualified create statements', () => {
   const statements = buildProjectionSchemaStatements();
-  assert.equal(statements.length, 8);
+  assert.equal(statements.length, 9);
+  assert.deepEqual(
+    statements.map((statement) => statement.match(/`(projection_[a-z_]+)`/)?.[1]),
+    PROJECTION_TABLE_NAMES,
+  );
   for (const tableName of PROJECTION_TABLE_NAMES) {
     const statement = statements.find((sql) => sql.includes(`\`${tableName}\``));
     assert.ok(statement, `missing statement for ${tableName}`);

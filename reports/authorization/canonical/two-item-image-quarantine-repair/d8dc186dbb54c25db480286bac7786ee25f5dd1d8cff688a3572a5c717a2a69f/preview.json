@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-two-item-image-quarantine-repair",
+  "generatedAt": "2026-08-21T05:03:34.770Z",
+  "status": "ready_for_owner_authorization",
+  "applyAllowed": false,
+  "databaseWrites": false,
+  "externalRequests": false,
+  "scopeHash": "sha256:e082fd516465924fbe5517312fc2df580669111aa7926577cdee9f54eee78d26",
+  "evidence": {
+    "path": "reports/runtime/local-data-chain-closure/20260821/remaining-image-repair/042354/two-item-wiki-evidence-classification.json",
+    "sha256": "sha256:a4af79c7a32835de72d18e3cfe76c2ac82fa9b1cc37502363534bc4b26cde05f"
+  },
+  "scope": {
+    "rows": [
+      {
+        "id": 75,
+        "internalName": "FallenStar",
+        "sourceFileTitle": "Fallen Star.gif",
+        "sourcePage": "Fallen Star",
+        "sourcePageEvidence": "https://terraria.wiki.gg/wiki/Fallen_Star",
+        "sourceRevisionTimestamp": "2026-05-15T23:08:49Z",
+        "originalUrl": "https://terraria.wiki.gg/images/Fallen_Star.gif?9dd2b1",
+        "objectReplacement": null,
+        "layers": {
+          "maint": {
+            "id": 29387,
+            "beforeSourceFileTitle": "Fallen Star.png",
+            "beforeSourcePage": null,
+            "beforeSourceRevisionTimestamp": null,
+            "beforeOriginalUrl": null,
+            "beforeCachedUrl": "/terrapedia-images/items/2026/07/29/d15f015ff5f141168b3a2d049786edb6.png"
+          },
+          "relation": {
+            "id": 30816,
+            "beforeSourceFileTitle": "Fallen Star.png",
+            "beforeSourcePage": null,
+            "beforeSourceRevisionTimestamp": null,
+            "beforeOriginalUrl": null,
+            "beforeCachedUrl": "/terrapedia-images/items/2026/07/29/d15f015ff5f141168b3a2d049786edb6.png"
+          },
+          "local": {
+            "id": 126270,
+            "beforeSourceFileTitle": "Fallen Star.png",
+            "beforeSourcePage": null,
+            "beforeSourceRevisionTimestamp": null,
+            "beforeOriginalUrl": null,
+            "beforeCachedUrl": "/terrapedia-images/items/2026/07/29/d15f015ff5f141168b3a2d049786edb6.png"
+          },
+          "projection": {
+            "id": 75,
+            "beforeImage": "/terrapedia-images/items/2026/07/29/d15f015ff5f141168b3a2d049786edb6.png"
+          },
+          "item": {
+            "id": 75,
+            "beforeImage": "/terrapedia-images/items/2026/07/29/d15f015ff5f141168b3a2d049786edb6.png"
+          }
+        }
+      },
+      {
+        "id": 3398,
+        "internalName": "SeveredHandBanner",
+        "sourceFileTitle": "Severed Hand Banner.png",
+        "sourcePage": "Banners (enemy)",
+        "sourcePageEvidence": "https://terraria.wiki.gg/wiki/Banners_(enemy)#Severed_Hand_Banner",
+        "sourceRevisionTimestamp": "2026-08-19T22:44:08Z",
+        "originalUrl": "https://terraria.wiki.gg/images/Severed_Hand_Banner.png?3d491b",
+        "objectReplacement": {
+          "managedUrl": "/terrapedia-images/items/2026/08/21/b32d32580d824b939e3d7323f6f1bed6.png",
+          "sha256": "sha256:e76db18a490951c159c826f66b3abd5579138e69e6c039bedfbf5983abd38860",
+          "contentType": "image/png",
+          "width": 12,
+          "height": 28
+        },
+        "layers": {
+          "maint": {
+            "id": 32710,
+            "beforeSourceFileTitle": "32px-First Fractal.png",
+            "beforeSourcePage": null,
+            "beforeSourceRevisionTimestamp": null,
+            "beforeOriginalUrl": null,
+            "beforeCachedUrl": "/terrapedia-images/items/2026/07/29/0c6bcae5c719405d9beb88e3384fe39d.png"
+          },
+          "relation": {
+            "id": 34130,
+            "beforeSourceFileTitle": "32px-First Fractal.png",
+            "beforeSourcePage": null,
+            "beforeSourceRevisionTimestamp": null,
+            "beforeOriginalUrl": null,
+            "beforeCachedUrl": "/terrapedia-images/items/2026/07/29/0c6bcae5c719405d9beb88e3384fe39d.png"
+          },
+          "local": {
+            "id": 129242,
+            "beforeSourceFileTitle": "32px-First Fractal.png",
+            "beforeSourcePage": null,
+            "beforeSourceRevisionTimestamp": null,
+            "beforeOriginalUrl": null,
+            "beforeCachedUrl": "/terrapedia-images/items/2026/07/29/0c6bcae5c719405d9beb88e3384fe39d.png"
+          },
+          "projection": {
+            "id": 3398,
+            "beforeImage": "/terrapedia-images/items/2026/07/29/0c6bcae5c719405d9beb88e3384fe39d.png"
+          },
+          "item": {
+            "id": 3398,
+            "beforeImage": "/terrapedia-images/items/2026/07/29/0c6bcae5c719405d9beb88e3384fe39d.png"
+          }
+        }
+      }
+    ]
+  }
+}

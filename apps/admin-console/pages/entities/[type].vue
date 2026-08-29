@@ -2232,6 +2232,7 @@ const configs: Record<string, EntityConfig> = {
 }
 
 const currentConfig = computed(() => configs[entityType.value] ?? null)
+const entityPageMounted = ref(false)
 const loading = ref(false)
 const submitting = ref(false)
 const dialogVisible = ref(false)
@@ -2833,6 +2834,13 @@ async function fetchRows(page = pagination.page) {
   } finally {
     loading.value = false
   }
+}
+
+async function loadCurrentEntityData() {
+  if (entityType.value === 'npcs') {
+    await categoriesStore.fetchCategories()
+  }
+  await fetchRows(pagination.page)
 }
 
 function openCreateDialog() {
@@ -4493,7 +4501,6 @@ watch(() => entityType.value, async () => {
   if (entityType.value === 'npcs') {
     const rawCategoryId = Number(route.query.categoryId)
     selectedNpcCategoryId.value = Number.isFinite(rawCategoryId) && rawCategoryId > 0 ? rawCategoryId : null
-    await categoriesStore.fetchCategories()
   }
   if (entityType.value === 'buffs') {
     const rawBuffType = typeof route.query.buffType === 'string' ? route.query.buffType.trim().toLowerCase() : ''
@@ -4527,10 +4534,17 @@ watch(() => entityType.value, async () => {
     selectedWorldContextType.value =
       rawContextType === 'TIME' || rawContextType === 'ENVIRONMENT' || rawContextType === 'EVENT' || rawContextType === 'MOON_PHASE' || rawContextType === 'WEATHER'
         ? rawContextType
-        : 'all'
+      : 'all'
   }
-  await fetchRows(pagination.page)
+  if (import.meta.server || !entityPageMounted.value) return
+
+  await loadCurrentEntityData()
 }, { immediate: true })
+
+onMounted(async () => {
+  entityPageMounted.value = true
+  await loadCurrentEntityData()
+})
 
 function getDisplayValue(row: Record<string, any>, keys?: string[]) {
   if (!row || !Array.isArray(keys)) return ''

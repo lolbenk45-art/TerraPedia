@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l1-policy-promotion",
+  "databaseName": "terria_v1_local",
+  "domainId": "projectiles",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "policyVersion": 1,
+  "policyHash": "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a",
+  "minimumSuccessfulL1Runs": 2
+}

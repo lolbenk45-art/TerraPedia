@@ -287,6 +287,7 @@ export TERRAPEDIA_DB_URL="$TP_DB_URL"
 export TERRAPEDIA_DB_USERNAME="$TP_DB_USERNAME"
 export TERRAPEDIA_DB_PASSWORD="$TP_DB_PASSWORD"
 export TERRAPEDIA_BACKEND_ORIGIN="http://localhost:$TP_BACKEND_PORT"
+export TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED="${TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED:-true}"
 export TERRAPEDIA_REDIS_HOST="$TP_REDIS_HOST"
 export TERRAPEDIA_REDIS_PORT="$TP_REDIS_PORT"
 export TERRAPEDIA_REDIS_DATABASE="$TP_REDIS_DATABASE"
@@ -753,6 +754,9 @@ const processes = processLines.map((line) => JSON.parse(line));
     "branch": process.env.TP_BRANCH,
     "commit": process.env.TP_COMMIT,
     "configPath": process.env.TP_CONFIG_PATH,
+    "backend": {
+      httpRateLimitEnabled: process.env.TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED !== 'false',
+    },
     "ports": {
       redis: portState(process.env.TP_REDIS_PORT, redisOpen),
       backend: portState(process.env.TP_BACKEND_PORT, backOpen),

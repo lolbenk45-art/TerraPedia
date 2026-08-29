@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-shimmer-first-l1",
+  "domainId": "shimmer",
+  "runId": "shimmer_l1_20260829_serial01_retry01",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run shimmer 01 retry after fail-closed path repair",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-shimmer-serial01-retry01",
+  "decisionIdentity": "eight-domain-l1-shimmer-serial01-retry01",
+  "authorizedAt": "2026-08-29T01:36:00.000Z",
+  "expiresAt": "2026-08-29T03:36:00.000Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:48c2f034df414d59573738b8479cf184e86c27dd2d18a91ae24cb229df81e71d"
+}

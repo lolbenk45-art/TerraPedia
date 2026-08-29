@@ -10,8 +10,10 @@ export const SUPPLEMENTARY_L1_DOMAINS = Object.freeze([
 ]);
 
 export const INDEPENDENT_L1_DOMAINS = Object.freeze([
+  'items',
   'npcs',
   'buffs',
+  'projectiles',
   'armor_sets',
 ]);
 
@@ -26,8 +28,10 @@ export const SUPPLEMENTARY_EXECUTION_MODES = Object.freeze([
 ]);
 
 const OPERATION_BY_DOMAIN = Object.freeze({
+  items: 'automation-items-l1',
   npcs: 'automation-npcs-l1',
   buffs: 'automation-buffs-l1',
+  projectiles: 'automation-projectiles-l1',
   armor_sets: 'automation-armor-sets-l1',
   audio: 'automation-audio-first-l1',
   bosses: 'automation-bosses-first-l1',
@@ -35,12 +39,18 @@ const OPERATION_BY_DOMAIN = Object.freeze({
 });
 
 const OWNED_TABLES_BY_DOMAIN = Object.freeze({
+  items: Object.freeze([
+    Object.freeze({ databaseRole: 'local', table: 'items' }),
+  ]),
   npcs: Object.freeze([
     Object.freeze({ databaseRole: 'local', table: 'npcs' }),
   ]),
   buffs: Object.freeze([
     Object.freeze({ databaseRole: 'local', table: 'buffs' }),
     Object.freeze({ databaseRole: 'local', table: 'buff_source_items' }),
+  ]),
+  projectiles: Object.freeze([
+    Object.freeze({ databaseRole: 'local', table: 'projectiles' }),
   ]),
   armor_sets: Object.freeze([
     Object.freeze({ databaseRole: 'local', table: 'armor_sets' }),
@@ -79,6 +89,7 @@ export function buildSupplementaryL1Bundle(input = {}) {
   const baseline = normalizeBaseline(input.baseline, ownedTables);
   const source = normalizeSource(input.source);
   const executionMode = normalizeExecutionMode(input.executionMode);
+  const reconciliationInput = normalizeReconciliationInput(input.reconciliationInput);
   const importPlan = cloneObject(input.importPlan, 'importPlan');
   const baselineFingerprint = hashJson(baseline);
   const logicalDiffIdentity = {
@@ -117,6 +128,7 @@ export function buildSupplementaryL1Bundle(input = {}) {
     decisionHash,
     ownedTables,
     importPlan,
+    ...(reconciliationInput == null ? {} : { reconciliationInput }),
   };
   return deepFreeze({ ...body, bundleHash: hashJson(body) });
 }
@@ -145,6 +157,7 @@ export function validateSupplementaryL1Bundle(value) {
     ownedTables: value.ownedTables,
     importPlan: value.importPlan,
     executionMode: value.executionMode,
+    reconciliationInput: value.reconciliationInput,
   });
   if (rebuilt.bundleHash !== bundleHash
       || rebuilt.baselineFingerprint !== value.baselineFingerprint
@@ -234,6 +247,23 @@ function normalizeSource(source) {
     throw new Error('source.path must be a frozen authorization artifact');
   }
   return { path: sourcePath, sha256: requireHash(source.sha256, 'source.sha256') };
+}
+
+function normalizeReconciliationInput(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('reconciliationInput must be an object');
+  }
+  const fields = ['sourceCoveragePath', 'ownedTableReadbackPath', 'attemptStatePath', 'outputPath'];
+  const result = {};
+  for (const field of fields) {
+    const normalized = requireText(value[field], `reconciliationInput.${field}`).replaceAll('\\', '/');
+    if (!normalized.startsWith('reports/') || normalized.includes('..') || normalized.endsWith('.latest.json')) {
+      throw new Error(`reconciliationInput.${field} must be a frozen reports path`);
+    }
+    result[field] = normalized;
+  }
+  return result;
 }
 
 function normalizeOwnedTables(ownedTables) {

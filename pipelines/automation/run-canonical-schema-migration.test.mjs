@@ -102,11 +102,13 @@ test('role schema verification accepts MySQL uppercase information_schema column
   const maintTables = [
     'maint_npc_crawler_facts', 'maint_item_groups', 'maint_item_group_members',
     'maint_item_group_aliases', 'maint_item_group_member_exclusions',
+    'maint_biome_images',
   ];
   const relationTables = [
     'relation_item_groups', 'relation_item_group_members', 'relation_item_group_aliases',
     'item_source_facts', 'item_source_details', 'item_npc_shop_relations',
     'item_npc_loot_relations', 'npc_buff_relations',
+    'relation_biome_images', 'projection_biomes',
   ];
   const connections = [];
   const mysqlModule = {
@@ -114,7 +116,9 @@ test('role schema verification accepts MySQL uppercase information_schema column
       const connection = {
         database: options.database,
         ended: false,
+        executedSql: '',
         async query(sql) {
+          this.executedSql += `${sql}\n`;
           if (/information_schema\.columns/i.test(sql)) {
             return [requiredColumns.map((name) => ({ COLUMN_NAME: name }))];
           }
@@ -143,4 +147,8 @@ test('role schema verification accepts MySQL uppercase information_schema column
     'terria_v1_maint', 'terria_v1_relation',
   ]);
   assert.equal(connections.every((entry) => entry.ended), true);
+  assert.match(
+    connections.find((entry) => entry.database === 'terria_v1_relation').executedSql,
+    /CREATE TABLE IF NOT EXISTS `terria_v1_relation`\.`projection_biomes`/,
+  );
 });

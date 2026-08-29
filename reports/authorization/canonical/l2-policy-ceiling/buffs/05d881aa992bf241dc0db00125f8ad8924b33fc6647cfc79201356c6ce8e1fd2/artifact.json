@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "l2-policy-ceiling",
+  "status": "approved",
+  "proposalOnly": false,
+  "generatedAt": "2026-08-28T00:09:31.941Z",
+  "domainId": "buffs",
+  "currentPolicy": {
+    "domainId": "buffs",
+    "policyVersion": 1,
+    "policyHash": "sha256:6e1668af3904b80148d5f341eb98874ef000a3c8bbdb1e1fd81b5de369cf93d4",
+    "level": "L1",
+    "operationalState": "ACTIVE"
+  },
+  "currentPolicyRows": [
+    {
+      "domainId": "armor_sets",
+      "policyVersion": 1,
+      "policyHash": "sha256:ecf35935ed3681939f9d0b4fab8760a6cd802cccb8647f73a486e25de42c3871"
+    },
+    {
+      "domainId": "audio",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    },
+    {
+      "domainId": "biomes",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    },
+    {
+      "domainId": "bosses",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    },
+    {
+      "domainId": "buffs",
+      "policyVersion": 1,
+      "policyHash": "sha256:6e1668af3904b80148d5f341eb98874ef000a3c8bbdb1e1fd81b5de369cf93d4"
+    },
+    {
+      "domainId": "crawler_v2_scheduler",
+      "policyVersion": 1,
+      "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479"
+    },
+    {
+      "domainId": "items",
+      "policyVersion": 1,
+      "policyHash": "sha256:a3c7701fb6170b8a09171194328ce672a58665982c0c3649cf77b82e2eb11cc6"
+    },
+    {
+      "domainId": "npcs",
+      "policyVersion": 1,
+      "policyHash": "sha256:987a5b29c38804aa3d6284b00f0384f7acc8a127b940a1db54acdd9510d01d80"
+    },
+    {
+      "domainId": "projectiles",
+      "policyVersion": 1,
+      "policyHash": "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a"
+    },
+    {
+      "domainId": "shimmer",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    }
+  ],
+  "targetPolicy": {
+    "policyVersion": 2,
+    "level": "L2",
+    "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+    "policyJson": {
+      "schemaVersion": 1,
+      "level": "L2",
+      "ratioInsertCap": 0.1,
+      "ratioUpdateCap": 0.1,
+      "ratioRelationshipDeleteCap": 0.05,
+      "requireSnapshot": true,
+      "absoluteInsertCap": 500,
+      "absoluteUpdateCap": 500,
+      "absoluteRelationshipDeleteCap": 200,
+      "absoluteDisableCap": 20,
+      "ratioDisableCap": 0.005,
+      "sourceFreshnessMaxAgeMinutes": 60,
+      "anomalyAction": "CIRCUIT_OPEN",
+      "ownedTables": [
+        {
+          "databaseRole": "local",
+          "table": "buff_source_items",
+          "fieldGroup": "all_columns"
+        },
+        {
+          "databaseRole": "local",
+          "table": "buffs",
+          "fieldGroup": "all_columns"
+        }
+      ]
+    }
+  },
+  "currentPolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "targetPolicySetHash": "sha256:6058acbfbb624ffec61786b5a46619652a44b07841fae8dadf1a2b4eed7cd2a9",
+  "approval": {
+    "actor": "admin",
+    "reference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+    "approvedAt": "2026-08-28T00:09:31.941Z"
+  },
+  "artifactHash": "sha256:05d881aa992bf241dc0db00125f8ad8924b33fc6647cfc79201356c6ce8e1fd2"
+}

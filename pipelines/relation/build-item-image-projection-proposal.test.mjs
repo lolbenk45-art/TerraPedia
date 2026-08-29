@@ -108,6 +108,77 @@ test('projection proposal runner binds exact lineage bytes and injected read-onl
   assert.equal(proposal.target.fingerprintSha256, fixture.snapshot.target.fingerprintSha256 ?? proposal.target.fingerprintSha256);
 });
 
+test('projection proposal runner binds origin-repair evidence without reading historical lineage files', async () => {
+  const fixture = evidenceFixture();
+  const originResultBytes = Buffer.from(JSON.stringify({
+    operationId: 'canonical-item-image-origin-repair',
+    scopeHash: 'sha256:' + 'a'.repeat(64),
+    relationBefore: 2,
+    relationUpdated: 2,
+    projectionBefore: 2,
+    projectionUpdated: 2,
+    databaseWrites: true,
+    externalRequests: false,
+    status: 'COMPLETED',
+  }));
+  const calls = [];
+  const proposal = await runItemImageProjectionProposal({
+    ...fixture.options,
+    originRepairEvidence: {
+      originRepairResultPath: 'reports/runtime/origin-repair.result.json',
+      originRepairResultBytes: originResultBytes,
+      keys: fixture.snapshot.relationRows.map((row) => row.internalName),
+      relationRows: fixture.snapshot.relationRows.map((row) => ({
+        internalName: row.internalName,
+        recordKey: row.recordKey,
+        cachedUrl: row.cachedUrl,
+        beforeHash: 'sha256:' + 'b'.repeat(64),
+      })),
+      projectionBeforeRows: fixture.snapshot.projectionRows.map((row) => ({
+        ...row,
+        image: fixture.snapshot.relationRows.find((candidate) => candidate.internalName === row.internalName).cachedUrl,
+        beforeHash: 'sha256:' + 'c'.repeat(64),
+      })),
+      expectedProjectionRelationRecordKeys: Object.fromEntries(
+        fixture.snapshot.projectionRows.map((row) => [row.internalName, row.relationRecordKey]),
+      ),
+      quarantineIdentities: ['FallenStar', 'SeveredHandBanner'],
+      managedUrlPrefixes: fixture.managedUrlPolicy.prefixes,
+    },
+    generatedAt: '2026-08-04T01:00:00.000Z',
+    expiresAt: '2026-08-05T01:00:00.000Z',
+  }, {
+    readReadOnlyAuthorizationBytes: () => fixture.readOnlyAuthorizationBytes,
+    readLineageInputContractBytes: () => { throw new Error('historical lineage must not be read'); },
+    readLineageResultBytes: () => { throw new Error('historical lineage must not be read'); },
+    readLineageBundleBytes: () => { throw new Error('historical lineage must not be read'); },
+    readLineageApplySnapshotBytes: () => { throw new Error('historical lineage must not be read'); },
+    readLineageAuthorizationPacketBytes: () => { throw new Error('historical lineage must not be read'); },
+    readUsedDecisionsBytes: () => fixture.usedDecisionsBytes,
+    loadManagedUrlPolicy: () => fixture.managedUrlPolicy,
+    resolveRuntimeConfig: () => fixture.runtimeConfig,
+    openConnection: async () => ({
+      query: async () => { calls.push('read-only'); return [[], []]; },
+      rollback: async () => {},
+      end: async () => {},
+    }),
+    readDatabaseSnapshot: async () => ({
+      ...fixture.snapshot,
+      projectionRows: fixture.snapshot.projectionRows.map((row) => ({
+        ...row,
+        image: fixture.snapshot.relationRows.find((candidate) => candidate.internalName === row.internalName).cachedUrl,
+      })),
+    }),
+    writeSnapshot: ({ snapshot }) => ({ snapshot, sha256: shaBytes(Buffer.from(`${JSON.stringify(snapshot, null, 2)}\n`)) }),
+    writeProposal: ({ proposal: value }) => value,
+  });
+  assert.deepEqual(proposal.keys, ['DirtBlock', 'Wood']);
+  assert.equal(proposal.changedRowCount, 0);
+  assert.equal(proposal.lineage.kind, 'origin-repair-bound');
+  assert.equal(proposal.lineage.originRepairResultSha256, shaBytes(originResultBytes));
+  assert.deepEqual(calls, ['read-only']);
+});
+
 test('projection proposal rejects non-proposal options before reading evidence', async () => {
   const fixture = evidenceFixture();
   let reads = 0;

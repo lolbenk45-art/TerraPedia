@@ -9,7 +9,8 @@ test('runCli supports coverage-audit npc mode and delegates to the coverage runn
     '--domain=npc',
     '--source-standardized-dir=C:/tmp/source-standardized',
     '--crawler-output-root=C:/tmp/crawler-output',
-    '--output-root=C:/tmp/wiki-crawler'
+    '--output-root=C:/tmp/wiki-crawler',
+    '--progress-path=C:/tmp/progress.json'
   ], {
     runNpcCoverageAuditImpl: async (options) => ({
       received: options,
@@ -21,7 +22,8 @@ test('runCli supports coverage-audit npc mode and delegates to the coverage runn
     domain: 'npc',
     sourceStandardizedDir: 'C:/tmp/source-standardized',
     crawlerOutputRoot: 'C:/tmp/crawler-output',
-    outputRoot: 'C:/tmp/wiki-crawler'
+    outputRoot: 'C:/tmp/wiki-crawler',
+    progressPath: 'C:/tmp/progress.json'
   });
   assert.equal(payload.audit.summary.totalTargets, 123);
 });

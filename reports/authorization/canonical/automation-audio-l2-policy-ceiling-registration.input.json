@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-audio-l2-policy-ceiling-registration",
+  "domainId": "audio",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/audio/6a1d319f87255da87b8ad7cd7da7596e09fa48878a08ab8643575ec7584dcc8f/artifact.json",
+  "artifactFileSha256": "sha256:83adeca6293bee6686959547495c271185cfc65f3c8a37bf7f7ff2d9178e6d16",
+  "artifactHash": "sha256:6a1d319f87255da87b8ad7cd7da7596e09fa48878a08ab8643575ec7584dcc8f",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+  "targetPolicySetHash": "sha256:a3514c8010d6815cc6310e2574a4c26e1537d81eaa171524cec8fa44c0996c5e",
+  "proposalOnly": false
+}

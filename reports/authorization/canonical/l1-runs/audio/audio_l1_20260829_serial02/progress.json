@@ -1,0 +1,13 @@
+{
+  "actionId": "wiki-audio-assets-refresh",
+  "generatedAt": "2026-08-29T01:09:22.981Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/audio/audio_l1_20260829_serial02/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T01:09:22.981Z",
+  "message": "frozen audio source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T01:09:22.981Z",
+  "total": 1
+}

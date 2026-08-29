@@ -1,0 +1,15 @@
+{
+  "actionId": "wiki-audio-assets-refresh",
+  "generatedAt": "2026-08-17T00:22:34.264Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/data/generated/domain-source-audio-progress.latest.preview.json",
+  "current": 3,
+  "lastHeartbeatAt": "2026-08-17T00:22:34.264Z",
+  "message": "prepared audio L1 frozen bundle",
+  "outputPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-audio-first-l1.source.json",
+  "percent": 100,
+  "phase": "preview",
+  "reportPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-audio-first-l1.bundle.json",
+  "startedAt": "2026-08-17T00:22:34.168Z",
+  "total": 3
+}

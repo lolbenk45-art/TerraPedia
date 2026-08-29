@@ -1,0 +1,6 @@
+{
+  "actor": "Codex",
+  "reason": "Fresh governed projection recovery with explicit legacy and canonical managed image origins, preserving apply-01 projection fields absent from relation source rows through a hash-bound backup snapshot.",
+  "authorizationReference": "reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/relation-snapshot.json",
+  "decisionIdentity": "canonical-projection-recovery-from-relation-v2-20260823-retry-04-owner-04"
+}

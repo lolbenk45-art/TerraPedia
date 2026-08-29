@@ -156,6 +156,49 @@ test('projection apply requires expanded authorization bundle validation before 
   assert.equal(events.includes('consume-permit'), false);
 });
 
+test('projection apply verifies origin-repair lineage before authorization and connection', async () => {
+  const fixture = applyFixture();
+  bindOriginRepairEvidence(fixture);
+  const events = [];
+  const result = await runItemImageProjectionApply({
+    repoRoot: '/fixture',
+    inputContractPath: fixture.paths.inputPath,
+    outputPath: fixture.paths.resultPath,
+    apply: true,
+    now: '2026-08-04T02:00:00.000Z',
+  }, dependencies(fixture, events));
+
+  assert.equal(result.status, 'completed');
+  assert.equal(result.lineage.kind, 'origin-repair-bound');
+  assert.equal(events.includes('authorization'), true);
+
+  const drifted = applyFixture();
+  bindOriginRepairEvidence(drifted);
+  const driftedOriginPath = 'reports/runtime/item-image-origin-repair.result.json';
+  drifted.artifacts.set(
+    driftedOriginPath,
+    jsonBytes({
+      operationId: 'canonical-item-image-origin-repair',
+      scopeHash: `sha256:${'b'.repeat(64)}`,
+      status: 'COMPLETED',
+      externalRequests: true,
+    }),
+  );
+  const driftEvents = [];
+  await assert.rejects(
+    runItemImageProjectionApply({
+      repoRoot: '/fixture',
+      inputContractPath: drifted.paths.inputPath,
+      outputPath: drifted.paths.resultPath,
+      apply: true,
+      now: '2026-08-04T02:00:00.000Z',
+    }, dependencies(drifted, driftEvents)),
+    /origin repair result hash drifted|origin repair result identity drifted/i,
+  );
+  assert.equal(driftEvents.includes('authorization'), false);
+  assert.equal(driftEvents.includes('connect'), false);
+});
+
 test('projection apply writes strict failed evidence after an authorized transaction failure', async () => {
   const fixture = applyFixture();
   const events = [];
@@ -454,6 +497,50 @@ function applyFixture() {
     paths,
     dataBundleSha256: shaBytes(Buffer.from([...artifacts.keys()].join('\n'))),
   };
+}
+
+function bindOriginRepairEvidence(fixture) {
+  const originRepairResultPath = 'reports/runtime/item-image-origin-repair.result.json';
+  const originRepairResultBytes = jsonBytes({
+    operationId: 'canonical-item-image-origin-repair',
+    scopeHash: `sha256:${'b'.repeat(64)}`,
+    status: 'COMPLETED',
+    externalRequests: false,
+  });
+  const originRepairLineage = {
+    kind: 'origin-repair-bound',
+    originRepairResultPath,
+    originRepairResultSha256: shaBytes(originRepairResultBytes),
+    originRepairScopeHash: `sha256:${'b'.repeat(64)}`,
+    originRepairOperationId: 'canonical-item-image-origin-repair',
+    originRepairStatus: 'COMPLETED',
+    quarantineIdentities: ['FallenStar', 'SeveredHandBanner'],
+    externalRequests: false,
+    freshnessUpdates: false,
+    completedRowCount: fixture.inputContract.targetRowCount,
+  };
+  const proposal = buildItemImageProjectionProposal({
+    ...fixture.proposal,
+    lineage: originRepairLineage,
+    lineageKeys: fixture.proposal.keys,
+    relationRows: fixture.proposal.relationRows.map((row) => ({
+      ...row, role: 'icon', isPrimary: 1, status: 1, deleted: 0,
+    })),
+    projectionRows: fixture.proposal.projectionBeforeRows.map((row) => ({
+      ...row, status: 1, deleted: 0,
+    })),
+  });
+  const proposalBytes = jsonBytes(proposal);
+  const inputContract = buildItemImageProjectionInputContract({
+    proposal,
+    proposalPath: fixture.paths.proposalPath,
+    proposalSha256: shaBytes(proposalBytes),
+  });
+  fixture.artifacts.set(originRepairResultPath, originRepairResultBytes);
+  fixture.artifacts.set(fixture.paths.proposalPath, proposalBytes);
+  fixture.artifacts.set(fixture.paths.inputPath, jsonBytes(inputContract));
+  fixture.proposal = proposal;
+  fixture.inputContract = inputContract;
 }
 
 function relationRow(recordKey, internalName, cachedUrl) {

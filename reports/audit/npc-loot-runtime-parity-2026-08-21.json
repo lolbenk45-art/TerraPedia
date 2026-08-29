@@ -1,0 +1,31 @@
+{
+  "auditName": "npc-loot-runtime-parity",
+  "generatedAt": "2026-08-21T23:58:06.965Z",
+  "options": {
+    "relationDatabase": "terria_v1_relation",
+    "localDatabase": "terria_v1_local",
+    "apiBaseUrl": "http://localhost:18091",
+    "apiMode": "public-detail",
+    "adminToken": null,
+    "fastLocalApi": false,
+    "requestIntervalMs": 1000,
+    "rateLimitRetryWaitMs": 60000,
+    "maxRateLimitRetries": 2,
+    "writeReport": true,
+    "output": null,
+    "dateTag": "2026-08-21"
+  },
+  "auditStatus": "blocked",
+  "evidenceHealth": "db_unavailable",
+  "summary": {
+    "totalNpcs": 0,
+    "blockingCount": 1,
+    "byStatus": {},
+    "stageRows": {}
+  },
+  "rows": [],
+  "error": {
+    "message": "connect ECONNREFUSED 127.0.0.1:13306",
+    "code": "ECONNREFUSED"
+  }
+}

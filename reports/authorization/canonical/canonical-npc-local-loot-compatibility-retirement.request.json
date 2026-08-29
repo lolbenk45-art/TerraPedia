@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-08-19T06:10:00+08:00",
+  "expiresAt": "2026-08-20T06:10:00+08:00",
+  "operationId": "canonical-npc-local-loot-compatibility-retirement",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:ca81d90fd06ff2b42c80e945864544584df53f43d5464c0beb097d9f1f7242f8",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-npc-local-loot-compatibility-retirement.input.json",
+      "sizeBytes": 469,
+      "contentHash": "sha256:7d1f6b5c9b61023a60d4f208ab23b5404e40e04a9947da59fc1cd0385a6ad156"
+    },
+    {
+      "path": "reports/runtime/local-data-chain-closure/20260819/post-final/npc-local-loot-compatibility-retirement-preview.json",
+      "sizeBytes": 43146,
+      "contentHash": "sha256:fee2c441796b19a8d65b86f003dcddf3b67d7249d355b82485ee7e293b5e85c6"
+    }
+  ],
+  "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8",
+  "executionManifestHash": "sha256:6c3cde05b4eb38cdbc00906e222ebf7caece03293024da4bc20095c0e1d87734",
+  "executionManifest": {
+    "artifactDate": "2026-08-19",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:63571e0f5eb7a7b73a0900c5d9cbbb631cb53dd8a826eb51550696c00f61f4b7",
+        "path": "pipelines/npc-canonical/npc-local-loot-compatibility-retirement.mjs"
+      },
+      {
+        "contentHash": "sha256:fe448b7491b36e7e521c6f47938802d3bb89460450f8504fc621ecf86f76a8f6",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:a6a5374d60505aa29c0b81bb109cc9db14448a2cc8612ab6356374529f28e8ae",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:a8d630a70a8c38d93637501988d6ce19529a8ceb60e97d024b1898dd90c85d24",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:c02611cc90e94b8284b0472b78e656b32cee96f9d8311c26452f137f006f02e3",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:f6be3d6419b894b12ee311c5122374238a6e09aef1238a4b687fcbb978970fee",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/npc-canonical/npc-local-loot-compatibility-retirement.mjs",
+      "--input=reports/authorization/canonical/canonical-npc-local-loot-compatibility-retirement.input.json",
+      "--preview=reports/runtime/local-data-chain-closure/20260819/post-final/npc-local-loot-compatibility-retirement-preview.json",
+      "--output=reports/authorization/canonical/canonical-npc-local-loot-compatibility-retirement.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_npc_local_loot_compatibility_retirement",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-npc-local-loot-compatibility-retirement.input.json",
+      "reports/runtime/local-data-chain-closure/20260819/post-final/npc-local-loot-compatibility-retirement-preview.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-npc-local-loot-compatibility-retirement",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-npc-local-loot-compatibility-retirement.result.json"
+    ],
+    "ownershipKeys": [
+      "local.npc_loot_entries.non_boss"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:bd7bcd3c91a7c6ec3429f0332312a8454f9298561fa830fdb8cc991112402be8"
+}

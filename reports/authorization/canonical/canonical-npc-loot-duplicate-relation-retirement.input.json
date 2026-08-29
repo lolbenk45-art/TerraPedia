@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-loot-duplicate-relation-retirement",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260825/parent-final-1055/npc-duplicate-relation-retirement.proposal.json",
+  "proposalSha256": "sha256:20f605f8b7f5262089af4ff7f69f4ab98091d4fb9c1478d5955cd2ae6f1e4309",
+  "scopeSha256": "sha256:612a93c6e77e4700103356f10eeb4de15f2e36b7f4d18b3fa0bad35f3f4e1679",
+  "expectedCounts": {
+    "relationRetirements": 1,
+    "projectionChanges": 0,
+    "changedPhysicalRows": 1
+  },
+  "writeTargets": [
+    "relation.item_npc_loot_relations.status_deleted"
+  ]
+}

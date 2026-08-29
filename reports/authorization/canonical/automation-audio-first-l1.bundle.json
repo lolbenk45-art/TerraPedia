@@ -1,18 +1,19 @@
 {
   "schemaVersion": 1,
   "operationId": "automation-audio-first-l1",
-  "runId": "audio_l1_20260814_02",
+  "runId": "audio_l1_auto_3d5aea1c2bc77930f833f2960e6be5e4",
   "domainId": "audio",
   "databaseName": "terria_v1_local",
-  "generatedAt": "2026-08-14T14:34:42.090Z",
-  "approvalMode": "APPROVED_OWNER_L1",
+  "generatedAt": "2026-08-17T00:22:34.168Z",
+  "approvalMode": "AUTO_APPLY_ACTIVATED",
+  "executionMode": "ACTIVATION_GATED_AUTO",
   "policy": {
     "domainId": "audio",
     "level": "L1",
     "operationalState": "ACTIVE",
     "policyVersion": 1,
     "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
-    "policySetHash": "sha256:3613e93e40bf8264ed3fbe84e1408506fffebae6eb9fade6ab58bba21db2bfd8"
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
   },
   "baseline": {
     "environmentId": "local",
@@ -20,24 +21,24 @@
       {
         "databaseRole": "local",
         "table": "audio_assets",
-        "generation": 0
+        "generation": 4
       },
       {
         "databaseRole": "local",
         "table": "audio_asset_links",
-        "generation": 0
+        "generation": 4
       }
     ],
-    "projectionHash": "sha256:ec6516ee8a81babf2916cea3f900ef7d7de9530cd45fd5b1d983f1a7f289c107"
+    "projectionHash": "sha256:8b34a6d72c47edbd81833f87d60583c5a0aef2fbeb12ad0abc58cb51320b50a4"
   },
-  "baselineFingerprint": "sha256:cd3d862064a5d416b93bdedc16c3464ace8e4f765c41b53f0165d3bc099fc241",
+  "baselineFingerprint": "sha256:4013072a157094f254526ec5606d8ee31277e185a8215d55e31e3cf9bc73e740",
   "source": {
     "path": "reports/authorization/canonical/automation-audio-first-l1.source.json",
-    "sha256": "sha256:9304cb26b04884962ba3b216b347dcce20721bbd4307d5c40110a6aa21f62dc9"
+    "sha256": "sha256:0df1ca52a492ec08f4d8f1d0a78223a2526d2ce9a13201c0dc8df245a7a2e1b7"
   },
-  "evidenceHash": "sha256:985953fae859a747c04819124bae307af9f6163679ee37be4c162ba72bed1f62",
+  "evidenceHash": "sha256:40e19d4c004db968aee760c94738c256a595211ea2c23f7333996d1f965e4936",
   "logicalDiffIdentity": {
-    "baselineFingerprint": "sha256:cd3d862064a5d416b93bdedc16c3464ace8e4f765c41b53f0165d3bc099fc241",
+    "baselineFingerprint": "sha256:4013072a157094f254526ec5606d8ee31277e185a8215d55e31e3cf9bc73e740",
     "ownedTables": [
       {
         "databaseRole": "local",
@@ -48,15 +49,16 @@
         "table": "audio_asset_links"
       }
     ],
-    "sourceSha256": "sha256:9304cb26b04884962ba3b216b347dcce20721bbd4307d5c40110a6aa21f62dc9",
+    "sourceSha256": "sha256:0df1ca52a492ec08f4d8f1d0a78223a2526d2ce9a13201c0dc8df245a7a2e1b7",
     "importPlan": {
       "summary": {
-        "assets": 200
-      }
+        "assets": 428
+      },
+      "automaticSourceFingerprint": "cbb5aa579554985cdb54f354d23ba73fc4fced6370dec9d8564f7bc449aa774e"
     }
   },
-  "logicalDiffHash": "sha256:7b7cf92a22b97597b177d4eaac55bb4c57c4f6c61e0e5b6f2422b069e4cbe4bb",
-  "decisionHash": "sha256:5212cfccd1cae2cd578df1001406256f292e2923da49ce5f081884be20153a32",
+  "logicalDiffHash": "sha256:56cd44f9af6cef9078e5933818a0922002393069d0022e11161eb7efa7346786",
+  "decisionHash": "sha256:1b1921f7329a5ca0a05e23c3a42a3e75f9f2f39accc2c379b1019aed5a874ab4",
   "ownedTables": [
     {
       "databaseRole": "local",
@@ -69,8 +71,9 @@
   ],
   "importPlan": {
     "summary": {
-      "assets": 200
-    }
+      "assets": 428
+    },
+    "automaticSourceFingerprint": "cbb5aa579554985cdb54f354d23ba73fc4fced6370dec9d8564f7bc449aa774e"
   },
-  "bundleHash": "sha256:e07ababd0fa11a59c76c53db6175e88b4fbf795d391a5244d54d944a77647c83"
+  "bundleHash": "sha256:b98134efeccc95a41f1fea0d3113731ae6f3dea1839935c9cc9c7af4767f9a16"
 }

@@ -2257,6 +2257,45 @@ test('buildItemSourceRelations prefers generated npc loot pages over item-page d
   assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'npc_loot_source_superseded_by_npc_page');
 });
 
+test('buildItemSourceRelations keeps generated NPC loot authoritative over crawler rows for the same identity', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        record_key: 'npc-item:clothier:loot:red-hat:0',
+        item_internal_name: 'RedHat',
+        item_name: 'Red Hat',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Clothier',
+        raw_json: JSON.stringify({ relationType: 'loot', sourceSection: 'drops', itemName: 'Red Hat', sourceRefInternalName: 'Clothier' }),
+        landing_source_key: 'generated.npc_item_relations_bundle',
+      },
+      {
+        record_key: 'crawler-item:clothier:loot:red-hat:0',
+        item_internal_name: 'RedHat',
+        item_name: 'Red Hat',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Clothier',
+        raw_json: JSON.stringify({ relationType: 'loot', sourceSection: 'drops', itemName: 'Red Hat', sourceRefInternalName: 'Clothier' }),
+        source_maint_table: 'maint_npc_crawler_facts',
+        source_maint_record_key: 'crawler-fact-clothier',
+        landing_source_key: 'wiki.npc.crawler_fact:clothier',
+      },
+    ],
+    npcIndex: new Map([
+      ['Clothier', { source_id: 54, internal_name: 'Clothier', name: 'Clothier' }],
+    ]),
+    itemIndex: new Map([
+      ['RedHat', { source_id: 260, internal_name: 'RedHat', name: 'Red Hat' }],
+    ]),
+  });
+
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].sourceMaintRecordKey, 'npc-item:clothier:loot:red-hat:0');
+  assert.equal(actual.itemNpcRelationAudits.filter((row) => row.auditStatus === 'superseded').length, 1);
+});
+
 test('buildItemSourceRelations dedupes mode-template-equivalent loot chances without dropping source facts', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

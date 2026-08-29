@@ -102,6 +102,7 @@ const requireArtifactDirectory = (runId: string): string => {
   const durableArtifactDirectory = path.resolve(
     import.meta.dirname,
     '..',
+    '..',
     'reports',
     'e2e',
     runId,

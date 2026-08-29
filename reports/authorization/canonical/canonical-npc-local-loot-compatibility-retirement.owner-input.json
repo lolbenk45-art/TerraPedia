@@ -1,0 +1,6 @@
+{
+  "actor": "Codex",
+  "reason": "User-authorized exact local-only retirement of 52 duplicate NPC loot compatibility rows and 4 orphaned wiki_gg variant tuples; preserve one active local survivor per tuple and all relation/projection/source rows.",
+  "authorizationReference": "user://conversation/2026-08-19/local-loot-compatibility-retirement",
+  "decisionIdentity": "canonical-npc-local-loot-compatibility-retirement-20260819-admin-01"
+}

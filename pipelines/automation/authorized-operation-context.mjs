@@ -7,6 +7,10 @@ import {
   resolveCanonicalOperationTechnicalInput,
   verifyCanonicalAuthorizationPacket,
 } from './build-canonical-cutover-authorization.mjs';
+import {
+  canonicalServerFingerprint,
+  hashCanonicalServerFingerprint,
+} from './automation-database-contract.mjs';
 import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 
 export function assertAuthorizedOperationDataBundle({
@@ -96,10 +100,41 @@ export function loadAuthorizedOperationContext({
     authorizedAt: packet.authorizedAt,
     expiresAt: packet.expiresAt,
     serverFingerprint: packet.serverFingerprint,
+    targetDatabases: packet.targetDatabases,
+    schemaBundleSha256: packet.schemaBundleSha256,
     dataBundleSha256: packet.dataBundleSha256,
+    policySetHash: packet.policySetHash,
     executionManifestHash: packet.executionManifestHash,
     executionManifest: packet.executionManifest,
   });
+}
+
+export function loadAuthorizedOperationServerFingerprint({
+  authorizedContext,
+  env = process.env,
+} = {}) {
+  const expectedHash = requireText(
+    authorizedContext?.serverFingerprint,
+    'authorized server fingerprint hash',
+  );
+  if (!/^sha256:[a-f0-9]{64}$/.test(expectedHash)) {
+    throw new Error('authorized server fingerprint hash is invalid');
+  }
+  const raw = requireText(
+    env?.TERRAPEDIA_AUTHORIZED_SERVER_FINGERPRINT,
+    'TERRAPEDIA_AUTHORIZED_SERVER_FINGERPRINT',
+  );
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('authorized server fingerprint must be valid JSON');
+  }
+  const fingerprint = canonicalServerFingerprint(parsed);
+  if (hashCanonicalServerFingerprint(fingerprint) !== expectedHash) {
+    throw new Error('authorized server fingerprint hash drifted from packet');
+  }
+  return fingerprint;
 }
 
 export function createAuthorizedOperationDispatchPermit({ directory = null, outputPath = null, packet } = {}) {

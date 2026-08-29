@@ -1,0 +1,8 @@
+{
+  "actor": "Owner (user)",
+  "reason": "Close the seven exact local data-chain blockers using the frozen proposals and serial governed readback.",
+  "authorizationReference": "devlog://2026-08-24/ten-blocker-exact-authorization",
+  "decisionIdentity": "canonical-biome-image-origin-normalization-20260824-owner-12",
+  "operationId": "canonical-biome-image-origin-normalization",
+  "batchBindingSha256": "sha256:bf56a7b9446d18c06188b2387d05c82874a00f646e29037f353e864c986cefcf"
+}

@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPolicyService {
 
     private static final Pattern SHA256 = Pattern.compile("sha256:[0-9a-f]{64}");
+    private static final String SCHEDULER_ACTIVATION_DOMAIN = "crawler_v2_scheduler";
     private static final Set<String> ALLOWED_L1_REASONS = Set.of(
         "INSERT_THRESHOLD_EXCEEDED", "UPDATE_THRESHOLD_EXCEEDED",
         "RELATIONSHIP_DELETE_THRESHOLD_EXCEEDED", "SOFT_DISABLE_THRESHOLD_EXCEEDED",
@@ -260,10 +261,33 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         } catch (IllegalArgumentException exception) {
             return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_SET_INVALID"));
         }
-        List<String> reasons = new ArrayList<>(l2PromotionReasons(policyRows, policySetHash));
+        boolean hasGlobalSchedulerPolicy = policyRows.stream()
+            .anyMatch(row -> Objects.equals(SCHEDULER_ACTIVATION_DOMAIN, row.domainId()));
+        List<PolicyRow> promotionRows = hasGlobalSchedulerPolicy
+            ? policyRows.stream()
+                .filter(row -> CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains(row.domainId()))
+                .toList()
+            : policyRows.stream()
+                .filter(row -> Objects.equals(domainId, row.domainId()))
+                .toList();
+        if (promotionRows.isEmpty()) {
+            return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_UNAVAILABLE"));
+        }
+        List<String> reasons = new ArrayList<>(l2PromotionReasons(
+            promotionRows, policySetHash, false, false));
         if (reasons.isEmpty()) {
+            PolicyRow schedulerPolicy = hasGlobalSchedulerPolicy
+                ? policyRows.stream()
+                    .filter(row -> Objects.equals(SCHEDULER_ACTIVATION_DOMAIN, row.domainId()))
+                    .findFirst()
+                    .orElse(null)
+                : current;
+            if (schedulerPolicy == null) {
+                return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_UNAVAILABLE"));
+            }
             reasons.addAll(activationDecisionReasons(
-                "SCHEDULER_ACTIVATION", "SCHEDULER_ACTIVATION", current, policySetHash));
+                "SCHEDULER_ACTIVATION", "SCHEDULER_ACTIVATION", schedulerPolicy, policySetHash,
+                false, true));
         }
         return new AutomationEligibility(reasons.isEmpty(), List.copyOf(reasons));
     }
@@ -312,6 +336,15 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
     }
 
     private List<String> l2PromotionReasons(List<PolicyRow> policyRows, String policySetHash) {
+        return l2PromotionReasons(policyRows, policySetHash, true, true);
+    }
+
+    private List<String> l2PromotionReasons(
+        List<PolicyRow> policyRows,
+        String policySetHash,
+        boolean requireRepeatedL1Evidence,
+        boolean requireCurrentPolicySet
+    ) {
         List<String> reasons = new ArrayList<>();
         for (PolicyRow row : policyRows) {
             PolicyState state = policyMapper.findPolicyState(row.domainId());
@@ -329,7 +362,8 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
                 continue;
             }
             reasons.addAll(activationDecisionReasons(
-                "L2_PROMOTION", "L2_PROMOTION", row, policySetHash));
+                "L2_PROMOTION", "L2_PROMOTION", row, policySetHash,
+                requireRepeatedL1Evidence, requireCurrentPolicySet));
         }
         return List.copyOf(new LinkedHashSet<>(reasons));
     }
@@ -338,7 +372,9 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         String decisionKind,
         String reasonPrefix,
         PolicyRow policy,
-        String policySetHash
+        String policySetHash,
+        boolean requireRepeatedL1Evidence,
+        boolean requireCurrentPolicySet
     ) {
         ActivationDecisionRecord record = activationDecisionMapper.findLatestActivationDecision(
             decisionKind, policy.domainId());
@@ -353,17 +389,19 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
             || !Objects.equals(policy.policyHash(), record.policyHash())) {
             return List.of(reasonPrefix + "_POLICY_IDENTITY_MISMATCH");
         }
-        if (!Objects.equals(policySetHash, record.policySetHash())) {
+        if (requireCurrentPolicySet && !Objects.equals(policySetHash, record.policySetHash())) {
             return List.of(reasonPrefix + "_POLICY_SET_MISMATCH");
         }
-        if (record.minimumSuccessfulL1Runs() < 2
+        int minimumSuccessfulL1Runs = "L2_PROMOTION".equals(decisionKind) ? 3 : 2;
+        if (record.minimumSuccessfulL1Runs() < minimumSuccessfulL1Runs
             || blank(record.actor()) || blank(record.reason())
             || blank(record.authorizationReference()) || blank(record.decisionIdentity())
             || record.packetHash() == null || !SHA256.matcher(record.packetHash()).matches()) {
             return List.of(reasonPrefix + "_DECISION_INVALID");
         }
+        if (!requireRepeatedL1Evidence) return List.of();
         int successfulL1 = activationDecisionMapper.countSuccessfulL1Applies(
-            policy.domainId(), policy.policyVersion(), policy.policyHash(), policySetHash);
+            policy.domainId(), policy.policyVersion());
         if (successfulL1 < record.minimumSuccessfulL1Runs()) {
             return List.of("L2_REPEATED_L1_EVIDENCE_REQUIRED");
         }

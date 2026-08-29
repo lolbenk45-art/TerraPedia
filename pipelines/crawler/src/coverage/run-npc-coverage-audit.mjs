@@ -2,16 +2,29 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { ensureDir, writeJson } from '../../../scripts/lib/wiki-item-utils.mjs';
+import { ensureDir, writeJson } from '../../../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../../../lib/project-root.mjs';
+import {
+  buildActionProgressPayload,
+  createCrawlerProgressHeartbeat,
+  writeJsonFile
+} from '../../../workflow/backend-refresh-runtime-state.mjs';
 import { buildNpcCoverageTargets } from './build-npc-coverage-targets.mjs';
 import { auditNpcCoverageTargets } from './audit-npc-coverage-targets.mjs';
 import { collectNpcCoverageEntityIds } from '../domains/npc-source-mapping.mjs';
+
+const ACTION_ID = 'npc-coverage-audit';
+const PROGRESS_TOTAL = 3;
 
 export async function runNpcCoverageAudit({
   domain,
   sourceStandardizedDir,
   crawlerOutputRoot,
   outputRoot,
+  progressPath,
+  canonicalProgressPath,
+  projectRoot,
+  actionId,
   fetchWikiPageMetadataBatchImpl
 } = {}) {
   const resolvedDomain = String(domain ?? 'npc').trim();
@@ -22,34 +35,119 @@ export async function runNpcCoverageAudit({
   const resolvedSourceStandardizedDir = path.resolve(sourceStandardizedDir ?? path.join(process.cwd(), 'data', 'standardized'));
   const resolvedCrawlerOutputRoot = path.resolve(crawlerOutputRoot ?? path.join(process.cwd(), 'data', 'wiki-crawler'));
   const resolvedOutputRoot = path.resolve(outputRoot ?? resolvedCrawlerOutputRoot);
-  const standardizedPayload = await readJson(path.join(resolvedSourceStandardizedDir, 'npcs.standardized.json'));
-  const crawledEntityIds = await loadCrawledEntityIds(resolvedCrawlerOutputRoot);
-
-  const targets = buildNpcCoverageTargets({
-    standardizedPayload,
-    crawledEntityIds
-  });
-  const audit = await auditNpcCoverageTargets({
-    targets: targets.targets,
-    crawledEntityIds,
-    fetchWikiPageMetadataBatchImpl
-  });
-
   const reportDir = path.join(resolvedOutputRoot, 'report', 'npc');
-  ensureDir(reportDir);
-
   const targetsPath = path.join(reportDir, 'coverage-targets.latest.json');
   const auditPath = path.join(reportDir, 'coverage-audit.latest.json');
+  const resolvedProjectRoot = path.resolve(projectRoot ?? getProjectRoot());
+  const resolvedProgressPath = path.resolve(
+    progressPath
+      ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH
+      ?? path.join(resolvedProjectRoot, 'data', 'generated', 'wiki-sync-progress.latest.json')
+  );
+  const resolvedCanonicalProgressPath = path.resolve(
+    canonicalProgressPath ?? path.join(resolvedProjectRoot, 'data', 'generated', 'wiki-sync-progress.latest.json')
+  );
+  const resolvedActionId = String(actionId ?? process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? ACTION_ID).trim() || ACTION_ID;
+  const startedAt = new Date().toISOString();
+  let current = 0;
 
-  writeJson(targetsPath, targets);
-  writeJson(auditPath, audit);
+  const writeProgress = (progress, targetPath = resolvedProgressPath) => {
+    const payload = buildActionProgressPayload({
+      actionId: resolvedActionId,
+      startedAt,
+      childStatusPath: targetPath,
+      outputPath: auditPath,
+      reportPath: auditPath,
+      ...progress
+    });
+    writeJsonFile(targetPath, payload);
 
-  return {
-    targetsPath,
-    auditPath,
-    targets,
-    audit
+    if (targetPath !== resolvedCanonicalProgressPath) {
+      writeJsonFile(resolvedCanonicalProgressPath, buildActionProgressPayload({
+        actionId: resolvedActionId,
+        startedAt,
+        childStatusPath: resolvedCanonicalProgressPath,
+        outputPath: auditPath,
+        reportPath: auditPath,
+        ...progress
+      }));
+    }
   };
+  const heartbeat = createCrawlerProgressHeartbeat({ writeProgress });
+  const publish = (progress) => heartbeat.publish({
+    current,
+    total: PROGRESS_TOTAL,
+    ...progress
+  });
+
+  publish({
+    status: 'running',
+    phase: 'load_inputs',
+    message: 'loading standardized NPC coverage inputs'
+  });
+
+  try {
+    const standardizedPayload = await readJson(path.join(resolvedSourceStandardizedDir, 'npcs.standardized.json'));
+    const crawledEntityIds = await loadCrawledEntityIds(resolvedCrawlerOutputRoot);
+    const targets = buildNpcCoverageTargets({
+      standardizedPayload,
+      crawledEntityIds
+    });
+
+    current = 1;
+    publish({
+      status: 'running',
+      phase: 'resolve_page_metadata',
+      message: `resolving wiki metadata for ${targets.targets.length} coverage targets`,
+      overallCurrent: 0,
+      overallTotal: targets.targets.length
+    });
+    const audit = await auditNpcCoverageTargets({
+      targets: targets.targets,
+      crawledEntityIds,
+      fetchWikiPageMetadataBatchImpl
+    });
+
+    current = 2;
+    publish({
+      status: 'running',
+      phase: 'write_reports',
+      message: 'writing NPC coverage reports',
+      overallCurrent: targets.targets.length,
+      overallTotal: targets.targets.length
+    });
+    ensureDir(reportDir);
+    writeJson(targetsPath, targets);
+    writeJson(auditPath, audit);
+
+    current = PROGRESS_TOTAL;
+    publish({
+      status: 'completed',
+      phase: 'completed',
+      message: 'NPC coverage audit completed',
+      overallCurrent: targets.targets.length,
+      overallTotal: targets.targets.length
+    });
+
+    return {
+      targetsPath,
+      auditPath,
+      progressPath: resolvedProgressPath,
+      canonicalProgressPath: resolvedCanonicalProgressPath,
+      targets,
+      audit
+    };
+  } catch (error) {
+    publish({
+      status: 'failed',
+      phase: 'failed',
+      message: error?.message ?? String(error),
+      failedCount: 1
+    });
+    throw error;
+  } finally {
+    heartbeat.stop();
+  }
 }
 
 async function loadCrawledEntityIds(crawlerOutputRoot) {

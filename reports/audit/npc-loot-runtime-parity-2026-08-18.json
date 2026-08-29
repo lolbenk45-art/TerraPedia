@@ -1,0 +1,31 @@
+{
+  "auditName": "npc-loot-runtime-parity",
+  "generatedAt": "2026-08-18T23:40:47.115Z",
+  "options": {
+    "relationDatabase": "terria_v1_relation",
+    "localDatabase": "terria_v1_local",
+    "apiBaseUrl": "http://localhost:18091",
+    "apiMode": "public-detail",
+    "adminToken": null,
+    "fastLocalApi": false,
+    "requestIntervalMs": 1000,
+    "rateLimitRetryWaitMs": 60000,
+    "maxRateLimitRetries": 2,
+    "writeReport": true,
+    "output": null,
+    "dateTag": "2026-08-18"
+  },
+  "auditStatus": "blocked",
+  "evidenceHealth": "api_unavailable",
+  "summary": {
+    "totalNpcs": 0,
+    "blockingCount": 1,
+    "byStatus": {},
+    "stageRows": {}
+  },
+  "rows": [],
+  "error": {
+    "message": "fetch failed",
+    "code": null
+  }
+}

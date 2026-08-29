@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized exact Item projection apply for 332 existing projection_items.image rows derived from active relation_item_images.cached_url; no inserts, deletes, source writes, or local reverse-copy.",
+  "authorizationReference": "user://conversation/2026-08-21/item-image-lineage-and-projection-closure",
+  "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-01",
+  "authorizedAt": "2026-08-21T01:43:06.811Z"
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-buffs-l1",
+  "domainId": "buffs",
+  "runId": "buffs_l1_20260829_serial02",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run buffs 02",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-buffs-serial02",
+  "decisionIdentity": "eight-domain-l1-buffs-serial02",
+  "authorizedAt": "2026-08-29T01:07:05.946Z",
+  "expiresAt": "2026-08-29T03:07:05.946Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:7f4d44595bd62d4a78d068ec4cb1feb2c71b9920908bd7365c085ede2510069a"
+}

@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-08-24T04:40:00+08:00",
+  "domainId": "support.shimmer",
+  "panelId": "blockingGate",
+  "status": "blocked",
+  "reportPath": "reports/domain/support.shimmer/blocking-gate-2026-08-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 1,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 0,
+    "blockedCount": 1,
+    "warningCount": 0
+  },
+  "blockingReasons": [
+    "reports/authorization/canonical/canonical-shimmer-import.result.json: completed Shimmer import generationId does not match the current pointer; completed Shimmer import manifest hash does not match the current pointer; completed Shimmer import data bundle hash does not match the current pointer; completed Shimmer import snapshot keys do not match the frozen preview plus current generation"
+  ],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_authorization_canonical_canonical_shimmer_import_result_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/authorization/canonical/canonical-shimmer-import.result.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "reports/authorization/canonical/canonical-shimmer-import.result.json: completed Shimmer import generationId does not match the current pointer; completed Shimmer import manifest hash does not match the current pointer; completed Shimmer import data bundle hash does not match the current pointer; completed Shimmer import snapshot keys do not match the frozen preview plus current generation"
+    }
+  ]
+}

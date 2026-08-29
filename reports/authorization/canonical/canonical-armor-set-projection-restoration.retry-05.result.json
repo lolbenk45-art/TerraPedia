@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_armor_set_projection_restoration_result",
+  "operationId": "canonical-armor-set-projection-restoration",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "affectedRows": 63,
+  "scopeSha256": "sha256:6052f70a743d1bdaa30eba8749ef23d031cc13150ee08abfb3c78d986ba4c930",
+  "afterRowsSha256": "sha256:186b03dd074594fc343f29f5dfd2e8fc7589b7f3973bc2f0b1b553c8c417f1f7",
+  "authorization": {
+    "decisionIdentity": "canonical-armor-set-projection-restoration-20260824-retry-05-owner-13",
+    "packetHash": "sha256:9ec83242a082b98a4fc60e4e80eec6b7371f8d35e4b58be646a4c127d027665b"
+  },
+  "completedAt": "2026-08-24T07:57:13.008Z"
+}

@@ -1,0 +1,13 @@
+{
+  "actionId": "domain-source-shimmer",
+  "generatedAt": "2026-08-29T01:33:39.927Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/shimmer/shimmer_l1_20260829_serial03/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T01:33:39.927Z",
+  "message": "frozen shimmer source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T01:33:39.927Z",
+  "total": 1
+}

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,10 +13,60 @@ import {
 } from './npc-apply-ownership-preparation.mjs';
 
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname);
-const input = JSON.parse(fs.readFileSync(
-  path.join(repoRoot, 'reports/authorization/canonical/canonical-npc-apply.input.json'),
-  'utf8',
-));
+
+function hash(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function loadFixtureInput() {
+  const fixturePath = path.join(repoRoot, 'pipelines/test-fixtures/canonical/npc-apply.input.fixture.json');
+  assert.equal(path.relative(repoRoot, fixturePath).startsWith('pipelines/test-fixtures/canonical/'), true);
+  const envelope = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+  assert.equal(envelope.fixtureOnly, true);
+  assert.equal(envelope.notAuthorization, true);
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-apply-fixture-'));
+  const targets = [];
+  const evidencePairs = [];
+  let payloadBytes = 0;
+  for (let index = 0; index < envelope.pairCount; index += 1) {
+    const entityId = `npc-${index + 1}`;
+    const buffInflictions = index < 9 ? [{ buffId: index + 1 }] : [];
+    const shopCount = index < 8 ? 27 : (index === 8 ? 23 : 0);
+    const shop = Array.from({ length: shopCount }, (_, n) => ({ itemName: `Item ${index + 1}-${n + 1}` }));
+    const loot = Array.from({ length: 7 }, (_, n) => ({ itemName: `Loot ${index + 1}-${n + 1}` }));
+    const normalizedPayload = { entityId, buffInflictions, shop, loot };
+    const auditPayload = { status: 'pass', entityId, sourcePage: `Fixture ${index + 1}`, sourceRevisionTimestamp: '2026-08-22T00:00:00.000Z' };
+    const normalizedRaw = `${JSON.stringify(normalizedPayload)}\n`;
+    const normalizedContentHash = hash(JSON.stringify(normalizedPayload));
+    auditPayload.normalizedContentHash = normalizedContentHash;
+    const auditRaw = `${JSON.stringify(auditPayload)}\n`;
+    const normalizedPath = `normalized-${index + 1}.json`;
+    const auditPath = `audit-${index + 1}.json`;
+    fs.writeFileSync(path.join(fixtureRoot, normalizedPath), normalizedRaw);
+    fs.writeFileSync(path.join(fixtureRoot, auditPath), auditRaw);
+    targets.push({ entityId, priority: index === 0 ? 'boss' : 'npc' });
+    const pair = {
+      entityId, targetEntityId: entityId, sourcePage: auditPayload.sourcePage, sourceRevisionTimestamp: auditPayload.sourceRevisionTimestamp,
+      normalizedContentHash, auditContentHash: hash(JSON.stringify(auditPayload)), payloadBytes: Buffer.byteLength(normalizedRaw) + Buffer.byteLength(auditRaw),
+      normalized: { path: normalizedPath, contentHash: hash(normalizedRaw), sizeBytes: Buffer.byteLength(normalizedRaw) },
+      audit: { path: auditPath, contentHash: hash(auditRaw), sizeBytes: Buffer.byteLength(auditRaw) },
+    };
+    payloadBytes += pair.payloadBytes;
+    evidencePairs.push(pair);
+  }
+  const targetRaw = `${JSON.stringify({ targets })}\n`;
+  fs.writeFileSync(path.join(fixtureRoot, 'fixture-target-manifest.json'), targetRaw);
+  return {
+    repoRoot: fixtureRoot,
+    input: {
+      schemaVersion: envelope.schemaVersion, operationId: envelope.operationId, pairCount: envelope.pairCount, payloadBytes,
+      targetManifest: { path: 'fixture-target-manifest.json', contentHash: hash(targetRaw), sizeBytes: Buffer.byteLength(targetRaw) }, evidencePairs,
+    },
+  };
+}
+
+const fixtureInput = loadFixtureInput();
+const input = fixtureInput.input;
 
 test('NPC apply is split into seven single-owner phases with exact physical ownership', () => {
   assert.deepEqual(NPC_APPLY_OWNER_PHASES.map((phase) => [phase.operationId, phase.capability]), [
@@ -51,7 +102,7 @@ test('NPC apply is split into seven single-owner phases with exact physical owne
 
 test('real 25-pair evidence becomes a read-only owner-valid T1 preparation', async () => {
   const report = await buildNpcApplyOwnershipPreparation({
-    repoRoot,
+    repoRoot: fixtureInput.repoRoot,
     input,
     generatedAt: '2026-07-29T04:20:00.000Z',
   });
@@ -77,20 +128,20 @@ test('preparation fails closed on evidence drift or an ownership mismatch', asyn
   const drifted = structuredClone(input);
   drifted.evidencePairs[0].normalized.contentHash = '0'.repeat(64);
   await assert.rejects(
-    () => buildNpcApplyOwnershipPreparation({ repoRoot, input: drifted }),
+    () => buildNpcApplyOwnershipPreparation({ repoRoot: fixtureInput.repoRoot, input: drifted }),
     /normalized.*hash mismatch/i,
   );
 
   const invalidPhases = structuredClone(NPC_APPLY_OWNER_PHASES);
   invalidPhases[0].ownershipKeys.push('relation.item_source_facts.items');
   await assert.rejects(
-    () => buildNpcApplyOwnershipPreparation({ repoRoot, input, phases: invalidPhases }),
+    () => buildNpcApplyOwnershipPreparation({ repoRoot: fixtureInput.repoRoot, input, phases: invalidPhases }),
     /single capability owner/i,
   );
 });
 
 test('preparation report writes atomically without changing evidence', async () => {
-  const report = await buildNpcApplyOwnershipPreparation({ repoRoot, input });
+  const report = await buildNpcApplyOwnershipPreparation({ repoRoot: fixtureInput.repoRoot, input });
   const targetRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-owner-preparation-'));
   try {
     await writeNpcApplyOwnershipPreparation({ repoRoot: targetRoot, report });

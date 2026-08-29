@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-armor-sets-l1",
+  "runId": "armor_sets_l1_20260829_serial02",
+  "domainId": "armor_sets",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T01:02:05.047Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "armor_sets",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:ecf35935ed3681939f9d0b4fab8760a6cd802cccb8647f73a486e25de42c3871",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "armor_sets",
+        "generation": 3
+      },
+      {
+        "databaseRole": "local",
+        "table": "armor_set_items",
+        "generation": 3
+      }
+    ],
+    "projectionHash": "sha256:858820c3d34be0f13aaa178fbdc74a3e034d64e626d1385ac064d92372625fe1"
+  },
+  "baselineFingerprint": "sha256:1911a5b9252eb9d7fac1b61b7c66e93693e71637a28b84a589a4073659ec02a8",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/armor_sets/armor_sets_l1_20260829_serial02/source.json",
+    "sha256": "sha256:9c496f56eaddb0ca1dd41c8a5e470581c890b536cedcf29db925a27a232a9b61"
+  },
+  "evidenceHash": "sha256:da0371353b7182dc5c4a27a5ffabc6496fdb63047d3910cc5ffe24b9cfe2eb0c",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:1911a5b9252eb9d7fac1b61b7c66e93693e71637a28b84a589a4073659ec02a8",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "armor_sets"
+      },
+      {
+        "databaseRole": "local",
+        "table": "armor_set_items"
+      }
+    ],
+    "sourceSha256": "sha256:9c496f56eaddb0ca1dd41c8a5e470581c890b536cedcf29db925a27a232a9b61",
+    "importPlan": {
+      "entity": "armor_sets",
+      "recordCount": 63,
+      "itemDependencyCount": 6131,
+      "sourceKind": "module",
+      "sourceResult": "local"
+    }
+  },
+  "logicalDiffHash": "sha256:037bc6f860cea25d11ed6c69516e1da221dc49096842d335973089712faf954e",
+  "decisionHash": "sha256:d8ef878c43f28d7fe70beb1c2a8e02a4d43eb008e166e09ce4151bb11a893b75",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "armor_sets"
+    },
+    {
+      "databaseRole": "local",
+      "table": "armor_set_items"
+    }
+  ],
+  "importPlan": {
+    "entity": "armor_sets",
+    "recordCount": 63,
+    "itemDependencyCount": 6131,
+    "sourceKind": "module",
+    "sourceResult": "local"
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/armor_sets/armor_sets_l1_20260829_serial02/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/armor_sets/armor_sets_l1_20260829_serial02/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/armor_sets/armor_sets_l1_20260829_serial02/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/armor_sets/armor_sets_l1_20260829_serial02/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:48adf420bf80eb4cd7c00754506352fdfbd6555e44f190657690f0027bfc8a51"
+}

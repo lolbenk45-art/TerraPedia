@@ -58,6 +58,31 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'npc-coverage-audit',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'pipelines/crawler/src/cli.mjs',
+        'coverage-audit',
+        '--domain=npc'
+      ]
+    },
+    {
+      id: 'npc-coverage-batch',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'pipelines/crawler/src/cli.mjs',
+        'batch',
+        '--domain=npc',
+        '--targets-file=data/wiki-crawler/report/npc/coverage-audit.latest.json',
+        '--limit=25',
+        '--write-files'
+      ]
+    },
+    {
       id: 'wiki-projectiles-refresh',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,

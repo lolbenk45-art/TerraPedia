@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   assertPrimaryDb,
   resolveImportOptions,
+  runBaseItemsImport,
   runStandardizedImportWithConnection,
 } from './import-standardized-to-db.mjs';
 
@@ -116,6 +117,33 @@ test('import-standardized apply updates changed existing item rows', async () =>
   assert.equal(report.summary.items.updated, 1);
   assert.equal(report.summary.items.skipped, 0);
   assert.equal(conn.executeCalls.some((call) => /\bUPDATE items\b/i.test(call.sql)), true);
+});
+
+test('base-item import updates only Items and fails closed on a missing category', async () => {
+  const conn = createFakeConnection({
+    categories: [{ id: 7, code: 'MATERIAL' }],
+    items: [standardizedDbItem({ tooltip: 'stale tooltip' })],
+  });
+
+  const result = await runBaseItemsImport({
+    connection: conn,
+    records: [standardizedItemRecord()],
+  });
+
+  assert.equal(result.items.input, 1);
+  assert.equal(result.items.updated, 1);
+  assert.equal(result.items.errors.length, 0);
+  assert.equal(conn.executeCalls.some((call) => /\bINSERT INTO category\b/i.test(call.sql)), false);
+
+  const missingCategory = createFakeConnection();
+  await assert.rejects(
+    runBaseItemsImport({
+      connection: missingCategory,
+      records: [standardizedItemRecord()],
+    }),
+    /missing active Item categories: MATERIAL/,
+  );
+  assert.equal(missingCategory.executeCalls.some((call) => /\b(INSERT INTO|UPDATE) items\b/i.test(call.sql)), false);
 });
 
 function emptyDatasets() {

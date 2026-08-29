@@ -1,0 +1,6 @@
+{
+  "actor": "Codex",
+  "reason": "User-selected方案A: restore relation source facts from current local maint/local evidence after the broad synchronizer regression; no network and exact relation-table allow-list.",
+  "authorizationReference": "reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/proposal.json",
+  "decisionIdentity": "canonical-item-source-relation-recovery-from-maint-20260823-retry-01-owner-01"
+}

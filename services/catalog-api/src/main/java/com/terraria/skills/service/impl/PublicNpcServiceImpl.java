@@ -104,6 +104,18 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     @Override
+    public NpcDetailDTO getNpcAggregateBaseById(Long id) {
+        if (id == null) {
+            return null;
+        }
+        Npc npc = npcMapper.selectById(id);
+        if (!isPublicNpc(npc)) {
+            return null;
+        }
+        return toDetailDto(npc, loadCategoryName(npc.getCategoryId()));
+    }
+
+    @Override
     public List<NpcLootEntryDTO> getNpcLoot(Long npcId, Long gameId, String npcName) {
         if (npcId == null) {
             return List.of();

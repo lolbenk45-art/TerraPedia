@@ -13,6 +13,15 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'check-source-updates.mjs');
 
+test('source update monitor disables official feeds unless explicitly requested', async () => {
+  const { resolveOfficialCheckMode } = await import('./source-update-monitor-options.mjs');
+
+  assert.equal(resolveOfficialCheckMode({}), 'never');
+  assert.equal(resolveOfficialCheckMode({ 'official-check-mode': 'always' }), 'always');
+  assert.equal(resolveOfficialCheckMode({ officialCheckMode: 'never' }), 'never');
+  assert.equal(resolveOfficialCheckMode({ officialCheckMode: 'invalid' }), 'never');
+});
+
 test('compareWikiSourceFingerprint uses contentHash from ingested record even for wiki_page sources', async () => {
   const comparison = await import('./source-update-comparison.mjs');
   assert.equal(typeof comparison.compareWikiSourceFingerprint, 'function');

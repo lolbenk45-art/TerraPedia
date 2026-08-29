@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-projection-text-identity-residual-repair",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:3a6307c87d8713791310af9f0eb31231d8afc0c00c62546e0fd786f3ca826f74",
+  "previewSha256": "sha256:464cfa51ee423fddb0a892f3af25d339fbd2e029f53de6070a5bac75f65b1b63",
+  "expectedCounts": {
+    "acceptedRelationLoot": 2,
+    "relationRowsToRetire": 2,
+    "projectionNpcsToReplace": 2,
+    "localRowsToRetire": 2
+  },
+  "writeTargets": [
+    "relation.item_npc_loot_relations.status_deleted",
+    "relation.projection_npcs.loot_items_json",
+    "local.npc_loot_entries.status_deleted"
+  ]
+}

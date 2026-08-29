@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l1",
+  "runId": "projectiles_l1_20260829_serial02",
+  "domainId": "projectiles",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T00:59:54.654Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "projectiles",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "projectiles",
+        "generation": 2
+      }
+    ],
+    "projectionHash": "sha256:c8c5971b9c9bafe9d3f58456f782d37f3f8ad29be22ad8b686f814a7abd458ca"
+  },
+  "baselineFingerprint": "sha256:9e6727b2373294c77b6ece5a3cf37f5c7c46f45809111162e29efaf01b9de74d",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/projectiles/projectiles_l1_20260829_serial02/source.json",
+    "sha256": "sha256:2c7fe34bffb41507239a07baee60f5e6141ad753e6f57af371179a44b15860f6"
+  },
+  "evidenceHash": "sha256:52029e21b32e2b9fe2d3633f06c30b9cd6e9a3e17c662c213b91368907db1c58",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:9e6727b2373294c77b6ece5a3cf37f5c7c46f45809111162e29efaf01b9de74d",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "projectiles"
+      }
+    ],
+    "sourceSha256": "sha256:2c7fe34bffb41507239a07baee60f5e6141ad753e6f57af371179a44b15860f6",
+    "importPlan": {
+      "entity": "projectiles",
+      "recordCount": 1111,
+      "itemDependencyCount": 6131,
+      "sourceKind": "module",
+      "sourceResult": "local"
+    }
+  },
+  "logicalDiffHash": "sha256:d55971786aa94ffaffa8be92853a57535221f38a9767c2d0281adc5a8468e8b4",
+  "decisionHash": "sha256:67d3c15af386d33c06abcfb69e2a270cd1f31ad59e44fb56290373b29742b3dd",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "projectiles"
+    }
+  ],
+  "importPlan": {
+    "entity": "projectiles",
+    "recordCount": 1111,
+    "itemDependencyCount": 6131,
+    "sourceKind": "module",
+    "sourceResult": "local"
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/projectiles/projectiles_l1_20260829_serial02/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/projectiles/projectiles_l1_20260829_serial02/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/projectiles/projectiles_l1_20260829_serial02/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/projectiles/projectiles_l1_20260829_serial02/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:f843935a81b4fa562bbba91491ee87c41b2eee88404a94a28a53bd1e52b323a8"
+}

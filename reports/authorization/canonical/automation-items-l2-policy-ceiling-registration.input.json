@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l2-policy-ceiling-registration",
+  "domainId": "items",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/items/0afd6e5c471b31614ae31d4472cf9b2c5f16f2fd1786dd48c2529260d0c25d27/artifact.json",
+  "artifactFileSha256": "sha256:bec1800df1fd16360a3dfcf332d80b502761f49ab81fd2d0f52f156be20d6e6c",
+  "artifactHash": "sha256:0afd6e5c471b31614ae31d4472cf9b2c5f16f2fd1786dd48c2529260d0c25d27",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+  "targetPolicySetHash": "sha256:d11760266c60d1589f55e0e0ca278618a86bf2ad974d0193acc00b778ecf040a",
+  "proposalOnly": false
+}

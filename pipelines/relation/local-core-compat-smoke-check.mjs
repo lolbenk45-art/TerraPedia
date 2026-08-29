@@ -12,12 +12,16 @@ import {
   loadFourDomainData
 } from './replacement-readiness-audit.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = getProjectRoot();
+
+export function resolveMysqlRequirePath(root = repoRoot) {
+  return path.join(root, 'apps', 'admin-console', 'package.json');
+}
+
+const require = createRequire(resolveMysqlRequirePath());
+const mysql = require('mysql2/promise');
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -40,6 +44,7 @@ export function parseArgs(argv) {
   return {
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? 'terria_v1_local',
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
+    port: raw.port ?? null,
     dateTag: raw['date-tag'] ?? raw.dateTag ?? null,
     throwOnFailure: booleanOption(raw['throw-on-failure'] ?? raw.throwOnFailure, true)
   };
@@ -55,8 +60,10 @@ export function buildLocalCoreCompatSmokeCheck({ localData = {}, projectionData 
   const failedDomains = [];
 
   for (const [domain, entry] of Object.entries(audit.domainResults)) {
-    const acceptedLocalOnlyCount = Array.isArray(entry.acceptedLocalOnlyExceptions)
-      ? entry.acceptedLocalOnlyExceptions.length
+    const acceptedLocalOnlyCount = Number.isInteger(entry.acceptedLocalOnlyExceptionCount)
+      ? entry.acceptedLocalOnlyExceptionCount
+      : Array.isArray(entry.acceptedLocalOnlyExceptions)
+        ? entry.acceptedLocalOnlyExceptions.length
       : 0;
     const rowCountMismatch = (entry.localRowCount - acceptedLocalOnlyCount) !== entry.projectionRowCount;
     const keyMismatch = entry.missingInProjectionCount > 0 || entry.extraInProjectionCount > 0;
@@ -82,14 +89,18 @@ export function buildLocalCoreCompatSmokeCheck({ localData = {}, projectionData 
   };
 }
 
-async function defaultLoadData({ localDatabase, relationDatabase }, dependencies) {
-  const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
-  const mysqlOptions = {
-    host: config.database?.host ?? '127.0.0.1',
-    port: Number(config.database?.port ?? 3306),
-    user: config.database?.username ?? 'root',
-    password: config.database?.password ?? 'root'
+export function resolveLocalCoreMysqlOptions({ config = {}, env = process.env, port = null } = {}) {
+  return {
+    host: env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(port ?? env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 13306),
+    user: env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root'
   };
+}
+
+async function defaultLoadData({ localDatabase, relationDatabase, port }, dependencies) {
+  const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
+  const mysqlOptions = resolveLocalCoreMysqlOptions({ config, port });
   const localConn = await mysql.createConnection({ ...mysqlOptions, database: localDatabase });
   const relationConn = await mysql.createConnection({ ...mysqlOptions, database: relationDatabase });
   try {
@@ -113,6 +124,7 @@ export async function runLocalCoreCompatSmokeCheck(options = {}, dependencies = 
   const normalized = {
     localDatabase: options.localDatabase ?? 'terria_v1_local',
     relationDatabase: options.relationDatabase ?? 'terria_v1_relation',
+    port: options.port ?? null,
     dateTag: options.dateTag ?? toDateTag(now),
     throwOnFailure: options.throwOnFailure !== false
   };

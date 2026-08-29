@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-24T08:10:00+08:00",
+  "domainId": "support.recipe",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedContractCount": 2,
+    "passedCount": 2,
+    "warningCount": 0,
+    "blockedCount": 0,
+    "modes": {
+      "canonical": 2
+    }
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/recipe-material-reference.json",
+      "mode": "canonical",
+      "status": "pass",
+      "reportPath": "reports/canonical-migration/canonical-item-group-readiness.json",
+      "reason": null
+    },
+    {
+      "input": "data/generated/recipe-group-overrides.json",
+      "mode": "canonical",
+      "status": "pass",
+      "reportPath": "reports/canonical-migration/canonical-item-group-readiness.json",
+      "reason": null
+    }
+  ],
+  "reportPath": "reports/domain/support.recipe/b1-exemption-compliance-2026-08-24.json"
+}

@@ -6,9 +6,12 @@ import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.dto.CrawlerV2AutomationDTO;
 import com.terraria.skills.dto.CrawlerV2SchedulerActivationPreflightDTO;
 import com.terraria.skills.dto.DomainAcceptanceOverviewDTO;
+import com.terraria.skills.mapper.CrawlerAutomationPolicyMapper;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.CrawlerAutomationPolicyService.PolicyState;
 import com.terraria.skills.service.CrawlerV2SchedulerActivationPreflightService;
 import com.terraria.skills.service.DomainAcceptanceService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
@@ -34,15 +37,27 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
     private final CrawlerMonitorService monitorService;
     private final DomainAcceptanceService domainAcceptanceService;
     private final CrawlerQueueV2Properties queueProperties;
+    private final CrawlerAutomationPolicyMapper policyMapper;
 
     public CrawlerV2SchedulerActivationPreflightServiceImpl(
         CrawlerMonitorService monitorService,
         DomainAcceptanceService domainAcceptanceService,
         CrawlerQueueV2Properties queueProperties
     ) {
+        this(monitorService, domainAcceptanceService, queueProperties, null);
+    }
+
+    @Autowired
+    public CrawlerV2SchedulerActivationPreflightServiceImpl(
+        CrawlerMonitorService monitorService,
+        DomainAcceptanceService domainAcceptanceService,
+        CrawlerQueueV2Properties queueProperties,
+        CrawlerAutomationPolicyMapper policyMapper
+    ) {
         this.monitorService = Objects.requireNonNull(monitorService, "monitorService");
         this.domainAcceptanceService = Objects.requireNonNull(domainAcceptanceService, "domainAcceptanceService");
         this.queueProperties = Objects.requireNonNull(queueProperties, "queueProperties");
+        this.policyMapper = policyMapper;
     }
 
     @Override
@@ -63,10 +78,48 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
         result.setCounts(counts(overview));
         result.setReconciler(reconciler(overview));
         result.setDomains(domainReadiness(overview, domainAcceptance, observedAt));
+        List<CrawlerV2SchedulerActivationPreflightDTO.PolicyRowDTO> policyRows = policyRows();
+        result.setPolicyRows(policyRows);
+        result.setPolicySetHash(policySetHash(policyRows));
         result.setDatabaseWrites(false);
         result.setNetworkAccess(false);
         result.setIsolatedResourceWrites(false);
         return result;
+    }
+
+    private List<CrawlerV2SchedulerActivationPreflightDTO.PolicyRowDTO> policyRows() {
+        if (policyMapper == null) return List.of();
+        return safeList(policyMapper.findCurrentPolicyStates()).stream()
+            .filter(Objects::nonNull)
+            .map(this::policyRow)
+            .sorted((left, right) -> left.getDomainId().compareTo(right.getDomainId()))
+            .toList();
+    }
+
+    private CrawlerV2SchedulerActivationPreflightDTO.PolicyRowDTO policyRow(PolicyState state) {
+        CrawlerV2SchedulerActivationPreflightDTO.PolicyRowDTO row =
+            new CrawlerV2SchedulerActivationPreflightDTO.PolicyRowDTO();
+        row.setDomainId(state.domainId());
+        row.setPolicyVersion(state.policyVersion());
+        row.setPolicyHash(state.policyHash());
+        row.setCurrentLevel(state.currentLevel());
+        row.setOperationalState(state.operationalState());
+        return row;
+    }
+
+    private String policySetHash(List<CrawlerV2SchedulerActivationPreflightDTO.PolicyRowDTO> rows) {
+        if (rows == null || rows.isEmpty()) return null;
+        String canonical = rows.stream()
+            .map(row -> "{\"domainId\":\"" + row.getDomainId() + "\",\"policyVersion\":"
+                + row.getPolicyVersion() + ",\"policyHash\":\"" + row.getPolicyHash() + "\"}")
+            .collect(Collectors.joining(",", "[", "]"));
+        try {
+            return "sha256:" + HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            );
+        } catch (Exception exception) {
+            throw new IllegalStateException("unable to hash scheduler policy rows", exception);
+        }
     }
 
     private CrawlerV2SchedulerActivationPreflightDTO.EndpointDTO endpoint() {
@@ -178,12 +231,27 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
         Path report = root.resolve(panel.getReportPath()).normalize();
         if (!report.startsWith(root)) return null;
         try {
-            if (!Files.isRegularFile(report, LinkOption.NOFOLLOW_LINKS)) return null;
+            if (!isConfinedOrdinaryReport(root, report)) return null;
             byte[] bytes = Files.readAllBytes(report);
             return "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
         } catch (Exception exception) {
             return null;
         }
+    }
+
+    private boolean isConfinedOrdinaryReport(Path root, Path report) throws java.io.IOException {
+        if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) return false;
+        Path realRoot = root.toRealPath();
+        Path relative = root.relativize(report);
+        Path current = root;
+        for (int index = 0; index < Math.max(0, relative.getNameCount() - 1); index++) {
+            current = current.resolve(relative.getName(index));
+            if (Files.isSymbolicLink(current) || !Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)) {
+                return false;
+            }
+        }
+        if (Files.isSymbolicLink(report) || !Files.isRegularFile(report, LinkOption.NOFOLLOW_LINKS)) return false;
+        return report.toRealPath().startsWith(realRoot);
     }
 
     private boolean terminal(String status) {

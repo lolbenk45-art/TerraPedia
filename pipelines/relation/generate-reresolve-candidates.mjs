@@ -15,6 +15,8 @@ const DEFAULTS = {
   relationDatabase: 'terria_v1_relation',
 };
 
+const MAX_COMPARABLE_BASELINE_AGE_DAYS = 31;
+
 export function resolveMysqlRequirePath(root = repoRoot) {
   return path.join(root, 'apps/admin-console', 'package.json');
 }
@@ -77,11 +79,24 @@ export function buildReresolveCandidateReport({
     }
   }
 
-  const previousUnresolvedAuditCount = toNullableNumber(previousReport?.summary?.unresolvedAuditCount);
   const currentUnresolvedAuditCount = unresolvedAudits.length;
+  const baseline = resolveComparableBaseline({ previousReport, generatedAt });
+  const previousUnresolvedAuditCount = baseline.status === 'comparable'
+    ? baseline.unresolvedAuditCount
+    : null;
   const delta = previousUnresolvedAuditCount == null
     ? null
     : currentUnresolvedAuditCount - previousUnresolvedAuditCount;
+
+  const trend = {
+    previousUnresolvedAuditCount,
+    currentUnresolvedAuditCount,
+    delta,
+    direction: delta == null ? 'unknown' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat',
+  };
+  if (baseline.status === 'stale' || baseline.status === 'invalid') {
+    trend.baselineStatus = baseline.status;
+  }
 
   return {
     generatedAt,
@@ -92,14 +107,28 @@ export function buildReresolveCandidateReport({
       manualReviewCount: currentUnresolvedAuditCount - candidates.length,
       lowConfidenceCount,
     },
-    trend: {
-      previousUnresolvedAuditCount,
-      currentUnresolvedAuditCount,
-      delta,
-      direction: delta == null ? 'unknown' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat',
-    },
+    trend,
     candidates,
   };
+}
+
+function resolveComparableBaseline({ previousReport, generatedAt }) {
+  const unresolvedAuditCount = toNullableNumber(previousReport?.summary?.unresolvedAuditCount);
+  if (unresolvedAuditCount == null || previousReport == null) {
+    return { status: 'unavailable', unresolvedAuditCount: null };
+  }
+
+  const currentTime = Date.parse(String(generatedAt ?? ''));
+  const previousTime = Date.parse(String(previousReport.generatedAt ?? ''));
+  if (!Number.isFinite(currentTime) || !Number.isFinite(previousTime) || previousTime > currentTime) {
+    return { status: 'invalid', unresolvedAuditCount: null };
+  }
+
+  const ageDays = (currentTime - previousTime) / (24 * 60 * 60 * 1000);
+  if (ageDays > MAX_COMPARABLE_BASELINE_AGE_DAYS) {
+    return { status: 'stale', unresolvedAuditCount: null };
+  }
+  return { status: 'comparable', unresolvedAuditCount };
 }
 
 export async function runGenerateReresolveCandidates({
@@ -274,23 +303,50 @@ export function readPreviousReport(projectRoot, generatedAt = new Date().toISOSt
     return null;
   }
   const targetDate = isoDate(generatedAt);
-  const latest = fs.readdirSync(reportsDir, { withFileTypes: true })
+  const targetTime = Date.parse(String(generatedAt ?? ''));
+  const candidates = fs.readdirSync(reportsDir, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => ({
       date: extractReportDate(entry.name),
       name: entry.name,
     }))
-    .filter((entry) => entry.date != null && entry.date < targetDate)
-    .sort((left, right) => left.date.localeCompare(right.date))
-    .at(-1)?.name;
-  if (!latest) {
+    .filter((entry) => entry.date != null && entry.date <= targetDate)
+    .map((entry) => {
+      const fullPath = path.join(reportsDir, entry.name);
+      let payload = null;
+      try {
+        payload = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+      } catch {
+        // Ignore malformed reports and continue searching for a usable baseline.
+      }
+      const reportTime = Date.parse(String(payload?.generatedAt ?? ''));
+      return {
+        ...entry,
+        fullPath,
+        payload,
+        reportTime: Number.isFinite(reportTime) ? reportTime : null,
+      };
+    })
+    .filter((entry) => {
+      if (entry.payload == null) return false;
+      if (!Number.isFinite(targetTime)) return entry.date < targetDate;
+      if (entry.reportTime != null) return entry.reportTime < targetTime;
+      return entry.date < targetDate;
+    })
+    .sort((left, right) => {
+      if (left.reportTime != null && right.reportTime != null && left.reportTime !== right.reportTime) {
+        return right.reportTime - left.reportTime;
+      }
+      if (left.date !== right.date) {
+        return right.date.localeCompare(left.date);
+      }
+      return right.name.localeCompare(left.name);
+    })
+    .at(0);
+  if (!candidates) {
     return null;
   }
-  try {
-    return JSON.parse(fs.readFileSync(path.join(reportsDir, latest), 'utf8'));
-  } catch {
-    return null;
-  }
+  return candidates.payload;
 }
 
 function writeReportFile(projectRoot, reportPath, payload) {

@@ -193,6 +193,53 @@ class PublicNpcAggregateControllerTest {
     }
 
     @Test
+    void shouldUseAggregateBaseLookupForSegmentedNpcWithoutCollapsingIdentity() throws Exception {
+        NpcDetailDTO detail = new NpcDetailDTO();
+        detail.setId(455L);
+        detail.setGameId(455L);
+        detail.setInternalName("CultistDragonBody1");
+        detail.setName("Phantasm Dragon");
+        publicNpcService.aggregateNpcToReturn = detail;
+
+        mockMvc.perform(get("/public/npcs/455/aggregate")
+                .param("include", "loot")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.npc.id").value(455))
+            .andExpect(jsonPath("$.data.npc.internalName").value("CultistDragonBody1"));
+
+        assertEquals(455L, publicNpcService.lastAggregateBaseNpcId);
+        assertEquals(0, publicNpcService.getNpcByIdCalls);
+        assertEquals(455L, publicNpcService.lastLootNpcId);
+    }
+
+    @Test
+    void shouldKeepRepresentativeModulesWhileUsingSegmentForLoot() throws Exception {
+        NpcDetailDTO segment = new NpcDetailDTO();
+        segment.setId(455L);
+        segment.setGameId(455L);
+        segment.setInternalName("CultistDragonBody1");
+        segment.setName("Phantasm Dragon");
+        NpcDetailDTO representative = new NpcDetailDTO();
+        representative.setId(454L);
+        representative.setGameId(454L);
+        representative.setInternalName("CultistDragonHead");
+        representative.setName("Phantasm Dragon");
+        publicNpcService.aggregateNpcToReturn = segment;
+        publicNpcService.npcToReturn = representative;
+
+        mockMvc.perform(get("/public/npcs/455/aggregate")
+                .param("include", "loot,shop,buffs")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+        assertEquals(455L, publicNpcService.lastAggregateBaseNpcId);
+        assertEquals(455L, publicNpcService.lastLootNpcId);
+        assertEquals(454L, publicNpcService.lastShopNpcId);
+        assertEquals(454L, publicNpcService.lastBuffNpcId);
+    }
+
+    @Test
     void shouldExposeBehaviorNotesOnAggregateNpcBase() throws Exception {
         NpcDetailDTO npc = new NpcDetailDTO();
         npc.setId(7L);
@@ -298,7 +345,8 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.statusCode").value(404))
             .andExpect(jsonPath("$.message").value("Npc not found"));
-        assertEquals(1, publicNpcService.getNpcByIdCalls);
+        assertEquals(99L, publicNpcService.lastAggregateBaseNpcId);
+        assertEquals(0, publicNpcService.getNpcByIdCalls);
         assertEquals(0, publicNpcService.getNpcLootCalls);
         assertEquals(0, publicNpcService.getNpcShopEntriesCalls);
         assertEquals(0, publicNpcService.getNpcBuffRelationsCalls);
@@ -331,6 +379,7 @@ class PublicNpcAggregateControllerTest {
 
     private static class FakePublicNpcService implements PublicNpcService {
         private NpcDetailDTO npcToReturn;
+        private NpcDetailDTO aggregateNpcToReturn;
         private List<NpcLootEntryDTO> lootToReturn = List.of();
         private List<NpcShopEntryDTO> shopEntriesToReturn = List.of();
         private List<NpcBuffRelationDTO> buffRelationsToReturn = List.of();
@@ -342,6 +391,7 @@ class PublicNpcAggregateControllerTest {
         private Long lastLootNpcId;
         private Long lastShopNpcId;
         private Long lastBuffNpcId;
+        private Long lastAggregateBaseNpcId;
 
         @Override
         public com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.terraria.skills.dto.NpcListItemDTO> getNpcs(
@@ -355,6 +405,12 @@ class PublicNpcAggregateControllerTest {
             getNpcByIdCalls += 1;
             lastGetNpcById = id;
             return npcToReturn;
+        }
+
+        @Override
+        public NpcDetailDTO getNpcAggregateBaseById(Long id) {
+            lastAggregateBaseNpcId = id;
+            return aggregateNpcToReturn != null ? aggregateNpcToReturn : npcToReturn;
         }
 
         @Override

@@ -9,6 +9,7 @@ import { evaluateMimicFamilyRows } from './audit-mimic-family-loot-contract.mjs'
 import { classifyNpcLootSource } from '../lib/npc-loot-source-taxonomy.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
+import { buildLocalDbConnectionOptions } from './local-db-connection-options.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -180,12 +181,7 @@ export async function runNpcLootCorrectnessGate(options = {}, dependencies = {})
     if (!connection) {
       const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
       const mysqlFactory = dependencies.mysqlFactory ?? mysql;
-      connection = await mysqlFactory.createConnection({
-        host: config.database?.host ?? '127.0.0.1',
-        port: Number(config.database?.port ?? 3306),
-        user: config.database?.username ?? 'root',
-        password: config.database?.password ?? 'root',
-      });
+      connection = await mysqlFactory.createConnection(buildLocalDbConnectionOptions({ config }));
       shouldClose = true;
     }
 

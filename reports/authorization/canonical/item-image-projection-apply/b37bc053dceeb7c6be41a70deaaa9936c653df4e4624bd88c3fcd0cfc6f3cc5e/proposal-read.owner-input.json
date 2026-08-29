@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "authorizationKind": "canonical_read_only_proposal_authorization",
+  "operationId": "canonical-item-image-projection-apply",
+  "action": "read-only-proposal",
+  "actor": "admin",
+  "reason": "User-authorized exact read-only Item projection proposal from active relation_item_images.cached_url into existing projection_items.image rows; no source or local writes.",
+  "authorizationReference": "user://conversation/2026-08-21/item-image-lineage-and-projection-closure",
+  "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-01",
+  "authorizedAt": "2026-08-21T01:37:32.977Z",
+  "expiresAt": "2026-08-22T01:37:32.977Z",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "noWrite": true,
+  "authorizationHash": "sha256:6161c5b6ed2b74e1a8e0a12e584db530db58be372fb96c06081e9e483a2fb57a"
+}

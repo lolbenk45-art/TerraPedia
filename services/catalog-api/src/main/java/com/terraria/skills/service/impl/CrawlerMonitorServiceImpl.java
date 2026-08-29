@@ -16,6 +16,7 @@ import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
+import com.terraria.skills.service.CrawlerAutomationPolicyService;
 import com.terraria.skills.service.CrawlerMonitorService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineMode;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
@@ -162,6 +163,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final ProcessLauncher processLauncher;
     private final CrawlerQueueEngineRouter queueEngineRouter;
     private final CrawlerQueueV2ApplicationService queueV2ApplicationService;
+    private CrawlerAutomationPolicyService crawlerAutomationPolicyService;
     private CrawlerQueueV2CutoverService queueV2CutoverService;
     private final CrawlerDomainStateReducer domainStateReducer = new CrawlerDomainStateReducer();
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
@@ -294,6 +296,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     @Autowired
     void setQueueV2CutoverService(CrawlerQueueV2CutoverService queueV2CutoverService) {
         this.queueV2CutoverService = Objects.requireNonNull(queueV2CutoverService, "queueV2CutoverService");
+    }
+
+    @Autowired(required = false)
+    void setCrawlerAutomationPolicyService(CrawlerAutomationPolicyService crawlerAutomationPolicyService) {
+        this.crawlerAutomationPolicyService = crawlerAutomationPolicyService;
     }
 
     @Override
@@ -4297,6 +4304,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO previousSweep = readV2AutomationLastSweep(repoRoot);
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
         sweep.setCheckedAt(Instant.now(clock).toString());
+        if (settings.isEnabled()) {
+            List<String> activationReasons = schedulerActivationGateReasons();
+            if (!activationReasons.isEmpty()) {
+                sweep.setStatus("blocked");
+                sweep.getSkipped().add(Map.of(
+                    "domain", "all",
+                    "reason", "scheduler_activation_required",
+                    "reasons", activationReasons
+                ));
+                writeV2AutomationLastSweep(repoRoot, sweep);
+                return sweep;
+            }
+        }
         Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
         Map<String, Map<String, Object>> sourceByKey = Map.of();
         if (!fixtureScheduledAutomationEnabled) {
@@ -4403,6 +4423,23 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         writeV2AutomationLastSweep(repoRoot, sweep);
         invalidateCachedOverview();
         return sweep;
+    }
+
+    private List<String> schedulerActivationGateReasons() {
+        if (crawlerAutomationPolicyService == null) {
+            return List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE");
+        }
+        for (String domain : CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS) {
+            CrawlerAutomationPolicyService.AutomationEligibility eligibility =
+                crawlerAutomationPolicyService.schedulerEligibility(domain);
+            if (eligibility == null || !eligibility.eligible()) {
+                if (eligibility == null || eligibility.reasonCodes() == null || eligibility.reasonCodes().isEmpty()) {
+                    return List.of("SCHEDULER_ACTIVATION_REQUIRED");
+                }
+                return List.copyOf(eligibility.reasonCodes());
+            }
+        }
+        return List.of();
     }
 
     private V2AutomationRecoveryDecision v2AutomationRecoveryDecision(

@@ -134,7 +134,7 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
   assert.equal(report.summary.readyEntityTypes, 3);
   assert.equal(report.summary.notReadyEntityTypes, 4);
 
-  assert.equal(report.entities.items.contractReady, true);
+  assert.equal(report.entities.items.contractReady, true, JSON.stringify(report.entities.items.gapReasons));
   assert.deepEqual(report.entities.items.gapReasons, []);
 
   assert.equal(report.entities.bosses.contractReady, true);
@@ -176,6 +176,54 @@ test('item readiness fails closed without projection apply evidence', () => {
   assert.ok(report.entities.items.gapReasons.includes(
     'missing_item_image_projection_apply_evidence',
   ));
+});
+
+test('item readiness accepts exact origin-normalization evidence without replaying projection apply', () => {
+  const currentRows = [{
+    id: 1,
+    relationRecordKey: 'item-torch',
+    internalName: 'Torch',
+    image: '/terrapedia-images/items/torch.png',
+  }];
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/items/'],
+    entities: {
+      items: {
+        ...projectionReadyEntityRows(currentRows),
+        relationImageRows: [{
+          recordKey: 'image-torch',
+          itemInternalName: 'Torch',
+          originalUrl: 'https://terraria.wiki.gg/images/Torch.png',
+          cachedUrl: '/terrapedia-images/items/torch.png',
+        }],
+      },
+    },
+    itemImageProjectionEvidence: {
+      evidenceKind: 'canonical_item_image_origin_normalization_evidence',
+      readOnly: true,
+      databaseWrites: false,
+      externalRequests: false,
+      targetRowCount: 1,
+      projectionRowCount: 1,
+      acceptedRowsSha256: canonicalItemImageProjectionHash([{
+        internalName: 'Torch',
+        relationRecordKey: 'image-torch',
+        projectionId: 1,
+        projectionRelationRecordKey: 'item-torch',
+        image: '/terrapedia-images/items/torch.png',
+      }]),
+      projectionRowsSha256: canonicalItemImageProjectionHash([{
+        identity: 'Torch',
+        image: '/terrapedia-images/items/torch.png',
+      }]),
+      quarantineIdentities: [],
+      evidenceSha256: 'sha256:' + 'a'.repeat(64),
+    },
+  });
+
+  assert.equal(report.entities.items.contractReady, true, JSON.stringify(report.entities.items.gapReasons));
+  assert.deepEqual(report.entities.items.gapReasons, []);
 });
 
 test('item readiness accepts only exact completed projection after rows', () => {
@@ -350,6 +398,24 @@ test('buildImageSourceLineageReport counts managed images stored as origin-free 
   assert.ok(!report.entities.items.gapReasons.includes('projection_blank_but_core_image_available'));
 });
 
+test('buildImageSourceLineageReport rejects a Biome projection URL from an unconfigured managed origin', () => {
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: ['http://localhost:19000/terrapedia-images/items/'],
+    entities: {
+      biomes: {
+        coreRows: [{ biomeCode: 'forest', iconUrl: 'http://localhost:9000/terrapedia-images/items/forest.png' }],
+        maintImageRows: [{ biomeCode: 'forest', cachedUrl: '/terrapedia-images/items/forest.png' }],
+        relationImageRows: [{ biomeCode: 'forest', cachedUrl: '/terrapedia-images/items/forest.png' }],
+        projectionRows: [{ code: 'forest', iconUrl: 'http://localhost:9000/terrapedia-images/items/forest.png' }],
+      },
+    },
+  });
+
+  assert.equal(report.entities.biomes.contractReady, false);
+  assert.ok(report.entities.biomes.gapReasons.includes('projection_image_not_managed'));
+});
+
 test('buildImageSourceLineageReport flags a managed path under the wrong entity prefix', () => {
   const report = buildImageSourceLineageReport({
     generatedAt: GENERATED_AT,
@@ -411,7 +477,7 @@ test('buildImageSourceLineageReport flags npc projection holes when core managed
   assert.ok(report.entities.npcs.gapReasons.includes('projection_blank_but_core_image_available'));
 });
 
-test('buildImageSourceLineageReport flags armor set projection holes when core fallback managed images exist', () => {
+test('buildImageSourceLineageReport accepts armor set managed related-Item projection fallback', () => {
   const report = buildImageSourceLineageReport({
     generatedAt: GENERATED_AT,
     managedUrlPrefixes: [
@@ -431,13 +497,19 @@ test('buildImageSourceLineageReport flags armor set projection holes when core f
           maleImages: null,
           femaleImages: null,
           specialImages: null,
+          relatedItemsJson: JSON.stringify([{
+            internalName: 'BeetleHelmet',
+            image: '/terrapedia-images/items/beetle-helmet.png',
+          }]),
         }],
       },
     },
   });
 
-  assert.equal(report.entities.armor_sets.lineage.projection.rowsBlankButCoreImageAvailable, 1);
-  assert.ok(report.entities.armor_sets.gapReasons.includes('projection_blank_but_core_image_available'));
+  assert.equal(report.entities.armor_sets.contractReady, true);
+  assert.equal(report.entities.armor_sets.lineage.projection.rowsWithManagedImage, 1);
+  assert.equal(report.entities.armor_sets.lineage.projection.rowsBlankButCoreImageAvailable, 0);
+  assert.ok(!report.entities.armor_sets.gapReasons.includes('projection_blank_but_core_image_available'));
 });
 
 test('buildImageSourceLineageQueries stay read-only and cover the expected lineage tables', () => {
@@ -469,6 +541,7 @@ test('buildImageSourceLineageQueries stay read-only and cover the expected linea
   assert.match(queries.armor_sets.core, /ii\.`item_id` IN/i);
   assert.doesNotMatch(queries.armor_sets.core, /ii\.`item_id`\s*=\s*COALESCE/i);
   assert.match(queries.armor_sets.projection, /FROM `terria_v1_relation`\.`projection_armor_sets`/i);
+  assert.match(queries.armor_sets.projection, /related_items_json/i);
   assert.match(queries.biomes.core, /FROM `terria_v1_local`\.`biomes`/);
   assert.doesNotMatch(queries.biomes.core, /raw_json/i);
 
@@ -491,6 +564,7 @@ test('parseArgs keeps audit input and report output explicit', () => {
   ]), {
     source: 'db',
     attemptRoot,
+    itemOriginEvidence: null,
     output: 'reports/audit/image-source-lineage.json',
     repoRoot: null,
     generatedAt: null,

@@ -25,6 +25,9 @@ import {
   assertRepositoryOrdinaryFile,
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
+import {
+  assertItemImageOriginNormalizationEvidence,
+} from './item-image-origin-normalization-evidence.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -54,6 +57,7 @@ ORDER BY \`id\` ASC
     maintImagesQuery: (maintDatabase) => `
 SELECT
   \`id\`,
+  \`record_key\` AS recordKey,
   \`item_internal_name\` AS itemInternalName,
   \`item_name\` AS itemName,
   \`role\`,
@@ -73,6 +77,7 @@ ORDER BY \`id\` ASC
     relationImagesQuery: (relationDatabase) => `
 SELECT
   \`id\`,
+  \`record_key\` AS recordKey,
   \`item_internal_name\` AS itemInternalName,
   \`item_name\` AS itemName,
   \`role\`,
@@ -453,7 +458,8 @@ SELECT
   \`text_key\` AS textKey,
   \`male_images\` AS maleImages,
   \`female_images\` AS femaleImages,
-  \`special_images\` AS specialImages
+  \`special_images\` AS specialImages,
+  \`related_items_json\` AS relatedItemsJson
 FROM ${qualified(relationDatabase, 'projection_armor_sets')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
@@ -472,7 +478,15 @@ ORDER BY \`id\` ASC
     ),
     coreKeyAccessor: (row) => firstText(row?.textKey, row?.text_key),
     projectionKeyAccessor: (row) => firstText(row?.textKey, row?.text_key),
-    projectionImageAccessor: (row) => firstText(row?.maleImages, row?.male_images, row?.femaleImages, row?.female_images, row?.specialImages, row?.special_images),
+    projectionImageAccessor: (row) => firstText(
+      row?.maleImages,
+      row?.male_images,
+      row?.femaleImages,
+      row?.female_images,
+      row?.specialImages,
+      row?.special_images,
+      firstRelatedItemImage(row?.relatedItemsJson, row?.related_items_json),
+    ),
     requiresMaintTable: false,
     requiresRelationTable: false,
     requiresRelationRowsForReady: false,
@@ -489,9 +503,36 @@ WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
     coreImageAccessor: (row) => firstText(row?.iconUrl, row?.icon_url, parseJsonField(row?.rawJson, 'iconUrl')),
-    requiresMaintTable: false,
-    requiresRelationTable: false,
-    requiresRelationRowsForReady: false,
+    maintImagesQuery: (maintDatabase) => `
+SELECT id, record_key AS recordKey, biome_code AS biomeCode,
+  source_provider AS sourceProvider, source_page AS sourcePage,
+  original_url AS originalUrl, cached_url AS cachedUrl,
+  content_type AS contentType, is_primary AS isPrimary, deleted, status
+FROM ${qualified(maintDatabase, 'maint_biome_images')}
+WHERE deleted = 0 AND status = 1 ORDER BY id ASC`.trim(),
+    relationImagesQuery: (relationDatabase) => `
+SELECT id, record_key AS recordKey, biome_code AS biomeCode,
+  source_provider AS sourceProvider, source_page AS sourcePage,
+  original_url AS originalUrl, cached_url AS cachedUrl,
+  content_type AS contentType, is_primary AS isPrimary, deleted, status
+FROM ${qualified(relationDatabase, 'relation_biome_images')}
+WHERE deleted = 0 AND status = 1 ORDER BY id ASC`.trim(),
+    projectionQuery: (relationDatabase) => `
+SELECT id, code, relation_record_key AS relationRecordKey,
+  icon_url AS iconUrl, deleted, status
+FROM ${qualified(relationDatabase, 'projection_biomes')}
+WHERE deleted = 0 AND status = 1 ORDER BY id ASC`.trim(),
+    projectionImageField: 'iconUrl',
+    maintKeyAccessor: (row) => firstText(row?.biomeCode, row?.biome_code),
+    relationKeyAccessor: (row) => firstText(row?.biomeCode, row?.biome_code),
+    projectionKeyAccessor: (row) => firstText(row?.code),
+    projectionImageAccessor: (row) => firstText(row?.iconUrl, row?.icon_url),
+    maintRowReady: (row) => Boolean(firstText(row?.cachedUrl, row?.cached_url)),
+    relationRowReady: (row) => Boolean(firstText(row?.cachedUrl, row?.cached_url)),
+    requiresMaintTable: true,
+    requiresRelationTable: true,
+    requiresRelationRowsForReady: true,
+    emptyRelationGapReason: 'missing_relation_image_table',
   },
 };
 
@@ -507,6 +548,7 @@ export function parseArgs(argv = []) {
   return {
     source: raw.source ?? 'db',
     attemptRoot: raw.attemptRoot ?? null,
+    itemOriginEvidence: raw.itemOriginEvidence ?? null,
     output: raw.output ?? null,
     repoRoot: raw.repoRoot ?? null,
     generatedAt: raw.generatedAt ?? null,
@@ -645,7 +687,8 @@ function summarizeEntityLineage(
     config,
     entityManagedUrlPrefixes,
   );
-  const hasProjectionField = Boolean(config.projectionImageField);
+  const hasProjectionField = Boolean(config.projectionImageField)
+    && (entityType !== 'biomes' || projectionRows.length > 0);
 
   if (coreImageCount === 0) {
     gapReasons.push('missing_core_image_evidence');
@@ -662,7 +705,7 @@ function summarizeEntityLineage(
       gapReasons.push('missing_relation_image_table');
     }
   } else if (relationImageRows.length === 0) {
-    gapReasons.push('missing_relation_image_rows');
+    gapReasons.push(config.emptyRelationGapReason ?? 'missing_relation_image_rows');
   }
   if (!hasProjectionField) {
     gapReasons.push('missing_projection_image_field');
@@ -691,6 +734,7 @@ function summarizeEntityLineage(
   if (entityType === 'items') {
     gapReasons.push(...itemImageProjectionEvidenceGaps({
       evidence: itemImageProjectionEvidence,
+      relationImageRows,
       projectionRows,
     }));
   }
@@ -730,9 +774,12 @@ function summarizeEntityLineage(
   };
 }
 
-function itemImageProjectionEvidenceGaps({ evidence, projectionRows }) {
+function itemImageProjectionEvidenceGaps({ evidence, relationImageRows, projectionRows }) {
   if (evidence == null) return ['missing_item_image_projection_apply_evidence'];
   if (evidence.loadError) return [classifyItemImageProjectionEvidenceLoadError(evidence.loadError)];
+  if (evidence.evidenceKind === 'canonical_item_image_origin_normalization_evidence') {
+    return itemImageOriginNormalizationEvidenceGaps({ evidence, relationImageRows, projectionRows });
+  }
   if (!evidence.result || !evidence.inputContract || !evidence.proposal || !evidence.snapshot
       || !evidence.inputBytes || !evidence.proposalBytes || !evidence.snapshotBytes
       || !Array.isArray(evidence.artifacts)) {
@@ -829,14 +876,71 @@ function itemImageProjectionEvidenceGaps({ evidence, projectionRows }) {
   return [];
 }
 
+function itemImageOriginNormalizationEvidenceGaps({ evidence, relationImageRows, projectionRows }) {
+  try {
+    if (evidence.result && evidence.input && evidence.proposal) {
+      assertItemImageOriginNormalizationEvidence(evidence);
+    }
+    const relation = relationImageRows.map((row) => ({
+      internalName: firstText(row?.itemInternalName, row?.item_internal_name),
+      relationRecordKey: firstText(row?.recordKey, row?.record_key),
+      image: firstText(row?.cachedUrl, row?.cached_url),
+    })).sort((left, right) => left.internalName.localeCompare(right.internalName, 'en'));
+    const projection = projectionRows.map((row) => ({
+      id: Number(row?.id),
+      relationRecordKey: firstText(row?.relationRecordKey, row?.relation_record_key),
+      internalName: firstText(row?.internalName, row?.internal_name),
+      image: firstText(row?.image),
+    })).sort((left, right) => left.internalName.localeCompare(right.internalName, 'en'));
+    const projectionByIdentity = new Map(projection.map((row) => [row.internalName, row]));
+    const quarantine = new Set(evidence.quarantineIdentities);
+    const accepted = relation.map((row) => {
+      const projectionRow = projectionByIdentity.get(row.internalName);
+      if (!projectionRow || quarantine.has(row.internalName) || projectionRow.image !== row.image) {
+        throw new Error(`current Item image relation/projection mismatch: ${row.internalName}`);
+      }
+      return {
+        internalName: row.internalName,
+        relationRecordKey: row.relationRecordKey,
+        projectionId: projectionRow.id,
+        projectionRelationRecordKey: projectionRow.relationRecordKey,
+        image: row.image,
+      };
+    });
+    const projectionComparable = projection.map((row) => ({ identity: row.internalName, image: row.image }));
+    if (accepted.length !== evidence.targetRowCount
+        || projection.length !== evidence.projectionRowCount
+        || canonicalItemImageProjectionHash(accepted) !== evidence.acceptedRowsSha256
+        || canonicalItemImageProjectionHash(projectionComparable) !== evidence.projectionRowsSha256) {
+      return ['item_image_origin_normalization_current_rows_drifted'];
+    }
+    for (const identity of quarantine) {
+      if (!projectionByIdentity.has(identity) || relation.some((row) => row.internalName === identity)) {
+        return ['item_image_origin_normalization_quarantine_drifted'];
+      }
+    }
+    return [];
+  } catch {
+    return ['invalid_item_image_origin_normalization_evidence'];
+  }
+}
+
 function projectionEvidenceArtifactBindings(inputContract) {
-  return [
+  const bindings = [
     {
       path: inputContract.proposalAuthorization.path,
       sha256: inputContract.proposalAuthorization.sha256,
       privateFile: true,
     },
-    {
+  ];
+  if (inputContract.lineage.kind === 'origin-repair-bound') {
+    bindings.push({
+      path: inputContract.lineage.originRepairResultPath,
+      sha256: inputContract.lineage.originRepairResultSha256,
+      privateFile: false,
+    });
+  } else {
+    bindings.push({
       path: inputContract.lineage.inputContractPath,
       sha256: inputContract.lineage.inputContractSha256,
       privateFile: true,
@@ -860,13 +964,14 @@ function projectionEvidenceArtifactBindings(inputContract) {
       path: inputContract.lineage.authorizationPacketPath,
       sha256: inputContract.lineage.authorizationPacketSha256,
       privateFile: true,
-    },
-    {
+    });
+  }
+  bindings.push({
       path: inputContract.managedUrlPolicy.sourcePath,
       sha256: inputContract.managedUrlPolicy.sourceSha256,
       privateFile: false,
-    },
-  ];
+    });
+  return bindings;
 }
 
 function classifyItemImageProjectionEvidenceError(error) {
@@ -904,11 +1009,14 @@ export async function runImageSourceLineageReport(argv = process.argv.slice(2), 
 
   let itemImageProjectionEvidence = null;
   if (args.source === 'db') {
-    const loadEvidence = dependencies.loadEvidence ?? loadItemImageProjectionEvidence;
+    const loadEvidence = dependencies.loadEvidence ?? (args.itemOriginEvidence
+      ? loadItemImageOriginNormalizationEvidence
+      : loadItemImageProjectionEvidence);
     try {
       itemImageProjectionEvidence = await loadEvidence({
         repoRoot: root,
         attemptRoot: args.attemptRoot,
+        evidencePath: args.itemOriginEvidence,
       });
     } catch (error) {
       itemImageProjectionEvidence = { loadError: error };
@@ -937,6 +1045,33 @@ export async function runImageSourceLineageReport(argv = process.argv.slice(2), 
   await writeReport({ reportPath, output, report });
   (dependencies.writeOutput ?? ((value) => process.stdout.write(value)))(output);
   return report;
+}
+
+export async function loadItemImageOriginNormalizationEvidence({ repoRoot: root, evidencePath } = {}) {
+  const entry = await readProjectionEvidenceFile({
+    repoRoot: path.resolve(root),
+    relativePath: evidencePath,
+    label: 'Item image origin normalization evidence',
+    privateFile: false,
+  });
+  const evidence = parseEvidenceJson(entry.bytes, entry.label);
+  assertItemImageOriginNormalizationEvidence(evidence);
+  for (const [name, binding] of Object.entries({
+    result: evidence.result,
+    input: evidence.input,
+    proposal: evidence.proposal,
+  })) {
+    const artifact = await readProjectionEvidenceFile({
+      repoRoot: path.resolve(root),
+      relativePath: binding.path,
+      label: `Item image origin normalization ${name}`,
+      privateFile: name !== 'proposal',
+    });
+    if (sha256Bytes(artifact.bytes) !== binding.sha256) {
+      throw new Error(`Item image origin normalization ${name} hash drifted`);
+    }
+  }
+  return evidence;
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -1149,6 +1284,7 @@ function deriveMaintTableName(entityType) {
   if (entityType === 'bosses') return 'maint_bosses';
   if (entityType === 'buffs') return 'maint_buffs';
   if (entityType === 'projectiles') return 'maint_projectiles';
+  if (entityType === 'biomes') return 'maint_biome_images';
   return null;
 }
 
@@ -1158,6 +1294,7 @@ function deriveRelationTableName(entityType) {
   if (entityType === 'bosses') return 'relation_bosses';
   if (entityType === 'buffs') return 'relation_buff_images';
   if (entityType === 'projectiles') return 'relation_projectile_images';
+  if (entityType === 'biomes') return 'relation_biome_images';
   return null;
 }
 
@@ -1168,6 +1305,7 @@ function deriveProjectionTableName(entityType) {
   if (entityType === 'bosses') return 'projection_bosses';
   if (entityType === 'projectiles') return 'projection_projectiles';
   if (entityType === 'armor_sets') return 'projection_armor_sets';
+  if (entityType === 'biomes') return 'projection_biomes';
   return null;
 }
 
@@ -1249,6 +1387,25 @@ function arrayValues(...values) {
     }
     return [value];
   });
+}
+
+function firstRelatedItemImage(...values) {
+  for (const value of values) {
+    let items = value;
+    if (typeof value === 'string') {
+      try {
+        items = JSON.parse(value);
+      } catch {
+        continue;
+      }
+    }
+    if (!Array.isArray(items)) continue;
+    for (const item of items) {
+      const image = firstText(item?.image, item?.imageUrl, item?.image_url, item?.cachedUrl, item?.cached_url);
+      if (image) return image;
+    }
+  }
+  return null;
 }
 
 function normalizeEntityKey(value) {

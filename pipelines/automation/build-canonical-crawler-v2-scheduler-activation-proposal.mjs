@@ -6,8 +6,14 @@ import path from 'node:path';
 
 import {
   resolveSchedulerActivationCodeBundlePaths,
+  SCHEDULER_ACTION_BY_DOMAIN,
   sha256Json,
 } from './crawler-v2-scheduler-activation-preflight.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
+import { canonicalizePolicySet, computePolicySetHash } from './policy-set-hash.mjs';
 
 const OPERATION_ID = 'canonical-crawler-v2-scheduler-activation';
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
@@ -77,6 +83,12 @@ function assertPreflight(preflight, t1Report, codeBundle, now) {
   if (!preflight || preflight.operationId !== OPERATION_ID) throw new Error('current preflight is required');
   assertPreflightHash(preflight);
   assertFreshPreflight(preflight, now);
+  const eligibleDomains = normalizeSchedulerEligibleDomains(preflight.domains);
+  assertSchedulerPolicyBinding({
+    policyRows: preflight.policyRows,
+    policySetHash: preflight.policySetHash,
+    expectedDomainIds: eligibleDomains.map((domain) => domain.domainId),
+  });
   assertT1(t1Report, preflight);
   assertCodeBundle(codeBundle, preflight);
   if (preflight.control?.enabled !== false || preflight.control?.mode !== 'changed-only') {
@@ -91,6 +103,82 @@ function assertPreflight(preflight, t1Report, codeBundle, now) {
   }
 }
 
+export function normalizeSchedulerEligibleDomains(domains) {
+  if (!Array.isArray(domains) || domains.length === 0) {
+    throw new Error('scheduler activation eligible domains are required');
+  }
+  const domainIds = new Set();
+  const actionIds = new Set();
+  const normalized = domains.map((domain) => {
+    if (domain?.domainId != null && domain?.domain != null && domain.domainId !== domain.domain) {
+      throw new Error('eligible domainId and domain alias conflict');
+    }
+    const domainId = requireText(domain?.domainId ?? domain?.domain, 'eligible domainId');
+    const actionId = requireText(domain?.actionId, `eligible actionId for ${domainId}`);
+    const expectedActionId = SCHEDULER_ACTION_BY_DOMAIN[domainId];
+    if (!expectedActionId) throw new Error(`eligible domain is not registered for scheduler activation: ${domainId}`);
+    if (actionId !== expectedActionId) {
+      throw new Error(`eligible actionId ${actionId} is not registered for domain ${domainId}; expected ${expectedActionId}`);
+    }
+    if (domainIds.has(domainId)) throw new Error(`duplicate eligible domain: ${domainId}`);
+    if (actionIds.has(actionId)) throw new Error(`duplicate eligible actionId: ${actionId}`);
+    domainIds.add(domainId);
+    actionIds.add(actionId);
+    if (domain.readinessStatus !== 'eligible') {
+      throw new Error(`eligible domain is not ready: ${domainId}`);
+    }
+    return { domainId, actionId, readinessStatus: 'eligible' };
+  });
+  return Object.freeze(normalized.sort((left, right) => left.domainId.localeCompare(right.domainId)));
+}
+
+export function assertSchedulerPolicyBinding({ policyRows, policySetHash, expectedDomainIds = null } = {}) {
+  if (!Array.isArray(policyRows) || policyRows.length === 0) {
+    throw new Error('scheduler activation requires exact current L2 policy rows');
+  }
+  const canonicalRows = canonicalizePolicySet(policyRows);
+  const rowByDomain = new Map(policyRows.map((row) => [row.domainId, row]));
+  requireHash(policySetHash, 'policySetHash');
+  if (computePolicySetHash(canonicalRows) !== policySetHash) {
+    throw new Error('scheduler activation policy-set hash does not match policy rows');
+  }
+  if (expectedDomainIds != null) {
+    if (!Array.isArray(expectedDomainIds) || expectedDomainIds.some((domainId) => typeof domainId !== 'string')) {
+      throw new Error('scheduler activation eligible domain set is invalid');
+    }
+    if (new Set(expectedDomainIds).size !== expectedDomainIds.length) {
+      throw new Error('scheduler activation eligible domain set contains duplicates');
+    }
+    const expected = [...expectedDomainIds].sort();
+    for (const domainId of expected) {
+      const source = rowByDomain.get(domainId);
+      const level = source?.currentLevel ?? source?.level;
+      if (!source || level !== 'L2' || source.operationalState !== 'ACTIVE') {
+        throw new Error(`scheduler activation requires active L2 policy row: ${domainId}`);
+      }
+    }
+  } else {
+    for (const row of canonicalRows) {
+      const source = rowByDomain.get(row.domainId);
+      const level = source?.currentLevel ?? source?.level;
+      if (level !== 'L2' || source?.operationalState !== 'ACTIVE') {
+        throw new Error(`scheduler activation requires active L2 policy row: ${row.domainId}`);
+      }
+    }
+  }
+  return Object.freeze({
+    rows: canonicalRows.map((row) => {
+      const source = rowByDomain.get(row.domainId);
+      return Object.freeze({
+        ...row,
+        currentLevel: source.currentLevel ?? source.level,
+        operationalState: source.operationalState,
+      });
+    }),
+    policySetHash,
+  });
+}
+
 export function buildCrawlerV2SchedulerActivationProposal({
   t1Report,
   preflight,
@@ -99,6 +187,12 @@ export function buildCrawlerV2SchedulerActivationProposal({
 } = {}) {
   if (arguments[0]?.current !== undefined) throw new Error('current state constants are forbidden; provide preflight');
   assertPreflight(preflight, t1Report, codeBundle, now);
+  const eligibleDomains = normalizeSchedulerEligibleDomains(preflight.domains);
+  const policyBinding = assertSchedulerPolicyBinding({
+    policyRows: preflight.policyRows,
+    policySetHash: preflight.policySetHash,
+    expectedDomainIds: eligibleDomains.map((domain) => domain.domainId),
+  });
   const payload = {
     schemaVersion: 2,
     operationId: OPERATION_ID,
@@ -123,6 +217,8 @@ export function buildCrawlerV2SchedulerActivationProposal({
       cleanupPassed: true,
     },
     codeBundle: preflight.codeBundle.map((entry) => ({ path: entry.path, sha256: entry.sha256 })),
+    policyRows: policyBinding.rows,
+    policySetHash: policyBinding.policySetHash,
     current: {
       enabled: preflight.control.enabled,
       mode: preflight.control.mode,
@@ -132,7 +228,7 @@ export function buildCrawlerV2SchedulerActivationProposal({
       sweepClaims: preflight.counts.sweepClaims,
       reconcilerHealthy: preflight.reconciler.status === 'healthy',
     },
-    eligibleDomains: Object.fromEntries(preflight.domains.map((domain) => [domain.actionId, domain.readinessStatus])),
+    eligibleDomains,
     requested: {
       sweepIntervalMinutes: preflight.control.sweepIntervalMinutes,
       actor: null,
@@ -159,23 +255,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function assertAuthorizationOutputPath(outputPath, repoRoot) {
-  const root = path.resolve(repoRoot, 'reports/authorization/canonical');
-  const normalized = path.resolve(outputPath);
-  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
-    throw new Error('proposal output must remain under reports/authorization/canonical');
-  }
-}
-
-function assertInsideRepo(filePath, repoRoot, label) {
-  const root = path.resolve(repoRoot);
-  const normalized = path.resolve(filePath);
-  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
-    throw new Error(`${label} must remain inside the repository`);
-  }
-  return normalized;
-}
-
 function assertPreflightBundleMatchesManifest(preflight, repoRoot) {
   const expectedPaths = resolveSchedulerActivationCodeBundlePaths(repoRoot);
   const actualPaths = (preflight?.codeBundle ?? []).map((entry) => entry?.path);
@@ -192,7 +271,11 @@ function readAndVerifyCodeBundle(preflight, repoRoot) {
   }
   return preflight.codeBundle.map((entry) => {
     const relativePath = requireText(entry?.path, 'code bundle path');
-    const filePath = assertInsideRepo(path.resolve(repoRoot, relativePath), repoRoot, `code bundle ${relativePath}`);
+    const filePath = assertRepositoryOrdinaryFile({
+      repoRoot,
+      filePath: path.resolve(repoRoot, relativePath),
+      label: `code bundle ${relativePath}`,
+    });
     const actual = sha256File(filePath);
     if (actual !== entry.sha256) throw new Error(`code bundle hash drifted for ${relativePath}`);
     return { path: relativePath, sha256: actual };
@@ -202,8 +285,16 @@ function readAndVerifyCodeBundle(preflight, repoRoot) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const repoRoot = process.cwd();
-  const t1Path = assertInsideRepo(path.resolve(repoRoot, args['t1-report']), repoRoot, 'T1 report');
-  const preflightPath = assertInsideRepo(path.resolve(repoRoot, args.preflight), repoRoot, 'preflight');
+  const t1Path = assertRepositoryOrdinaryFile({
+    repoRoot,
+    filePath: path.resolve(repoRoot, args['t1-report']),
+    label: 'T1 report',
+  });
+  const preflightPath = assertRepositoryOrdinaryFile({
+    repoRoot,
+    filePath: path.resolve(repoRoot, args.preflight),
+    label: 'preflight',
+  });
   const outputPath = path.resolve(args.output);
   const t1Report = JSON.parse(fs.readFileSync(t1Path, 'utf8'));
   const preflight = JSON.parse(fs.readFileSync(preflightPath, 'utf8'));
@@ -217,10 +308,34 @@ function main() {
   if (preflight.t1Report?.sha256 !== fileT1.sha256) throw new Error('preflight T1 hash does not match the explicit T1 file');
   const codeBundle = readAndVerifyCodeBundle(preflight, repoRoot);
   const proposal = buildCrawlerV2SchedulerActivationProposal({ t1Report: fileT1, preflight, codeBundle });
-  assertAuthorizationOutputPath(outputPath, repoRoot);
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(outputPath, `${JSON.stringify(proposal, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+  assertAuthorizationRootPath(outputPath, repoRoot, 'proposal output');
+  const confinedOutputPath = assertRepositoryPathConfinement({
+    repoRoot,
+    filePath: outputPath,
+    label: 'proposal output',
+    createParent: true,
+  });
+  assertNoExistingEntry(confinedOutputPath, 'proposal output');
+  fs.writeFileSync(confinedOutputPath, `${JSON.stringify(proposal, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
   process.stdout.write(`${JSON.stringify({ output: outputPath, proposalOnly: proposal.proposalOnly, enabled: proposal.current.enabled })}\n`);
+}
+
+function assertAuthorizationRootPath(filePath, repoRoot, label) {
+  const root = path.resolve(repoRoot, 'reports/authorization/canonical');
+  const normalized = path.resolve(filePath);
+  if (normalized !== root && !normalized.startsWith(`${root}${path.sep}`)) {
+    throw new Error(`${label} must remain under reports/authorization/canonical`);
+  }
+}
+
+function assertNoExistingEntry(filePath, label) {
+  try {
+    fs.lstatSync(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+  throw new Error(`${label} already exists; overwrite is forbidden`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
+import { buildLocalDbConnectionOptions } from './local-db-connection-options.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -16,9 +17,12 @@ const mysql = require('mysql2/promise');
 const DEFAULTS = Object.freeze({
   relationDatabase: 'terria_v1_relation',
   localDatabase: 'terria_v1_local',
-  apiBaseUrl: 'http://localhost:18088',
+  apiBaseUrl: 'http://localhost:18091',
   apiMode: 'public-detail',
   adminToken: null,
+  requestIntervalMs: 1000,
+  rateLimitRetryWaitMs: 60000,
+  maxRateLimitRetries: 2,
   writeReport: true,
   output: null,
   dateTag: new Date().toISOString().slice(0, 10),
@@ -52,6 +56,18 @@ const KNOWN_RUNTIME_MODES = new Set([
   'projection_only',
 ]);
 
+const LOOPBACK_API_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+export function assertLoopbackApiBaseUrl(apiBaseUrl) {
+  try {
+    const parsed = new URL(String(apiBaseUrl));
+    if (LOOPBACK_API_HOSTS.has(parsed.hostname.toLowerCase())) return;
+  } catch {
+    // Fall through to the stable boundary error below.
+  }
+  throw new Error('fast local API mode requires a loopback api base URL');
+}
+
 export function parseArgs(argv = process.argv.slice(2)) {
   const raw = {};
   for (const token of argv) {
@@ -61,12 +77,40 @@ export function parseArgs(argv = process.argv.slice(2)) {
     if (index >= 0) raw[body.slice(0, index)] = body.slice(index + 1);
     else raw[body] = 'true';
   }
+  const apiBaseUrl = raw['api-base-url'] ?? raw.apiBaseUrl ?? DEFAULTS.apiBaseUrl;
+  const fastLocalApi = booleanOption(raw['fast-local-api'] ?? raw.fastLocalApi, false);
+  const rawRequestIntervalMs = raw['request-interval-ms'] ?? raw.requestIntervalMs;
+  let requestIntervalMs;
+  if (fastLocalApi) {
+    assertLoopbackApiBaseUrl(apiBaseUrl);
+    nonNegativeIntegerOption(rawRequestIntervalMs, 0, 'request interval milliseconds');
+    requestIntervalMs = 0;
+  } else {
+    requestIntervalMs = positiveIntegerOption(
+      rawRequestIntervalMs,
+      DEFAULTS.requestIntervalMs,
+      'request interval milliseconds'
+    );
+  }
+
   return {
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? DEFAULTS.relationDatabase,
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? DEFAULTS.localDatabase,
-    apiBaseUrl: raw['api-base-url'] ?? raw.apiBaseUrl ?? DEFAULTS.apiBaseUrl,
+    apiBaseUrl,
     apiMode: raw['api-mode'] ?? raw.apiMode ?? DEFAULTS.apiMode,
     adminToken: raw['admin-token'] ?? raw.adminToken ?? process.env.TERRAPEDIA_ADMIN_TOKEN ?? DEFAULTS.adminToken,
+    fastLocalApi,
+    requestIntervalMs,
+    rateLimitRetryWaitMs: positiveIntegerOption(
+      raw['rate-limit-retry-wait-ms'] ?? raw.rateLimitRetryWaitMs,
+      DEFAULTS.rateLimitRetryWaitMs,
+      'rate limit retry wait milliseconds'
+    ),
+    maxRateLimitRetries: nonNegativeIntegerOption(
+      raw['max-rate-limit-retries'] ?? raw.maxRateLimitRetries,
+      DEFAULTS.maxRateLimitRetries,
+      'maximum rate limit retries'
+    ),
     writeReport: booleanOption(raw['write-report'] ?? raw.writeReport, DEFAULTS.writeReport),
     output: raw.output ?? DEFAULTS.output,
     dateTag: raw['date-tag'] ?? raw.dateTag ?? DEFAULTS.dateTag,
@@ -133,12 +177,7 @@ export async function runNpcLootRuntimeParityAudit(options = {}, dependencies = 
     if (!connection && needsDefaultConnection(dependencies)) {
       const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
       const mysqlFactory = dependencies.mysqlFactory ?? mysql;
-      connection = await mysqlFactory.createConnection({
-        host: config.database?.host ?? '127.0.0.1',
-        port: Number(config.database?.port ?? 3306),
-        user: config.database?.username ?? 'root',
-        password: config.database?.password ?? 'root',
-      });
+      connection = await mysqlFactory.createConnection(buildLocalDbConnectionOptions({ config }));
       shouldClose = true;
     }
 
@@ -325,11 +364,22 @@ async function defaultLoadApiRows(options, dependencies = {}) {
   const apiClient = dependencies.apiClient ?? defaultApiClient;
   const baseUrl = String(options.apiBaseUrl).replace(/\/$/, '');
   const targetNpcs = await (dependencies.loadApiTargetNpcs ?? defaultLoadApiTargetNpcs)(dependencies.connection, options);
+  const sleepFn = dependencies.sleep ?? sleep;
   const rows = [];
-  for (const npc of targetNpcs) {
+  for (const [index, npc] of targetNpcs.entries()) {
+    if (index > 0) {
+      await sleepFn(options.requestIntervalMs);
+    }
     const id = npc.id ?? npc.npcId;
     if (id == null) continue;
-    const response = await apiClient(`${baseUrl}/api/public/npcs/${id}/aggregate?include=loot`, buildApiRequestOptions(options));
+    const response = await requestNpcAggregateWithRateLimitRetry({
+      apiClient,
+      url: `${baseUrl}/api/public/npcs/${id}/aggregate?include=loot`,
+      requestOptions: buildApiRequestOptions(options),
+      sleepFn,
+      retryWaitMs: options.rateLimitRetryWaitMs,
+      maxRetries: options.maxRateLimitRetries,
+    });
     if (response && typeof response === 'object' && 'ok' in response && !response.ok && response.status === 404) {
       continue;
     }
@@ -344,6 +394,34 @@ async function defaultApiClient(url, requestOptions = {}) {
     throw new Error('global fetch is unavailable');
   }
   return fetch(url, requestOptions);
+}
+
+async function requestNpcAggregateWithRateLimitRetry({
+  apiClient,
+  url,
+  requestOptions,
+  sleepFn,
+  retryWaitMs,
+  maxRetries,
+}) {
+  let attempts = 0;
+  while (true) {
+    attempts += 1;
+    const response = await apiClient(url, requestOptions);
+    if (!isRateLimitResponse(response)) return response;
+    if (attempts > maxRetries) {
+      throw new Error(`API request failed with status 429 after ${attempts} attempts`);
+    }
+    await sleepFn(retryWaitMs);
+  }
+}
+
+function isRateLimitResponse(response) {
+  return response
+    && typeof response === 'object'
+    && 'ok' in response
+    && !response.ok
+    && Number(response.status) === 429;
 }
 
 function buildApiRequestOptions(options) {
@@ -574,12 +652,40 @@ function classifyUnavailable(error) {
 }
 
 function normalizeOptions(options = {}) {
+  const apiBaseUrl = options.apiBaseUrl ?? DEFAULTS.apiBaseUrl;
+  const fastLocalApi = booleanOption(options.fastLocalApi, false);
+  const rawRequestIntervalMs = options.requestIntervalMs;
+  let requestIntervalMs;
+  if (fastLocalApi) {
+    assertLoopbackApiBaseUrl(apiBaseUrl);
+    nonNegativeIntegerOption(rawRequestIntervalMs, 0, 'request interval milliseconds');
+    requestIntervalMs = 0;
+  } else {
+    requestIntervalMs = positiveIntegerOption(
+      rawRequestIntervalMs,
+      DEFAULTS.requestIntervalMs,
+      'request interval milliseconds'
+    );
+  }
+
   return {
     relationDatabase: options.relationDatabase ?? DEFAULTS.relationDatabase,
     localDatabase: options.localDatabase ?? DEFAULTS.localDatabase,
-    apiBaseUrl: options.apiBaseUrl ?? DEFAULTS.apiBaseUrl,
+    apiBaseUrl,
     apiMode: options.apiMode ?? DEFAULTS.apiMode,
     adminToken: options.adminToken ?? DEFAULTS.adminToken,
+    fastLocalApi,
+    requestIntervalMs,
+    rateLimitRetryWaitMs: positiveIntegerOption(
+      options.rateLimitRetryWaitMs,
+      DEFAULTS.rateLimitRetryWaitMs,
+      'rate limit retry wait milliseconds'
+    ),
+    maxRateLimitRetries: nonNegativeIntegerOption(
+      options.maxRateLimitRetries,
+      DEFAULTS.maxRateLimitRetries,
+      'maximum rate limit retries'
+    ),
     writeReport: options.writeReport ?? DEFAULTS.writeReport,
     output: options.output ?? DEFAULTS.output,
     dateTag: options.dateTag ?? DEFAULTS.dateTag,
@@ -593,6 +699,10 @@ function sanitizeOptions(options = {}) {
     apiBaseUrl: options.apiBaseUrl,
     apiMode: options.apiMode,
     adminToken: options.adminToken ? '<redacted>' : null,
+    fastLocalApi: options.fastLocalApi,
+    requestIntervalMs: options.requestIntervalMs,
+    rateLimitRetryWaitMs: options.rateLimitRetryWaitMs,
+    maxRateLimitRetries: options.maxRateLimitRetries,
     writeReport: options.writeReport,
     output: options.output,
     dateTag: options.dateTag,
@@ -661,6 +771,28 @@ function booleanOption(value, fallback = false) {
   if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
   if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false;
   return fallback;
+}
+
+function positiveIntegerOption(value, fallback, label) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return parsed;
+}
+
+function nonNegativeIntegerOption(value, fallback, label) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

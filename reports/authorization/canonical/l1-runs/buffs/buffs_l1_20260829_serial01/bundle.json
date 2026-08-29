@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-buffs-l1",
+  "runId": "buffs_l1_20260829_serial01",
+  "domainId": "buffs",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T01:03:20.083Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "buffs",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:6e1668af3904b80148d5f341eb98874ef000a3c8bbdb1e1fd81b5de369cf93d4",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "buffs",
+        "generation": 2
+      },
+      {
+        "databaseRole": "local",
+        "table": "buff_source_items",
+        "generation": 2
+      }
+    ],
+    "projectionHash": "sha256:74cd6628e2db265639e6a8a53ed1802b71dc35e06042cb748829a4d9c48a92fa"
+  },
+  "baselineFingerprint": "sha256:edfe9a8616a7216b8c1aa0ca97026e25fef10a76cae7382e092b88507eb30859",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/buffs/buffs_l1_20260829_serial01/source.json",
+    "sha256": "sha256:4fdbd7c7b464d92e1b51d9584f1f311404feb240413db295cc5c19a7f82b3fcd"
+  },
+  "evidenceHash": "sha256:d7c4e53982d481ec194c091202d7f65f05f31225485b60c6689cc938191dd12c",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:edfe9a8616a7216b8c1aa0ca97026e25fef10a76cae7382e092b88507eb30859",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "buffs"
+      },
+      {
+        "databaseRole": "local",
+        "table": "buff_source_items"
+      }
+    ],
+    "sourceSha256": "sha256:4fdbd7c7b464d92e1b51d9584f1f311404feb240413db295cc5c19a7f82b3fcd",
+    "importPlan": {
+      "entity": "buffs",
+      "recordCount": 388,
+      "itemDependencyCount": 6131,
+      "sourceKind": "template",
+      "sourceResult": "local"
+    }
+  },
+  "logicalDiffHash": "sha256:85117bb2339b65b0f9a19abe2aea32957bf0594062e37cef96d42179af5f985a",
+  "decisionHash": "sha256:1583d03ecb69e1d231803ffee6d83b36d2118ca72730af971e921dd89cf77040",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "buffs"
+    },
+    {
+      "databaseRole": "local",
+      "table": "buff_source_items"
+    }
+  ],
+  "importPlan": {
+    "entity": "buffs",
+    "recordCount": 388,
+    "itemDependencyCount": 6131,
+    "sourceKind": "template",
+    "sourceResult": "local"
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/buffs/buffs_l1_20260829_serial01/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/buffs/buffs_l1_20260829_serial01/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/buffs/buffs_l1_20260829_serial01/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/buffs/buffs_l1_20260829_serial01/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:d5a05679ca2c15867a78c9252a51eb12c66e63d37c70cd3e2617aed1a3e756f6"
+}

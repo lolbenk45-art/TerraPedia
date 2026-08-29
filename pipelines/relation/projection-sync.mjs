@@ -728,6 +728,9 @@ export function buildProjectionPayload({
 
   const projectionNpcs = relationNpcs.map((row) => {
     const raw = parseJsonObject(row.rawJson);
+    const combat = parseJsonObject(raw.combat);
+    const dimensions = parseJsonObject(raw.dimensions);
+    const economy = parseJsonObject(raw.economy);
     const flags = parseJsonObject(row.flagsJson);
     const image = npcImages.get(row.internalName);
     return {
@@ -753,14 +756,14 @@ export function buildProjectionPayload({
       netId: toNullableNumber(raw.netID),
       npcType: toNullableNumber(raw.type),
       aiStyle: toNullableNumber(raw.aiStyle),
-      damage: toNullableNumber(raw.damage ?? row.combatValue),
-      defense: toNullableNumber(raw.defense ?? row.defenseValue),
-      lifeMax: toNullableNumber(raw.lifeMax),
-      knockBackResist: toNullableNumber(raw.knockBackResist),
+      damage: toNullableNumber(raw.damage ?? combat.damage ?? row.combatValue),
+      defense: toNullableNumber(raw.defense ?? combat.defense ?? row.defenseValue),
+      lifeMax: toNullableNumber(raw.lifeMax ?? combat.lifeMax),
+      knockBackResist: toNullableNumber(raw.knockBackResist ?? combat.knockBackResist),
       width: toNullableNumber(row.width),
       height: toNullableNumber(row.height),
-      scale: toNullableNumber(raw.scale),
-      value: toNullableNumber(raw.value ?? row.majorValue),
+      scale: toNullableNumber(raw.scale ?? dimensions.scale),
+      value: toNullableNumber(raw.value ?? economy.value ?? row.majorValue),
       bannerSourceItemId: toNullableNumber(raw.banner),
       bannerItemId: null,
       catchSourceItemId: toNullableNumber(raw.catchItem),

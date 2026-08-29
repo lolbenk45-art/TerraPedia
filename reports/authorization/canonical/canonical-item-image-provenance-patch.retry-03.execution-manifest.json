@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-item-image-provenance-patch",
+  "artifactDate": "2026-08-20",
+  "executionClass": "formal_narrow_image_patch",
+  "command": [
+    "node",
+    "pipelines/relation/item-image-provenance-patch.mjs",
+    "--input=reports/authorization/canonical/canonical-item-image-provenance-patch.input.json",
+    "--preview=reports/runtime/local-data-chain-closure/20260820/image-provenance-closure/canonical-item-image-provenance-patch.preview.json",
+    "--apply=true",
+    "--output=reports/authorization/canonical/canonical-item-image-provenance-patch.result.json"
+  ],
+  "inputPaths": [
+    "reports/authorization/canonical/canonical-item-image-provenance-patch.input.json",
+    "reports/runtime/local-data-chain-closure/20260820/image-provenance-closure/canonical-item-image-provenance-patch.preview.json"
+  ],
+  "outputPaths": [
+    "reports/authorization/canonical/canonical-item-image-provenance-patch.result.json"
+  ],
+  "reportPaths": [],
+  "progressPaths": [],
+  "ownershipKeys": [
+    "maint.maint_item_images.source_page",
+    "maint.maint_item_images.source_revision_timestamp",
+    "maint.maint_item_images.original_url",
+    "relation.relation_item_images.source_page",
+    "relation.relation_item_images.source_revision_timestamp",
+    "relation.relation_item_images.original_url",
+    "local.item_images.source_page",
+    "local.item_images.source_revision_timestamp",
+    "local.item_images.original_url"
+  ],
+  "requiredOperationIds": [],
+  "databaseWrites": true,
+  "networkAccess": false,
+  "codeBundleEntries": [
+    {
+      "path": "pipelines/relation/item-image-provenance-patch.mjs",
+      "contentHash": "sha256:2e8e9ad508b76286d6afc1663d9e653512f6e62728166fc4345faf0e01016717"
+    },
+    {
+      "path": "pipelines/automation/authorized-operation-context.mjs",
+      "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-cutover-authorization.mjs",
+      "contentHash": "sha256:a6a5374d60505aa29c0b81bb109cc9db14448a2cc8612ab6356374529f28e8ae"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-catalog.mjs",
+      "contentHash": "sha256:174c7182e192abc0b6ad00d6a117e257484d7faa9ee83c78531fc293865e7355"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-execution-manifest.mjs",
+      "contentHash": "sha256:3230cf905ebd011ae64f0681214b65f5ba338f85c0252280a6cb6dc53c04132b"
+    },
+    {
+      "path": "pipelines/automation/policy-set-hash.mjs",
+      "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681"
+    },
+    {
+      "path": "pipelines/lib/mysql-module.mjs",
+      "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0"
+    },
+    {
+      "path": "scripts/lib/local-runtime-config.mjs",
+      "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6"
+    },
+    {
+      "path": "pipelines/automation/run-authorized-canonical-operation.mjs",
+      "contentHash": "sha256:9c7b89a56fa9ccaf672728504d5e1040f2bd7c7a374ee8a7e8ca56b507629ec9"
+    },
+    {
+      "path": "pipelines/lib/private-repository-path.mjs",
+      "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9"
+    },
+    {
+      "path": "pipelines/automation/automation-database-contract.mjs",
+      "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8"
+    },
+    {
+      "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs",
+      "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d"
+    },
+    {
+      "path": "pipelines/relation/item-image-projection-contract.mjs",
+      "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f"
+    },
+    {
+      "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs",
+      "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb"
+    },
+    {
+      "path": "pipelines/lib/project-root.mjs",
+      "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74"
+    },
+    {
+      "path": "pipelines/transform/shimmer-generation-contract.mjs",
+      "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9"
+    },
+    {
+      "path": "pipelines/relation/managed-image-url-policy.mjs",
+      "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591"
+    },
+    {
+      "path": "pipelines/automation/table-ownership-matrix.mjs",
+      "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642"
+    },
+    {
+      "path": "pipelines/maint/maint-schema.mjs",
+      "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451"
+    },
+    {
+      "path": "pipelines/relation/relation-schema.mjs",
+      "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b"
+    },
+    {
+      "path": "pipelines/relation/projection-schema.mjs",
+      "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373"
+    }
+  ]
+}

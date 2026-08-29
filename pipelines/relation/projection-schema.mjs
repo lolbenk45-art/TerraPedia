@@ -7,6 +7,7 @@ export const PROJECTION_TABLE_NAMES = [
   'projection_projectiles',
   'projection_buffs',
   'projection_armor_sets',
+  'projection_biomes',
   'projection_item_armor_attributes',
   'projection_equipment_effect_attributes'
 ];
@@ -225,6 +226,22 @@ function buildProjectionStatements() {
   \`updated_at\` DATETIME DEFAULT NULL,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_projection_armor_sets_text_key\` (\`text_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_biomes\` (
+  \`id\` BIGINT NOT NULL,
+  \`relation_record_key\` CHAR(64) COLLATE utf8mb4_bin DEFAULT NULL,
+  \`code\` VARCHAR(100) NOT NULL,
+  \`name_en\` VARCHAR(255) NOT NULL,
+  \`name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`icon_url\` VARCHAR(1000) DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) DEFAULT NULL,
+  \`source_page\` VARCHAR(500) DEFAULT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_projection_biomes_code\` (\`code\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_item_armor_attributes\` (
   \`id\` BIGINT NOT NULL,

@@ -1,0 +1,10 @@
+{
+  "fixtureOnly": true,
+  "notAuthorization": true,
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-apply",
+  "pairCount": 25,
+  "payloadBytes": 0,
+  "targetManifest": { "path": "fixture-target-manifest.json", "contentHash": "", "sizeBytes": 0 },
+  "evidencePairs": []
+}

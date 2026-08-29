@@ -7,11 +7,19 @@ import {
   canonicalJson,
   resolveSchedulerActivationCodeBundlePaths,
   sha256Json,
+  writeSchedulerPreflightArtifact,
 } from './crawler-v2-scheduler-activation-preflight.mjs';
+import { computePolicySetHash } from './policy-set-hash.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const T1_HASH = `sha256:${'b'.repeat(64)}`;
 const CODE_HASH = `sha256:${'c'.repeat(64)}`;
+const POLICY_ROWS = [
+  { domainId: 'items', policyVersion: 2, policyHash: `sha256:${'1'.repeat(64)}`, currentLevel: 'L2', operationalState: 'ACTIVE' },
+];
 
 function validSnapshot(overrides = {}) {
   return {
@@ -45,13 +53,15 @@ function validSnapshot(overrides = {}) {
       failureCount: 0,
     },
     domains: [{
-      domain: 'recipes',
-      actionId: 'wiki-recipes-refresh',
+      domain: 'items',
+      actionId: 'wiki-items-refresh',
       readinessStatus: 'eligible',
       sourceHash: HASH,
       observedAt: '2026-08-10T00:59:00.000Z',
       evidencePath: 'reports/domain-readiness/recipes.json',
     }],
+    policyRows: POLICY_ROWS,
+    policySetHash: computePolicySetHash(POLICY_ROWS),
     databaseWrites: false,
     networkAccess: false,
     isolatedResourceWrites: false,
@@ -123,6 +133,8 @@ test('builds a disabled, no-write preflight bound to T1 and code hashes', () => 
   assert.equal(preflight.isolatedResourceWrites, false);
   assert.deepEqual(preflight.t1Report, validT1());
   assert.deepEqual(preflight.codeBundle, [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }]);
+  assert.deepEqual(preflight.policyRows, POLICY_ROWS);
+  assert.equal(preflight.policySetHash, computePolicySetHash(POLICY_ROWS));
   assert.match(preflight.preflightHash, /^sha256:[a-f0-9]{64}$/);
 });
 
@@ -196,9 +208,31 @@ test('rejects missing, stale, or ineligible domain readiness', () => {
       () => buildCrawlerV2SchedulerActivationPreflight({
         snapshot: validSnapshot({ domains }),
         t1Report: validT1(),
+        codeBundle: [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }],
         now: '2026-08-10T01:05:00.000Z',
       }),
       /domain|readiness|hash|fresh/i,
+    );
+  }
+});
+
+test('rejects duplicate, unregistered, or mismatched scheduler domain actions', () => {
+  for (const domains of [
+    [
+      { ...validSnapshot().domains[0] },
+      { ...validSnapshot().domains[0], evidencePath: 'reports/domain-readiness/items-2.json' },
+    ],
+    [{ ...validSnapshot().domains[0], domain: 'npcs', actionId: 'wiki-items-refresh' }],
+    [{ ...validSnapshot().domains[0], domain: 'unregistered', actionId: 'unknown-refresh' }],
+  ]) {
+    assert.throws(
+      () => buildCrawlerV2SchedulerActivationPreflight({
+        snapshot: validSnapshot({ domains }),
+        t1Report: validT1(),
+        codeBundle: [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }],
+        now: '2026-08-10T01:05:00.000Z',
+      }),
+      /domain|action|registered|duplicate/i,
     );
   }
 });
@@ -252,4 +286,24 @@ test('rejects a reader that exposes mutation methods', () => {
     }),
     /mutation|write|read-only/i,
   );
+});
+
+test('scheduler preflight writer refuses existing files and broken symlinks before writing', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-scheduler-preflight-writer-'));
+  const existing = 'reports/authorization/canonical/preflight.json';
+  fs.mkdirSync(path.dirname(path.join(repoRoot, existing)), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(path.join(repoRoot, existing), '{"existing":true}\n', { mode: 0o600 });
+  assert.throws(
+    () => writeSchedulerPreflightArtifact({ repoRoot, outputPath: existing, payload: { fresh: true } }),
+    /overwrite|exists/i,
+  );
+  assert.equal(fs.readFileSync(path.join(repoRoot, existing), 'utf8'), '{"existing":true}\n');
+
+  const broken = 'reports/authorization/canonical/broken.json';
+  fs.symlinkSync(path.join(repoRoot, 'missing.json'), path.join(repoRoot, broken));
+  assert.throws(
+    () => writeSchedulerPreflightArtifact({ repoRoot, outputPath: broken, payload: { fresh: true } }),
+    /overwrite|exists|ordinary|symbolic/i,
+  );
+  assert.equal(fs.lstatSync(path.join(repoRoot, broken)).isSymbolicLink(), true);
 });

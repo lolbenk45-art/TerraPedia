@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -9,6 +10,7 @@ import {
 } from './build-canonical-scheduler-activation-request.mjs';
 import { sha256Json } from './crawler-v2-scheduler-activation-preflight.mjs';
 import { sha256File } from './build-canonical-crawler-v2-scheduler-activation-proposal.mjs';
+import { computePolicySetHash } from './policy-set-hash.mjs';
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 
@@ -20,6 +22,10 @@ const FAKE_PREFLIGHT_HASH = `sha256:${'a'.repeat(64)}`;
 const FAKE_T1_HASH = `sha256:${'b'.repeat(64)}`;
 const FAKE_CODE_HASH = `sha256:${'c'.repeat(64)}`;
 const FAKE_FILE_SHA256 = `sha256:${'d'.repeat(64)}`;
+const POLICY_ROWS = [
+  { domainId: 'items', policyVersion: 2, policyHash: `sha256:${'1'.repeat(64)}`, currentLevel: 'L2', operationalState: 'ACTIVE' },
+  { domainId: 'npcs', policyVersion: 2, policyHash: `sha256:${'2'.repeat(64)}`, currentLevel: 'L2', operationalState: 'ACTIVE' },
+];
 
 function validProposalPayload(overrides = {}) {
   const base = {
@@ -43,7 +49,12 @@ function validProposalPayload(overrides = {}) {
     },
     codeBundle: [{ path: 'pipelines/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs', sha256: FAKE_CODE_HASH }],
     current: { enabled: false, mode: 'changed-only', epoch: 'epoch-test', namespace: 'terrapedia:v2:', liveAttempts: 0, sweepClaims: 0, reconcilerHealthy: true },
-    eligibleDomains: { 'wiki-items-refresh': 'eligible' },
+    eligibleDomains: [
+      { domainId: 'items', actionId: 'wiki-items-refresh', readinessStatus: 'eligible' },
+      { domainId: 'npcs', actionId: 'wiki-npcs-refresh', readinessStatus: 'eligible' },
+    ],
+    policyRows: POLICY_ROWS,
+    policySetHash: computePolicySetHash(POLICY_ROWS),
     requested: { sweepIntervalMinutes: 60, actor: null, reason: null, expiresAt: null },
     rollback: { endpoint: '/admin/crawler-monitor/v2/automation', body: { enabled: false, mode: 'changed-only' } },
     forbidden: ['direct-json-write', 'direct-redis-write', 'manual-sweep', 'external-daemon', 'formal-permit-consumption'],
@@ -90,6 +101,9 @@ test('builds a valid AWAITING_OWNER request from a proposal-only input', () => {
   assert.deepEqual(req.forbidden, proposal.forbidden);
   assert.deepEqual(req.mutation, proposal.mutation);
   assert.equal(req.current.enabled, false);
+  assert.deepEqual(req.eligibleDomains, proposal.eligibleDomains);
+  assert.deepEqual(req.policyRows, POLICY_ROWS);
+  assert.equal(req.policySetHash, computePolicySetHash(POLICY_ROWS));
   // requestHash 自洽
   assert.match(req.requestHash, HASH_PATTERN);
   const { requestHash, ...payloadCheck } = req;
@@ -107,6 +121,24 @@ test('request binds the exact proposal identity (fileSha256 + proposalHash)', ()
   });
   assert.equal(req.proposal.fileSha256, FAKE_FILE_SHA256);
   assert.equal(req.proposal.proposalHash, proposal.proposalHash);
+});
+
+test('request builder rejects a proposal hash that is not self-consistent or does not match the supplied identity', () => {
+  const proposal = validProposal();
+  assert.throws(() => buildSchedulerActivationRequest({
+    proposal: { ...proposal, proposalHash: `sha256:${'f'.repeat(64)}` },
+    proposalPath: PROPOSAL_PATH,
+    proposalFileSha256: FAKE_FILE_SHA256,
+    proposalHash: proposal.proposalHash,
+    generatedAt: '2026-08-11T11:00:00.000Z',
+  }), /proposal.*hash|content/i);
+  assert.throws(() => buildSchedulerActivationRequest({
+    proposal,
+    proposalPath: PROPOSAL_PATH,
+    proposalFileSha256: FAKE_FILE_SHA256,
+    proposalHash: `sha256:${'f'.repeat(64)}`,
+    generatedAt: '2026-08-11T11:00:00.000Z',
+  }), /proposal.*hash|identity/i);
 });
 
 test('request defaults expiresAt to generatedAt + 24h when omitted', () => {
@@ -194,6 +226,49 @@ test('rejects proposal with empty codeBundle', () => {
   );
 });
 
+test('rejects a proposal whose eligible action binding is missing, duplicated, or not ready', () => {
+  for (const eligibleDomains of [
+    [{ domainId: 'items', readinessStatus: 'eligible' }],
+    [
+      { domainId: 'items', actionId: 'wiki-items-refresh', readinessStatus: 'eligible' },
+      { domainId: 'npcs', actionId: 'wiki-items-refresh', readinessStatus: 'eligible' },
+    ],
+    [
+      { domainId: 'items', actionId: 'wiki-items-refresh', readinessStatus: 'blocked' },
+      { domainId: 'npcs', actionId: 'wiki-npcs-refresh', readinessStatus: 'eligible' },
+    ],
+  ]) {
+    const base = validProposalPayload({ eligibleDomains });
+    const proposal = { ...base, proposalHash: sha256Json(base) };
+    assert.throws(
+      () => buildSchedulerActivationRequest({ proposal, proposalPath: PROPOSAL_PATH, proposalFileSha256: FAKE_FILE_SHA256, proposalHash: proposal.proposalHash, generatedAt: '2026-08-11T11:00:00.000Z' }),
+      /eligible|duplicate|ready/i,
+    );
+  }
+});
+
+test('CLI validates a malformed proposal before creating its output parent directory', () => {
+  const repoRoot = process.cwd();
+  const proposalPath = 'reports/authorization/canonical/.test-malformed-proposal.json';
+  const proposalAbsPath = path.resolve(repoRoot, proposalPath);
+  const outputParent = path.resolve(repoRoot, 'reports/authorization/canonical/.test-malformed-output/nested');
+  const outputPath = '.test-malformed-output/nested/request.json';
+  fs.writeFileSync(proposalAbsPath, '{not-json}\n', { mode: 0o600, flag: 'wx' });
+  fs.rmSync(outputParent, { recursive: true, force: true });
+  try {
+    const result = spawnSync(process.execPath, [
+      'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+      `--proposal=${proposalPath}`,
+      `--output=reports/authorization/canonical/${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.equal(fs.existsSync(outputParent), false);
+  } finally {
+    fs.rmSync(proposalAbsPath, { force: true });
+    fs.rmSync(outputParent, { recursive: true, force: true });
+  }
+});
+
 test('rejects expiresAt in the past', () => {
   const proposal = validProposal();
   const generatedAt = '2026-08-11T11:00:00.000Z';
@@ -238,17 +313,15 @@ test('request contains no password, token, or secret-like string', () => {
 
 test('CLI builds a request artifact from the real proposal file and writes it under the authorization root', () => {
   const repoRoot = process.cwd();
-  const proposalAbsPath = path.resolve(repoRoot, PROPOSAL_PATH);
-  if (!fs.existsSync(proposalAbsPath)) {
-    // 如果真实 proposal 不存在（CI 环境），跳过此集成测试
-    return;
-  }
+  const proposalPath = 'reports/authorization/canonical/.test-real-proposal.json';
+  const proposalAbsPath = path.resolve(repoRoot, proposalPath);
   const outputPath = 'reports/authorization/canonical/.test-scheduler-activation.request.json';
   const outputAbsPath = path.resolve(repoRoot, outputPath);
+  fs.writeFileSync(proposalAbsPath, `${JSON.stringify(validProposal(), null, 2)}\n`, { mode: 0o600, flag: 'wx' });
   try {
     const result = spawnSync(process.execPath, [
       'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
-      `--proposal=${PROPOSAL_PATH}`,
+      `--proposal=${proposalPath}`,
       `--output=${outputPath}`,
       '--generated-at=2026-08-11T11:30:00.000Z',
     ], { cwd: repoRoot, encoding: 'utf8' });
@@ -266,13 +339,14 @@ test('CLI builds a request artifact from the real proposal file and writes it un
     const { requestHash, ...payloadCheck } = written;
     assert.equal(sha256Json(payloadCheck), requestHash);
     // proposal 锚点存在
-    assert.equal(written.proposal.path, PROPOSAL_PATH);
+    assert.equal(written.proposal.path, proposalPath);
     assert.match(written.proposal.fileSha256, HASH_PATTERN);
     assert.match(written.proposal.proposalHash, HASH_PATTERN);
     // 文件权限 0o600
     const mode = fs.statSync(outputAbsPath).mode & 0o777;
     assert.equal(mode, 0o600);
   } finally {
+    fs.rmSync(proposalAbsPath, { force: true });
     fs.rmSync(outputAbsPath, { force: true });
   }
 });
@@ -305,17 +379,18 @@ test('CLI rejects a proposal whose proposalHash does not match its content', () 
 
 test('CLI refuses to overwrite an existing request artifact', () => {
   const repoRoot = process.cwd();
-  const proposalAbsPath = path.resolve(repoRoot, PROPOSAL_PATH);
-  if (!fs.existsSync(proposalAbsPath)) return;
+  const proposalPath = 'reports/authorization/canonical/.test-no-overwrite.proposal.json';
+  const proposalAbsPath = path.resolve(repoRoot, proposalPath);
   const outputPath = 'reports/authorization/canonical/.test-no-overwrite.request.json';
   const outputAbsPath = path.resolve(repoRoot, outputPath);
+  fs.writeFileSync(proposalAbsPath, `${JSON.stringify(validProposal(), null, 2)}\n`, { mode: 0o600, flag: 'wx' });
   // 预先写一个占位文件
   fs.mkdirSync(path.dirname(outputAbsPath), { recursive: true });
   fs.writeFileSync(outputAbsPath, '{"existing":true}\n', { mode: 0o600 });
   try {
     const result = spawnSync(process.execPath, [
       'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
-      `--proposal=${PROPOSAL_PATH}`,
+      `--proposal=${proposalPath}`,
       `--output=${outputPath}`,
     ], { cwd: repoRoot, encoding: 'utf8' });
     assert.equal(result.status, 1);
@@ -324,6 +399,101 @@ test('CLI refuses to overwrite an existing request artifact', () => {
     const content = JSON.parse(fs.readFileSync(outputAbsPath, 'utf8'));
     assert.equal(content.existing, true);
   } finally {
+    fs.rmSync(proposalAbsPath, { force: true });
+    fs.rmSync(outputAbsPath, { force: true });
+  }
+});
+
+test('CLI rejects a symlinked proposal input instead of following it outside the repository', () => {
+  const repoRoot = process.cwd();
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-scheduler-request-escape-'));
+  const outsideProposalPath = path.join(outsideRoot, 'proposal.json');
+  const proposal = validProposal();
+  fs.writeFileSync(outsideProposalPath, `${JSON.stringify(proposal, null, 2)}\n`, { mode: 0o600 });
+  const linkedProposalPath = path.resolve(repoRoot, 'reports/authorization/canonical/.test-symlink-proposal.json');
+  const outputPath = 'reports/authorization/canonical/.test-symlink-proposal.request.json';
+  const outputAbsPath = path.resolve(repoRoot, outputPath);
+  fs.symlinkSync(outsideProposalPath, linkedProposalPath, 'file');
+  try {
+    const result = spawnSync(process.execPath, [
+      'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+      `--proposal=reports/authorization/canonical/.test-symlink-proposal.json`,
+      `--output=${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ordinary file|symbolic-link|confinement/i);
+    assert.equal(fs.existsSync(outputAbsPath), false);
+  } finally {
+    fs.rmSync(linkedProposalPath, { force: true });
+    fs.rmSync(outputAbsPath, { force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('CLI rejects an output path below a broken symlinked authorization ancestor', () => {
+  const repoRoot = process.cwd();
+  const proposal = validProposal();
+  const proposalPath = 'reports/authorization/canonical/.test-broken-ancestor.proposal.json';
+  const proposalAbsPath = path.resolve(repoRoot, proposalPath);
+  const symlinkPath = path.resolve(repoRoot, 'reports/authorization/canonical/.test-broken-ancestor');
+  const outputPath = 'reports/authorization/canonical/.test-broken-ancestor/request.json';
+  fs.rmSync(proposalAbsPath, { force: true });
+  fs.rmSync(symlinkPath, { force: true });
+  fs.writeFileSync(proposalAbsPath, `${JSON.stringify(proposal, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+  fs.symlinkSync(path.join(os.tmpdir(), 'terrapedia-missing-scheduler-target'), symlinkPath, 'dir');
+  try {
+    const result = spawnSync(process.execPath, [
+      'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+      `--proposal=${proposalPath}`,
+      `--output=${outputPath}`,
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /symbolic-link|confinement|authorization/i);
+  } finally {
+    fs.rmSync(proposalAbsPath, { force: true });
+    fs.rmSync(symlinkPath, { force: true });
+  }
+});
+
+test('CLI rejects a proposal input inside the repository but outside the authorization root', () => {
+  const repoRoot = process.cwd();
+  const proposalPath = 'reports/runtime/.test-outside-proposal.json';
+  const proposalAbsPath = path.resolve(repoRoot, proposalPath);
+  const outputAbsPath = path.resolve(repoRoot, 'reports/authorization/canonical/.test-outside-proposal.request.json');
+  fs.mkdirSync(path.dirname(proposalAbsPath), { recursive: true });
+  fs.writeFileSync(proposalAbsPath, `${JSON.stringify(validProposal(), null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+  try {
+    const result = spawnSync(process.execPath, [
+      'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+      `--proposal=${proposalPath}`,
+      '--output=reports/authorization/canonical/.test-outside-proposal.request.json',
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /authorization\/canonical|root/i);
+    assert.equal(fs.existsSync(outputAbsPath), false);
+  } finally {
+    fs.rmSync(proposalAbsPath, { force: true });
+    fs.rmSync(outputAbsPath, { force: true });
+  }
+});
+
+test('CLI rejects a request output path inside the repository but outside the authorization root', () => {
+  const repoRoot = process.cwd();
+  const proposalPath = 'reports/authorization/canonical/.test-outside-output.proposal.json';
+  const proposalAbsPath = path.resolve(repoRoot, proposalPath);
+  const outputAbsPath = path.resolve(repoRoot, 'reports/runtime/.test-outside-output.request.json');
+  fs.writeFileSync(proposalAbsPath, `${JSON.stringify(validProposal(), null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+  try {
+    const result = spawnSync(process.execPath, [
+      'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+      `--proposal=${proposalPath}`,
+      '--output=reports/runtime/.test-outside-output.request.json',
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /authorization\/canonical|root/i);
+    assert.equal(fs.existsSync(outputAbsPath), false);
+  } finally {
+    fs.rmSync(proposalAbsPath, { force: true });
     fs.rmSync(outputAbsPath, { force: true });
   }
 });

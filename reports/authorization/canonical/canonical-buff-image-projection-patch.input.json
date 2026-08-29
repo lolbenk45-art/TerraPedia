@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-buff-image-projection-patch",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:c59f97b26d293ee18052088597f1cda18354741ec53ef984d0c319a9355e0487",
+  "previewSha256": "sha256:a0c20ca11f86cbe097c417f6e5aa384495fa8a457d4d68f5c41971ecb0b7aa6b",
+  "evidenceReportSha256": "sha256:cbd85207e82ee11856424f27db46c31a9c8fe33cac8f71e9937aa5a56c6db56d",
+  "expectedCounts": {
+    "projection": 388
+  },
+  "writeTargets": [
+    "relation.projection_buffs.image"
+  ]
+}

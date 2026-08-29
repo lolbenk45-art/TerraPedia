@@ -72,20 +72,22 @@ export async function executeItemImageProjectionTransaction({
     const changedRows = inputContract.projectionAfterRows.filter((row, index) => (
       row.image !== inputContract.projectionBeforeRows[index]?.image
     ));
-    if (changedRows.length === 0 || changedRows.length !== inputContract.changedRowCount) {
-      throw new Error('projection changed row set drifted or is empty');
+    if (changedRows.length !== inputContract.changedRowCount) {
+      throw new Error('projection changed row set drifted');
     }
     await consumeDispatchPermit();
     transaction.permitConsumed = true;
-    transaction.dmlAttempted = true;
-    const [updateResult] = await connection.execute(
-      buildImageUpdateSql(inputContract.target.databases.relation, changedRows.length),
-      updateParameters(changedRows),
-    );
-    if (Number(updateResult?.affectedRows) !== inputContract.changedRowCount) {
-      throw new Error(
-        `projection affected row count drifted: expected ${inputContract.changedRowCount}, found ${Number(updateResult?.affectedRows ?? 0)}`,
+    if (changedRows.length > 0) {
+      transaction.dmlAttempted = true;
+      const [updateResult] = await connection.execute(
+        buildImageUpdateSql(inputContract.target.databases.relation, changedRows.length),
+        updateParameters(changedRows),
       );
+      if (Number(updateResult?.affectedRows) !== inputContract.changedRowCount) {
+        throw new Error(
+          `projection affected row count drifted: expected ${inputContract.changedRowCount}, found ${Number(updateResult?.affectedRows ?? 0)}`,
+        );
+      }
     }
 
     const projectionAfterRows = await readProjectionRows(

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l1",
+  "runId": "items_l1_20260829_serial02",
+  "domainId": "items",
+  "status": "completed",
+  "bundleHash": "sha256:63c3b9298c9b21edc1f59ccb243c85bceda549dd1c61b3225c3f2f307d6e1a45",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "importSummary": {
+    "items": {
+      "input": 6131,
+      "created": 0,
+      "updated": 0,
+      "skipped": 6131,
+      "duplicatesRemoved": 0,
+      "errors": []
+    }
+  },
+  "completedAt": "2026-08-29T00:55:05.965Z"
+}

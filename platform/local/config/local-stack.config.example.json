@@ -52,7 +52,7 @@
     }
   },
   "minio": {
-    "enabled": false,
+    "enabled": true,
     "credentialsFile": "platform/local/config/credentials.json",
     "endpoint": "http://127.0.0.1:19000",
     "publicEndpoint": "http://localhost:19000",

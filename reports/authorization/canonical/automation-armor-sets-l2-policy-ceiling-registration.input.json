@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-armor-sets-l2-policy-ceiling-registration",
+  "domainId": "armor_sets",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/armor_sets/a2bd7668eb475ee073999eec4b807b97068d67cf0f5b5ca0556a651be95c6cd0/artifact.json",
+  "artifactFileSha256": "sha256:1f510663ee5adf2cde57951076f5094f017849b7406f9629595190d6fdcf871a",
+  "artifactHash": "sha256:a2bd7668eb475ee073999eec4b807b97068d67cf0f5b5ca0556a651be95c6cd0",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+  "targetPolicySetHash": "sha256:b5c6620538a1029e582440520ce7c90089d9dd807598219601253391daa9b57f",
+  "proposalOnly": false
+}

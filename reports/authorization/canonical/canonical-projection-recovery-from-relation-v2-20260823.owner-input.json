@@ -1,0 +1,6 @@
+{
+  "actor": "Codex",
+  "reason": "User selected方案A; restore projections from the freshly repaired relation source chain with managed image prefixes and exact projection-table allow-list; no network.",
+  "authorizationReference": "reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/relation-snapshot.json",
+  "decisionIdentity": "canonical-projection-recovery-from-relation-v2-20260823-owner-01"
+}

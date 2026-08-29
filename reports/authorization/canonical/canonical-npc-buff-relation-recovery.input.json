@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-buff-relation-recovery",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-buff-relation-recovery.proposal.json",
+  "proposalSha256": "sha256:8bca37734b271f52a3de83719c34cbc5d241853e7048953e62bb8e8599f33cd3",
+  "scopeSha256": "sha256:bf0f0674edbc2ff9b0b8d1917d924f6f1d86e03ca052b71b88e4aa84f19365cc",
+  "keySetSha256": "sha256:077aa92fa16f22dad9f683c274bf81126b548c6c2f93ba2cace9cb269e44c350",
+  "beforeRowsSha256": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "afterRowsSha256": "sha256:96109a7d338d4b122cd71e7f1a1c947cb818687324a036ea1c8f6ea826cb7bc9",
+  "expectedCounts": {
+    "before": 0,
+    "after": 1270,
+    "changed": 1270
+  },
+  "writeTargets": [
+    "relation.npc_buff_relations.buffs"
+  ]
+}

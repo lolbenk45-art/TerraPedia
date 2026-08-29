@@ -1,0 +1,432 @@
+{
+  "generatedAt": "2026-08-23T05:47:10.182Z",
+  "ok": false,
+  "failedDomains": [
+    "items",
+    "npcs",
+    "bosses"
+  ],
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6159,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6146,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "HeartArrow",
+        "ValentineRing",
+        "TurkeyFeather",
+        "FestiveTopHat",
+        "Wiesnbrau",
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS"
+      ],
+      "acceptedLocalOnlyExceptionCount": 13,
+      "blockingFields": [
+        {
+          "field": "knockback",
+          "localField": "knockback",
+          "projectionField": "knockback",
+          "localNonNull": 6132,
+          "projectionNonNull": 624,
+          "gap": 5508,
+          "missingExamples": [
+            {
+              "key": "DirtBlock",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Torch",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Wood",
+              "localField": "knockback",
+              "projectionField": "knockback",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "tooltip_zh",
+          "localField": "tooltip_zh",
+          "projectionField": "tooltip_zh",
+          "localNonNull": 6,
+          "projectionNonNull": 0,
+          "gap": 6,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localField": "tooltip_zh",
+              "projectionField": "tooltip_zh",
+              "localValue": "可开采流星矿以下的方块",
+              "projectionValue": null
+            },
+            {
+              "key": "IronOre",
+              "localField": "tooltip_zh",
+              "projectionField": "tooltip_zh",
+              "localValue": "在地下较常见",
+              "projectionValue": null
+            },
+            {
+              "key": "IronBar",
+              "localField": "tooltip_zh",
+              "projectionField": "tooltip_zh",
+              "localValue": "可用于制作铁系装备与工具",
+              "projectionValue": null
+            },
+            {
+              "key": "Furnace",
+              "localField": "tooltip_zh",
+              "projectionField": "tooltip_zh",
+              "localValue": "基础制作站",
+              "projectionValue": null
+            },
+            {
+              "key": "IronAnvil",
+              "localField": "tooltip_zh",
+              "projectionField": "tooltip_zh",
+              "localValue": "基础金属制作站",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "rarity_id",
+          "localField": "rarity_id",
+          "projectionField": "rarity_id",
+          "localNonNull": 6135,
+          "projectionNonNull": 2889,
+          "gap": 3246,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localField": "rarity_id",
+              "projectionField": "rarity_id",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "DirtBlock",
+              "localField": "rarity_id",
+              "projectionField": "rarity_id",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localField": "rarity_id",
+              "projectionField": "rarity_id",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "IronBroadsword",
+              "localField": "rarity_id",
+              "projectionField": "rarity_id",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localField": "rarity_id",
+              "projectionField": "rarity_id",
+              "localValue": 1,
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "blocked",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [
+        {
+          "field": "life_max",
+          "localField": "life_max",
+          "projectionField": "life_max",
+          "localNonNull": 757,
+          "projectionNonNull": 0,
+          "gap": 757,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 45,
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 33,
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 48,
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 32,
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "life_max",
+              "projectionField": "life_max",
+              "localValue": 41,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "knock_back_resist",
+          "localField": "knock_back_resist",
+          "projectionField": "knock_back_resist",
+          "localNonNull": 624,
+          "projectionNonNull": 0,
+          "gap": 624,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4740",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.6780",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4620",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.6710",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "knock_back_resist",
+              "projectionField": "knock_back_resist",
+              "localValue": "0.4050",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "scale",
+          "localField": "scale",
+          "projectionField": "scale",
+          "localNonNull": 119,
+          "projectionNonNull": 0,
+          "gap": 119,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.2100",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "0.8700",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.1600",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "0.7800",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localField": "scale",
+              "projectionField": "scale",
+              "localValue": "1.1000",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "blocked",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [
+        {
+          "field": "image_url",
+          "localField": "image_url",
+          "projectionField": "image_url",
+          "localNonNull": 33,
+          "projectionNonNull": 4,
+          "gap": 29,
+          "missingExamples": [
+            {
+              "key": "KING_SLIME",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/76b792f0c9c848a8ba1c36aaeceb061d.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "EYE_OF_CTHULHU",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/fa5c654168664131ae7987443cd48d8c.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "EATER_OF_WORLDS",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/9ccd86d459e24307b90ac3d91f107822.png",
+              "projectionValue": null
+            },
+            {
+              "key": "BRAIN_OF_CTHULHU",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/85a51c5d8ce14092ad51f009b62900cd.gif",
+              "projectionValue": null
+            },
+            {
+              "key": "QUEEN_BEE",
+              "localField": "image_url",
+              "projectionField": "image_url",
+              "localValue": "http://localhost:9000/terrapedia-images/bosses/2026/05/09/6eb4209f29ab4a25ada8ec2bedf59532.gif",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "switchable",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "switchable",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    }
+  },
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation"
+}

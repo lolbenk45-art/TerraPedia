@@ -24,13 +24,54 @@ test('parseArgs defaults runtime parity audit to read-only report mode', () => {
   assert.deepEqual(parseArgs([]), {
     relationDatabase: 'terria_v1_relation',
     localDatabase: 'terria_v1_local',
-    apiBaseUrl: 'http://localhost:18088',
+    apiBaseUrl: 'http://localhost:18091',
     apiMode: 'public-detail',
     adminToken: null,
+    fastLocalApi: false,
+    requestIntervalMs: 1000,
+    rateLimitRetryWaitMs: 60000,
+    maxRateLimitRetries: 2,
     writeReport: true,
     output: null,
     dateTag: new Date().toISOString().slice(0, 10),
   });
+});
+
+test('parseArgs enables fast local API mode with zero request interval for loopback URLs', () => {
+  const options = parseArgs([
+    '--api-base-url=http://127.0.0.1:18091',
+    '--fast-local-api',
+  ]);
+
+  assert.equal(options.fastLocalApi, true);
+  assert.equal(options.requestIntervalMs, 0);
+
+  for (const apiBaseUrl of [
+    'http://localhost:18091',
+    'http://127.0.0.1:18091',
+    'http://[::1]:18091',
+  ]) {
+    const loopback = parseArgs([`--api-base-url=${apiBaseUrl}`, '--fast-local-api']);
+    assert.equal(loopback.requestIntervalMs, 0);
+  }
+});
+
+test('parseArgs rejects fast local API mode for non-loopback URLs', () => {
+  assert.throws(
+    () => parseArgs(['--api-base-url=https://example.com', '--fast-local-api']),
+    { message: 'fast local API mode requires a loopback api base URL' },
+  );
+});
+
+test('runNpcLootRuntimeParityAudit rejects injected fast mode for non-loopback URLs', async () => {
+  await assert.rejects(
+    runNpcLootRuntimeParityAudit({
+      writeReport: false,
+      apiBaseUrl: 'http://remote.example.test',
+      fastLocalApi: true,
+    }),
+    { message: 'fast local API mode requires a loopback api base URL' },
+  );
 });
 
 test('buildNpcLootRuntimeParityReport classifies required runtime parity statuses by stable row identity', () => {
@@ -149,6 +190,42 @@ test('local compatibility boss loot rows do not pollute NPC drop runtime parity'
   assert.equal(report.summary.stageRows.local, 1);
 });
 
+test('segmented structured loot fixture keeps legacy JSON as metadata and exposes duplicate head pollution', () => {
+  const body = row({
+    npcInternalName: 'GiantWormBody',
+    itemInternalName: 'WhoopieCushion',
+    sourceFactKey: 'fact:giant-worm-body',
+    runtimeMode: 'direct',
+    lootItemsJson: '[{"itemInternalName":"WhoopieCushion","quantityText":"1","chanceText":"2%"}]',
+  });
+  const head = row({
+    npcInternalName: 'GiantWormHead',
+    itemInternalName: 'WhoopieCushion',
+    sourceFactKey: 'fact:giant-worm-head-a',
+  });
+  const duplicateHead = { ...head, sourceFactKey: 'fact:giant-worm-head-b' };
+  const report = buildNpcLootRuntimeParityReport({
+    relationRows: [body, head, duplicateHead],
+    projectionRows: [
+      { npcInternalName: 'GiantWormBody', lootItemsJson: body.lootItemsJson },
+      { npcInternalName: 'GiantWormHead', lootItemsJson: '[{"itemInternalName":"WhoopieCushion","quantityText":"1","chanceText":"2%"}]' },
+    ],
+    localRows: [body, head, duplicateHead],
+    apiRows: [
+      { ...body, runtimeMode: 'direct' },
+      { ...body, runtimeMode: 'projection_only' },
+      { ...head, runtimeMode: 'direct' },
+      { ...duplicateHead, runtimeMode: 'direct' },
+    ],
+  });
+
+  const byNpc = new Map(report.rows.map((entry) => [entry.npcInternalName, entry]));
+  assert.equal(byNpc.get('GiantWormBody').status, 'trusted_direct_loot');
+  assert.equal(byNpc.get('GiantWormBody').counts.api, 1);
+  assert.equal(byNpc.get('GiantWormHead').status, 'duplicate_or_polluted');
+  assert.equal(byNpc.get('GiantWormHead').reason, 'duplicate_stable_identity');
+});
+
 test('buildNpcLootRuntimeParityReport blocks API rows with missing or unknown runtime provenance', () => {
   const missingModeRow = row({ npcInternalName: 'MissingModeNpc', itemInternalName: 'Gel', sourceFactKey: 'fact:missing-mode' });
   const unknownModeRow = row({ npcInternalName: 'UnknownModeNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:unknown-mode' });
@@ -235,6 +312,147 @@ test('runNpcLootRuntimeParityAudit loads public detail aggregate rows for API ev
 
   assert.deepEqual(calls, ['http://local.test/api/public/npcs/12/aggregate?include=loot']);
   assert.equal(result.report.summary.stageRows.api, 1);
+});
+
+test('runNpcLootRuntimeParityAudit spaces local public API calls by the default interval', async () => {
+  const sleepCalls = [];
+  const apiCalls = [];
+  const targetNpcs = [
+    { id: 1, npcInternalName: 'BlueSlime' },
+    { id: 2, npcInternalName: 'GreenSlime' },
+    { id: 3, npcInternalName: 'PurpleSlime' },
+  ];
+
+  await runNpcLootRuntimeParityAudit(
+    { writeReport: false, apiBaseUrl: 'http://local.test' },
+    {
+      connection: {},
+      loadRelationRows: async () => [],
+      loadProjectionRows: async () => [],
+      loadLocalRows: async () => [],
+      loadApiTargetNpcs: async () => targetNpcs,
+      apiClient: async (url) => {
+        apiCalls.push(url);
+        return {
+          ok: true,
+          async json() {
+            return { data: { npc: {}, loot: [] } };
+          },
+        };
+      },
+      sleep: async (milliseconds) => {
+        sleepCalls.push(milliseconds);
+      },
+    }
+  );
+
+  assert.equal(apiCalls.length, 3);
+  assert.deepEqual(sleepCalls, [1000, 1000]);
+});
+
+test('runNpcLootRuntimeParityAudit uses a zero interval between calls in fast local API mode', async () => {
+  const sleepCalls = [];
+
+  await runNpcLootRuntimeParityAudit(
+    {
+      writeReport: false,
+      apiBaseUrl: 'http://127.0.0.1:18091',
+      fastLocalApi: true,
+    },
+    {
+      connection: {},
+      loadRelationRows: async () => [],
+      loadProjectionRows: async () => [],
+      loadLocalRows: async () => [],
+      loadApiTargetNpcs: async () => [
+        { id: 1, npcInternalName: 'BlueSlime' },
+        { id: 2, npcInternalName: 'GreenSlime' },
+      ],
+      apiClient: async () => ({
+        ok: true,
+        async json() {
+          return { data: { npc: {}, loot: [] } };
+        },
+      }),
+      sleep: async (milliseconds) => {
+        sleepCalls.push(milliseconds);
+      },
+    },
+  );
+
+  assert.deepEqual(sleepCalls, [0]);
+});
+
+test('runNpcLootRuntimeParityAudit retries the same NPC after a rate limit response', async () => {
+  const sleepCalls = [];
+  const apiCalls = [];
+  let attempt = 0;
+
+  const result = await runNpcLootRuntimeParityAudit(
+    { writeReport: false, apiBaseUrl: 'http://local.test' },
+    {
+      connection: {},
+      loadRelationRows: async () => [],
+      loadProjectionRows: async () => [],
+      loadLocalRows: async () => [],
+      loadApiTargetNpcs: async () => [{ id: 7, npcInternalName: 'PinkSlime' }],
+      apiClient: async (url) => {
+        apiCalls.push(url);
+        attempt += 1;
+        if (attempt === 1) return { ok: false, status: 429 };
+        return {
+          ok: true,
+          async json() {
+            return { data: { npc: {}, loot: [] } };
+          },
+        };
+      },
+      sleep: async (milliseconds) => {
+        sleepCalls.push(milliseconds);
+      },
+    }
+  );
+
+  assert.equal(result.report.auditStatus, 'pass');
+  assert.deepEqual(apiCalls, [
+    'http://local.test/api/public/npcs/7/aggregate?include=loot',
+    'http://local.test/api/public/npcs/7/aggregate?include=loot',
+  ]);
+  assert.deepEqual(sleepCalls, [60000]);
+});
+
+test('runNpcLootRuntimeParityAudit blocks only after rate limit retries are exhausted', async () => {
+  const sleepCalls = [];
+  let apiCallCount = 0;
+
+  const result = await runNpcLootRuntimeParityAudit(
+    {
+      writeReport: false,
+      apiBaseUrl: 'http://local.test',
+      maxRateLimitRetries: 1,
+      rateLimitRetryWaitMs: 50,
+    },
+    {
+      connection: {},
+      loadRelationRows: async () => [],
+      loadProjectionRows: async () => [],
+      loadLocalRows: async () => [],
+      loadApiTargetNpcs: async () => [{ id: 8, npcInternalName: 'RainbowSlime' }],
+      apiClient: async () => {
+        apiCallCount += 1;
+        return { ok: false, status: 429 };
+      },
+      sleep: async (milliseconds) => {
+        sleepCalls.push(milliseconds);
+      },
+    }
+  );
+
+  assert.equal(apiCallCount, 2);
+  assert.deepEqual(sleepCalls, [50]);
+  assert.equal(result.report.auditStatus, 'blocked');
+  assert.equal(result.report.evidenceHealth, 'api_unavailable');
+  assert.match(result.report.error.message, /429 after 2 attempts/);
 });
 
 test('runNpcLootRuntimeParityAudit treats public detail 404 as per-NPC API gap evidence', async () => {

@@ -20,6 +20,7 @@ export const MAINT_TABLE_NAMES = [
   'maint_source_snapshots',
   'maint_bosses',
   'maint_biomes',
+  'maint_biome_images',
   'maint_armor_sets',
   'maint_armor_set_images',
   'maint_armor_attribute_rows',
@@ -679,6 +680,28 @@ CREATE TABLE IF NOT EXISTS \`maint_biomes\` (
   \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_biomes_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_biome_images\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`biome_code\` VARCHAR(100) NOT NULL,
+  \`source_provider\` VARCHAR(128) DEFAULT NULL,
+  \`source_page\` VARCHAR(500) DEFAULT NULL,
+  \`original_url\` VARCHAR(1000) DEFAULT NULL,
+  \`cached_url\` VARCHAR(1000) DEFAULT NULL,
+  \`width\` INT DEFAULT NULL,
+  \`height\` INT DEFAULT NULL,
+  \`content_type\` VARCHAR(128) DEFAULT NULL,
+  \`is_primary\` TINYINT(1) NOT NULL DEFAULT 1,
+  \`sort_order\` INT NOT NULL DEFAULT 0,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_biome_images_record_key\` (\`record_key\`),
+  KEY \`idx_maint_biome_images_code\` (\`biome_code\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS \`maint_armor_sets\` (

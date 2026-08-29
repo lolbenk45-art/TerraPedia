@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l0-bootstrap",
+  "databaseName": "terria_v1_local",
+  "domainId": "items",
+  "level": "L0",
+  "operationalState": "DISABLED",
+  "policy": {
+    "absoluteInsertCap": 7000,
+    "absoluteUpdateCap": 7000,
+    "absoluteDisableCap": 0,
+    "ratioDisableCap": 0,
+    "requireSnapshot": true
+  }
+}

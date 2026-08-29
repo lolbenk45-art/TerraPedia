@@ -12,6 +12,7 @@ import {
   createAuthorizedOperationDispatchPermit,
   revokeAuthorizedOperationDispatchPermit,
 } from './authorized-operation-context.mjs';
+import { canonicalServerFingerprint } from './automation-database-contract.mjs';
 import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 import {
   assertItemImageProjectionCompletedResult,
@@ -21,6 +22,7 @@ import {
 
 const ITEM_IMAGE_PROJECTION_OPERATION_ID = 'canonical-item-image-projection-apply';
 const NPC_T2_CUTOVER_OPERATION_ID = 'canonical-npc-t2-cutover-verification';
+const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 
 export function consumeDecisionIdentityFile({ ledgerPath, decisionIdentity, dispatchPermitHash = null } = {}) {
   const identity = requireText(decisionIdentity, 'decision identity');
@@ -69,6 +71,7 @@ export async function runExecutionManifestCommand({
   cwd = process.cwd(),
   authorizationPacketPath = null,
   authorizationDispatchPermit = null,
+  authorizedServerFingerprint = null,
   env = process.env,
   spawnImpl = spawnCommand,
   now = new Date().toISOString(),
@@ -87,6 +90,9 @@ export async function runExecutionManifestCommand({
     authorizationDispatchPermit: permit,
   });
   if (typeof spawnImpl !== 'function') throw new TypeError('spawn implementation is required');
+  const fingerprint = authorizedServerFingerprint == null
+    ? null
+    : canonicalServerFingerprint(authorizedServerFingerprint);
   const childEnv = authorizationPacketPath == null
     ? env
     : {
@@ -97,6 +103,9 @@ export async function runExecutionManifestCommand({
         ...(permit == null ? {} : {
           TERRAPEDIA_AUTHORIZED_DISPATCH_PERMIT_PATH: permit.path,
           TERRAPEDIA_AUTHORIZED_DISPATCH_NONCE: permit.nonce,
+        }),
+        ...(fingerprint == null ? {} : {
+          TERRAPEDIA_AUTHORIZED_SERVER_FINGERPRINT: JSON.stringify(fingerprint),
         }),
       };
   const result = await spawnImpl(commandParts[0], commandParts.slice(1), {
@@ -168,6 +177,15 @@ function assertExecutionManifestPreflight({
   }
   if (manifest?.operationId === NPC_T2_CUTOVER_OPERATION_ID) {
     assertNpcT2AttemptDispatch({
+      manifest,
+      root,
+      authorizationPacketPath,
+      authorizationDispatchPermit,
+      requireAuthorizationPaths: requireProjectionAuthorizationPaths,
+    });
+  }
+  if (manifest?.operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
+    assertItemSourceLocalNpcAdmissionAttemptDispatch({
       manifest,
       root,
       authorizationPacketPath,
@@ -258,6 +276,10 @@ function verifyDeclaredManifestOutputs({ manifest, cwd, now, projectionContract 
         }
         continue;
       }
+      if (manifest.operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
+        assertItemSourceLocalNpcAdmissionCompletedResult({ manifest, result });
+        continue;
+      }
       const requiresAppliedCompletion = manifest.operationId === 'canonical-shimmer-import';
       if (requiresAppliedCompletion && result?.status !== 'completed') {
         throw new Error(`authorized operation canonical result status must be completed: ${relativePath}`);
@@ -275,7 +297,9 @@ function isCanonicalResultPath(manifest, relativePath) {
     || (manifest?.operationId === ITEM_IMAGE_PROJECTION_OPERATION_ID
       && relativePath === manifest?.itemImageProjectionAttempt?.resultPath)
     || (manifest?.operationId === NPC_T2_CUTOVER_OPERATION_ID
-      && relativePath === manifest?.npcT2Attempt?.resultPath);
+      && relativePath === manifest?.npcT2Attempt?.resultPath)
+    || (manifest?.operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID
+      && relativePath === manifest?.itemSourceLocalNpcAdmissionAttempt?.resultPath);
 }
 
 function assertItemImageProjectionAttemptDispatch({
@@ -365,6 +389,80 @@ function assertNpcT2AttemptDispatch({
   }
   if (permit !== path.resolve(root, permitPath)) {
     throw new Error('NPC T2 authorization permit must use the exact attempt path');
+  }
+}
+
+function assertItemSourceLocalNpcAdmissionAttemptDispatch({
+  manifest,
+  root,
+  authorizationPacketPath,
+  authorizationDispatchPermit,
+  requireAuthorizationPaths,
+}) {
+  const attempt = manifest?.itemSourceLocalNpcAdmissionAttempt;
+  const attemptRoot = String(attempt?.attemptRoot ?? '').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/canonical-item-source-local-npc-admission/';
+  if (!attemptRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(attemptRoot.slice(prefix.length))) {
+    throw new Error('Item-source admission dispatch attempt root is invalid');
+  }
+  const expected = {
+    attemptId: attemptRoot.slice(prefix.length),
+    attemptRoot,
+    proposalPath: `${attemptRoot}/proposal.json`,
+    inputPath: `${attemptRoot}/input.json`,
+    manifestPath: `${attemptRoot}/execution-manifest.json`,
+    requestPath: `${attemptRoot}/request.json`,
+    packetPath: `${attemptRoot}/packet.json`,
+    permitPath: `${attemptRoot}/permit.json`,
+    resultPath: `${attemptRoot}/result.json`,
+  };
+  if (!sameExactObject(attempt, expected)
+      || JSON.stringify(manifest.inputPaths) !== JSON.stringify([expected.inputPath])
+      || JSON.stringify(manifest.outputPaths) !== JSON.stringify([expected.resultPath])
+      || JSON.stringify(manifest.command) !== JSON.stringify([
+        'node',
+        'pipelines/relation/apply-item-source-local-npc-admission.mjs',
+        `--input-contract=${expected.inputPath}`,
+        '--apply=true',
+        `--output=${expected.resultPath}`,
+      ])) {
+    throw new Error('Item-source admission dispatch manifest paths drifted across attempts');
+  }
+  if (!requireAuthorizationPaths) return;
+  const packet = resolveFromRoot(root, requireText(
+    authorizationPacketPath,
+    'Item-source admission authorization packet path',
+  ));
+  const permit = resolveFromRoot(root, requireText(
+    authorizationDispatchPermit?.path,
+    'Item-source admission authorization dispatch permit path',
+  ));
+  if (packet !== path.resolve(root, expected.packetPath)
+      || permit !== path.resolve(root, expected.permitPath)) {
+    throw new Error('Item-source admission authorization artifacts must use the exact attempt paths');
+  }
+}
+
+function sameExactObject(actual, expected) {
+  if (!actual || typeof actual !== 'object' || Array.isArray(actual)) return false;
+  const actualKeys = Object.keys(actual).sort();
+  const expectedKeys = Object.keys(expected).sort();
+  return JSON.stringify(actualKeys) === JSON.stringify(expectedKeys)
+    && expectedKeys.every((key) => actual[key] === expected[key]);
+}
+
+function assertItemSourceLocalNpcAdmissionCompletedResult({ manifest, result }) {
+  const attempt = manifest.itemSourceLocalNpcAdmissionAttempt;
+  if (result?.resultKind !== 'item_source_local_npc_admission_result'
+      || result?.status !== 'completed' || result?.apply !== true) {
+    throw new Error('Item-source admission canonical result must be completed and applied');
+  }
+  if (result.attemptId !== attempt.attemptId || result.attemptRoot !== attempt.attemptRoot
+      || !Number.isSafeInteger(Number(result.changedRowCount)) || Number(result.changedRowCount) < 1
+      || !result.insertedCounts || typeof result.insertedCounts !== 'object'
+      || !Number.isSafeInteger(Number(result.reconciledCount)) || Number(result.reconciledCount) < 0) {
+    throw new Error('Item-source admission canonical result binding drifted');
   }
 }
 
@@ -611,6 +709,8 @@ async function main() {
         ? packet.executionManifest.itemImageProjectionAttempt.permitPath
         : packet.operationId === NPC_T2_CUTOVER_OPERATION_ID
           ? packet.executionManifest.npcT2Attempt.permitPath
+          : packet.operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID
+            ? packet.executionManifest.itemSourceLocalNpcAdmissionAttempt.permitPath
           : null;
       dispatchPermit = createAuthorizedOperationDispatchPermit({
         directory: path.join(repoRoot, 'reports/authorization/canonical'),
@@ -630,7 +730,7 @@ async function main() {
       }
     },
     dispatchers: {
-      [packet.operationId]: () => {
+      [packet.operationId]: ({ currentTechnicalInput: dispatchTechnicalInput }) => {
         if (dispatchPermit == null) throw new Error('authorized dispatch permit is missing after decision consumption');
         const permit = dispatchPermit;
         return runExecutionManifestCommand({
@@ -638,6 +738,7 @@ async function main() {
           cwd: repoRoot,
           authorizationPacketPath: args.packet,
           authorizationDispatchPermit: permit,
+          authorizedServerFingerprint: dispatchTechnicalInput.serverFingerprint,
         }).finally(() => {
           revokeAuthorizedOperationDispatchPermit({ permit });
           dispatchPermit = null;

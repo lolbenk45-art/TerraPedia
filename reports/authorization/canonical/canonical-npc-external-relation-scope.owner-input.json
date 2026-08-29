@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized",
+  "reason": "User-approved governed internal-data scope; unresolved NPC item/projectile candidates remain quarantined and no forbidden domains are included.",
+  "authorizationReference": "sha256:759c022a34a243ed17c93630727bb07d965b95064ed296740ecdf5d01cc6ca39",
+  "decisionIdentity": "npc-external-relation-scope-20260819-07"
+}

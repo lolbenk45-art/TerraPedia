@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-item-image-provenance-patch",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:4a56de32ea44d9d7401d59de0c396e248bdb3dc8cdb337a8eea8ccc3ae890854",
+  "previewSha256": "sha256:a4df2e1bc82f14bb503dff809b7fff9d593f9e41b1ad5343a2d697e9de82af5f",
+  "evidenceReportSha256": "sha256:dc46a755707d2a33df5e26b227b645a6a33091cb84af26ea4e58e1cc7cf09f82",
+  "expectedCounts": {
+    "maint": 2117,
+    "relation": 2117,
+    "local": 2117
+  },
+  "writeTargets": [
+    "maint.maint_item_images.source_page",
+    "maint.maint_item_images.source_revision_timestamp",
+    "maint.maint_item_images.original_url",
+    "relation.relation_item_images.source_page",
+    "relation.relation_item_images.source_revision_timestamp",
+    "relation.relation_item_images.original_url",
+    "local.item_images.source_page",
+    "local.item_images.source_revision_timestamp",
+    "local.item_images.original_url"
+  ]
+}

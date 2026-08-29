@@ -1,0 +1,60 @@
+{
+  "resultKind": "canonical_item_image_projection_apply_result",
+  "operationId": "canonical-item-image-projection-apply",
+  "contractVersion": "item-image-projection-apply-v1",
+  "status": "completed",
+  "apply": true,
+  "inputContractPath": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/input.json",
+  "inputContractSha256": "sha256:584d49c5313c9f5a7bd1e448cb927741d141c993973661a0a6ebd31006fd987a",
+  "proposalPath": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/proposal.json",
+  "proposalSha256": "sha256:e01fc9526bd77ec5236021a7c4999f9fe75634f595baab8d9c55d53f9d1e14e1",
+  "snapshotPath": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/snapshot.json",
+  "snapshotSha256": "sha256:1534151acdba873ef9eb25480dc8e312a64934af417c34785c0d49d87d5ee3d6",
+  "proposalAuthorization": {
+    "path": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/proposal-read.owner-input.json",
+    "sha256": "sha256:4662bc42f857362c99ed374512a689a7383d53be1d5b472385093d1028432887",
+    "decisionIdentity": "canonical-item-image-projection-proposal-read-20260822-admin-13",
+    "authorizationHash": "sha256:3898692dc7afb3f63c6422f6dad941bade3335ae305e9e1ceda586b04dc4134f"
+  },
+  "managedUrlPolicy": {
+    "sourcePath": "pipelines/relation/managed-image-url-policy.mjs",
+    "sourceSha256": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+    "resolvedPrefixesSha256": "sha256:ffede16ea510decb8b79c14c738d34472f47b3aefc68f9ad1afc262eda15a693"
+  },
+  "lineage": {
+    "kind": "origin-repair-bound",
+    "originRepairResultPath": "reports/runtime/local-data-chain-closure/20260822/remaining-image-repair/021851-db/item-image-origin-repair.result.json",
+    "originRepairResultSha256": "sha256:ebaffc714a27a6c7ca57eb219369498e9d6954a4970f13d65db0d115875c86fa",
+    "originRepairScopeHash": "sha256:282505ce4ca6b2d8348b4bfe71ea28848e87a8ba5d3c7408acf51d3bcb6f5d2a",
+    "originRepairOperationId": "canonical-item-image-origin-repair",
+    "originRepairStatus": "COMPLETED",
+    "quarantineIdentities": [
+      "FallenStar",
+      "SeveredHandBanner"
+    ],
+    "externalRequests": false,
+    "freshnessUpdates": false,
+    "completedRowCount": 6129
+  },
+  "target": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "databases": {
+      "local": "terria_v1_local",
+      "maint": "terria_v1_maint",
+      "relation": "terria_v1_relation"
+    },
+    "ownedDatabase": "terria_v1_relation",
+    "ownedTable": "projection_items",
+    "ownedColumn": "image",
+    "fingerprintSha256": "sha256:f8290f4df272d5d0301e401e982e5b199c3a0e69f30d3642dfe1b18d139e3e5a"
+  },
+  "keySetSha256": "sha256:ddd70d1a9989e809b3f682153c906af6cbb64eab9d03ffdbfc21a0e83db3e07e",
+  "relationRowsSha256": "sha256:7c1508e78dd19323e26ec2077b419addabcb48176f7d473cb60b01ec5355bef1",
+  "projectionBeforeSha256": "sha256:e7178a124edd12524baba03c8047f6e36128a57eba19bb7fdd95d9e1b2bc8789",
+  "projectionAfterSha256": "sha256:e7178a124edd12524baba03c8047f6e36128a57eba19bb7fdd95d9e1b2bc8789",
+  "targetRowCount": 6129,
+  "changedRowCount": 0,
+  "completedAt": "2026-08-21T20:38:06.090Z"
+}

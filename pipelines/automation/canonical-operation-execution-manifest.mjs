@@ -19,11 +19,39 @@ import {
   NPC_APPLY_OWNER_PHASES,
   NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION,
 } from '../npc-canonical/npc-apply-ownership-preparation.mjs';
+// Keep the exact-scope operation constants local to the manifest. Importing
+// the executor here would make every other operation's static code bundle
+// depend on this new lane and would drift unrelated authorization hashes.
+const NPC_EXTERNAL_RELATION_SCOPE_OPERATION_ID = 'canonical-npc-external-relation-scope-apply';
+const NPC_EXTERNAL_RELATION_SCOPE_BUNDLE_PATH = 'reports/runtime/local-data-chain-closure/20260819/accepted-projection/npc-item-relations.accepted.bundle.json';
+const NPC_EXTERNAL_RELATION_SCOPE_PREVIEW_PATH = 'reports/runtime/local-data-chain-closure/20260819/accepted-projection/npc-relation-owner-scope-preview.json';
+const NPC_EXTERNAL_RELATION_SCOPE_PROJECTION_PATH = 'reports/runtime/local-data-chain-closure/20260819/npc-external-relation-scope-accepted-quarantine-projection.json';
+const NPC_EXTERNAL_RELATION_SCOPE_SERVER_FINGERPRINT_PATH = 'reports/authorization/canonical/canonical-npc-external-relation-scope.server-fingerprint.json';
+const NPC_EXTERNAL_RELATION_SCOPE_BINDING = Object.freeze({
+  scopeSha256: 'sha256:759c022a34a243ed17c93630727bb07d965b95064ed296740ecdf5d01cc6ca39',
+  bundleSha256: 'sha256:febde906014e59a8cbbcec8d04bf6083c1562d94b9fdcca5cc0a29c61bde6f05',
+  previewSha256: 'sha256:090652680bb566c6ff670dfe2807fc7378e2d0daa286416304638232316a363d',
+  projectionSha256: 'sha256:2e499d5b089a83f9654828a69113c1994a71d52a026cf6ea377b094be0dec6a4',
+  quarantinedFactCount: 198,
+  unresolvedCandidateCount: 357,
+  writeTargets: Object.freeze([
+    'landing.npc_item_relations_bundle_raw',
+    'maint.maint_item_sources',
+    'maint.maint_npc_crawler_facts',
+    'relation.item_source_facts',
+    'relation.item_source_details',
+    'relation.item_npc_loot_relations',
+    'relation.item_npc_shop_relations',
+    'local.npc_loot_entries',
+    'local.npc_shop_entries',
+  ]),
+});
 import {
   buildItemImageProjectionAttemptPaths,
   readItemImageProjectionInputContract,
 } from '../relation/item-image-projection-contract.mjs';
 import {
+  assertRepositoryOrdinaryFile,
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
 
@@ -36,7 +64,51 @@ const NPC_BASE_MAINT_OPERATION_IDS = Object.freeze([
   'canonical-npc-base-maint-nontown-apply',
   'canonical-npc-base-maint-town-apply',
 ]);
+const NPC_DUPLICATE_QUARANTINE_OPERATION_ID = 'canonical-npc-duplicate-quarantine';
+const NPC_STALE_LINEAGE_RETIREMENT_OPERATION_ID = 'canonical-npc-stale-lineage-retirement';
+const NPC_PARENT_CONFLICT_RETIREMENT_OPERATION_ID = 'canonical-npc-stale-lineage-parent-conflict-retirement';
+const NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID = 'canonical-npc-independent-wiki-gg-variant-retirement';
+const NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID = 'canonical-npc-projection-text-identity-repair';
+const NPC_PROJECTION_TEXT_IDENTITY_RESIDUAL_REPAIR_OPERATION_ID = 'canonical-npc-projection-text-identity-residual-repair';
+const NPC_PROJECTION_GAP_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID = 'canonical-npc-projection-gap-wiki-gg-variant-retirement';
+const NPC_LOCAL_LOOT_COMPATIBILITY_RETIREMENT_OPERATION_ID = 'canonical-npc-local-loot-compatibility-retirement';
+const ITEM_IMAGE_PROVENANCE_OPERATION_ID = 'canonical-item-image-provenance-patch';
+const BUFF_IMAGE_PROJECTION_OPERATION_ID = 'canonical-buff-image-projection-patch';
+const NPC_BUFF_RELATION_RECOVERY_OPERATION_ID = 'canonical-npc-buff-relation-recovery';
+const NPC_LOOT_IDENTITY_RESTORATION_OPERATION_ID = 'canonical-npc-loot-identity-restoration';
+const NPC_DUPLICATE_RELATION_RETIREMENT_OPERATION_ID = 'canonical-npc-loot-duplicate-relation-retirement';
+const ITEM_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-item-image-origin-normalization';
+const NPC_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-npc-image-origin-normalization';
+const PROJECTILE_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-projectile-image-origin-normalization';
+const BIOME_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-biome-image-origin-normalization';
+const ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID = 'canonical-armor-set-projection-restoration';
+const TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID = 'canonical-two-item-image-quarantine-repair';
+const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 const AUTHORIZED_RUNNER_CODE_PATH = 'pipelines/automation/run-authorized-canonical-operation.mjs';
+const L2_OPERATION_IDS = Object.freeze({
+  items: 'automation-items-l2-promotion',
+  npcs: 'automation-npcs-l2-promotion',
+  projectiles: 'automation-projectiles-l2-promotion',
+  armor_sets: 'automation-armor-sets-l2-promotion',
+  buffs: 'automation-buffs-l2-promotion',
+  audio: 'automation-audio-l2-promotion',
+  bosses: 'automation-bosses-l2-promotion',
+  shimmer: 'automation-shimmer-l2-promotion',
+});
+const L2_POLICY_DECISION_OPERATION_IDS = new Set([
+  'automation-biomes-l2-promotion',
+  ...Object.values(L2_OPERATION_IDS),
+]);
+const GOVERNED_L1_OPERATION_DOMAINS = Object.freeze({
+  'automation-items-l1': 'items',
+  'automation-npcs-l1': 'npcs',
+  'automation-projectiles-l1': 'projectiles',
+  'automation-armor-sets-l1': 'armor_sets',
+  'automation-buffs-l1': 'buffs',
+  'automation-audio-first-l1': 'audio',
+  'automation-bosses-first-l1': 'bosses',
+  'automation-shimmer-first-l1': 'shimmer',
+});
 
 const AUTHORIZED_CONTEXT_CODE_PATHS = Object.freeze([
   'pipelines/automation/authorized-operation-context.mjs',
@@ -53,6 +125,55 @@ const CODE_PATHS = Object.freeze({
     'pipelines/lib/mysql-module.mjs',
     'pipelines/lib/project-root.mjs',
   ]),
+  ...Object.fromEntries(['items', 'projectiles'].flatMap((domainId) => [
+    [`automation-${domainId}-l0-bootstrap`, Object.freeze([
+      'pipelines/automation/bootstrap-automation-policy.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+      'pipelines/lib/project-root.mjs',
+    ])],
+    [`automation-${domainId}-l1-policy-promotion`, Object.freeze([
+      'pipelines/automation/run-automation-policy-decision.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+    ])],
+  ])),
+  ...Object.fromEntries(Object.keys(GOVERNED_L1_OPERATION_DOMAINS).map((operationId) => [
+    operationId, Object.freeze([
+      'pipelines/automation/run-governed-l1-operation.mjs',
+      'pipelines/automation/build-l1-reconciliation-evidence.mjs',
+      'pipelines/automation/reconciliation-evidence-contract.mjs',
+      'pipelines/automation/run-supplementary-domain-l1-operation.mjs',
+      'pipelines/automation/supplementary-domain-l1-contract.mjs',
+      'pipelines/automation/canonical-shimmer-import-input-contract.mjs',
+      'pipelines/import/import-wiki-audio-assets-to-db.mjs',
+      'pipelines/import/import-wiki-bosses-to-db.mjs',
+      'pipelines/import/import-wiki-shimmer-to-db.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+      'pipelines/lib/project-root.mjs',
+    ]),
+  ])),
+  ...Object.fromEntries(Object.entries(L2_OPERATION_IDS).map(([domainId, operationId]) => [
+    operationId, Object.freeze([
+      'pipelines/automation/run-automation-policy-decision.mjs',
+      'pipelines/automation/build-l2-promotion-proposal.mjs',
+      'pipelines/automation/l2-policy-ceiling-artifact.mjs',
+      'pipelines/automation/reconciliation-evidence-contract.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+    ]),
+  ])),
+  ...Object.fromEntries(Object.values(L2_OPERATION_IDS).map((promotionOperationId) => {
+    const operationId = promotionOperationId.replace(/-l2-promotion$/, '-l2-policy-ceiling-registration');
+    return [operationId, Object.freeze([
+      'pipelines/automation/register-l2-policy-ceiling.mjs',
+      'pipelines/automation/l2-policy-ceiling-artifact.mjs',
+      'pipelines/automation/policy-set-hash.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+    ])];
+  })),
   'canonical-item-image-source-verification': Object.freeze([
     'pipelines/workflow/run-backend-data-refresh.mjs',
     'pipelines/fetch/fetch-item-image-source-verification.mjs',
@@ -65,6 +186,66 @@ const CODE_PATHS = Object.freeze({
   'canonical-item-image-lineage-apply': Object.freeze([
     'pipelines/relation/apply-item-image-lineage.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  [ITEM_IMAGE_PROVENANCE_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/item-image-provenance-patch.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [BUFF_IMAGE_PROJECTION_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/buff-image-projection-patch.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_BUFF_RELATION_RECOVERY_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/npc-buff-relation-recovery.mjs',
+    'pipelines/relation/secondary-relation-processor.mjs',
+    'pipelines/relation/sync-maint-to-relation.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_LOOT_IDENTITY_RESTORATION_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/npc-loot-identity-restoration.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_DUPLICATE_RELATION_RETIREMENT_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-duplicate-relation-retirement.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  ...Object.fromEntries([
+    ITEM_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+    NPC_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+    PROJECTILE_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+    BIOME_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+  ].map((operationId) => [operationId, Object.freeze([
+    'pipelines/relation/projection-image-origin-normalization.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ])])),
+  [ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/armor-set-projection-restoration.mjs',
+    'pipelines/relation/projection-sync.mjs',
+    'pipelines/relation/managed-image-url-policy.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/two-item-image-quarantine-repair.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
   ]),
   'canonical-item-image-projection-apply': Object.freeze([
     'pipelines/relation/apply-item-image-projection.mjs',
@@ -98,7 +279,6 @@ const CODE_PATHS = Object.freeze({
     'pipelines/relation/item-canonical-base-entity-restoration-contract.mjs',
     'pipelines/relation/item-canonical-base-entity-restoration-db.mjs',
     'pipelines/relation/base-entity-processor.mjs',
-    'pipelines/relation/projection-sync.mjs',
     'pipelines/relation/relation-trace.mjs',
     'pipelines/relation/managed-image-url-policy.mjs',
     'pipelines/lib/private-repository-path.mjs',
@@ -106,6 +286,78 @@ const CODE_PATHS = Object.freeze({
     'pipelines/lib/mysql-module.mjs',
     'scripts/lib/local-runtime-config.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  [ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/apply-item-source-local-npc-admission.mjs',
+    'pipelines/relation/build-item-source-local-npc-admission-proposal.mjs',
+    'pipelines/relation/item-source-local-npc-admission-contract.mjs',
+    'pipelines/relation/item-source-local-npc-admission-db.mjs',
+    'pipelines/relation/item-source-local-npc-admission.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'pipelines/lib/project-root.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-item-projection-parity-apply': Object.freeze([
+    'pipelines/relation/apply-core-projection-parity.mjs',
+    'pipelines/relation/core-projection-parity-contract.mjs',
+    'pipelines/relation/core-projection-parity-db.mjs',
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-npc-projection-parity-apply': Object.freeze([
+    'pipelines/relation/apply-core-projection-parity.mjs',
+    'pipelines/relation/core-projection-parity-contract.mjs',
+    'pipelines/relation/core-projection-parity-db.mjs',
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-boss-projection-parity-apply': Object.freeze([
+    'pipelines/relation/apply-core-projection-parity.mjs',
+    'pipelines/relation/core-projection-parity-contract.mjs',
+    'pipelines/relation/core-projection-parity-db.mjs',
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-boss-source-refresh-offline': Object.freeze([
+    'pipelines/relation/boss-source-refresh-offline.mjs',
+    'pipelines/landing/import-source-dataset-landings.mjs',
+    'pipelines/maint/sync-landing-to-maint.mjs',
+    'pipelines/relation/boss-series-processor.mjs',
+    'pipelines/relation/projection-sync.mjs',
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  'canonical-projection-recovery-from-relation': Object.freeze([
+    'pipelines/relation/recover-projections-from-relation.mjs',
+    'pipelines/relation/projection-sync.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  'canonical-item-source-relation-recovery-from-maint': Object.freeze([
+    'pipelines/relation/recover-item-source-relations-from-maint.mjs',
+    'pipelines/relation/sync-maint-to-relation.mjs',
+    'pipelines/relation/item-source-relation-processor.mjs',
+    'pipelines/automation/authorized-operation-context.mjs',
+    'pipelines/automation/build-canonical-cutover-authorization.mjs',
+    'pipelines/automation/canonical-operation-catalog.mjs',
+    'pipelines/automation/canonical-operation-execution-manifest.mjs',
+    'pipelines/automation/policy-set-hash.mjs',
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  'canonical-projection-recovery-from-relation-v2': Object.freeze([
+    'pipelines/relation/recover-projections-from-relation-v2.mjs',
+    'pipelines/relation/projection-sync.mjs',
+    'pipelines/relation/managed-image-url-policy.mjs',
+    'pipelines/automation/authorized-operation-context.mjs',
+    'pipelines/automation/build-canonical-cutover-authorization.mjs',
+    'pipelines/automation/canonical-operation-catalog.mjs',
+    'pipelines/automation/canonical-operation-execution-manifest.mjs',
+    'pipelines/automation/policy-set-hash.mjs',
+    'scripts/lib/local-runtime-config.mjs',
   ]),
   'canonical-image-sync': Object.freeze([
     'pipelines/workflow/run-image-sync.mjs',
@@ -174,6 +426,11 @@ const CODE_PATHS = Object.freeze({
     'pipelines/import/import-biome-wikitext-resolved-to-db.mjs',
     'pipelines/maint/sync-landing-to-maint.mjs',
   ]),
+  'canonical-biome-image-contract-apply': Object.freeze([
+    'pipelines/relation/apply-biome-image-contract.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/project-root.mjs',
+  ]),
   'canonical-recipe-crawler': Object.freeze([
     'pipelines/fetch/fetch-wiki-zh-recipe-pages.mjs',
     'pipelines/fetch/fetch-wiki-zh-recipe-pages-progress.mjs',
@@ -241,7 +498,6 @@ const CODE_PATHS = Object.freeze({
     'pipelines/npc-canonical/npc-canonical-t1-acceptance.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
-    'scripts/lib/local-runtime-config.mjs',
   ]),
   'canonical-schema-v56-v58': Object.freeze([
     'pipelines/automation/run-canonical-schema-migration.mjs',
@@ -283,6 +539,9 @@ const CODE_PATHS = Object.freeze({
   ]),
   'automation-biomes-l2-promotion': Object.freeze([
     'pipelines/automation/run-automation-policy-decision.mjs',
+    'pipelines/automation/build-l2-promotion-proposal.mjs',
+    'pipelines/automation/l2-policy-ceiling-artifact.mjs',
+    'pipelines/automation/reconciliation-evidence-contract.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
   ]),
@@ -292,6 +551,11 @@ const CODE_PATHS = Object.freeze({
     'pipelines/lib/mysql-module.mjs',
   ]),
   'automation-crawler-v2-scheduler-activation': Object.freeze([
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+  ]),
+  'automation-crawler-v2-scheduler-reactivation': Object.freeze([
     'pipelines/automation/run-automation-policy-decision.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
@@ -307,17 +571,6 @@ const CODE_PATHS = Object.freeze({
       'pipelines/automation/run-automation-policy-decision.mjs',
       ...AUTHORIZED_CONTEXT_CODE_PATHS,
       'pipelines/lib/mysql-module.mjs',
-    ])],
-    [`automation-${domainId}-first-l1`, Object.freeze([
-      'pipelines/automation/run-supplementary-domain-l1-operation.mjs',
-      'pipelines/automation/supplementary-domain-l1-contract.mjs',
-      'pipelines/automation/canonical-shimmer-import-input-contract.mjs',
-      'pipelines/import/import-wiki-audio-assets-to-db.mjs',
-      'pipelines/import/import-wiki-bosses-to-db.mjs',
-      'pipelines/import/import-wiki-shimmer-to-db.mjs',
-      ...AUTHORIZED_CONTEXT_CODE_PATHS,
-      'pipelines/lib/mysql-module.mjs',
-      'pipelines/lib/project-root.mjs',
     ])],
   ])),
   'canonical-item-group-bootstrap': Object.freeze([
@@ -359,6 +612,60 @@ const CODE_PATHS = Object.freeze({
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
   ])])),
+  [NPC_DUPLICATE_QUARANTINE_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-duplicate-quarantine.mjs',
+    'pipelines/relation/item-source-relation-processor.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_STALE_LINEAGE_RETIREMENT_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-stale-lineage-retirement.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_PARENT_CONFLICT_RETIREMENT_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-stale-lineage-parent-conflict-retirement.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-independent-wiki-gg-variant-retirement.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-projection-text-identity-repair.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_PROJECTION_TEXT_IDENTITY_RESIDUAL_REPAIR_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-projection-text-identity-residual-repair.mjs',
+    'pipelines/audit/npc-projection-text-identity-residual-preview.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_PROJECTION_GAP_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-projection-gap-wiki-gg-variant-retirement.mjs',
+    'pipelines/audit/npc-projection-gap-wiki-gg-variant-retirement-preview.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_LOCAL_LOOT_COMPATIBILITY_RETIREMENT_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-local-loot-compatibility-retirement.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [NPC_EXTERNAL_RELATION_SCOPE_OPERATION_ID]: Object.freeze([
+    'pipelines/npc-canonical/npc-external-relation-scope-operation.mjs',
+  ]),
 });
 
 export const CANONICAL_EXECUTABLE_OPERATION_IDS = Object.freeze(
@@ -383,10 +690,16 @@ export function buildCanonicalOperationExecutionManifest({
   legacyOrigin = null,
   expectedLegacyCount = null,
   itemImageLineageAttemptRoot = null,
+  itemImageProvenanceAttemptRoot = null,
+  twoItemImageQuarantineRepairAttemptRoot = null,
   itemImageProjectionAttemptRoot = null,
   itemImageProjectionMissingRowInsertAttemptRoot = null,
   itemCanonicalBaseEntityRestorationAttemptRoot = null,
+  itemSourceLocalNpcAdmissionAttemptRoot = null,
   npcT2AttemptRoot = null,
+  bossSourceSnapshotHash = null,
+  policyCeilingRegistrationMode = 'register',
+  l1RunRoot = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -402,13 +715,19 @@ export function buildCanonicalOperationExecutionManifest({
     legacyOrigin,
     expectedLegacyCount,
     itemImageLineageAttemptRoot,
+    itemImageProvenanceAttemptRoot,
+    twoItemImageQuarantineRepairAttemptRoot,
     itemImageProjectionAttemptRoot,
     itemImageProjectionMissingRowInsertAttemptRoot,
     itemCanonicalBaseEntityRestorationAttemptRoot,
+    itemSourceLocalNpcAdmissionAttemptRoot,
     npcT2AttemptRoot,
+    bossSourceSnapshotHash,
+    policyCeilingRegistrationMode,
     npcT1ConfigPath,
     npcT1RedisDb,
     npcT1RunId,
+    l1RunRoot,
   });
   const codePaths = expandRepositoryCodePaths(root, operationCodePaths(operationId));
   if (operationId === 'canonical-item-image-projection-apply') {
@@ -443,10 +762,16 @@ export function buildCanonicalOperationExecutionContract({
   legacyOrigin = null,
   expectedLegacyCount = null,
   itemImageLineageAttemptRoot = null,
+  itemImageProvenanceAttemptRoot = null,
+  twoItemImageQuarantineRepairAttemptRoot = null,
   itemImageProjectionAttemptRoot = null,
   itemImageProjectionMissingRowInsertAttemptRoot = null,
   itemCanonicalBaseEntityRestorationAttemptRoot = null,
+  itemSourceLocalNpcAdmissionAttemptRoot = null,
   npcT2AttemptRoot = null,
+  bossSourceSnapshotHash = null,
+  policyCeilingRegistrationMode = 'register',
+  l1RunRoot = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -454,6 +779,9 @@ export function buildCanonicalOperationExecutionContract({
   if (CANONICAL_OPERATION_ENTRYPOINTS[operationId] === null) {
     throw new Error(`no governed executor is registered for operation: ${operationId}`);
   }
+  const effectiveBossSourceSnapshotHash = operationId === 'canonical-boss-source-refresh-offline'
+    ? (bossSourceSnapshotHash ?? `sha256:${createHash('sha256').update(fs.readFileSync(path.join(path.resolve(repoRoot), 'data/generated/wiki-bosses.latest.json'))).digest('hex')}`)
+    : bossSourceSnapshotHash;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(artifactDate)) {
     throw new Error('artifactDate must use YYYY-MM-DD');
   }
@@ -491,10 +819,16 @@ export function buildCanonicalOperationExecutionContract({
     expectedLegacyCount,
     shimmerImport,
     itemImageLineageAttemptRoot,
+    itemImageProvenanceAttemptRoot,
+    twoItemImageQuarantineRepairAttemptRoot,
     itemImageProjectionAttemptRoot,
     itemImageProjectionMissingRowInsertAttemptRoot,
     itemCanonicalBaseEntityRestorationAttemptRoot,
+    itemSourceLocalNpcAdmissionAttemptRoot,
     npcT2AttemptRoot,
+    effectiveBossSourceSnapshotHash,
+    policyCeilingRegistrationMode,
+    l1RunRoot,
   );
   return {
     schemaVersion: 1,
@@ -538,12 +872,19 @@ export function assertCanonicalOperationExecutionManifestContract({
       ? null
       : Number(commandArgument('--expected-legacy-count=')),
     itemImageLineageAttemptRoot: manifest?.itemImageLineageAttempt?.attemptRoot ?? null,
+    itemImageProvenanceAttemptRoot: manifest?.itemImageProvenanceAttempt?.attemptRoot ?? null,
+    twoItemImageQuarantineRepairAttemptRoot: manifest?.twoItemImageQuarantineRepairAttempt?.attemptRoot ?? null,
     itemImageProjectionAttemptRoot: manifest?.itemImageProjectionAttempt?.attemptRoot ?? null,
     itemImageProjectionMissingRowInsertAttemptRoot:
       manifest?.itemImageProjectionMissingRowInsertAttempt?.attemptRoot ?? null,
     itemCanonicalBaseEntityRestorationAttemptRoot:
       manifest?.itemCanonicalBaseEntityRestorationAttempt?.attemptRoot ?? null,
+    itemSourceLocalNpcAdmissionAttemptRoot:
+      manifest?.itemSourceLocalNpcAdmissionAttempt?.attemptRoot ?? null,
     npcT2AttemptRoot: manifest?.npcT2Attempt?.attemptRoot ?? null,
+    bossSourceSnapshotHash: commandArgument('--expected-sha256='),
+    policyCeilingRegistrationMode: manifest?.policyCeilingRegistration?.mode ?? 'register',
+    l1RunRoot: manifest?.l1RunRoot ?? null,
   });
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -785,25 +1126,36 @@ export function writeCanonicalOperationExecutionManifest({ outputPath, ...option
   const output = path.resolve(requireText(outputPath, 'outputPath'));
   const manifest = buildCanonicalOperationExecutionManifest(options);
   const projectionManifestPath = manifest.itemImageProjectionAttempt?.manifestPath ?? null;
-  if (projectionManifestPath != null) {
-    const expectedOutput = path.resolve(options.repoRoot ?? process.cwd(), projectionManifestPath);
+  const provenanceManifestPath = manifest.itemImageProvenanceAttempt?.manifestPath ?? null;
+  const twoItemManifestPath = manifest.twoItemImageQuarantineRepairAttempt?.manifestPath ?? null;
+  const itemSourceAdmissionManifestPath = manifest.itemSourceLocalNpcAdmissionAttempt?.manifestPath ?? null;
+  const exactAttemptManifestPath = projectionManifestPath
+    ?? provenanceManifestPath
+    ?? twoItemManifestPath
+    ?? itemSourceAdmissionManifestPath;
+  const exactAttempt = manifest.itemImageProjectionAttempt
+    ?? manifest.itemImageProvenanceAttempt
+    ?? manifest.twoItemImageQuarantineRepairAttempt
+    ?? manifest.itemSourceLocalNpcAdmissionAttempt;
+  if (exactAttemptManifestPath != null) {
+    const expectedOutput = path.resolve(options.repoRoot ?? process.cwd(), exactAttemptManifestPath);
     const retainedResult = path.resolve(
       options.repoRoot ?? process.cwd(),
-      manifest.itemImageProjectionAttempt.resultPath,
+      exactAttempt.resultPath,
     );
     if (pathEntryExists(retainedResult)) {
-      throw new Error('projection retained result already exists; retry requires a new attempt');
+      throw new Error('attempt retained result already exists; retry requires a new attempt');
     }
     if (output !== expectedOutput) {
-      throw new Error('projection execution manifest output must be the exact attempt execution-manifest.json path');
+      throw new Error('attempt execution manifest output must be the exact attempt execution-manifest.json path');
     }
     assertRepositoryPathConfinement({
       repoRoot: options.repoRoot ?? process.cwd(),
       filePath: output,
-      label: 'projection execution manifest',
+      label: 'attempt execution manifest',
     });
     if (fs.existsSync(output)) {
-      throw new Error('projection execution manifest already exists; overwrite is forbidden');
+      throw new Error('attempt execution manifest already exists; overwrite is forbidden');
     }
   } else {
     fs.mkdirSync(path.dirname(output), { recursive: true });
@@ -811,7 +1163,7 @@ export function writeCanonicalOperationExecutionManifest({ outputPath, ...option
   const temporary = `${output}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
   try {
     fs.writeFileSync(temporary, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-    if (projectionManifestPath != null) {
+    if (projectionManifestPath != null || itemSourceAdmissionManifestPath != null) {
       fs.linkSync(temporary, output);
       fs.unlinkSync(temporary);
     } else {
@@ -819,8 +1171,8 @@ export function writeCanonicalOperationExecutionManifest({ outputPath, ...option
     }
     fs.chmodSync(output, 0o600);
   } catch (error) {
-    if (projectionManifestPath != null && error?.code === 'EEXIST') {
-      throw new Error('projection execution manifest already exists; overwrite is forbidden');
+    if (exactAttemptManifestPath != null && error?.code === 'EEXIST') {
+      throw new Error('attempt execution manifest already exists; overwrite is forbidden');
     }
     throw error;
   } finally {
@@ -854,12 +1206,33 @@ function buildDefinition(
   expectedLegacyCount,
   shimmerImport,
   itemImageLineageAttemptRoot,
+  itemImageProvenanceAttemptRoot,
+  twoItemImageQuarantineRepairAttemptRoot,
   itemImageProjectionAttemptRoot,
   itemImageProjectionMissingRowInsertAttemptRoot,
   itemCanonicalBaseEntityRestorationAttemptRoot,
+  itemSourceLocalNpcAdmissionAttemptRoot,
   npcT2AttemptRoot,
+  bossSourceSnapshotHash,
+  policyCeilingRegistrationMode,
+  l1RunRoot,
 ) {
   const definitions = {
+    'canonical-biome-image-contract-apply': {
+      executionClass: 'formal_biome_image_schema_contract',
+      command: [
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--input=reports/authorization/canonical/canonical-biome-image-contract-apply.input.json',
+        '--apply=true',
+        '--output=reports/authorization/canonical/canonical-biome-image-contract-apply.result.json',
+      ],
+      inputPaths: ['reports/authorization/canonical/canonical-biome-image-contract-apply.input.json'],
+      outputPaths: ['reports/authorization/canonical/canonical-biome-image-contract-apply.result.json'],
+      reportPaths: [],
+      progressPaths: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
     'automation-biomes-l0-bootstrap': {
       executionClass: 'formal_database_bootstrap',
       command: [
@@ -912,12 +1285,184 @@ function buildDefinition(
         attemptRoot: itemImageLineageAttemptRoot,
       }) }
       : {}),
+    [ITEM_IMAGE_PROVENANCE_OPERATION_ID]: narrowImagePatchDefinition({
+      operationId: ITEM_IMAGE_PROVENANCE_OPERATION_ID,
+      ownershipKeys: [
+        'maint.maint_item_images.source_page',
+        'maint.maint_item_images.source_revision_timestamp',
+        'maint.maint_item_images.original_url',
+        'relation.relation_item_images.source_page',
+        'relation.relation_item_images.source_revision_timestamp',
+        'relation.relation_item_images.original_url',
+        'local.item_images.source_page',
+        'local.item_images.source_revision_timestamp',
+        'local.item_images.original_url',
+      ],
+    }),
+    [BUFF_IMAGE_PROJECTION_OPERATION_ID]: narrowImagePatchDefinition({
+      operationId: BUFF_IMAGE_PROJECTION_OPERATION_ID,
+      ownershipKeys: ['relation.projection_buffs.image'],
+    }),
+    [NPC_BUFF_RELATION_RECOVERY_OPERATION_ID]: {
+      executionClass: 'formal_npc_buff_relation_recovery',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[NPC_BUFF_RELATION_RECOVERY_OPERATION_ID],
+        '--apply=true',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-02.input.json',
+        'reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-buff-relation-recovery.proposal.json',
+      ],
+      outputPaths: [
+        'reports/authorization/canonical/canonical-npc-buff-relation-recovery.retry-02.result.json',
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: ['relation.npc_buff_relations.buffs'],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    [NPC_LOOT_IDENTITY_RESTORATION_OPERATION_ID]: {
+      executionClass: 'formal_npc_loot_identity_restoration',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[NPC_LOOT_IDENTITY_RESTORATION_OPERATION_ID],
+        '--apply=true',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-npc-loot-identity-restoration.retry-01.input.json',
+        'reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/npc-loot-identity-restoration.proposal.json',
+      ],
+      outputPaths: [
+        'reports/authorization/canonical/canonical-npc-loot-identity-restoration.retry-01.result.json',
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: [
+        'relation.item_npc_loot_relations.canonical_insert',
+        'relation.item_npc_loot_relations.legacy_status_deleted',
+        'relation.projection_npcs.loot_items_json',
+      ],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    [NPC_DUPLICATE_RELATION_RETIREMENT_OPERATION_ID]: npcDuplicateRelationRetirementDefinition(),
+    ...Object.fromEntries([
+      [
+        ITEM_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+        'item-image-origin-normalization.proposal.json',
+        [
+          'relation.relation_item_images.cached_url',
+          'relation.projection_items.image',
+        ],
+      ],
+      [
+        NPC_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+        'npc-image-origin-normalization.proposal.json',
+        ['relation.projection_npcs.image_url'],
+      ],
+      [
+        PROJECTILE_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+        'projectile-image-origin-normalization.proposal.json',
+        ['relation.projection_projectiles.image_url'],
+      ],
+      [
+        BIOME_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID,
+        'biome-image-origin-normalization.proposal.json',
+        ['relation.projection_biomes.icon_url'],
+      ],
+    ].map(([imageOperationId, proposalName, ownershipKeys]) => [imageOperationId, {
+      executionClass: 'formal_projection_image_origin_normalization',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[imageOperationId],
+        `--operation-id=${imageOperationId}`,
+        '--apply=true',
+      ],
+      inputPaths: [
+        `reports/authorization/canonical/${imageOperationId}.retry-01.input.json`,
+        `reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/${proposalName}`,
+      ],
+      outputPaths: [`reports/authorization/canonical/${imageOperationId}.retry-01.result.json`],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys,
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+    }])),
+    [ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID]: {
+      executionClass: 'formal_armor_set_projection_restoration',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID],
+        `--operation-id=${ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID}`,
+        '--apply=true',
+      ],
+      inputPaths: [
+        'reports/authorization/canonical/canonical-armor-set-projection-restoration.retry-05.input.json',
+        'reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/armor-set-projection-restoration.retry-02.proposal.json',
+      ],
+      outputPaths: [
+        'reports/authorization/canonical/canonical-armor-set-projection-restoration.retry-05.result.json',
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: ['relation.projection_armor_sets.insert'],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    [TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID]: narrowImagePatchDefinition({
+      operationId: TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID,
+      ownershipKeys: [
+        'maint.maint_item_images.source_file_title',
+        'maint.maint_item_images.source_page',
+        'maint.maint_item_images.source_revision_timestamp',
+        'maint.maint_item_images.original_url',
+        'maint.maint_item_images.cached_url',
+        'relation.relation_item_images.source_file_title',
+        'relation.relation_item_images.source_page',
+        'relation.relation_item_images.source_revision_timestamp',
+        'relation.relation_item_images.original_url',
+        'relation.relation_item_images.cached_url',
+        'local.item_images.source_file_title',
+        'local.item_images.source_page',
+        'local.item_images.source_revision_timestamp',
+        'local.item_images.original_url',
+        'local.item_images.cached_url',
+        'relation.projection_items.image',
+        'local.items.image',
+      ],
+    }),
     ...(operationId === 'canonical-item-image-projection-apply'
       ? { [operationId]: projectionDefinition({
         repoRoot,
         operationId,
         attemptRoot: itemImageProjectionAttemptRoot,
       }) }
+      : {}),
+    ...(operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID
+      ? { [operationId]: itemSourceLocalNpcAdmissionDefinition({
+        repoRoot,
+        operationId,
+        attemptRoot: itemSourceLocalNpcAdmissionAttemptRoot,
+      }) }
+      : {}),
+    ...(['canonical-item-projection-parity-apply', 'canonical-npc-projection-parity-apply', 'canonical-boss-projection-parity-apply'].includes(operationId)
+      ? { [operationId]: parityDefinition({ operationId }) }
+      : {}),
+    ...(operationId === 'canonical-item-image-provenance-patch' && itemImageProvenanceAttemptRoot != null
+      ? { [operationId]: provenanceDefinition({
+        operationId,
+        attemptRoot: itemImageProvenanceAttemptRoot,
+      }) }
+      : {}),
+    ...(operationId === 'canonical-two-item-image-quarantine-repair' && twoItemImageQuarantineRepairAttemptRoot != null
+      ? { [operationId]: twoItemQuarantineDefinition({ operationId, attemptRoot: twoItemImageQuarantineRepairAttemptRoot }) }
       : {}),
     ...(operationId === 'canonical-item-image-projection-missing-row-insert'
       ? { [operationId]: missingRowInsertDefinition({
@@ -994,6 +1539,92 @@ function buildDefinition(
       progressPaths: [],
       databaseWrites: true,
       networkAccess: true,
+    },
+    'canonical-boss-source-refresh-offline': {
+      executionClass: 'formal_offline_boss_source_refresh',
+      command: [
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--input=data/generated/wiki-bosses.latest.json',
+        `--expected-sha256=${requireBossSourceSnapshotHash(operationId, bossSourceSnapshotHash)}`,
+        '--database=terria_v1_local', '--port=13306',
+        '--report-root=reports/runtime/local-data-chain-closure/boss-source-refresh-offline',
+      ],
+      inputPaths: ['data/generated/wiki-bosses.latest.json'],
+      outputPaths: [
+        'reports/runtime/local-data-chain-closure/boss-source-refresh-offline/landing-local.json',
+        'reports/runtime/local-data-chain-closure/boss-source-refresh-offline/landing-maint.json',
+      ],
+      reportPaths: [
+        'reports/runtime/local-data-chain-closure/boss-source-refresh-offline/landing-local.json',
+        'reports/runtime/local-data-chain-closure/boss-source-refresh-offline/landing-maint.json',
+      ],
+      progressPaths: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    'canonical-projection-recovery-from-relation': {
+      executionClass: 'formal_projection_recovery',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], '--apply=true'],
+      inputPaths: [],
+      outputPaths: [],
+      reportPaths: [],
+      progressPaths: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    'canonical-item-source-relation-recovery-from-maint': {
+      executionClass: 'formal_relation_source_chain_recovery',
+      command: [
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--proposal=reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/proposal.json',
+        '--expected-sha256=sha256:022281e0a9e4c712872a2e3ce8cd5916d9e665038380972010afe244228cee70',
+        '--backup=reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/backup.json',
+        '--output=reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/result.json',
+      ],
+      inputPaths: ['reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/proposal.json'],
+      outputPaths: [
+        'reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/backup.json',
+        'reports/runtime/local-data-chain-closure/20260823/relation-source-recovery/result.json',
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: [
+        'relation.item_source_facts',
+        'relation.item_source_details',
+        'relation.item_npc_shop_relations',
+        'relation.item_npc_loot_relations',
+        'relation.item_npc_relation_audits',
+      ],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    'canonical-projection-recovery-from-relation-v2': {
+      executionClass: 'formal_projection_recovery_v2',
+      command: [
+        'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        '--snapshot=reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/relation-snapshot.json',
+        '--expected-sha256=sha256:52cdaba325ef9d6b72e1dc4724092dafe86b1c49b4c7a0374db7f28a846bee26',
+        '--backup=reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/backup.json',
+        '--output=reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/result.json',
+      ],
+      inputPaths: ['reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/relation-snapshot.json'],
+      outputPaths: [
+        'reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/backup.json',
+        'reports/runtime/local-data-chain-closure/20260823/projection-recovery-v2/result.json',
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: [
+        'relation.projection_items',
+        'relation.projection_npcs',
+        'relation.projection_bosses',
+        'relation.projection_projectiles',
+        'relation.projection_buffs',
+      ],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
     },
     'canonical-boss-loot-import': {
       executionClass: 'formal_database_import',
@@ -1221,21 +1852,44 @@ function buildDefinition(
       databaseWrites: true,
       networkAccess: false,
     },
+    ...(GOVERNED_L1_OPERATION_DOMAINS[operationId]
+      ? {
+        [operationId]: governedL1Definition({
+          repoRoot,
+          operationId,
+          l1RunRoot,
+        }),
+      }
+      : {}),
     'automation-biomes-l1-policy-promotion': policyDecisionDefinition({ operationId }),
     'automation-biomes-first-l1': biomesApplyDefinition({ operationId }),
     'automation-biomes-second-l1': biomesApplyDefinition({ operationId }),
     'automation-biomes-l2-promotion': policyDecisionDefinition({ operationId }),
+    ...Object.fromEntries(Object.entries(L2_OPERATION_IDS).map(([domainId, operationId]) => [
+      operationId,
+      policyDecisionDefinition({ operationId }),
+    ])),
+    ...Object.fromEntries(Object.values(L2_OPERATION_IDS).map((promotionOperationId) => {
+      const operationId = promotionOperationId.replace(/-l2-promotion$/, '-l2-policy-ceiling-registration');
+      return [operationId, policyCeilingRegistrationDefinition({ operationId, mode: policyCeilingRegistrationMode })];
+    })),
     'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
     'automation-crawler-v2-scheduler-activation': policyDecisionDefinition({ operationId }),
-    ...Object.fromEntries(['audio', 'bosses', 'shimmer'].flatMap((domainId) => [
+    'automation-crawler-v2-scheduler-reactivation': policyDecisionDefinition({ operationId }),
+    ...Object.fromEntries(['items', 'projectiles'].flatMap((domainId) => [
       [`automation-${domainId}-l0-bootstrap`, supplementaryBootstrapDefinition({
         operationId: `automation-${domainId}-l0-bootstrap`,
       })],
       [`automation-${domainId}-l1-policy-promotion`, policyDecisionDefinition({
         operationId: `automation-${domainId}-l1-policy-promotion`,
       })],
-      [`automation-${domainId}-first-l1`, supplementaryApplyDefinition({
-        operationId: `automation-${domainId}-first-l1`,
+    ])),
+    ...Object.fromEntries(['audio', 'bosses', 'shimmer'].flatMap((domainId) => [
+      [`automation-${domainId}-l0-bootstrap`, supplementaryBootstrapDefinition({
+        operationId: `automation-${domainId}-l0-bootstrap`,
+      })],
+      [`automation-${domainId}-l1-policy-promotion`, policyDecisionDefinition({
+        operationId: `automation-${domainId}-l1-policy-promotion`,
       })],
     ])),
     ...Object.fromEntries(NPC_OWNER_OPERATION_IDS.map((npcOperationId) => [
@@ -1249,8 +1903,316 @@ function buildDefinition(
       npcOperationId,
       npcBaseMaintDefinition({ operationId: npcOperationId }),
     ])),
+    [NPC_DUPLICATE_QUARANTINE_OPERATION_ID]: npcDuplicateQuarantineDefinition(),
+    [NPC_STALE_LINEAGE_RETIREMENT_OPERATION_ID]: npcStaleLineageRetirementDefinition(),
+    [NPC_PARENT_CONFLICT_RETIREMENT_OPERATION_ID]: npcParentConflictRetirementDefinition(),
+    [NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID]: npcIndependentWikiGgVariantRetirementDefinition(),
+    [NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID]: npcProjectionTextIdentityRepairDefinition(),
+    [NPC_PROJECTION_TEXT_IDENTITY_RESIDUAL_REPAIR_OPERATION_ID]: npcProjectionTextIdentityResidualRepairDefinition(),
+    [NPC_PROJECTION_GAP_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID]: npcProjectionGapWikiGgVariantRetirementDefinition(),
+    [NPC_LOCAL_LOOT_COMPATIBILITY_RETIREMENT_OPERATION_ID]: npcLocalLootCompatibilityRetirementDefinition(),
+    [NPC_EXTERNAL_RELATION_SCOPE_OPERATION_ID]: npcExternalRelationScopeDefinition(),
   };
   return definitions[operationId];
+}
+
+function narrowImagePatchDefinition({ operationId, ownershipKeys }) {
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const previewPath = operationId === TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID
+    ? 'reports/runtime/local-data-chain-closure/20260821/remaining-image-repair/two-item-quarantine-repair.preview.json'
+    : `reports/runtime/local-data-chain-closure/20260820/image-provenance-closure/${operationId}.preview.json`;
+  const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_narrow_image_patch',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      '--apply=true',
+      `--output=${resultPath}`,
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys,
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcExternalRelationScopeDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_EXTERNAL_RELATION_SCOPE_OPERATION_ID}.result.json`;
+  return {
+    executionClass: 'formal_npc_external_relation_scope_apply',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_EXTERNAL_RELATION_SCOPE_OPERATION_ID],
+      `--bundle=${NPC_EXTERNAL_RELATION_SCOPE_BUNDLE_PATH}`,
+      `--preview=${NPC_EXTERNAL_RELATION_SCOPE_PREVIEW_PATH}`,
+      `--projection=${NPC_EXTERNAL_RELATION_SCOPE_PROJECTION_PATH}`,
+      `--server-fingerprint=${NPC_EXTERNAL_RELATION_SCOPE_SERVER_FINGERPRINT_PATH}`,
+      '--apply=true',
+      `--output=${resultPath}`,
+    ],
+    inputPaths: [
+      NPC_EXTERNAL_RELATION_SCOPE_BUNDLE_PATH,
+      NPC_EXTERNAL_RELATION_SCOPE_PREVIEW_PATH,
+      NPC_EXTERNAL_RELATION_SCOPE_PROJECTION_PATH,
+      NPC_EXTERNAL_RELATION_SCOPE_SERVER_FINGERPRINT_PATH,
+    ],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: [...NPC_EXTERNAL_RELATION_SCOPE_BINDING.writeTargets],
+    requiredOperationIds: [],
+    npcExternalRelationScope: {
+      scopeSha256: NPC_EXTERNAL_RELATION_SCOPE_BINDING.scopeSha256,
+      bundleSha256: NPC_EXTERNAL_RELATION_SCOPE_BINDING.bundleSha256,
+      previewSha256: NPC_EXTERNAL_RELATION_SCOPE_BINDING.previewSha256,
+      projectionSha256: NPC_EXTERNAL_RELATION_SCOPE_BINDING.projectionSha256,
+      unresolvedCandidateCount: NPC_EXTERNAL_RELATION_SCOPE_BINDING.unresolvedCandidateCount,
+      quarantinedFactCount: NPC_EXTERNAL_RELATION_SCOPE_BINDING.quarantinedFactCount,
+    },
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcDuplicateQuarantineDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_DUPLICATE_QUARANTINE_OPERATION_ID}.result.json`;
+  return {
+    executionClass: 'formal_npc_exact_row_quarantine',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_DUPLICATE_QUARANTINE_OPERATION_ID],
+      '--input=reports/authorization/canonical/canonical-npc-duplicate-quarantine.input.json',
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[NPC_DUPLICATE_QUARANTINE_OPERATION_ID]],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: [
+      'relation.item_source_facts.items',
+      'relation.item_source_details.items',
+      'relation.item_npc_loot_relations.items',
+      'local.npc_loot_entries.non_boss',
+    ],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcDuplicateRelationRetirementDefinition() {
+  const operationId = NPC_DUPLICATE_RELATION_RETIREMENT_OPERATION_ID;
+  const inputPath = 'reports/authorization/canonical/canonical-npc-loot-duplicate-relation-retirement.input.json';
+  const proposalPath = 'reports/runtime/local-data-chain-closure/20260825/parent-final-1055/npc-duplicate-relation-retirement.proposal.json';
+  const resultPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_npc_duplicate_relation_retirement',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input=${inputPath}`,
+      `--proposal=${proposalPath}`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath, proposalPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: ['relation.item_npc_loot_relations.status_deleted'],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcStaleLineageRetirementDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_STALE_LINEAGE_RETIREMENT_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_STALE_LINEAGE_RETIREMENT_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/npc-stale-lineage-repair-preview.json';
+  return {
+    executionClass: 'formal_npc_stale_lineage_retirement',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_STALE_LINEAGE_RETIREMENT_OPERATION_ID],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: [
+      'relation.item_source_facts.stale_generated_lineage',
+      'relation.item_source_details.stale_generated_lineage',
+      'relation.item_npc_loot_relations.stale_generated_lineage',
+      'relation.item_npc_shop_relations.stale_generated_lineage',
+    ],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcParentConflictRetirementDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_PARENT_CONFLICT_RETIREMENT_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_PARENT_CONFLICT_RETIREMENT_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/post-stale-lineage/npc-stale-lineage-parent-conflict-preview.json';
+  return {
+    executionClass: 'formal_npc_stale_lineage_parent_conflict_retirement',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_PARENT_CONFLICT_RETIREMENT_OPERATION_ID],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: ['relation.item_npc_loot_relations.parent_conflict_old_generated'],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcIndependentWikiGgVariantRetirementDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-independent-wiki-gg-variant-retirement-preview.json';
+  return {
+    executionClass: 'formal_npc_independent_wiki_gg_variant_retirement',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: ['relation.item_npc_loot_relations.independent_wiki_gg_variant'],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcProjectionTextIdentityRepairDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-text-identity-repair-preview.json';
+  return {
+    executionClass: 'formal_npc_projection_text_identity_repair',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: ['relation.projection_npcs.loot_items_json'],
+    requiredOperationIds: [NPC_INDEPENDENT_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcProjectionTextIdentityResidualRepairDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_PROJECTION_TEXT_IDENTITY_RESIDUAL_REPAIR_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_PROJECTION_TEXT_IDENTITY_RESIDUAL_REPAIR_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/post-final/npc-projection-text-identity-residual-preview.json';
+  return {
+    executionClass: 'formal_npc_projection_text_identity_residual_repair',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_PROJECTION_TEXT_IDENTITY_RESIDUAL_REPAIR_OPERATION_ID],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      `--output=${resultPath}`,
+      '--apply=true',
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: [
+      'relation.item_npc_loot_relations.status_deleted',
+      'relation.projection_npcs.loot_items_json',
+      'local.npc_loot_entries.status_deleted',
+    ],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcProjectionGapWikiGgVariantRetirementDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_PROJECTION_GAP_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_PROJECTION_GAP_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-gap-wiki-gg-variant-retirement-preview.json';
+  return {
+    executionClass: 'formal_npc_projection_gap_wiki_gg_variant_retirement',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_PROJECTION_GAP_WIKI_GG_VARIANT_RETIREMENT_OPERATION_ID], `--input=${inputPath}`, `--preview=${previewPath}`, `--output=${resultPath}`, '--apply=true'],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: ['relation.item_npc_loot_relations.projection_gap_wiki_gg_variant'],
+    requiredOperationIds: [NPC_PROJECTION_TEXT_IDENTITY_REPAIR_OPERATION_ID],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function npcLocalLootCompatibilityRetirementDefinition() {
+  const resultPath = `reports/authorization/canonical/${NPC_LOCAL_LOOT_COMPATIBILITY_RETIREMENT_OPERATION_ID}.result.json`;
+  const inputPath = `reports/authorization/canonical/${NPC_LOCAL_LOOT_COMPATIBILITY_RETIREMENT_OPERATION_ID}.input.json`;
+  const previewPath = 'reports/runtime/local-data-chain-closure/20260819/post-final/npc-local-loot-compatibility-retirement-preview.json';
+  return {
+    executionClass: 'formal_npc_local_loot_compatibility_retirement',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[NPC_LOCAL_LOOT_COMPATIBILITY_RETIREMENT_OPERATION_ID], `--input=${inputPath}`, `--preview=${previewPath}`, `--output=${resultPath}`, '--apply=true'],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [],
+    ownershipKeys: ['local.npc_loot_entries.non_boss'],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function parityDefinition({ operationId }) {
+  const domain = operationId === 'canonical-item-projection-parity-apply' ? 'items'
+    : operationId === 'canonical-npc-projection-parity-apply' ? 'npcs'
+      : 'bosses';
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  return {
+    executionClass: 'formal_core_projection_parity',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], `--domain=${domain}`, `--input=${inputPath}`, '--apply=true', `--output=${outputPath}`],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath],
+    reportPaths: [outputPath],
+    progressPaths: [],
+    ownershipKeys: [domain === 'items' ? 'relation.projection_items.knockback_sell' : domain === 'npcs' ? 'relation.projection_npcs.life_max_knock_back_resist_scale' : 'relation.projection_bosses.name_zh'],
+    requiredOperationIds: [],
+    databaseWrites: true,
+    networkAccess: false,
+  };
 }
 
 function projectionDefinition({ repoRoot, operationId, attemptRoot }) {
@@ -1304,6 +2266,111 @@ function projectionDefinition({ repoRoot, operationId, attemptRoot }) {
     databaseWrites: true,
     networkAccess: false,
   };
+}
+
+function itemSourceLocalNpcAdmissionDefinition({ repoRoot, operationId, attemptRoot }) {
+  const normalizedRoot = requireText(attemptRoot, 'Item-source admission attempt root').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/canonical-item-source-local-npc-admission/';
+  if (path.isAbsolute(normalizedRoot) || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('Item-source admission attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const inputContract = readItemSourceLocalNpcAdmissionInputContract({ repoRoot, inputPath });
+  const paths = buildItemSourceLocalNpcAdmissionAttemptPaths(
+    inputContract.proposalAuthorization.decisionIdentity,
+  );
+  if (paths.attemptRoot !== normalizedRoot || paths.inputPath !== inputPath
+      || inputContract.attemptId !== paths.attemptId || inputContract.attemptRoot !== paths.attemptRoot
+      || inputContract.proposalPath !== paths.proposalPath) {
+    throw new Error('Item-source admission attempt root must be decision-derived from the input contract');
+  }
+  return {
+    executionClass: 'formal_item_source_local_npc_admission',
+    command: [
+      'node',
+      CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input-contract=${paths.inputPath}`,
+      '--apply=true',
+      `--output=${paths.resultPath}`,
+    ],
+    inputPaths: [paths.inputPath],
+    outputPaths: [paths.resultPath],
+    reportPaths: [paths.resultPath],
+    progressPaths: [],
+    ownershipKeys: [
+      'local.source_dataset_landings.item_source_npc_admission_insert',
+      'maint.maint_npc_crawler_facts.item_source_npc_admission_insert',
+      'relation.item_source_facts.item_source_npc_admission_insert',
+      'relation.item_source_details.item_source_npc_admission_insert',
+      'relation.item_npc_shop_relations.item_source_npc_admission_insert',
+      'relation.item_npc_loot_relations.item_source_npc_admission_insert',
+      'local.item_acquisition_sources.item_source_npc_admission_reconciliation',
+    ],
+    requiredOperationIds: [],
+    itemSourceLocalNpcAdmissionAttempt: paths,
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function readItemSourceLocalNpcAdmissionInputContract({ repoRoot, inputPath }) {
+  const root = path.resolve(repoRoot);
+  const absolutePath = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: path.resolve(root, inputPath),
+    label: 'Item-source admission input contract',
+  });
+  if ((fs.statSync(absolutePath).mode & 0o077) !== 0) {
+    throw new Error('Item-source admission input contract must be private');
+  }
+  let input;
+  try {
+    input = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
+  } catch {
+    throw new Error('Item-source admission input contract must be valid JSON');
+  }
+  assertItemSourceLocalNpcAdmissionInputContract(input);
+  return input;
+}
+
+function buildItemSourceLocalNpcAdmissionAttemptPaths(decisionIdentity) {
+  const identity = requireText(decisionIdentity, 'Item-source admission decision identity');
+  const attemptId = createHash('sha256').update(identity, 'utf8').digest('hex');
+  const attemptRoot = `reports/authorization/canonical/${ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID}/${attemptId}`;
+  return {
+    attemptId,
+    attemptRoot,
+    proposalPath: `${attemptRoot}/proposal.json`,
+    inputPath: `${attemptRoot}/input.json`,
+    manifestPath: `${attemptRoot}/execution-manifest.json`,
+    requestPath: `${attemptRoot}/request.json`,
+    packetPath: `${attemptRoot}/packet.json`,
+    permitPath: `${attemptRoot}/permit.json`,
+    resultPath: `${attemptRoot}/result.json`,
+  };
+}
+
+function assertItemSourceLocalNpcAdmissionInputContract(input) {
+  if (!input || input.schemaVersion !== 'item-source-local-npc-admission-input-v1'
+      || input.operationId !== ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID || input.apply !== true) {
+    throw new Error('Item-source admission input contract identity is invalid');
+  }
+  const paths = buildItemSourceLocalNpcAdmissionAttemptPaths(
+    requireText(input.proposalAuthorization?.decisionIdentity, 'Item-source admission decision identity'),
+  );
+  if (input.attemptId !== paths.attemptId || input.attemptRoot !== paths.attemptRoot
+      || input.proposalPath !== paths.proposalPath || !isSha256(input.proposalSha256)
+      || !isSha256(input.proposalScopeHash) || !isSha256(input.selectedIdentityHash)
+      || !isSha256(input.beforeFingerprint) || !isSha256(input.afterFingerprint)) {
+    throw new Error('Item-source admission input contract binding is invalid');
+  }
+  return input;
+}
+
+function isSha256(value) {
+  return /^sha256:[a-f0-9]{64}$/.test(String(value ?? ''));
 }
 
 function missingRowInsertDefinition({ operationId, attemptRoot }) {
@@ -1427,6 +2494,78 @@ function lineageDefinition({ operationId, attemptRoot }) {
       bundlePath: `${normalizedRoot}/bundle.json`,
       snapshotPath,
       resultPath,
+    },
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function provenanceDefinition({ operationId, attemptRoot }) {
+  const normalizedRoot = requireText(attemptRoot, 'item image provenance attempt root').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/item-image-provenance-patch/';
+  if (path.isAbsolute(normalizedRoot)
+      || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)
+      || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('item image provenance attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const previewPath = `${normalizedRoot}/preview.json`;
+  const resultPath = `${normalizedRoot}/result.json`;
+  return {
+    executionClass: 'formal_database_image_provenance_patch',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--input=${inputPath}`,
+      `--preview=${previewPath}`,
+      '--apply=true',
+      `--output=${resultPath}`,
+    ],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [resultPath],
+    progressPaths: [],
+    itemImageProvenanceAttempt: {
+      attemptRoot: normalizedRoot,
+      inputPath,
+      previewPath,
+      resultPath,
+      manifestPath: `${normalizedRoot}/execution-manifest.json`,
+      requestPath: `${normalizedRoot}/request.json`,
+      packetPath: `${normalizedRoot}/packet.json`,
+      permitPath: `${normalizedRoot}/permit.json`,
+    },
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function twoItemQuarantineDefinition({ operationId, attemptRoot }) {
+  const normalizedRoot = requireText(attemptRoot, 'two-item quarantine attempt root').replaceAll('\\', '/');
+  const prefix = 'reports/authorization/canonical/two-item-image-quarantine-repair/';
+  if (path.isAbsolute(normalizedRoot) || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(normalizedRoot.slice(prefix.length))) {
+    throw new Error('two-item quarantine attempt root must contain one lowercase SHA-256 attemptId');
+  }
+  const inputPath = `${normalizedRoot}/input.json`;
+  const previewPath = `${normalizedRoot}/preview.json`;
+  const resultPath = `${normalizedRoot}/result.json`;
+  return {
+    executionClass: 'formal_narrow_image_patch',
+    command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId], `--input=${inputPath}`, `--preview=${previewPath}`, '--apply=true', `--output=${resultPath}`],
+    inputPaths: [inputPath, previewPath],
+    outputPaths: [resultPath],
+    reportPaths: [resultPath],
+    progressPaths: [],
+    twoItemImageQuarantineRepairAttempt: {
+      attemptRoot: normalizedRoot,
+      inputPath,
+      previewPath,
+      resultPath,
+      manifestPath: `${normalizedRoot}/execution-manifest.json`,
+      requestPath: `${normalizedRoot}/request.json`,
+      packetPath: `${normalizedRoot}/packet.json`,
+      permitPath: `${normalizedRoot}/permit.json`,
     },
     databaseWrites: true,
     networkAccess: false,
@@ -1796,6 +2935,15 @@ function requireBackendApiBase(operationId, value) {
   return text.replace(/\/$/, '');
 }
 
+function requireBossSourceSnapshotHash(operationId, value) {
+  if (operationId !== 'canonical-boss-source-refresh-offline') return '';
+  const text = String(value ?? '').trim();
+  if (!/^sha256:[a-f0-9]{64}$/.test(text)) {
+    throw new Error(`${operationId} bossSourceSnapshotHash must be sha256:<64 hex>`);
+  }
+  return text;
+}
+
 function biomesApplyDefinition({ operationId }) {
   const inputPath = `reports/authorization/canonical/${operationId}.bundle.json`;
   const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
@@ -1858,9 +3006,52 @@ function supplementaryApplyDefinition({ operationId }) {
   };
 }
 
+function governedL1Definition({ repoRoot, operationId, l1RunRoot }) {
+  const domainId = GOVERNED_L1_OPERATION_DOMAINS[operationId];
+  const normalizedRoot = requireText(l1RunRoot, 'L1 run root').replaceAll('\\', '/');
+  const prefix = `reports/authorization/canonical/l1-runs/${domainId}/`;
+  if (path.isAbsolute(normalizedRoot)
+      || path.posix.normalize(normalizedRoot) !== normalizedRoot
+      || !normalizedRoot.startsWith(prefix)) {
+    throw new Error('L1 run root must be a confined domain-specific reports path');
+  }
+  const runId = normalizedRoot.slice(prefix.length);
+  if (!new RegExp(`^${domainId}_l1_[a-z0-9_]{8,72}$`).test(runId)) {
+    throw new Error('L1 run root must contain a valid domain-specific runId');
+  }
+  const authorizationPath = `${normalizedRoot}/authorization-context.json`;
+  const resultPath = `${normalizedRoot}/result.json`;
+  const progressPath = `${normalizedRoot}/progress.json`;
+  return {
+    executionClass: 'formal_automation_l1_apply',
+    l1RunRoot: normalizedRoot,
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--domain=${domainId}`,
+      `--run-id=${runId}`,
+      '--source-mode=local',
+      '--full-reconciliation=false',
+      `--repo-root=${path.resolve(repoRoot)}`,
+    ],
+    inputPaths: [authorizationPath],
+    outputPaths: [resultPath],
+    reportPaths: [],
+    progressPaths: [progressPath],
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
 function policyDecisionDefinition({ operationId }) {
   const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
   const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  const commitMarkerPath = `${outputPath}.commit.json`;
+  const publication = L2_POLICY_DECISION_OPERATION_IDS.has(operationId)
+    ? {
+      pendingResultPath: outputPath,
+      commitMarkerPath,
+    }
+    : null;
   return {
     executionClass: 'formal_policy_decision',
     command: [
@@ -1871,9 +3062,39 @@ function policyDecisionDefinition({ operationId }) {
       '--apply=true',
     ],
     inputPaths: [inputPath],
-    outputPaths: [outputPath],
+    outputPaths: publication == null ? [outputPath] : [outputPath, commitMarkerPath],
     reportPaths: [],
     progressPaths: [],
+    ...(publication == null ? {} : { policyDecisionPublication: publication }),
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function policyCeilingRegistrationDefinition({ operationId, mode = 'register' }) {
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+  const commitMarkerPath = `${outputPath}.commit.json`;
+  if (!['register', 'recover'].includes(mode)) {
+    throw new Error('policy ceiling registration mode must be register or recover');
+  }
+  const recovery = mode !== 'register';
+  return {
+    executionClass: recovery
+      ? 'formal_policy_artifact_registration_recovery'
+      : 'formal_policy_artifact_registration',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      `--input=${inputPath}`,
+      `--output=${outputPath}`,
+      ...(mode === 'register' ? ['--apply=true'] : ['--recover=true']),
+    ],
+    inputPaths: recovery ? [inputPath, outputPath] : [inputPath],
+    outputPaths: mode === 'register' ? [outputPath, commitMarkerPath] : [commitMarkerPath],
+    reportPaths: [],
+    progressPaths: [],
+    policyCeilingRegistration: { mode },
     databaseWrites: true,
     networkAccess: false,
   };
@@ -1935,7 +3156,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         args['item-image-projection-missing-row-insert-attempt-root'] ?? null,
       itemCanonicalBaseEntityRestorationAttemptRoot:
         args['item-canonical-base-entity-restoration-attempt-root'] ?? null,
+      itemSourceLocalNpcAdmissionAttemptRoot:
+        args['item-source-local-npc-admission-attempt-root'] ?? null,
       npcT2AttemptRoot: args['npc-t2-attempt-root'] ?? null,
+      bossSourceSnapshotHash: args['boss-source-snapshot-hash'] ?? null,
+      policyCeilingRegistrationMode: args['policy-ceiling-registration-mode'] ?? 'register',
+      l1RunRoot: args['l1-run-root'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

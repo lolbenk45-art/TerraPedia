@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l2-policy-ceiling-registration",
+  "domainId": "bosses",
+  "artifactPath": "reports/authorization/canonical/l2-policy-ceiling/bosses/b892f29bdfbe7c66eceee26b80a78d23a9e04ae08c872cb1cab2b170e1460dee/artifact.json",
+  "artifactFileSha256": "sha256:8b4e88c7c5250e80c7a2117f43a8ae7d40d396c7c016c80919b358a84d03b2c2",
+  "artifactHash": "sha256:b892f29bdfbe7c66eceee26b80a78d23a9e04ae08c872cb1cab2b170e1460dee",
+  "targetPolicyVersion": 2,
+  "targetPolicyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+  "targetPolicySetHash": "sha256:4e32a134405143cf13c07a4563f0b15f8ab6af03a4f3bc63f91835ed436c4179",
+  "proposalOnly": false
+}

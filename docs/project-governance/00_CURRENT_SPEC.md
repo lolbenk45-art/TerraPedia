@@ -91,6 +91,14 @@ projection value is derived state and relation sync must not reverse-copy
 `terria_v1_local.items.image` into it. The local item image remains available
 only for the existing armor-set `related_items_json` compatibility fallback.
 
+Canonical Biome image ownership follows
+`terria_v1_maint.maint_biome_images -> terria_v1_relation.relation_biome_images
+-> terria_v1_relation.projection_biomes.icon_url`. The governed 47-row local
+contract preserves 40 managed icons and seven Wiki fallback URLs as source
+evidence. Public API response sanitization may suppress a Wiki fallback until
+it has a managed cached copy; read-only API requests must not mirror it as a
+side effect.
+
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
 DB `15`, and exposes verification codes only through the E2E profile's

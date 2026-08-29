@@ -288,6 +288,18 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
+    void shouldKeepMultipartSegmentIdentityForAggregateBaseLookup() {
+        Npc body = npc(455L, 455L, "CultistDragonBody1", "Phantasm Dragon");
+        when(npcMapper.selectById(455L)).thenReturn(body);
+
+        NpcDetailDTO result = newService().getNpcAggregateBaseById(455L);
+
+        assertEquals(455L, result.getId());
+        assertEquals(455L, result.getGameId());
+        assertEquals("CultistDragonBody1", result.getInternalName());
+    }
+
+    @Test
     void shouldAllowBossHeadAsMultipartDetailRepresentative() {
         Npc body = npc(36L, 36L, "SkeletronHand", "Skeletron");
         Npc head = npc(35L, 35L, "SkeletronHead", "Skeletron");

@@ -189,6 +189,129 @@ test('source stays read-only except for explicit reports/domain writes', () => {
   assert.doesNotMatch(source, /\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b/i);
 });
 
+test('immutable output root rejects a second write and preserves the first bytes', () => {
+  const repoRoot = createTempRepo();
+  writeBuffSourceEvidence(repoRoot);
+  const outputRoot = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-01/domain';
+
+  const first = generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    domains: ['buffs'],
+    outputRoot,
+    write: true,
+  });
+  const firstPath = path.join(repoRoot, first.reports[0].outputPath);
+  const firstBytes = fs.readFileSync(firstPath);
+
+  assert.throws(() => generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    domains: ['buffs'],
+    outputRoot,
+    write: true,
+  }), /exists|overwrite|immutable/i);
+  assert.deepEqual(fs.readFileSync(firstPath), firstBytes);
+});
+
+test('immutable output root accepts a trailing slash without widening confinement', () => {
+  const repoRoot = createTempRepo();
+  writeBuffSourceEvidence(repoRoot);
+  const outputRoot = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-trailing/domain/';
+  const result = generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    domains: ['buffs'],
+    outputRoot,
+    write: true,
+  });
+  assert.equal(result.summary.writtenCount, 5);
+  assert.ok(result.reports.every((report) => report.outputPath.includes('/run-trailing/domain/')));
+});
+
+test('bulk report generation preflights all paths before writing any file', () => {
+  const repoRoot = createTempRepo();
+  writeBuffSourceEvidence(repoRoot);
+  const outputRoot = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-02/domain';
+  const manifest = [
+    { domainId: 'buffs', panelId: 'sourceReadiness' },
+    { domainId: 'buffs', panelId: 'sourceReadiness' },
+  ];
+
+  assert.throws(() => generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest,
+    outputRoot,
+    write: true,
+  }), /duplicate|collision|exists|overwrite/i);
+  assert.equal(fs.existsSync(path.join(repoRoot, outputRoot, 'buffs/source-readiness-2026-05-03.json')), false);
+  assert.equal(fs.existsSync(path.join(repoRoot, outputRoot)), false);
+});
+
+test('bulk report generation rejects a broken target symlink before writing any sibling', () => {
+  const repoRoot = createTempRepo();
+  writeBuffSourceEvidence(repoRoot);
+  const outputRoot = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-broken-target/domain';
+  const manifest = [
+    { domainId: 'buffs', panelId: 'sourceReadiness' },
+    { domainId: 'buffs', panelId: 'relationReadiness' },
+  ];
+  const brokenTarget = path.join(repoRoot, outputRoot, 'missing-target.json');
+  const secondPath = path.join(repoRoot, outputRoot, 'buffs/relation-readiness-2026-05-03.json');
+  fs.mkdirSync(path.dirname(secondPath), { recursive: true });
+  fs.symlinkSync(brokenTarget, secondPath, 'file');
+
+  assert.throws(() => generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest,
+    outputRoot,
+    write: true,
+  }), /exists|overwrite|symbolic|symlink|collision|immutable/i);
+  assert.equal(
+    fs.existsSync(path.join(repoRoot, outputRoot, 'buffs/source-readiness-2026-05-03.json')),
+    false,
+  );
+  assert.equal(fs.lstatSync(secondPath).isSymbolicLink(), true);
+});
+
+test('runtime output roots are confined and reject symlink ancestors', () => {
+  const repoRoot = createTempRepo();
+  writeBuffSourceEvidence(repoRoot);
+
+  assert.throws(() => generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    domains: ['buffs'],
+    outputRoot: 'reports/runtime/other/run/domain',
+    write: true,
+  }), /output root|runtime|confined|invalid/i);
+
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-output-outside-'));
+  const symlinkRoot = path.join(repoRoot, 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/symlink');
+  fs.mkdirSync(path.dirname(symlinkRoot), { recursive: true });
+  fs.symlinkSync(outside, symlinkRoot, 'dir');
+  try {
+    assert.throws(() => generateDomainAcceptanceReports({
+      repoRoot,
+      generatedAt: '2026-05-03T12:00:00Z',
+      domains: ['buffs'],
+      outputRoot: 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/symlink/domain',
+      write: false,
+    }), /symbolic|symlink|ancestor|confined/i);
+    assert.throws(() => generateDomainAcceptanceReports({
+      repoRoot,
+      generatedAt: '2026-05-03T12:00:00Z',
+      domains: ['buffs'],
+      outputRoot: 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/symlink/domain',
+      write: true,
+    }), /symbolic|symlink|ancestor|confined/i);
+  } finally {
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
+});
+
 function createTempRepo() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-domain-generation-'));
 }

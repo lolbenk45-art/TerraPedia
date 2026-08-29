@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-08-25T04:35:00.000Z",
+  "expiresAt": "2026-08-26T04:35:00.000Z",
+  "operationId": "canonical-npc-loot-duplicate-relation-retirement",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:e422d2454634a7b65f7fb3830b4f2f6245a440f3c62b02bf73a4b8e2392ef2a0",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-npc-loot-duplicate-relation-retirement.input.json",
+      "sizeBytes": 683,
+      "contentHash": "sha256:3bbc6e2d603ec276a6bcc7cd580b3113ac54abc287a32d971b167e34aa2243e0"
+    },
+    {
+      "path": "reports/runtime/local-data-chain-closure/20260825/parent-final-1055/npc-duplicate-relation-retirement.proposal.json",
+      "sizeBytes": 2148,
+      "contentHash": "sha256:20f605f8b7f5262089af4ff7f69f4ab98091d4fb9c1478d5955cd2ae6f1e4309"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:154e975703d515f6367eadb67676e01cff52a85da84d378ef7cb73ec97b42cb7",
+  "executionManifest": {
+    "artifactDate": "2026-08-25",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:54d4a1687df96732a79d318115711a2755cc75592c7bc46f6454aaa4db265d92",
+        "path": "pipelines/npc-canonical/npc-duplicate-relation-retirement.mjs"
+      },
+      {
+        "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:aa92e9fcbe01e4a342d76aa0fecbbc620e8ce520c995fa4937b3ce139844ced6",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:13da29d5c1a21f505c6a1b494dced655d6f37ff5964bda6f2595f03bd33a1a52",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:f7a41678f99d2477d202e7229a077a66985c62a2f7e259bfc49e0f4b9b366acc",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:8b40021ae3decd69eff8bae96c7c4653b283f50d8f69fddaef63b56baf5f191b",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/npc-canonical/npc-duplicate-relation-retirement.mjs",
+      "--input=reports/authorization/canonical/canonical-npc-loot-duplicate-relation-retirement.input.json",
+      "--proposal=reports/runtime/local-data-chain-closure/20260825/parent-final-1055/npc-duplicate-relation-retirement.proposal.json",
+      "--output=reports/authorization/canonical/canonical-npc-loot-duplicate-relation-retirement.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_npc_duplicate_relation_retirement",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-npc-loot-duplicate-relation-retirement.input.json",
+      "reports/runtime/local-data-chain-closure/20260825/parent-final-1055/npc-duplicate-relation-retirement.proposal.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-npc-loot-duplicate-relation-retirement",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-npc-loot-duplicate-relation-retirement.result.json"
+    ],
+    "ownershipKeys": [
+      "relation.item_npc_loot_relations.status_deleted"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "Owner (user)",
+  "reason": "User-authorized exact retirement of relation 1551 for the UndeadMiner to MiningHelmet duplicate; soft-disable only the frozen relation row and preserve survivor 609, projection 44, local row 82353, source facts, and source details.",
+  "authorizationReference": "user://conversation/2026-08-25/npc-duplicate-relation-retirement",
+  "decisionIdentity": "owner-npc-loot-duplicate-relation-retirement-20260825-01",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:350b891c3bf911222bd381edba6a8860fe0fe09b94750eb6750143db44d90c67",
+  "authorizedAt": "2026-08-25T06:41:30.441Z",
+  "packetHash": "sha256:f1e35e49f974168ec44376d1371e9271e947157e852bc058acad79f01b86688a"
+}

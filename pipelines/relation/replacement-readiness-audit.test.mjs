@@ -128,6 +128,26 @@ test('buildReplacementReadinessAudit treats documented zh recipe local-only rows
   assert.ok(actual.summary.switchableDomains.includes('items'));
 });
 
+test('buildReplacementReadinessAudit treats legacy wiki item pages as non-PC local-only exceptions', () => {
+  const legacyKeys = ['HeartArrow', 'ValentineRing', 'TurkeyFeather', 'FestiveTopHat', 'Wiesnbrau'];
+  const actual = buildReplacementReadinessAudit({
+    localData: {
+      items: legacyKeys.map((internal_name) => ({
+        internal_name,
+        name: internal_name,
+        source_provider: 'terraria.wiki.gg/zh',
+        source_page: `https://terraria.wiki.gg/zh/wiki/旧版:${internal_name}`,
+      })),
+      npcs: [], boss_groups: [], projectiles: [], buffs: []
+    },
+    projectionData: { projection_items: [], projection_npcs: [], projection_bosses: [], projection_projectiles: [], projection_buffs: [] }
+  });
+
+  assert.equal(actual.domainResults.items.status, 'switchable');
+  assert.deepEqual(actual.domainResults.items.acceptedLocalOnlyExceptions, legacyKeys);
+  assert.equal(actual.domainResults.items.missingInProjectionCount, 0);
+});
+
 test('buildReplacementReadinessAudit includes projectile source relation json fields', () => {
   const actual = buildReplacementReadinessAudit({
     localData: {

@@ -1,0 +1,195 @@
+{
+  "schemaVersion": "item-source-local-npc-admission-input-v1",
+  "operationId": "canonical-item-source-local-npc-admission",
+  "apply": true,
+  "attemptId": "e65fb0f24b73110a02fa91ca0bd8cd065bc0afba20ce70c1057b4ba25afa8da9",
+  "attemptRoot": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e65fb0f24b73110a02fa91ca0bd8cd065bc0afba20ce70c1057b4ba25afa8da9",
+  "proposalPath": "reports/authorization/canonical/canonical-item-source-local-npc-admission/e65fb0f24b73110a02fa91ca0bd8cd065bc0afba20ce70c1057b4ba25afa8da9/proposal.json",
+  "proposalSha256": "sha256:d35afe4b0ac1cc3a4eb4daf29fddbde0c1bfcc08fc2c0022ca41bafc9b9e9fe5",
+  "proposalScopeHash": "sha256:63cbd03487b7e7a898d5f2b92036e5b7d7ed145aa1ccce845d75781f92fdcdb4",
+  "databaseFingerprint": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "databases": [
+      "terria_v1_local",
+      "terria_v1_maint",
+      "terria_v1_relation"
+    ]
+  },
+  "sourceFreeze": {
+    "partition": {
+      "path": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/item-source-partition.json",
+      "sha256": "sha256:ffc11014fa5c0e64357850fc74e37186adaa710bf88879be0b8d3c7bf488b70a",
+      "scopeHash": "sha256:2498a5eb47d24a6b4ff3e736b2731efe19527e72a25534dbc4b59b0dc9986239",
+      "candidateCount": 311
+    },
+    "snapshotPairs": [
+      {
+        "entityId": "angler",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/angler.latest.json",
+        "normalizedSha256": "sha256:709618dc170584de7cc4a048251c89f8ca9f5f371e0d115c436967570d318da8",
+        "auditPath": "data/wiki-crawler/audit/npc/angler.latest.json",
+        "auditSha256": "sha256:b86a4d18d6c6e347a57f4e3998b629654df15ffb0dcdfb61a167cf0e58ae6759"
+      },
+      {
+        "entityId": "arms-dealer",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/arms-dealer.latest.json",
+        "normalizedSha256": "sha256:0be71156a439823c0d80dc763157fee92b61da5fb686d9519e00b079cc02af87",
+        "auditPath": "data/wiki-crawler/audit/npc/arms-dealer.latest.json",
+        "auditSha256": "sha256:9ee77fdc815cc202d64be4aa89136f5f5a8a770d0e5bac6e86889112ca82a486"
+      },
+      {
+        "entityId": "clothier",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/clothier.latest.json",
+        "normalizedSha256": "sha256:10fb53aa0bcca3183110b81e81b61af37f854efc62097c1e6706d7cdb2e137a1",
+        "auditPath": "data/wiki-crawler/audit/npc/clothier.latest.json",
+        "auditSha256": "sha256:6b45648846e112420306ec570e4d80ef0df659667576ec1efb54f144d23fab21"
+      },
+      {
+        "entityId": "crawdad",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/crawdad.latest.json",
+        "normalizedSha256": "sha256:c965a47474d2bac49c45090c1f28177c3844947b17e0e336413ff771c80a3910",
+        "auditPath": "data/wiki-crawler/audit/npc/crawdad.latest.json",
+        "auditSha256": "sha256:57fdecf9376f728bcd2475eead1dc975fc1a928b36485f52fe0d07fdabd1ec22"
+      },
+      {
+        "entityId": "dryad",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/dryad.latest.json",
+        "normalizedSha256": "sha256:2c636acf81074c46cd53a9d2102d4b1d5c239f5514afc1325b607c6db77c6775",
+        "auditPath": "data/wiki-crawler/audit/npc/dryad.latest.json",
+        "auditSha256": "sha256:851db42c9576132d729eab15a9aab7cc84d365d46550afee7757f9dc11585f51"
+      },
+      {
+        "entityId": "dye-trader",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/dye-trader.latest.json",
+        "normalizedSha256": "sha256:f203391490d439e1c0482b94f3861f4642be66c1e5dd30be453ac71970d70ce6",
+        "auditPath": "data/wiki-crawler/audit/npc/dye-trader.latest.json",
+        "auditSha256": "sha256:af89cfe7257825df01d0ccd8ae902b69a72efce35f73f2af3042c9912aa643d3"
+      },
+      {
+        "entityId": "giant-shelly",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/giant-shelly.latest.json",
+        "normalizedSha256": "sha256:1724c67ca972cf1c372959f491a0fc79819378a5b2693e61129845837111131d",
+        "auditPath": "data/wiki-crawler/audit/npc/giant-shelly.latest.json",
+        "auditSha256": "sha256:4821af44bea80daf84fea8d70709e27c57b7fafcd8a2f3952ef137ccd5a579cf"
+      },
+      {
+        "entityId": "goblin-tinkerer",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/goblin-tinkerer.latest.json",
+        "normalizedSha256": "sha256:8613d1f5c8ceadb1dc8302f4ecb73e0b39d294b0b039ded55c71bc23d61c18f8",
+        "auditPath": "data/wiki-crawler/audit/npc/goblin-tinkerer.latest.json",
+        "auditSha256": "sha256:563fc4f96441accad7234323a614f19e46d65a6e79a5cea4ad050edf7c5a669a"
+      },
+      {
+        "entityId": "golfer",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/golfer.latest.json",
+        "normalizedSha256": "sha256:094a7ed5b499f6e46bce4ca091b9dfdf9d772822e17fedc1c2a1cebfbd284542",
+        "auditPath": "data/wiki-crawler/audit/npc/golfer.latest.json",
+        "auditSha256": "sha256:ad4906702cb0b221cb5e5546c66f8924f957d7306764e178ccac88670a48addf"
+      },
+      {
+        "entityId": "hemogoblin-shark",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/hemogoblin-shark.latest.json",
+        "normalizedSha256": "sha256:6a2b389a1252698045c77846686af891f9c777365d7d4ffc6cc5599fcc418768",
+        "auditPath": "data/wiki-crawler/audit/npc/hemogoblin-shark.latest.json",
+        "auditSha256": "sha256:316dd6d24f9a6b942ff7f38c128b031d3a679ac443d61c8c35802fe49bf46b77"
+      },
+      {
+        "entityId": "pirate",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/pirate.latest.json",
+        "normalizedSha256": "sha256:053acace1580db41fc1bf7940834d56f9d2a65a60e1cd84119348c38937576ff",
+        "auditPath": "data/wiki-crawler/audit/npc/pirate.latest.json",
+        "auditSha256": "sha256:694d7180359caf571a4ce933d1e5b6ecddeda159d23e5a44383933807086c17e"
+      },
+      {
+        "entityId": "princess",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/princess.latest.json",
+        "normalizedSha256": "sha256:498245511ae87d2e4de1775342ce0ed69a83bb476ede0808e0cc476105089cb9",
+        "auditPath": "data/wiki-crawler/audit/npc/princess.latest.json",
+        "auditSha256": "sha256:fba3d08bc10d7acc61b262ec303810c649d96905e4cc6f338c1d4ecfd56d36ea"
+      },
+      {
+        "entityId": "salamander",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/salamander.latest.json",
+        "normalizedSha256": "sha256:e709452452998b2a405c15c086da93a44c6b3d8bb21f90d5ca6bfe31d6a4bc91",
+        "auditPath": "data/wiki-crawler/audit/npc/salamander.latest.json",
+        "auditSha256": "sha256:21219869c9b4f830acd029c9239354b2a075039ba3ad07f971a3f3d1deae0930"
+      },
+      {
+        "entityId": "santa-claus",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/santa-claus.latest.json",
+        "normalizedSha256": "sha256:e459b090fb0082037988a22dd1dc8ec1e817fe19614ab0883777c939701224db",
+        "auditPath": "data/wiki-crawler/audit/npc/santa-claus.latest.json",
+        "auditSha256": "sha256:a0a184aedda028e0a8e6121562c698152b6232cf3385c38e2f40286b00459532"
+      },
+      {
+        "entityId": "spore-skeleton",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/spore-skeleton.latest.json",
+        "normalizedSha256": "sha256:49b07e705067bf39c2a1787058a708f4db36ea9a039e218d3534a62248ea1296",
+        "auditPath": "data/wiki-crawler/audit/npc/spore-skeleton.latest.json",
+        "auditSha256": "sha256:3daa542c220106c4cd7db1b9e29b8c6d160c845358be984df33e292a89c7e2a7"
+      },
+      {
+        "entityId": "steampunker",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/steampunker.latest.json",
+        "normalizedSha256": "sha256:ce1dbe12abbf8df576a098fef869bd60cad1844659a339e68e4a56cb221980ac",
+        "auditPath": "data/wiki-crawler/audit/npc/steampunker.latest.json",
+        "auditSha256": "sha256:28c7c41c7ee4891299c3b6b3833e19e7d9aee8e0a10ac377daef2f6ce9ac72bd"
+      },
+      {
+        "entityId": "stylist",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/stylist.latest.json",
+        "normalizedSha256": "sha256:54190d11bff28b84ecae5b8f2ba569467938071cca189ef440153b55320d33f3",
+        "auditPath": "data/wiki-crawler/audit/npc/stylist.latest.json",
+        "auditSha256": "sha256:9d2983eb1411eba752e30bd81ca31ff62561460b9c6a600c384a9a7787a5dea3"
+      },
+      {
+        "entityId": "tavernkeep",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/tavernkeep.latest.json",
+        "normalizedSha256": "sha256:8340515578dddccc434fc34f39d0d196965d1a55e9f2bddf6ff03c4a4a014118",
+        "auditPath": "data/wiki-crawler/audit/npc/tavernkeep.latest.json",
+        "auditSha256": "sha256:1d3a308bd6ce2891994a7151df11b857bb6d14e24a2ad3458f97084622778b57"
+      },
+      {
+        "entityId": "traveling-merchant",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/traveling-merchant.latest.json",
+        "normalizedSha256": "sha256:793daaf9a1f0b17f43697e932b7470c517b79716648a39b9ff12bf0565dbb02e",
+        "auditPath": "data/wiki-crawler/audit/npc/traveling-merchant.latest.json",
+        "auditSha256": "sha256:26c7786fc03c2f1d925d485cbc0f9974f089d4db6293580f605bc0a450878893"
+      },
+      {
+        "entityId": "undead-miner",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/undead-miner.latest.json",
+        "normalizedSha256": "sha256:18531efdb005beee18bf06042c0d20fc7e9791a4c85b2e1f4225fe61638bb9b5",
+        "auditPath": "data/wiki-crawler/audit/npc/undead-miner.latest.json",
+        "auditSha256": "sha256:e7461ab9a7a0de2d8541b616cd8f6d088e09510a28a3ca4422315ee14cb0cfab"
+      },
+      {
+        "entityId": "witch-doctor",
+        "normalizedPath": "data/wiki-crawler/normalized-light/npc/witch-doctor.latest.json",
+        "normalizedSha256": "sha256:a749df843dc597951b0fd30c7f9331f9c7735eebc796d301fa74bf141259625b",
+        "auditPath": "data/wiki-crawler/audit/npc/witch-doctor.latest.json",
+        "auditSha256": "sha256:d4a94acc35cbc82a0e7d822aa4cf7826c8fe262f5320c358f5bffbe61d5ff35d"
+      }
+    ]
+  },
+  "selectedIdentityHash": "sha256:4811188258e31db264d66dfa5d0a43c4b62064d101ac167f3f0c6ef1087168f1",
+  "tableBeforeFingerprints": {
+    "terria_v1_local.source_dataset_landings": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terria_v1_maint.maint_npc_crawler_facts": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terria_v1_relation.item_source_facts": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terria_v1_relation.item_source_details": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terria_v1_relation.item_npc_shop_relations": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terria_v1_relation.item_npc_loot_relations": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terria_v1_local.item_acquisition_sources": "sha256:7748f80df3cbf5470b0e46c3e51a2417fb974eb19b3059aa0027c15d43b93749"
+  },
+  "beforeFingerprint": "sha256:edfa956b8d3b9848a62044d5519c54ea4858001bf0b7f83d4c91bc5bc06dbe81",
+  "afterFingerprint": "sha256:ee83190d1db7b42eb2554813f2aa234fd0a581a4fbb561f8c777d248e012d195",
+  "expectedChangedRowCount": 112,
+  "expectedAcceptedCount": 28,
+  "expectedLocalSourceReconciliationCount": 9,
+  "proposalAuthorization": {
+    "decisionIdentity": "owner-item-source-local-npc-admission-20260825-060913-01"
+  }
+}

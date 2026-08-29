@@ -23,6 +23,7 @@ import {
 import { resolveManagedImageUrlPrefixes } from './managed-image-url-policy.mjs';
 import { readItemImageProjectionSnapshot } from './item-image-projection-db.mjs';
 import { resolveItemImageLineageRuntimeConfig } from './item-image-lineage-db.mjs';
+import { buildItemImageOriginRepairEvidence } from './item-image-origin-repair-evidence-adapter.mjs';
 
 const LINEAGE_OPERATION_ID = 'canonical-item-image-lineage-apply';
 const CANONICAL_USED_DECISIONS_PATH =
@@ -49,64 +50,86 @@ export async function runItemImageProjectionProposal(options = {}, dependencies 
     attemptRoot: options.attemptRoot,
     readOnlyAuthorizationPath,
   });
-  const lineageInputContractPath = requireRelativePath(
-    options.lineageInputContractPath,
-    'lineageInputContractPath',
-  );
-  const lineageResultPath = requireRelativePath(options.lineageResultPath, 'lineageResultPath');
-  const lineageBundlePath = requireRelativePath(options.lineageBundlePath, 'lineageBundlePath');
-  const lineageApplySnapshotPath = requireRelativePath(
-    options.lineageApplySnapshotPath,
-    'lineageApplySnapshotPath',
-  );
-  const lineageAuthorizationPacketPath = requireRelativePath(
-    options.lineageAuthorizationPacketPath,
-    'lineageAuthorizationPacketPath',
-  );
-  const readLineageInputContractBytes = dependencies.readLineageInputContractBytes
-    ?? (() => readOrdinaryBytes(root, lineageInputContractPath, 'lineage input contract'));
-  const readLineageResultBytes = dependencies.readLineageResultBytes
-    ?? (() => readOrdinaryBytes(root, lineageResultPath, 'lineage result'));
-  const readLineageBundleBytes = dependencies.readLineageBundleBytes
-    ?? (() => readOrdinaryBytes(root, lineageBundlePath, 'lineage bundle'));
-  const readLineageApplySnapshotBytes = dependencies.readLineageApplySnapshotBytes
-    ?? (() => readOrdinaryBytes(root, lineageApplySnapshotPath, 'lineage apply snapshot'));
-  const readLineageAuthorizationPacketBytes = dependencies.readLineageAuthorizationPacketBytes
-    ?? (() => readOrdinaryBytes(root, lineageAuthorizationPacketPath, 'lineage authorization packet'));
-  const readUsedDecisionsBytes = dependencies.readUsedDecisionsBytes
-    ?? (() => readOrdinaryBytes(root, usedDecisionsPath, 'used decisions ledger'));
-
-  const lineageInputContractBytes = Buffer.from(await readLineageInputContractBytes());
-  const lineageResultBytes = Buffer.from(await readLineageResultBytes());
-  const lineageBundleBytes = Buffer.from(await readLineageBundleBytes());
-  const lineageApplySnapshotBytes = Buffer.from(await readLineageApplySnapshotBytes());
-  const lineageAuthorizationPacketBytes = Buffer.from(await readLineageAuthorizationPacketBytes());
-  const usedDecisionsBytes = Buffer.from(await readUsedDecisionsBytes());
-  const lineageInputContract = parseJson(lineageInputContractBytes, 'lineage input contract');
-  const lineageResult = parseJson(lineageResultBytes, 'lineage result');
-  const lineageBundle = parseJson(lineageBundleBytes, 'lineage bundle');
-  const lineageEvidence = validateLineageEvidence({
-    lineageInputContract,
-    lineageResult,
-    lineageBundle,
-    lineageBundleBytes,
-    lineageBundlePath,
-    lineageInputContractBytes,
-    lineageInputContractPath,
-    lineageApplySnapshot: parseJson(lineageApplySnapshotBytes, 'lineage apply snapshot'),
-    lineageApplySnapshotPath,
-    lineageAuthorizationPacket: parseJson(
-      lineageAuthorizationPacketBytes,
-      'lineage authorization packet',
-    ),
-    usedDecisions: parseJson(usedDecisionsBytes, 'used decisions ledger'),
-  });
-  const keys = lineageEvidence.keys;
-
   const expectedTarget = normalizeExpectedTarget(options.expectedTarget);
+  const originBound = options.originRepairEvidence
+    ? buildItemImageOriginRepairEvidence(options.originRepairEvidence)
+    : null;
+  let lineageInputContractPath;
+  let lineageResultPath;
+  let lineageBundlePath;
+  let lineageApplySnapshotPath;
+  let lineageAuthorizationPacketPath;
+  let lineageInputContractBytes;
+  let lineageResultBytes;
+  let lineageBundleBytes;
+  let lineageApplySnapshotBytes;
+  let lineageAuthorizationPacketBytes;
+  let lineageInputContract;
+  let lineageEvidence;
+  if (originBound) {
+    lineageEvidence = validateOriginRepairBoundEvidence({
+      evidence: originBound,
+      expectedTarget,
+    });
+  } else {
+    const readUsedDecisionsBytes = dependencies.readUsedDecisionsBytes
+      ?? (() => readOrdinaryBytes(root, usedDecisionsPath, 'used decisions ledger'));
+    const usedDecisionsBytes = Buffer.from(await readUsedDecisionsBytes());
+    lineageInputContractPath = requireRelativePath(options.lineageInputContractPath, 'lineageInputContractPath');
+    lineageResultPath = requireRelativePath(options.lineageResultPath, 'lineageResultPath');
+    lineageBundlePath = requireRelativePath(options.lineageBundlePath, 'lineageBundlePath');
+    lineageApplySnapshotPath = requireRelativePath(options.lineageApplySnapshotPath, 'lineageApplySnapshotPath');
+    lineageAuthorizationPacketPath = requireRelativePath(options.lineageAuthorizationPacketPath, 'lineageAuthorizationPacketPath');
+    const readLineageInputContractBytes = dependencies.readLineageInputContractBytes
+      ?? (() => readOrdinaryBytes(root, lineageInputContractPath, 'lineage input contract'));
+    const readLineageResultBytes = dependencies.readLineageResultBytes
+      ?? (() => readOrdinaryBytes(root, lineageResultPath, 'lineage result'));
+    const readLineageBundleBytes = dependencies.readLineageBundleBytes
+      ?? (() => readOrdinaryBytes(root, lineageBundlePath, 'lineage bundle'));
+    const readLineageApplySnapshotBytes = dependencies.readLineageApplySnapshotBytes
+      ?? (() => readOrdinaryBytes(root, lineageApplySnapshotPath, 'lineage apply snapshot'));
+    const readLineageAuthorizationPacketBytes = dependencies.readLineageAuthorizationPacketBytes
+      ?? (() => readOrdinaryBytes(root, lineageAuthorizationPacketPath, 'lineage authorization packet'));
+    lineageInputContractBytes = Buffer.from(await readLineageInputContractBytes());
+    lineageResultBytes = Buffer.from(await readLineageResultBytes());
+    lineageBundleBytes = Buffer.from(await readLineageBundleBytes());
+    lineageApplySnapshotBytes = Buffer.from(await readLineageApplySnapshotBytes());
+    lineageAuthorizationPacketBytes = Buffer.from(await readLineageAuthorizationPacketBytes());
+    lineageInputContract = parseJson(lineageInputContractBytes, 'lineage input contract');
+    lineageEvidence = validateLineageEvidence({
+      lineageInputContract,
+      lineageResult: parseJson(lineageResultBytes, 'lineage result'),
+      lineageBundle: parseJson(lineageBundleBytes, 'lineage bundle'),
+      lineageBundleBytes,
+      lineageBundlePath,
+      lineageInputContractBytes,
+      lineageInputContractPath,
+      lineageApplySnapshot: parseJson(lineageApplySnapshotBytes, 'lineage apply snapshot'),
+      lineageApplySnapshotPath,
+      lineageAuthorizationPacket: parseJson(lineageAuthorizationPacketBytes, 'lineage authorization packet'),
+      usedDecisions: parseJson(usedDecisionsBytes, 'used decisions ledger'),
+    });
+  }
+  const keys = lineageEvidence.keys;
   assertReadOnlyAuthorizationTarget(readOnlyAuthorization, expectedTarget);
   assertFormalTargetDatabases(lineageEvidence.targetDatabases, expectedTarget, 'lineage packet');
-  assertLineageTarget(lineageInputContract.serverFingerprint, expectedTarget);
+  if (!originBound) assertLineageTarget(lineageInputContract.serverFingerprint, expectedTarget);
+  const lineageBinding = originBound ? lineageEvidence.lineage : {
+    inputContractPath: lineageInputContractPath,
+    inputContractSha256: sha256Bytes(lineageInputContractBytes),
+    resultPath: lineageResultPath,
+    resultSha256: sha256Bytes(lineageResultBytes),
+    bundlePath: lineageBundlePath,
+    bundleSha256: sha256Bytes(lineageBundleBytes),
+    applySnapshotPath: lineageApplySnapshotPath,
+    applySnapshotSha256: sha256Bytes(lineageApplySnapshotBytes),
+    authorizationPacketPath: lineageAuthorizationPacketPath,
+    authorizationPacketSha256: sha256Bytes(lineageAuthorizationPacketBytes),
+    decisionIdentity: lineageEvidence.decisionIdentity,
+    packetHash: lineageEvidence.packetHash,
+    dispatchPermitHash: lineageEvidence.dispatchPermitHash,
+    completedRowCount: keys.length,
+  };
   const resolveRuntimeConfig = dependencies.resolveRuntimeConfig
     ?? ((context) => resolveDefaultRuntimeConfig(context));
   const runtimeConfig = await resolveRuntimeConfig({ repoRoot: root });
@@ -137,6 +160,7 @@ export async function runItemImageProjectionProposal(options = {}, dependencies 
     await connection?.end?.();
   }
   assertSnapshotTarget(databaseSnapshot?.target, expectedTarget);
+  if (originBound) assertOriginSnapshotMatches(databaseSnapshot, originBound);
 
   const generatedAt = options.generatedAt ?? new Date().toISOString();
   const snapshot = buildItemImageProjectionSnapshot({
@@ -168,22 +192,7 @@ export async function runItemImageProjectionProposal(options = {}, dependencies 
       decisionIdentity: readOnlyAuthorization.decisionIdentity,
       authorizationHash: readOnlyAuthorization.authorizationHash,
     },
-    lineage: {
-      inputContractPath: lineageInputContractPath,
-      inputContractSha256: sha256Bytes(lineageInputContractBytes),
-      resultPath: lineageResultPath,
-      resultSha256: sha256Bytes(lineageResultBytes),
-      bundlePath: lineageBundlePath,
-      bundleSha256: sha256Bytes(lineageBundleBytes),
-      applySnapshotPath: lineageApplySnapshotPath,
-      applySnapshotSha256: sha256Bytes(lineageApplySnapshotBytes),
-      authorizationPacketPath: lineageAuthorizationPacketPath,
-      authorizationPacketSha256: sha256Bytes(lineageAuthorizationPacketBytes),
-      decisionIdentity: lineageEvidence.decisionIdentity,
-      packetHash: lineageEvidence.packetHash,
-      dispatchPermitHash: lineageEvidence.dispatchPermitHash,
-      completedRowCount: keys.length,
-    },
+    lineage: lineageBinding,
     lineageKeys: keys,
     target: databaseSnapshot.target,
     snapshotPath: writtenSnapshot.relativePath ?? attemptPaths.snapshotPath,
@@ -287,6 +296,45 @@ function readProposalBytes({ repoRoot, proposalPath }) {
   const proposal = parseJson(bytes, 'item image projection proposal');
   assertItemImageProjectionProposal(proposal);
   return { relativePath, absolutePath, bytes, proposal };
+}
+
+function validateOriginRepairBoundEvidence({ evidence, expectedTarget }) {
+  return {
+    keys: evidence.keys,
+    targetDatabases: expectedTarget?.databases
+      ? [expectedTarget.databases.local, expectedTarget.databases.maint, expectedTarget.databases.relation]
+      : [],
+    lineage: {
+      kind: evidence.kind,
+      originRepairResultPath: evidence.originRepairResultPath,
+      originRepairResultSha256: evidence.originRepairResultSha256,
+      originRepairScopeHash: evidence.originRepairScopeHash,
+      originRepairOperationId: evidence.originRepairOperationId,
+      originRepairStatus: evidence.originRepairStatus,
+      quarantineIdentities: evidence.quarantineIdentities,
+      externalRequests: evidence.externalRequests,
+      freshnessUpdates: evidence.freshnessUpdates,
+      completedRowCount: evidence.keys.length,
+    },
+  };
+}
+
+function assertOriginSnapshotMatches(snapshot, evidence) {
+  const relationRows = Array.isArray(snapshot?.relationRows) ? snapshot.relationRows : [];
+  const projectionRows = Array.isArray(snapshot?.projectionRows) ? snapshot.projectionRows : [];
+  const relation = new Map(relationRows.map((row) => [row.internalName, row]));
+  const projection = new Map(projectionRows.map((row) => [row.internalName, row]));
+  for (const key of evidence.keys) {
+    const expectedRelation = evidence.relationRows.find((row) => row.internalName === key);
+    const actualRelation = relation.get(key);
+    const actualProjection = projection.get(key);
+    if (!actualRelation || !actualProjection
+        || (actualRelation.recordKey ?? actualRelation.relationRecordKey) !== expectedRelation.relationRecordKey
+        || actualRelation.cachedUrl !== expectedRelation.cachedUrl
+        || !actualProjection.relationRecordKey) {
+      throw new Error(`origin-repair-bound snapshot drifted for ${key}`);
+    }
+  }
 }
 
 function validateLineageEvidence({

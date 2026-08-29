@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-npc-local-loot-compatibility-retirement",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "scopeSha256": "sha256:544b7fff4a47134dfe5ca8f565d5fd2dacc917a107f9c3b3a84be49a7798a3d3",
+  "previewSha256": "sha256:fee2c441796b19a8d65b86f003dcddf3b67d7249d355b82485ee7e293b5e85c6",
+  "expectedCounts": {
+    "targetLocalRows": 56
+  },
+  "writeTargets": [
+    "local.npc_loot_entries.non_boss"
+  ]
+}

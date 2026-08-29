@@ -4,16 +4,10 @@ const apply = (operationId, ownedTables) => Object.freeze({
   ownedTables: Object.freeze(ownedTables.map((table) => Object.freeze({ databaseRole: 'local', table }))),
 });
 
-const dryRun = (operationId) => Object.freeze({
-  operationId,
-  databaseMode: 'DRY_RUN',
-  ownedTables: Object.freeze([]),
-});
-
 export const AUTO_DOMAIN_OPERATION_CONFIG = Object.freeze({
-  items: dryRun('automation-items-dry-run'),
+  items: apply('automation-items-l1', ['items']),
   npcs: apply('automation-npcs-l1', ['npcs']),
-  projectiles: dryRun('automation-projectiles-dry-run'),
+  projectiles: apply('automation-projectiles-l1', ['projectiles']),
   armor_sets: apply('automation-armor-sets-l1', ['armor_sets', 'armor_set_items']),
   buffs: apply('automation-buffs-l1', ['buffs', 'buff_source_items']),
   audio: apply('automation-audio-first-l1', ['audio_assets', 'audio_asset_links']),

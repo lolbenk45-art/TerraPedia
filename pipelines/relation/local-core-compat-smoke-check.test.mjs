@@ -4,8 +4,24 @@ import assert from 'node:assert/strict';
 import {
   buildLocalCoreCompatSmokeCheck,
   parseArgs,
+  resolveLocalCoreMysqlOptions,
+  resolveMysqlRequirePath,
   runLocalCoreCompatSmokeCheck
 } from './local-core-compat-smoke-check.mjs';
+
+test('local core smoke resolves mysql from the maintained admin dependency root', () => {
+  assert.match(resolveMysqlRequirePath('/repo'), /\/apps\/admin-console\/package\.json$/);
+});
+
+test('local core smoke uses the configured loopback database port', () => {
+  assert.deepEqual(
+    resolveLocalCoreMysqlOptions({
+      config: { database: { host: '127.0.0.1', port: 13306, username: 'root', password: 'secret' } },
+      env: {},
+    }),
+    { host: '127.0.0.1', port: 13306, user: 'root', password: 'secret' },
+  );
+});
 
 test('parseArgs defaults to strict local core compatibility smoke check', () => {
   const actual = parseArgs([]);
@@ -13,6 +29,7 @@ test('parseArgs defaults to strict local core compatibility smoke check', () => 
   assert.deepEqual(actual, {
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation',
+    port: null,
     dateTag: null,
     throwOnFailure: true
   });

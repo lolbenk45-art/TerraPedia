@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_item_image_provenance_patch_result",
+  "operationId": "canonical-item-image-provenance-patch",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:44d3f9dff493234265a39cd31497b4bf2a3666324fce227f9385667665c31a1b",
+  "affected": {
+    "maint": 2117,
+    "relation": 2117,
+    "local": 2117
+  },
+  "authorization": {
+    "decisionIdentity": "canonical-item-image-provenance-patch-20260821-admin-05",
+    "packetHash": "sha256:a2a0f02d5c67af9bcce31a71455d0f1ca36482d4a491af355fb40f97324a8c27"
+  },
+  "completedAt": "2026-08-21T04:52:10.479Z"
+}

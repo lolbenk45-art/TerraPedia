@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-bosses-first-l1",
+  "domainId": "bosses",
+  "runId": "bosses_l1_20260829_serial03",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run bosses 03",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-bosses-serial03",
+  "decisionIdentity": "eight-domain-l1-bosses-serial03",
+  "authorizedAt": "2026-08-29T01:28:00.000Z",
+  "expiresAt": "2026-08-29T03:28:00.000Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:c86505462e51860225edc05bdf7a9908f6434118cc89665734931a1d7d3e8675"
+}

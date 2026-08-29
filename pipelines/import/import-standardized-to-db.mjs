@@ -251,6 +251,30 @@ async function loadCategoryCodeMap(conn) {
   return map;
 }
 
+export async function runBaseItemsImport({ connection, records } = {}) {
+  if (!connection || typeof connection.query !== 'function' || typeof connection.execute !== 'function') {
+    throw new TypeError('base Item import requires a MySQL connection');
+  }
+  if (!Array.isArray(records)) {
+    throw new TypeError('base Item import requires standardized Item records');
+  }
+
+  const categoryByCode = await loadCategoryCodeMap(connection);
+  const requiredCategoryCodes = new Set(records
+    .map((record) => resolveItemCategoryCode(record?.categoryCode, record))
+    .filter(Boolean));
+  const missingCategoryCodes = [...requiredCategoryCodes]
+    .filter((code) => !categoryByCode.has(code))
+    .sort();
+  if (missingCategoryCodes.length > 0) {
+    throw new Error(`missing active Item categories: ${missingCategoryCodes.join(', ')}`);
+  }
+
+  const items = makeStatsSection();
+  await importItems(connection, records, categoryByCode, items);
+  return { items };
+}
+
 async function ensureTopLevelCategory(conn, code, name, sortOrder) {
   const [result] = await conn.execute(
     `INSERT INTO category (parent_id, name, code, top_type, sort, status, deleted)

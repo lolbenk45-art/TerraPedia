@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_projection_image_origin_normalization_result",
+  "operationId": "canonical-biome-image-origin-normalization",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "affectedRows": 40,
+  "scopeSha256": "sha256:48e5b339c6a5332b2e7e07bb802818dd705a9fc2249415028911c18bee9d88af",
+  "afterRowsSha256": "sha256:47d1c54ca89a8b453b368f1acf77d6275d33ec8878277a1b0e61a7c0c152c340",
+  "authorization": {
+    "decisionIdentity": "canonical-biome-image-origin-normalization-20260824-owner-12",
+    "packetHash": "sha256:3aecabece73292de89f7c7a2e3dba4174b2a8e1dd824b7d31aa43e1c95cb160d"
+  },
+  "completedAt": "2026-08-24T04:17:11.447Z"
+}

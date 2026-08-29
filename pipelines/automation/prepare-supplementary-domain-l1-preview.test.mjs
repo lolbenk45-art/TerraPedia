@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,6 +9,7 @@ import {
   buildDomainSourceCommand,
   connectionOptions,
   DOMAIN_PREVIEW_CONFIG,
+  loadReusableCurrentSourceSnapshot,
   prepareSupplementaryDomainL1Preview,
   resolveSupplementaryPreviewExecutionMode,
   runDomainSource,
@@ -183,6 +185,52 @@ test('local automatic shimmer preview reuses the current generation without lega
   assert.deepEqual(result, { sourcePayload: proposal.inputContract, proposal });
 });
 
+test('local source reuse takes its stable Shimmer identity from the canonical manifest without a remote probe', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-local-source-snapshot-'));
+  const manifestPath = path.join(repoRoot, 'data', 'generated', 'wiki-source-manifest.latest.json');
+  const snapshotHash = 'c'.repeat(64);
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify({
+    records: [{
+      contentHash: snapshotHash,
+      entityFamily: 'shimmer',
+      lang: 'en',
+      lastFetchedAt: '2026-08-15T10:21:43.767Z',
+      lastParsedAt: '2026-08-15T10:21:43.767Z',
+      localPath: 'reports/authorization/canonical/automation-shimmer-first-l1.bundle.json',
+      pageTitle: '微光',
+      requestedPageTitle: '微光',
+      sourceKey: 'wiki.shimmer.page_and_langlinks',
+      sourceKind: 'page_and_langlinks',
+      status: 'ok',
+    }],
+  }), 'utf8');
+
+  const snapshot = loadReusableCurrentSourceSnapshot({ domainId: 'shimmer', repoRoot, manifestPath });
+  let probeCalls = 0;
+  const result = await prepareSupplementaryDomainL1Preview({
+    domainId: 'shimmer',
+    repoRoot,
+    generatedAt: '2026-08-17T00:00:00.000Z',
+    runId: 'shimmer_l1_20260817_01',
+    deferSourceAcknowledgement: true,
+    reuseCurrentSourceSnapshot: snapshot,
+  }, {
+    probeSource: async () => { probeCalls += 1; throw new Error('local source reuse must not probe remotely'); },
+    runSource: async () => ({ sourcePayload: { records: [] } }),
+    loadPolicyContext: async () => ({
+      policy: { domainId: 'shimmer', level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH('a'), policySetHash: HASH('b') },
+      baseline: { environmentId: 'local', generations: DOMAIN_PREVIEW_CONFIG.shimmer.ownedTables.map((scope) => ({ ...scope, generation: 0 })), projectionHash: HASH('c') },
+    }),
+    buildImportPlan: async () => ({ records: [] }),
+  });
+
+  assert.equal(probeCalls, 0);
+  assert.deepEqual(result.stableSourceSnapshot, snapshot);
+  assert.equal(result.sourceAcknowledged, false);
+  assert.equal(result.sourceAcknowledgementReason, 'local_source_reused');
+});
+
 for (const domainId of ['audio', 'bosses', 'shimmer']) {
   test(`prepares a monitor-visible frozen ${domainId} L1 preview`, async () => {
     const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), `supplementary-${domainId}-`));
@@ -227,6 +275,10 @@ for (const domainId of ['audio', 'bosses', 'shimmer']) {
     assert.equal(result.bundle.approvalMode, 'APPROVED_OWNER_L1');
     assert.equal(fs.existsSync(result.sourcePath), true);
     assert.equal(fs.existsSync(result.bundlePath), true);
+    assert.equal(
+      result.bundle.source.sha256,
+      `sha256:${createHash('sha256').update(fs.readFileSync(result.sourcePath)).digest('hex')}`,
+    );
   });
 }
 

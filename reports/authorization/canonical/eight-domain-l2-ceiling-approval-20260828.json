@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "eight-domain-l2-ceiling-owner-approval",
+  "status": "approved",
+  "actor": "admin",
+  "approvalReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "approvedAt": "2026-08-28T00:09:31.941Z",
+  "targetPolicyVersion": 2,
+  "domains": [
+    "items",
+    "npcs",
+    "projectiles",
+    "armor_sets",
+    "buffs",
+    "audio",
+    "bosses",
+    "shimmer"
+  ],
+  "ceiling": {
+    "schemaVersion": 1,
+    "level": "L2",
+    "ratioInsertCap": 0.1,
+    "ratioUpdateCap": 0.1,
+    "ratioRelationshipDeleteCap": 0.05,
+    "ratioDisableCap": 0.005,
+    "absoluteInsertCap": 500,
+    "absoluteUpdateCap": 500,
+    "absoluteRelationshipDeleteCap": 200,
+    "absoluteDisableCap": 20,
+    "requireSnapshot": true,
+    "sourceFreshnessMaxAgeMinutes": 60,
+    "anomalyAction": "CIRCUIT_OPEN"
+  },
+  "sharedNpcScope": {
+    "npcs": "sha256:694a8d7bb81ab810737b5fc36b6815db4a5a849f5bc2a37c14bc8edd2295a09d",
+    "bosses": "sha256:8cfb6b96594928d4f7cc89b3edafbb2575cb063d689357e087ced1717117f842"
+  },
+  "database": {
+    "name": "terria_v1_local",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    },
+    "serverFingerprintHash": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7"
+  },
+  "boundary": {
+    "threeCommittedL1Runs": true,
+    "fullReconciliation": true,
+    "independentSchedulerDecision": true
+  }
+}

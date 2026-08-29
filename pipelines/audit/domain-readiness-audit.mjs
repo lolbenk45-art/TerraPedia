@@ -11,13 +11,16 @@ import { resolveSharedDataRoot } from '../lib/project-root.mjs';
 import {
   assertRepositoryOrdinaryDirectory,
   assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
 import { verifyShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 import {
   CANONICAL_SHIMMER_IMPORT_RESULT_PATH,
   CANONICAL_SHIMMER_IMPORT_OPERATION_ID,
   SHIMMER_IMPORT_PROVIDER_SCOPE,
+  assertCanonicalShimmerImportInputContract,
 } from '../automation/canonical-shimmer-import-input-contract.mjs';
+import { validateSupplementaryL1Bundle } from '../automation/supplementary-domain-l1-contract.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -132,7 +135,7 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'image-readiness',
       evidence: [
         requiredJson('data/standardized/items.standardized.json'),
-        optionalLatestJson('reports/workflow-image-sync*.json'),
+        optionalLatestJson('reports/authorization/canonical/item-image-projection-apply/*/result.json'),
         optionalText('services/catalog-api/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java'),
       ],
     },
@@ -569,15 +572,16 @@ export function buildDomainReadinessReport({
   };
 }
 
-export function resolveDomainReportPath({ domainId, panel, generatedAt = new Date().toISOString() } = {}) {
+export function resolveDomainReportPath({ domainId, panel, generatedAt = new Date().toISOString(), outputRoot = null } = {}) {
   const normalizedPanel = normalizePanel(panel);
+  const root = outputRoot == null ? 'reports/domain' : normalizePath(outputRoot).replace(/\/+$/, '');
   if (normalizedPanel === 'b1ExemptionCompliance') {
     const dateKey = isoDateKey(generatedAt);
-    return normalizePath(path.posix.join('reports/domain', domainId, `b1-exemption-compliance-${dateKey}.json`));
+    return normalizePath(path.posix.join(root, domainId, `b1-exemption-compliance-${dateKey}.json`));
   }
   const panelConfig = resolvePanelConfig(domainId, normalizedPanel);
   const dateKey = isoDateKey(generatedAt);
-  return normalizePath(path.posix.join('reports/domain', domainId, `${panelConfig.fileKey}-${dateKey}.json`));
+  return normalizePath(path.posix.join(root, domainId, `${panelConfig.fileKey}-${dateKey}.json`));
 }
 
 function summarizeChecks(checks) {
@@ -749,8 +753,10 @@ function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId,
   if (domainId === 'bosses' && panelId === 'sourceReadiness' && pathKey === 'data/generated/wiki-bosses.latest.json') {
     return bossSourceSemantics(payload, reportPath);
   }
-  if (domainId === 'items' && panelId === 'imageReadiness' && pathKey === 'reports/workflow-image-sync*.json') {
-    return imageSyncReportSemantics(payload, reportPath, 'items');
+  if (domainId === 'items'
+      && panelId === 'imageReadiness'
+      && pathKey === 'reports/authorization/canonical/item-image-projection-apply/*/result.json') {
+    return itemImageProjectionResultSemantics({ repoRoot, payload, reportPath });
   }
   if (domainId === 'bosses' && panelId === 'sourceReadiness' && pathKey === 'reports/wiki-bosses-import*.json') {
     return bossImportSemantics(payload, reportPath);
@@ -1151,9 +1157,105 @@ function shimmerDbImportSemantics({ repoRoot, payload, reportPath }) {
     assertShimmerResultMatchesGeneration({ payload, verified, blocking });
   }
 
+  if (blocking.length > 0 && verified != null) {
+    const automation = shimmerAutomationL1Semantics({ repoRoot, verified });
+    if (automation.status === 'pass') return automation;
+    blocking.push(automation.message);
+  }
+
   return semanticResult({
     reportPath,
     cleanMessage: `Shimmer import binds the current verified generation and completed private result in ${reportPath}`,
+    blocking,
+  });
+}
+
+function shimmerAutomationL1Semantics({ repoRoot, verified }) {
+  const sourcePath = 'reports/authorization/canonical/automation-shimmer-first-l1.source.json';
+  const bundlePath = 'reports/authorization/canonical/automation-shimmer-first-l1.bundle.json';
+  const resultPath = 'reports/authorization/canonical/automation-shimmer-first-l1.result.json';
+  const blocking = [];
+  let source = null;
+  let bundle = null;
+  let result = null;
+
+  for (const [label, relativePath, assign] of [
+    ['source', sourcePath, (value) => { source = value; }],
+    ['bundle', bundlePath, (value) => { bundle = value; }],
+    ['result', resultPath, (value) => { result = value; }],
+  ]) {
+    if (!isPrivateOrdinaryEvidenceFile({ repoRoot, relativePath })) {
+      blocking.push(`automation Shimmer ${label} must be a private ordinary file`);
+      continue;
+    }
+    try {
+      assign(JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')));
+    } catch (error) {
+      blocking.push(`automation Shimmer ${label} is unreadable: ${error.message}`);
+    }
+  }
+
+  if (source != null) {
+    try {
+      assertCanonicalShimmerImportInputContract(source);
+      const expectedManifestPath = `data/generated/shimmer/generations/${verified.manifest.generationId}/wiki-shimmer-manifest.json`;
+      if (source.generationId !== verified.manifest.generationId
+          || source.manifestPath !== expectedManifestPath
+          || source.manifestSha256 !== verified.manifest.manifestSha256
+          || source.dataBundleSha256 !== verified.manifest.dataBundleSha256) {
+        blocking.push('automation Shimmer source does not bind the current verified generation');
+      }
+    } catch (error) {
+      blocking.push(`automation Shimmer source contract is invalid: ${error.message}`);
+    }
+  }
+
+  if (bundle != null) {
+    try {
+      validateSupplementaryL1Bundle(bundle);
+      if (bundle.operationId !== 'automation-shimmer-first-l1'
+          || bundle.domainId !== 'shimmer'
+          || bundle.source?.path !== sourcePath
+          || bundle.source?.sha256 !== hashJsonBytes(source)
+          || bundle.importPlan?.previewSha256 !== source?.previewSha256
+          || bundle.importPlan?.targetFingerprintSha256 !== source?.targetFingerprintSha256) {
+        blocking.push('automation Shimmer bundle does not bind the current source contract');
+      }
+    } catch (error) {
+      blocking.push(`automation Shimmer bundle is invalid: ${error.message}`);
+    }
+  }
+
+  if (result != null) {
+    const resultKeys = Object.keys(result).sort();
+    const allowedResultKeys = [
+      'bundleHash',
+      'completedAt',
+      'domainId',
+      'importSummary',
+      'operationId',
+      'policySetHash',
+      'runId',
+      'schemaVersion',
+      'status',
+    ];
+    if (result.schemaVersion !== 1
+        || !allowedResultKeys.every((key) => key === 'importSummary' || resultKeys.includes(key))
+        || resultKeys.some((key) => !allowedResultKeys.includes(key))
+        || result.operationId !== 'automation-shimmer-first-l1'
+        || result.domainId !== 'shimmer'
+        || result.status !== 'completed'
+        || !isTimestamp(result.completedAt)
+        || result.runId !== bundle?.runId
+        || result.bundleHash !== bundle?.bundleHash
+        || result.policySetHash !== bundle?.policy?.policySetHash) {
+      blocking.push('automation Shimmer result does not bind one completed current bundle');
+    }
+  }
+
+  return semanticResult({
+    reportPath: resultPath,
+    cleanMessage: `Shimmer automation L1 binds the current verified generation and completed governed result in ${resultPath}`,
     blocking,
   });
 }
@@ -1544,6 +1646,10 @@ function hashCanonical(value) {
   return `sha256:${crypto.createHash('sha256').update(JSON.stringify(stableValue(value)), 'utf8').digest('hex')}`;
 }
 
+function hashJsonBytes(value) {
+  return `sha256:${crypto.createHash('sha256').update(JSON.stringify(value), 'utf8').digest('hex')}`;
+}
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (value && typeof value === 'object') {
@@ -1882,6 +1988,108 @@ function imageSyncReportSemantics(payload, reportPath, scope) {
     cleanMessage: `${scope} image sync semantic gates are clean in ${reportPath}`,
     blocking,
   });
+}
+
+function itemImageProjectionResultSemantics({ repoRoot, payload, reportPath }) {
+  const blocking = [];
+  if (payload?.resultKind !== 'canonical_item_image_projection_apply_result') {
+    blocking.push('resultKind is not canonical_item_image_projection_apply_result');
+  }
+  if (payload?.operationId !== 'canonical-item-image-projection-apply') {
+    blocking.push('operationId is not canonical-item-image-projection-apply');
+  }
+  if (payload?.contractVersion !== 'item-image-projection-apply-v1') {
+    blocking.push('contractVersion is not item-image-projection-apply-v1');
+  }
+  if (payload?.status !== 'completed' || payload?.apply !== true) {
+    blocking.push('governed Item image projection result is not a completed apply');
+  }
+  if (!isTimestamp(payload?.completedAt)) {
+    blocking.push('completedAt is missing or invalid');
+  }
+  if (!Number.isInteger(payload?.targetRowCount) || payload.targetRowCount <= 0) {
+    blocking.push('targetRowCount is missing or invalid');
+  }
+  if (!Number.isInteger(payload?.changedRowCount)
+      || payload.changedRowCount < 0
+      || payload.changedRowCount > payload.targetRowCount) {
+    blocking.push('changedRowCount is missing or invalid');
+  }
+  if (!isSha256(payload?.keySetSha256)
+      || !isSha256(payload?.relationRowsSha256)
+      || !isSha256(payload?.projectionBeforeSha256)
+      || !isSha256(payload?.projectionAfterSha256)) {
+    blocking.push('row-set hashes are missing or invalid');
+  }
+  if (payload?.changedRowCount === 0
+      && payload?.projectionBeforeSha256 !== payload?.projectionAfterSha256) {
+    blocking.push('zero-change result has different before and after projection hashes');
+  }
+
+  const resultRoot = path.posix.dirname(normalizePath(reportPath));
+  for (const [label, artifactPath, artifactHash] of [
+    ['input contract', payload?.inputContractPath, payload?.inputContractSha256],
+    ['proposal', payload?.proposalPath, payload?.proposalSha256],
+    ['snapshot', payload?.snapshotPath, payload?.snapshotSha256],
+  ]) {
+    if (!normalizePath(artifactPath).startsWith(`${resultRoot}/`)) {
+      blocking.push(`${label} path is outside the governed attempt root`);
+    }
+    if (!artifactHashMatches(repoRoot, artifactPath, artifactHash)) {
+      blocking.push(`${label} bytes do not match the result hash`);
+    }
+  }
+
+  const policy = payload?.managedUrlPolicy ?? {};
+  if (policy.sourcePath !== 'pipelines/relation/managed-image-url-policy.mjs'
+      || !artifactHashMatches(repoRoot, policy.sourcePath, policy.sourceSha256)
+      || !isSha256(policy.resolvedPrefixesSha256)) {
+    blocking.push('managed image policy binding is missing or drifted');
+  }
+
+  const target = payload?.target ?? {};
+  if (target.host !== '127.0.0.1'
+      || target.databases?.local !== 'terria_v1_local'
+      || target.databases?.maint !== 'terria_v1_maint'
+      || target.databases?.relation !== 'terria_v1_relation'
+      || target.ownedDatabase !== 'terria_v1_relation'
+      || target.ownedTable !== 'projection_items'
+      || target.ownedColumn !== 'image'
+      || !isSha256(target.fingerprintSha256)) {
+    blocking.push('governed Item image projection target is invalid');
+  }
+
+  const lineage = payload?.lineage ?? {};
+  if (lineage.kind !== 'origin-repair-bound'
+      || lineage.originRepairOperationId !== 'canonical-item-image-origin-repair'
+      || lineage.originRepairStatus !== 'COMPLETED'
+      || lineage.externalRequests !== false
+      || lineage.freshnessUpdates !== false
+      || lineage.completedRowCount !== payload?.targetRowCount
+      || !isSha256(lineage.originRepairScopeHash)
+      || !artifactHashMatches(repoRoot, lineage.originRepairResultPath, lineage.originRepairResultSha256)) {
+    blocking.push('origin-repair lineage binding is missing or drifted');
+  }
+
+  return semanticResult({
+    reportPath,
+    cleanMessage: `Item image projection governance evidence is clean in ${reportPath}`,
+    blocking,
+  });
+}
+
+function artifactHashMatches(repoRoot, artifactPath, artifactHash) {
+  if (!artifactPath || !isSha256(artifactHash)) return false;
+  try {
+    const root = path.resolve(repoRoot);
+    const fullPath = path.resolve(root, artifactPath);
+    if (!fullPath.startsWith(`${root}${path.sep}`)) return false;
+    assertRepositoryOrdinaryFile({ repoRoot: root, filePath: fullPath, label: 'bound evidence artifact' });
+    const actual = `sha256:${crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex')}`;
+    return actual === artifactHash;
+  } catch {
+    return false;
+  }
 }
 
 function bossImportSemantics(payload, reportPath) {
@@ -2518,44 +2726,39 @@ function resolveStaticEvidence(repoRoot, relativePath, type) {
 }
 
 function findLatestReport(repoRoot, reportPattern) {
-  const parsed = parseReportPattern(reportPattern);
-  if (!parsed) {
-    return null;
-  }
-  const dir = path.join(repoRoot, parsed.dir);
-  if (!fs.existsSync(dir)) {
-    return null;
-  }
-  const candidates = fs.readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .filter((entry) => entry.name.startsWith(parsed.prefix) && entry.name.endsWith(parsed.suffix))
-    .map((entry) => {
-      const relativePath = normalizePath(path.join(parsed.dir, entry.name));
-      const fullPath = path.join(repoRoot, relativePath);
-      const stat = fs.statSync(fullPath);
-      return {
-        fullPath,
-        relativePath,
-        fileName: entry.name,
-        mtimeMs: stat.mtimeMs,
-      };
-    });
+  const normalizedPattern = normalizePath(reportPattern);
+  const wildcardIndex = normalizedPattern.indexOf('*');
+  if (wildcardIndex < 0 || normalizedPattern.includes(':') || normalizedPattern.includes('..')) return null;
+  const searchRootRelative = path.posix.dirname(normalizedPattern.slice(0, wildcardIndex));
+  const searchRoot = path.resolve(repoRoot, searchRootRelative);
+  const root = path.resolve(repoRoot);
+  if (!searchRoot.startsWith(`${root}${path.sep}`) || !fs.existsSync(searchRoot)) return null;
+  const matcher = new RegExp(`^${escapeRegExp(normalizedPattern).replaceAll('\\*', '[^/]*')}$`);
+  const candidates = collectReportCandidates({ root, directory: searchRoot, matcher });
   candidates.sort(compareReportCandidates);
   return candidates[0] ?? null;
 }
 
-function parseReportPattern(reportPattern = '') {
-  const pattern = normalizePath(reportPattern);
-  if (!pattern.includes('*') || pattern.includes(':')) {
-    return null;
+function collectReportCandidates({ root, directory, matcher }) {
+  const candidates = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      candidates.push(...collectReportCandidates({ root, directory: fullPath, matcher }));
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const relativePath = normalizePath(path.relative(root, fullPath));
+    if (!matcher.test(relativePath)) continue;
+    const stat = fs.statSync(fullPath);
+    candidates.push({ fullPath, relativePath, fileName: entry.name, mtimeMs: stat.mtimeMs });
   }
-  const dir = path.posix.dirname(pattern);
-  const filePattern = path.posix.basename(pattern);
-  const [prefix, suffix] = filePattern.split('*');
-  if (prefix === undefined || suffix === undefined) {
-    return null;
-  }
-  return { dir, prefix, suffix };
+  return candidates;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[|\\{}()[\]^$+?.*]/g, '\\$&');
 }
 
 function compareReportCandidates(left, right) {
@@ -2676,10 +2879,10 @@ function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const generatedAt = args['generated-at'] ?? new Date().toISOString();
   const reportPath = args.output === 'default'
-    ? resolveDomainReportPath({ domainId: args.domain, panel: args.panel, generatedAt })
+    ? resolveDomainReportPath({ domainId: args.domain, panel: args.panel, generatedAt, outputRoot: args['output-root'] ?? null })
     : args.output ?? null;
   if (reportPath) {
-    assertDomainOutputPath(args['repo-root'] ?? process.cwd(), reportPath);
+    assertDomainOutputPath(args['repo-root'] ?? process.cwd(), reportPath, args['output-root'] ?? null);
   }
   const report = buildDomainReadinessReport({
     repoRoot: args['repo-root'] ?? process.cwd(),
@@ -2692,14 +2895,37 @@ function main(argv = process.argv.slice(2)) {
   if (reportPath) {
     const fullPath = path.resolve(args['repo-root'] ?? process.cwd(), reportPath);
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    const immutable = args['output-root'] != null;
+    if (immutable && fs.existsSync(fullPath)) {
+      throw new Error(`Immutable domain report already exists: ${reportPath}`);
+    }
+    fs.writeFileSync(
+      fullPath,
+      `${JSON.stringify(report, null, 2)}\n`,
+      immutable ? { encoding: 'utf8', flag: 'wx', mode: 0o600 } : 'utf8',
+    );
   }
 
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
 
-function assertDomainOutputPath(repoRoot, outputPath) {
+function assertDomainOutputPath(repoRoot, outputPath, outputRoot = null) {
   const normalized = normalizePath(outputPath);
+  if (outputRoot != null) {
+    const normalizedRoot = normalizePath(outputRoot).replace(/\/+$/, '');
+    if (!/^reports\/runtime\/local-data-chain-closure\/\d{8}\/l2-readiness\/[A-Za-z0-9._-]+\/domain$/.test(normalizedRoot)
+      || !normalized.startsWith(`${normalizedRoot}/`)
+      || normalized.includes('..') || normalized.includes(':')) {
+      throw new Error(`Invalid immutable domain report output path: ${outputPath}`);
+    }
+    assertRepositoryPathConfinement({
+      repoRoot,
+      filePath: path.resolve(repoRoot, outputPath),
+      label: 'immutable domain report',
+      createParent: true,
+    });
+    return;
+  }
   if (!normalized.startsWith('reports/domain/') || normalized.includes('..') || normalized.includes(':')) {
     throw new Error(`Invalid domain readiness output path: ${outputPath}`);
   }

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_projection_image_origin_normalization_result",
+  "operationId": "canonical-projectile-image-origin-normalization",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "affectedRows": 1110,
+  "scopeSha256": "sha256:3b744355ef387f815677c00c83d0e725140a7241ba90f8b0461b525bd24eaa19",
+  "afterRowsSha256": "sha256:d6534859a397f525771d0b016a2ee428f6ae5b3233bd94d1d5c5a4c522e3e85f",
+  "authorization": {
+    "decisionIdentity": "canonical-projectile-image-origin-normalization-20260824-owner-11",
+    "packetHash": "sha256:0c64fc4a743e6bb341a130c954dc5e381377a55a725c4b49ab8068d2fb14d510"
+  },
+  "completedAt": "2026-08-24T04:16:47.401Z"
+}

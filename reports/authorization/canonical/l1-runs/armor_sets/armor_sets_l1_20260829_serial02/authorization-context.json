@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-armor-sets-l1",
+  "domainId": "armor_sets",
+  "runId": "armor_sets_l1_20260829_serial02",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run armor sets 02",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-armor-sets-serial02",
+  "decisionIdentity": "eight-domain-l1-armor-sets-serial02",
+  "authorizedAt": "2026-08-29T01:02:05.047Z",
+  "expiresAt": "2026-08-29T03:02:05.047Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:d3099c419358f3a6bf9a5379a9cff95c8185330081bad2c9c480d8c62d3340b8"
+}

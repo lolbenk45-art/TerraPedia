@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "authorizationKind": "canonical_read_only_proposal_authorization",
+  "operationId": "canonical-item-image-projection-apply",
+  "action": "read-only-proposal",
+  "actor": "admin",
+  "reason": "User-authorized fresh read-only Item image projection proposal after the provenance and two-item repair reruns; no source or local writes.",
+  "authorizationReference": "user://conversation/2026-08-21/continue-remaining-image-task",
+  "decisionIdentity": "canonical-item-image-projection-apply-20260821-admin-09",
+  "authorizedAt": "2026-08-21T07:29:16.967Z",
+  "expiresAt": "2026-08-22T07:29:16.967Z",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "noWrite": true,
+  "authorizationHash": "sha256:97bc789f2e36fdd0ee97242666b629025a912b65950cd12211567a481a5008ef"
+}

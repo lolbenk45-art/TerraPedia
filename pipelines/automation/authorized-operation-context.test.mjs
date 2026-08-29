@@ -15,6 +15,7 @@ import {
   assertItemImageProjectionAuthorizationEnvironment,
   consumeAuthorizedOperationDispatchPermit,
   createAuthorizedOperationDispatchPermit,
+  loadAuthorizedOperationServerFingerprint,
   loadAuthorizedOperationContext,
 } from './authorized-operation-context.mjs';
 
@@ -63,6 +64,24 @@ test('authorized child context revalidates a private exact-operation packet', ()
   assert.equal(context.actor, 'system-owner');
   assert.equal(context.packetHash, packet().packetHash);
   assert.equal(context.decisionIdentity, 'decision-l1-promotion');
+});
+
+test('authorized child server fingerprint must match the packet fingerprint hash', () => {
+  const authorized = packet();
+  const fingerprint = {
+    host: '127.0.0.1',
+    port: 3306,
+    serverUuid: 'server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  assert.deepEqual(loadAuthorizedOperationServerFingerprint({
+    authorizedContext: { serverFingerprint: authorized.serverFingerprint },
+    env: { TERRAPEDIA_AUTHORIZED_SERVER_FINGERPRINT: JSON.stringify(fingerprint) },
+  }), fingerprint);
+  assert.throws(() => loadAuthorizedOperationServerFingerprint({
+    authorizedContext: { serverFingerprint: authorized.serverFingerprint },
+    env: { TERRAPEDIA_AUTHORIZED_SERVER_FINGERPRINT: JSON.stringify({ ...fingerprint, serverUuid: 'other' }) },
+  }), /fingerprint.*drift|fingerprint.*hash/i);
 });
 
 test('authorized child context rejects wrong operations and readable packet files', () => {

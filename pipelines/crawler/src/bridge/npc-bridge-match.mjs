@@ -18,6 +18,11 @@ export function matchNpcBridgeRecords({
 } = {}) {
   const records = Array.isArray(standardizedRecords) ? standardizedRecords : [];
   const crawler = crawlerRecord ?? {};
+  const groupMemberMatch = matchExpandedGroupMember(crawler, records);
+  if (groupMemberMatch) {
+    return groupMemberMatch;
+  }
+
   const scopedAutoIds = collectScopedAutoIds([
     ...(Array.isArray(crawler.sourceInfoboxes) ? crawler.sourceInfoboxes.map((sourceInfobox) => ({ sourceInfobox })) : []),
     ...(Array.isArray(crawler.buffInflictions) ? crawler.buffInflictions : []),
@@ -75,6 +80,19 @@ export function matchNpcBridgeRecords({
   }
 
   return { records: [], reason: 'unmatched' };
+}
+
+function matchExpandedGroupMember(crawler, records) {
+  const member = crawler?.groupMember;
+  if (!member) return null;
+
+  const memberName = normalizeKey(member.name ?? crawler?.display?.name);
+  if (!memberName) return null;
+
+  const matches = records.filter((record) => normalizeKey(record?.name) === memberName);
+  if (matches.length !== 1) return null;
+
+  return { records: matches, reason: 'groupMemberName' };
 }
 
 function normalizeInternalNameCandidate(value) {

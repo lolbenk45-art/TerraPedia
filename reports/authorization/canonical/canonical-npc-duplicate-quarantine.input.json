@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": 2,
+  "operationId": "canonical-npc-duplicate-quarantine",
+  "scopeKind": "exact_row_scope",
+  "disposition": {
+    "status": 0,
+    "deleted": 1,
+    "reason": "crawler duplicate loses to generated bundle source precedence"
+  },
+  "targetDatabases": [
+    "terria_v1_maint",
+    "terria_v1_relation",
+    "terria_v1_local"
+  ],
+  "policy": {
+    "sourcePrecedence": "generated.npc_item_relations_bundle",
+    "crawlerRows": "evidence_only_until_full_canonical_coverage",
+    "mutation": "soft_disable_status_0_deleted_1",
+    "networkAccess": false
+  },
+  "expectedCounts": {
+    "facts": 2,
+    "details": 2,
+    "relations": 2,
+    "local": 2,
+    "survivors": 4
+  },
+  "targets": [
+    {
+      "npcInternalName": "Clothier",
+      "sourceRefName": "Clothier",
+      "itemInternalName": "RedHat",
+      "relationId": 1543,
+      "relationRecordKey": "2de6c59ea52b6cd3380b0cc3b404208953fc326e920693a98301283f7e8b8b96",
+      "sourceFactKey": "e720bb7f8977bcdbf38418040d2dc254298ad642c3f5d4926e13cd2f6300f745",
+      "sourceDetailRecordKey": "9a8b6c41e1dc8e2fefdf98260a8257158764a92de8a8e191444aa2732d458751",
+      "localId": 83287,
+      "npcId": 54,
+      "itemId": 260,
+      "quantityText": "1",
+      "chanceText": "100%",
+      "sourceMaint": {
+        "table": "maint_npc_crawler_facts",
+        "recordKey": "3989a1d5fbce08ea9987fba5cc0601361385e5dbf7e6caa71e518906250c3492",
+        "id": 9,
+        "reviewStatus": "accepted",
+        "status": 1,
+        "deleted": 0
+      },
+      "survivor": {
+        "relationId": 623,
+        "relationRecordKey": "124b08108b69fc23b851c06523a6becba5643c6c55be4a9f6302ad81fd6337af",
+        "localId": 82367,
+        "sourceFactKey": "1f07eaa6f49e598e7d6263430dfe1e5d1238c9aecbb2ec5479494a3813be6fe2",
+        "npcInternalName": "Clothier",
+        "itemInternalName": "RedHat",
+        "quantityText": "1",
+        "chanceText": "100%",
+        "status": 1,
+        "deleted": 0
+      }
+    },
+    {
+      "npcInternalName": "DyeTrader",
+      "sourceRefName": "Dye Trader",
+      "itemInternalName": "DyeTradersScimitar",
+      "relationId": 1544,
+      "relationRecordKey": "24650c564df12078cc4ce95fe69f7bd1320b4d82a52f56fe1b0e3c5899f7da40",
+      "sourceFactKey": "9224f82ec1182547a5d9bbb93517048d7ac4bd18fe14cbb7123e717191062535",
+      "sourceDetailRecordKey": "89507114447aafebcd4b82fa61890447b27063b57b75dcfbd9ce3ce681e3e71f",
+      "localId": 83288,
+      "npcId": 207,
+      "itemId": 3349,
+      "quantityText": null,
+      "chanceText": "12.5%",
+      "sourceMaint": {
+        "table": "maint_npc_crawler_facts",
+        "recordKey": "284bea8d0413688c64e985f3801be6f5b86b58576cbff8990afff7f4792cb8b0",
+        "id": 15,
+        "reviewStatus": "accepted",
+        "status": 1,
+        "deleted": 0
+      },
+      "survivor": {
+        "relationId": 755,
+        "relationRecordKey": "f722ead782072ecfacef0dec6c730215b24643929e89c3820e737bf581b49fe7",
+        "localId": 82499,
+        "sourceFactKey": "4109a83427446eb4fe75c305f872099b3ee28fe44d59514ca5ef75f4d163f03a",
+        "npcInternalName": "DyeTrader",
+        "itemInternalName": "DyeTradersScimitar",
+        "quantityText": null,
+        "chanceText": "12.5%",
+        "status": 1,
+        "deleted": 0
+      }
+    }
+  ],
+  "scopeSha256": "sha256:e5e77d53ccd341750a7527014f8b356a4071313e5469fd3e1edef91d6d628740"
+}

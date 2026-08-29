@@ -1,0 +1,13 @@
+{
+  "actionId": "buff-page-immunity-refresh",
+  "generatedAt": "2026-08-29T01:03:20.334Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/buffs/buffs_l1_20260829_serial01/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T01:03:20.334Z",
+  "message": "frozen buffs source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T01:03:20.334Z",
+  "total": 1
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-audio-first-l1",
+  "runId": "audio_l1_20260829_serial02",
+  "domainId": "audio",
+  "databaseName": "terria_v1_local",
+  "generatedAt": "2026-08-29T01:09:22.887Z",
+  "approvalMode": "APPROVED_OWNER_L1",
+  "executionMode": "MANUAL_OWNER_L1",
+  "policy": {
+    "domainId": "audio",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "baseline": {
+    "environmentId": "local",
+    "generations": [
+      {
+        "databaseRole": "local",
+        "table": "audio_assets",
+        "generation": 5
+      },
+      {
+        "databaseRole": "local",
+        "table": "audio_asset_links",
+        "generation": 5
+      }
+    ],
+    "projectionHash": "sha256:8b34a6d72c47edbd81833f87d60583c5a0aef2fbeb12ad0abc58cb51320b50a4"
+  },
+  "baselineFingerprint": "sha256:920f5e88d92a25fcc3ec85188a9294eb3bc4a97c071e45e3b387556b53da179a",
+  "source": {
+    "path": "reports/authorization/canonical/l1-runs/audio/audio_l1_20260829_serial02/source.json",
+    "sha256": "sha256:2b2a8765ac9c3bb21f2600a35c6ea003cfe13a582c524bfa39f1988518ad4b62"
+  },
+  "evidenceHash": "sha256:56c0a8a25d4b5f23ef2232145325d6ca0891758ccedd4d4fcfea1dfeb737f84d",
+  "logicalDiffIdentity": {
+    "baselineFingerprint": "sha256:920f5e88d92a25fcc3ec85188a9294eb3bc4a97c071e45e3b387556b53da179a",
+    "ownedTables": [
+      {
+        "databaseRole": "local",
+        "table": "audio_assets"
+      },
+      {
+        "databaseRole": "local",
+        "table": "audio_asset_links"
+      }
+    ],
+    "sourceSha256": "sha256:2b2a8765ac9c3bb21f2600a35c6ea003cfe13a582c524bfa39f1988518ad4b62",
+    "importPlan": {
+      "summary": {
+        "assets": 428
+      }
+    }
+  },
+  "logicalDiffHash": "sha256:de5bb31028a93b1f4d2332d4563a7b3cbf2ac9c36322a8eb3f0c10be6b81715c",
+  "decisionHash": "sha256:aaf51706e4ef8cd57ea1ec7ec4e16986dc6bbe67f863b732ccb97dd816c84848",
+  "ownedTables": [
+    {
+      "databaseRole": "local",
+      "table": "audio_assets"
+    },
+    {
+      "databaseRole": "local",
+      "table": "audio_asset_links"
+    }
+  ],
+  "importPlan": {
+    "summary": {
+      "assets": 428
+    }
+  },
+  "reconciliationInput": {
+    "sourceCoveragePath": "reports/runtime/l1-reconciliation/audio/audio_l1_20260829_serial02/source-coverage.json",
+    "ownedTableReadbackPath": "reports/runtime/l1-reconciliation/audio/audio_l1_20260829_serial02/owned-table-readback.json",
+    "attemptStatePath": "reports/runtime/l1-reconciliation/audio/audio_l1_20260829_serial02/attempt-state.json",
+    "outputPath": "reports/runtime/l1-reconciliation/audio/audio_l1_20260829_serial02/reconciliation-evidence.json"
+  },
+  "bundleHash": "sha256:ae308649b2247530757f5eada234d2b961517583e86ce1db022a2eef971a8976"
+}

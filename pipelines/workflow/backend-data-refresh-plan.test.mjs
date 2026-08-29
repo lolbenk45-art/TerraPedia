@@ -161,6 +161,43 @@ test('buildBackendDataRefreshPlan exposes the manual bounded item image verifier
   ));
 });
 
+test('buildBackendDataRefreshPlan exposes the manual monitor-visible NPC coverage audit', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: 'npc-coverage-audit' });
+
+  assert.equal(plan.actions.length, 1);
+  assert.deepEqual(plan.actions[0], {
+    id: 'npc-coverage-audit',
+    manualOnly: true,
+    runner: 'node',
+    timeoutMs: 20 * 60 * 1000,
+    args: [
+      'pipelines/crawler/src/cli.mjs',
+      'coverage-audit',
+      '--domain=npc'
+    ]
+  });
+});
+
+test('buildBackendDataRefreshPlan exposes a bounded monitor-visible NPC coverage batch', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: 'npc-coverage-batch' });
+
+  assert.equal(plan.actions.length, 1);
+  assert.deepEqual(plan.actions[0], {
+    id: 'npc-coverage-batch',
+    manualOnly: true,
+    runner: 'node',
+    timeoutMs: 20 * 60 * 1000,
+    args: [
+      'pipelines/crawler/src/cli.mjs',
+      'batch',
+      '--domain=npc',
+      '--targets-file=data/wiki-crawler/report/npc/coverage-audit.latest.json',
+      '--limit=25',
+      '--write-files'
+    ]
+  });
+});
+
 test('backend refresh plan keeps check force preview and apply commands distinct', () => {
   const plan = buildBackendDataRefreshPlan({
     steps: [

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_duplicate_relation_retirement_result",
+  "operationId": "canonical-npc-loot-duplicate-relation-retirement",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:612a93c6e77e4700103356f10eeb4de15f2e36b7f4d18b3fa0bad35f3f4e1679",
+  "affected": {
+    "relationRetirements": 1,
+    "projectionChanges": 0,
+    "changedPhysicalRows": 1
+  },
+  "authorization": {
+    "decisionIdentity": "owner-npc-loot-duplicate-relation-retirement-20260825-01",
+    "packetHash": "sha256:f1e35e49f974168ec44376d1371e9271e947157e852bc058acad79f01b86688a"
+  },
+  "readback": {
+    "retiredRelationId": 1551,
+    "activeRetiredRows": 0,
+    "survivorRelationId": 609
+  },
+  "preserved": {
+    "survivorRelation": true,
+    "projection": true,
+    "sourceFacts": true,
+    "sourceDetails": true,
+    "localRows": true
+  },
+  "completedAt": "2026-08-25T06:42:13.136Z"
+}

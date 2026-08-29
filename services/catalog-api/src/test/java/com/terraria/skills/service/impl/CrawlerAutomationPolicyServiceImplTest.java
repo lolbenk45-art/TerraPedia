@@ -56,6 +56,11 @@ class CrawlerAutomationPolicyServiceImplTest {
 
     private static final String POLICY_HASH = sha('a');
     private static final String POLICY_SET_HASH = sha("[{\"domainId\":\"recipes\",\"policyVersion\":1,\"policyHash\":\"" + POLICY_HASH + "\"}]");
+    private static final String ITEMS_L2_POLICY_HASH = sha('i');
+    private static final String SCHEDULER_POLICY_HASH = sha('s');
+    private static final String ITEMS_L2_POLICY_SET_HASH = sha("[{\"domainId\":\"crawler_v2_scheduler\",\"policyVersion\":1,\"policyHash\":\""
+        + SCHEDULER_POLICY_HASH + "\"},{\"domainId\":\"items\",\"policyVersion\":2,\"policyHash\":\""
+        + ITEMS_L2_POLICY_HASH + "\"}]");
     private static final String EVIDENCE_HASH = sha('b');
     private static final String BUNDLE_HASH = sha('c');
     private static final String BASELINE = sha('e');
@@ -85,8 +90,7 @@ class CrawlerAutomationPolicyServiceImplTest {
         when(runMapper.findRunPolicies("run-1")).thenReturn(List.of(new RunPolicyRow("recipes", 1, POLICY_HASH, POLICY_SET_HASH)));
         when(policyMapper.findPolicyState("recipes")).thenReturn(new PolicyState("recipes", 1, POLICY_HASH, "L2", "ACTIVE"));
         when(policyMapper.findCurrentPolicyRows()).thenReturn(List.of(new PolicyRow("recipes", 1, POLICY_HASH)));
-        when(activationDecisionMapper.countSuccessfulL1Applies(
-            "recipes", 1, POLICY_HASH, POLICY_SET_HASH)).thenReturn(2);
+        when(activationDecisionMapper.countSuccessfulL1Applies("recipes", 1)).thenReturn(3);
         when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "recipes"))
             .thenReturn(activationDecision("L2_PROMOTION", POLICY_HASH,
                 LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1)));
@@ -148,8 +152,18 @@ class CrawlerAutomationPolicyServiceImplTest {
 
     @Test
     void oneSuccessfulL1ApplyCannotCreateL2WriteIntent() {
-        when(activationDecisionMapper.countSuccessfulL1Applies(
-            "recipes", 1, POLICY_HASH, POLICY_SET_HASH)).thenReturn(1);
+        when(activationDecisionMapper.countSuccessfulL1Applies("recipes", 1)).thenReturn(1);
+
+        Decision decision = service.evaluate(request("L2", counts(100, 1, 0, 0, 0), false, false, true));
+
+        assertEquals(DecisionType.BLOCKED_L0, decision.type());
+        assertTrue(decision.reasonCodes().contains("L2_REPEATED_L1_EVIDENCE_REQUIRED"));
+        assertFalse(decision.writeIntent());
+    }
+
+    @Test
+    void twoSuccessfulL1AppliesCannotCreateL2WriteIntent() {
+        when(activationDecisionMapper.countSuccessfulL1Applies("recipes", 1)).thenReturn(2);
 
         Decision decision = service.evaluate(request("L2", counts(100, 1, 0, 0, 0), false, false, true));
 
@@ -225,6 +239,39 @@ class CrawlerAutomationPolicyServiceImplTest {
 
         assertTrue(eligibility.eligible());
         assertEquals(List.of(), eligibility.reasonCodes());
+    }
+
+    @Test
+    void schedulerUsesGlobalActivationAndRetainsPrePromotionL1EvidenceAfterL2Promotion() {
+        when(policyMapper.findPolicyState("items"))
+            .thenReturn(new PolicyState("items", 2, ITEMS_L2_POLICY_HASH, "L2", "ACTIVE"));
+        when(policyMapper.findPolicyState("crawler_v2_scheduler"))
+            .thenReturn(new PolicyState("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH, "L1", "ACTIVE"));
+        when(policyMapper.findCurrentPolicyRows()).thenReturn(List.of(
+            new PolicyRow("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH),
+            new PolicyRow("items", 2, ITEMS_L2_POLICY_HASH)
+        ));
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "items"))
+            .thenReturn(new ActivationDecisionRecord(
+                "L2_PROMOTION", "items", 2, ITEMS_L2_POLICY_HASH, ITEMS_L2_POLICY_SET_HASH, 3,
+                "owner", "promoted", "decision://items", "items-promotion", sha('p'),
+                LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1), true
+            ));
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "crawler_v2_scheduler"))
+            .thenReturn(new ActivationDecisionRecord(
+                "SCHEDULER_ACTIVATION", "crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH,
+                ITEMS_L2_POLICY_SET_HASH, 2, "owner", "scheduler", "decision://scheduler",
+                "scheduler-activation", sha('q'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true
+            ));
+        when(activationDecisionMapper.countSuccessfulL1Applies("items", 2)).thenReturn(0);
+
+        AutomationEligibility eligibility = service.schedulerEligibility("items");
+
+        assertTrue(eligibility.eligible(), eligibility.reasonCodes().toString());
+        assertEquals(List.of(), eligibility.reasonCodes());
+        verify(activationDecisionMapper, org.mockito.Mockito.never())
+            .countSuccessfulL1Applies("items", 2);
     }
 
     @Test
@@ -534,7 +581,7 @@ class CrawlerAutomationPolicyServiceImplTest {
         LocalDateTime expiresAt
     ) {
         return new ActivationDecisionRecord(
-            decisionKind, "recipes", 1, policyHash, POLICY_SET_HASH, 2,
+            decisionKind, "recipes", 1, policyHash, POLICY_SET_HASH, 3,
             "owner", "operation-specific reason", "decision://automation/recipes",
             "decision-identity-1", sha('p'), authorizedAt, expiresAt,
             !authorizedAt.isAfter(LocalDateTime.now()) && expiresAt.isAfter(LocalDateTime.now())

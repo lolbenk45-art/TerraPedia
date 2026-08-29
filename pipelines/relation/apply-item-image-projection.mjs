@@ -251,6 +251,23 @@ export async function runItemImageProjectionApply(options = {}, dependencies = {
 }
 
 async function verifyLineageArtifacts({ repoRoot, inputContract, dependencies }) {
+  if (inputContract.lineage.kind === 'origin-repair-bound') {
+    const bytes = await readArtifact({
+      repoRoot,
+      relativePath: inputContract.lineage.originRepairResultPath,
+      expectedSha256: inputContract.lineage.originRepairResultSha256,
+      label: 'origin repair result',
+      dependencies,
+    });
+    const result = parseJson(bytes, 'origin repair result');
+    if (result.operationId !== inputContract.lineage.originRepairOperationId
+        || result.status !== inputContract.lineage.originRepairStatus
+        || result.scopeHash !== inputContract.lineage.originRepairScopeHash
+        || result.externalRequests !== false) {
+      throw new Error('origin repair result identity drifted from projection input');
+    }
+    return;
+  }
   for (const [field, label, privateEvidence] of [
     ['inputContractPath', 'lineage input contract', true],
     ['resultPath', 'lineage result', true],

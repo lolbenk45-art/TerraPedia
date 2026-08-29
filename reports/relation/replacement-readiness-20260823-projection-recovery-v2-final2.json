@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-08-23T06:21:02.782Z",
+  "summary": {
+    "switchableDomains": [
+      "items",
+      "npcs",
+      "bosses",
+      "projectiles",
+      "buffs"
+    ],
+    "blockedDomains": []
+  },
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "switchable",
+      "localRowCount": 6159,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6146,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "HeartArrow",
+        "ValentineRing",
+        "TurkeyFeather",
+        "FestiveTopHat",
+        "Wiesnbrau",
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS"
+      ],
+      "acceptedLocalOnlyExceptionCount": 13,
+      "blockingFields": []
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "switchable",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": []
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "switchable",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": []
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "switchable",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": []
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "switchable",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "acceptedLocalOnlyExceptionCount": 0,
+      "blockingFields": []
+    }
+  }
+}

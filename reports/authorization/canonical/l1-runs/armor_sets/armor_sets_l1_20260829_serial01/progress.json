@@ -1,0 +1,13 @@
+{
+  "actionId": "domain-source-armor-sets",
+  "generatedAt": "2026-08-29T01:01:21.511Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/armor_sets/armor_sets_l1_20260829_serial01/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T01:01:21.511Z",
+  "message": "frozen armor_sets source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T01:01:21.511Z",
+  "total": 1
+}

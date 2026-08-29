@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_projection_image_origin_normalization_result",
+  "operationId": "canonical-item-image-origin-normalization",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "affectedRows": 662,
+  "scopeSha256": "sha256:2819897d7dcebeb6cd85cfc047513819296596263c5d49446d1a51ef583bafb3",
+  "afterRowsSha256": "sha256:c00586fc3694c30e802209e2192b22cbcf0c1d78f0176116fa20fa04ba44a1d6",
+  "authorization": {
+    "decisionIdentity": "canonical-item-image-origin-normalization-20260824-owner-09",
+    "packetHash": "sha256:1c74173e043f9a5ec48ee189a00433a321db0c544471db0c0ddef3868db4c9e5"
+  },
+  "completedAt": "2026-08-24T04:15:47.637Z"
+}

@@ -235,17 +235,7 @@ public class CrawlerQueueV2Configuration {
         if (configuredRepoRoot != null && !configuredRepoRoot.isBlank()) {
             return Path.of(configuredRepoRoot).toAbsolutePath().normalize();
         }
-        Path workingDirectory = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
-        if (Files.isDirectory(workingDirectory.resolve("services/catalog-api"))) {
-            return workingDirectory;
-        }
-        if (Files.isDirectory(workingDirectory.resolve("src").resolve("main"))) {
-            Path parent = workingDirectory.getParent();
-            if (parent != null) {
-                return parent;
-            }
-        }
-        return workingDirectory;
+        return ProjectConstants.discover().repoRoot();
     }
 
     private Path resolveFixtureRoot(String configuredRepoRoot, CrawlerQueueV2Properties properties) {

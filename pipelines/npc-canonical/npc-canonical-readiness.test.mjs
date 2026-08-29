@@ -13,8 +13,10 @@ import {
   NPC_CANONICAL_READINESS_SCHEMA_VERSION,
   buildNpcCanonicalReadinessReport,
   buildNpcCanonicalReadinessSnapshot,
+  loadNpcCanonicalTerminalT2Anchor,
   readNpcBridgeRetirementEvidence,
   readNpcCanonicalReadinessRows,
+  reconcileNpcCanonicalReadinessReport,
   writeNpcCanonicalReadinessReport,
   validateNpcCanonicalReadinessReport,
 } from './npc-canonical-readiness.mjs';
@@ -511,6 +513,265 @@ test('NPC readiness writer publishes formal T2 only from matching terminal evide
   }
 });
 
+test('NPC readiness reconciles a missing private input only from matching terminal T2 evidence', () => {
+  const terminalEvidence = validFixtureEvidence();
+  terminalEvidence.evidenceScope = 'formal-t2';
+  terminalEvidence.databaseRole = 't2-readonly';
+  terminalEvidence.t1Evidence = {
+    rollbackPassed: true,
+    restorePassed: true,
+    cleanupPassed: true,
+    ownerPhaseCompletion: validOwnerPhaseCompletion(),
+  };
+  terminalEvidence.landing.crawlerFacts = {
+    fresh: true,
+    currentCount: 25,
+    normalizedCount: 25,
+    auditCount: 25,
+    snapshotHash: HASH,
+  };
+  terminalEvidence.maint.factCount = 25;
+  terminalEvidence.maint.matchCounts = {
+    MATCHED: 16,
+    UNMATCHED: 0,
+    AMBIGUOUS: 9,
+    REJECTED: 0,
+  };
+  terminalEvidence.cutoverIdentity = {
+    state: 'T2_CUTOVER_VERIFIED',
+    operationId: 'canonical-npc-t2-cutover-verification',
+    runId: 'npc-t2:0123456789abcdef01234567',
+    decisionIdentity: 'canonical-npc-t2-cutover-verification-20260806-admin-02',
+    packetHash: HASH,
+    inputHash: HASH,
+    ownerCompletionHash: HASH,
+    baseCompletionHash: HASH,
+    databaseSnapshotHash: HASH,
+    apiEvidenceHash: HASH,
+    executionManifestHash: HASH,
+    dataBundleSha256: HASH,
+    serverFingerprint: HASH,
+    resultHash: HASH,
+    ownerPhaseCompletion: validOwnerPhaseCompletion(),
+  };
+  attachBaseMaintCompletion(terminalEvidence, terminalEvidence.cutoverIdentity.ownerPhaseCompletion);
+  const terminalReport = buildNpcCanonicalReadinessReport({
+    evidence: terminalEvidence,
+    generatedAt: '2026-08-06T01:00:01.000Z',
+  });
+  const currentSnapshot = validReadOnlySnapshot();
+  const api = {
+    admin: { sampleCount: 1, snapshotHash: HASH, error: null },
+    public: { sampleCount: 1, snapshotHash: HASH, error: null },
+  };
+  const bridgeRetirement = { status: 'pass', referenceCount: 0, snapshotHash: HASH };
+
+  const report = reconcileNpcCanonicalReadinessReport({
+    terminalReport,
+    currentSnapshot,
+    sourceBinding: {
+      inputHash: HASH,
+      producerRunKey: `canonical-npc-landing:${HASH}`,
+      crawlerFactCount: 25,
+      maintSnapshotHash: terminalReport.maint.snapshotHash,
+    },
+    api,
+    bridgeRetirement,
+    generatedAt: '2026-08-24T00:00:00.000Z',
+  });
+
+  assert.equal(report.summary.status, 'pass', report.blockingReasons.join('\n'));
+  assert.equal(report.readinessLevel, 'T2_CUTOVER_VERIFIED');
+  assert.equal(report.generatedAt, '2026-08-24T00:00:00.000Z');
+  assert.equal(report.reconciliation.mode, 'terminal-t2-current-readback');
+  assert.equal(report.reconciliation.databaseWrites, false);
+  assert.equal(report.reconciliation.inputRecreated, false);
+
+  for (const [name, mutate] of [
+    ['input hash drift', (value) => { value.inputHash = `sha256:${'b'.repeat(64)}`; }],
+    ['producer run drift', (value) => { value.producerRunKey = 'canonical-npc-landing:drifted'; }],
+    ['crawler count drift', (value) => { value.crawlerFactCount = 24; }],
+    ['maint snapshot drift', (value) => { value.maintSnapshotHash = `sha256:${'b'.repeat(64)}`; }],
+  ]) {
+    const sourceBinding = {
+      inputHash: HASH,
+      producerRunKey: `canonical-npc-landing:${HASH}`,
+      crawlerFactCount: 25,
+      maintSnapshotHash: terminalReport.maint.snapshotHash,
+    };
+    mutate(sourceBinding);
+    assert.throws(
+      () => reconcileNpcCanonicalReadinessReport({
+        terminalReport,
+        currentSnapshot,
+        sourceBinding,
+        api,
+        bridgeRetirement,
+      }),
+      /reconciliation.*drift/i,
+      name,
+    );
+  }
+});
+
+test('NPC readiness writer falls back to terminal T2 reconciliation when private inputs are absent', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-readiness-reconciliation-'));
+  try {
+    const terminalEvidence = validFixtureEvidence();
+    terminalEvidence.evidenceScope = 'formal-t2';
+    terminalEvidence.databaseRole = 't2-readonly';
+    terminalEvidence.landing.crawlerFacts = {
+      fresh: true,
+      currentCount: 25,
+      normalizedCount: 25,
+      auditCount: 25,
+      snapshotHash: HASH,
+    };
+    terminalEvidence.maint.factCount = 25;
+    terminalEvidence.maint.matchCounts = {
+      MATCHED: 16,
+      UNMATCHED: 0,
+      AMBIGUOUS: 9,
+      REJECTED: 0,
+    };
+    terminalEvidence.t1Evidence = {
+      rollbackPassed: true,
+      restorePassed: true,
+      cleanupPassed: true,
+      ownerPhaseCompletion: validOwnerPhaseCompletion(),
+    };
+    terminalEvidence.cutoverIdentity = {
+      state: 'T2_CUTOVER_VERIFIED',
+      operationId: 'canonical-npc-t2-cutover-verification',
+      runId: 'npc-t2:0123456789abcdef01234567',
+      decisionIdentity: 'canonical-npc-t2-cutover-verification-20260806-admin-02',
+      packetHash: HASH,
+      inputHash: HASH,
+      ownerCompletionHash: HASH,
+      baseCompletionHash: HASH,
+      databaseSnapshotHash: HASH,
+      apiEvidenceHash: HASH,
+      executionManifestHash: HASH,
+      dataBundleSha256: HASH,
+      serverFingerprint: HASH,
+      resultHash: HASH,
+      ownerPhaseCompletion: validOwnerPhaseCompletion(),
+    };
+    attachBaseMaintCompletion(terminalEvidence, terminalEvidence.cutoverIdentity.ownerPhaseCompletion);
+    const terminalReport = buildNpcCanonicalReadinessReport({
+      evidence: terminalEvidence,
+      generatedAt: '2026-08-06T01:00:01.000Z',
+    });
+    const outputPath = 'reports/canonical-migration/canonical-npc-crawler-facts-readiness.json';
+    writeJson(repoRoot, outputPath, {
+      ...terminalReport,
+      relation: {
+        ...terminalReport.relation,
+        npcBuff: { count: 0, snapshotHash: HASH },
+      },
+      summary: { status: 'blocked', blockingCount: 1, warningCount: 0 },
+    });
+
+    const report = await writeNpcCanonicalReadinessReport({
+      repoRoot,
+      outputPath,
+      generatedAt: '2026-08-24T00:00:00.000Z',
+      loadTerminalAnchor: async () => ({
+        report: terminalReport,
+        source: {
+          commit: '0ad73c20d1bb204ebfc9aeb8d63cd039a20f99bf',
+          path: outputPath,
+          blob: 'a3a6e56307aaffba52ba1107013801c93fb0e300',
+          bytesSha256: `sha256:${'d'.repeat(64)}`,
+        },
+      }),
+      loadReconciliationSnapshot: async () => ({
+        currentSnapshot: validReadOnlySnapshot(),
+        sourceBinding: {
+          inputHash: HASH,
+          producerRunKey: `canonical-npc-landing:${HASH}`,
+          crawlerFactCount: 25,
+          maintSnapshotHash: terminalReport.maint.snapshotHash,
+        },
+      }),
+      probeApi: async () => ({
+        admin: { sampleCount: 1, snapshotHash: HASH, error: null },
+        public: { sampleCount: 1, snapshotHash: HASH, error: null },
+      }),
+      loadBridgeRetirement: () => ({
+        status: 'pass', referenceCount: 0, snapshotHash: HASH,
+      }),
+    });
+
+    assert.equal(report.summary.status, 'pass', report.blockingReasons.join('\n'));
+    assert.equal(report.reconciliation.mode, 'terminal-t2-current-readback');
+    assert.equal(report.reconciliation.inputRecreated, false);
+    assert.equal(report.reconciliation.terminalAnchor.commit,
+      '0ad73c20d1bb204ebfc9aeb8d63cd039a20f99bf');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(repoRoot, outputPath), 'utf8')).generatedAt,
+      '2026-08-24T00:00:00.000Z');
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('NPC terminal T2 anchor accepts only the exact immutable Git object bytes', async () => {
+  const terminalEvidence = validFixtureEvidence();
+  terminalEvidence.evidenceScope = 'formal-t2';
+  terminalEvidence.databaseRole = 't2-readonly';
+  terminalEvidence.t1Evidence = {
+    rollbackPassed: true,
+    restorePassed: true,
+    cleanupPassed: true,
+    ownerPhaseCompletion: validOwnerPhaseCompletion(),
+  };
+  terminalEvidence.cutoverIdentity = {
+    state: 'T2_CUTOVER_VERIFIED',
+    operationId: 'canonical-npc-t2-cutover-verification',
+    runId: 'npc-t2:0123456789abcdef01234567',
+    decisionIdentity: 'canonical-npc-t2-cutover-verification-20260806-admin-02',
+    packetHash: HASH,
+    inputHash: HASH,
+    ownerCompletionHash: HASH,
+    baseCompletionHash: HASH,
+    databaseSnapshotHash: HASH,
+    apiEvidenceHash: HASH,
+    executionManifestHash: HASH,
+    dataBundleSha256: HASH,
+    serverFingerprint: HASH,
+    resultHash: HASH,
+    ownerPhaseCompletion: validOwnerPhaseCompletion(),
+  };
+  attachBaseMaintCompletion(terminalEvidence, terminalEvidence.cutoverIdentity.ownerPhaseCompletion);
+  const terminalReport = buildNpcCanonicalReadinessReport({
+    evidence: terminalEvidence,
+    generatedAt: '2026-08-06T01:00:01.000Z',
+  });
+  const bytes = Buffer.from(`${JSON.stringify(terminalReport, null, 2)}\n`);
+  const bytesSha256 = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+
+  const anchor = await loadNpcCanonicalTerminalT2Anchor({
+    repoRoot: '/tmp/repo',
+    expectedBytesSha256: bytesSha256,
+    readGitObject: async ({ repoRoot, object }) => {
+      assert.equal(repoRoot, '/tmp/repo');
+      assert.match(object, /^[a-f0-9]{40}:reports\/canonical-migration\//);
+      return bytes;
+    },
+  });
+
+  assert.equal(anchor.report.summary.status, 'pass');
+  assert.equal(anchor.source.bytesSha256, bytesSha256);
+  await assert.rejects(
+    () => loadNpcCanonicalTerminalT2Anchor({
+      repoRoot: '/tmp/repo',
+      expectedBytesSha256: `sha256:${'e'.repeat(64)}`,
+      readGitObject: async () => bytes,
+    }),
+    /terminal T2 anchor bytes drifted/i,
+  );
+});
+
 test('NPC readiness writer rejects a completion artifact whose bytes no longer reconstruct', async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'npc-readiness-drift-'));
   try {
@@ -557,7 +818,22 @@ test('read-only NPC snapshot binds its runtime sample to the exact local project
         landingContentHash: 'c'.repeat(64),
       }],
       localBaseCount: [{ count: 1 }],
-      maint: [{ recordKey: 'maint-1', normalizedContentHash: 'a'.repeat(64), crawlerAuditHash: 'b'.repeat(64), matchStatus: 'MATCHED' }],
+      maint: [
+        {
+          recordKey: 'maint-1',
+          landingSourceKey: 'wiki.npc.crawler_fact:guide',
+          normalizedContentHash: 'a'.repeat(64),
+          crawlerAuditHash: 'b'.repeat(64),
+          matchStatus: 'MATCHED',
+        },
+        {
+          recordKey: 'maint-local-admission',
+          landingSourceKey: 'local-npc-admission:guide',
+          normalizedContentHash: 'a'.repeat(64),
+          crawlerAuditHash: 'b'.repeat(64),
+          matchStatus: 'MATCHED',
+        },
+      ],
       relationBuff: [{ recordKey: 'buff-1' }],
       relationShop: [{ recordKey: 'shop-1' }],
       relationLoot: [{ recordKey: 'loot-1' }],
@@ -579,6 +855,77 @@ test('read-only NPC snapshot binds its runtime sample to the exact local project
   assert.equal(snapshot.relation.npcBuff.count, 1);
   assert.equal(snapshot.relation.npcShop.count, 1);
   assert.equal(snapshot.relation.npcLoot.count, 1);
+});
+
+test('read-only NPC snapshot excludes Item-source local admission rows from canonical crawler facts', () => {
+  const snapshot = buildNpcCanonicalReadinessSnapshot({
+    inputHash: HASH,
+    input: {
+      evidencePairs: [{ normalizedContentHash: 'a'.repeat(64), auditContentHash: 'b'.repeat(64) }],
+    },
+    rows: {
+      landing: [
+        {
+          id: 10,
+          datasetType: 'npcs_base_raw',
+          sourceKey: 'standardized.npcs',
+          contentHash: 'c'.repeat(64),
+          producerRunKey: `canonical-npc-landing:${HASH}`,
+          artifactRole: 'source_evidence',
+        },
+        {
+          id: 11,
+          datasetType: 'npc_crawler_facts_raw',
+          sourceKey: 'wiki.npc.crawler_fact:guide',
+          producerRunKey: `canonical-npc-landing:${HASH}`,
+          artifactRole: 'source_evidence',
+        },
+        {
+          id: 12,
+          datasetType: 'npc_crawler_facts_raw',
+          sourceKey: 'local-npc-admission:guide',
+          producerRunKey: 'local-npc-admission:guide',
+          artifactRole: 'source_evidence',
+        },
+      ],
+      maintBase: [{
+        sourceId: 1,
+        internalName: 'Guide',
+        landingSourceId: 10,
+        landingSourceKey: 'standardized.npcs',
+        landingContentHash: 'c'.repeat(64),
+      }],
+      localBaseCount: [{ count: 1 }],
+      maint: [
+        {
+          recordKey: 'maint-1',
+          landingSourceKey: 'wiki.npc.crawler_fact:guide',
+          normalizedContentHash: 'a'.repeat(64),
+          crawlerAuditHash: 'b'.repeat(64),
+          matchStatus: 'MATCHED',
+        },
+        {
+          recordKey: 'maint-local-admission',
+          landingSourceKey: 'local-npc-admission:guide',
+          normalizedContentHash: 'a'.repeat(64),
+          crawlerAuditHash: 'b'.repeat(64),
+          matchStatus: 'MATCHED',
+        },
+      ],
+      relationBuff: [],
+      relationShop: [],
+      relationLoot: [],
+      localBuff: [],
+      localShop: [],
+      localLoot: [],
+      runtime: [{ id: 1, internalName: 'Guide' }],
+    },
+  });
+
+  assert.equal(snapshot.landing.crawlerFacts.currentCount, 1);
+  assert.equal(snapshot.landing.crawlerFacts.normalizedCount, 1);
+  assert.equal(snapshot.maint.factCount, 1);
+  assert.equal(snapshot.landing.crawlerFacts.fresh, true);
 });
 
 test('read-only NPC snapshot selects its runtime sample from a local NPC projection lane', async () => {

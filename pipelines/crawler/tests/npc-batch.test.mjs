@@ -78,3 +78,57 @@ test('runNpcBatch loads page titles from a targets file and respects target prio
   ]);
   assert.equal(result.summary.total, 1);
 });
+
+test('runNpcBatch writes terminal monitor progress for an explicit batch and mirrors the canonical path', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-batch-progress-'));
+  const targetsFile = path.join(tempRoot, 'targets.json');
+  const progressPath = path.join(tempRoot, 'attempt', 'progress.json');
+  const canonicalProgressPath = path.join(tempRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+  await fs.writeFile(targetsFile, JSON.stringify({
+    eligibleBatchTargets: [{ pageTitle: 'Merchant', priority: 'p0_town' }]
+  }, null, 2));
+
+  const result = await runNpcBatch({
+    targetsFile,
+    progressPath,
+    canonicalProgressPath,
+    outputRoot: tempRoot
+  }, {
+    runCliImpl: async () => ({
+      normalized: { entityId: 'merchant' },
+      audit: { status: 'pass', reasons: [] }
+    })
+  });
+
+  const explicitProgress = JSON.parse(await fs.readFile(progressPath, 'utf8'));
+  const canonicalProgress = JSON.parse(await fs.readFile(canonicalProgressPath, 'utf8'));
+  assert.equal(result.progressPath, progressPath);
+  assert.equal(explicitProgress.actionId, 'npc-coverage-batch');
+  assert.equal(explicitProgress.status, 'completed');
+  assert.equal(explicitProgress.current, 1);
+  assert.equal(explicitProgress.total, 1);
+  assert.equal(explicitProgress.childStatusPath, progressPath);
+  assert.equal(canonicalProgress.status, 'completed');
+  assert.equal(canonicalProgress.childStatusPath, canonicalProgressPath);
+});
+
+test('runNpcBatch defaults monitor progress to the project canonical path', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-batch-default-progress-'));
+  const targetsFile = path.join(tempRoot, 'targets.json');
+  const defaultProgressPath = path.join(tempRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+  await fs.writeFile(targetsFile, JSON.stringify({ eligibleBatchTargets: [] }, null, 2));
+
+  const result = await runNpcBatch({
+    targetsFile,
+    projectRoot: tempRoot,
+    outputRoot: tempRoot
+  }, {
+    runCliImpl: async () => ({ normalized: { entityId: 'unused' }, audit: { status: 'pass', reasons: [] } })
+  });
+
+  assert.equal(result.progressPath, defaultProgressPath);
+  const progress = JSON.parse(await fs.readFile(defaultProgressPath, 'utf8'));
+  assert.equal(progress.actionId, 'npc-coverage-batch');
+  assert.equal(progress.status, 'completed');
+  assert.equal(progress.childStatusPath, defaultProgressPath);
+});

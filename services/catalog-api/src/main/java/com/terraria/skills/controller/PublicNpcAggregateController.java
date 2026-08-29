@@ -39,33 +39,40 @@ public class PublicNpcAggregateController {
         @PathVariable Long id,
         @RequestParam(defaultValue = "loot,shop,buffs") String include
     ) {
-        NpcDetailDTO npc = publicNpcService.getNpcById(id);
+        NpcDetailDTO npc = publicNpcService.getNpcAggregateBaseById(id);
         if (npc == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(404, "Npc not found"));
         }
 
         Set<String> requestedModules = parseRequestedModules(include);
-        Long resolvedNpcId = npc.getId() != null ? npc.getId() : id;
+        Long segmentNpcId = npc.getId() != null ? npc.getId() : id;
+        Long representativeNpcId = segmentNpcId;
+        if (requestedModules.contains(MODULE_SHOP) || requestedModules.contains(MODULE_BUFFS)) {
+            NpcDetailDTO representative = publicNpcService.getNpcById(id);
+            if (representative != null && representative.getId() != null) {
+                representativeNpcId = representative.getId();
+            }
+        }
         NpcAggregateDTO response = new NpcAggregateDTO();
         response.setNpc(npc);
 
         if (requestedModules.contains(MODULE_LOOT)) {
-            response.setLoot(publicNpcService.getNpcLoot(resolvedNpcId, npc.getGameId(), npc.getName()));
+            response.setLoot(publicNpcService.getNpcLoot(segmentNpcId, npc.getGameId(), npc.getName()));
             response.getModuleStatus().put(MODULE_LOOT, response.getLoot().isEmpty() ? "empty" : "ok");
         } else {
             response.getModuleStatus().put(MODULE_LOOT, "skipped");
         }
 
         if (requestedModules.contains(MODULE_SHOP)) {
-            response.setShopEntries(publicNpcService.getNpcShopEntries(resolvedNpcId));
+            response.setShopEntries(publicNpcService.getNpcShopEntries(representativeNpcId));
             response.getModuleStatus().put(MODULE_SHOP, response.getShopEntries().isEmpty() ? "empty" : "ok");
         } else {
             response.getModuleStatus().put(MODULE_SHOP, "skipped");
         }
 
         if (requestedModules.contains(MODULE_BUFFS)) {
-            response.setBuffRelations(publicNpcService.getNpcBuffRelations(resolvedNpcId));
+            response.setBuffRelations(publicNpcService.getNpcBuffRelations(representativeNpcId));
             response.getModuleStatus().put(MODULE_BUFFS, response.getBuffRelations().isEmpty() ? "empty" : "ok");
         } else {
             response.getModuleStatus().put(MODULE_BUFFS, "skipped");

@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-08-24T08:10:00+08:00",
+  "domainId": "support.recipe",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/support.recipe/source-readiness-2026-08-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 2,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_generated_recipe_material_reference_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/recipe-material-reference.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/generated/recipe-material-reference.json"
+    },
+    {
+      "id": "data_generated_wiki_zh_recipe_pages_latest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/wiki-zh-recipe-pages.latest.json",
+      "latestReportPath": null,
+      "recordCount": 41,
+      "status": "pass",
+      "message": "recipe crawler snapshot semantic gates are clean in data/generated/wiki-zh-recipe-pages.latest.json"
+    },
+    {
+      "id": "reports_canonical_migration_canonical_recipe_formal_verification_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/canonical-migration/canonical-recipe-formal-verification.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Recipe formal read-only verification is clean in reports/canonical-migration/canonical-recipe-formal-verification.json; standalone import=superseded-invalid"
+    }
+  ]
+}

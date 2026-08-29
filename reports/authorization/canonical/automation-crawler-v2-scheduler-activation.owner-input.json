@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized bounded local Shimmer automatic L1 verification; no full Wiki extraction",
+  "authorizationReference": "user://conversation/2026-08-16/shimmer-local-automatic-l1",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260816-01"
+}

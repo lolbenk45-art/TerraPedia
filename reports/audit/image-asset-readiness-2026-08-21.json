@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-08-20T19:47:59.801Z",
+  "reportPath": "/home/lolben/TerraPedia/reports/audit/image-asset-readiness-2026-08-21.json",
+  "status": "missing",
+  "entities": {
+    "items": {
+      "status": "missing",
+      "totalRows": 0,
+      "totalWithImage": 0,
+      "cachedHitCount": 0,
+      "wikiFallbackOnlyCount": 0,
+      "missingImageCount": 0,
+      "brokenCachedUrlCount": 0,
+      "brokenCachedUrlSamples": [],
+      "missingContentTypeCount": 0,
+      "staleLastVerifiedCount": 0,
+      "missingOriginalForCachedCount": 0,
+      "unifiedContractReady": true
+    },
+    "buffs": {
+      "status": "missing",
+      "totalRows": 0,
+      "totalWithImage": 0,
+      "cachedHitCount": 0,
+      "wikiFallbackOnlyCount": 0,
+      "missingImageCount": 0,
+      "brokenCachedUrlCount": 0,
+      "brokenCachedUrlSamples": [],
+      "missingContentTypeCount": 0,
+      "staleLastVerifiedCount": 0,
+      "missingOriginalForCachedCount": 0,
+      "unifiedContractReady": true
+    },
+    "npcs": {
+      "status": "missing",
+      "totalRows": 0,
+      "totalWithImage": 0,
+      "cachedHitCount": 0,
+      "wikiFallbackOnlyCount": 0,
+      "missingImageCount": 0,
+      "brokenCachedUrlCount": 0,
+      "brokenCachedUrlSamples": [],
+      "missingContentTypeCount": 0,
+      "staleLastVerifiedCount": 0,
+      "missingOriginalForCachedCount": 0,
+      "unifiedContractReady": false
+    }
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "items image rows are missing from the audit input",
+    "buffs image rows are missing from the audit input",
+    "npcs image rows are missing from the audit input"
+  ]
+}

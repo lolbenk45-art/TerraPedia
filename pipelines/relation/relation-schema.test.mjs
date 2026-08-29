@@ -43,6 +43,7 @@ const EXPECTED_TABLE_NAMES = [
   'relation_npc_images',
   'relation_projectile_images',
   'relation_buff_images',
+  'relation_biome_images',
   'relation_armor_set_images',
   'category_nodes',
   'item_category_assignments',

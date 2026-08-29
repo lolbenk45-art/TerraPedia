@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized",
+  "reason": "Apply only the exact 2,117-row three-layer Item image provenance patch bound to retry-02; retain cached URLs, source file titles, landing lineage, and the two quarantined identities.",
+  "authorizationReference": "user://conversation/2026-08-20/local-image-provenance-patch-retry-02",
+  "decisionIdentity": "canonical-item-image-provenance-patch-20260820-admin-02"
+}

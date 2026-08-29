@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "status": "pending",
+  "authoritative": false,
+  "operationId": "automation-bosses-l2-policy-ceiling-registration",
+  "domainId": "bosses",
+  "policyVersion": 2,
+  "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+  "policySetHash": "sha256:4e32a134405143cf13c07a4563f0b15f8ab6af03a4f3bc63f91835ed436c4179",
+  "artifactHash": "sha256:b892f29bdfbe7c66eceee26b80a78d23a9e04ae08c872cb1cab2b170e1460dee",
+  "actor": "admin",
+  "reason": "Register user-approved L2 policy ceiling for bosses; do not promote L2 or activate scheduler in this checkpoint.",
+  "authorizationReference": "user://conversation/2026-08-28/eight-domain-default-l2-ceiling",
+  "decisionIdentity": "automation-bosses-l2-policy-ceiling-registration-20260828-owner-01",
+  "packetHash": "sha256:ab826d814dbdfd112d89c199c319454c14d2efab16a5f16ca4274b073f2401b9"
+}

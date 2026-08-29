@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-biome-image-origin-normalization",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/biome-image-origin-normalization.proposal.json",
+  "proposalSha256": "sha256:8b8da96eca2d6a228bc9b550b22bd90d361680f0bf7f9aaf5b41f5df1924d043",
+  "scopeSha256": "sha256:48e5b339c6a5332b2e7e07bb802818dd705a9fc2249415028911c18bee9d88af",
+  "keySetSha256": "sha256:fc3d21e289018f866cf1ea617fcad14158bfe90803102677262f051e7ba71422",
+  "beforeRowsSha256": "sha256:e258c75a6c321b4e7c7c47854e31a57af9d218076fa67a8925631a99fa913d46",
+  "afterRowsSha256": "sha256:47d1c54ca89a8b453b368f1acf77d6275d33ec8878277a1b0e61a7c0c152c340",
+  "expectedChangedRowCount": 40,
+  "expectedAffectedRowCount": 40,
+  "writeTargets": [
+    "relation.projection_biomes.icon_url"
+  ]
+}

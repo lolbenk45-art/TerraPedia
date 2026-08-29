@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const repoRoot = path.resolve(import.meta.dirname, '..', '..')
+const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..')
 const pagePath = 'apps/admin-console/pages/operations/classification-audit.vue'
 const auditSectionKeys = [
   'uncategorizedItems',

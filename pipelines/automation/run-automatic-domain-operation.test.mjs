@@ -53,7 +53,7 @@ test('automatic operation does not acknowledge a source when import fails', asyn
   assert.deepEqual(events, ['import']);
 });
 
-test('Items automatic operation remains a dry-run after source and freeze', async () => {
+test('Items automatic operation carries its activation-gated ownership scope', async () => {
   let received;
   await runAutomaticDomainOperation({
     domain: 'items',
@@ -63,8 +63,8 @@ test('Items automatic operation remains a dry-run after source and freeze', asyn
     executeImport: async (context) => { received = context; return { status: 'completed' }; },
     acknowledgeSource: async () => {},
   });
-  assert.equal(received.databaseMode, 'DRY_RUN');
-  assert.deepEqual(received.ownedTables, []);
+  assert.equal(received.databaseMode, 'ACTIVATION_GATED_APPLY');
+  assert.deepEqual(received.ownedTables, [{ databaseRole: 'local', table: 'items' }]);
 });
 
 test('committed automatic run reconciliation only retries acknowledgement', async () => {

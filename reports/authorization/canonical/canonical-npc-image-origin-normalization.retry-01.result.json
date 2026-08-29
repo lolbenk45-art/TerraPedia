@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_projection_image_origin_normalization_result",
+  "operationId": "canonical-npc-image-origin-normalization",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "affectedRows": 758,
+  "scopeSha256": "sha256:761d32c524d5961f9b32adbf8a9a3c7105b155ba31fa2eba9e45cc449cf414b4",
+  "afterRowsSha256": "sha256:9c1909b5ef8143951c647ebe71d7a351e9b5d73d52a2b3405c1deae33a0df2dc",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-image-origin-normalization-20260824-owner-10",
+    "packetHash": "sha256:bf527c5993ff52f1cce6e957a62715e0d19670114a2178d1cf7ed0be0c4fddd2"
+  },
+  "completedAt": "2026-08-24T04:16:25.381Z"
+}

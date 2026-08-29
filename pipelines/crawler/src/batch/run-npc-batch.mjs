@@ -1,6 +1,15 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import { buildNpcBatchSummary, writeNpcBatchSummaryReport } from '../report/npc-batch-summary.mjs';
+import { getProjectRoot } from '../../../lib/project-root.mjs';
+import {
+  buildActionProgressPayload,
+  createCrawlerProgressHeartbeat,
+  writeJsonFile
+} from '../../../workflow/backend-refresh-runtime-state.mjs';
+
+const ACTION_ID = 'npc-coverage-batch';
 
 export async function runNpcBatch(options = {}, { runCliImpl } = {}) {
   if (typeof runCliImpl !== 'function') {
@@ -12,47 +21,103 @@ export async function runNpcBatch(options = {}, { runCliImpl } = {}) {
     throw new Error(`Only batch --domain=npc is supported, received: ${domain}`);
   }
 
-  const targetPageTitles = await loadPageTitlesFromTargetsFile({
-    targetsFile: options.targetsFile,
-    targetPriority: options.targetPriority,
-    limit: options.limit
-  });
-  const pageTitles = [...new Set([
-    ...normalizePageTitles(options.pageTitles),
-    ...targetPageTitles
-  ])];
-  const pageIds = normalizePageIds(options.pageIds);
-  const writeFiles = Boolean(options.writeFiles);
+  const resolvedProjectRoot = path.resolve(options.projectRoot ?? getProjectRoot());
+  const resolvedProgressPath = path.resolve(
+    options.progressPath
+      ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH
+      ?? path.join(resolvedProjectRoot, 'data', 'generated', 'wiki-sync-progress.latest.json')
+  );
+  const resolvedCanonicalProgressPath = path.resolve(
+    options.canonicalProgressPath ?? path.join(resolvedProjectRoot, 'data', 'generated', 'wiki-sync-progress.latest.json')
+  );
+  const actionId = String(options.actionId ?? process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? ACTION_ID).trim() || ACTION_ID;
   const outputRoot = options.outputRoot;
-  const executions = [];
-
-  for (const pageTitle of pageTitles) {
-    executions.push(await runSingleTarget({
-      argv: buildEntityArgv({ pageTitle, apiUrl: options.apiUrl, writeFiles, outputRoot }),
-      target: { pageTitle, pageId: null },
-      runCliImpl
-    }));
-  }
-
-  for (const pageId of pageIds) {
-    executions.push(await runSingleTarget({
-      argv: buildEntityArgv({ pageId, apiUrl: options.apiUrl, writeFiles, outputRoot }),
-      target: { pageTitle: '', pageId },
-      runCliImpl
-    }));
-  }
-
-  const summary = buildNpcBatchSummary({ executions });
-  const reportPath = writeNpcBatchSummaryReport({
-    summary,
-    outputRoot
-  });
-
-  return {
-    executions,
-    summary,
-    reportPath
+  const reportPath = path.join(
+    path.resolve(outputRoot ?? path.join(process.cwd(), 'data', 'wiki-crawler')),
+    'report', 'npc', 'batch-summary.latest.json'
+  );
+  const startedAt = new Date().toISOString();
+  let current = 0;
+  let total = 0;
+  const writeProgress = (progress, targetPath = resolvedProgressPath) => {
+    const payload = buildActionProgressPayload({
+      actionId,
+      startedAt,
+      childStatusPath: targetPath,
+      outputPath: reportPath,
+      reportPath,
+      ...progress
+    });
+    writeJsonFile(targetPath, payload);
+    if (targetPath !== resolvedCanonicalProgressPath) {
+      writeJsonFile(resolvedCanonicalProgressPath, buildActionProgressPayload({
+        actionId,
+        startedAt,
+        childStatusPath: resolvedCanonicalProgressPath,
+        outputPath: reportPath,
+        reportPath,
+        ...progress
+      }));
+    }
   };
+  const heartbeat = createCrawlerProgressHeartbeat({ writeProgress });
+  const publish = (progress) => heartbeat.publish({ current, total, ...progress });
+
+  publish({ status: 'running', phase: 'load_targets', message: 'loading NPC coverage batch targets' });
+  try {
+    const targetPageTitles = await loadPageTitlesFromTargetsFile({
+      targetsFile: options.targetsFile,
+      targetPriority: options.targetPriority,
+      limit: options.limit
+    });
+    const pageTitles = [...new Set([...normalizePageTitles(options.pageTitles), ...targetPageTitles])];
+    const pageIds = normalizePageIds(options.pageIds);
+    const writeFiles = Boolean(options.writeFiles);
+    const executions = [];
+    total = pageTitles.length + pageIds.length;
+    publish({
+      status: 'running',
+      phase: 'fetch_pages',
+      message: `fetching ${total} NPC coverage targets`
+    });
+
+    for (const pageTitle of pageTitles) {
+      executions.push(await runSingleTarget({
+        argv: buildEntityArgv({ pageTitle, apiUrl: options.apiUrl, writeFiles, outputRoot }),
+        target: { pageTitle, pageId: null },
+        runCliImpl
+      }));
+      current += 1;
+      publish({ status: 'running', phase: 'fetch_pages', message: `fetched NPC target ${current}/${total}` });
+    }
+
+    for (const pageId of pageIds) {
+      executions.push(await runSingleTarget({
+        argv: buildEntityArgv({ pageId, apiUrl: options.apiUrl, writeFiles, outputRoot }),
+        target: { pageTitle: '', pageId },
+        runCliImpl
+      }));
+      current += 1;
+      publish({ status: 'running', phase: 'fetch_pages', message: `fetched NPC target ${current}/${total}` });
+    }
+
+    const summary = buildNpcBatchSummary({ executions });
+    publish({ status: 'running', phase: 'write_report', message: 'writing NPC batch summary report' });
+    const writtenReportPath = writeNpcBatchSummaryReport({ summary, outputRoot });
+    publish({ status: 'completed', phase: 'completed', message: 'NPC coverage batch completed' });
+    return {
+      executions,
+      summary,
+      reportPath: writtenReportPath,
+      progressPath: resolvedProgressPath,
+      canonicalProgressPath: resolvedCanonicalProgressPath
+    };
+  } catch (error) {
+    publish({ status: 'failed', phase: 'failed', message: error?.message ?? String(error), failedCount: 1 });
+    throw error;
+  } finally {
+    heartbeat.stop();
+  }
 }
 
 async function runSingleTarget({

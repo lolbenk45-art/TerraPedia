@@ -1,12 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   buildRelationHealthQueries,
   buildRelationHealthReport,
   formatValidationChecklist,
   parseArgs,
-  resolveMysqlRequirePath
+  resolveMysqlRequirePath,
+  runRelationHealthReport,
+  writeRelationHealthReport,
 } from './relation-health-report.mjs';
 
 test('parseArgs defaults to read-only relation health validation databases', () => {
@@ -16,9 +21,137 @@ test('parseArgs defaults to read-only relation health validation databases', () 
     localDatabase: 'terria_v1_local',
     dateTag: null,
     writeReport: true,
+    outputDir: null,
+    noOverwrite: false,
     printSql: false,
     printChecklist: false
   });
+});
+
+test('parseArgs exposes the immutable relation report writer boundary', () => {
+  assert.deepEqual(parseArgs([
+    '--output-dir=reports/runtime/l2/relation',
+    '--no-overwrite=true',
+  ]), {
+    maintDatabase: 'terria_v1_maint',
+    relationDatabase: 'terria_v1_relation',
+    localDatabase: 'terria_v1_local',
+    dateTag: null,
+    writeReport: true,
+    outputDir: 'reports/runtime/l2/relation',
+    noOverwrite: true,
+    printSql: false,
+    printChecklist: false,
+  });
+});
+
+test('relation immutable writer confines the pair and rejects a second write', async () => {
+  const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-relation-writer-'));
+  const outputDir = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-01/relation';
+  const report = { dateTag: '2026-05-07', summary: { status: 'warning' }, checks: [] };
+  try {
+    const written = await writeRelationHealthReport(report, { repoRoot, outputDir, noOverwrite: true });
+    const firstJson = await fs.readFile(written.jsonPath);
+    const firstMarkdown = await fs.readFile(written.mdPath);
+    await assert.rejects(
+      writeRelationHealthReport(report, { repoRoot, outputDir, noOverwrite: true }),
+      /exists|overwrite|immutable/i,
+    );
+    assert.deepEqual(await fs.readFile(written.jsonPath), firstJson);
+    assert.deepEqual(await fs.readFile(written.mdPath), firstMarkdown);
+    await assert.rejects(
+      writeRelationHealthReport(report, { repoRoot, outputDir: '../outside', noOverwrite: true }),
+      /immutable|runtime|confined|invalid/i,
+    );
+  } finally {
+    await fs.rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('relation immutable writer rejects a non-date tag before creating nested output', async () => {
+  const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-relation-date-tag-'));
+  const outputDir = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-02/relation';
+  try {
+    await assert.rejects(
+      writeRelationHealthReport(
+        { dateTag: '../nested/escape', summary: { status: 'warning' }, checks: [] },
+        { repoRoot, outputDir, noOverwrite: true },
+      ),
+      /dateTag|YYYY-MM-DD|immutable/i,
+    );
+    assert.equal(
+      await fs.access(path.join(repoRoot, outputDir)).then(() => true).catch(() => false),
+      false,
+    );
+  } finally {
+    await fs.rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('relation immutable writer rejects a symbolic-link ancestor', async () => {
+  const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-relation-symlink-'));
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-relation-outside-'));
+  const link = path.join(repoRoot, 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/link');
+  const outputDir = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/link/relation';
+  try {
+    await fs.mkdir(path.dirname(link), { recursive: true });
+    await fs.symlink(outside, link, 'dir');
+    await assert.rejects(
+      writeRelationHealthReport({ dateTag: '2026-05-07', summary: {}, checks: [] }, {
+        repoRoot,
+        outputDir,
+        noOverwrite: true,
+      }),
+      /symbolic|symlink|confinement|ancestor/i,
+    );
+    assert.deepEqual(await fs.readdir(outside), []);
+  } finally {
+    await fs.rm(repoRoot, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true });
+  }
+});
+
+test('relation immutable writer rejects a symbolic-link output directory before either report is written', async () => {
+  const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-relation-output-link-'));
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-relation-output-outside-'));
+  const outputDir = 'reports/runtime/local-data-chain-closure/20260826/l2-readiness/run-link/relation';
+  const link = path.join(repoRoot, outputDir);
+  try {
+    await fs.mkdir(path.dirname(link), { recursive: true });
+    await fs.symlink(outside, link, 'dir');
+    await assert.rejects(
+      writeRelationHealthReport({ dateTag: '2026-05-07', summary: {}, checks: [] }, {
+        repoRoot,
+        outputDir,
+        noOverwrite: true,
+      }),
+      /symbolic|symlink|confinement|ancestor|ordinary/i,
+    );
+    assert.deepEqual(await fs.readdir(outside), []);
+  } finally {
+    await fs.rm(repoRoot, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true });
+  }
+});
+
+test('runRelationHealthReport defaults its local MySQL connection to port 13306', async () => {
+  let connectionOptions = null;
+  const result = await runRelationHealthReport(
+    { writeReport: false },
+    {
+      config: {},
+      createConnection: async (options) => {
+        connectionOptions = options;
+        return {
+          query: async () => [[{ count: 0 }]],
+          end: async () => {}
+        };
+      }
+    }
+  );
+
+  assert.equal(connectionOptions.port, 13306);
+  assert.ok(result.report);
 });
 
 test('buildRelationHealthQueries emits only SELECT checks for NPC item relation acceptance', () => {
@@ -165,6 +298,7 @@ test('shop condition parity counts projected local shop-entry joins instead of s
   assert.match(query.sql, /se\.npc_id = n\.id/);
   assert.match(query.sql, /se\.item_id <=> i\.id/);
   assert.match(query.sql, /se\.price_text COLLATE utf8mb4_unicode_ci <=> r\.price_text COLLATE utf8mb4_unicode_ci/);
+  assert.match(query.sql, /COALESCE\(n\.is_town_npc, 0\) <> 1/);
 });
 
 test('buildRelationHealthReport classifies blocking, warning, passing, and info checks', () => {
@@ -341,14 +475,14 @@ test('formatValidationChecklist gives the coordinator a serial dry-run/apply seq
   assert.match(checklist, /Check active writers before any dry-run or apply/);
   assert.match(checklist, /audit-source-dataset-landings\.mjs/);
   assert.match(checklist, /source-dataset-landing-audit-YYYY-MM-DD\.json/);
-  assert.match(checklist, /node scripts\/data\/fetch\/build-npc-item-relations-bundle\.mjs/);
-  assert.match(checklist, /node scripts\/data\/maint\/sync-landing-to-maint\.mjs --apply=false/);
-  assert.match(checklist, /node scripts\/data\/relation\/sync-maint-to-relation\.mjs --apply=true/);
-  assert.match(checklist, /node scripts\/data\/relation\/sync-projection-to-local-core-tables\.mjs --apply=true/);
-  assert.match(checklist, /node scripts\/data\/relation\/sync-relation-to-local-compat-tables\.mjs --apply=true/);
-  assert.match(checklist, /node scripts\/data\/relation\/relation-health-report\.mjs/);
-  assert.match(checklist, /node scripts\/data\/relation\/replacement-readiness-audit\.mjs/);
-  assert.match(checklist, /node scripts\/data\/relation\/local-core-compat-smoke-check\.mjs/);
+  assert.match(checklist, /node pipelines\/fetch\/build-npc-item-relations-bundle\.mjs/);
+  assert.match(checklist, /node pipelines\/maint\/sync-landing-to-maint\.mjs --apply=false/);
+  assert.match(checklist, /node pipelines\/relation\/sync-maint-to-relation\.mjs --apply=true/);
+  assert.match(checklist, /node pipelines\/relation\/sync-projection-to-local-core-tables\.mjs --apply=true/);
+  assert.match(checklist, /node pipelines\/relation\/sync-relation-to-local-compat-tables\.mjs --apply=true/);
+  assert.match(checklist, /node pipelines\/relation\/relation-health-report\.mjs/);
+  assert.match(checklist, /node pipelines\/relation\/replacement-readiness-audit\.mjs/);
+  assert.match(checklist, /node pipelines\/relation\/local-core-compat-smoke-check\.mjs/);
   assert.match(checklist, /maint_backfill_candidates remains maint-owned/);
   assert.match(checklist, /item_npc_relation_audits and relation report exports/);
   assert.match(checklist, /Human approval is required before each apply command/);
@@ -360,5 +494,5 @@ test('formatValidationChecklist gives the coordinator a serial dry-run/apply seq
 });
 
 test('resolveMysqlRequirePath anchors mysql2 resolution to apps/admin-console package.json', () => {
-  assert.match(resolveMysqlRequirePath(), /apps/admin-console[\\/]package\.json$/);
+  assert.ok(new RegExp('apps/admin-console[\\\\/]package\\.json$').test(resolveMysqlRequirePath()));
 });

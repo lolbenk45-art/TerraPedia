@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-08-19T05:58:00+08:00",
+  "expiresAt": "2026-08-20T05:58:00+08:00",
+  "operationId": "canonical-npc-projection-gap-wiki-gg-variant-retirement",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:1cecd723bf8b5585708714575f84455f381ac6e518530e7a7ae4d87e365ee48e",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-npc-projection-gap-wiki-gg-variant-retirement.input.json",
+      "sizeBytes": 503,
+      "contentHash": "sha256:ca77e70b8d234c0548d6a9a9b2be2417429e36e3b37c5ee93388fa9dabbb34cb"
+    },
+    {
+      "path": "reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-gap-wiki-gg-variant-retirement-preview.json",
+      "sizeBytes": 6257,
+      "contentHash": "sha256:efba3349cdfa948176e0ebc211529609c9f413c86f53a29106c8d64c38f35747"
+    }
+  ],
+  "policySetHash": "sha256:b4eb34d84c604e15677cc5075599fc7d91a1af571bdf6351e7a4dba234ba6468",
+  "executionManifestHash": "sha256:695c7144d4111acda252eaeabe636b782ca3bff45f3536171a62ac94418853d4",
+  "executionManifest": {
+    "artifactDate": "2026-08-19",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:dcb6081f52dbe17317b96da19d9076a193cafbd174da47fb7243055db44ab957",
+        "path": "pipelines/npc-canonical/npc-projection-gap-wiki-gg-variant-retirement.mjs"
+      },
+      {
+        "contentHash": "sha256:1b9423e4fa06933ee4b8cd409a3e4740dce9483c344108857c11b5b06fac6411",
+        "path": "pipelines/audit/npc-projection-gap-wiki-gg-variant-retirement-preview.mjs"
+      },
+      {
+        "contentHash": "sha256:fe448b7491b36e7e521c6f47938802d3bb89460450f8504fc621ecf86f76a8f6",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:a6a5374d60505aa29c0b81bb109cc9db14448a2cc8612ab6356374529f28e8ae",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:c33ba85d95f0e60305f6f0c3488dbc254528506232b867c444900ce4407ce1d4",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:27827e91aae5e782d7e931b6dc42a811af3bbdeae6013daf335f424c6957146c",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:f6be3d6419b894b12ee311c5122374238a6e09aef1238a4b687fcbb978970fee",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/npc-canonical/npc-projection-gap-wiki-gg-variant-retirement.mjs",
+      "--input=reports/authorization/canonical/canonical-npc-projection-gap-wiki-gg-variant-retirement.input.json",
+      "--preview=reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-gap-wiki-gg-variant-retirement-preview.json",
+      "--output=reports/authorization/canonical/canonical-npc-projection-gap-wiki-gg-variant-retirement.result.json",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_npc_projection_gap_wiki_gg_variant_retirement",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-npc-projection-gap-wiki-gg-variant-retirement.input.json",
+      "reports/runtime/local-data-chain-closure/20260819/post-parent-conflict/npc-projection-gap-wiki-gg-variant-retirement-preview.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-npc-projection-gap-wiki-gg-variant-retirement",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-npc-projection-gap-wiki-gg-variant-retirement.result.json"
+    ],
+    "ownershipKeys": [
+      "relation.item_npc_loot_relations.projection_gap_wiki_gg_variant"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [
+      "canonical-npc-projection-text-identity-repair"
+    ],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:923e7304cb6c08432d94f500a33425a022ec118a962bdf68a2538d26f2ca831d"
+}

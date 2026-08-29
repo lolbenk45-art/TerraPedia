@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-08-22T07:29:37.428Z",
+  "ok": false,
+  "failedDomains": [
+    "items",
+    "bosses"
+  ],
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6159,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6146,
+      "missingInProjectionCount": 5,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [
+        "HeartArrow",
+        "ValentineRing",
+        "TurkeyFeather",
+        "FestiveTopHat",
+        "Wiesnbrau"
+      ],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [
+        "ZH_RECIPE_SPINAL_TAP",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_ANTLION_EGGS",
+        "ZH_RECIPE_TIMELESS_TRAVELER_S_SET",
+        "ZH_RECIPE_WANDERING_SET",
+        "ZH_RECIPE_TV_HEAD_SET"
+      ],
+      "blockingFields": [],
+      "ok": false,
+      "rowCountMismatch": true,
+      "keyMismatch": true,
+      "fieldMismatch": false
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "switchable",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    },
+    "bosses": {
+      "domain": "bosses",
+      "status": "blocked",
+      "localRowCount": 33,
+      "projectionRowCount": 33,
+      "sharedRowCount": 33,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [
+        {
+          "field": "name_zh",
+          "localField": "name_zh",
+          "projectionField": "name_zh",
+          "localNonNull": 33,
+          "projectionNonNull": 29,
+          "gap": 4,
+          "missingExamples": [
+            {
+              "key": "SOLAR_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "日耀柱",
+              "projectionValue": null
+            },
+            {
+              "key": "NEBULA_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "星云柱",
+              "projectionValue": null
+            },
+            {
+              "key": "VORTEX_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "星旋柱",
+              "projectionValue": null
+            },
+            {
+              "key": "STARDUST_PILLAR",
+              "localField": "name_zh",
+              "projectionField": "name_zh",
+              "localValue": "星尘柱",
+              "projectionValue": null
+            }
+          ]
+        }
+      ],
+      "ok": false,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": true
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "switchable",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "switchable",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjectionCount": 0,
+      "extraInProjectionCount": 0,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "acceptedLocalOnlyExceptions": [],
+      "blockingFields": [],
+      "ok": true,
+      "rowCountMismatch": false,
+      "keyMismatch": false,
+      "fieldMismatch": false
+    }
+  },
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation"
+}

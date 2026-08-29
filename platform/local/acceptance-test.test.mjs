@@ -29,6 +29,17 @@ test('acceptance has Node implementation and thin shell wrappers', () => {
   assert.doesNotMatch(psSource, /pipelines\/audit\/b1-exemption-compliance|function Invoke-AcceptanceStep|ConvertFrom-Json/);
 });
 
+test('crawler layout wrapper resolves the checker from the repository root', () => {
+  const nodeSource = read('platform/local/acceptance-test.mjs');
+
+  assert.match(nodeSource, /pathToFileURL\(/);
+  assert.match(nodeSource, /path\.join\(repoRoot, ['"]pipelines['"], ['"]crawler['"], ['"]source-layout-check\.mjs['"]\)/);
+  assert.doesNotMatch(
+    nodeSource,
+    /import \{ checkCrawlerSourceLayout \} from ['"]\.\.\/\.\.\/pipelines\/crawler\/source-layout-check\.mjs/,
+  );
+});
+
 test('benchmark has Node fetch implementation and thin wrappers', () => {
   const nodeSource = read('platform/local/benchmark-read-api.mjs');
   const bashSource = read('platform/local/benchmark-read-api.sh');

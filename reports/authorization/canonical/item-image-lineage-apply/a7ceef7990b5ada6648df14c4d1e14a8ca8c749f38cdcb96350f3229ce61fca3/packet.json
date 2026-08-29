@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-08-21T01:34:39.337Z",
+  "expiresAt": "2026-08-22T01:34:39.339Z",
+  "operationId": "canonical-item-image-lineage-apply",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:dca7b045ce3bc1a44064c343c348b0100932b2a47742c06ebd21ea2f98a71c69",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/input.json",
+      "sizeBytes": 1252253,
+      "contentHash": "sha256:42e74915e1b0259019587005f1d91a8601b14747d297963188aa5948bb474b41"
+    },
+    {
+      "path": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/bundle.json",
+      "sizeBytes": 3981710,
+      "contentHash": "sha256:2c55c37a0fadaaafcaba3cb1fc4a0323fe6fbf76bc0cb9cf73ded8e6e0072f83"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:27424d56fb8fdee1f6fcc2ed6e23ceed884ded9d49e27269837675fda5c44545",
+  "executionManifest": {
+    "artifactDate": "2026-08-21",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:ce14ec35c4f1b502d52c718724a8da53dac885c556a462ffe683b053b1c9b23b",
+        "path": "pipelines/relation/apply-item-image-lineage.mjs"
+      },
+      {
+        "contentHash": "sha256:d964b609768bca01ba33ff2d72e09cf1c0e7f50f2dc039a78be1ee8c88d7695a",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:a6a5374d60505aa29c0b81bb109cc9db14448a2cc8612ab6356374529f28e8ae",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:2159e6d02eff3f12255b8b57ef569b84ce54a03f37a25d9dd838123b9baa1bef",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:33a229733d2a964d7ab0654fdc3aa5da297c7b2bab2bbd9113148cbe37a45c5b",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:9c7b89a56fa9ccaf672728504d5e1040f2bd7c7a374ee8a7e8ca56b507629ec9",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:5c1ba08af20051955cbca380a3bc6f0fb326ece555a6adeebbe0d3f6d3702c84",
+        "path": "pipelines/relation/item-image-lineage-adapter.mjs"
+      },
+      {
+        "contentHash": "sha256:562534676f7a603daea36fe1811d16e4b24b56399e0337e912f421b71fe22cc5",
+        "path": "pipelines/relation/item-image-lineage-db.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:34f220054c4320142b736afc171d86a43d2d308ee43d7b0ad811adb9510e61c9",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:5418b72da84b60b80f01828f4b2344e4e156d012d5fa73277359abd1d10af82f",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:86417b9c943ac6f861e3829673dd0175147ac514c3e5121bcd7ae799d7c46451",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:d2d231b13b5cc2b5052d6b1668792e510bfa650749dee0f1d480964712b2e43b",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:52086149a1b6c39a2c1b86d869fce4a0adae3aca50cae4ddfff0105b1b5d5373",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/relation/apply-item-image-lineage.mjs",
+      "--input-contract=reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/input.json",
+      "--apply=true",
+      "--snapshot=reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/snapshot.json",
+      "--result=reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/result.json"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_database_projection",
+    "inputPaths": [
+      "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/input.json"
+    ],
+    "itemImageLineageAttempt": {
+      "attemptRoot": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3",
+      "bundlePath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/bundle.json",
+      "inputPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/input.json",
+      "resultPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/result.json",
+      "snapshotPath": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/snapshot.json"
+    },
+    "networkAccess": false,
+    "operationId": "canonical-item-image-lineage-apply",
+    "outputPaths": [
+      "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/snapshot.json",
+      "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/result.json"
+    ],
+    "progressPaths": [],
+    "reportPaths": [
+      "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/result.json"
+    ],
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "User-authorized exact local Item image lineage repair for the frozen 6131 canonical identities; preserve out-of-scope local detail roles and do not fetch or transfer images.",
+  "authorizationReference": "user://conversation/2026-08-21/item-image-lineage-and-projection-closure",
+  "decisionIdentity": "canonical-item-image-lineage-apply-20260821-admin-02",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:4368f19579f7f57e5325f7874b2c76996782cf274976efac178a6614185c08b3",
+  "authorizedAt": "2026-08-21T01:34:39.500Z",
+  "packetHash": "sha256:965ee76230b64a2082ccc9380a15b087bb5c2c42fff5daf6f226b7ce0c516ab1"
+}

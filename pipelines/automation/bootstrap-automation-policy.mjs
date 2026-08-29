@@ -13,6 +13,8 @@ const DOMAIN_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
 const FORMAL_DATABASES = new Set(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
 const L0_BOOTSTRAP_OPERATIONS = Object.freeze({
   'automation-biomes-l0-bootstrap': 'biomes',
+  'automation-items-l0-bootstrap': 'items',
+  'automation-projectiles-l0-bootstrap': 'projectiles',
   'automation-audio-l0-bootstrap': 'audio',
   'automation-bosses-l0-bootstrap': 'bosses',
   'automation-shimmer-l0-bootstrap': 'shimmer',

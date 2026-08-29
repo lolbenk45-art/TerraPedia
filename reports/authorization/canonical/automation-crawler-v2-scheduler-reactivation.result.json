@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-reactivation",
+  "domainId": "crawler_v2_scheduler",
+  "status": "completed",
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": "SCHEDULER_ACTIVATION",
+  "decisionIdentity": "automation-crawler-v2-scheduler-reactivation-20260817-01",
+  "successfulL1Runs": null,
+  "completedAt": "2026-08-17T00:21:03.424Z"
+}

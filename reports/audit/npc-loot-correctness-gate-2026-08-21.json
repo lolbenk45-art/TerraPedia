@@ -1,0 +1,1284 @@
+{
+  "auditName": "npc-loot-correctness-gate",
+  "generatedAt": "2026-08-21T21:04:32.846Z",
+  "auditStatus": "pass",
+  "evidenceHealth": "sufficient",
+  "checks": [
+    {
+      "id": "ordinary_mimic_exact_contract",
+      "status": "pass",
+      "expectedItems": [
+        "CrossNecklace",
+        "DualHook",
+        "MagicDagger",
+        "PhilosophersStone",
+        "StarCloak",
+        "TitanGlove"
+      ],
+      "acceptedItems": [
+        "CrossNecklace",
+        "DualHook",
+        "MagicDagger",
+        "PhilosophersStone",
+        "StarCloak",
+        "TitanGlove"
+      ],
+      "missingItems": [],
+      "extraItems": []
+    },
+    {
+      "id": "generic_bucket_no_unreviewed_promotion",
+      "status": "pass",
+      "rows": []
+    },
+    {
+      "id": "non_npc_source_not_promoted",
+      "status": "pass",
+      "rows": []
+    },
+    {
+      "id": "mimic_variants_explicitly_blocked",
+      "status": "pass",
+      "rows": [],
+      "pollutedRows": []
+    },
+    {
+      "id": "mimic_variants_have_exact_source",
+      "status": "pass",
+      "rows": [
+        {
+          "itemInternalName": "ChainGuillotines",
+          "itemName": "Chain Guillotines",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "9efc252d59b2a13fd89a639ddebb6d7155a6def22a7400ec56df8d79e3691c52",
+          "sourceFactKey": "0bca617491e368235e0ace7d0b96192d5c74929a57268187b8494b67c77b2e14",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "ClingerStaff",
+          "itemName": "Clinger Staff",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "2f1355c94c9fd22ad38a3afe43c8e95509dfa8dfcec79c02ea1ec6913345675a",
+          "sourceFactKey": "1c2a18d705ffc58659ca043658faeca172ac365fa970735be442d925529cdff1",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "DartRifle",
+          "itemName": "Dart Rifle",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "630c42a75e8cc9522e9b82b7a50379578365b1581124515408dc73934c9c5dc0",
+          "sourceFactKey": "3e065f31bbf7f63565a757a1cadc83bb578392a44786e743a124475b887df64b",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "EaterOfLife",
+          "itemName": "Eater Of Life",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "579c2fcfd269acb20e83fcd517c1a694fe0ee4c7fd9550a3656748d0f061fabe",
+          "sourceFactKey": "c046e7d30a7e3a9ca5b156555ed19d1bcebf43cf9f8e018515a489809bf51854",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GreaterHealingPotion",
+          "itemName": "Greater Healing Potion",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "af2f6675b7114f94be4723c943b8dd90503e945a39ca8a4bfc46f64421d29402",
+          "sourceFactKey": "b4c9fd7cdd0367adcb9031d3fa05abcbb8cc99db2700d6ee20ed2f36bf737952",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GreaterManaPotion",
+          "itemName": "Greater Mana Potion",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "9d1106438ef1637370ea53607f7bc11282859c12dbe92d702f1eadfeb3e667d1",
+          "sourceFactKey": "8695750513fca795046fc09e8ab8b72dfdbbe544e8209883765fa2e8a21b0ab2",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "PutridScent",
+          "itemName": "Putrid Scent",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "f1d9ac0bc59b14c9e72d395f60cc6d0d16729a57ce926d44931ef18bb7371712",
+          "sourceFactKey": "61ad72513df6cf80093a5eb4481772b196f700af49976ea956d31d1c4702329e",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "WormHook",
+          "itemName": "Worm Hook",
+          "sourceRefName": "Corrupt Mimic",
+          "sourceRefInternalName": "BigMimicCorruption",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCorruption",
+          "relationRecordKey": "04cf4af7a138e126b024c5d026bc558c75c82efd73c601e7abcb1b9261c8482f",
+          "sourceFactKey": "b2b82d0353046cc121fa898095d9e0b8d503bd4a130fea6c4be62a6e3c444f45",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCorruption",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "DartPistol",
+          "itemName": "Dart Pistol",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "a4f585629d1201ff039f0d7da70989f2a8cfcb46d98674cba63c50f011bc6ffd",
+          "sourceFactKey": "5458d6e220e8f7ab34d08193a893cba94f9a150d1dc0175b6b44ed6fcc80a83f",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "EaterOfLife",
+          "itemName": "Eater Of Life",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "38888a2f822db1f7e0d15a39783d727b9eff0ea22df8eea08b44c13ed8febc27",
+          "sourceFactKey": "34fc60036ef309e3066c0faaa19a0c91385340d953a682b4bfc4078c86bcd4a9",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "FetidBaghnakhs",
+          "itemName": "Fetid Baghnakhs",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "baadbf2261c365f6ec662b076a7a3a186e96c2240e43e819a08b0a1f2d33314f",
+          "sourceFactKey": "4b25b7afe03d7a0fad7ddbb73022453fd784936810f27aec5a1952d85de050f1",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "FleshKnuckles",
+          "itemName": "Flesh Knuckles",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "53104dbe29b1b6306d298dfbb450a72b874a18f7fcf4f2acdf7973606c239565",
+          "sourceFactKey": "8dcdefaa4927f02fbf242939ba2fd914062057a2da102a0bb9f7d040fc78baa4",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GreaterHealingPotion",
+          "itemName": "Greater Healing Potion",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "d01b7e6cd8b6192fbe6543f3b439bb7ff9bf39bea421533a6cb0f32ec3e14003",
+          "sourceFactKey": "7f2834315f336162930de4de1bea7ecc2498bdfafe5a2d154dcb378d769d10bb",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GreaterManaPotion",
+          "itemName": "Greater Mana Potion",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "2dcedc0346d2bfba0e1a996d5d36ff30a7fe7154debeb7d977e797cab99c87a2",
+          "sourceFactKey": "bd5a5ce34fd69f80de2e80147f396cb2353b1d7f03f5ce42927f351dad1817e5",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "SoulDrain",
+          "itemName": "Life Drain",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "6cd139c6df509a872f45d50404b9d35bd05c128b260275c3779faca6e1db786c",
+          "sourceFactKey": "bf0456ec7ad1f7073f21e48f280e9225e8f139aa80132639814945bfdf4d4f9a",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "TendonHook",
+          "itemName": "Tendon Hook",
+          "sourceRefName": "Crimson Mimic",
+          "sourceRefInternalName": "BigMimicCrimson",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicCrimson",
+          "relationRecordKey": "db5844b044a98a4bda9e76c8691b99411b12eef793d5f5e6e2e9664d726893b6",
+          "sourceFactKey": "5c624fc1b602aad3825a131bdf510eb4e0e0caba0a925d20283a875f731d92cc",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicCrimson",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "Crystallize",
+          "itemName": "Crystallize",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "8d7e3d742e1d37aa3d6abf8b271b7e1497325c146bf1fe5fd1ccf99b3052335c",
+          "sourceFactKey": "5567a63c916c0367d064409144e4271c3d0fa5d046e099d8297ad2e66552f417",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "CrystalVileShard",
+          "itemName": "Crystal Vile Shard",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "45c54a093c66e4ebf0c63d6cc00800b34ec764de549a35ec729ede3b30e1b4ff",
+          "sourceFactKey": "695f7372ba3fa6147dd25e922dd321cab69553ff9d0fac78abcd175a993b3690",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "DaedalusStormbow",
+          "itemName": "Daedalus Stormbow",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "a0536a2b6e7d239c0e93d3b97f061b959a106f21e59475eb61868a2c9e3196d2",
+          "sourceFactKey": "675403e75c34b43346d5f15300ec1316c74a326f044a9a81294aaddeb89c2c47",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "FlyingKnife",
+          "itemName": "Flying Knife",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "49dce11757c7b17aa01f9930a435376322a0ade5480de54ccafcfc2098a6e6fa",
+          "sourceFactKey": "17949d085a2254bddc5f0848227a4bbc87a2029f250c0c166ba96ffe01a6dd8e",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GreaterHealingPotion",
+          "itemName": "Greater Healing Potion",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "5b233b0b6cc5ef0a8e8f0718577de7de7690676abab46e97325470a52ec752dd",
+          "sourceFactKey": "bcd14b1c256a18e7a5db41c29bfa40035c58c1670422a8292b07c14099aa7289",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GreaterManaPotion",
+          "itemName": "Greater Mana Potion",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "32540c0ef359f72e1a395d95f0dea5230703e8b317f8777765aeb1ed7ce325e4",
+          "sourceFactKey": "39499e473d2d5d791726e656630c3a190151f7d3b497c613f600363782d14608",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "IlluminantHook",
+          "itemName": "Illuminant Hook",
+          "sourceRefName": "Hallowed Mimic",
+          "sourceRefInternalName": "BigMimicHallow",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicHallow",
+          "relationRecordKey": "8671954bc04bf8d89ca1f5aae7ad77adacaf01cd654a14d457e43763381d7c21",
+          "sourceFactKey": "a5696f15927254ae2753a83bf222950593ebbecfe6c26f1e56a8c523c7665b69",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicHallow",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "AngelStatue",
+          "itemName": "Angel Statue",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "b95f628bb4558f2005a4f01f12ddf43e1f174b21d55254ac6843f9a56f625331",
+          "sourceFactKey": "6853dab4555cc6f6bbe8f0a39e19c90c4e9d01c7d429fbdcaba23f3c5b241623",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "Coal",
+          "itemName": "Coal",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "833a5eb3eca14d54ea86a4f83c394251849d6e7da39129c45b49e8a2dc49d091",
+          "sourceFactKey": "610d51de88a05ab4c3b28e52aef715b1b3a25218d761da1191492442a3b52394",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "FartinaJar",
+          "itemName": "Fart in a Jar",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "0dc1c8f0db02069069deb2aec7840170c865dea408ad26a1c32ca37ffd06f4ef",
+          "sourceFactKey": "a961da9eec8c71812849fa4f7ad3321cba3ef2b66705be7babd69b281f39071a",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GelBalloon",
+          "itemName": "Sparkle Slime Balloon",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "5d189f6208ffdb17d30a25f8f40fd038b267afa83c5b5c6e647070a0eb5b63b9",
+          "sourceFactKey": "6c9866645d04f7129cbeda18a8ba5e28d0fdcd69f108d14dd495eb69964ade0e",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "GoldenShower",
+          "itemName": "Golden Shower",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "69a30420c575ef39326a9da5ddc43d8b17f6d7dd8863e4d5ef9af081e7f2205d",
+          "sourceFactKey": "4bb612a449637d8cf6db2ca3923e451d647f33875448c27ea933736047895803",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "MasterBait",
+          "itemName": "Master Bait",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "48c2433e6913c6493a8a6481dd1f724eebdfe1c3390a55d52eaac35f4cd1db67",
+          "sourceFactKey": "ee1aef9c684e2d60f5ae89e3bc086d3f43dc5e65d20b0017e01abed0049c26ed",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "PoopBlock",
+          "itemName": "Poo",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "7ac604e8a4226bb1703f02e216f8b00f78eb05e367495e52e4ee9c5515d7f741",
+          "sourceFactKey": "fa3d11c5b4b2d5c88ec03b29e652e14c7e63deffcf4c6b9705e0667c3c340460",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "RedPotion",
+          "itemName": "Red Potion",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "4c787b56c575d15ceaa69c6c2ebb2e7c5796eb8aa60fd1c8a9e7c344e004a07e",
+          "sourceFactKey": "b9ecc1c13a9361e1588765216731a3e1c5d40a75f38e1825db2edac56cca4c0e",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "StinkPotion",
+          "itemName": "Stink Potion",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "ce93d980c96bdf2e5ef78a38cc9ed3d2a41caaadffda792f35ee179b0b2d55c9",
+          "sourceFactKey": "813c5aa75ba423e4d59b780977211d922cfbe926fcef4fa69e012b5a9b36f5f9",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "WaterGun",
+          "itemName": "Water Gun",
+          "sourceRefName": "Jungle Mimic",
+          "sourceRefInternalName": "BigMimicJungle",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "BigMimicJungle",
+          "relationRecordKey": "8d1669bb22e11bb75db350e789d460507b3683e8c9f6f9d4b814488d709a1182",
+          "sourceFactKey": "c82c50b896298cd204ff14f0080b2bcce71dd8a39dd40b07e625f467a26243e3",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "BigMimicJungle",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "Heart",
+          "itemName": "Heart",
+          "sourceRefName": "Present Mimic",
+          "sourceRefInternalName": "PresentMimic",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "PresentMimic",
+          "relationRecordKey": "bebd1c0fe8ce5b141d17e3622d0644285d4d9601d90879c28d5145bc1929e713",
+          "sourceFactKey": "ff4ea85ad067ba572bc3bbe40c23238ab9832ba03d60e248cac816ab46179294",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "PresentMimic",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        },
+        {
+          "itemInternalName": "Present",
+          "itemName": "Present",
+          "sourceRefName": "Present Mimic",
+          "sourceRefInternalName": "PresentMimic",
+          "sourceRefResolution": "exact_internal_name",
+          "npcInternalName": "PresentMimic",
+          "relationRecordKey": "670e4a97fbcf9f73b12a7adc0f528557ad1e281ab242e1c324128c0eaeda548e",
+          "sourceFactKey": "ebe38b1344a68436bc670757dce20489c17febdbcc312d5a9b8247b59a8310a8",
+          "classification": {
+            "status": "accepted",
+            "materializable": true,
+            "targetNpcInternalName": "PresentMimic",
+            "reason": "variant_exact_npc_source",
+            "sourceRefResolution": "exact_internal_name"
+          }
+        }
+      ]
+    }
+  ],
+  "mimicCorrectness": {
+    "ordinaryMimic": {
+      "acceptedItems": [
+        "CrossNecklace",
+        "DualHook",
+        "MagicDagger",
+        "PhilosophersStone",
+        "StarCloak",
+        "TitanGlove"
+      ],
+      "missingItems": [],
+      "extraItems": []
+    },
+    "blockedVariants": [],
+    "pollutedVariants": [],
+    "acceptedVariantRows": [
+      {
+        "itemInternalName": "ChainGuillotines",
+        "itemName": "Chain Guillotines",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "9efc252d59b2a13fd89a639ddebb6d7155a6def22a7400ec56df8d79e3691c52",
+        "sourceFactKey": "0bca617491e368235e0ace7d0b96192d5c74929a57268187b8494b67c77b2e14",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "ClingerStaff",
+        "itemName": "Clinger Staff",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "2f1355c94c9fd22ad38a3afe43c8e95509dfa8dfcec79c02ea1ec6913345675a",
+        "sourceFactKey": "1c2a18d705ffc58659ca043658faeca172ac365fa970735be442d925529cdff1",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "DartRifle",
+        "itemName": "Dart Rifle",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "630c42a75e8cc9522e9b82b7a50379578365b1581124515408dc73934c9c5dc0",
+        "sourceFactKey": "3e065f31bbf7f63565a757a1cadc83bb578392a44786e743a124475b887df64b",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "EaterOfLife",
+        "itemName": "Eater Of Life",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "579c2fcfd269acb20e83fcd517c1a694fe0ee4c7fd9550a3656748d0f061fabe",
+        "sourceFactKey": "c046e7d30a7e3a9ca5b156555ed19d1bcebf43cf9f8e018515a489809bf51854",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GreaterHealingPotion",
+        "itemName": "Greater Healing Potion",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "af2f6675b7114f94be4723c943b8dd90503e945a39ca8a4bfc46f64421d29402",
+        "sourceFactKey": "b4c9fd7cdd0367adcb9031d3fa05abcbb8cc99db2700d6ee20ed2f36bf737952",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GreaterManaPotion",
+        "itemName": "Greater Mana Potion",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "9d1106438ef1637370ea53607f7bc11282859c12dbe92d702f1eadfeb3e667d1",
+        "sourceFactKey": "8695750513fca795046fc09e8ab8b72dfdbbe544e8209883765fa2e8a21b0ab2",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "PutridScent",
+        "itemName": "Putrid Scent",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "f1d9ac0bc59b14c9e72d395f60cc6d0d16729a57ce926d44931ef18bb7371712",
+        "sourceFactKey": "61ad72513df6cf80093a5eb4481772b196f700af49976ea956d31d1c4702329e",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "WormHook",
+        "itemName": "Worm Hook",
+        "sourceRefName": "Corrupt Mimic",
+        "sourceRefInternalName": "BigMimicCorruption",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCorruption",
+        "relationRecordKey": "04cf4af7a138e126b024c5d026bc558c75c82efd73c601e7abcb1b9261c8482f",
+        "sourceFactKey": "b2b82d0353046cc121fa898095d9e0b8d503bd4a130fea6c4be62a6e3c444f45",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCorruption",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "DartPistol",
+        "itemName": "Dart Pistol",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "a4f585629d1201ff039f0d7da70989f2a8cfcb46d98674cba63c50f011bc6ffd",
+        "sourceFactKey": "5458d6e220e8f7ab34d08193a893cba94f9a150d1dc0175b6b44ed6fcc80a83f",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "EaterOfLife",
+        "itemName": "Eater Of Life",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "38888a2f822db1f7e0d15a39783d727b9eff0ea22df8eea08b44c13ed8febc27",
+        "sourceFactKey": "34fc60036ef309e3066c0faaa19a0c91385340d953a682b4bfc4078c86bcd4a9",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "FetidBaghnakhs",
+        "itemName": "Fetid Baghnakhs",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "baadbf2261c365f6ec662b076a7a3a186e96c2240e43e819a08b0a1f2d33314f",
+        "sourceFactKey": "4b25b7afe03d7a0fad7ddbb73022453fd784936810f27aec5a1952d85de050f1",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "FleshKnuckles",
+        "itemName": "Flesh Knuckles",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "53104dbe29b1b6306d298dfbb450a72b874a18f7fcf4f2acdf7973606c239565",
+        "sourceFactKey": "8dcdefaa4927f02fbf242939ba2fd914062057a2da102a0bb9f7d040fc78baa4",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GreaterHealingPotion",
+        "itemName": "Greater Healing Potion",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "d01b7e6cd8b6192fbe6543f3b439bb7ff9bf39bea421533a6cb0f32ec3e14003",
+        "sourceFactKey": "7f2834315f336162930de4de1bea7ecc2498bdfafe5a2d154dcb378d769d10bb",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GreaterManaPotion",
+        "itemName": "Greater Mana Potion",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "2dcedc0346d2bfba0e1a996d5d36ff30a7fe7154debeb7d977e797cab99c87a2",
+        "sourceFactKey": "bd5a5ce34fd69f80de2e80147f396cb2353b1d7f03f5ce42927f351dad1817e5",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "SoulDrain",
+        "itemName": "Life Drain",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "6cd139c6df509a872f45d50404b9d35bd05c128b260275c3779faca6e1db786c",
+        "sourceFactKey": "bf0456ec7ad1f7073f21e48f280e9225e8f139aa80132639814945bfdf4d4f9a",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "TendonHook",
+        "itemName": "Tendon Hook",
+        "sourceRefName": "Crimson Mimic",
+        "sourceRefInternalName": "BigMimicCrimson",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicCrimson",
+        "relationRecordKey": "db5844b044a98a4bda9e76c8691b99411b12eef793d5f5e6e2e9664d726893b6",
+        "sourceFactKey": "5c624fc1b602aad3825a131bdf510eb4e0e0caba0a925d20283a875f731d92cc",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicCrimson",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "Crystallize",
+        "itemName": "Crystallize",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "8d7e3d742e1d37aa3d6abf8b271b7e1497325c146bf1fe5fd1ccf99b3052335c",
+        "sourceFactKey": "5567a63c916c0367d064409144e4271c3d0fa5d046e099d8297ad2e66552f417",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "CrystalVileShard",
+        "itemName": "Crystal Vile Shard",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "45c54a093c66e4ebf0c63d6cc00800b34ec764de549a35ec729ede3b30e1b4ff",
+        "sourceFactKey": "695f7372ba3fa6147dd25e922dd321cab69553ff9d0fac78abcd175a993b3690",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "DaedalusStormbow",
+        "itemName": "Daedalus Stormbow",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "a0536a2b6e7d239c0e93d3b97f061b959a106f21e59475eb61868a2c9e3196d2",
+        "sourceFactKey": "675403e75c34b43346d5f15300ec1316c74a326f044a9a81294aaddeb89c2c47",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "FlyingKnife",
+        "itemName": "Flying Knife",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "49dce11757c7b17aa01f9930a435376322a0ade5480de54ccafcfc2098a6e6fa",
+        "sourceFactKey": "17949d085a2254bddc5f0848227a4bbc87a2029f250c0c166ba96ffe01a6dd8e",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GreaterHealingPotion",
+        "itemName": "Greater Healing Potion",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "5b233b0b6cc5ef0a8e8f0718577de7de7690676abab46e97325470a52ec752dd",
+        "sourceFactKey": "bcd14b1c256a18e7a5db41c29bfa40035c58c1670422a8292b07c14099aa7289",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GreaterManaPotion",
+        "itemName": "Greater Mana Potion",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "32540c0ef359f72e1a395d95f0dea5230703e8b317f8777765aeb1ed7ce325e4",
+        "sourceFactKey": "39499e473d2d5d791726e656630c3a190151f7d3b497c613f600363782d14608",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "IlluminantHook",
+        "itemName": "Illuminant Hook",
+        "sourceRefName": "Hallowed Mimic",
+        "sourceRefInternalName": "BigMimicHallow",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicHallow",
+        "relationRecordKey": "8671954bc04bf8d89ca1f5aae7ad77adacaf01cd654a14d457e43763381d7c21",
+        "sourceFactKey": "a5696f15927254ae2753a83bf222950593ebbecfe6c26f1e56a8c523c7665b69",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicHallow",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "AngelStatue",
+        "itemName": "Angel Statue",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "b95f628bb4558f2005a4f01f12ddf43e1f174b21d55254ac6843f9a56f625331",
+        "sourceFactKey": "6853dab4555cc6f6bbe8f0a39e19c90c4e9d01c7d429fbdcaba23f3c5b241623",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "Coal",
+        "itemName": "Coal",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "833a5eb3eca14d54ea86a4f83c394251849d6e7da39129c45b49e8a2dc49d091",
+        "sourceFactKey": "610d51de88a05ab4c3b28e52aef715b1b3a25218d761da1191492442a3b52394",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "FartinaJar",
+        "itemName": "Fart in a Jar",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "0dc1c8f0db02069069deb2aec7840170c865dea408ad26a1c32ca37ffd06f4ef",
+        "sourceFactKey": "a961da9eec8c71812849fa4f7ad3321cba3ef2b66705be7babd69b281f39071a",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GelBalloon",
+        "itemName": "Sparkle Slime Balloon",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "5d189f6208ffdb17d30a25f8f40fd038b267afa83c5b5c6e647070a0eb5b63b9",
+        "sourceFactKey": "6c9866645d04f7129cbeda18a8ba5e28d0fdcd69f108d14dd495eb69964ade0e",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "GoldenShower",
+        "itemName": "Golden Shower",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "69a30420c575ef39326a9da5ddc43d8b17f6d7dd8863e4d5ef9af081e7f2205d",
+        "sourceFactKey": "4bb612a449637d8cf6db2ca3923e451d647f33875448c27ea933736047895803",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "MasterBait",
+        "itemName": "Master Bait",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "48c2433e6913c6493a8a6481dd1f724eebdfe1c3390a55d52eaac35f4cd1db67",
+        "sourceFactKey": "ee1aef9c684e2d60f5ae89e3bc086d3f43dc5e65d20b0017e01abed0049c26ed",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "PoopBlock",
+        "itemName": "Poo",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "7ac604e8a4226bb1703f02e216f8b00f78eb05e367495e52e4ee9c5515d7f741",
+        "sourceFactKey": "fa3d11c5b4b2d5c88ec03b29e652e14c7e63deffcf4c6b9705e0667c3c340460",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "RedPotion",
+        "itemName": "Red Potion",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "4c787b56c575d15ceaa69c6c2ebb2e7c5796eb8aa60fd1c8a9e7c344e004a07e",
+        "sourceFactKey": "b9ecc1c13a9361e1588765216731a3e1c5d40a75f38e1825db2edac56cca4c0e",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "StinkPotion",
+        "itemName": "Stink Potion",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "ce93d980c96bdf2e5ef78a38cc9ed3d2a41caaadffda792f35ee179b0b2d55c9",
+        "sourceFactKey": "813c5aa75ba423e4d59b780977211d922cfbe926fcef4fa69e012b5a9b36f5f9",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "WaterGun",
+        "itemName": "Water Gun",
+        "sourceRefName": "Jungle Mimic",
+        "sourceRefInternalName": "BigMimicJungle",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "BigMimicJungle",
+        "relationRecordKey": "8d1669bb22e11bb75db350e789d460507b3683e8c9f6f9d4b814488d709a1182",
+        "sourceFactKey": "c82c50b896298cd204ff14f0080b2bcce71dd8a39dd40b07e625f467a26243e3",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "BigMimicJungle",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "Heart",
+        "itemName": "Heart",
+        "sourceRefName": "Present Mimic",
+        "sourceRefInternalName": "PresentMimic",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "PresentMimic",
+        "relationRecordKey": "bebd1c0fe8ce5b141d17e3622d0644285d4d9601d90879c28d5145bc1929e713",
+        "sourceFactKey": "ff4ea85ad067ba572bc3bbe40c23238ab9832ba03d60e248cac816ab46179294",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "PresentMimic",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      },
+      {
+        "itemInternalName": "Present",
+        "itemName": "Present",
+        "sourceRefName": "Present Mimic",
+        "sourceRefInternalName": "PresentMimic",
+        "sourceRefResolution": "exact_internal_name",
+        "npcInternalName": "PresentMimic",
+        "relationRecordKey": "670e4a97fbcf9f73b12a7adc0f528557ad1e281ab242e1c324128c0eaeda548e",
+        "sourceFactKey": "ebe38b1344a68436bc670757dce20489c17febdbcc312d5a9b8247b59a8310a8",
+        "classification": {
+          "status": "accepted",
+          "materializable": true,
+          "targetNpcInternalName": "PresentMimic",
+          "reason": "variant_exact_npc_source",
+          "sourceRefResolution": "exact_internal_name"
+        }
+      }
+    ],
+    "mismatchRows": []
+  },
+  "sourceRefPollution": {
+    "genericBucketRows": [],
+    "nonNpcSourceRows": []
+  },
+  "summary": {
+    "totalRows": 1542,
+    "accepted": 1542,
+    "contractMismatch": 0,
+    "genericBucket": 0,
+    "nonNpcSourceMisclassified": 0,
+    "blockedVariants": 0,
+    "pollutedVariants": 0,
+    "acceptedVariantRows": 35,
+    "blockingCount": 0
+  },
+  "options": {
+    "maintDatabase": "terria_v1_maint",
+    "relationDatabase": "terria_v1_relation",
+    "localDatabase": "terria_v1_local",
+    "writeReport": true,
+    "dateTag": "2026-08-21",
+    "output": null
+  }
+}

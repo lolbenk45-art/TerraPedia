@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_item_image_lineage_apply_result",
+  "operationId": "canonical-item-image-lineage-apply",
+  "status": "COMPLETED",
+  "generatedAt": "2026-08-21T01:36:13.973Z",
+  "snapshot": {
+    "snapshotId": "reports/authorization/canonical/item-image-lineage-apply/a7ceef7990b5ada6648df14c4d1e14a8ca8c749f38cdcb96350f3229ce61fca3/snapshot.json",
+    "rowCount": 43855,
+    "takenAt": "2026-08-21T01:36:14.003Z"
+  },
+  "stages": [
+    {
+      "name": "landing",
+      "status": "applied",
+      "rowCount": 6131,
+      "landingId": 18633,
+      "contentHash": "5727ca516b096bdbe023ecd10866e4faaf607621f32f2f560c8297e94eeef633"
+    },
+    {
+      "name": "maint",
+      "status": "applied",
+      "rowCount": 6131,
+      "landingId": 18633
+    },
+    {
+      "name": "relation",
+      "status": "applied",
+      "rowCount": 6131
+    },
+    {
+      "name": "local",
+      "status": "applied",
+      "rowCount": 6131
+    }
+  ],
+  "counts": {
+    "landing": 6131,
+    "maint": 6131,
+    "relation": 6131,
+    "local": 6131
+  },
+  "preservedLocalRoles": [
+    "detail"
+  ],
+  "expectedIdentityCount": 6131,
+  "decisionId": null
+}

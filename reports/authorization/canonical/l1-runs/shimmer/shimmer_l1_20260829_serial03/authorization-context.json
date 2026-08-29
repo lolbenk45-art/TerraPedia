@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "governed_l1_run_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "operationId": "automation-shimmer-first-l1",
+  "domainId": "shimmer",
+  "runId": "shimmer_l1_20260829_serial03",
+  "executionMode": "MANUAL_OWNER_L1",
+  "actor": "admin",
+  "reason": "Approved serial eight-domain L1 evidence run shimmer 03",
+  "authorizationReference": "user://conversation/2026-08-29/eight-domain-l1-shimmer-serial03",
+  "decisionIdentity": "eight-domain-l1-shimmer-serial03",
+  "authorizedAt": "2026-08-29T01:48:00.000Z",
+  "expiresAt": "2026-08-29T03:48:00.000Z",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "serverFingerprint": null,
+  "packetHash": "sha256:6bfb022474776a6ea0be7763dd04c241b33cbeb5ae7377bcc08141a74e6e8216"
+}

@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -46,6 +47,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     recentDays: positiveInteger(raw['recent-days'] ?? raw.recentDays, DEFAULTS.recentDays),
     writeReport: booleanOption(raw['write-report'] ?? raw.writeReport, true),
     output: raw.output ?? null,
+    noOverwrite: booleanOption(raw['no-overwrite'] ?? raw.noOverwrite, false),
     generatedAt,
     dateTag: raw['date-tag'] ?? raw.dateTag ?? generatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
   };
@@ -302,6 +304,15 @@ export function buildCrossDbReferentialIntegrityReport({
   };
 }
 
+export function resolveCrossDbConnectionConfig({ config = {}, env = process.env } = {}) {
+  return {
+    host: env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+  };
+}
+
 export async function runCrossDbReferentialIntegrityAudit(options = {}, dependencies = {}) {
   const normalized = {
     ...DEFAULTS,
@@ -310,17 +321,16 @@ export async function runCrossDbReferentialIntegrityAudit(options = {}, dependen
     sampleLimit: positiveInteger(options.sampleLimit, DEFAULTS.sampleLimit),
     recentDays: positiveInteger(options.recentDays, DEFAULTS.recentDays),
     writeReport: options.writeReport ?? true,
+    noOverwrite: options.noOverwrite ?? false,
     generatedAt: options.generatedAt ?? null,
     dateTag: options.dateTag ?? new Date().toISOString().slice(0, 10),
   };
 
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
-  const mysqlOptions = {
-    host: config.database?.host ?? '127.0.0.1',
-    port: Number(config.database?.port ?? 3306),
-    user: config.database?.username ?? 'root',
-    password: config.database?.password ?? 'root',
-  };
+  const mysqlOptions = resolveCrossDbConnectionConfig({
+    config,
+    env: dependencies.env ?? process.env,
+  });
   const createConnection = dependencies.createConnection ?? mysql.createConnection;
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const connection = await createConnection(mysqlOptions);
@@ -396,13 +406,38 @@ function formatCheckMessage(definition, status, value) {
   return `${definition.title}: unavailable`;
 }
 
-async function defaultWriteReport(report, options) {
+async function defaultWriteReport(report, options = {}) {
+  return writeCrossDbReport(report, { ...options, repoRoot });
+}
+
+export async function writeCrossDbReport(report, options = {}) {
+  const root = path.resolve(options.repoRoot ?? repoRoot);
   const reportPath = options.output
-    ? path.resolve(repoRoot, options.output)
-    : path.join(repoRoot, 'reports', 'audit', `cross-db-referential-integrity-${options.mode}-${options.dateTag}.json`);
+    ? path.resolve(root, options.output)
+    : path.join(root, 'reports', 'audit', `cross-db-referential-integrity-${options.mode}-${options.dateTag}.json`);
+  if (options.noOverwrite) {
+    assertImmutableCrossDbOutputPath(root, reportPath);
+    assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: reportPath,
+      label: 'immutable cross-db report',
+      createParent: true,
+    });
+  }
   await fs.mkdir(path.dirname(reportPath), { recursive: true });
-  await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
+  await fs.writeFile(
+    reportPath,
+    JSON.stringify(report, null, 2),
+    options.noOverwrite ? { flag: 'wx', mode: 0o600 } : undefined,
+  );
   return { jsonPath: reportPath };
+}
+
+function assertImmutableCrossDbOutputPath(root, reportPath) {
+  const relative = path.relative(root, reportPath).replaceAll(path.sep, '/');
+  if (!/^reports\/runtime\/local-data-chain-closure\/\d{8}\/l2-readiness\/[A-Za-z0-9._-]+\/cross-db\.json$/.test(relative)) {
+    throw new Error(`Immutable cross-db report must use an L2 readiness run root: ${relative}`);
+  }
 }
 
 function check(definition) {

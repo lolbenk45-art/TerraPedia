@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_buff_image_projection_patch_result",
+  "operationId": "canonical-buff-image-projection-patch",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:c59f97b26d293ee18052088597f1cda18354741ec53ef984d0c319a9355e0487",
+  "affected": {
+    "projection": 388
+  },
+  "authorization": {
+    "decisionIdentity": "canonical-buff-image-projection-patch-20260820-admin-02",
+    "packetHash": "sha256:088b6a81f1dde94f66dc3f17c11a97d854aaba9889086f4b8c5066437122961f"
+  },
+  "completedAt": "2026-08-19T17:38:23.983Z"
+}

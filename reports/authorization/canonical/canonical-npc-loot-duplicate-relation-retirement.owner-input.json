@@ -1,0 +1,6 @@
+{
+  "actor": "Owner (user)",
+  "reason": "User-authorized exact retirement of relation 1551 for the UndeadMiner to MiningHelmet duplicate; soft-disable only the frozen relation row and preserve survivor 609, projection 44, local row 82353, source facts, and source details.",
+  "authorizationReference": "user://conversation/2026-08-25/npc-duplicate-relation-retirement",
+  "decisionIdentity": "owner-npc-loot-duplicate-relation-retirement-20260825-01"
+}

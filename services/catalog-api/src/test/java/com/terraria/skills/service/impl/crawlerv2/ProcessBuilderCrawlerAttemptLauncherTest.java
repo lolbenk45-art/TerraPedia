@@ -142,7 +142,7 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
 
             assertTrue(launcher.resume(process));
             assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(markerPath)));
-            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
+            assertTrue(await(Duration.ofSeconds(2), () -> fileHasContent(childPidPath)));
             childPid = readPid(childPidPath);
         } finally {
             forceGroupCleanup(process, childPid);
@@ -320,7 +320,7 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
             )
         );
         try {
-            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
+            assertTrue(await(Duration.ofSeconds(2), () -> fileHasContent(childPidPath)));
             childPid.set(readPid(childPidPath));
             assertTrue(await(Duration.ofSeconds(2), () -> !process.handle().isAlive()));
 
@@ -340,7 +340,7 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
             longRunningGroup(childPidPath, "malformed-stat.log")
         );
         try {
-            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
+            assertTrue(await(Duration.ofSeconds(2), () -> fileHasContent(childPidPath)));
             childPid.set(readPid(childPidPath));
             assertTrue(launcher.pause(process));
             assertTrue(await(Duration.ofSeconds(2), () -> launcher.isPaused(process)));
@@ -554,8 +554,11 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
         );
         long childPid = -1L;
         try {
-            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
-            childPid = Long.parseLong(Files.readString(childPidPath));
+            assertTrue(await(
+                Duration.ofSeconds(2),
+                () -> fileHasContent(childPidPath)
+            ));
+            childPid = readPid(childPidPath);
             assertTrue(launcher.pause(process));
             assertTrue(await(Duration.ofSeconds(2), () -> launcher.isPaused(process)));
             long pausedChildPid = childPid;
@@ -594,8 +597,8 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
         );
         ProcessHandle child = null;
         try {
-            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
-            child = ProcessHandle.of(Long.parseLong(Files.readString(childPidPath))).orElseThrow();
+            assertTrue(await(Duration.ofSeconds(2), () -> fileHasContent(childPidPath)));
+            child = ProcessHandle.of(readPid(childPidPath)).orElseThrow();
             assertTrue(await(Duration.ofSeconds(2), () -> !process.handle().isAlive()));
 
             assertFalse(launcher.awaitExit(process, Duration.ofMillis(100)));
@@ -637,8 +640,8 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
         );
         long childPid = -1L;
         try {
-            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
-            childPid = Long.parseLong(Files.readString(childPidPath));
+            assertTrue(await(Duration.ofSeconds(2), () -> fileHasContent(childPidPath)));
+            childPid = readPid(childPidPath);
 
             assertTrue(launcher.terminateGracefully(process));
             assertFalse(launcher.awaitExit(process, Duration.ofMillis(150)));
@@ -760,6 +763,14 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
             return Long.parseLong(Files.readString(path));
         } catch (IOException exception) {
             throw new IllegalStateException("cannot read controlled child pid", exception);
+        }
+    }
+
+    private boolean fileHasContent(Path path) {
+        try {
+            return Files.exists(path) && Files.size(path) > 0L;
+        } catch (IOException exception) {
+            return false;
         }
     }
 

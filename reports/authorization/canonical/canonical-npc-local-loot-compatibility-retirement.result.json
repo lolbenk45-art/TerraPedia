@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_npc_local_loot_compatibility_retirement_result",
+  "operationId": "canonical-npc-local-loot-compatibility-retirement",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "scopeSha256": "sha256:544b7fff4a47134dfe5ca8f565d5fd2dacc917a107f9c3b3a84be49a7798a3d3",
+  "authorization": {
+    "decisionIdentity": "canonical-npc-local-loot-compatibility-retirement-20260819-admin-01",
+    "packetHash": "sha256:978ca490863758ec2938a022e908bc734b43c53b7e143e8c720783e1cb75a75f"
+  },
+  "affected": {
+    "targetLocalRows": 56
+  },
+  "readback": {
+    "localRows": 56,
+    "activeTargets": 0,
+    "activeSurvivors": 56
+  },
+  "preserved": {
+    "relationRows": true,
+    "projectionRows": true,
+    "sourceFacts": true,
+    "sourceDetails": true
+  },
+  "completedAt": "2026-08-18T22:23:27.366Z"
+}

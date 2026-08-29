@@ -1,0 +1,13 @@
+{
+  "actionId": "wiki-npcs-source-refresh",
+  "generatedAt": "2026-08-29T00:58:00.843Z",
+  "status": "completed",
+  "childStatusPath": "/home/lolben/TerraPedia/reports/authorization/canonical/l1-runs/npcs/npcs_l1_20260829_serial02/progress.json",
+  "current": 1,
+  "lastHeartbeatAt": "2026-08-29T00:58:00.843Z",
+  "message": "frozen npcs source for governed L1 run",
+  "percent": 100,
+  "phase": "source-frozen",
+  "startedAt": "2026-08-29T00:58:00.843Z",
+  "total": 1
+}

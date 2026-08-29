@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-armor-set-projection-restoration",
+  "apply": true,
+  "databaseWrites": true,
+  "externalRequests": false,
+  "proposalPath": "reports/runtime/local-data-chain-closure/20260824/ten-blocker-closure/072100/armor-set-projection-restoration.retry-02.proposal.json",
+  "proposalSha256": "sha256:f2b5740f5a6ed15098095c390140e46fae7d1efe0cb0d2705508c113cd3d0ff4",
+  "scopeSha256": "sha256:6052f70a743d1bdaa30eba8749ef23d031cc13150ee08abfb3c78d986ba4c930",
+  "sourceSnapshotSha256": "sha256:7383382e906cd3cb735aa164718fd49c077c6558f9cedefc0b9557ab99b291b1",
+  "keySetSha256": "sha256:821d3f5694279d699bd6711a26a2e8d15a29a004ba196f72db3ace2918572e75",
+  "beforeRowsSha256": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "afterRowsSha256": "sha256:186b03dd074594fc343f29f5dfd2e8fc7589b7f3973bc2f0b1b553c8c417f1f7",
+  "expectedChangedRowCount": 63,
+  "writeTargets": [
+    "relation.projection_armor_sets.insert"
+  ]
+}
