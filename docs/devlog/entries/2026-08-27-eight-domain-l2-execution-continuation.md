@@ -58,7 +58,10 @@
 
 ## Commits
 
-- Pending. No paths are staged.
+- `506fdbe7` (`chore(workflow): checkpoint continuation handoff`) records the
+  isolated worktree handoff, canonical ledger test precondition, and the
+  read-only hash audit. The branch remains active for the separately scoped
+  historical evidence disposition.
 
 ### Worktree handoff: 2026-08-29 11:35 CST
 
@@ -564,3 +567,24 @@
   absolute-path assertion, although the implementation and reviewer matrix
   cover it. No integration fixture reads the real current-generation pointer;
   this is follow-up coverage only and does not reopen the contract blocker.
+
+### Post-checkpoint runtime verification: 2026-08-29 12:03 CST
+
+- Fresh new-worktree verification passed: `bash
+  ./platform/local/verify-local-stack.sh --skip-front` (backend compile and
+  Admin typecheck included), and the focused automation suite is `144/144`.
+- Runtime readback remains unchanged: MySQL UUID
+  `b4ae6728-4f72-11f1-bcc9-00155d37eadf` on `13306`, Flyway `V60`, Owner
+  `admin/ACTIVE`, target policies `L1/ACTIVE`, zero target L2 promotion or
+  current scheduler decisions, and zero active attempts/reservations/fences.
+- The five domains with clean current-policy evidence remain adapter-qualified
+  at three committed/full-reconciliation runs. Items, Projectiles, and
+  Shimmer remain fail-closed solely because the adapter reaches their older
+  same-policy rows whose source files carry semantic-JSON hashes rather than
+  current exact-byte hashes. No historical row, hash, permit, decision, or
+  business table was changed.
+- Stop condition: automatic ingestion cannot be declared complete or promoted
+  past this gate until a separately authorized immutable disposition/repair is
+  provided for those three legacy evidence rows. The new worktree is ready for
+  that scoped follow-up, but no such repair or replay is authorized by this
+  checkpoint.
