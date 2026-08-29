@@ -34,6 +34,12 @@ import {
 const ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID =
   'canonical-item-image-projection-missing-row-insert';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
+const HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID =
+  'automation-l1-historical-source-hash-disposition';
+const HISTORICAL_DISPOSITION_CANDIDATE_ROOT =
+  'reports/authorization/canonical/l1-historical-source-hash-disposition/';
+const HISTORICAL_DISPOSITION_CANDIDATE_PATH_PATTERN =
+  /^reports\/authorization\/canonical\/l1-historical-source-hash-disposition\/(items|projectiles|shimmer)\/([a-f0-9]{64})\/candidate\.json$/;
 const EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS = Object.freeze({
   'canonical-item-image-projection-apply': Object.freeze({
     attemptKey: 'itemImageProjectionAttempt',
@@ -258,14 +264,18 @@ export function buildCanonicalAuthorizationRequestForOperation({
 export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest = null }) {
   requireOperationId(operationId);
   const root = path.resolve(repoRoot);
-  const verifiedExecutionManifest = executionManifest == null
-    ? null
-    : verifyExecutionManifestCodeBundle(root, executionManifest, operationId);
+  const verifiedExecutionManifest = operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID
+    ? verifyHistoricalDispositionExecutionManifest(root, executionManifest)
+    : executionManifest == null
+      ? null
+      : verifyExecutionManifestCodeBundle(root, executionManifest, operationId);
   const schemaEntries = operationId === 'canonical-schema-v56-v58'
     ? readMigrationEntries(root)
     : [];
   let dataEntries;
-  if (operationId.startsWith('automation-')
+  if (operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) {
+    dataEntries = readHistoricalDispositionDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId.startsWith('automation-')
       && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) {
     dataEntries = readL2AuthorizationDataEntries(root, operationId, verifiedExecutionManifest);
   } else if (operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
@@ -333,6 +343,150 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     executionManifest: verifiedExecutionManifest,
     requiredTechnicalFields: requiredTechnicalFieldsForOperation(operationId),
   };
+}
+
+/**
+ * Historical source-hash dispositions are evidence/authorization contracts,
+ * not executable operations.  They still need a manifest so an independent
+ * resolver can reconstruct the exact candidate file from a packet.  Keep
+ * this validator separate from verifyExecutionManifestCodeBundle(), whose
+ * null-entrypoint fail-closed rule must remain in force for real operations.
+ */
+function verifyHistoricalDispositionExecutionManifest(repoRoot, manifest) {
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw new Error('historical disposition execution manifest is required');
+  }
+  if (manifest.schemaVersion !== 1
+      || manifest.operationId !== HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID
+      || manifest.executionClass !== 'historical_source_hash_disposition'
+      || !Array.isArray(manifest.command)
+      || manifest.command.length !== 2
+      || manifest.command[0] !== 'node'
+      || manifest.command[1] !== 'pipelines/automation/historical-source-hash-disposition.mjs'
+      || !Array.isArray(manifest.outputPaths) || manifest.outputPaths.length !== 0
+      || !Array.isArray(manifest.reportPaths) || manifest.reportPaths.length !== 0
+      || !Array.isArray(manifest.progressPaths) || manifest.progressPaths.length !== 0
+      || manifest.databaseWrites !== false
+      || manifest.networkAccess !== false) {
+    throw new Error('historical disposition execution manifest contract is invalid');
+  }
+
+  const binding = normalizeHistoricalDispositionCandidateBinding(manifest);
+  if (!Array.isArray(manifest.inputPaths) || manifest.inputPaths.length !== 1
+      || manifest.inputPaths[0] !== binding.candidatePath) {
+    throw new Error('historical disposition manifest must bind exactly one candidate input path');
+  }
+  if (!manifest.scope || typeof manifest.scope !== 'object' || Array.isArray(manifest.scope)
+      || manifest.scope.domainId !== binding.domainId
+      || manifest.scope.candidateArtifactHash !== binding.candidateArtifactHash
+      || !requireText(manifest.scope.runId, 'historical disposition manifest scope runId')) {
+    throw new Error('historical disposition manifest scope is invalid');
+  }
+  return manifest;
+}
+
+function normalizeHistoricalDispositionCandidateBinding(manifest) {
+  const candidates = [
+    ['historicalSourceHashDisposition', manifest?.historicalSourceHashDisposition],
+    ['historicalSourceHashDispositionCandidate', manifest?.historicalSourceHashDispositionCandidate],
+    ['historicalDispositionCandidate', manifest?.historicalDispositionCandidate],
+    ['candidate', manifest?.candidate],
+  ].filter(([, value]) => value != null);
+  if (candidates.length !== 1) {
+    throw new Error('historical disposition manifest candidate binding is required exactly once');
+  }
+  const [label, value] = candidates[0];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} candidate binding is invalid`);
+  }
+  const candidatePath = requireConsistentAlias([
+    ['candidatePath', value.candidatePath],
+    ['path', value.path],
+  ], 'historical disposition candidate path', (candidate) => requireNormalizedPath(
+    candidate,
+    'historical disposition candidate path',
+  ));
+  const match = HISTORICAL_DISPOSITION_CANDIDATE_PATH_PATTERN.exec(candidatePath);
+  if (!match) {
+    throw new Error('historical disposition candidate path must be content-addressed');
+  }
+  const candidateFileSha256 = requireHash(
+    requireConsistentAlias([
+      ['candidateFileSha256', value.candidateFileSha256],
+      ['fileSha256', value.fileSha256],
+      ['sha256', value.sha256],
+    ], 'historical disposition candidate file hash'),
+    'historical disposition candidate file hash',
+  );
+  const candidateArtifactHash = requireHash(
+    requireConsistentAlias([
+      ['candidateArtifactHash', value.candidateArtifactHash],
+      ['artifactHash', value.artifactHash],
+    ], 'historical disposition candidate artifact hash'),
+    'historical disposition candidate artifact hash',
+  );
+  if (match[2] !== candidateArtifactHash.slice(7)) {
+    throw new Error('historical disposition candidate path hash does not match its artifact hash');
+  }
+  return {
+    candidatePath,
+    candidateFileSha256,
+    candidateArtifactHash,
+    domainId: match[1],
+  };
+}
+
+function requireConsistentAlias(entries, label, normalize = (value) => value) {
+  const present = entries.filter(([, value]) => value != null);
+  if (present.length === 0) throw new Error(`${label} is required`);
+  const first = normalize(present[0][1]);
+  for (const [, value] of present.slice(1)) {
+    if (normalize(value) !== first) {
+      throw new Error(`${label} aliases conflict`);
+    }
+  }
+  return first;
+}
+
+function readHistoricalDispositionDataEntries(repoRoot, manifest) {
+  const binding = normalizeHistoricalDispositionCandidateBinding(manifest);
+  const candidateEntry = readConfinedEntry(repoRoot, binding.candidatePath, {
+    label: 'historical disposition candidate',
+    privateFile: true,
+  });
+  const actualFileHash = `sha256:${createHash('sha256').update(candidateEntry.bytes).digest('hex')}`;
+  if (actualFileHash !== binding.candidateFileSha256) {
+    throw new Error('historical disposition candidate file hash drifted');
+  }
+  const candidate = parseJsonBytes(candidateEntry.bytes, 'historical disposition candidate');
+  assertHistoricalDispositionCandidate(candidate, binding, manifest.scope);
+  return [candidateEntry];
+}
+
+function assertHistoricalDispositionCandidate(candidate, binding, scope) {
+  if (!candidate || candidate.schemaVersion !== 1
+      || candidate.artifactKind !== 'l1-historical-source-hash-disposition'
+      || candidate.operationId !== HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID
+      || candidate.status !== 'candidate'
+      || candidate.proposalOnly !== true
+      || candidate.databaseName !== 'terria_v1_local'
+      || candidate.disposition !== 'exclude_from_l1_qualification'
+      || candidate.reasonCode !== 'legacy_semantic_json_source_hash'
+      || candidate.domainId !== binding.domainId
+      || !Array.isArray(candidate.entries) || candidate.entries.length !== 1
+      || !candidate.entries[0]?.runId
+      || candidate.artifactHash !== binding.candidateArtifactHash) {
+    throw new Error('historical disposition candidate identity is invalid');
+  }
+  const { artifactHash, ...payload } = candidate;
+  if (hashJson(payload) !== artifactHash) {
+    throw new Error('historical disposition candidate artifact hash drifted');
+  }
+  if (scope.domainId !== candidate.domainId
+      || scope.runId !== candidate.entries[0].runId
+      || scope.candidateArtifactHash !== candidate.artifactHash) {
+    throw new Error('historical disposition manifest scope does not match the candidate');
+  }
 }
 
 function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest = null) {
@@ -1234,6 +1388,12 @@ function requireText(value, label) {
   const text = String(value ?? '').trim();
   if (!text) throw new Error(`${label} is required`);
   return text;
+}
+
+function requireHash(value, label) {
+  const hash = requireText(value, label);
+  if (!HASH_PATTERN.test(hash)) throw new Error(`${label} must be a sha256 hash`);
+  return hash;
 }
 
 function requireTimestamp(value, label) {

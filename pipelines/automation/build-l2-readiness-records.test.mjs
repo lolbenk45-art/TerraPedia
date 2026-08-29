@@ -208,7 +208,11 @@ function fixture() {
     sharedReports,
     adapterReadback: {
       policySetHash: HASH,
-      domains: { items: { status: 'pass', evidence: { distinctCommittedL1Runs: 0, fullReconciliation: false }, error: null } },
+      domains: { items: { status: 'pass', evidence: {
+        distinctCommittedL1Runs: 0,
+        fullReconciliation: false,
+        qualifyingL1Runs: [],
+      }, error: null } },
     },
     databaseBoundary: {
       flywayLatestVersion: 58, v59Applied: false, l2PolicyVersionRowsObserved: 0,
@@ -227,6 +231,23 @@ function fixture() {
 
 test('builds display-only readiness artifacts from adapter-backed evidence', () => {
   const f = fixture();
+  f.adapterReadback.domains.items.evidence.excludedHistoricalRuns = [{
+    domainId: 'items',
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    reasonCode: 'legacy_semantic_json_source_hash',
+    dispositionPath: 'reports/authorization/canonical/l1-historical-source-hash-disposition/items/hash/disposition.json',
+  }];
+  const serverFingerprint = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'fixture-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  f.adapterReadback.historicalDispositionPaths = [
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/items/hash/disposition.json',
+  ];
+  f.adapterReadback.serverFingerprint = serverFingerprint;
+  f.databaseBoundary.serverFingerprint = { ...serverFingerprint };
   const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
   assert.equal(artifacts.records.length, 1);
   assert.equal(artifacts.records[0].record.proposalInput, false);
@@ -236,6 +257,198 @@ test('builds display-only readiness artifacts from adapter-backed evidence', () 
   assert.equal(artifacts.matrix.domains[0].proposalInput, false);
   assert.equal(artifacts.records[0].record.evidence.uiReadiness.status, 'pass');
   assert.equal(artifacts.records[0].record.evidence.v2Preflight.status, 'blocked');
+  assert.deepEqual(
+    artifacts.records[0].record.l1EvidenceAdapterReadback.excludedHistoricalRuns,
+    f.adapterReadback.domains.items.evidence.excludedHistoricalRuns,
+  );
+});
+
+test('rejects historical disposition readiness when adapter and database server fingerprints diverge', () => {
+  const f = fixture();
+  f.adapterReadback.historicalDispositionPaths = [
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/items/'
+      + `${'a'.repeat(64)}/disposition.json`,
+  ];
+  f.adapterReadback.serverFingerprint = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'adapter-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  f.databaseBoundary.serverFingerprint = {
+    ...f.adapterReadback.serverFingerprint,
+    serverUuid: 'boundary-server',
+  };
+
+  assert.throws(
+    () => buildL2ReadinessArtifacts({ ...f, domains: ['items'] }),
+    /server fingerprint.*drifted/i,
+  );
+});
+
+test('rejects excluded historical runs when disposition paths are omitted', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items.evidence.excludedHistoricalRuns = [{
+    domainId: 'items',
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    reasonCode: 'legacy_semantic_json_source_hash',
+  }];
+
+  assert.throws(
+    () => buildL2ReadinessArtifacts({ ...f, domains: ['items'] }),
+    /historical disposition readiness requires adapter and database boundary server fingerprints/i,
+  );
+});
+
+test('binds adapter-selected qualifying L1 runs instead of retaining stale template runs', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 3,
+    fullReconciliation: false,
+    qualifyingL1Runs: [
+      {
+        runId: 'items_l1_20260829_serial01',
+        status: 'COMPLETED',
+        applyStatus: 'COMMITTED',
+        bundlePath: 'reports/authorization/canonical/items/current.bundle.json',
+        bundleSha256: HASH,
+        evidencePath: 'reports/runtime/l1-reconciliation/items/current/reconciliation-evidence.json',
+        evidenceSha256: HASH,
+        operationId: 'automation-items-l1',
+        policySetHash: HASH,
+      },
+    ],
+  };
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  assert.deepEqual(
+    artifacts.records[0].record.l1Runs.map((run) => run.runId),
+    ['items_l1_20260829_serial01'],
+  );
+});
+
+test('binds adapter full-reconciliation evidence to the selected run', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 3,
+    qualifyingL1Runs: [{
+      runId: 'items_l1_20260829_serial03',
+      status: 'COMPLETED',
+      applyStatus: 'COMMITTED',
+      bundlePath: 'reports/authorization/canonical/items/current.bundle.json',
+      bundleSha256: HASH,
+      evidencePath: 'reports/runtime/l1-reconciliation/items/current/reconciliation-evidence.json',
+      evidenceSha256: HASH,
+      operationId: 'automation-items-l1',
+      policySetHash: HASH,
+      fullReconciliation: true,
+    }],
+    fullReconciliation: { fullReconciliation: true },
+  };
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  assert.equal(artifacts.records[0].record.fullReconciliation.status, 'verified');
+  assert.equal(
+    artifacts.records[0].record.fullReconciliation.evidence,
+    'reports/runtime/l1-reconciliation/items/current/reconciliation-evidence.json',
+  );
+  assert.equal(artifacts.records[0].record.fullReconciliation.evidenceSha256, HASH);
+});
+
+test('does not retain stale template reconciliation when adapter evidence is bound but absent', () => {
+  const f = fixture();
+  const templatePath = path.join(f.priorRoot, 'domain/items/readiness.json');
+  const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+  template.fullReconciliation = {
+    status: 'verified',
+    evidence: 'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+    evidenceSha256: HASH,
+    runId: 'stale-template-run',
+  };
+  fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 0,
+    fullReconciliation: false,
+    qualifyingL1Runs: [],
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+
+  assert.equal(artifacts.records[0].record.fullReconciliation.status, 'missing');
+  assert.notEqual(
+    artifacts.records[0].record.fullReconciliation.evidence,
+    'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+  );
+});
+
+test('does not retain template runs or reconciliation when the adapter reports an error', () => {
+  const f = fixture();
+  const templatePath = path.join(f.priorRoot, 'domain/items/readiness.json');
+  const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+  template.l1Runs = [{
+    runId: 'stale-template-run',
+    runStatus: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    evidence: {
+      path: 'reports/authorization/canonical/items/stale.bundle.json',
+      sha256: HASH,
+    },
+  }];
+  template.fullReconciliation = {
+    status: 'verified',
+    evidence: 'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+    evidenceSha256: HASH,
+    runId: 'stale-template-run',
+  };
+  fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
+  f.adapterReadback.domains.items = {
+    status: 'error',
+    evidence: null,
+    error: 'L1 source artifact hash drifted',
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+
+  assert.deepEqual(artifacts.records[0].record.l1Runs, []);
+  assert.equal(artifacts.records[0].record.successfulCommittedL1Runs, 0);
+  assert.equal(artifacts.records[0].record.fullReconciliation.status, 'missing');
+  assert.equal(artifacts.records[0].record.fullReconciliation.evidence, undefined);
+  assert.match(artifacts.records[0].record.fullReconciliation.reason, /adapter/i);
+});
+
+test('clears qualifying adapter runs when the adapter status is not pass', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items = {
+    status: 'error',
+    error: 'bundle source hash drifted',
+    evidence: {
+      distinctCommittedL1Runs: 3,
+      qualifyingL1Runs: [{
+        runId: 'items_l1_stale',
+        status: 'COMPLETED',
+        applyStatus: 'COMMITTED',
+        bundlePath: 'reports/authorization/canonical/items/stale.bundle.json',
+        bundleSha256: HASH,
+        evidencePath: 'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+        evidenceSha256: HASH,
+        operationId: 'automation-items-l1',
+        policySetHash: HASH,
+      }],
+      fullReconciliation: {
+        runId: 'items_l1_stale',
+        fullReconciliation: true,
+      },
+    },
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  const record = artifacts.records[0].record;
+  assert.deepEqual(record.l1Runs, []);
+  assert.equal(record.successfulCommittedL1Runs, 0);
+  assert.equal(record.qualifyingCommittedL1Runs, 0);
+  assert.deepEqual(record.l1EvidenceAdapterReadback.qualifyingL1Runs, []);
+  assert.equal(record.l1EvidenceAdapterReadback.fullReconciliation, false);
+  assert.equal(record.fullReconciliation.status, 'missing');
+  assert.match(record.fullReconciliation.reason, /adapter/i);
+  assert.equal(record.verdict, 'BLOCKED');
 });
 
 test('requires a bound current V2 preflight report', () => {

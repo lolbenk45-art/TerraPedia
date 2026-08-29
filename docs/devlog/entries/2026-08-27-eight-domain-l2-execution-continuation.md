@@ -588,3 +588,91 @@
   provided for those three legacy evidence rows. The new worktree is ready for
   that scoped follow-up, but no such repair or replay is authorized by this
   checkpoint.
+
+### Contract checkpoint and commit preparation: 2026-08-29 18:30 CST
+
+- Change: the adapter and readiness producer now bind exact run/apply/policy,
+  bundle, source, and reconciliation identities and expose only adapter-selected
+  qualifying runs; stale template runs and reconciliation evidence are discarded
+  when the adapter is incomplete or fails. Canonical evidence paths are confined
+  to the caller worktree and normalized before byte-hash verification.
+- Change: added an opt-in historical source-hash disposition contract for exactly
+  the three known legacy run IDs (Items, Projectiles, and Shimmer). It is a
+  proposal-only candidate until a separately bound Owner packet is supplied;
+  the catalog deliberately has no executable entrypoint, and no candidate or
+  approved disposition artifact was generated or consumed in this checkpoint.
+- Validation: fresh `node --test pipelines/automation/*.test.mjs` is `588/588`,
+  `node --test pipelines/workflow/*.test.mjs` is `188/188`; changed modules pass
+  `node --check`; `bash ./platform/local/verify-local-stack.sh --skip-front` and
+  `git diff --check` exit `0`.
+- Boundary: no database, source, scheduler, proposal, permit, decision, replay,
+  or historical row/hash write was performed. The entry remains `active`; the
+  three legacy rows still require exact independent disposition authorization
+  before adapter qualification can proceed.
+
+### Historical disposition consumption expiry repair: 2026-08-29 19:10 CST
+
+- Test-first regression: reading an approved disposition at
+  `2026-08-29T05:10:00.000Z` after its packet expiry was observed failing with
+  `Missing expected exception` against the prior consumer path. The minimal
+  repair now passes an explicit verification time through
+  `loadHistoricalSourceHashDispositions` and the MySQL adapter, and rejects a
+  packet when the current time is before `authorizedAt` or at/after
+  `expiresAt`; the same bounded seven-day expiry check is applied at
+  consumption.
+- Packet consumption now rechecks the canonical private packet file, exact
+  packet-file hash, Owner/operation/decision fields, technical identity,
+  scope, and the candidate's content-addressed data-bundle binding before a
+  historical row can be excluded. The new packet-tamper regression and the
+  expiry regression are both green. No disposition artifact was created or
+  consumed against the real database.
+- Validation: historical disposition plus policy-decision contracts are
+  `51/51`; full automation is `588/588`; workflow is `188/188`; changed Node
+  modules pass syntax checks; `bash ./platform/local/verify-local-stack.sh
+  --skip-front` and `git diff --check` pass.
+- Remaining boundary: current MySQL server/policy state is unchanged (Owner
+  `admin/ACTIVE`, Flyway `V60`, all eight policies `v1/L1/ACTIVE`, zero
+  non-expired writer fences, zero target L2 promotions and scheduler
+  decisions). The three legacy source-hash rows remain fail-closed until a
+  separately approved exact disposition packet is supplied; no L2 proposal,
+  promotion, scheduler activation, source refresh, crawler/import, or DML is
+  authorized by this checkpoint.
+- Runtime adapter readback was repeated against the preserved primary-root
+  evidence (the DB rows store absolute bundle paths under
+  `/home/lolben/TerraPedia`, so the continuation worktree intentionally rejects
+  those paths under its confinement guard). The primary-root transaction
+  returned three committed/full-reconciliation runs for `npcs`, `armor_sets`,
+  `buffs`, `audio`, and `bosses`, and fail-closed source-byte drift for
+  `items`, `projectiles`, and `shimmer`; the transaction was rolled back. This
+  is diagnostic evidence only and does not authorize copying, rewriting, or
+  consuming any primary-root artifact from the continuation worktree.
+
+### Final fingerprint/TOCTOU defense and validation: 2026-08-29 20:00 CST
+
+- Test-first RED evidence: a disposition packet changed after the evidence SQL
+  and an adapter readback carrying excluded historical runs without disposition
+  paths both passed through the prior implementation. The new regressions
+  failed for those exact reasons before the repair.
+- Repair: the adapter now reloads disposition/packet snapshots, expiry, and the
+  same-connection MySQL server fingerprint both before and immediately after
+  the evidence query. The readiness builder treats any non-empty or malformed
+  `excludedHistoricalRuns` as a disposition use, requires adapter and boundary
+  fingerprints, canonicalizes both objects, and rejects drift.
+- Review: `/root/review_expiry_contract` re-reviewed the updated ordering and
+  compatibility path and reported `PASS`, with no Critical, Important, or Minor
+  findings. No historical disposition artifact was created or consumed.
+- Validation: focused adapter/readiness tests `82/82`; full automation suite
+  `597/597`; workflow suite `188/188`; Maven policy/scheduler suite `43/43`;
+  changed-module `node --check`, `git diff --check`, and
+  `bash ./platform/local/verify-local-stack.sh --skip-front` all passed.
+- Runtime readback: MySQL UUID `b4ae6728-4f72-11f1-bcc9-00155d37eadf` on
+  `13306`, Flyway `V60`, Owner `admin/ACTIVE`, all eight effective policies
+  still `v1/L1/ACTIVE`, eight registered immutable L2 ceiling rows, zero
+  `L2_PROMOTION` decisions, zero current scheduler decisions, zero live
+  attempts/reservations/fences. The extra `terria_v1_v55_rehearsal` schema is
+  out of scope. No proposal, packet, permit, promotion, scheduler control
+  write, source refresh, crawler/import, replay, or business-table write ran.
+- Follow-up remains unchanged: exact independently approved historical
+  disposition packets for Items, Projectiles, and Shimmer are required before
+  their legacy rows can be excluded and before any L2 proposal is generated;
+  the entry remains `active`.

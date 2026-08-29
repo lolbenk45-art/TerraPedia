@@ -340,14 +340,15 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 110);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 111);
   assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 109);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
+  assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
       .filter(([, entrypoint]) => entrypoint === null)
       .map(([operationId]) => operationId),
-    ['canonical-npc-apply'],
+    ['canonical-npc-apply', 'automation-l1-historical-source-hash-disposition'],
   );
   assert.deepEqual(
     CANONICAL_EXECUTABLE_OPERATION_IDS,
@@ -1399,6 +1400,11 @@ test('formal cutover and activation manifests freeze exact safety-critical argum
     operationId: 'canonical-npc-apply',
     artifactDate: '2026-07-28',
   }), /no governed executor.*canonical-npc-apply/i);
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'automation-l1-historical-source-hash-disposition',
+    artifactDate: '2026-07-28',
+  }), /no governed executor.*automation-l1-historical-source-hash-disposition/i);
 });
 
 test('L2 policy ceiling registration manifests include an immutable post-commit marker output', () => {

@@ -480,6 +480,20 @@ write was executed; Phase 3 remains forbidden.
   records `l1_bundle_evidence_integrity` and sets the qualifying count to zero;
   it must not be converted into a warning or silently omitted.
 
+  When an approved historical source-hash disposition is supplied, the
+  readiness producer must first observe a canonical server fingerprint from
+  its MySQL connection and pass that independent observation to the adapter.
+  The adapter requires this input, re-reads `@@server_uuid` and `@@port` on
+  the same transaction connection immediately before its evidence query and
+  again immediately after the query, and verifies both live identities and
+  every disposition packet's content hash against them. A packet-bound
+  fingerprint or a separately recorded database boundary is not sufficient if
+  the adapter can consume the disposition without these live rechecks. The
+  builder must also fail closed whenever adapter evidence contains a non-empty
+  or malformed `excludedHistoricalRuns` value, even if disposition paths were
+  omitted, and must compare the adapter and independent-boundary fingerprints
+  after canonicalization.
+
 - [ ] **Step 2.3: Qualify one full reconciliation.**
 
   A qualifying run must prove complete source coverage for the domain, terminal progress, unchanged/changed classification for the entire governed input, no active or overdue attempt, exact owned-table generation/readback, and zero unclassified or unauthorized mutations. A separate parent-closeout reconciliation may be linked as context but cannot be counted unless it satisfies this exact contract.

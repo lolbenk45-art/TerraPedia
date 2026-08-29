@@ -32,6 +32,7 @@ import {
   canonicalItemImageProjectionHash,
   recomputeItemImageProjectionPacketHash,
 } from '../relation/item-image-projection-contract.mjs';
+import { buildHistoricalSourceHashDisposition } from './historical-source-hash-disposition.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const GENERATED_AT = '2026-07-27T15:00:00.000Z';
@@ -351,6 +352,7 @@ test('operation request builder exposes all governed IDs', () => {
     'automation-biomes-first-l1',
     'automation-biomes-second-l1',
     'automation-biomes-l2-promotion',
+    'automation-l1-historical-source-hash-disposition',
     'automation-items-l2-promotion',
     'automation-npcs-l2-promotion',
     'automation-projectiles-l2-promotion',
@@ -562,6 +564,195 @@ test('L2 authorization data bundles include the exact policy artifact and propos
   ]);
 });
 
+test('historical disposition authorization resolves the manifest-bound candidate path and file hash', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-data-bundle-'));
+  const policySetHash = HASH;
+  const currentPolicy = {
+    domainId: 'items',
+    level: 'L1',
+    operationalState: 'ACTIVE',
+    policyVersion: 1,
+    policyHash: HASH,
+    policySetHash,
+  };
+  const sourceBytes = Buffer.from('{"records":[1]}\n', 'utf8');
+  const sourcePath = 'reports/authorization/canonical/items/legacy.source.json';
+  const entry = {
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    runStatus: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    bundlePath: '/legacy/TerraPedia/reports/authorization/canonical/items/legacy.bundle.json',
+    bundleHash: `sha256:${'b'.repeat(64)}`,
+    bundleFileSha256: `sha256:${'c'.repeat(64)}`,
+    evidenceHash: `sha256:${'d'.repeat(64)}`,
+    baselineFingerprint: `sha256:${'e'.repeat(64)}`,
+    source: {
+      path: sourcePath,
+      declaredSha256: `sha256:${createHash('sha256').update(Buffer.from(JSON.stringify(JSON.parse(sourceBytes.toString('utf8'))), 'utf8')).digest('hex')}`,
+      semanticJsonSha256: `sha256:${createHash('sha256').update(Buffer.from(JSON.stringify(JSON.parse(sourceBytes.toString('utf8'))), 'utf8')).digest('hex')}`,
+      actualByteSha256: `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}`,
+      bytes: sourceBytes.length,
+      encoding: 'utf8',
+    },
+  };
+  const candidate = buildHistoricalSourceHashDisposition({
+    domainId: 'items',
+    currentPolicy,
+    entries: [entry],
+    generatedAt: GENERATED_AT,
+  });
+  const candidatePath = `reports/authorization/canonical/l1-historical-source-hash-disposition/items/${candidate.artifactHash.slice(7)}/candidate.json`;
+  const candidateBytes = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`, 'utf8');
+  const candidateAbsolute = path.join(repoRoot, candidatePath);
+  fs.mkdirSync(path.dirname(candidateAbsolute), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(candidateAbsolute, candidateBytes, { mode: 0o600 });
+  const candidateFileSha256 = `sha256:${createHash('sha256').update(candidateBytes).digest('hex')}`;
+  const executionManifest = {
+    schemaVersion: 1,
+    operationId: 'automation-l1-historical-source-hash-disposition',
+    executionClass: 'historical_source_hash_disposition',
+    command: ['node', 'pipelines/automation/historical-source-hash-disposition.mjs'],
+    inputPaths: [candidatePath],
+    outputPaths: [],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: false,
+    networkAccess: false,
+    historicalSourceHashDisposition: {
+      candidatePath,
+      candidateFileSha256,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+    scope: {
+      domainId: candidate.domainId,
+      runId: candidate.entries[0].runId,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+  };
+
+  const resolved = resolveCanonicalOperationTechnicalInput({
+    repoRoot,
+    operationId: executionManifest.operationId,
+    executionManifest,
+  });
+
+  assert.deepEqual(resolved.dataEntries.map((entryValue) => entryValue.path), [candidatePath]);
+  assert.equal(resolved.dataEntries[0].bytes.toString('utf8'), candidateBytes.toString('utf8'));
+  assert.deepEqual(resolved.executionManifest, executionManifest);
+});
+
+test('historical disposition resolver rejects path, hash, alias, and scope drift before loading a candidate', () => {
+  const fixture = historicalResolverFixture();
+  const cases = [
+    ['path traversal', (manifest) => {
+      const pathValue = `${fixture.candidatePath}/../candidate.json`;
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['absolute path', (manifest) => {
+      const pathValue = '/tmp/terrapedia-candidate.json';
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['backslash path', (manifest) => {
+      const pathValue = fixture.candidatePath.replaceAll('/', '\\');
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['duplicate separator', (manifest) => {
+      const pathValue = fixture.candidatePath.replace('/candidate.json', '//candidate.json');
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['candidate file hash drift', (manifest) => {
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidateFileSha256: `sha256:${'f'.repeat(64)}`,
+      };
+    }, /candidate file hash drifted/i],
+    ['artifact address drift', (manifest) => {
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidateArtifactHash: `sha256:${'f'.repeat(64)}`,
+      };
+    }, /path hash|artifact hash/i],
+    ['alias conflict', (manifest) => {
+      manifest.candidate = {
+        ...manifest.historicalSourceHashDisposition,
+        candidateFileSha256: `sha256:${'f'.repeat(64)}`,
+      };
+    }, /alias|binding.*exactly once/i],
+    ['scope domain drift', (manifest) => {
+      manifest.scope = { ...manifest.scope, domainId: 'projectiles' };
+    }, /scope|domain/i],
+    ['scope run drift', (manifest) => {
+      manifest.scope = { ...manifest.scope, runId: 'items_l1_other' };
+    }, /scope|run/i],
+  ];
+  for (const [label, mutate, matcher] of cases) {
+    const manifest = structuredClone(fixture.executionManifest);
+    mutate(manifest);
+    assert.throws(
+      () => resolveCanonicalOperationTechnicalInput({
+        repoRoot: fixture.repoRoot,
+        operationId: fixture.executionManifest.operationId,
+        executionManifest: manifest,
+      }),
+      matcher,
+      label,
+    );
+  }
+
+  const driftedBytes = Buffer.from(`${JSON.stringify({ ...fixture.candidate, domainId: 'projectiles' }, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(fixture.repoRoot, fixture.candidatePath), driftedBytes, { mode: 0o600 });
+  assert.throws(
+    () => resolveCanonicalOperationTechnicalInput({
+      repoRoot: fixture.repoRoot,
+      operationId: fixture.executionManifest.operationId,
+      executionManifest: fixture.executionManifest,
+    }),
+    /candidate (?:artifact|identity|file) hash drifted|candidate.*identity/i,
+  );
+});
+
+test('historical disposition resolver can be independently re-run in a fresh process', () => {
+  const fixture = historicalResolverFixture();
+  const manifestPath = path.join(fixture.repoRoot, 'manifest.json');
+  fs.writeFileSync(manifestPath, `${JSON.stringify(fixture.executionManifest)}\n`, { mode: 0o600 });
+  const modulePath = path.resolve(import.meta.dirname, 'build-canonical-cutover-authorization.mjs');
+  const script = [
+    `import fs from 'node:fs';`,
+    `import { hashOrderedBundleBytes, resolveCanonicalOperationTechnicalInput } from ${JSON.stringify(modulePath)};`,
+    `const manifest = JSON.parse(fs.readFileSync(process.env.MANIFEST_PATH, 'utf8'));`,
+    `const resolved = resolveCanonicalOperationTechnicalInput({ repoRoot: process.env.REPO_ROOT, operationId: manifest.operationId, executionManifest: manifest });`,
+    `process.stdout.write(JSON.stringify({ paths: resolved.dataEntries.map((entry) => entry.path), bytes: resolved.dataEntries[0].bytes.length, dataBundleSha256: hashOrderedBundleBytes(resolved.dataEntries, 'data bundle') }));`,
+  ].join('\n');
+  const expectedDataBundleSha256 = hashOrderedBundleBytes([
+    { path: fixture.candidatePath, bytes: fixture.candidateBytes },
+  ], 'data bundle');
+  const output = execFileSync(process.execPath, ['--input-type=module', '--eval', script], {
+    encoding: 'utf8',
+    env: { ...process.env, REPO_ROOT: fixture.repoRoot, MANIFEST_PATH: manifestPath },
+  });
+  assert.deepEqual(JSON.parse(output), {
+    paths: [fixture.candidatePath],
+    bytes: fixture.candidateBytes.length,
+    dataBundleSha256: expectedDataBundleSha256,
+  });
+});
+
 test('every operation resolves its exact frozen data inputs and fails closed when one is missing', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-data-'));
   const write = (relativePath, content = '{}') => {
@@ -592,6 +783,18 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
         || operationId === 'canonical-item-source-local-npc-admission') continue;
     if (operationId.startsWith('automation-')
         && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) continue;
+    if (operationId === 'automation-l1-historical-source-hash-disposition') {
+      assert.throws(
+        () => buildCanonicalAuthorizationRequestForOperation({
+          repoRoot,
+          operationId,
+          generatedAt: GENERATED_AT,
+          expiresAt: EXPIRES_AT,
+        }),
+        /historical disposition execution manifest/i,
+      );
+      continue;
+    }
     const request = buildCanonicalAuthorizationRequestForOperation({
       repoRoot,
       operationId,
@@ -841,7 +1044,7 @@ test('operation manifests are bound to the exact governed entrypoint and missing
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
       .filter(([, entrypoint]) => entrypoint === null)
       .map(([operationId]) => operationId),
-    ['canonical-npc-apply'],
+    ['canonical-npc-apply', 'automation-l1-historical-source-hash-disposition'],
   );
 
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-entrypoint-'));
@@ -1718,4 +1921,76 @@ function writeShimmerImportContract(repoRoot) {
   }, null, 2)}\n`, { mode: 0o600 });
   fs.chmodSync(contractPath, 0o600);
   return publication;
+}
+
+function historicalResolverFixture() {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-resolver-'));
+  const domainId = 'items';
+  const sourceBytes = Buffer.from('{"records":[1]}\n', 'utf8');
+  const sourcePath = 'reports/authorization/canonical/items/legacy.source.json';
+  const semanticHash = `sha256:${createHash('sha256').update(
+    Buffer.from(JSON.stringify(JSON.parse(sourceBytes.toString('utf8'))), 'utf8'),
+  ).digest('hex')}`;
+  const actualHash = `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}`;
+  const entry = {
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    runStatus: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    bundlePath: '/legacy/TerraPedia/reports/authorization/canonical/items/legacy.bundle.json',
+    bundleHash: `sha256:${'b'.repeat(64)}`,
+    bundleFileSha256: `sha256:${'c'.repeat(64)}`,
+    evidenceHash: `sha256:${'d'.repeat(64)}`,
+    baselineFingerprint: `sha256:${'e'.repeat(64)}`,
+    source: {
+      path: sourcePath,
+      declaredSha256: semanticHash,
+      semanticJsonSha256: semanticHash,
+      actualByteSha256: actualHash,
+      bytes: sourceBytes.length,
+      encoding: 'utf8',
+    },
+  };
+  const policyHash = HASH;
+  const policySetHash = HASH;
+  const candidate = buildHistoricalSourceHashDisposition({
+    domainId,
+    currentPolicy: {
+      domainId,
+      level: 'L1',
+      operationalState: 'ACTIVE',
+      policyVersion: 1,
+      policyHash,
+      policySetHash,
+    },
+    entries: [entry],
+    generatedAt: GENERATED_AT,
+  });
+  const candidatePath = `reports/authorization/canonical/l1-historical-source-hash-disposition/${domainId}/${candidate.artifactHash.slice(7)}/candidate.json`;
+  const candidateBytes = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`, 'utf8');
+  const candidateAbsolute = path.join(repoRoot, candidatePath);
+  fs.mkdirSync(path.dirname(candidateAbsolute), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(candidateAbsolute, candidateBytes, { mode: 0o600 });
+  const executionManifest = {
+    schemaVersion: 1,
+    operationId: 'automation-l1-historical-source-hash-disposition',
+    executionClass: 'historical_source_hash_disposition',
+    command: ['node', 'pipelines/automation/historical-source-hash-disposition.mjs'],
+    inputPaths: [candidatePath],
+    outputPaths: [],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: false,
+    networkAccess: false,
+    historicalSourceHashDisposition: {
+      candidatePath,
+      candidateFileSha256: `sha256:${createHash('sha256').update(candidateBytes).digest('hex')}`,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+    scope: {
+      domainId,
+      runId: entry.runId,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+  };
+  return { repoRoot, candidate, candidatePath, candidateBytes, executionManifest };
 }

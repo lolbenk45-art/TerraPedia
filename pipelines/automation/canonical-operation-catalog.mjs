@@ -71,6 +71,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-biomes-first-l1',
   'automation-biomes-second-l1',
   'automation-biomes-l2-promotion',
+  'automation-l1-historical-source-hash-disposition',
   'automation-items-l2-promotion',
   'automation-npcs-l2-promotion',
   'automation-projectiles-l2-promotion',
@@ -353,6 +354,7 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'automation-biomes-l2-promotion': Object.freeze([
     'reports/authorization/canonical/automation-biomes-l2-promotion.input.json',
   ]),
+  'automation-l1-historical-source-hash-disposition': Object.freeze([]),
   'automation-items-l2-promotion': Object.freeze([
     'reports/authorization/canonical/automation-items-l2-promotion.input.json',
   ]),
@@ -557,6 +559,9 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-biomes-first-l1': 'pipelines/automation/run-biomes-automation-operation.mjs',
   'automation-biomes-second-l1': 'pipelines/automation/run-biomes-automation-operation.mjs',
   'automation-biomes-l2-promotion': 'pipelines/automation/run-automation-policy-decision.mjs',
+  // This module is an authorization/evidence contract library only.  It has
+  // no CLI executor and must never be advertised as an executable operation.
+  'automation-l1-historical-source-hash-disposition': null,
   'automation-items-l2-promotion': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-npcs-l2-promotion': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-projectiles-l2-promotion': 'pipelines/automation/run-automation-policy-decision.mjs',

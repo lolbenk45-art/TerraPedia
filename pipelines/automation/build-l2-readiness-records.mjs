@@ -8,6 +8,7 @@ import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs
 import { assertRepositoryOrdinaryFile, assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { createMysqlAutomationPolicyDecisionAdapter } from './run-automation-policy-decision.mjs';
+import { canonicalServerFingerprint } from './automation-database-contract.mjs';
 import { readL2PolicyCeilingArtifact } from './l2-policy-ceiling-artifact.mjs';
 import {
   buildL2PolicyCeilingRegistrationInput,
@@ -17,6 +18,16 @@ import {
 export const TARGET_DOMAINS = Object.freeze([
   'items', 'npcs', 'projectiles', 'armor_sets', 'buffs', 'audio', 'bosses', 'shimmer',
 ]);
+const DOMAIN_L1_OPERATION_IDS = Object.freeze({
+  items: 'automation-items-l1',
+  npcs: 'automation-npcs-l1',
+  projectiles: 'automation-projectiles-l1',
+  armor_sets: 'automation-armor-sets-l1',
+  buffs: 'automation-buffs-l1',
+  audio: 'automation-audio-first-l1',
+  bosses: 'automation-bosses-first-l1',
+  shimmer: 'automation-shimmer-first-l1',
+});
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const FORMAL_DATABASES = Object.freeze(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
@@ -104,6 +115,7 @@ export function buildL2ReadinessArtifacts({
   if (!adapterReadback || typeof adapterReadback !== 'object') throw new Error('adapter readback is required');
   if (!HASH_PATTERN.test(adapterReadback.policySetHash ?? '')) throw new Error('adapter policy-set hash is required');
   if (!databaseBoundary || typeof databaseBoundary !== 'object') throw new Error('database boundary is required');
+  assertHistoricalDispositionServerFingerprintBinding(adapterReadback, databaseBoundary);
   if (!crossDb || !relation) throw new Error('shared read-only reports are required');
   assertBoundReport(root, sharedReports?.crossDbPath, crossDb, 'cross-db report', timestamp);
   assertBoundReport(root, sharedReports?.relationJsonPath, relation, 'relation-health report', timestamp);
@@ -145,12 +157,26 @@ export function buildL2ReadinessArtifacts({
     });
     const template = readJson(templatePath, `${domainId} readiness template`);
     const adapterResult = adapterReadback.domains?.[domainId];
-    const sourceRuns = Array.isArray(template.l1Runs) ? template.l1Runs : [];
-    const l1Runs = sourceRuns.map((run) => ({
-      ...run,
-      qualifyingL1Evidence: false,
-      sourceValidity: auditBundleSource(root, run),
-    }));
+    const adapterEvidence = adapterResult?.evidence;
+    const adapterRunsBound = adapterResult?.status === 'pass'
+      && Array.isArray(adapterEvidence?.qualifyingL1Runs);
+    // Once an adapter result is present, the prior display template is never
+    // an evidence source.  A failed or incomplete adapter read must produce an
+    // empty, fail-closed run set rather than stale qualifying-looking rows.
+    const sourceRuns = adapterRunsBound ? adapterEvidence.qualifyingL1Runs : [];
+    const l1Runs = sourceRuns.map((run) => {
+      const normalizedRun = adapterRunsBound
+        ? normalizeAdapterL1Run(root, run, domainId, adapterReadback.policySetHash)
+        : run;
+      return {
+        ...normalizedRun,
+        qualifyingL1Evidence: adapterResult?.status === 'pass'
+          ? run.qualifyingL1Evidence !== false
+          : false,
+        sourceValidity: auditBundleSource(root, normalizedRun),
+        evidenceValidity: auditL1Evidence(root, normalizedRun),
+      };
+    });
     const currentPolicy = adapterResult?.policy
       ? {
         level: adapterResult.policy.currentLevel,
@@ -164,7 +190,17 @@ export function buildL2ReadinessArtifacts({
         policySetHash: adapterReadback.policySetHash,
       };
     const adapterStatus = adapterResult?.status ?? 'error';
-    const adapterEvidence = adapterResult?.evidence;
+    const reconciliationFallback = {
+      status: 'missing',
+      reason: adapterStatus !== 'pass'
+        ? 'adapter_readback_failed'
+        : !adapterRunsBound
+          ? 'adapter_qualifying_runs_missing'
+        : 'adapter_full_reconciliation_missing',
+    };
+    const fullReconciliation = adapterRunsBound
+      ? resolveAdapterFullReconciliation(adapterEvidence, l1Runs, reconciliationFallback)
+      : reconciliationFallback;
     const policyCeiling = adapterResult?.policyCeiling ?? template.policyCeiling;
     const blockingGates = new Set(template.blockingGates ?? []);
     if (policyCeiling?.status === 'verified') {
@@ -172,7 +208,10 @@ export function buildL2ReadinessArtifacts({
     } else {
       blockingGates.add('policy_ceiling');
     }
-    if (adapterStatus !== 'pass' || l1Runs.some((run) => run.sourceValidity.status !== 'match')) {
+    if (!adapterRunsBound || l1Runs.some((run) => (
+      run.sourceValidity.status !== 'match'
+      || (run.evidenceValidity.status !== 'match' && run.evidenceValidity.status !== 'not_applicable')
+    ))) {
       blockingGates.add('l1_bundle_evidence_integrity');
     }
     const record = {
@@ -184,14 +223,23 @@ export function buildL2ReadinessArtifacts({
       currentPolicy,
       policyCeiling,
       l1Runs,
-      successfulCommittedL1Runs: l1Runs.filter((run) => run.runStatus === 'COMPLETED' && run.applyStatus === 'COMMITTED').length,
-      qualifyingCommittedL1Runs: adapterStatus === 'pass' ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
+      successfulCommittedL1Runs: l1Runs.filter((run) => (
+        (run.status ?? run.runStatus) === 'COMPLETED' && run.applyStatus === 'COMMITTED'
+      )).length,
+      qualifyingCommittedL1Runs: adapterRunsBound ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
       l1EvidenceAdapterReadback: {
         status: adapterStatus,
-        distinctCommittedL1Runs: adapterStatus === 'pass' ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
-        fullReconciliation: adapterEvidence?.fullReconciliation ?? false,
+        distinctCommittedL1Runs: adapterRunsBound ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
+        fullReconciliation: adapterRunsBound ? (adapterEvidence?.fullReconciliation ?? false) : false,
+        qualifyingL1Runs: adapterRunsBound
+          ? adapterEvidence.qualifyingL1Runs
+          : [],
+        excludedHistoricalRuns: adapterRunsBound && Array.isArray(adapterEvidence?.excludedHistoricalRuns)
+          ? adapterEvidence.excludedHistoricalRuns
+          : [],
         error: adapterResult?.error ?? null,
       },
+      fullReconciliation,
       blockingGates: [...blockingGates],
       verdict: 'BLOCKED',
       proposalInput: false,
@@ -765,15 +813,88 @@ function assertUiAdminCoverage(adminEvidence) {
   return adminEvidence;
 }
 
+function normalizeAdapterL1Run(repoRoot, run, domainId, policySetHash) {
+  if (!run || typeof run !== 'object' || Array.isArray(run)) {
+    throw new Error('adapter qualifying L1 run is invalid');
+  }
+  const runId = requireText(run.runId, 'adapter L1 runId');
+  const status = run.status ?? run.runStatus;
+  if (status !== 'COMPLETED' || run.applyStatus !== 'COMMITTED') {
+    throw new Error(`adapter L1 run ${runId} is not a committed completed run`);
+  }
+  const bundlePath = normalizeEvidencePath(repoRoot, run.bundlePath ?? run.evidence?.path, 'adapter L1 bundle path');
+  const bundleSha256 = run.bundleSha256 ?? run.evidence?.sha256 ?? run.evidence?.bundleFileHash;
+  if (!bundlePath || !HASH_PATTERN.test(bundleSha256 ?? '')) {
+    throw new Error(`adapter L1 run ${runId} bundle identity is invalid`);
+  }
+  if (!bundlePath.startsWith('reports/authorization/canonical/')) {
+    throw new Error(`adapter L1 run ${runId} bundle path is not canonical`);
+  }
+  if (run.operationId !== DOMAIN_L1_OPERATION_IDS[domainId]
+      || run.policySetHash !== policySetHash) {
+    throw new Error(`adapter L1 run ${runId} policy or operation identity is invalid`);
+  }
+  const evidencePath = run.evidencePath == null
+    ? null
+    : normalizeEvidencePath(repoRoot, run.evidencePath, 'adapter L1 evidence path');
+  if (evidencePath != null && !HASH_PATTERN.test(run.evidenceSha256 ?? '')) {
+    throw new Error(`adapter L1 run ${runId} evidence identity is invalid`);
+  }
+  if (evidencePath == null && run.fullReconciliation === true) {
+    throw new Error(`adapter L1 run ${runId} full reconciliation path is missing`);
+  }
+  return {
+    ...run,
+    status,
+    runStatus: run.runStatus ?? status,
+    applyStatus: run.applyStatus,
+    bundlePath,
+    bundleSha256,
+    evidencePath,
+    evidenceSha256: run.evidenceSha256 ?? null,
+    evidence: run.evidence ?? (bundlePath ? { path: bundlePath, sha256: bundleSha256 } : null),
+  };
+}
+
+function resolveAdapterFullReconciliation(adapterEvidence, l1Runs, fallback) {
+  const candidate = adapterEvidence?.fullReconciliation;
+  if (!candidate || candidate === false) return fallback;
+  const match = l1Runs.find((run) => run.fullReconciliation === true
+    && typeof run.evidencePath === 'string' && run.evidencePath.trim() !== ''
+    && (candidate.runId == null || candidate.runId === run.runId));
+  if (!match || !match.evidenceSha256) return fallback;
+  return {
+    status: 'verified',
+    evidence: match.evidencePath,
+    evidenceSha256: match.evidenceSha256,
+    runId: match.runId,
+  };
+}
+
+function normalizeEvidencePath(repoRoot, value, label) {
+  const text = String(value ?? '').trim().replaceAll('\\', '/');
+  if (!text) return null;
+  if (path.isAbsolute(text)) {
+    const relativePath = path.relative(path.resolve(repoRoot), path.resolve(text)).replaceAll('\\', '/');
+    if (!relativePath || relativePath === '..' || relativePath.startsWith('../') || path.isAbsolute(relativePath)) {
+      throw new Error(`${label} escapes the repository root`);
+    }
+    return relativePath;
+  }
+  if (!text.startsWith('reports/') || text.includes('..')) throw new Error(`${label} must be a confined reports path`);
+  return text;
+}
+
 function auditBundleSource(repoRoot, run) {
-  const bundlePath = String(run?.evidence?.path ?? '').trim();
+  const bundlePath = String(run?.bundlePath ?? run?.evidence?.path ?? '').trim();
   if (!bundlePath) return { status: 'missing', reason: 'bundle_path_missing' };
   const absolute = path.isAbsolute(bundlePath) ? bundlePath : path.resolve(repoRoot, bundlePath);
-  const result = { bundlePath: safeRelative(repoRoot, absolute), expectedBundleSha256: run.evidence?.sha256 ?? null };
+  const result = { bundlePath: safeRelative(repoRoot, absolute), expectedBundleSha256: run.bundleSha256 ?? run.evidence?.sha256 ?? null };
   try {
-    const stat = fs.lstatSync(absolute);
+    const confined = assertRepositoryOrdinaryFile({ repoRoot, filePath: absolute, label: 'L1 bundle artifact' });
+    const stat = fs.lstatSync(confined);
     if (!stat.isFile() || stat.isSymbolicLink()) return { ...result, status: 'invalid', reason: 'bundle_not_ordinary_file' };
-    const bundleBytes = fs.readFileSync(absolute);
+    const bundleBytes = fs.readFileSync(confined);
     result.bundleActualSha256 = hashBytes(bundleBytes);
     if (result.expectedBundleSha256 && result.bundleActualSha256 !== result.expectedBundleSha256) return { ...result, status: 'mismatch', reason: 'bundle_file_hash_drift' };
     const bundle = JSON.parse(bundleBytes.toString('utf8'));
@@ -783,11 +904,36 @@ function auditBundleSource(repoRoot, run) {
     result.expectedSourceSha256 = sourceHash || null;
     if (!sourcePath.startsWith('reports/') || sourcePath.includes('..') || sourcePath.startsWith('/') || !HASH_PATTERN.test(sourceHash)) return { ...result, status: 'invalid', reason: 'source_identity_invalid' };
     const sourceAbsolute = path.resolve(repoRoot, sourcePath);
-    const sourceStat = fs.lstatSync(sourceAbsolute);
+    const sourceConfined = assertRepositoryOrdinaryFile({ repoRoot, filePath: sourceAbsolute, label: 'L1 source artifact' });
+    const sourceStat = fs.lstatSync(sourceConfined);
     if (!sourceStat.isFile() || sourceStat.isSymbolicLink()) return { ...result, status: 'invalid', reason: 'source_not_ordinary_file' };
-    result.sourceActualSha256 = hashFile(sourceAbsolute);
-    JSON.parse(fs.readFileSync(sourceAbsolute, 'utf8'));
+    result.sourceActualSha256 = hashFile(sourceConfined);
+    JSON.parse(fs.readFileSync(sourceConfined, 'utf8'));
     return { ...result, status: result.sourceActualSha256 === sourceHash ? 'match' : 'mismatch', reason: result.sourceActualSha256 === sourceHash ? null : 'source_artifact_hash_drift' };
+  } catch (error) {
+    return { ...result, status: error?.code === 'ENOENT' ? 'missing' : 'invalid', reason: error.message };
+  }
+}
+
+function auditL1Evidence(repoRoot, run) {
+  const evidencePath = String(run?.evidencePath ?? '').trim();
+  if (!evidencePath) {
+    return { status: run?.fullReconciliation === true ? 'missing' : 'not_applicable', reason: run?.fullReconciliation === true ? 'reconciliation_path_missing' : null };
+  }
+  const absolute = path.isAbsolute(evidencePath) ? evidencePath : path.resolve(repoRoot, evidencePath);
+  const result = {
+    evidencePath: safeRelative(repoRoot, absolute),
+    expectedEvidenceSha256: run.evidenceSha256 ?? null,
+  };
+  try {
+    const confined = assertRepositoryOrdinaryFile({ repoRoot, filePath: absolute, label: 'L1 evidence artifact' });
+    const bytes = fs.readFileSync(confined);
+    result.evidenceActualSha256 = hashBytes(bytes);
+    if (!HASH_PATTERN.test(run.evidenceSha256 ?? '') || result.evidenceActualSha256 !== run.evidenceSha256) {
+      return { ...result, status: 'mismatch', reason: 'evidence_file_hash_drift' };
+    }
+    JSON.parse(bytes.toString('utf8'));
+    return { ...result, status: 'match', reason: null };
   } catch (error) {
     return { ...result, status: error?.code === 'ENOENT' ? 'missing' : 'invalid', reason: error.message };
   }
@@ -905,18 +1051,64 @@ function requireTimestamp(value) {
   if (!timestamp || !Number.isFinite(Date.parse(timestamp))) throw new Error('generatedAt must be an ISO timestamp');
   return timestamp;
 }
+function requireText(value, label) {
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${label} is required`);
+  return text;
+}
 function normalizeDomains(domains) {
   if (!Array.isArray(domains) || domains.length === 0 || domains.some((domain) => !TARGET_DOMAINS.includes(domain))) throw new Error('domains must be a non-empty subset of the eight L2 domains');
   return [...new Set(domains)];
 }
 
-async function readAdapterEvidence({ repoRoot, dbConfig, domains }) {
+function assertHistoricalDispositionServerFingerprintBinding(adapterReadback, databaseBoundary) {
+  const dispositionPaths = Array.isArray(adapterReadback.historicalDispositionPaths)
+    ? adapterReadback.historicalDispositionPaths.filter(Boolean)
+    : [];
+  const hasExcludedHistoricalRuns = Object.values(adapterReadback.domains ?? {}).some((domainResult) => {
+    const excluded = domainResult?.evidence?.excludedHistoricalRuns;
+    return excluded !== undefined && excluded !== null
+      && (!Array.isArray(excluded) || excluded.length > 0);
+  });
+  if (dispositionPaths.length === 0 && !hasExcludedHistoricalRuns) return;
+  const adapterFingerprint = adapterReadback.serverFingerprint;
+  const boundaryFingerprint = databaseBoundary.serverFingerprint;
+  if (!adapterFingerprint || !boundaryFingerprint) {
+    throw new Error('historical disposition readiness requires adapter and database boundary server fingerprints');
+  }
+  let canonicalAdapterFingerprint;
+  let canonicalBoundaryFingerprint;
+  try {
+    canonicalAdapterFingerprint = canonicalServerFingerprint(adapterFingerprint);
+    canonicalBoundaryFingerprint = canonicalServerFingerprint(boundaryFingerprint);
+  } catch (error) {
+    throw new Error(`historical disposition server fingerprint is invalid: ${error.message}`);
+  }
+  if (JSON.stringify(canonicalAdapterFingerprint) !== JSON.stringify(canonicalBoundaryFingerprint)) {
+    throw new Error('historical disposition server fingerprint drifted between adapter and database boundary reads');
+  }
+}
+
+async function readAdapterEvidence({ repoRoot, dbConfig, domains, historicalDispositionPaths = [] }) {
   const mysql = loadMysqlModule({ repoRoot });
   const connection = await mysql.createConnection(dbConfig);
-  const result = { policySetHash: null, domains: {} };
+  const result = {
+    policySetHash: null,
+    historicalDispositionPaths: [...historicalDispositionPaths],
+    serverFingerprint: null,
+    domains: {},
+  };
   try {
     await connection.beginTransaction();
-    const adapter = createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoot });
+    const historicalDispositionServerFingerprint = historicalDispositionPaths.length > 0
+      ? await readConnectionServerFingerprint(connection, dbConfig)
+      : null;
+    result.serverFingerprint = historicalDispositionServerFingerprint;
+    const adapter = createMysqlAutomationPolicyDecisionAdapter(connection, {
+      repoRoot,
+      historicalSourceHashDispositionPaths: historicalDispositionPaths,
+      historicalDispositionServerFingerprint,
+    });
     result.policySetHash = await adapter.readCurrentPolicySetHash();
     for (const domainId of domains) {
       const domainResult = {
@@ -964,10 +1156,17 @@ async function readDatabaseBoundary({ dbConfig, domains, repoRoot }) {
     const count = async (sql, params = [domains]) => { const [rows] = await connection.query(sql, params); return Number(rows?.[0]?.total ?? 0); };
     const latestVersion = Number(flywayRows?.[0]?.latestVersion ?? 0);
     const server = serverRows?.[0] ?? {};
+    const serverFingerprint = canonicalServerFingerprint({
+      host: dbConfig.host,
+      port: Number(server.port),
+      serverUuid: server.serverUuid,
+      databases: FORMAL_DATABASES,
+    });
     return {
       host: dbConfig.host,
       serverPort: Number(server.port),
       serverUuid: server.serverUuid,
+      serverFingerprint,
       observedDatabases,
       flywayLatestVersion: latestVersion,
       v59Applied: latestVersion >= 59,
@@ -981,6 +1180,19 @@ async function readDatabaseBoundary({ dbConfig, domains, repoRoot }) {
   } finally {
     await connection.end();
   }
+}
+
+async function readConnectionServerFingerprint(connection, dbConfig) {
+  const [serverRows] = await connection.query(
+    'SELECT @@server_uuid AS serverUuid, @@port AS port',
+  );
+  const server = serverRows?.[0] ?? {};
+  return canonicalServerFingerprint({
+    host: dbConfig.host,
+    port: Number(server.port),
+    serverUuid: server.serverUuid,
+    databases: FORMAL_DATABASES,
+  });
 }
 
 function parseArgs(argv) {
@@ -1009,6 +1221,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     multipleStatements: false,
   };
   const domains = TARGET_DOMAINS;
+  const historicalDispositionPaths = parsePathList(
+    args['historical-source-hash-disposition']
+      ?? args['historical-disposition-paths']
+      ?? args['historical-disposition'],
+  );
   const sharedReports = {
     crossDbPath: path.join(runRoot, 'cross-db.json'),
     relationJsonPath: path.join(runRoot, 'relation', `relation-health-${generatedAt.slice(0, 10)}.json`),
@@ -1023,7 +1240,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     ? readJson(path.resolve(repoRoot, v2PreflightPath), 'V2 preflight report')
     : null;
   Promise.all([
-    readAdapterEvidence({ repoRoot, dbConfig, domains }),
+    readAdapterEvidence({ repoRoot, dbConfig, domains, historicalDispositionPaths }),
     readDatabaseBoundary({ repoRoot, dbConfig, domains }),
   ]).then(([adapterReadback, databaseBoundary]) => {
     const crossDb = readJson(path.resolve(repoRoot, sharedReports.crossDbPath), 'cross-db report');
@@ -1047,4 +1264,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     console.error(error.stack ?? error.message ?? String(error));
     process.exitCode = 1;
   });
+}
+
+function parsePathList(value) {
+  if (value == null || String(value).trim() === '') return [];
+  return String(value).split(',').map((entry) => entry.trim()).filter(Boolean);
 }
