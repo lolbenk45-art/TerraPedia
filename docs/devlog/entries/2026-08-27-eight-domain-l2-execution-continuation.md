@@ -7,9 +7,11 @@
 ## Context
 
 - User goal: execute the remaining governed eight-domain L2 readiness and promotion plan, then establish whether automatic ingestion can be enabled.
-- Branch: `feat/supplementary-domains-readiness`.
-- Worktree: `/home/lolben/TerraPedia`.
-- Base: `2644d411d2ff48be41b6709dca1bb891cb3d2452`.
+- Branch: `feat/automation-ingestion-continuation`.
+- Worktree: `/home/lolben/TerraPedia/.worktrees/automation-ingestion-continuation`.
+- Base checkpoint: `6b41050791fe8de61a0a95fded0b38c9326a1d67` on the preserved
+  `feat/supplementary-domains-readiness` primary worktree
+  `/home/lolben/TerraPedia`.
 - Related docs: `docs/superpowers/plans/2026-08-26-eight-domain-l2-readiness-and-promotion.md`.
 - Related prior entry: `docs/devlog/entries/2026-08-26-l2-readiness-handoff.md`.
 
@@ -57,6 +59,44 @@
 ## Commits
 
 - Pending. No paths are staged.
+
+### Worktree handoff: 2026-08-29 11:35 CST
+
+- The mixed automation-ingestion state was checkpointed at `6b410507` before
+  this continuation worktree was created. The original `stash@{0}` remains
+  preserved and the prior branch/worktree remain untouched for recovery.
+- The new worktree is clean at the checkpoint and shares the already-running
+  local stack; no second stack, crawler, import, or L1 writer was started.
+- Next action is limited to the plan's separately bounded historical evidence
+  disposition/repair for Items, Projectiles, and Shimmer. Historical source
+  hashes, rows, permits, and decisions remain immutable; no L2 proposal,
+  promotion, scheduler decision, replay, or broad cleanup is implied.
+
+### Continuation baseline and hash audit: 2026-08-29 11:57 CST
+
+- New-worktree baseline required installing the locked admin-console
+  dependencies because this isolated checkout has no shared `node_modules`.
+  After the test fixture prepared the canonical decision ledger with its
+  required runtime `0600` mode, the focused automation suite passed `144/144`.
+  The production ledger privacy guard remains unchanged.
+- A read-only MySQL adapter transaction against the preserved primary-root
+  evidence recomputed policy-set hash
+  `sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629`.
+  `npcs`, `armor_sets`, `buffs`, `audio`, and `bosses` each return three
+  qualifying committed current-policy L1 runs with full reconciliation;
+  `items`, `projectiles`, and `shimmer` fail closed only on their known
+  historical source-artifact hash drift.
+- The three historical rows are `items_l1_auto_0dfbd093f42b072192297f2a727d9c4d`,
+  `projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e`, and
+  `shimmer_l1_20260824closure01`. Their recorded source hashes equal the
+  semantic JSON hashes (`9f28924a...`, `5eea01ee...`, `85dff081...`) while
+  current exact byte hashes are (`d6748744...`, `c4159a61...`, `abc3d6a0...`).
+  No historical hash, row, permit, or decision was changed.
+- The new worktree cannot directly qualify those DB rows because their stored
+  absolute bundle paths belong to `/home/lolben/TerraPedia`; the primary-root
+  adapter read was used only as an independent diagnostic. A separate,
+  explicitly scoped historical-evidence disposition remains required before
+  those three domains can pass the formal gate.
 
 ### 2026-08-27 08:54 CST
 

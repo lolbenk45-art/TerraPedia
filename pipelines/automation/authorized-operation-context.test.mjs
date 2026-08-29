@@ -20,6 +20,16 @@ import {
 } from './authorized-operation-context.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
+const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
+const CANONICAL_DECISION_LEDGER = path.join(
+  REPO_ROOT,
+  'reports/authorization/canonical/used-decisions.json',
+);
+
+function prepareCanonicalDecisionLedger() {
+  // Git preserves the ledger bytes, while runtime consumers require 0600.
+  fs.chmodSync(CANONICAL_DECISION_LEDGER, 0o600);
+}
 
 function packet() {
   const technical = {
@@ -226,6 +236,7 @@ test('projection child authorization environment requires exact same-attempt pac
 });
 
 test('NPC owner executor rejects direct CLI use before it can read an input or connect', () => {
+  prepareCanonicalDecisionLedger();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-'));
   const file = path.join(dir, 'packet.json');
   const now = Date.now();
