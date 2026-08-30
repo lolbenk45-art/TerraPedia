@@ -78,6 +78,23 @@ The current matrix records all eight domains as `L1/ACTIVE`, no current L2 polic
 
 3. The current database has L0 policy-version rows while the effective target-domain policy rows are `L1/ACTIVE`. An L2 ceiling cannot be represented by changing a JSON field in a proposal or by inserting an ad-hoc row during L2 promotion. The policy-version/schema representation, ownership, approval, and hash must be resolved as a separate contract step. L2 promotion may consume only an already-existing exact policy version/hash; it must not bootstrap or mutate the policy-version definition in the same transaction.
 
+4. **Critical serial-hash contract blocker (2026-08-30):** the registered ceiling
+   artifacts were created against the initial global policy set H0 and their
+   immutable `targetPolicySetHash` values are historical registration identities.
+   Reusing those values as the promotion target after an earlier domain changes
+   the live global set is invalid: an Items promotion produces H1, while an old
+   NPC packet still asks for H0 -> NPC-only target.  The executor must therefore
+   keep separate identities: `evidencePolicySetHash` for the L1 evidence set,
+   `promotionCurrentPolicySetHash` for the live pre-promotion set Hn,
+   `promotionTargetPolicySetHash` for the live post-promotion set Hn+1, and
+   `registeredTargetPolicySetHash` for the immutable ceiling registration.  Each
+   proposal/input must bind complete current/target policy rows and, after the
+   first domain, an independent readback identity for the immediately preceding
+   promotion.  A packet built for H0 must fail closed once H1 is live; an
+   unexpected global drift must also fail closed.  Registration result/marker
+   files remain bound to their original static registration hash and are never
+   rewritten.
+
 The execution owner must resolve these as a contract change, with plan-auditor review, before authorization work begins. A missing contract is a blocker, not an invitation to infer behavior.
 
 ## 2. Per-Domain Readiness Record
@@ -239,6 +256,27 @@ No file in this list is changed by this planning turn.
 
   Expected: all focused tests pass, including the new three-run/full-reconciliation cases.
 
+- [x] **Step 1.5: Repair the serial promotion hash contract before proposal generation.**
+
+  Add RED/GREEN coverage for a two-domain S0 -> S1 -> S2 sequence, an old H0
+  packet rejection after Items is promoted, unexpected global policy drift,
+  H0-bound L1 evidence continuing to qualify, immutable registration hash
+  preservation, and decision rows recording the dynamic Hn+1 target set.  The
+  proposal/input schema must bind the complete current and target policy rows,
+  the four explicitly named hash identities above, and the prior promotion
+  readback when the domain is not first.  Only after these tests pass may fresh
+  proposal-input records be formalized or any L2 proposal be generated.
+
+  **Execution checkpoint (2026-08-30 16:55 CST):** the serial transition
+  contract and executor now distinguish the immutable L1 evidence set from
+  the live pre/post-promotion sets and the static registration set. Fresh
+  RED/GREEN coverage verifies H0 -> H1 -> H2 predecessor binding, historical
+  H0 evidence qualification after H1, immutable registration provenance, and
+  dynamic post-set decision publication. The focused serial/proposal/runner
+  suite is `84/84`, the manifest suite is `55/55`, and the full automation
+  suite is `629/629`. No proposal, packet, decision, or database write was
+  performed by this checkpoint.
+
 - [x] **Step 1.5: Run plan-auditor review of the contract repair.**
 
   Phase 1 implementation checkpoint (2026-08-26): exact eight-domain L2 IDs,
@@ -291,6 +329,33 @@ No file in this list is changed by this planning turn.
   V59 was the MySQL 8+/9-compatible Flyway follow-up to V58 (`ALTER TABLE ... DROP CHECK ... ADD CONSTRAINT`). It is now applied on the authorized local database; V60 is the decision-kind compatibility follow-up documented above. The migration contract and real Flyway/preflight checks are recorded in the 2026-08-28 execution checkpoint.
 
 The canonical operation catalog keeps fixed `*.input.json` paths as execution envelopes only. They cannot substitute for proposals: the policy decision input requires `proposalOnly:false`, a content-addressed `<operation>/<sha256>/proposal.json`, an approved policy artifact path/hash, and matching proposal/policy identities. The builders and independent rebuild contract are implemented; Phase 3 remains runtime-gated by Phase 2 evidence.
+
+#### Serial promotion transition contract (2026-08-30 repair gate)
+
+The eight L2 promotions are one deterministic transaction at a time in the
+order `items`, `npcs`, `projectiles`, `armor_sets`, `buffs`, `audio`, `bosses`,
+`shimmer`. A promotion input/proposal has two intentionally different policy
+set identities: `policySetHash` is the live set immediately before that
+promotion, while `l1EvidencePolicySetHash` is the immutable set under which
+the qualifying L1 bundles and reconciliation artifacts were produced. The
+first step requires `sequenceIndex: 0` and no predecessor. Each later step
+requires `sequenceIndex` to be the next exact index and an immutable
+predecessor descriptor containing the prior domain, decision identity, packet
+hash, and post-promotion policy-set hash. The executor locks and re-reads that
+prior `L2_PROMOTION` decision, checks its target identity and post-set hash,
+requires the live current set to equal the predecessor post-set, and only then
+queries L1 evidence using `l1EvidencePolicySetHash`. Any reorder, skipped
+predecessor, duplicate identity, current-set drift, or evidence-set mismatch
+rolls back before publication. The policy ceiling artifact's original
+single-step set hashes remain immutable provenance; the proposal records the
+recomputed live transition set separately and binds both identities.
+
+The L2 execution manifest must also freeze the exact read-only evidence inputs:
+an explicitly supplied corresponding primary evidence root and the complete,
+candidate-scoped historical disposition path list. These arguments are part of
+the manifest and packet hash; a manifest that omits them cannot consume a
+historical disposition. Existing proposals, requests, and packets are never
+patched in place after this repair.
 
 #### Phase 1 runtime-boundary repair (2026-08-26 17:42 CST)
 

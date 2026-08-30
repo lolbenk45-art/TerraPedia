@@ -442,5 +442,53 @@
   {
     "decisionIdentity": "automation-shimmer-l2-policy-ceiling-registration-20260828-owner-01",
     "dispatchPermitHash": "sha256:8cf828b6ee2f6a007d550ddf87778f19975e12c8e3bb440b46d01f233c3b73f4"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:ddd3060ada923b6f3777a977aaa1dc51a80e96004b5d09a0d8fc6b1f2d6b17d4"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-promotion-20260830-admin-02",
+    "dispatchPermitHash": "sha256:8719355e8152c1bf05bf5f56cfd5124985eeb2120c62bb062a1e2205dede3433"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:278d189b0a56c692ffa6a098d8e59f2f48189a2c68fd3e2e93ff428000eb11bd"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:e4794fd1e1544f9913ecef0ddd2ad554e7b2d8834379cbf135c5c395f8676417"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-02",
+    "dispatchPermitHash": "sha256:f39c94aeefd21fc676d6e05b9171abbb60434202c08eaaeb351b2b8ecc93bc82"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-03",
+    "dispatchPermitHash": "sha256:9253e4418d145c6f6f84af6f083c4c94e30891df51a45989fdc6cf2a76284a9a"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:a30f8178c474ec48567e1bb2deda2cfacc22f4c8e0d680010592124271856d5e"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-promotion-20260830-admin-02",
+    "dispatchPermitHash": "sha256:f9db7c00b5cb9a97edcbe70237d1809a4620bfb59fb25c938996f88abbfe6fc7"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:f1033e45508509aee672f4d08b7b4d6c7fab3672260bbbf8806474d33af172fd"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:323560e00d15d3cb41c89bc9af317182f6722a74d8895519cd74c27923fccf41"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:c6ab40ee6c31328199c9196386de7756a89e5a79f4d071325e995696fd8209cb"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:b7718946938da86f0cf1b4a8a0406fc9fda9e2a626c4c8e3727ecfe75393a934"
   }
 ]

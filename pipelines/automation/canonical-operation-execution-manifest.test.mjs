@@ -1471,6 +1471,78 @@ test('L2 policy decision manifests expose the pending result and immutable commi
   }
 });
 
+test('L2 policy decision retry labels bind paired input and publication paths', () => {
+  const operationId = 'automation-armor-sets-l2-promotion';
+  const suffix = '.retry-02';
+  const inputPath = `reports/authorization/canonical/${operationId}${suffix}.input.json`;
+  const resultPath = `reports/authorization/canonical/${operationId}${suffix}.result.json`;
+  const markerPath = `${resultPath}.commit.json`;
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    artifactDate: '2026-08-30',
+    resultLabel: 'retry-02',
+  });
+  assert.deepEqual(manifest.command, [
+    'node', 'pipelines/automation/run-automation-policy-decision.mjs',
+    `--operation-id=${operationId}`,
+    `--input=${inputPath}`,
+    `--output=${resultPath}`,
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [inputPath]);
+  assert.deepEqual(manifest.outputPaths, [resultPath, markerPath]);
+  assert.deepEqual(manifest.policyDecisionPublication, {
+    pendingResultPath: resultPath,
+    commitMarkerPath: markerPath,
+  });
+  assert.equal(
+    assertCanonicalOperationExecutionManifestContract({ repoRoot, operationId, manifest }),
+    true,
+  );
+});
+
+test('L2 manifests freeze the explicit evidence root and complete historical disposition paths', () => {
+  const operationId = 'automation-items-l2-promotion';
+  const databaseEvidenceRoot = repoRoot;
+  const historicalDispositionPaths = [
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/items/'
+      + `${'a'.repeat(64)}/disposition.json`,
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/'
+      + `${'b'.repeat(64)}/disposition.json`,
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/'
+      + `${'c'.repeat(64)}/disposition.json`,
+  ];
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths: historicalDispositionPaths,
+  });
+  assert.ok(manifest.command.includes(`--database-evidence-root=${databaseEvidenceRoot}`));
+  assert.ok(manifest.command.includes(
+    `--historical-source-hash-disposition=${historicalDispositionPaths.join(',')}`,
+  ));
+  assert.deepEqual(manifest.policyDecisionEvidence, {
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths: historicalDispositionPaths,
+  });
+  assert.equal(
+    historicalDispositionPaths.every((value) => manifest.inputPaths.includes(value)),
+    true,
+  );
+});
+
+test('L2 manifests reject historical disposition paths without an explicit evidence root', () => {
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'automation-items-l2-promotion',
+    historicalSourceHashDispositionPaths: [
+      `reports/authorization/canonical/l1-historical-source-hash-disposition/items/${'a'.repeat(64)}/disposition.json`,
+    ],
+  }), /database evidence root|evidence root/i);
+});
+
 test('scheduler activation manifest consumes explicit preflight and T1 paths without writes', () => {
   const manifest = buildCanonicalOperationExecutionManifest({
     repoRoot,

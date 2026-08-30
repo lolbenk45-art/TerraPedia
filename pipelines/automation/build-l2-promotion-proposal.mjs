@@ -6,10 +6,21 @@ import path from 'node:path';
 
 import { canonicalServerFingerprint, hashCanonicalServerFingerprint } from './automation-database-contract.mjs';
 import { computePolicyHash } from './bootstrap-automation-policy.mjs';
+import { computePolicySetHash } from './policy-set-hash.mjs';
 import { verifyFullReconciliationEvidence } from './reconciliation-evidence-contract.mjs';
 import { assertApprovedL2PolicyCeilingArtifact } from './l2-policy-ceiling-artifact.mjs';
 import { assertAuthoritativeL2PolicyCeilingRegistration } from './register-l2-policy-ceiling.mjs';
-import { assertRepositoryOrdinaryFile, assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+  resolveTrustedEvidenceRoot,
+} from '../lib/private-repository-path.mjs';
+import {
+  assertL2SerialTransition,
+  L2_SERIAL_PROMOTION_ORDER,
+} from './l2-promotion-serial-contract.mjs';
+
+export { L2_SERIAL_PROMOTION_ORDER } from './l2-promotion-serial-contract.mjs';
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const DOMAIN_OPERATION_IDS = Object.freeze({
@@ -25,15 +36,23 @@ const DOMAIN_OPERATION_IDS = Object.freeze({
 
 export function buildL2PromotionProposal({
   repoRoot = process.cwd(),
+  evidenceRoot = null,
   readiness,
   policyArtifact,
   policyArtifactPath,
   policyArtifactFileSha256,
   policyRegistration,
   serverFingerprint,
+  promotionCurrentPolicyRows = null,
+  promotionTargetPolicyRows = null,
   generatedAt = new Date().toISOString(),
 } = {}) {
   const root = path.resolve(repoRoot);
+  const trustedEvidence = resolveTrustedEvidenceRoot({
+    repoRoot: root,
+    evidenceRoot,
+    label: 'L2 evidence root',
+  });
   const domainId = requireDomain(readiness?.domainId);
   const operationId = DOMAIN_OPERATION_IDS[domainId];
   if (readiness.verdict !== 'READY_FOR_L2' || (readiness.blockingGates ?? []).length !== 0) {
@@ -47,10 +66,53 @@ export function buildL2PromotionProposal({
   const policyArtifactRef = readPolicyArtifactRef(root, policyArtifact, policyArtifactPath, policyArtifactFileSha256);
   if (policyArtifact.domainId !== domainId) throw new Error('policy ceiling domain does not match readiness');
   assertCurrentPolicy(readiness.currentPolicy, policyArtifact);
+  const serialTransition = assertL2SerialTransition(readiness.serialTransition, {
+    domainId,
+    operationId,
+  });
+  const l1EvidencePolicySetHash = requireHash(
+    readiness.l1EvidencePolicySetHash,
+    'l1EvidencePolicySetHash',
+  );
+  const currentRows = normalizePromotionPolicyRows(
+    promotionCurrentPolicyRows ?? policyArtifact.currentPolicyRows,
+    'promotion current policy rows',
+  );
+  const currentPolicySetHash = computePolicySetHash(currentRows);
+  if (currentPolicySetHash !== readiness.currentPolicy.policySetHash) {
+    throw new Error('promotion current policy rows do not match the live policy-set hash');
+  }
+  const targetRows = normalizePromotionPolicyRows(
+    promotionTargetPolicyRows ?? currentRows.map((row) => (
+      row.domainId === domainId
+        ? { domainId, policyVersion: policyArtifact.targetPolicy.policyVersion, policyHash: policyArtifact.targetPolicy.policyHash }
+        : row
+    )),
+    'promotion target policy rows',
+  );
+  const targetPolicySetHash = computePolicySetHash(targetRows);
+  const expectedTargetRows = currentRows.map((row) => (
+    row.domainId === domainId
+      ? { domainId, policyVersion: policyArtifact.targetPolicy.policyVersion, policyHash: policyArtifact.targetPolicy.policyHash }
+      : row
+  ));
+  if (stableJson(targetRows) !== stableJson(normalizePromotionPolicyRows(expectedTargetRows, 'expected promotion target policy rows'))) {
+    throw new Error('promotion target policy rows do not match the exact domain target policy');
+  }
   const fingerprint = canonicalServerFingerprint(serverFingerprint);
-  const l1Runs = readQualifyingL1Runs(root, readiness, domainId);
+  const l1Runs = readQualifyingL1Runs(
+    trustedEvidence.root,
+    readiness,
+    domainId,
+    l1EvidencePolicySetHash,
+  );
   if (l1Runs.length < 3) throw new Error('L2 proposal requires at least three qualifying L1 runs');
-  const reconciliation = readFullReconciliation(root, readiness, l1Runs);
+  const reconciliation = readFullReconciliation(
+    trustedEvidence.root,
+    readiness,
+    l1Runs,
+    l1EvidencePolicySetHash,
+  );
   const payload = {
     schemaVersion: 1,
     artifactKind: 'l2-promotion-proposal',
@@ -65,9 +127,15 @@ export function buildL2PromotionProposal({
     serverFingerprint: fingerprint,
     serverFingerprintHash: hashCanonicalServerFingerprint(fingerprint),
     currentPolicy: policyArtifact.currentPolicy,
-    currentPolicySetHash: policyArtifact.currentPolicySetHash,
+    currentPolicySetHash,
+    l1EvidencePolicySetHash,
     targetPolicy: policyArtifact.targetPolicy,
-    targetPolicySetHash: policyArtifact.targetPolicySetHash,
+    targetPolicySetHash,
+    policyArtifactCurrentPolicySetHash: policyArtifact.currentPolicySetHash,
+    policyArtifactTargetPolicySetHash: policyArtifact.targetPolicySetHash,
+    promotionCurrentPolicyRows: currentRows,
+    promotionTargetPolicyRows: targetRows,
+    serialTransition,
     policyArtifactHash: policyArtifact.artifactHash,
     policyArtifactPath: policyArtifactRef.path,
     policyArtifactFileSha256: policyArtifactRef.sha256,
@@ -135,6 +203,7 @@ export function buildL2PromotionExecutionInput({ proposal, proposalPath, proposa
     policyVersion: proposal.currentPolicy.policyVersion,
     policyHash: proposal.currentPolicy.policyHash,
     policySetHash: proposal.currentPolicySetHash,
+    l1EvidencePolicySetHash: proposal.l1EvidencePolicySetHash,
     minimumSuccessfulL1Runs: proposal.minimumSuccessfulL1Runs,
     targetPolicyVersion: proposal.targetPolicy.policyVersion,
     targetPolicyHash: proposal.targetPolicy.policyHash,
@@ -148,6 +217,11 @@ export function buildL2PromotionExecutionInput({ proposal, proposalPath, proposa
     policyRegistrationResultFileSha256: proposal.policyRegistration.resultFileSha256,
     policyRegistrationCommitMarkerPath: proposal.policyRegistration.commitMarkerPath,
     policyRegistrationCommitMarkerFileSha256: proposal.policyRegistration.commitMarkerFileSha256,
+    policyArtifactCurrentPolicySetHash: proposal.policyArtifactCurrentPolicySetHash,
+    policyArtifactTargetPolicySetHash: proposal.policyArtifactTargetPolicySetHash,
+    promotionCurrentPolicyRows: proposal.promotionCurrentPolicyRows,
+    promotionTargetPolicyRows: proposal.promotionTargetPolicyRows,
+    serialTransition: proposal.serialTransition,
     proposalOnly: false,
     proposalPath: normalizedPath,
     proposalSha256: proposalFileSha256,
@@ -166,6 +240,9 @@ export function assertProposal(proposal) {
     'policyArtifactHash', 'policyArtifactPath', 'policyRegistration', 'proposalHash',
     'proposalOnly', 'schemaVersion', 'serverFingerprint', 'serverFingerprintHash',
     'targetPolicy', 'targetPolicySetHash', 'currentPolicy', 'currentPolicySetHash',
+    'l1EvidencePolicySetHash', 'policyArtifactCurrentPolicySetHash',
+    'policyArtifactTargetPolicySetHash', 'promotionCurrentPolicyRows',
+    'promotionTargetPolicyRows', 'serialTransition',
   ].sort();
   if (JSON.stringify(Object.keys(proposal).sort()) !== JSON.stringify(expectedKeys)) {
     throw new Error('L2 promotion proposal schema is not exact');
@@ -190,6 +267,30 @@ export function assertProposal(proposal) {
     throw new Error('L2 promotion proposal current policy identity is invalid');
   }
   const target = proposal.targetPolicy;
+  requireHash(proposal.l1EvidencePolicySetHash, 'l1EvidencePolicySetHash');
+  requireHash(proposal.policyArtifactCurrentPolicySetHash, 'policyArtifactCurrentPolicySetHash');
+  requireHash(proposal.policyArtifactTargetPolicySetHash, 'policyArtifactTargetPolicySetHash');
+  const promotionCurrentRows = normalizePromotionPolicyRows(
+    proposal.promotionCurrentPolicyRows,
+    'promotion current policy rows',
+  );
+  const promotionTargetRows = normalizePromotionPolicyRows(
+    proposal.promotionTargetPolicyRows,
+    'promotion target policy rows',
+  );
+  if (computePolicySetHash(promotionCurrentRows) !== proposal.currentPolicySetHash
+      || computePolicySetHash(promotionTargetRows) !== proposal.targetPolicySetHash) {
+    throw new Error('L2 promotion proposal policy-set rows do not match their hashes');
+  }
+  const expectedTargetRows = promotionCurrentRows.map((row) => (
+    row.domainId === domainId
+      ? { domainId, policyVersion: target.policyVersion, policyHash: target.policyHash }
+      : row
+  ));
+  if (stableJson(promotionTargetRows) !== stableJson(normalizePromotionPolicyRows(expectedTargetRows, 'expected promotion target policy rows'))) {
+    throw new Error('L2 promotion proposal target policy rows are not the exact serial transition');
+  }
+  assertL2SerialTransition(proposal.serialTransition, { domainId, operationId: proposal.operationId });
   if (!target || target.level !== 'L2' || !Number.isSafeInteger(Number(target.policyVersion))
       || Number(target.policyVersion) <= Number(current.policyVersion)
       || !HASH_PATTERN.test(target.policyHash ?? '')
@@ -207,6 +308,7 @@ export function assertProposal(proposal) {
       || proposal.l1Runs.some((run) => run?.status !== 'COMPLETED'
         || run?.applyStatus !== 'COMMITTED' || !requireText(run?.runId, 'L1 runId')
         || !HASH_PATTERN.test(run?.bundleSha256 ?? '') || !HASH_PATTERN.test(run?.evidenceSha256 ?? '')
+        || run?.policySetHash !== proposal.l1EvidencePolicySetHash
         || !HASH_PATTERN.test(run?.policySetHash ?? ''))) {
     throw new Error('L2 promotion proposal requires three qualifying committed L1 runs');
   }
@@ -254,7 +356,7 @@ function assertSerializedPolicyRegistration(registration, proposal) {
       || registration.domainId !== proposal.domainId
       || registration.policyVersion !== proposal.targetPolicy?.policyVersion
       || registration.policyHash !== proposal.targetPolicy?.policyHash
-      || registration.policySetHash !== proposal.targetPolicySetHash
+      || registration.policySetHash !== proposal.policyArtifactTargetPolicySetHash
       || registration.artifactHash !== proposal.policyArtifactHash
       || registration.resultPath !== expectedResultPath
       || registration.commitMarkerPath !== `${expectedResultPath}.commit.json`
@@ -266,7 +368,7 @@ function assertSerializedPolicyRegistration(registration, proposal) {
   }
 }
 
-function readQualifyingL1Runs(root, readiness, domainId) {
+function readQualifyingL1Runs(root, readiness, domainId, l1EvidencePolicySetHash) {
   if (!Array.isArray(readiness.l1Runs)) throw new Error('readiness l1Runs are required');
   const seen = new Set();
   return readiness.l1Runs.map((run) => {
@@ -283,7 +385,7 @@ function readQualifyingL1Runs(root, readiness, domainId) {
         || bundle.policy?.level !== 'L1' || bundle.policy?.operationalState !== 'ACTIVE'
         || bundle.policy?.policyVersion !== readiness.currentPolicy.policyVersion
         || bundle.policy?.policyHash !== readiness.currentPolicy.policyHash
-        || bundle.policy?.policySetHash !== readiness.currentPolicy.policySetHash) {
+        || bundle.policy?.policySetHash !== l1EvidencePolicySetHash) {
       throw new Error(`L1 run ${runId} is not bound to the exact current policy`);
     }
     if (!bundle.source || !HASH_PATTERN.test(bundle.source.sha256 ?? '')) {
@@ -296,7 +398,10 @@ function readQualifyingL1Runs(root, readiness, domainId) {
       run,
       bundle,
       domainId,
-      currentPolicy: readiness.currentPolicy,
+      currentPolicy: {
+        ...readiness.currentPolicy,
+        policySetHash: l1EvidencePolicySetHash,
+      },
     });
     return {
       runId,
@@ -377,7 +482,7 @@ function verifyReconciliationArtifactFiles(root, evidence) {
   }
 }
 
-function readFullReconciliation(root, readiness, l1Runs) {
+function readFullReconciliation(root, readiness, l1Runs, l1EvidencePolicySetHash) {
   if (readiness.fullReconciliation?.status !== 'verified') throw new Error('full reconciliation readiness is required');
   const pathValue = normalizeReportsPath(readiness.fullReconciliation.evidence, 'full reconciliation evidence');
   const match = l1Runs.find((run) => run.evidencePath === pathValue);
@@ -390,7 +495,7 @@ function readFullReconciliation(root, readiness, l1Runs) {
     runId: match.runId,
     policyVersion: readiness.currentPolicy.policyVersion,
     policyHash: readiness.currentPolicy.policyHash,
-    policySetHash: readiness.currentPolicy.policySetHash,
+    policySetHash: l1EvidencePolicySetHash,
   });
   return { path: pathValue, sha256: match.evidenceSha256, status: 'verified' };
 }
@@ -398,8 +503,7 @@ function readFullReconciliation(root, readiness, l1Runs) {
 function assertCurrentPolicy(current, artifact) {
   if (!current || current.level !== 'L1' || current.operationalState !== 'ACTIVE'
       || current.policyVersion !== artifact.currentPolicy.policyVersion
-      || current.policyHash !== artifact.currentPolicy.policyHash
-      || current.policySetHash !== artifact.currentPolicySetHash) {
+      || current.policyHash !== artifact.currentPolicy.policyHash) {
     throw new Error('readiness current policy does not match approved L2 policy artifact');
   }
 }
@@ -443,6 +547,23 @@ function requireDomain(value) { const domain = requireText(value, 'domainId'); i
 function normalizeReportsPath(value, label) { const text = requireText(value, label).replaceAll('\\', '/'); if (!text.startsWith('reports/') || text.includes('..') || text.startsWith('/')) throw new Error(`${label} must be a confined reports path`); return text; }
 function normalizeProposalPath(value, operationId) { const text = normalizeReportsPath(value, 'proposalPath'); const prefix = `reports/authorization/canonical/${operationId}/`; if (!text.startsWith(prefix) || !/^[a-f0-9]{64}\/proposal\.json$/.test(text.slice(prefix.length))) throw new Error('proposalPath must be content-addressed'); return text; }
 function normalizePolicyArtifactPath(value) { const text = normalizeReportsPath(value, 'policyArtifactPath'); if (!text.startsWith('reports/authorization/canonical/l2-policy-ceiling/') || !/^[a-z][a-z0-9_]{0,63}\/[a-f0-9]{64}\/artifact\.json$/.test(text.slice('reports/authorization/canonical/l2-policy-ceiling/'.length))) throw new Error('policyArtifactPath must be content-addressed'); return text; }
+function normalizePromotionPolicyRows(value, label) {
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} are required`);
+  const seen = new Set();
+  return value.map((row) => {
+    const domainId = requireText(row?.domainId, `${label} domainId`);
+    if (!/^[a-z][a-z0-9_]{0,63}$/.test(domainId) || seen.has(domainId)) {
+      throw new Error(`${label} contain duplicate or invalid domains`);
+    }
+    seen.add(domainId);
+    const policyVersion = Number(row?.policyVersion);
+    if (!Number.isSafeInteger(policyVersion) || policyVersion < 1) {
+      throw new Error(`${label} policyVersion is invalid`);
+    }
+    const policyHash = requireHash(row?.policyHash, `${label} policyHash`);
+    return { domainId, policyVersion, policyHash };
+  }).sort((left, right) => left.domainId.localeCompare(right.domainId));
+}
 function requireHash(value, label) { if (!HASH_PATTERN.test(value ?? '')) throw new Error(`${label} must be a sha256 hash`); return value; }
 function requireText(value, label) { const text = String(value ?? '').trim(); if (!text) throw new Error(`${label} is required`); return text; }
 function requireTimestamp(value) { const text = requireText(value, 'generatedAt'); if (!Number.isFinite(Date.parse(text))) throw new Error('generatedAt must be an ISO timestamp'); return text; }

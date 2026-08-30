@@ -700,6 +700,8 @@ export function buildCanonicalOperationExecutionManifest({
   bossSourceSnapshotHash = null,
   policyCeilingRegistrationMode = 'register',
   l1RunRoot = null,
+  databaseEvidenceRoot = null,
+  historicalSourceHashDispositionPaths = [],
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -728,6 +730,8 @@ export function buildCanonicalOperationExecutionManifest({
     npcT1RedisDb,
     npcT1RunId,
     l1RunRoot,
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths,
   });
   const codePaths = expandRepositoryCodePaths(root, operationCodePaths(operationId));
   if (operationId === 'canonical-item-image-projection-apply') {
@@ -772,6 +776,8 @@ export function buildCanonicalOperationExecutionContract({
   bossSourceSnapshotHash = null,
   policyCeilingRegistrationMode = 'register',
   l1RunRoot = null,
+  databaseEvidenceRoot = null,
+  historicalSourceHashDispositionPaths = [],
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -789,7 +795,9 @@ export function buildCanonicalOperationExecutionContract({
     throw new Error('npcLimit must be exactly 25 for the frozen canonical NPC operation');
   }
   const normalizedResultLabel = normalizeResultLabel(resultLabel);
-  if (normalizedResultLabel && !NPC_OWNER_OPERATION_IDS.includes(operationId)) {
+  if (normalizedResultLabel
+      && !NPC_OWNER_OPERATION_IDS.includes(operationId)
+      && !L2_POLICY_DECISION_OPERATION_IDS.has(operationId)) {
     throw new Error('result label is supported only for an NPC owner operation');
   }
   const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
@@ -829,6 +837,8 @@ export function buildCanonicalOperationExecutionContract({
     effectiveBossSourceSnapshotHash,
     policyCeilingRegistrationMode,
     l1RunRoot,
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths,
   );
   return {
     schemaVersion: 1,
@@ -885,6 +895,8 @@ export function assertCanonicalOperationExecutionManifestContract({
     bossSourceSnapshotHash: commandArgument('--expected-sha256='),
     policyCeilingRegistrationMode: manifest?.policyCeilingRegistration?.mode ?? 'register',
     l1RunRoot: manifest?.l1RunRoot ?? null,
+    databaseEvidenceRoot: commandArgument('--database-evidence-root='),
+    historicalSourceHashDispositionPaths: commandArgument('--historical-source-hash-disposition='),
   });
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -1216,6 +1228,8 @@ function buildDefinition(
   bossSourceSnapshotHash,
   policyCeilingRegistrationMode,
   l1RunRoot,
+  databaseEvidenceRoot,
+  historicalSourceHashDispositionPaths,
 ) {
   const definitions = {
     'canonical-biome-image-contract-apply': {
@@ -1864,10 +1878,20 @@ function buildDefinition(
     'automation-biomes-l1-policy-promotion': policyDecisionDefinition({ operationId }),
     'automation-biomes-first-l1': biomesApplyDefinition({ operationId }),
     'automation-biomes-second-l1': biomesApplyDefinition({ operationId }),
-    'automation-biomes-l2-promotion': policyDecisionDefinition({ operationId }),
+    'automation-biomes-l2-promotion': policyDecisionDefinition({
+      operationId,
+      resultLabel,
+      databaseEvidenceRoot,
+      historicalSourceHashDispositionPaths,
+    }),
     ...Object.fromEntries(Object.entries(L2_OPERATION_IDS).map(([domainId, operationId]) => [
       operationId,
-      policyDecisionDefinition({ operationId }),
+      policyDecisionDefinition({
+        operationId,
+        resultLabel,
+        databaseEvidenceRoot,
+        historicalSourceHashDispositionPaths,
+      }),
     ])),
     ...Object.fromEntries(Object.values(L2_OPERATION_IDS).map((promotionOperationId) => {
       const operationId = promotionOperationId.replace(/-l2-promotion$/, '-l2-policy-ceiling-registration');
@@ -3042,10 +3066,22 @@ function governedL1Definition({ repoRoot, operationId, l1RunRoot }) {
   };
 }
 
-function policyDecisionDefinition({ operationId }) {
-  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
-  const outputPath = `reports/authorization/canonical/${operationId}.result.json`;
+function policyDecisionDefinition({
+  operationId,
+  resultLabel = null,
+  databaseEvidenceRoot = null,
+  historicalSourceHashDispositionPaths = [],
+} = {}) {
+  const suffix = resultLabel == null ? '' : `.${resultLabel}`;
+  const inputPath = `reports/authorization/canonical/${operationId}${suffix}.input.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}${suffix}.result.json`;
   const commitMarkerPath = `${outputPath}.commit.json`;
+  const isL2Promotion = L2_POLICY_DECISION_OPERATION_IDS.has(operationId);
+  const evidenceBinding = buildPolicyDecisionEvidenceBinding({
+    operationId,
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths,
+  });
   const publication = L2_POLICY_DECISION_OPERATION_IDS.has(operationId)
     ? {
       pendingResultPath: outputPath,
@@ -3060,15 +3096,81 @@ function policyDecisionDefinition({ operationId }) {
       `--input=${inputPath}`,
       `--output=${outputPath}`,
       '--apply=true',
+      ...(evidenceBinding == null ? [] : evidenceBinding.commandArguments),
     ],
-    inputPaths: [inputPath],
+    inputPaths: [inputPath, ...(evidenceBinding?.historicalSourceHashDispositionPaths ?? [])],
     outputPaths: publication == null ? [outputPath] : [outputPath, commitMarkerPath],
     reportPaths: [],
     progressPaths: [],
     ...(publication == null ? {} : { policyDecisionPublication: publication }),
+    ...(isL2Promotion && evidenceBinding != null
+      ? { policyDecisionEvidence: evidenceBinding.manifestBinding }
+      : {}),
     databaseWrites: true,
     networkAccess: false,
   };
+}
+
+function buildPolicyDecisionEvidenceBinding({
+  operationId,
+  databaseEvidenceRoot,
+  historicalSourceHashDispositionPaths,
+} = {}) {
+  const rawPaths = Array.isArray(historicalSourceHashDispositionPaths)
+    ? historicalSourceHashDispositionPaths
+    : [historicalSourceHashDispositionPaths];
+  const paths = normalizeHistoricalDispositionManifestPaths(rawPaths);
+  const rawRoot = String(databaseEvidenceRoot ?? '').trim();
+  if (paths.length > 0 && !rawRoot) {
+    throw new Error('database evidence root is required when historical disposition paths are bound');
+  }
+  if (!rawRoot && paths.length === 0) return null;
+  if (!L2_POLICY_DECISION_OPERATION_IDS.has(operationId)) {
+    throw new Error('explicit L2 evidence bindings are supported only for L2 promotion operations');
+  }
+  const evidenceRoot = normalizeCanonicalEvidenceRoot(rawRoot);
+  return Object.freeze({
+    databaseEvidenceRoot: evidenceRoot,
+    historicalSourceHashDispositionPaths: Object.freeze(paths),
+    commandArguments: Object.freeze([
+      `--database-evidence-root=${evidenceRoot}`,
+      ...(paths.length > 0
+        ? [`--historical-source-hash-disposition=${paths.join(',')}`]
+        : []),
+    ]),
+    manifestBinding: Object.freeze({
+      databaseEvidenceRoot: evidenceRoot,
+      historicalSourceHashDispositionPaths: Object.freeze(paths),
+    }),
+  });
+}
+
+function normalizeCanonicalEvidenceRoot(value) {
+  const text = String(value ?? '').trim();
+  if (!text || !path.isAbsolute(text) || path.resolve(text) !== text || text.endsWith(path.sep)) {
+    throw new Error('database evidence root must be a canonical absolute directory path');
+  }
+  return text;
+}
+
+function normalizeHistoricalDispositionManifestPaths(values) {
+  const paths = [];
+  for (const value of values ?? []) {
+    if (value == null || String(value).trim() === '') continue;
+    const text = String(value).trim();
+    for (const candidate of text.split(',').map((entry) => entry.trim()).filter(Boolean)) {
+      const normalized = candidate.replaceAll('\\', '/');
+      const prefix = 'reports/authorization/canonical/l1-historical-source-hash-disposition/';
+      if (normalized !== candidate || !normalized.startsWith(prefix)
+          || normalized.endsWith('/') || normalized.includes('//')
+          || path.posix.isAbsolute(normalized) || path.posix.normalize(normalized) !== normalized
+          || !/^(items|projectiles|shimmer)\/[a-f0-9]{64}\/disposition\.json$/.test(normalized.slice(prefix.length))) {
+        throw new Error('historical disposition path must be a canonical scoped disposition path');
+      }
+      if (!paths.includes(normalized)) paths.push(normalized);
+    }
+  }
+  return paths;
 }
 
 function policyCeilingRegistrationDefinition({ operationId, mode = 'register' }) {
@@ -3162,6 +3264,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       bossSourceSnapshotHash: args['boss-source-snapshot-hash'] ?? null,
       policyCeilingRegistrationMode: args['policy-ceiling-registration-mode'] ?? 'register',
       l1RunRoot: args['l1-run-root'] ?? null,
+      databaseEvidenceRoot: args['database-evidence-root'] ?? null,
+      historicalSourceHashDispositionPaths: args['historical-source-hash-disposition'] ?? null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

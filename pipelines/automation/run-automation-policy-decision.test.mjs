@@ -7,8 +7,10 @@ import test from 'node:test';
 
 import {
   buildAutomationPolicyDecisionPlan,
+  buildPolicyDecisionAdapterOptions,
   createMysqlAutomationPolicyDecisionAdapter,
   executeAutomationPolicyDecision,
+  runAutomationPolicyDecisionCli,
   assertL2PromotionExecutionInput,
   buildPendingPolicyDecisionResult,
   buildPolicyDecisionCommitMarker,
@@ -35,6 +37,10 @@ const HASH_B = `sha256:${'b'.repeat(64)}`;
 const HASH_C = `sha256:${'c'.repeat(64)}`;
 const HASH_D = `sha256:${'d'.repeat(64)}`;
 
+const SERIAL_L2_ORDER = Object.freeze([
+  'items', 'npcs', 'projectiles', 'armor_sets', 'buffs', 'audio', 'bosses', 'shimmer',
+]);
+
 const L2_CEILING = Object.freeze({
   schemaVersion: 1,
   requireSnapshot: true,
@@ -51,16 +57,136 @@ const L2_CEILING = Object.freeze({
   ownedTables: [{ databaseRole: 'local', table: 'biomes' }],
 });
 const L2_POLICY_HASH = computePolicyHash(L2_CEILING);
+const SERIAL_POLICY_ROWS = Object.freeze([
+  { domainId: 'items', policyVersion: 1, policyHash: HASH_A },
+]);
+const SERIAL_TARGET_POLICY_ROWS = Object.freeze([
+  { domainId: 'items', policyVersion: 2, policyHash: L2_POLICY_HASH },
+]);
+
+test('CLI adapter options preserve the explicit evidence root and historical disposition bindings', () => {
+  const serverFingerprint = canonicalServerFingerprint({
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'cli-options-test-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  });
+  const options = buildPolicyDecisionAdapterOptions({
+    repoRoot: '/linked/worktree',
+    args: {
+      'database-evidence-root': '/primary/worktree',
+      'historical-source-hash-disposition': [
+        'reports/authorization/canonical/l1-historical-source-hash-disposition/items/hash/disposition.json',
+        'reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/hash/disposition.json',
+      ].join(','),
+    },
+    authorizedServerFingerprint: serverFingerprint,
+  });
+  assert.deepEqual(options, {
+    repoRoot: '/linked/worktree',
+    databaseEvidenceRoot: '/primary/worktree',
+    historicalEvidenceRoot: null,
+    evidenceRoot: null,
+    historicalSourceHashDispositionPaths: [
+      'reports/authorization/canonical/l1-historical-source-hash-disposition/items/hash/disposition.json',
+      'reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/hash/disposition.json',
+    ],
+    historicalDispositionServerFingerprint: serverFingerprint,
+  });
+});
+
+test('policy decision CLI reaches authorization validation after constraining its publication paths', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-policy-cli-paths-'));
+  const inputPath = path.join(
+    repoRoot,
+    'reports/authorization/canonical/automation-biomes-l2-promotion.input.json',
+  );
+  fs.mkdirSync(path.dirname(inputPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(inputPath, `${JSON.stringify({ operationId: 'automation-biomes-l2-promotion' })}\n`, {
+    mode: 0o600,
+  });
+
+  await assert.rejects(
+    runAutomationPolicyDecisionCli({
+      argv: [
+        '--apply=true',
+        '--operation-id=automation-biomes-l2-promotion',
+        '--input=reports/authorization/canonical/automation-biomes-l2-promotion.input.json',
+        '--output=reports/authorization/canonical/automation-biomes-l2-promotion.result.json',
+      ],
+      env: { WORKTREE_ROOT: repoRoot },
+      mysqlModule: { createConnection: async () => { throw new Error('database must not be reached'); } },
+    }),
+    /TERRAPEDIA_AUTHORIZED_PACKET_PATH is required/,
+  );
+});
+
+test('policy decision CLI accepts a retry-labeled input/output pair for the same operation', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-policy-cli-retry-paths-'));
+  const inputPath = path.join(
+    repoRoot,
+    'reports/authorization/canonical/automation-armor-sets-l2-promotion.retry-02.input.json',
+  );
+  fs.mkdirSync(path.dirname(inputPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(inputPath, `${JSON.stringify({ operationId: 'automation-armor-sets-l2-promotion' })}\n`, {
+    mode: 0o600,
+  });
+
+  await assert.rejects(
+    runAutomationPolicyDecisionCli({
+      argv: [
+        '--apply=true',
+        '--operation-id=automation-armor-sets-l2-promotion',
+        '--input=reports/authorization/canonical/automation-armor-sets-l2-promotion.retry-02.input.json',
+        '--output=reports/authorization/canonical/automation-armor-sets-l2-promotion.retry-02.result.json',
+      ],
+      env: { WORKTREE_ROOT: repoRoot },
+      mysqlModule: { createConnection: async () => { throw new Error('database must not be reached'); } },
+    }),
+    /TERRAPEDIA_AUTHORIZED_PACKET_PATH is required/,
+  );
+});
 
 function input(operationId, overrides = {}) {
   const registrationOperationId = operationId.replace(/-l2-promotion$/, '-l2-policy-ceiling-registration');
   const registrationResultPath = `reports/authorization/canonical/${registrationOperationId}.result.json`;
+  const effectiveDomainId = overrides.domainId ?? 'biomes';
+  const effectiveTargetPolicyHash = overrides.targetPolicyHash ?? L2_POLICY_HASH;
+  const defaultCurrentRows = [{
+    domainId: effectiveDomainId,
+    policyVersion: 1,
+    policyHash: HASH_A,
+  }];
+  const defaultTargetRows = [{
+    domainId: effectiveDomainId,
+    policyVersion: 2,
+    policyHash: effectiveTargetPolicyHash,
+  }];
+  const serialIndex = SERIAL_L2_ORDER.indexOf(effectiveDomainId);
+  const defaultSerialTransition = serialIndex < 0 ? {
+    schemaVersion: 1,
+    order: SERIAL_L2_ORDER,
+    sequenceIndex: 0,
+    predecessor: null,
+  } : {
+    schemaVersion: 1,
+    order: SERIAL_L2_ORDER,
+    sequenceIndex: serialIndex,
+    predecessor: serialIndex === 0 ? null : {
+      domainId: SERIAL_L2_ORDER[serialIndex - 1],
+      operationId: `automation-${SERIAL_L2_ORDER[serialIndex - 1].replaceAll('_', '-')}-l2-promotion`,
+      decisionIdentity: `previous-${SERIAL_L2_ORDER[serialIndex - 1]}`,
+      packetHash: HASH_A,
+      postPolicySetHash: HASH_B,
+    },
+  };
   return {
     schemaVersion: 1,
     operationId,
     databaseName: 'terria_v1_local',
-    domainId: 'biomes',
+    domainId: effectiveDomainId,
     policySetHash: HASH_B,
+    l1EvidencePolicySetHash: HASH_B,
     policyVersion: 1,
     policyHash: HASH_A,
     minimumSuccessfulL1Runs: 3,
@@ -69,6 +195,11 @@ function input(operationId, overrides = {}) {
     targetPolicySetHash: HASH_D,
     targetPolicyLevel: 'L2',
     targetPolicyJson: L2_CEILING,
+    promotionCurrentPolicyRows: defaultCurrentRows,
+    promotionTargetPolicyRows: defaultTargetRows,
+    policyArtifactCurrentPolicySetHash: HASH_B,
+    policyArtifactTargetPolicySetHash: HASH_C,
+    serialTransition: defaultSerialTransition,
     proposalOnly: false,
     proposalPath: `reports/authorization/canonical/${operationId}/${'c'.repeat(64)}/proposal.json`,
     proposalSha256: `sha256:${'f'.repeat(64)}`,
@@ -107,6 +238,44 @@ function buildPlan(operationId, inputOverrides = {}, contextOverrides = {}) {
   );
 }
 
+function buildSerialPlan({
+  domainId,
+  sequenceIndex = 0,
+  predecessor = null,
+  policySetHash = HASH_B,
+  l1EvidencePolicySetHash = HASH_B,
+  targetPolicySetHash = HASH_D,
+} = {}) {
+  const operationId = `automation-${domainId.replaceAll('_', '-')}-l2-promotion`;
+  const targetPolicyJson = {
+    ...L2_CEILING,
+    ownedTables: [{ databaseRole: 'local', table: domainId }],
+  };
+  return buildAutomationPolicyDecisionPlan(
+    input(operationId, {
+      domainId,
+      policySetHash,
+      l1EvidencePolicySetHash,
+      targetPolicySetHash,
+      targetPolicyJson,
+      targetPolicyHash: computePolicyHash(targetPolicyJson),
+      promotionCurrentPolicyRows: [{ domainId, policyVersion: 1, policyHash: HASH_A }],
+      promotionTargetPolicyRows: [{
+        domainId,
+        policyVersion: 2,
+        policyHash: computePolicyHash(targetPolicyJson),
+      }],
+      serialTransition: {
+        schemaVersion: 1,
+        order: SERIAL_L2_ORDER,
+        sequenceIndex,
+        predecessor,
+      },
+    }),
+    authorizationContext(operationId),
+  );
+}
+
 test('L2 execution input requires every independent mutation ceiling', () => {
   for (const field of [
     'ratioInsertCap', 'ratioUpdateCap', 'ratioRelationshipDeleteCap', 'ratioDisableCap',
@@ -121,8 +290,99 @@ test('L2 execution input requires every independent mutation ceiling', () => {
   }
 });
 
+test('serial L2 execution input requires a separate L1 evidence policy-set hash', () => {
+  const targetPolicyJson = { ...L2_CEILING, ownedTables: [{ databaseRole: 'local', table: 'items' }] };
+  const invalid = input('automation-items-l2-promotion', {
+    domainId: 'items',
+    targetPolicyJson,
+    targetPolicyHash: computePolicyHash(targetPolicyJson),
+  });
+  delete invalid.l1EvidencePolicySetHash;
+  assert.throws(
+    () => buildAutomationPolicyDecisionPlan(invalid, authorizationContext(invalid.operationId)),
+    /L1 evidence.*policy.?set|l1EvidencePolicySetHash/i,
+  );
+});
+
+test('serial L2 execution input requires complete live and target policy rows plus artifact provenance hashes', () => {
+  const targetPolicyJson = { ...L2_CEILING, ownedTables: [{ databaseRole: 'local', table: 'items' }] };
+  const base = input('automation-items-l2-promotion', {
+    domainId: 'items',
+    targetPolicyJson,
+    targetPolicyHash: computePolicyHash(targetPolicyJson),
+    promotionCurrentPolicyRows: SERIAL_POLICY_ROWS,
+    promotionTargetPolicyRows: SERIAL_TARGET_POLICY_ROWS,
+    policyArtifactCurrentPolicySetHash: HASH_B,
+    policyArtifactTargetPolicySetHash: HASH_C,
+  });
+  for (const field of [
+    'promotionCurrentPolicyRows',
+    'promotionTargetPolicyRows',
+    'policyArtifactCurrentPolicySetHash',
+    'policyArtifactTargetPolicySetHash',
+  ]) {
+    const invalid = { ...base };
+    delete invalid[field];
+    assert.throws(
+      () => buildAutomationPolicyDecisionPlan(invalid, authorizationContext(invalid.operationId)),
+      /policy rows|artifact.*policy-set|provenance|required/i,
+    );
+  }
+});
+
+test('serial L2 execution input requires an exact ordered transition descriptor', () => {
+  const targetPolicyJson = { ...L2_CEILING, ownedTables: [{ databaseRole: 'local', table: 'items' }] };
+  const base = {
+    domainId: 'items',
+    targetPolicyJson,
+    targetPolicyHash: computePolicyHash(targetPolicyJson),
+  };
+  for (const serialTransition of [
+    null,
+    { schemaVersion: 1, order: SERIAL_L2_ORDER, sequenceIndex: 1, predecessor: null },
+    { schemaVersion: 1, order: SERIAL_L2_ORDER, sequenceIndex: 0, predecessor: {} },
+    { schemaVersion: 1, order: ['npcs', ...SERIAL_L2_ORDER.slice(1)], sequenceIndex: 0, predecessor: null },
+  ]) {
+    assert.throws(
+      () => buildAutomationPolicyDecisionPlan(
+        input('automation-items-l2-promotion', { ...base, serialTransition }),
+        authorizationContext('automation-items-l2-promotion'),
+      ),
+      /serial|transition|predecessor|order/i,
+    );
+  }
+});
+
+test('serial L2 execution accepts a valid second-domain predecessor descriptor', () => {
+  const predecessor = {
+    domainId: 'items',
+    operationId: 'automation-items-l2-promotion',
+    decisionIdentity: 'items-l2-decision-01',
+    packetHash: HASH_A,
+    postPolicySetHash: HASH_B,
+  };
+  const targetPolicyJson = { ...L2_CEILING, ownedTables: [{ databaseRole: 'local', table: 'npcs' }] };
+  const plan = buildAutomationPolicyDecisionPlan(
+    input('automation-npcs-l2-promotion', {
+      domainId: 'npcs',
+      targetPolicyJson,
+      targetPolicyHash: computePolicyHash(targetPolicyJson),
+      serialTransition: {
+        schemaVersion: 1,
+        order: SERIAL_L2_ORDER,
+        sequenceIndex: 1,
+        predecessor,
+      },
+    }),
+    authorizationContext('automation-npcs-l2-promotion'),
+  );
+  assert.deepEqual(plan.serialTransition.predecessor, predecessor);
+  assert.equal(plan.l1EvidencePolicySetHash, HASH_B);
+});
+
 function adapter({ level = 'L0', state = 'DISABLED', successfulL1 = 3, fullReconciliation = true, targetLevel = 'L2' } = {}) {
   const calls = [];
+  let policySetReads = 0;
   return {
     calls,
     async begin() { calls.push(['begin']); },
@@ -148,7 +408,9 @@ function adapter({ level = 'L0', state = 'DISABLED', successfulL1 = 3, fullRecon
     },
     async readCurrentPolicySetHash() {
       calls.push(['readCurrentPolicySetHash']);
-      return HASH_B;
+      const value = policySetReads === 0 ? HASH_B : HASH_D;
+      policySetReads += 1;
+      return value;
     },
     async countSuccessfulL1Applies() {
       calls.push(['countSuccessfulL1Applies']);
@@ -181,6 +443,108 @@ function adapter({ level = 'L0', state = 'DISABLED', successfulL1 = 3, fullRecon
             overdueAttemptCount: 0,
           })
           : null,
+      };
+    },
+    async insertActivationDecision(values) { calls.push(['insertActivationDecision', values]); },
+    async updatePolicy(values) { calls.push(['updatePolicy', values]); },
+    async commit() { calls.push(['commit']); },
+    async rollback() { calls.push(['rollback']); },
+  };
+}
+
+function serialAdapter({
+  domainId,
+  currentPolicySetHash = HASH_B,
+  targetPolicySetHash = HASH_D,
+  evidencePolicySetHash = HASH_B,
+  predecessor = null,
+  successfulL1 = 3,
+} = {}) {
+  const calls = [];
+  const targetPolicyJson = {
+    ...L2_CEILING,
+    ownedTables: [{ databaseRole: 'local', table: domainId }],
+  };
+  const targetPolicyHash = computePolicyHash(targetPolicyJson);
+  let policySetReads = 0;
+  return {
+    calls,
+    async begin() { calls.push(['begin']); },
+    async readOwnerForUpdate() {
+      calls.push(['readOwnerForUpdate']);
+      return { username: 'system-owner', status: 'ACTIVE' };
+    },
+    async readPolicyForUpdate(requestedDomain) {
+      calls.push(['readPolicyForUpdate', requestedDomain]);
+      return {
+        domainId: requestedDomain,
+        policyVersion: 1,
+        policyHash: HASH_A,
+        currentLevel: 'L1',
+        operationalState: 'ACTIVE',
+      };
+    },
+    async readTargetPolicyForUpdate(requestedDomain) {
+      calls.push(['readTargetPolicyForUpdate', requestedDomain]);
+      return {
+        domainId: requestedDomain,
+        policyVersion: 2,
+        policyHash: targetPolicyHash,
+        level: 'L2',
+        policyJson: targetPolicyJson,
+      };
+    },
+    async readTargetPolicySetHash(requestedDomain) {
+      calls.push(['readTargetPolicySetHash', requestedDomain]);
+      return targetPolicySetHash;
+    },
+    async readL2PromotionPredecessor(requestedDomain, requestedTransition) {
+      calls.push(['readL2PromotionPredecessor', requestedDomain, requestedTransition]);
+      return predecessor == null ? null : {
+        decisionKind: 'L2_PROMOTION',
+        domainId: predecessor.domainId,
+        operationId: predecessor.operationId,
+        decisionIdentity: predecessor.decisionIdentity,
+        packetHash: predecessor.packetHash,
+        policySetHash: predecessor.postPolicySetHash,
+        postPolicySetHash: predecessor.postPolicySetHash,
+      };
+    },
+    async readL2OwnershipFenceState(requestedDomain) {
+      calls.push(['readL2OwnershipFenceState', requestedDomain]);
+      return { activeAttempts: 0, activeReservations: 0, activeFences: 0, mismatchedFences: 0 };
+    },
+    async readCurrentPolicySetHash() {
+      calls.push(['readCurrentPolicySetHash']);
+      const result = policySetReads === 0 ? currentPolicySetHash : targetPolicySetHash;
+      policySetReads += 1;
+      return result;
+    },
+    async readQualifyingL1Evidence(requestedDomain, identity) {
+      calls.push(['readQualifyingL1Evidence', requestedDomain, identity]);
+      return {
+        distinctCommittedL1Runs: successfulL1,
+        fullReconciliation: buildFullReconciliationEvidence({
+          domainId: requestedDomain,
+          runId: `${requestedDomain}-run-1`,
+          policyVersion: 1,
+          policyHash: HASH_A,
+          policySetHash: identity.policySetHash,
+          sourceHash: HASH_B,
+          ownedTableReadbackHash: HASH_C,
+          attemptStateHash: HASH_D,
+          sourceArtifactPath: 'reports/runtime/test/source.json',
+          ownedTableReadbackPath: 'reports/runtime/test/table-readback.json',
+          attemptStatePath: 'reports/runtime/test/attempt-state.json',
+          completeSourceCoverage: true,
+          terminalProgress: true,
+          changedUnchangedClassified: true,
+          unclassifiedMutationCount: 0,
+          unauthorizedMutationCount: 0,
+          generationReadback: true,
+          activeAttemptCount: 0,
+          overdueAttemptCount: 0,
+        }),
       };
     },
     async insertActivationDecision(values) { calls.push(['insertActivationDecision', values]); },
@@ -238,6 +602,99 @@ test('L2 promotion requires three committed L1 applies and a qualifying full rec
       && values.policySetHash === plan.targetPolicySetHash
   )), true);
   assert.equal(db.calls.some(([name, values]) => name === 'updatePolicy' && values.targetLevel === 'L2'), true);
+});
+
+test('serial L2 promotion queries L1 evidence with its historical evidence-set identity', async () => {
+  const plan = buildSerialPlan({
+    domainId: 'items',
+    policySetHash: HASH_C,
+    l1EvidencePolicySetHash: HASH_B,
+    targetPolicySetHash: HASH_D,
+  });
+  const db = serialAdapter({
+    domainId: 'items',
+    currentPolicySetHash: HASH_C,
+    targetPolicySetHash: HASH_D,
+    evidencePolicySetHash: HASH_B,
+  });
+  await executeAutomationPolicyDecision({ adapter: db, plan, now: '2026-07-28T03:01:00.000Z' });
+  const evidenceCall = db.calls.find(([name]) => name === 'readQualifyingL1Evidence');
+  assert.deepEqual(evidenceCall[2], {
+    policyVersion: 1,
+    policyHash: HASH_A,
+    policySetHash: HASH_B,
+    minimumSuccessfulL1Runs: 3,
+  });
+  assert.equal(db.calls.some(([name]) => name === 'commit'), true);
+});
+
+test('serial L2 promotion rejects a missing or mismatched predecessor before evidence lookup', async () => {
+  const expectedPredecessor = {
+    domainId: 'items',
+    operationId: 'automation-items-l2-promotion',
+    decisionIdentity: 'items-l2-decision-01',
+    packetHash: HASH_A,
+    postPolicySetHash: HASH_B,
+  };
+  const cases = [
+    null,
+    { ...expectedPredecessor, domainId: 'projectiles' },
+    { ...expectedPredecessor, operationId: 'automation-projectiles-l2-promotion' },
+    { ...expectedPredecessor, decisionIdentity: 'other-decision' },
+    { ...expectedPredecessor, packetHash: HASH_C },
+    { ...expectedPredecessor, postPolicySetHash: HASH_C },
+  ];
+  for (const observedPredecessor of cases) {
+    const plan = buildSerialPlan({
+      domainId: 'npcs',
+      sequenceIndex: 1,
+      predecessor: expectedPredecessor,
+      policySetHash: HASH_C,
+      l1EvidencePolicySetHash: HASH_B,
+      targetPolicySetHash: HASH_D,
+    });
+    const db = serialAdapter({
+      domainId: 'npcs',
+      currentPolicySetHash: HASH_C,
+      targetPolicySetHash: HASH_D,
+      evidencePolicySetHash: HASH_B,
+      predecessor: observedPredecessor,
+    });
+    await assert.rejects(
+      executeAutomationPolicyDecision({ adapter: db, plan, now: '2026-07-28T03:01:00.000Z' }),
+      /predecessor|serial|transition/i,
+    );
+    assert.equal(db.calls.at(-1)[0], 'rollback');
+    assert.equal(db.calls.some(([name]) => name === 'readQualifyingL1Evidence'), false);
+  }
+});
+
+test('serial L2 promotion reads and accepts the exact predecessor before committing', async () => {
+  const predecessor = {
+    domainId: 'items',
+    operationId: 'automation-items-l2-promotion',
+    decisionIdentity: 'items-l2-decision-01',
+    packetHash: HASH_A,
+    postPolicySetHash: HASH_C,
+  };
+  const plan = buildSerialPlan({
+    domainId: 'npcs',
+    sequenceIndex: 1,
+    predecessor,
+    policySetHash: HASH_C,
+    l1EvidencePolicySetHash: HASH_B,
+    targetPolicySetHash: HASH_D,
+  });
+  const db = serialAdapter({
+    domainId: 'npcs',
+    currentPolicySetHash: HASH_C,
+    targetPolicySetHash: HASH_D,
+    evidencePolicySetHash: HASH_B,
+    predecessor,
+  });
+  await executeAutomationPolicyDecision({ adapter: db, plan, now: '2026-07-28T03:01:00.000Z' });
+  assert.equal(db.calls.some(([name]) => name === 'readL2PromotionPredecessor'), true);
+  assert.equal(db.calls.at(-1)[0], 'commit');
 });
 
 test('scheduler activation records bounded eligibility without changing policy state', async () => {
@@ -1037,6 +1494,37 @@ test('MySQL qualifying evidence returns exact adapter-bound run and reconciliati
   assert.equal(result.fullReconciliation.runId, fixture.runId);
 });
 
+test('MySQL adapter keeps external absolute evidence confined by default and accepts only the explicit primary worktree root', async () => {
+  const sourceFixture = buildCurrentAdapterFixture();
+  const roots = makeLinkedEvidenceRoots();
+  fs.cpSync(path.join(sourceFixture.repoRoot, 'reports'), path.join(roots.primaryRoot, 'reports'), { recursive: true });
+  const row = structuredClone(sourceFixture.row);
+  row.bundlePath = path.join(roots.primaryRoot, sourceFixture.bundleRelativePath);
+  const manifest = JSON.parse(row.evidenceManifest);
+  manifest.privatePath = row.bundlePath;
+  row.evidenceManifest = JSON.stringify(manifest);
+  const reconciliation = JSON.parse(row.reconciliationArtifact);
+  reconciliation.path = path.join(roots.primaryRoot, sourceFixture.reconciliationRelativePath);
+  row.reconciliationArtifact = JSON.stringify(reconciliation);
+  const connection = { async query() { return [[row]]; } };
+  const identity = { policyVersion: 1, policyHash: HASH_A, policySetHash: HASH_B };
+
+  const denied = createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoot: roots.linkedRoot });
+  await assert.rejects(
+    denied.readQualifyingL1Evidence('items', identity),
+    /remain inside the repository root|evidence root/i,
+  );
+
+  const allowed = createMysqlAutomationPolicyDecisionAdapter(connection, {
+    repoRoot: roots.linkedRoot,
+    databaseEvidenceRoot: roots.primaryRoot,
+  });
+  const result = await allowed.readQualifyingL1Evidence('items', identity);
+  assert.equal(result.distinctCommittedL1Runs, 1);
+  assert.equal(result.qualifyingL1Runs[0].bundlePath, sourceFixture.bundleRelativePath);
+  assert.equal(result.qualifyingL1Runs[0].evidencePath, sourceFixture.reconciliationRelativePath);
+});
+
 test('MySQL qualifying evidence rejects bundle domain, run, and database identity drift', async () => {
   const cases = [
     ['domain', 'domainId', 'projectiles', /bundle.*domain|identity/i],
@@ -1205,7 +1693,8 @@ test('policy decision publication hooks separate pre-commit rollback from post-c
     now: '2026-07-28T03:01:00.000Z',
     beforeCommit: async (result) => {
       events.push(['beforeCommit', result.status]);
-      assert.equal(db.calls.at(-1)[0], 'updatePolicy');
+      assert.equal(db.calls.at(-2)[0], 'updatePolicy');
+      assert.equal(db.calls.at(-1)[0], 'readCurrentPolicySetHash');
     },
     afterCommit: async (result) => {
       events.push(['afterCommit', result.status]);
@@ -1243,7 +1732,8 @@ test('policy decision publication writes a pending result before commit and an i
       writePolicyDecisionResult(pendingPath, buildPendingPolicyDecisionResult(candidate), { noOverwrite: true });
       pendingIdentity = fs.lstatSync(pendingPath);
       assert.equal(JSON.parse(fs.readFileSync(pendingPath, 'utf8')).status, 'pending');
-      assert.equal(db.calls.at(-1)[0], 'updatePolicy');
+      assert.equal(db.calls.at(-2)[0], 'updatePolicy');
+      assert.equal(db.calls.at(-1)[0], 'readCurrentPolicySetHash');
     },
     afterCommit: async (candidate) => {
       assert.equal(db.calls.at(-1)[0], 'commit');
@@ -1642,6 +2132,23 @@ function buildCurrentAdapterFixture() {
     repoRoot, runId, policy, row, bundleRelativePath, bundleFileHash,
     reconciliationRelativePath, reconciliationFileHash: reconciliationArtifact.hash,
   };
+}
+
+function makeLinkedEvidenceRoots() {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-linked-evidence-'));
+  const primaryRoot = path.join(workspace, 'primary');
+  const linkedRoot = path.join(workspace, 'linked');
+  const commonGitDir = path.join(primaryRoot, '.git');
+  const worktreeGitDir = path.join(commonGitDir, 'worktrees', 'linked');
+  fs.mkdirSync(path.join(commonGitDir, 'objects'), { recursive: true });
+  fs.mkdirSync(worktreeGitDir, { recursive: true });
+  fs.mkdirSync(linkedRoot, { recursive: true });
+  fs.writeFileSync(path.join(commonGitDir, 'HEAD'), 'ref: refs/heads/test\n');
+  fs.writeFileSync(path.join(commonGitDir, 'config'), '[core]\n\trepositoryformatversion = 0\n');
+  fs.writeFileSync(path.join(worktreeGitDir, 'commondir'), '../..\n');
+  fs.writeFileSync(path.join(worktreeGitDir, 'gitdir'), `${path.join(linkedRoot, '.git')}\n`);
+  fs.writeFileSync(path.join(linkedRoot, '.git'), `gitdir: ${worktreeGitDir}\n`);
+  return { workspace, primaryRoot, linkedRoot };
 }
 
 function rewriteCurrentAdapterBundle(fixture, mutate) {

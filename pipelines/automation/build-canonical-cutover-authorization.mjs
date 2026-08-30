@@ -501,7 +501,7 @@ function assertHistoricalDispositionCandidate(candidate, binding, scope) {
 }
 
 function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest = null) {
-  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const inputPath = resolveL2AuthorizationInputPath(operationId, executionManifest);
   const inputAbsolute = path.resolve(repoRoot, inputPath);
   if (!fs.existsSync(inputAbsolute) || !fs.statSync(inputAbsolute).isFile()) return null;
   const inputEntry = readConfinedEntry(repoRoot, inputPath, {
@@ -557,6 +557,23 @@ function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest
     seen.add(entry.path);
   }
   return entries;
+}
+
+function resolveL2AuthorizationInputPath(operationId, executionManifest) {
+  const inputPath = executionManifest?.inputPaths?.[0]
+    ?? `reports/authorization/canonical/${operationId}.input.json`;
+  const normalized = requireNormalizedPath(inputPath, `${operationId} input path`);
+  const prefix = `reports/authorization/canonical/${operationId}`;
+  const match = new RegExp(`^${escapeRegExp(prefix)}(?:\\.([a-z0-9]+(?:-[a-z0-9]+)*))?\\.input\\.json$`).exec(normalized);
+  if (!match) throw new Error(`${operationId} input path must use the exact operation identity and optional retry label`);
+  if (executionManifest?.resultLabel != null && match[1] !== executionManifest.resultLabel) {
+    throw new Error(`${operationId} input path retry label does not match the execution manifest`);
+  }
+  return normalized;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function readItemImageLineageDataEntries(repoRoot, manifest) {

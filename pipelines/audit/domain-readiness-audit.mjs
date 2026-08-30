@@ -2735,8 +2735,36 @@ function findLatestReport(repoRoot, reportPattern) {
   if (!searchRoot.startsWith(`${root}${path.sep}`) || !fs.existsSync(searchRoot)) return null;
   const matcher = new RegExp(`^${escapeRegExp(normalizedPattern).replaceAll('\\*', '[^/]*')}$`);
   const candidates = collectReportCandidates({ root, directory: searchRoot, matcher });
-  candidates.sort(compareReportCandidates);
+  // Projection attempts are content-addressed directories.  Their result file
+  // names contain no date, and copying the evidence into another worktree can
+  // reorder filesystem mtimes without changing the immutable result bytes.
+  // Prefer the result's intrinsic completion timestamp so a copied worktree
+  // cannot select an older/incomplete attempt merely because it was copied last.
+  if (normalizedPattern === 'reports/authorization/canonical/item-image-projection-apply/*/result.json') {
+    candidates.sort(compareProjectionResultCandidates);
+  } else {
+    candidates.sort(compareReportCandidates);
+  }
   return candidates[0] ?? null;
+}
+
+function compareProjectionResultCandidates(left, right) {
+  const leftCompletedAt = readCandidateTimestamp(left.fullPath);
+  const rightCompletedAt = readCandidateTimestamp(right.fullPath);
+  if (leftCompletedAt !== rightCompletedAt) {
+    return rightCompletedAt - leftCompletedAt;
+  }
+  return compareReportCandidates(left, right);
+}
+
+function readCandidateTimestamp(fullPath) {
+  try {
+    const payload = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    const timestamp = Date.parse(String(payload?.completedAt ?? payload?.generatedAt ?? ''));
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function collectReportCandidates({ root, directory, matcher }) {

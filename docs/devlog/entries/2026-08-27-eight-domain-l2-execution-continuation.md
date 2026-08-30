@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -40,8 +40,8 @@
 
 ## Result
 
-- Completed: fresh Phase 2 panels, shared reports, canonical support-readiness freshness repair, adapter-backed display-only readiness records, database-bound acceptance, UI consumer evidence, runtime readback, and focused contract validation. The readiness producer now rejects acceptance reports outside the same 24-hour window as the other bound evidence.
-- Not completed: policy-ceiling registration, three qualifying committed L1 runs/full reconciliation, Owner L2 promotion, separate scheduler decision, and all later executable L2 phases. These remain blocked by missing authorization/evidence rather than by an unverified runtime service.
+- Completed: contract repair, the serial evidence-repair pass, eight exact `ADMIN` L2 promotions, independent domain/global readback, and the focused/full automation validation recorded below. Each target domain is `v2/L2/ACTIVE`; the live policy-set chain is H0 through H8 with no new source-hash drift.
+- Not completed by this entry: scheduler activation. It remains a separate operation requiring its own fresh preflight, eligible-set packet, Owner authorization, consumption, and readback; no scheduler control or sweep was executed.
 
 ## Residual Risks
 
@@ -54,7 +54,7 @@
 
 ## Follow-up
 
-- Owner: System Owner/evidence owner must provide a separately approved exact L2 policy ceiling and three qualifying committed L1 runs including one plan-qualified full reconciliation. Codex may then start a new immutable evidence-repair root and repeat the adapter/readback gates. No proposal, packet, permit, Owner decision, scheduler decision, migration, or write action is authorized from this blocked continuation.
+- Owner: the next scheduler-specific handoff must obtain a distinct `ADMIN` authorization after a fresh current-policy preflight. Do not reuse any consumed promotion packet, permit, decision, or historical registration hash.
 
 ## Commits
 
@@ -62,6 +62,7 @@
   isolated worktree handoff, canonical ledger test precondition, and the
   read-only hash audit. The branch remains active for the separately scoped
   historical evidence disposition.
+- Current closeout commit: `commit SHA pending in final response`.
 
 ### Worktree handoff: 2026-08-29 11:35 CST
 
@@ -703,3 +704,465 @@
   serialized action is three exact candidate-scoped requests and packets using
   distinct `admin` decision identities, followed by disposition approval and
   a rolled-back real-MySQL readback.
+
+### Trusted primary-worktree evidence boundary repair: 2026-08-30 05:52 CST
+
+- Root cause confirmed with a fresh real-MySQL read: every target-domain row
+  stores absolute bundle/reconciliation paths under the primary worktree
+  `/home/lolben/TerraPedia`, while this continuation runs under
+  `/home/lolben/TerraPedia/.worktrees/automation-ingestion-continuation`.
+  Default confinement therefore rejected the paths before hash verification;
+  this was a path-root mismatch, not a source-hash rewrite opportunity.
+- Test-first repair adds `resolveTrustedEvidenceRoot`, which accepts an
+  explicitly supplied corresponding primary worktree only when Git common-dir
+  metadata matches and all roots are canonical non-symlink directories. Any
+  omitted root, unrelated root, path escape, symlink alias, malformed Git
+  metadata, or non-canonical artifact path remains fail-closed. Adapter and
+  readiness builder reads use the trusted root only for read-only bundle,
+  source, and reconciliation files; readiness outputs and private disposition
+  inputs remain in the caller worktree and all emitted artifact identities are
+  repository-relative.
+- Fresh focused validation is `87/87` across the new root utility, adapter, and
+  readiness builder regressions; changed modules pass `node --check`. No file
+  was copied from or written to the primary evidence root, and no database
+  transaction was committed.
+- The three exact candidate-scoped historical dispositions for Items,
+  Projectiles, and Shimmer are now independently approved with role `ADMIN`,
+  canonical Owner actor `admin`, reference
+  `user://conversation/2026-08-30/eight-domain-l1-historical-disposition`,
+  and expiry `2026-08-30T20:53:08.000Z`; their private `0600` artifacts are
+  intentionally untracked. The next action is a new dated Phase 2 readiness
+  capture using the explicit primary evidence root, then independent readback;
+  no L2 proposal or scheduler state is authorized before that gate.
+
+### Preflight capture discarded and rebuilt: 2026-08-30 07:28 CST
+
+- The first r15 runtime preflight wrapper was retained as diagnostic evidence
+  only. It obtained an ADMIN token through the login endpoint, which appends a
+  `security_audit_log` row; the wrapper therefore could not truthfully claim an
+  unchanged audit watermark and is not eligible for readiness binding.
+- No policy, decision, scheduler, business-table, or crawler write occurred.
+  The next capture uses an offline, locally configured ADMIN JWT for a single
+  authenticated read and records the real audit watermark before and after the
+  GET. A new immutable run-id will be used; the diagnostic file will not be
+  overwritten.
+
+### r15b acceptance path correction: 2026-08-30 07:33 CST
+
+- The first r15b acceptance run completed `17/19`: the two canonical candidate
+  checks used the default linked-worktree shared-data derivation and observed
+  zero inputs because `.worktrees/data/terraPedia` does not exist. The report
+  is retained as non-authoritative diagnostic evidence; no database or policy
+  mutation occurred.
+- The known shared source root is `/home/lolben/data/terraPedia`. The retry
+  will pass that root explicitly and require a fresh `19/19` database-bound
+  report before readiness records are built.
+
+### Phase 2 readiness rebuild and historical disposition approval: 2026-08-30 08:57 CST
+
+- Fresh Phase 2 evidence is present under
+  `reports/runtime/local-data-chain-closure/20260830/l2-readiness/20260830-004525-phase2-readiness-r17/`.
+  The independent acceptance report from r16 is `19 passed / 0 failed / 0 skipped`;
+  the r17 index covers all eight domains, and its V2 preflight is HTTP `200`
+  with unchanged audit watermark, zero live attempts/claims, and a healthy
+  reconciler. The independently recomputed file hashes are recorded in the
+  run root; the r17 records remain immutable evidence-display records and are
+  not upgraded in place.
+- The real MySQL readback at UTC `2026-08-30T00:53:29Z` confirms server UUID
+  `b4ae6728-4f72-11f1-bcc9-00155d37eadf` on `13306`, Flyway `V60`, Owner
+  `admin/ACTIVE`, all eight effective policies `v1/L1/ACTIVE`, eight immutable
+  L2 ceiling rows, zero target `L2_PROMOTION` decisions, zero active
+  reservations/fences, and no active target attempts. The additional
+  `terria_v1_v55_rehearsal` schema remains out of scope.
+- Items, Projectiles, and Shimmer each now have one exact candidate-scoped
+  historical source-hash disposition approved with authorization role `ADMIN`,
+  canonical Owner actor `admin`, reference
+  `user://conversation/2026-08-30/eight-domain-l1-historical-disposition`,
+  private `0600` immutable artifacts, and expiry
+  `2026-08-30T20:53:08.000Z`. The dispositions only exclude the known legacy
+  semantic-JSON hash rows; they do not rewrite or replay source data.
+- Next serialized action: build a separate formal `proposalInput=true`
+  readiness record from the fresh r17 evidence, then generate and independently
+  rebuild the exact per-domain L2 proposal and `ADMIN` authorization packet.
+  No L2 proposal, promotion, scheduler change, crawler/import, or business-table
+  write has occurred in this checkpoint.
+
+### Critical serial promotion hash contract blocker: 2026-08-30
+
+- Root cause: all eight registered ceiling artifacts were generated against the
+  initial global policy-set hash H0.  Their immutable target hashes describe the
+  registration event only; treating them as the live target hash for every later
+  domain makes a serial run fail after the first promotion (for example, Items
+  changes the live set to H1 while an old NPC packet still asks for H0 -> NPC).
+- Required repair: retain the historical registration result/commit marker and
+  split the proposal/execution identities into `evidencePolicySetHash` (H0 for
+  L1 evidence), `promotionCurrentPolicySetHash` (live Hn),
+  `promotionTargetPolicySetHash` (live Hn+1), and
+  `registeredTargetPolicySetHash` (immutable registration hash).  Bind complete
+  current/target policy rows and an independently read-back previous promotion
+  identity for every non-first domain.  The executor must validate Hn before the
+  transaction, Hn+1 after the domain update, and H0 for L1 evidence; the decision
+  row stores Hn+1 while registration files remain untouched.
+- Boundary: this is contract/test repair only.  No fresh proposal, packet,
+  permit, L2 promotion, scheduler decision, source refresh, crawler/import,
+  database DML, or business-table write is authorized until the RED/GREEN suite
+  passes.  Existing static proposals remain preserved as stale historical
+  evidence and must never be consumed.
+
+### Serial policy-set and manifest contract blockers: 2026-08-30 09:10 CST
+
+- A fresh contract trace found that all eight pre-generated proposals bind the
+  same pre-promotion policy-set hash. After the first domain commits, the live
+  set necessarily changes, so consuming the remaining frozen packets would
+  fail at the current-set identity check. The L1 evidence rows must continue
+  to bind their historical evidence-set hash; that hash cannot be replaced by
+  an arbitrary older set or manually edited.
+- The repaired contract will bind each L2 input/proposal to a live
+  `policySetHash`, a separate `l1EvidencePolicySetHash`, and a fixed sequence
+  index. For index zero no predecessor is allowed; every later domain must
+  carry the exact previous domain, immutable decision identity, packet hash,
+  and post-promotion policy-set hash. The executor will lock and independently
+  read that predecessor and require the live set to equal its post-set before
+  reading evidence. It will still retain the full live policy-set lock and
+  fail closed on any gap, reorder, duplicate, or drift.
+- The canonical execution manifest currently omits the explicit
+  `--database-evidence-root` and historical disposition arguments. A packet
+  containing an approved disposition therefore cannot reproduce the adapter
+  read contract. Manifest generation will require and freeze those exact
+  arguments for L2 operations when supplied; no existing manifest will be
+  edited in place.
+- This finding blocks proposal/input/packet regeneration and all database
+  writes until test-first contract repairs, plan-auditor re-review, and a new
+  independent evidence/readback pass complete. Existing private dispositions
+  remain immutable and are not consumed by this repair.
+
+### Serial contract repair verified: 2026-08-30 16:55 CST
+
+- The serial transition repair is now implemented in the proposal-input,
+  proposal, manifest, and policy-decision executor contracts. It keeps the
+  historical L1 evidence policy-set hash separate from the live pre-promotion
+  and dynamic post-promotion hashes, preserves the immutable registration
+  hash, and requires the exact immediately preceding promotion identity for
+  every non-first domain.
+- Fresh validation: serial/formalization/proposal/runner contracts `84/84`,
+  manifest contracts `55/55`, and all automation contracts `629/629`; syntax
+  and `git diff --check` also pass. The target MySQL read-only facts have not
+  changed: Owner `admin/ACTIVE`, Flyway `V60`, all eight target policies
+  `v1/L1/ACTIVE`, zero target-domain L2 decisions, and zero active
+  attempts/reservations/fences.
+- Boundary: this checkpoint authorizes only rebuilding the exact Items
+  proposal-input, L2 proposal, execution manifest, and `ADMIN`/`admin`
+  authorization packet, followed by one pre-consumption readback. It does not
+  authorize reusing any older packet, changing a historical artifact, running
+  a scheduler decision, refreshing sources, or writing the database before
+  the new packet is independently verified.
+
+### Items packet pre-consumption boundary recheck: 2026-08-30 17:35 CST
+
+- The fresh independent MySQL read found the historical `biomes` policy row at
+  `current_level=L2` with `current_version=1`, plus its old Biomes L2 and
+  scheduler decisions from 2026-08-05. This is pre-existing out-of-scope state,
+  not a new eight-domain mutation. The policy-set contract hashes the joined
+  current-version rows, so the live H0 remains
+  `sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629`,
+  matching the Items input and packet; the eight target rows remain
+  `v1/L1/ACTIVE` and target-domain L2 decisions remain zero.
+- The previous preflight diagnostic used a nonexistent `items.active` column.
+  The actual local item schema uses `status` and `deleted`; the failed query
+  was read-only and produced no database write. Active attempt/reservation
+  checks use the real status columns and non-expired fence timestamps.
+- The formal Items packet is still within its UTC validity window and remains
+  immutable. Before consumption, the caller will independently rebuild the
+  packet data/code/manifest hashes and pass live server/policy snapshots to the
+  canonical wrapper. No permit, ledger identity, pending result, decision, or
+  policy mutation has been created in this recheck.
+
+### Items first packet fail-closed and replacement proposal: 2026-08-30 18:04 CST
+
+- The first Items promotion packet used decision identity
+  `automation-items-l2-promotion-20260830-admin-01`. The canonical wrapper
+  consumed that identity into `reports/authorization/canonical/used-decisions.json`
+  with dispatch permit hash
+  `sha256:ddd3060ada923b6f3777a977aaa1dc51a80e96004b5d09a0d8fc6b1f2d6b17d4`,
+  then the child runner failed before opening a database connection with
+  `ReferenceError: assertRepositoryPathConfinement is not defined`.
+- The failed identity is permanently consumed and will not be retried. Fresh
+  readback found no result or commit marker, no remaining permit, no Items L2
+  decision, no policy change, zero active attempts/reservations/non-expired
+  fences, and no business-table mutation; Items remains `v1/L1/ACTIVE`.
+- Root cause was a missing import in
+  `pipelines/automation/run-automation-policy-decision.mjs`. A CLI regression
+  test reproduced the failure before the import repair, and the latest focused
+  five-file suite passes `172/172`.
+- A replacement formal readiness record now has formalization hash
+  `sha256:b72332c066fa5c4f95fed1cd61b69bdefafe31ea564c4a5587ac9f7b74f73edc`.
+  The replacement proposal is immutable at
+  `reports/authorization/canonical/automation-items-l2-promotion/3e3322037326f40ccf3b5a7ec4a504d48bbfa6daa3e1ce2a13f3ca9fbfae5ce2/proposal.json`
+  with proposal hash
+  `sha256:3e3322037326f40ccf3b5a7ec4a504d48bbfa6daa3e1ce2a13f3ca9fbfae5ce2`.
+- Next action is to generate a new execution manifest containing the import
+  repair, then build a new request and `ADMIN`/`admin` packet with a fresh
+  one-time identity. The old request and packet remain immutable evidence and
+  cannot be overwritten or reused. No scheduler activation, source refresh,
+  crawler/import, replay, reset, cleanup, or unrelated database write is in
+  scope.
+
+### Items promotion retry-02 committed and read back: 2026-08-30 18:20 CST
+
+- The replacement `ADMIN`/`admin` packet was independently rebuilt and
+  verified against the live server/policy snapshot before dispatch. Its packet
+  hash is `sha256:c8eae98c2230c90746910ebe280f3cc30800372c343807006eb67d53393a0ee6`,
+  request hash is `sha256:88f28a5a5e5e51050c9fb98b17d7000c8e288cb793bc207e864901a91ed82501`,
+  and execution-manifest hash is
+  `sha256:62cc44739f26ac039b638b638cd013f3fc2d7bd8a0940569849ee1b828109acd`.
+- Canonical consumption completed once with decision identity
+  `automation-items-l2-promotion-20260830-admin-02`; the durable ledger
+  records dispatch permit hash
+  `sha256:8719355e8152c1bf05bf5f56cfd5124985eeb2120c62bb062a1e2205dede3433`.
+  The child runner exited `0`, created the pending result and committed marker,
+  and the permit was revoked/removed after dispatch.
+- Independent file and MySQL readback confirms the result/marker identities,
+  `successfulL1Runs=3`, L1 evidence policy-set hash H0
+  `sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629`,
+  and post-promotion policy-set hash H1
+  `sha256:d11760266c60d1589f55e0e0ca278618a86bf2ad974d0193acc00b778ecf040a`.
+  Items is now `v2/L2/ACTIVE`; the other seven target domains remain
+  `v1/L1/ACTIVE`; target-domain L2 decisions outside Items and all active
+  attempts/reservations/fences remain zero.
+- The first preflight helper misuse and its discarded diagnostic root were
+  read-only and did not consume the packet. No scheduler activation, source
+  refresh, crawler/import, replay, reset, or business-table mutation occurred.
+- The next serialized action is a fresh NPC formal proposal-input and packet
+  bound to H1 and the exact Items predecessor decision; no pre-generated NPC
+  artifact may be reused.
+
+### NPC promotion committed and independently read back: 2026-08-30 20:38 CST
+
+- A new formal NPC proposal-input was generated from the immutable r23 display
+  root with the primary-worktree evidence root and sequence predecessor bound
+  to Items retry-02. Its formalization hash is
+  `sha256:55729ddbb4dd15ba87076ff95a965ba6bf33e0ad7268728e659b0177ad2d64d0`.
+- The proposal was independently rebuilt byte-for-byte at
+  `reports/authorization/canonical/automation-npcs-l2-promotion/b45e29f8a02744adef20d6d0e8e26a232d6ffddda4b6d1bed7f7074eb407e5da/proposal.json`;
+  proposal hash is `sha256:b45e29f8a02744adef20d6d0e8e26a232d6ffddda4b6d1bed7f7074eb407e5da`.
+  The execution manifest hash is
+  `sha256:8a277ea9d5f81202227634aa7136f6e428fa8be0bcdd56482f645480eded8cba`.
+- The exact `ADMIN`/`admin` packet used fresh identity
+  `automation-npcs-l2-promotion-20260830-admin-01`, request hash
+  `sha256:31b6c3d1b63d0f8f7d44ea21d90178a1dfe2764ee7d0f1897c904ae1db4aacc0`,
+  and packet hash
+  `sha256:dac81047705d4b97a4cf6cab85450afc78e984b6e1c68b04cd204e7a13703769`.
+  One failed CLI invocation due to a local ESM `require` helper happened before
+  authorization and consumed nothing; the corrected authorization succeeded.
+- Canonical consumption exited `0`. Independent file/DB readback confirms the
+  NPC pending result and commit marker, decision identity, actor, packet hash,
+  three committed L1 runs, H0 evidence hash
+  `sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629`,
+  live predecessor H1
+  `sha256:d11760266c60d1589f55e0e0ca278618a86bf2ad974d0193acc00b778ecf040a`,
+  and post-promotion H2
+  `sha256:8298dadda4ee0ca18863fed1c51b510d26c4b5aed0de598f32741620737ae4ec`.
+  The ledger contains exactly one NPC entry and no dispatch permit remains.
+- MySQL now reports Items and NPCs `v2/L2/ACTIVE`, all other target domains
+  `v1/L1/ACTIVE`, zero active attempts/reservations/non-expired fences, and one
+  NPC L2 decision. NPC table count remains `762`; no business-table DML was
+  performed. Public `/api/npcs?page=1&limit=1` and
+  `/api/public/npcs/7/aggregate?include=buffs,shop,loot` both returned `200`.
+- A diagnostic unauthenticated preflight request returned `401` and advanced
+  `security_audit_log` from `12426` to `12427`; this is not promotion data and
+  is recorded as a residual audit-watermark variance. The immutable r23 root
+  remains historical evidence; the next action is to generate a new H2 display
+  readiness root, then build and consume a Projectiles packet with NPC as the
+  exact predecessor. Scheduler activation, source refresh, crawler/import,
+  replay, reset, cleanup, and unrelated writes remain out of scope.
+
+### Projectiles promotion and Armor retry boundary: 2026-08-30 21:46 CST
+
+- Projectiles promotion completed serial position `2` after the exact NPC
+  predecessor. Fresh `ADMIN`/`admin` decision identity
+  `automation-projectiles-l2-promotion-20260830-admin-03` was consumed once;
+  its packet hash is
+  `sha256:bdbeae71a5c8b5791a9e119f83226a4217ec90c6c1eddac8b46b819fd2a55781`.
+  Independent result, commit-marker, ledger, policy, and database reads agree;
+  Projectiles is now `v2/L2/ACTIVE` at post-set H3
+  `sha256:4b9f53431fe9bb6cc7d7c3437918d4f011f75f1916e37524f3b999f780704fc6`.
+  The complete reconciliation gate reports `successfulL1Runs=3`; the owned
+  `projectiles` count remains `1111` and no attempts, reservations, fences, or
+  scheduler decision were created.
+- The first Armor retry used identity
+  `automation-armor-sets-l2-promotion-20260830-admin-01`. The canonical
+  wrapper consumed that identity exactly once, then the child runner failed
+  closed before opening MySQL because `TERRAPEDIA_DB_HOST` was absent. No
+  result, commit marker, decision, policy change, or business-table mutation
+  exists; Armor remains `v1/L1/ACTIVE` with counts `151/501` and zero active
+  attempts/reservations/fences. The identity and packet are permanently
+  consumed and must not be retried.
+- Fresh r27 display evidence is available at
+  `reports/runtime/local-data-chain-closure/20260830/l2-readiness/20260830-134100-phase2-readiness-r27/`;
+  its Armor record has three committed current-policy L1 runs with complete
+  reconciliation, H3 predecessor context, and zero live writers. The next
+  serialized action is r27 formalization, independent proposal rebuild, and a
+  fresh `ADMIN`/`admin-02` Armor packet with Projectiles as the exact
+  predecessor. Scheduler activation, source refresh, crawler/import, replay,
+  reset, cleanup, and unrelated writes remain out of scope.
+
+### Armor Sets promotion retry-02 committed and independently read back: 2026-08-30 22:16 CST
+
+- The fresh `ADMIN`/`admin` Armor Sets packet used decision identity
+  `automation-armor-sets-l2-promotion-20260830-admin-02`, packet hash
+  `sha256:8ccb0a503b506f6a267ecb311af3a3ed9c8c2900c222396b349825bb23c98df6`,
+  and the exact Projectiles predecessor at H3
+  `sha256:4b9f53431fe9bb6cc7d7c3437918d4f011f75f1916e37524f3b999f780704fc6`.
+  Canonical execution exited `0`; the pending result and committed marker were
+  published, and the temporary dispatch permit was removed.
+- The corrected independent readback is
+  `reports/runtime/local-data-chain-closure/20260830/l2-readiness/20260830-141306-armor-l2-promotion-readback-admin-02.json`
+  with SHA-256
+  `sha256:1ec94dca0e45b9ca6af5aad82eee3877ee667925115a6cef78a18dd7e08a6743`
+  and `overallStatus=PASS`. It verifies the canonical packet without requiring
+  a non-schema `packet.domainId`; domain identity is bound through the exact
+  operation, input, result, and database decision. The three Armor L1 bundle,
+  source, and reconciliation evidence hashes match the primary evidence root;
+  full reconciliation is verified; the live policy-set is H4
+  `sha256:fa9d32ef7c9740fbf88643d570d973269decf1e43e9acb56b875d40b2b1ada59`;
+  Armor is `v2/L2/ACTIVE`; business counts remain `151` `armor_sets` and `501`
+  `armor_set_items`; active attempts, reservations, and write fences are zero;
+  the ledger contains exactly one matching identity; public Armor list/detail
+  API reads are both HTTP `200`.
+- A prior ad-hoc schema query referenced nonexistent `completed_at` and aborted
+  before reading decisions; the corrected query uses `created_at` and was
+  read-only. No scheduler control, source refresh, crawler/import, replay,
+  reset, or unrelated business-table write occurred.
+- The next serialized action is a new H4 Phase 2 display/readiness root, then
+  Buffs formalization and a fresh `ADMIN`/`admin` packet bound to the exact
+  Armor predecessor. Scheduler activation remains a separate later decision.
+
+### Buffs promotion admin-01 committed and independently read back: 2026-08-30 23:37 CST
+
+- A fresh H4-bound Buffs packet used decision identity
+  `automation-buffs-l2-promotion-20260830-admin-01`, packet hash
+  `sha256:c65d73d241263cdbe97423d4c904757358220e99e52a0d0d1e5c8903fa7c49d5`,
+  and the exact Armor Sets predecessor at H4
+  `sha256:fa9d32ef7c9740fbf88643d570d973269decf1e43e9acb56b875d40b2b1ada59`.
+  The pre-consumption readback passed after correcting the evidence check to
+  validate the object-shaped `fullReconciliation` record; it did not compare
+  that record with a boolean.
+- Canonical execution exited `0`. The pending result and committed marker were
+  published, the temporary dispatch permit was removed, and the ledger records
+  exactly one matching identity. The independent readback is
+  `reports/runtime/local-data-chain-closure/20260830/l2-readiness/20260830-153700-buffs-l2-promotion-readback-admin-01.json`
+  with SHA-256
+  `sha256:3769a9b591fe6906ee912f80a1f0db12538e396663361692b34f7a4f36fb19da`
+  and `overallStatus=PASS`.
+- The readback verifies packet/data-bundle hashes, the input/proposal binding,
+  three committed current-policy L1 runs, all three source/evidence hashes,
+  object-form full reconciliation, the H4 predecessor, and dynamic H5
+  post-policy-set hash. Buffs is now `v2/L2/ACTIVE`; business counts remain
+  `388` `buffs` and `380` `buff_source_items`; active attempts, reservations,
+  and write fences are zero; the Buffs L2 decision is exactly one; public list
+  and detail API reads are HTTP `200`.
+- No scheduler control, source refresh, crawler/import, replay, reset, cleanup,
+  or unrelated business-table write occurred. The next serialized action is a
+  new H5 display/readiness root, then Audio formalization and a fresh
+  `ADMIN`/`admin` packet bound to the exact Buffs predecessor.
+
+### Audio promotion admin-01 committed and independently read back: 2026-08-30 23:58 CST
+
+- A fresh H5-bound Audio packet used decision identity
+  `automation-audio-l2-promotion-20260830-admin-01`, packet hash
+  `sha256:1f9712a1f8ae6a0ec45987cf2289545d96d90786044ca333e39d5575b0a859f0`,
+  and the exact Buffs predecessor at H5
+  `sha256:344e0b5f03fd2e3989992cc39f52519d0f4f0fe5a5a6245a574697ece55fd235`.
+  The proposal hash is
+  `sha256:0bb441bed892d13f019aa5be7da4632fcdfa44abbbd7f28dd3eed5bbbc87b3d9`.
+- Canonical execution exited `0`; the pending result and committed marker were
+  published, the temporary dispatch permit was removed, and the ledger records
+  exactly one matching identity. The independent readback is
+  `reports/runtime/local-data-chain-closure/20260830/l2-readiness/20260830-154000-phase2-readiness-r30/audio-l2-promotion-readback-admin-01.json`
+  with SHA-256
+  `sha256:601dc91ad0cc271e96e6ebe2b6f690ac39c7a148e2a5cc1a81d362913e773117`
+  and `overallStatus=PASS`.
+- The readback verifies packet/data-bundle hashes, input/proposal binding,
+  three committed current-policy L1 runs, all three source/evidence hashes,
+  object-form full reconciliation, the H5 predecessor, and dynamic H6
+  post-policy-set hash `sha256:604d0c6705eb7c8f28f32a6d23f2cb2be7017968f1b94e7060f3590d4ca8dd97`.
+  Audio is now `v2/L2/ACTIVE`; business counts remain `428` `audio_assets` and
+  `428` `audio_asset_links`; active attempts, reservations, and write fences
+  are zero; the Audio L2 decision is exactly one; public list/detail API reads
+  are HTTP `200`.
+- No scheduler control, source refresh, crawler/import, replay, reset, cleanup,
+  or unrelated business-table write occurred. The next serialized action is a
+  new H6 display/readiness root, then Bosses formalization and a fresh
+  `ADMIN`/`admin` packet bound to the exact Audio predecessor.
+
+### Bosses promotion admin-01 committed and independently read back: 2026-08-31 00:42 CST
+
+- The fresh H6-bound Bosses packet used decision identity
+  `automation-bosses-l2-promotion-20260830-admin-01`, packet hash
+  `sha256:38c0487876bf2d728b9b9f0f87d216888c53a743f00c7276432d348a822cfa6f`,
+  and the exact Audio predecessor at H6
+  `sha256:604d0c6705eb7c8f28f32a6d23f2cb2be7017968f1b94e7060f3590d4ca8dd97`.
+  Canonical execution completed once; the pending result and committed marker
+  are present and the temporary dispatch permit was removed.
+- The independent readback is
+  `reports/runtime/local-data-chain-closure/20260830/l2-readiness/20260830-163800-bosses-l2-promotion-readback-admin-01.json`
+  with SHA-256
+  `sha256:710eeaffd4ccd6cdc38940f7f717b3fc7847aa9d05a01e8a9380a84ce199841c`
+  and `overallStatus=PASS`. It verifies packet/data-bundle hashes,
+  input/proposal binding, three committed current-policy L1 runs, all three
+  source/evidence hashes, object-form full reconciliation, the Audio
+  predecessor, and dynamic H7 post-policy-set hash
+  `sha256:23b3385fab638a864aa4cfd8ab4ca394238f4ec0061c0787693350bf8a429f40`.
+- Bosses is now `v2/L2/ACTIVE`; business counts remain `33` `boss_groups` and
+  `22` active boss-owned NPC rows. Active attempts, reservations, and write
+  fences are zero; the Bosses L2 decision is exactly one; the authorization
+  ledger contains exactly one matching identity; public Bosses list/detail API
+  reads are HTTP `200`.
+- No scheduler control, source refresh, crawler/import, replay, reset, cleanup,
+  or unrelated business-table write occurred. The next serialized action is a
+  new H7 display/readiness root for Shimmer, then Shimmer formalization and a
+  fresh `ADMIN`/`admin` packet bound to the exact Bosses predecessor.
+
+### Shimmer promotion and eight-domain readback closure: 2026-08-31 01:51 CST
+
+- The fresh Shimmer `ADMIN`/`admin` packet used decision identity
+  `automation-shimmer-l2-promotion-20260830-admin-01`, packet hash
+  `sha256:57468b6d266180094ae250afbebbebef0d5ab251fb82ae78cf8663a5d43e469d`,
+  and the exact Bosses predecessor at H7
+  `sha256:23b3385fab638a864aa4cfd8ab4ca394238f4ec0061c0787693350bf8a429f40`.
+  Canonical execution returned exit code `0`; its pending result and committed
+  marker are present, and the temporary dispatch permit was removed.
+- The independent post-consumption readback is
+  `reports/runtime/local-data-chain-closure/20260830/20260830-174423-shimmer-l2-promotion-readback-admin-01.json`
+  with SHA-256
+  `sha256:77bddf7180585e23a728b80da339d3369be59db55f35e19529c2d698c16784d5`
+  and `overallStatus=PASS`. It verifies the packet/input/data-bundle hashes,
+  formal proposal binding, three committed current-policy L1 runs, all source
+  and reconciliation hashes, object-form full reconciliation, the Bosses
+  predecessor, and the dynamic H8 target.
+- MySQL now reports Shimmer `v2/L2/ACTIVE` with policy hash
+  `sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61`
+  and policy-set H8
+  `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`.
+  The four owned tables remain `279/248/121/29`; active attempts,
+  reservations, and write fences are zero; exactly one Shimmer L2 decision and
+  one matching ledger identity exist; public context, overview, and all four
+  dataset totals return HTTP `200` with `279/248/121/29`.
+- The independent eight-domain readback is
+  `reports/runtime/local-data-chain-closure/20260830/20260830-175043-eight-domain-l2-global-readback.json`
+  with SHA-256
+  `sha256:34af46aacb92d171c232128712c47641cbb3882a689ae0fd18195302184445e0`
+  and `overallStatus=PASS`. It verifies serial H0->H8 continuity, all eight
+  target domains `v2/L2/ACTIVE`, eight committed markers, eight ledger
+  identities, eight `L2_PROMOTION` decisions, no promotion permit files, zero
+  active attempts/reservations/fences, and zero current scheduler decisions.
+- The only hash exception remains the explicitly approved historical
+  semantic-JSON-versus-current-byte mismatch for the legacy Items, Projectiles,
+  and Shimmer rows. No historical row was rewritten or replayed, and no new
+  source-hash drift occurred during the serial promotion pass. Scheduler
+  activation, source refresh, crawler/import, replay, reset, cleanup, and
+  unrelated business-table writes remain out of scope.
+- Final verification is fresh focused contract tests `167/167`; the maintained
+  backend `/api/actuator/health` returns `200`, authenticated Redis `6380`
+  returns `PONG`, and `git diff --check` passes. The worktree remains dirty and
+  unstaged by design; no commit, cleanup, reset, stash, or push was performed.
