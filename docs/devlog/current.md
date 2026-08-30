@@ -1,8 +1,12 @@
 # Current Devlog
 
-Last updated: 2026-08-31 04:52 CST by Codex
+Last updated: 2026-08-31 04:55 CST by Codex
 
-Active branch: `feat/automation-ingestion-continuation` (continuation worktree)
+Active branch: `feat/automation-scheduler-continuation` (scheduler handoff worktree)
+
+## Active Scheduler Handoff
+
+- Entry: `entries/2026-08-31-automation-scheduler-activation-handoff.md`; owner: Codex; status: `active`; branch: `feat/automation-scheduler-continuation`; worktree: `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`; parent: `entries/2026-08-27-eight-domain-l2-execution-continuation.md` (closed at `edc40b4fe702aa11b9ec03d2d49ff9448d6eeb09`); blocked-by: distinct scheduler Owner authorization and fresh scheduler preflight; contract handoff: live H8 `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`, fixed eligible set `items,npcs,projectiles,armor_sets,buffs,audio,bosses,shimmer`, and global readback SHA `sha256:34af46aacb92d171c232128712c47641cbb3882a689ae0fd18195302184445e0`.
 
 ## Recently Closed L2 Execution Continuation
 
