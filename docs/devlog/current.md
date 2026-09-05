@@ -76,6 +76,9 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   `sha256:1e4bd9b5a8d596f962799aba4ff0dc5863ee22d5baa10153f686eb8ec0d2704e`.
   The historical fixed catalog path was already occupied and was not
   overwritten.
+- Phase 2 offline activation-contract tests were rerun on the resumed session:
+  `108/108` passed. The live preflight portion remains pending because MySQL,
+  Redis, and backend are currently unreachable.
 - Current risks: runtime is additionally blocked by the unavailable existing
   MySQL instance; `/var/lib/mysql` and `/var/run/mysqld` require administrator
   ownership, and this session has no non-interactive sudo. Separate runtime

@@ -2242,3 +2242,12 @@ See git for code-level diff details.
 - Phase 1 acceptance is complete. Phase 0 remains blocked by the unavailable
   MySQL instance and still requires a fresh read-only baseline plus distinct
   scheduler authorization after service recovery.
+
+### Phase 2 offline contract validation: 2026-09-06
+
+- The five plan-listed activation contract suites were rerun without live
+  services: `108/108` passed with zero failures. This covers preflight,
+  proposal, request, input capture, and canonical execution-manifest rules.
+- The live Phase 2 preflight collector was not run because MySQL `13306`, Redis
+  `6380`, and backend `18102` remain unreachable. No scheduler/API control,
+  source probe, crawler/import, or database/Redis business write occurred.
