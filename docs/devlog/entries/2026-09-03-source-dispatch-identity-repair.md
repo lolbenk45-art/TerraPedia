@@ -76,13 +76,13 @@
 
 ## Follow-up
 
-- `/root` owns any user-directed checkpoint decision. No source-dispatch code
-  or validation action remains before that decision.
+- `/root` owns the parent handoff's Phase 0/runtime authorization decisions.
+  No source-dispatch code or validation action remains before those phases.
 
 ## Commits
 
-- `commit SHA pending in final response`; this child is closed as part of the
-  focused scheduler-safety checkpoint below.
+- Focused scheduler-safety checkpoint: `6341f8f0fda8479d5af6816ed84c034c8611c0b9`.
+  This child is closed; no runtime authorization is included.
 
 ## Optional: Multi-Agent Coordination
 
@@ -1042,9 +1042,8 @@
   checkpoint does not authorize Phase 0, a scheduler decision, a natural tick,
   or any database mutation; those remain separate parent-plan gates.
 
-### 2026-09-06 checkpoint closeout preparation
+### 2026-09-06 checkpoint closeout
 
-- Closeout decision: all child review gates and fresh validation are clear;
-  this child is closed with `commit SHA pending in final response` for the
-  imminent focused scheduler-safety checkpoint commit. No runtime
-  authorization is included.
+- Closeout decision: all child review gates and fresh validation were clear;
+  focused scheduler-safety checkpoint `6341f8f0fda8479d5af6816ed84c034c8611c0b9`
+  was created. No runtime authorization is included.

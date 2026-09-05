@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-09-06 00:01 CST by Codex
+Last updated: 2026-09-06 05:17 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation` (scheduler handoff worktree)
 
@@ -13,8 +13,8 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   parent: `entries/2026-08-27-eight-domain-l2-execution-continuation.md`
   (closed at `edc40b4fe702aa11b9ec03d2d49ff9448d6eeb09`).
 - Child entry `entries/2026-09-03-source-dispatch-identity-repair.md` is closed
-  in the imminent focused checkpoint; its contract handoff remains canonical
-  `sourceFingerprint/sourceRunIdentity/sourceContentIdentity`.
+  in checkpoint `6341f8f0fda8479d5af6816ed84c034c8611c0b9`; its contract
+  handoff remains canonical `sourceFingerprint/sourceRunIdentity/sourceContentIdentity`.
 - Current state: P1 retained-lock and successor-alert safety is accepted after
   five RED-GREEN assertions, monitor `283/283`, fresh specification review,
   and fresh code-quality review. The cleanup failure fence now preserves the
@@ -46,7 +46,7 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   source-identity terminal-progress handler. Fresh independent Node
   specification and code-quality reviews approved the repair with no findings.
   Fresh coordinator full Node automation (`965/965`) and Java producer
-  (`312/312`) reruns passed; the child is closed pending the checkpoint SHA.
+  (`312/312`) reruns passed; the child is closed in checkpoint `6341f8f0`.
   Runtime operations remain blocked.
 - Contract handoff: H8
   `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`;
@@ -59,14 +59,14 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   cutover state while the existing state is in DB 3. V2 automation/preflight
   reads therefore remain `409 STATE_STORE_RESET`; no reset, state copy, or
   control write was performed.
-- Next agent start point: finish the focused checkpoint commit and record its
-  SHA, then perform a fresh Phase 0 readback only under the parent plan's
-  separate authorization. Do not enable scheduler runtime automatically.
-  After the reviewed checkpoint, Phase 0 still requires a fresh readback and a
-  distinct ADMIN/Owner authorization; no scheduler activation may be inferred
-  from this checkpoint.
-- Current risks: a user-directed checkpoint and separate runtime authorization
-  are still required, so runtime stays blocked. The reviewer-requested content-only
+- Next agent start point: perform a fresh Phase 0 readback only under the
+  parent plan's separate authorization. Do not enable scheduler runtime
+  automatically.
+  After this checkpoint, Phase 0 still requires a fresh readback and a distinct
+  ADMIN/Owner authorization; no scheduler activation may be inferred from this
+  checkpoint.
+- Current risks: separate runtime authorization is still required, so runtime
+  stays blocked. The reviewer-requested content-only
   post-apply and committed/DRY_RUN acknowledgement permutations remain a
   residual coverage consideration beyond the new pre-publication content-drift
   and normal acknowledgement-race regressions. No natural source-change-to-
@@ -79,7 +79,7 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
 ## Recently Closed
 
 - `entries/2026-09-03-source-dispatch-identity-repair.md`: reviewed source-
-  dispatch identity child closed pending checkpoint SHA; runtime phases remain
+  dispatch identity child closed in `6341f8f0`; runtime phases remain
   unauthorized.
 - `entries/2026-08-27-eight-domain-l2-execution-continuation.md`: eight-domain
   L2 promotion chain closed at `edc40b4fe702aa11b9ec03d2d49ff9448d6eeb09`.

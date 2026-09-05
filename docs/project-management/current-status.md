@@ -25,10 +25,9 @@ identity rechecks, while initial Supplementary reader failure publishes terminal
 `source-identity` progress. Fresh Node specification review approved this
 repair, and the independent code-quality re-review also approved it. A fresh
 coordinator full Node automation rerun passed `965/965`, and the focused Java
-  producer rerun passed `312/312`. The source-dispatch child is closed pending
-  the focused checkpoint SHA. The checkpoint commit is now being prepared;
-  Phase 0 and all runtime stages remain blocked until that commit and separate
-  authorization exist.
+  producer rerun passed `312/312`. The source-dispatch child is closed in
+  checkpoint `6341f8f0`. Phase 0 and all runtime stages remain blocked until a
+  fresh readback and separate authorization exist.
 
 No fresh scheduler preflight, scheduler control write, sweep, source refresh,
 crawler/import, or business-table mutation has occurred. MySQL `13306`, Redis

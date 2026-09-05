@@ -2181,22 +2181,24 @@ See git for code-level diff details.
 - Detailed active child entry:
   `docs/devlog/entries/2026-09-03-source-dispatch-identity-repair.md`.
 
-### Preparation Gate checkpoint continuation: 2026-09-06
+### Preparation Gate checkpoint closeout: 2026-09-06
 
-- The source-dispatch identity child is now `ready-for-commit` after the
+- The source-dispatch identity child is closed in checkpoint
+  `6341f8f0fda8479d5af6816ed84c034c8611c0b9` after the
   shared monitor reader, Base/Supplementary acknowledgement fences, manual
   identity boundaries, Java V2 producer, and their focused tests received
   independent specification and code-quality approval. Coordinator reruns
   passed full Node automation `965/965` and focused Java producer validation
   `312/312`; no scheduler or data runtime operation was performed.
-- The complete uncommitted checkpoint also contains the previously repaired
+- Checkpoint `6341f8f0fda8479d5af6816ed84c034c8611c0b9` also contains the
+  previously repaired
   Preparation-Gate chains for fail-closed source health, row-level L2 diff and
   shared-table fencing, automatic artifact/reconciliation publication,
   transaction compensation/alert delivery, and V2 cleanup/recovery safety.
   The three untracked audit/relation JSON reports are generated evidence and
   remain excluded from the checkpoint.
-- Next: create one focused reviewed scheduler-safety checkpoint commit from
-  this worktree, then update `SCHEDULER_CODE_HEAD` to that exact SHA. Phase 0
+- Next: use checkpoint `6341f8f0fda8479d5af6816ed84c034c8611c0b9` as
+  `SCHEDULER_CODE_HEAD` only after a fresh Phase 0 readback is authorized. Phase 0
   remains blocked until a fresh readback confirms the current state-store
   boundary and a distinct ADMIN/Owner authorization exists; no scheduler
   enablement, sweep, source refresh, crawler/import, MySQL/Redis business
