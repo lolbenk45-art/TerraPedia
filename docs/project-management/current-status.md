@@ -2,9 +2,46 @@
 
 ## Date
 
-2026-08-28
+2026-09-06
 
-## Eight-Domain L2 Readiness (2026-08-28)
+## Scheduler Preparation Gate (2026-09-03)
+
+The eight-domain L2 promotion chain is closed at
+`edc40b4fe702aa11b9ec03d2d49ff9448d6eeb09`. The live policy set is H8
+`sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`,
+with all eight eligible domains `v2/L2/ACTIVE`; the independent global readback
+is `sha256:34af46aacb92d171c232128712c47641cbb3882a689ae0fd18195302184445e0`.
+
+The scheduler Preparation Gate remains a code-only checkpoint. Its safety
+contracts cover source-probe failure, transaction compensation and durable
+alerts, row-level L2 diff/fence evidence, authorization freshness, and the
+cleanup-uncertain runtime fence. The Java V2 producer source-identity repair is
+approved by independent specification and code-quality review: focused Maven is
+`312/312`, including Redis retry `61/61`. The Node automatic runner, evidence,
+and acknowledgement chain is `965/965` in the full automation suite, with the
+latest source-dispatch target suite at `210/210`. The monitor-state reader now
+binds an ordinary repository file through no-follow descriptor access and
+identity rechecks, while initial Supplementary reader failure publishes terminal
+`source-identity` progress. Fresh Node specification review approved this
+repair, and the independent code-quality re-review also approved it. A fresh
+coordinator full Node automation rerun passed `965/965`, and the focused Java
+  producer rerun passed `312/312`. The source-dispatch child is closed pending
+  the focused checkpoint SHA. The checkpoint commit is now being prepared;
+  Phase 0 and all runtime stages remain blocked until that commit and separate
+  authorization exist.
+
+No fresh scheduler preflight, scheduler control write, sweep, source refresh,
+crawler/import, or business-table mutation has occurred. MySQL `13306`, Redis
+`6380`, and backend `18102` are reachable, but this worktree's Redis DB 14 has
+no durable V2 cutover state while existing V2 state is in DB 3; V2 automation
+and preflight correctly fail closed with `STATE_STORE_RESET`. A fresh Phase 0
+readback and an independent ADMIN/Owner authorization are required before any
+live activation.
+
+All dated sections below are retained historical checkpoints and do not override
+the Scheduler Preparation Gate state above.
+
+## Eight-Domain L2 Readiness (2026-08-28, historical)
 
 The exact eight-domain default ceiling was registered under
 `user://conversation/2026-08-28/eight-domain-default-l2-ceiling`. Immutable
@@ -88,10 +125,10 @@ artifacts, direct SQL, or broad relation rebuilds.
 
 ## Current Phase
 
-Phase B foundation stabilization. The parent local data-chain closure is closed;
-the eight-domain L2 plan is in Phase 2 evidence capture with an explicit
-fail-closed runtime gate. No additional data-chain apply or scheduler activation
-is active.
+Scheduler Preparation Gate checkpoint. The parent local data-chain closure and
+the eight-domain L2 promotion chain are closed; scheduler activation remains
+separately gated by a fresh readback and independent ADMIN/Owner authorization.
+No scheduler or data-chain apply is active.
 
 ## Current State
 
@@ -162,6 +199,9 @@ eligible-domain result, or consumed decision authorizes a production mutation.
   this branch has generated no proposal, request, packet, or permit.
 - Current companion docs and gate evidence must remain synchronized with future
   workflow, API, runtime, and data-chain changes.
+- A code checkpoint and passing contract tests do not prove a natural
+  source-change-to-database run. Keep the scheduler disabled until a fresh
+  authorization, state-store boundary, and live canary pass all readbacks.
 
 ## Priorities
 
@@ -172,8 +212,10 @@ eligible-domain result, or consumed decision authorizes a production mutation.
 
 ## Next Actions
 
-- Continue from the current crawler monitor/resume plans and Redis V2 attempt
-  contract.
+- Finish the focused scheduler-safety checkpoint, then run Phase 0 only after
+  confirming the current worktree's V2 state-store boundary.
+- Obtain a distinct bounded ADMIN/Owner authorization before any scheduler
+  control write; observe a natural tick and canary only under that authorization.
 - Preserve all consumed operation identities and immutable evidence.
 - Rerun relevant runtime/backend/frontend/data gates before release, staging,
   or public-readiness claims.

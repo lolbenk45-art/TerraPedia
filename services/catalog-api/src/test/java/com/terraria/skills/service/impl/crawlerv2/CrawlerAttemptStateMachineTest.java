@@ -1,6 +1,7 @@
 package com.terraria.skills.service.impl.crawlerv2;
 
 import com.terraria.skills.config.CrawlerQueueV2Properties;
+import org.springframework.core.io.ClassPathResource;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -24,12 +25,13 @@ class CrawlerAttemptStateMachineTest {
     void shouldAllowOnlyTheApprovedTransitionMatrix() {
         Set<String> allowed = Set.of(
             "queued->starting", "queued->cancelled", "queued->timed_out",
-            "retry_wait->starting", "retry_wait->cancelled", "retry_wait->timed_out",
+            "queued->stalled",
+            "retry_wait->starting", "retry_wait->cancelled", "retry_wait->timed_out", "retry_wait->stalled",
             "starting->running", "starting->cancel_requested", "starting->stalled", "starting->completed", "starting->failed",
             "running->pause_requested", "running->cancel_requested", "running->completed", "running->failed", "running->stalled",
             "pause_requested->paused", "pause_requested->cancel_requested", "pause_requested->stalled", "pause_requested->failed",
             "paused->running", "paused->cancel_requested", "paused->stalled", "paused->failed",
-            "cancel_requested->cancelled", "cancel_requested->failed",
+            "cancel_requested->cancelled", "cancel_requested->failed", "cancel_requested->stalled",
             "stalled->starting", "stalled->running", "stalled->paused", "stalled->cancel_requested", "stalled->timed_out", "stalled->failed"
         );
 
@@ -42,6 +44,16 @@ class CrawlerAttemptStateMachineTest {
                 );
             }
         }
+    }
+
+    @Test
+    void redisMutationLuaMustMirrorFailClosedStalledTransitions() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/mutate-attempt.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("queued = {starting = true, cancelled = true, timed_out = true, stalled = true}"));
+        assertTrue(source.contains("retry_wait = {starting = true, cancelled = true, timed_out = true, stalled = true}"));
+        assertTrue(source.contains("cancel_requested = {cancelled = true, failed = true, stalled = true}"));
     }
 
     @Test

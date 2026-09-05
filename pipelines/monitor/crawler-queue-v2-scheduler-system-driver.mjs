@@ -280,7 +280,7 @@ export function validateSystemDriverOptions({
 } = {}) {
   const root = path.resolve(requireText(repoRoot, 'repo root'));
   const config = path.resolve(requireText(configPath, 'config path'));
-  if (!config.startsWith(`${root}${path.sep}`) || !config.endsWith(`${path.sep}scripts${path.sep}dev${path.sep}config${path.sep}local-stack.config.json`)) {
+  if (!config.startsWith(`${root}${path.sep}`) || !config.endsWith(`${path.sep}platform${path.sep}local${path.sep}config${path.sep}local-stack.config.json`)) {
     throw new Error('system driver config path must be this worktree local-stack config');
   }
   const normalizedRunId = requireText(runId, 'run ID');

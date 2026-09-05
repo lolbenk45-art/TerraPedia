@@ -127,6 +127,21 @@ test('a danger-level event triggers exactly one toast', async () => {
   assert.match(toastMessages[0].message, /域被阻塞/)
 })
 
+test('a persisted crawler alert does not toast again after state hydration', async () => {
+  const event = { id: 'crawler-alert:scheduler:source-probe:items', source: 'crawler-monitor', level: 'danger', title: 'Items source probe failed', link: '/operations/crawler-monitor', createdAt: 1 }
+  const articleSource = { key: 'article-review', intervalMs: 30000, fetch: async () => [], diff: () => ({ events: [], nextState: [] }) }
+  const crawlerSource = { key: 'crawler-monitor', intervalMs: 20000, fetch: async () => ({}), diff: () => ({ events: [event], nextState: {} }) }
+
+  const { useNotificationsStore, toastMessages } = loadNotificationsStore({ articleSource, crawlerSource })
+  const store = useNotificationsStore()
+  store.events.value = [event]
+  store.startPolling()
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
+  assert.equal(store.events.value.length, 1)
+  assert.equal(toastMessages.length, 0)
+})
+
 test('one source failing to fetch does not stop the other source from polling', async () => {
   const articleSource = { key: 'article-review', intervalMs: 30000, fetch: async () => { throw new Error('boom') }, diff: () => ({ events: [], nextState: [] }) }
   const okEvent = { id: 'crawler:y:failed', source: 'crawler-monitor', level: 'danger', title: 'y 失败', link: '/y', createdAt: 1 }

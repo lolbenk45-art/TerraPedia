@@ -269,6 +269,112 @@ class CrawlerQueueV2ReconcilerTest {
     }
 
     @Test
+    void reconcilerStallsIdentityBearingCancelBeforeSupervisorWhenQueueBindingIsInvalid() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-12T11:59:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Attempt cancelling = withSourceIdentity(
+            attempt("attempt-invalid-cancel-binding", CrawlerQueueV2Status.CANCEL_REQUESTED, NOW),
+            identity
+        );
+        CrawlerQueueV2Queue malformedQueue = new CrawlerQueueV2Queue(
+            2,
+            cancelling.stateStoreEpoch(),
+            cancelling.queueId(),
+            cancelling.lane(),
+            cancelling.domain(),
+            cancelling.coveredDomains(),
+            cancelling.actionId(),
+            "unexpected:" + identity.sourceFingerprint(),
+            cancelling.requestedAt(),
+            "v2-automation",
+            cancelling.attemptId(),
+            List.of(cancelling.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(repository.findQueue(cancelling.queueId())).thenReturn(Optional.of(malformedQueue));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.findAttempt(cancelling.attemptId())).thenReturn(Optional.of(cancelling));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            updated(cancelling, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        CrawlerQueueV2Reconciler.ReconcileResult result = reconciler.reconcileNow();
+
+        verify(supervisor, never()).cancel(any());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+                && !command.releaseOwnership()
+        ));
+        assertEquals(1L, result.convergedCount());
+    }
+
+    @Test
+    void reconcilerChecksCancellationIdentityBeforeReadingProgress() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "c".repeat(64),
+            "2026-07-12T11:59:00Z",
+            "sha256:" + "d".repeat(64)
+        );
+        CrawlerQueueV2Attempt cancelling = withSourceIdentity(
+            attempt("attempt-progress-read-after-gate", CrawlerQueueV2Status.CANCEL_REQUESTED, NOW),
+            identity
+        );
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            cancelling.stateStoreEpoch(),
+            cancelling.queueId(),
+            cancelling.lane(),
+            cancelling.domain(),
+            cancelling.coveredDomains(),
+            cancelling.actionId(),
+            cancelling.lane() + ":" + cancelling.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            cancelling.requestedAt(),
+            "v2-automation",
+            cancelling.attemptId(),
+            List.of(cancelling.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(repository.findQueue(cancelling.queueId())).thenReturn(Optional.of(queue));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.findAttempt(cancelling.attemptId())).thenReturn(Optional.of(cancelling));
+        doThrow(new IllegalStateException("progress manifest unavailable"))
+            .when(supervisor).ingestProgress(cancelling);
+        when(supervisor.hasExactIdentityBinding(cancelling)).thenReturn(false);
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            updated(cancelling, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        reconciler.reconcileNow();
+
+        verify(supervisor, never()).ingestProgress(cancelling);
+        verify(supervisor, never()).cancel(any());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+        ));
+    }
+
+    @Test
     void reconcileRoundKeepsTheMarkerTransitionOutUntilItsHealthWriteCompletes() throws Exception {
         CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
         CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
@@ -548,6 +654,57 @@ class CrawlerQueueV2ReconcilerTest {
         assertEquals(NOW.plusSeconds(30), ready.deadlineAt());
         verify(repository, never()).mutate(any());
         verify(supervisor, never()).start(any());
+    }
+
+    @Test
+    void reconcilerStallsReadySchedulerAttemptWithMalformedSourceBindingBeforeClaiming() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-12T11:59:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Attempt ready = withSourceIdentity(
+            attempt("attempt-malformed-source-binding", CrawlerQueueV2Status.QUEUED, NOW.plusSeconds(30)),
+            identity
+        );
+        CrawlerQueueV2Queue malformedQueue = new CrawlerQueueV2Queue(
+            2,
+            ready.stateStoreEpoch(),
+            ready.queueId(),
+            ready.lane(),
+            ready.domain(),
+            ready.coveredDomains(),
+            ready.actionId(),
+            "unexpected:" + identity.sourceFingerprint() + ":" + ready.lane() + ":"
+                + ready.actionId() + ":fresh",
+            ready.requestedAt(),
+            "v2-automation",
+            ready.attemptId(),
+            List.of(ready.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of(ready));
+        when(repository.findQueue(ready.queueId())).thenReturn(Optional.of(malformedQueue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            updated(ready, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        reconciler.reconcileNow();
+
+        verify(repository, never()).claim(any());
+        verify(supervisor, never()).start(any());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+        ));
     }
 
     @Test
@@ -994,6 +1151,21 @@ class CrawlerQueueV2ReconcilerTest {
             eligibleAt, attempt.enteredAt(), attempt.startedAt(), attempt.completedAt(), attempt.lastHeartbeatAt(),
             attempt.deadlineAt(), attempt.pid(), attempt.processStartedAt(), attempt.progressSequence(), attempt.phase(),
             attempt.current(), attempt.total(), attempt.workerMessage(), attempt.reasonCode(), attempt.artifacts()
+        );
+    }
+
+    private CrawlerQueueV2Attempt withSourceIdentity(
+        CrawlerQueueV2Attempt source,
+        SourceDispatchIdentity identity
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), source.artifacts(), identity
         );
     }
 

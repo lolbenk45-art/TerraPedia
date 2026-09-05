@@ -435,10 +435,17 @@ test('passed Item lifecycle report rejects a derived-schema readback mismatch', 
 
 test('system driver exposes real lifecycle phases and delegates owned runtime adapters', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'crawler-v2-system-driver-'));
+  const repoRoot = path.join(root, 'repo');
+  const configPath = path.join(repoRoot, 'platform/local/config/local-stack.config.json');
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.copyFileSync(
+    path.resolve(import.meta.dirname, '../../platform/local/config/local-stack.config.example.json'),
+    configPath,
+  );
   const calls = [];
   const driver = await createSystemDriver({
-    repoRoot: path.resolve(import.meta.dirname, '../..'),
-    configPath: path.resolve(import.meta.dirname, '../../platform/local/config/local-stack.config.json'),
+    repoRoot,
+    configPath,
     runId: 'scheduler-driver-test-01',
     redisDb: 14,
     markerRoot: path.join(root, 'marker'),

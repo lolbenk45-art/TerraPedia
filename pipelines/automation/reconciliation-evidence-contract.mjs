@@ -34,6 +34,13 @@ export function verifyFullReconciliationEvidence(value, expected = {}) {
       throw new Error(`reconciliation evidence ${label} does not match the bound run`);
     }
   }
+  if (expected.sourceDispatchIdentity !== undefined
+      && !sameSourceDispatchIdentity(
+        payload.sourceDispatchIdentity ?? null,
+        normalizeSourceDispatchIdentity(expected.sourceDispatchIdentity),
+      )) {
+    throw new Error('reconciliation evidence source dispatch identity does not match the bound run');
+  }
   const expectedHash = hashEvidencePayload(payload);
   if (value.evidenceHash !== expectedHash) {
     throw new Error('reconciliation evidence hash does not match its payload');
@@ -99,6 +106,7 @@ function normalizeEvidencePayload(value) {
       throw new Error(`reconciliation evidence ${label} must be zero`);
     }
   }
+  const sourceDispatchIdentity = normalizeSourceDispatchIdentity(value.sourceDispatchIdentity);
   return {
     schemaVersion: RECONCILIATION_EVIDENCE_SCHEMA_VERSION,
     domainId,
@@ -120,7 +128,31 @@ function normalizeEvidencePayload(value) {
     generationReadback: true,
     activeAttemptCount: 0,
     overdueAttemptCount: 0,
+    ...(sourceDispatchIdentity == null ? {} : { sourceDispatchIdentity }),
   };
+}
+
+function normalizeSourceDispatchIdentity(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('reconciliation evidence source dispatch identity is invalid');
+  }
+  const sourceFingerprint = String(value.sourceFingerprint ?? '').trim();
+  const sourceRunIdentity = String(value.sourceRunIdentity ?? '').trim();
+  const sourceContentIdentity = String(value.sourceContentIdentity ?? '').trim();
+  if (!HASH_PATTERN.test(sourceFingerprint)
+      || !Number.isFinite(Date.parse(sourceRunIdentity))
+      || !HASH_PATTERN.test(sourceContentIdentity)) {
+    throw new Error('reconciliation evidence source dispatch identity is invalid');
+  }
+  return { sourceFingerprint, sourceRunIdentity, sourceContentIdentity };
+}
+
+function sameSourceDispatchIdentity(left, right) {
+  if (left == null || right == null) return left == null && right == null;
+  return left.sourceFingerprint === right.sourceFingerprint
+    && left.sourceRunIdentity === right.sourceRunIdentity
+    && left.sourceContentIdentity === right.sourceContentIdentity;
 }
 
 function hashEvidencePayload(payload) {

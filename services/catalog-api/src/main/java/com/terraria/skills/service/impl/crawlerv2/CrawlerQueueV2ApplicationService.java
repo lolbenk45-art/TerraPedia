@@ -109,7 +109,10 @@ public class CrawlerQueueV2ApplicationService {
         Instant now = clock.instant();
         String queueId = "queue-" + UUID.randomUUID();
         String attemptId = "attempt-" + UUID.randomUUID();
-        String dedupeKey = lane + ":" + action.actionId() + ":" + resumeMode;
+        String dedupeKey = lane + ":" + action.actionId()
+            + (command.sourceDispatchIdentity() == null
+                ? ":" + resumeMode
+                : ":" + command.sourceDispatchIdentity().sourceFingerprint() + ":" + resumeMode);
         CrawlerQueueV2Artifacts artifacts = deterministicArtifacts(now, attemptId, action);
         CrawlerQueueV2Attempt attempt = new CrawlerQueueV2Attempt(
             2,
@@ -139,7 +142,8 @@ public class CrawlerQueueV2ApplicationService {
             null,
             "queued",
             null,
-            artifacts
+            artifacts,
+            command.sourceDispatchIdentity()
         );
         CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
             2,
@@ -154,7 +158,8 @@ public class CrawlerQueueV2ApplicationService {
             command.requestedBy(),
             attemptId,
             List.of(attemptId),
-            command.legacyQueueId()
+            command.legacyQueueId(),
+            "v2-automation".equals(command.requestedBy()) ? "scheduler" : "manual"
         );
         CrawlerQueueV2Event event = new CrawlerQueueV2Event(
             "queue.created",
@@ -216,16 +221,15 @@ public class CrawlerQueueV2ApplicationService {
         }
 
         try {
-            artifactStore.prepare(
-                engine.stateStoreEpoch(),
-                queueId,
-                attemptId,
-                action.domain(),
-                action.actionId(),
-                now,
-                artifacts
+            prepareArtifacts(
+                engine.stateStoreEpoch(), queueId, attemptId, action.domain(), action.actionId(), now,
+                artifacts, command.sourceDispatchIdentity()
             );
-            artifactStore.writeOperationPlan(attemptId, planSnapshot(action, now));
+            artifactStore.bindSourceDispatchIdentity(attemptId, command.sourceDispatchIdentity());
+            artifactStore.writeOperationPlan(
+                attemptId,
+                planSnapshot(action, now, command.sourceDispatchIdentity())
+            );
         } catch (RuntimeException exception) {
             throw new CrawlerQueueV2Exception(
                 HttpStatus.SERVICE_UNAVAILABLE,
@@ -455,6 +459,9 @@ public class CrawlerQueueV2ApplicationService {
     }
 
     private DispatchResult cancel(CrawlerQueueV2Attempt current) {
+        if (!hasExactCancellationBinding(current)) {
+            return fromAttempt(stallForIdentityFailure(current));
+        }
         if (current.status() == CrawlerQueueV2Status.QUEUED || current.status() == CrawlerQueueV2Status.RETRY_WAIT) {
             return fromAttempt(mutate(current, CrawlerQueueV2Status.CANCELLED, null, true));
         }
@@ -466,6 +473,23 @@ public class CrawlerQueueV2ApplicationService {
         );
         CrawlerQueueV2Attempt result = supervisor.cancel(requested);
         return fromAttempt(result == null ? requested : result);
+    }
+
+    private boolean hasExactCancellationBinding(CrawlerQueueV2Attempt attempt) {
+        try {
+            CrawlerQueueV2Queue queue = repository.findQueue(attempt.queueId()).orElse(null);
+            if (queue == null || !queue.hasExactAttemptBinding(attempt)) {
+                return false;
+            }
+            return attempt.sourceDispatchIdentity() == null
+                || supervisor.hasExactIdentityBinding(attempt);
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private CrawlerQueueV2Attempt stallForIdentityFailure(CrawlerQueueV2Attempt current) {
+        return mutate(current, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED, false);
     }
 
     private DispatchResult retry(CrawlerQueueV2Attempt prior, String operator) {
@@ -505,7 +529,8 @@ public class CrawlerQueueV2ApplicationService {
             null,
             "retry queued",
             null,
-            artifacts
+            artifacts,
+            prior.sourceDispatchIdentity()
         );
         List<String> ids = new ArrayList<>(existingQueue.attemptIds());
         ids.add(nextAttemptId);
@@ -519,10 +544,11 @@ public class CrawlerQueueV2ApplicationService {
             existingQueue.actionId(),
             existingQueue.dedupeKey(),
             existingQueue.requestedAt(),
-            blank(operator) ? existingQueue.requestedBy() : operator,
+            existingQueue.requestedBy(),
             nextAttemptId,
             ids,
-            existingQueue.legacyQueueId()
+            existingQueue.legacyQueueId(),
+            existingQueue.origin()
         );
         CrawlerQueueV2Repository.MutationResult result = repository.createRetry(
             new CrawlerQueueV2Repository.CreateRetryCommand(
@@ -545,16 +571,15 @@ public class CrawlerQueueV2ApplicationService {
                 )
             )
         );
-        artifactStore.prepare(
-            engine.stateStoreEpoch(),
-            prior.queueId(),
-            nextAttemptId,
-            prior.domain(),
-            prior.actionId(),
-            now,
-            artifacts
+        prepareArtifacts(
+            engine.stateStoreEpoch(), prior.queueId(), nextAttemptId, prior.domain(), prior.actionId(), now,
+            artifacts, prior.sourceDispatchIdentity()
         );
-        artifactStore.writeOperationPlan(nextAttemptId, planSnapshot(action, now));
+        artifactStore.bindSourceDispatchIdentity(nextAttemptId, prior.sourceDispatchIdentity());
+        artifactStore.writeOperationPlan(
+            nextAttemptId,
+            planSnapshot(action, now, prior.sourceDispatchIdentity())
+        );
         reconciler.reconcileNow();
         return fromAttempt(result == null || result.attempt() == null ? next : result.attempt());
     }
@@ -674,7 +699,8 @@ public class CrawlerQueueV2ApplicationService {
             manifest.reportPath(),
             safeLogMetadata(manifest.attemptId()),
             planRow(safeOperationPlan(manifest.attemptId())),
-            resultRow(safeProgress(manifest.attemptId()))
+            resultRow(safeProgress(manifest.attemptId())),
+            manifest.sourceDispatchIdentity()
         );
     }
 
@@ -783,6 +809,7 @@ public class CrawlerQueueV2ApplicationService {
         if (!latestForCoveredDomains) {
             allowedActions = allowedActions.stream().filter(action -> !"retry".equals(action)).toList();
         }
+        QueueMetadata queueMetadata = queueMetadata(attempt);
         return new CrawlerQueueV2OverviewDTO.AttemptDTO(
             attempt.queueId(),
             attempt.attemptId(),
@@ -812,8 +839,26 @@ public class CrawlerQueueV2ApplicationService {
             artifacts.reportPath(),
             safeLogMetadata(attempt.attemptId()),
             artifacts.plan(),
-            artifacts.result()
+            artifacts.result(),
+            attempt.sourceDispatchIdentity(),
+            queueMetadata.origin(),
+            queueMetadata.requestedBy(),
+            queueMetadata.available()
         );
+    }
+
+    private QueueMetadata queueMetadata(CrawlerQueueV2Attempt attempt) {
+        try {
+            return repository.findQueue(attempt.queueId())
+                .map(queue -> new QueueMetadata(
+                    queue.hasExactAttemptBinding(attempt),
+                    queue.origin(),
+                    queue.requestedBy()
+                ))
+                .orElse(QueueMetadata.UNAVAILABLE);
+        } catch (RuntimeException ignored) {
+            return QueueMetadata.UNAVAILABLE;
+        }
     }
 
     private AttemptArtifacts attemptArtifacts(CrawlerQueueV2Attempt attempt) {
@@ -856,7 +901,8 @@ public class CrawlerQueueV2ApplicationService {
             plan.operationId(), plan.actionId(), plan.labelZh(), plan.mode(), plan.networkAccess(),
             plan.sourceLocator(), plan.fileWriteSummary(), plan.databaseAccess(),
             plan.estimatedRequests(), plan.estimatedRecords(), plan.pauseSupported(),
-            plan.resumeSupported(), plan.resumeStatePath(), plan.confirmationLevel(), plan.capturedAt()
+            plan.resumeSupported(), plan.resumeStatePath(), plan.confirmationLevel(), plan.capturedAt(),
+            plan.sourceDispatchIdentity()
         );
     }
 
@@ -892,15 +938,42 @@ public class CrawlerQueueV2ApplicationService {
 
     private static CrawlerOperationPlanSnapshot planSnapshot(
         CrawlerMonitorActionDefinition action,
-        Instant capturedAt
+        Instant capturedAt,
+        SourceDispatchIdentity sourceDispatchIdentity
     ) {
         return new CrawlerOperationPlanSnapshot(
             action.operationId(), action.actionId(), action.labelZh(), action.mode(),
             action.networkAccess(), action.sourceLocator(), action.fileWriteSummary(),
             action.databaseAccess(), action.estimatedRequests(), action.estimatedRecords(),
             action.pauseSupported(), action.resumeSupported(), action.resumeStatePath(),
-            action.confirmationLevel(), capturedAt
+            action.confirmationLevel(), capturedAt, sourceDispatchIdentity
         );
+    }
+
+    private void prepareArtifacts(
+        String epoch,
+        String queueId,
+        String attemptId,
+        String domain,
+        String actionId,
+        Instant requestedAt,
+        CrawlerQueueV2Artifacts artifacts,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
+        if (sourceDispatchIdentity == null) {
+            artifactStore.prepare(epoch, queueId, attemptId, domain, actionId, requestedAt, artifacts);
+            return;
+        }
+        artifactStore.prepare(
+            epoch, queueId, attemptId, domain, actionId, requestedAt, artifacts, sourceDispatchIdentity
+        );
+    }
+
+    private static CrawlerOperationPlanSnapshot planSnapshot(
+        CrawlerMonitorActionDefinition action,
+        Instant capturedAt
+    ) {
+        return planSnapshot(action, capturedAt, null);
     }
 
     private record AttemptArtifacts(
@@ -913,6 +986,10 @@ public class CrawlerQueueV2ApplicationService {
         private static final AttemptArtifacts EMPTY = new AttemptArtifacts(
             null, null, null, null, null
         );
+    }
+
+    private record QueueMetadata(boolean available, String origin, String requestedBy) {
+        private static final QueueMetadata UNAVAILABLE = new QueueMetadata(false, null, null);
     }
 
     private CrawlerQueueV2OverviewDTO.HealthDTO health(
@@ -1318,6 +1395,12 @@ public class CrawlerQueueV2ApplicationService {
         if (command == null || blank(command.domain()) || blank(command.actionId()) || blank(command.lane()) || blank(command.requestedBy())) {
             throw new IllegalArgumentException("V2 enqueue 请求缺少必填字段");
         }
+        if (command.sourceDispatchIdentity() != null && !"v2-automation".equals(command.requestedBy())) {
+            throw new IllegalArgumentException("scheduler-owned V2 enqueue 以外的操作不可携带 sourceDispatchIdentity");
+        }
+        if ("v2-automation".equals(command.requestedBy()) && command.sourceDispatchIdentity() == null) {
+            throw new IllegalArgumentException("scheduler-owned V2 enqueue 必须携带 sourceDispatchIdentity");
+        }
     }
 
     private static void requireControl(ControlCommand command) {
@@ -1378,8 +1461,19 @@ public class CrawlerQueueV2ApplicationService {
         String lane,
         String resumeMode,
         String requestedBy,
-        String legacyQueueId
+        String legacyQueueId,
+        SourceDispatchIdentity sourceDispatchIdentity
     ) {
+        public EnqueueCommand(
+            String domain,
+            String actionId,
+            String lane,
+            String resumeMode,
+            String requestedBy,
+            String legacyQueueId
+        ) {
+            this(domain, actionId, lane, resumeMode, requestedBy, legacyQueueId, null);
+        }
     }
 
     public record ControlCommand(

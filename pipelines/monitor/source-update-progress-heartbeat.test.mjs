@@ -27,3 +27,35 @@ test('source update heartbeat republishes the current long-running probe progres
   assert.equal(writes.at(-1).total, 11);
   assert.ok(Date.parse(writes.at(-1).lastHeartbeatAt) >= Date.parse(writes[0].lastHeartbeatAt));
 });
+
+test('source update heartbeat captures asynchronous writer failures and stops retrying', async () => {
+  const writes = [];
+  const errors = [];
+  let writeCount = 0;
+  const heartbeat = createSourceUpdateProgressHeartbeat({
+    heartbeatMs: 5,
+    writeProgress: (progress) => {
+      writeCount += 1;
+      if (writeCount > 1) {
+        throw new Error('simulated heartbeat writer failure');
+      }
+      writes.push(progress);
+    },
+    onError: (error) => errors.push(error),
+  });
+
+  heartbeat.publish({
+    status: 'running',
+    phase: 'wiki',
+    message: 'checking source',
+    current: 1,
+    total: 2,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  heartbeat.stop();
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0].message, /heartbeat writer failure/i);
+  assert.throws(() => heartbeat.assertHealthy(), /heartbeat writer failure/i);
+  assert.equal(writes.length, 1);
+});

@@ -12,6 +12,8 @@ import {
   fetchWikiPageMetadataBatch,
   parseCliArgs,
   reportHeartbeat,
+  writeJson,
+  writeJsonNoOverwrite,
 } from './wiki-item-utils.mjs';
 
 test('buildWikiPageParseUrl enables redirect following for parse requests', () => {
@@ -30,6 +32,72 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
 
 test('reportHeartbeat is exposed from wiki item utilities for fetchers', () => {
   assert.equal(typeof reportHeartbeat, 'function');
+});
+
+test('immutable JSON writer rejects a symbolic-link ancestor before publication', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-symlink-'));
+  const outside = path.join(root, 'outside');
+  const linked = path.join(root, 'linked');
+  fs.mkdirSync(outside);
+  fs.symlinkSync(outside, linked, 'dir');
+
+  assert.throws(
+    () => writeJsonNoOverwrite(path.join(linked, 'report.json'), { status: 'new' }),
+    /symbolic|symlink|ancestor|unsafe/i,
+  );
+  assert.equal(fs.existsSync(path.join(outside, 'report.json')), false);
+});
+
+test('JSON writer rejects a group-or-other-writable ancestor', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-mode-'));
+  const unsafe = path.join(root, 'unsafe');
+  fs.mkdirSync(unsafe);
+  fs.chmodSync(unsafe, 0o777);
+
+  assert.throws(
+    () => writeJson(path.join(unsafe, 'report.json'), { status: 'new' }),
+    /writable|unsafe|private/i,
+  );
+  assert.equal(fs.existsSync(path.join(unsafe, 'report.json')), false);
+});
+
+test('immutable JSON writer refuses to overwrite an existing report', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-collision-'));
+  const reportPath = path.join(root, 'source-update-check-2026-09-02.json');
+  fs.writeFileSync(reportPath, '{"status":"original"}\n', 'utf8');
+
+  assert.throws(
+    () => writeJsonNoOverwrite(reportPath, { status: 'replacement' }),
+    /exists|overwrite/i,
+  );
+  assert.equal(fs.readFileSync(reportPath, 'utf8'), '{"status":"original"}\n');
+});
+
+test('JSON writer does not delete a pre-existing temporary collision', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-temp-collision-'));
+  const reportPath = path.join(root, 'report.json');
+  const originalOpenSync = fs.openSync;
+  let injected = false;
+  fs.openSync = (filePath, flags, ...args) => {
+    if (!injected && String(filePath).includes('.report.json.') && String(filePath).endsWith('.tmp')) {
+      injected = true;
+      fs.writeFileSync(filePath, 'pre-existing temporary evidence', 'utf8');
+      const error = new Error('simulated temporary collision');
+      error.code = 'EEXIST';
+      throw error;
+    }
+    return originalOpenSync(filePath, flags, ...args);
+  };
+  let collisionPath;
+  try {
+    assert.throws(() => writeJson(reportPath, { status: 'new' }), /temporary collision/i);
+    collisionPath = fs.readdirSync(root).find((name) => name.endsWith('.tmp'));
+  } finally {
+    fs.openSync = originalOpenSync;
+  }
+
+  assert.ok(collisionPath);
+  assert.equal(fs.readFileSync(path.join(root, collisionPath), 'utf8'), 'pre-existing temporary evidence');
 });
 
 test('parseCliArgs accepts equals and separated option values', () => {

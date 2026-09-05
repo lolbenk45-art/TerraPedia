@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { randomBytes } from 'node:crypto';
 
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
 import { getProjectRoot, resolveSharedDataRoot } from './project-root.mjs';
@@ -43,8 +44,139 @@ export function ensureDir(dirPath) {
 }
 
 export function writeJson(filePath, value) {
-  ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  return writeJsonAtomic(filePath, value, { noOverwrite: false });
+}
+
+export function writeJsonNoOverwrite(filePath, value) {
+  return writeJsonAtomic(filePath, value, { noOverwrite: true });
+}
+
+function writeJsonAtomic(filePath, value, { noOverwrite }) {
+  const targetPath = path.resolve(String(filePath));
+  const parentPath = path.dirname(targetPath);
+  const targetName = path.basename(targetPath);
+  if (!targetName || targetName === '.' || targetName === path.sep) {
+    throw new Error('JSON output path must name a file');
+  }
+
+  ensureDirectoryChainNoFollow(parentPath);
+  const directoryFd = openDirectoryNoFollow(parentPath);
+  const directoryPath = descriptorDirectoryPath(directoryFd);
+  const temporaryPath = path.join(
+    directoryPath,
+    `.${targetName}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`,
+  );
+  let temporaryFd = null;
+  let temporaryCreated = false;
+  try {
+    const noFollow = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
+    temporaryFd = fs.openSync(
+      temporaryPath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | noFollow,
+      0o600,
+    );
+    temporaryCreated = true;
+    fs.writeFileSync(temporaryFd, `${JSON.stringify(value, null, 2)}\n`);
+    fs.fchmodSync(temporaryFd, 0o600);
+    fs.fsyncSync(temporaryFd);
+    fs.closeSync(temporaryFd);
+    temporaryFd = null;
+
+    const destinationPath = path.join(directoryPath, targetName);
+    if (noOverwrite) {
+      fs.linkSync(temporaryPath, destinationPath);
+      assertPrivateJsonFile(destinationPath);
+      fs.unlinkSync(temporaryPath);
+      temporaryCreated = false;
+    } else {
+      fs.renameSync(temporaryPath, destinationPath);
+      temporaryCreated = false;
+    }
+    fs.fsyncSync(directoryFd);
+  } catch (error) {
+    if (noOverwrite && error?.code === 'EEXIST') {
+      throw new Error(`JSON output already exists and cannot be overwritten: ${targetPath}`, { cause: error });
+    }
+    throw error;
+  } finally {
+    if (temporaryFd != null) fs.closeSync(temporaryFd);
+    if (temporaryCreated) {
+      try { fs.unlinkSync(temporaryPath); } catch {}
+    }
+    fs.closeSync(directoryFd);
+  }
+}
+
+function ensureDirectoryChainNoFollow(directoryPath) {
+  const absolutePath = path.resolve(directoryPath);
+  const filesystemRoot = path.parse(absolutePath).root;
+  let currentPath = filesystemRoot;
+  for (const segment of path.relative(filesystemRoot, absolutePath).split(path.sep).filter(Boolean)) {
+    const nextPath = path.join(currentPath, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(nextPath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      fs.mkdirSync(nextPath, { mode: 0o700 });
+      stats = fs.lstatSync(nextPath);
+    }
+    assertSafeJsonDirectory(stats, nextPath);
+    currentPath = nextPath;
+  }
+}
+
+function openDirectoryNoFollow(directoryPath) {
+  if (process.platform !== 'linux'
+      || typeof fs.constants.O_DIRECTORY !== 'number'
+      || typeof fs.constants.O_NOFOLLOW !== 'number'
+      || !fs.existsSync('/proc/self/fd')) {
+    throw new Error('secure JSON publication is unavailable on this platform');
+  }
+  const absolutePath = path.resolve(directoryPath);
+  const filesystemRoot = path.parse(absolutePath).root;
+  const flags = fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW;
+  let directoryFd = fs.openSync(filesystemRoot, flags);
+  try {
+    assertSafeJsonDirectory(fs.fstatSync(directoryFd), filesystemRoot);
+    for (const segment of path.relative(filesystemRoot, absolutePath).split(path.sep).filter(Boolean)) {
+      const nextPath = path.join(descriptorDirectoryPath(directoryFd), segment);
+      const nextFd = fs.openSync(nextPath, flags);
+      assertSafeJsonDirectory(fs.fstatSync(nextFd), path.join(absolutePath, segment));
+      fs.closeSync(directoryFd);
+      directoryFd = nextFd;
+    }
+    return directoryFd;
+  } catch (error) {
+    fs.closeSync(directoryFd);
+    throw error;
+  }
+}
+
+function descriptorDirectoryPath(directoryFd) {
+  return `/proc/self/fd/${directoryFd}`;
+}
+
+function assertSafeJsonDirectory(stats, directoryPath) {
+  if (!stats?.isDirectory?.() || stats.isSymbolicLink?.()) {
+    throw new Error(`JSON output parent is not a canonical directory: ${directoryPath}`);
+  }
+  if ((stats.mode & 0o022) !== 0 && (stats.mode & 0o1000) === 0) {
+    throw new Error(`JSON output parent is group/other writable: ${directoryPath}`);
+  }
+}
+
+function assertPrivateJsonFile(filePath) {
+  const noFollow = fs.constants.O_NOFOLLOW;
+  const fileFd = fs.openSync(filePath, fs.constants.O_RDONLY | noFollow);
+  try {
+    const stats = fs.fstatSync(fileFd);
+    if (!stats.isFile() || (stats.mode & 0o077) !== 0) {
+      throw new Error(`JSON output must be an owner-only regular file: ${filePath}`);
+    }
+  } finally {
+    fs.closeSync(fileFd);
+  }
 }
 
 export function sharedDataPath(...segments) {

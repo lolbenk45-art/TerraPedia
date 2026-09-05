@@ -1,6 +1,5 @@
 package com.terraria.skills.controller;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +12,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +42,6 @@ class AdminWikiZhRecipeImportControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
-
-        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(Map.of(
-            "insertedRecipes", 3571,
-            "createdStations", List.of(Map.of("id", 1L, "nameZh", "工作台"))
-        ));
 
         when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq("wiki_zh"))).thenAnswer(invocation -> {
             String sql = invocation.getArgument(0, String.class);

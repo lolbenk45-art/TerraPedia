@@ -26,7 +26,8 @@ public record CrawlerAttemptManifest(
     Instant artifactsExpiredAt,
     Instant cleanedAt,
     String cleanedBy,
-    List<String> cleanedPaths
+    List<String> cleanedPaths,
+    SourceDispatchIdentity sourceDispatchIdentity
 ) {
     public CrawlerAttemptManifest {
         if ((pid == null) != (processStartedAt == null)) {
@@ -38,13 +39,47 @@ public record CrawlerAttemptManifest(
         cleanedPaths = cleanedPaths == null ? List.of() : List.copyOf(cleanedPaths);
     }
 
+    /** Compatibility constructor for pre-source-identity manifests. */
+    public CrawlerAttemptManifest(
+        int contractVersion,
+        String stateStoreEpoch,
+        String queueId,
+        String attemptId,
+        Long fenceToken,
+        String domain,
+        String actionId,
+        CrawlerQueueV2Status status,
+        Instant startedAt,
+        Instant completedAt,
+        CrawlerQueueV2ReasonCode reasonCode,
+        Integer exitCode,
+        Long pid,
+        Instant processStartedAt,
+        String progressPath,
+        String logPath,
+        String reportPath,
+        String outputPath,
+        Instant retentionExpiresAt,
+        Instant artifactsExpiredAt,
+        Instant cleanedAt,
+        String cleanedBy,
+        List<String> cleanedPaths
+    ) {
+        this(
+            contractVersion, stateStoreEpoch, queueId, attemptId, fenceToken, domain, actionId, status,
+            startedAt, completedAt, reasonCode, exitCode, pid, processStartedAt, progressPath, logPath,
+            reportPath, outputPath, retentionExpiresAt, artifactsExpiredAt, cleanedAt, cleanedBy,
+            cleanedPaths, null
+        );
+    }
+
     public CrawlerAttemptManifest withLogPath(String nextLogPath) {
         return new CrawlerAttemptManifest(
             contractVersion, stateStoreEpoch, queueId, attemptId, fenceToken, domain, actionId,
             status, startedAt, completedAt, reasonCode, exitCode, pid, processStartedAt,
             progressPath, nextLogPath,
             reportPath, outputPath, retentionExpiresAt, artifactsExpiredAt, cleanedAt, cleanedBy,
-            cleanedPaths
+            cleanedPaths, sourceDispatchIdentity
         );
     }
 }

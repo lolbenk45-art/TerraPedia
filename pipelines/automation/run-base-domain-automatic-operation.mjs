@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url';
 
 import { runIndependentEntityImport } from '../import/import-independent-entities-to-db.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 import { resolveSharedDataRoot } from '../lib/project-root.mjs';
 import {
   advanceWikiIngestionManifestForSource,
@@ -23,6 +27,14 @@ import {
 } from './run-supplementary-domain-l1-operation.mjs';
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 import { buildAutomaticRunId, runImportThenAcknowledge } from './run-automatic-domain-operation.mjs';
+import {
+  assertCurrentSourceMonitorStateMatchesDispatchIdentity,
+  assertFrozenSourceMatchesDispatchIdentity,
+  assertFrozenSourceMonitorStateMatches,
+  canonicalSourceFingerprint,
+  readFrozenSourceMonitorState,
+  sourceDispatchIdentityFromEnvironment,
+} from './source-dispatch-identity.mjs';
 import { createContentHash } from '../lib/wiki-sync-manifest.mjs';
 import {
   buildActionProgressPayload,
@@ -37,47 +49,105 @@ const SCHEDULER_ACTIVATION_DOMAIN = 'crawler_v2_scheduler';
 export async function runBaseDomainAutomaticOperation({
   argv = process.argv.slice(2),
   env = process.env,
-  now = new Date().toISOString(),
+  now = null,
+  nowProvider = () => new Date().toISOString(),
   mysqlModule = null,
+  requireAutoDomainOperationImpl = requireAutoDomainOperation,
   runSourceImpl = runSource,
+  readSourceFingerprintImpl = readBaseDomainSourceFingerprint,
+  readCurrentContextImpl = readCurrentSupplementaryContext,
   isCommittedRunImpl = isCommittedBaseAutomaticRun,
+  createAdapterImpl = createMysqlSupplementaryL1Adapter,
+  executeOperationImpl = executeSupplementaryL1Operation,
+  acknowledgeSourceImpl = acknowledgeBaseDomainSource,
+  readSourceMonitorStateImpl = readFrozenSourceMonitorState,
+  externalOutputPlatform = process.platform,
   heartbeatIntervalMs = undefined,
 } = {}) {
   const args = parseArgs(argv);
+  const startTime = requireTimestamp(now ?? nowProvider(), 'operation start time');
   const domain = requireText(args.domain, '--domain');
   if (args['run-id']) throw new Error('--run-id is not allowed for automatic operations');
   if (!BASE_DOMAINS.has(domain)) throw new Error(`unsupported base automatic domain: ${domain}`);
-  const config = requireAutoDomainOperation(domain);
+  if (args.output) assertSecureExternalOutputPublicationSupported({ platform: externalOutputPlatform });
+  const sourceDispatchIdentity = sourceDispatchIdentityFromEnvironment(env);
+  const config = requireAutoDomainOperationImpl(domain);
   const repoRoot = env.WORKTREE_ROOT ?? process.cwd();
+  const sourceStatePath = env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH;
+  const frozenProbeState = sourceDispatchIdentity == null
+    ? null
+    : readSourceMonitorStateImpl({
+        identity: sourceDispatchIdentity,
+        domain,
+        repoRoot,
+        sourceStatePath,
+      });
   const manifestPath = resolveBaseDomainManifestPath({
     manifestPath: args['manifest-path'],
     repoRoot,
   });
+  const crawlRunId = `${domain}_source_${startTime.replace(/\D/g, '').slice(0, 14)}`;
+  const progressPath = path.resolve(
+    args['progress-path'] ?? env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath(domain),
+  );
+  const runnerProgress = createBaseRunnerProgress({ progressPath, domain, env, heartbeatIntervalMs });
   const db = mysqlModule ?? loadMysqlModule();
-  const connection = await db.createConnection(connectionOptions(env));
-  let activationVerified = false;
-  let runnerProgress = null;
+  let connection = null;
   try {
+    connection = await db.createConnection(connectionOptions(env));
     const activation = await loadFreshActivation(connection);
     if (!activation) throw new Error(`no fresh scheduler activation for automatic domain: ${domain}`);
-    activationVerified = true;
 
-    const crawlRunId = `${domain}_source_${now.replace(/\D/g, '').slice(0, 14)}`;
-    const progressPath = path.resolve(
-      args['progress-path'] ?? env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath(domain),
-    );
-    runnerProgress = createBaseRunnerProgress({ progressPath, domain, env, heartbeatIntervalMs });
     const sourceMode = args['source-mode'] ?? 'live';
     if (!['live', 'local'].includes(sourceMode)) throw new Error('--source-mode must be live or local');
     if (sourceMode === 'live') {
-      runSourceImpl({ domain, progressPath, runId: crawlRunId, env });
+      await runSourceImpl({ domain, progressPath, runId: crawlRunId, env });
     } else {
       runnerProgress.publish({ status: 'running', phase: 'local-frozen-source', runId: crawlRunId });
     }
-    const sourceFingerprint = readBaseDomainSourceFingerprint(domain);
+    runnerProgress.publish({ status: 'completed', phase: 'source-completed', runId: crawlRunId });
+    const sourceCheckedAt = readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPath });
+    const sourceFingerprint = canonicalSourceFingerprint(readSourceFingerprintImpl(domain));
+    assertFrozenSourceMonitorStateMatches(sourceDispatchIdentity, frozenProbeState);
+    assertFrozenSourceMatchesDispatchIdentity(sourceDispatchIdentity, sourceFingerprint);
     const { runId, frozen } = freezeBaseAutomaticInput({ domain, sourceFingerprint, repoRoot });
+    const outputPath = resolveBaseAutomaticResultOutputPath({
+      outputPath: args.output,
+      artifactRoot: frozen.artifactPaths.root,
+    });
+
+    const alreadyCommitted = await isCommittedRunImpl(connection, {
+      runId,
+      domainId: domain,
+      sourceFingerprint,
+      source: frozen.source,
+      sourceDispatchIdentity,
+    });
+    if (alreadyCommitted) {
+      const result = await runImportThenAcknowledge({
+        alreadyCommitted: true,
+        executeImport: async () => { throw new Error('committed automatic run must not execute import'); },
+        acknowledgeSource: async () => acknowledgeBaseDomainSourceWithFreshActivation({
+          connection, initialActivation: activation, startTime, sourceCheckedAt, nowProvider,
+          sourceMode, domain, repoRoot, manifestPath, acknowledgeSourceImpl, sourceDispatchIdentity,
+          sourceStatePath, readSourceMonitorStateImpl, readSourceFingerprintImpl,
+        }),
+      });
+      runnerProgress.publish({ status: 'completed', phase: 'acknowledgement-reconciled', runId });
+      const completedResult = withBaseSourceAcknowledgement({ ...result, domainId: domain, runId }, sourceMode);
+      if (outputPath) writeBaseAutomaticResultOutput({
+        outputPath,
+        artifactRoot: frozen.artifactPaths.root,
+        repoRoot: frozen.artifactPaths.repoRoot,
+        payload: completedResult,
+        requireProtectedArtifactIdentity: true,
+      });
+      return completedResult;
+    }
 
     if (config.databaseMode === 'DRY_RUN') {
+      const artifactPaths = reserveBaseAutomaticArtifactDirectory({ repoRoot, frozen });
+      writeBaseAutomaticArtifacts({ frozen, artifactPaths });
       runnerProgress.publish({ status: 'running', phase: 'database-dry-run', runId });
       const importSummary = domain === 'items'
         ? validateItemDryRunDataset(frozen.datasets.items)
@@ -87,86 +157,99 @@ export async function runBaseDomainAutomaticOperation({
           }, { mysqlModule: db, datasets: frozen.datasets });
       assertImportSummaryHealthy(importSummary);
       const result = { schemaVersion: 1, domainId: domain, runId, status: 'completed', databaseMode: 'DRY_RUN', importSummary };
-      acknowledgeBaseDomainSourceIfLive({ sourceMode, domain, repoRoot, manifestPath });
+      await acknowledgeBaseDomainSourceWithFreshActivation({
+        connection, initialActivation: activation, startTime, sourceCheckedAt, nowProvider,
+        sourceMode, domain, repoRoot, manifestPath, acknowledgeSourceImpl, sourceDispatchIdentity,
+        sourceStatePath, readSourceMonitorStateImpl, readSourceFingerprintImpl,
+      });
       const completedResult = withBaseSourceAcknowledgement(result, sourceMode);
-      if (args.output) writeJsonAtomic(path.resolve(args.output), completedResult);
+      if (outputPath) writeBaseAutomaticResultOutput({
+        outputPath,
+        artifactRoot: frozen.artifactPaths.root,
+        repoRoot: frozen.artifactPaths.repoRoot,
+        payload: completedResult,
+        requireProtectedArtifactIdentity: true,
+      });
       runnerProgress.publish({ status: 'completed', phase: 'dry-run-completed', runId });
       return completedResult;
     }
 
-    const alreadyCommitted = await isCommittedRunImpl(connection, {
+    const artifactPaths = reserveBaseAutomaticArtifactDirectory({ repoRoot, frozen });
+    const sourceProgressSnapshotPath = freezeBaseSourceProgressSnapshot({
+      repoRoot,
+      domain,
       runId,
-      domainId: domain,
-      sourceFingerprint,
-      source: frozen.source,
+      progressPath,
     });
-    if (alreadyCommitted) {
-      const result = await runImportThenAcknowledge({
-        alreadyCommitted: true,
-        executeImport: async () => { throw new Error('committed automatic run must not execute import'); },
-        acknowledgeSource: async () => acknowledgeBaseDomainSourceIfLive({
-          sourceMode, domain, repoRoot, manifestPath,
-        }),
-      });
-      runnerProgress.publish({ status: 'completed', phase: 'acknowledgement-reconciled', runId });
-      const completedResult = withBaseSourceAcknowledgement({ ...result, domainId: domain, runId }, sourceMode);
-      if (args.output) writeJsonAtomic(path.resolve(args.output), completedResult);
-      return completedResult;
+    const frozenSourceCheckedAt = readCompletedBaseSourceProgressTimestamp({
+      repoRoot,
+      progressPath: sourceProgressSnapshotPath,
+    });
+    if (frozenSourceCheckedAt !== sourceCheckedAt) {
+      throw new Error('source progress timestamp drifted before automatic database apply');
     }
 
-    const current = await readCurrentSupplementaryContext(connection, {
-      bundle: { domainId: domain, ownedTables: config.ownedTables },
+    const current = await readCurrentContextImpl(connection, {
+      bundle: {
+        domainId: domain,
+        ownedTables: config.ownedTables,
+        executionMode: 'ACTIVATION_GATED_AUTO',
+      },
     });
     if (activation.policySetHash !== current.policySetHash) {
       throw new Error('scheduler activation policy set does not match current policy set');
     }
-    const bundle = buildSupplementaryL1Bundle({
-      operationId: config.operationId,
+    const bundle = buildBaseAutomaticBundle({
+      domain,
+      config,
+      current,
       runId,
-      domainId: domain,
-      generatedAt: now,
-      executionMode: 'ACTIVATION_GATED_AUTO',
-      policy: {
-        domainId: domain,
-        level: current.currentLevel,
-        operationalState: current.operationalState,
-        policyVersion: current.policyVersion,
-        policyHash: current.policyHash,
-        policySetHash: current.policySetHash,
-      },
-      baseline: current.baseline,
-      source: frozen.source,
-      ownedTables: config.ownedTables,
-      importPlan: {
-        ...frozen.importPlan,
-        automaticSourceFingerprint: sourceFingerprint,
-      },
-      reconciliationInput: buildReconciliationInputFromArgs(args),
+      generatedAt: startTime,
+      frozen,
+      sourceFingerprint,
+      sourceCheckedAt: frozenSourceCheckedAt,
+      sourceDispatchIdentity,
+      reconciliationInput: buildReconciliationInputFromArgs(args)
+        ?? buildAutomaticReconciliationInput(domain, runId),
     });
-    writeJsonAtomic(frozen.bundlePath, bundle);
+    writeBaseAutomaticArtifacts({ frozen, bundle, artifactPaths });
     runnerProgress.publish({ status: 'running', phase: 'database-apply', runId });
-    const result = await executeSupplementaryL1Operation({
-      adapter: createMysqlSupplementaryL1Adapter(connection, {
+    const { activation: latestActivation, executionTime } = await loadFreshActivationForMutation({
+      connection, initialActivation: activation, startTime, sourceCheckedAt: frozenSourceCheckedAt, nowProvider,
+    });
+    const result = await executeOperationImpl({
+      adapter: createAdapterImpl(connection, {
         bundlePath: frozen.bundlePath,
+        progressPath: sourceProgressSnapshotPath,
         repoRoot: env.WORKTREE_ROOT ?? process.cwd(),
       }),
       bundle,
-      authorizationContext: activationContext(activation, bundle.operationId),
-      now,
+      authorizationContext: activationContext(latestActivation, bundle.operationId),
+      now: executionTime,
     });
-    acknowledgeBaseDomainSourceIfLive({ sourceMode, domain, repoRoot, manifestPath });
+    await acknowledgeBaseDomainSourceWithFreshActivation({
+      connection, initialActivation: activation, startTime, sourceCheckedAt: frozenSourceCheckedAt, nowProvider,
+      sourceMode, domain, repoRoot, manifestPath, acknowledgeSourceImpl, sourceDispatchIdentity,
+      sourceStatePath, readSourceMonitorStateImpl, readSourceFingerprintImpl,
+    });
     const completedResult = withBaseSourceAcknowledgement(result, sourceMode);
-    if (args.output) writeJsonAtomic(path.resolve(args.output), completedResult);
+    if (outputPath) writeBaseAutomaticResultOutput({
+      outputPath,
+      artifactRoot: frozen.artifactPaths.root,
+      repoRoot: frozen.artifactPaths.repoRoot,
+      payload: completedResult,
+      requireProtectedArtifactIdentity: true,
+    });
     runnerProgress.publish({ status: 'completed', phase: 'completed', runId });
     return completedResult;
   } catch (error) {
-    if (activationVerified && runnerProgress) {
-      runnerProgress.publish({ status: 'failed', phase: 'failed', message: error.message });
+    if (runnerProgress) {
+      runnerProgress.publish({ status: 'failed', phase: 'failed', message: error?.message ?? String(error) });
     }
     throw error;
   } finally {
     runnerProgress?.stop();
-    await connection.end();
+    await connection?.end();
   }
 }
 
@@ -189,6 +272,106 @@ export function buildReconciliationInputFromArgs(args = {}) {
   };
 }
 
+export function buildAutomaticReconciliationInput(domain, runId) {
+  const root = `reports/runtime/l1-reconciliation/${domain}/${runId}`;
+  return {
+    sourceCoveragePath: `${root}/source-coverage.json`,
+    ownedTableReadbackPath: `${root}/owned-table-readback.json`,
+    attemptStatePath: `${root}/attempt-state.json`,
+    outputPath: `${root}/reconciliation-evidence.json`,
+  };
+}
+
+export function buildBaseAutomaticBundle({
+  domain,
+  config,
+  current,
+  runId,
+  generatedAt,
+  frozen,
+  sourceFingerprint,
+  sourceCheckedAt,
+  sourceDispatchIdentity = null,
+  reconciliationInput,
+} = {}) {
+  const domainId = requireText(domain, 'domain');
+  if (!config?.operationId) throw new Error('base automatic operation config is required');
+  if (!current?.policyJson || !Array.isArray(current.ownedTables) || current.ownedTables.length === 0) {
+    throw new Error('base automatic operation requires current scoped L2 policy ownership');
+  }
+  return buildSupplementaryL1Bundle({
+    operationId: config.operationId,
+    runId: requireText(runId, 'runId'),
+    domainId,
+    generatedAt: requireText(generatedAt, 'generatedAt'),
+    executionMode: 'ACTIVATION_GATED_AUTO',
+    policy: {
+      domainId,
+      level: current.currentLevel,
+      operationalState: current.operationalState,
+      policyVersion: current.policyVersion,
+      policyHash: current.policyHash,
+      policySetHash: current.policySetHash,
+      policyJson: current.policyJson,
+    },
+    baseline: current.baseline,
+    source: frozen?.source,
+    ownedTables: current.ownedTables,
+    importPlan: {
+      ...frozen?.importPlan,
+      automaticSourceFingerprint: requireText(sourceFingerprint, 'sourceFingerprint'),
+      sourceCheckedAt: requireTimestamp(sourceCheckedAt, 'sourceCheckedAt'),
+    },
+    ...(sourceDispatchIdentity == null ? {} : { sourceDispatchIdentity }),
+    reconciliationInput,
+  });
+}
+
+export function freezeBaseSourceProgressSnapshot({ repoRoot, domain, runId, progressPath } = {}) {
+  const root = path.resolve(requireText(repoRoot, 'repoRoot'));
+  const sourcePath = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: requireText(progressPath, 'progressPath'),
+    label: 'source progress',
+  });
+  const payload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+  if (String(payload?.status ?? '').toLowerCase() !== 'completed') {
+    throw new Error('source progress must be terminal before database apply');
+  }
+  const targetPath = assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: path.join(
+      root,
+      'reports',
+      'runtime',
+      'l1-reconciliation',
+      requireText(domain, 'domain'),
+      requireText(runId, 'runId'),
+      'source-progress.json',
+    ),
+    label: 'source progress snapshot',
+    createParent: true,
+  });
+  const bytes = Buffer.from(`${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(targetPath, bytes, { mode: 0o600, flag: 'wx' });
+  fs.chmodSync(targetPath, 0o600);
+  return targetPath;
+}
+
+export function readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPath } = {}) {
+  const root = path.resolve(requireText(repoRoot, 'repoRoot'));
+  const sourcePath = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: requireText(progressPath, 'progressPath'),
+    label: 'source progress',
+  });
+  const payload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+  if (String(payload?.status ?? '').toLowerCase() !== 'completed') {
+    throw new Error('source progress must be terminal before automatic diff preview');
+  }
+  return requireTimestamp(payload?.generatedAt, 'source progress generatedAt');
+}
+
 export function freezeBaseAutomaticInput({
   domain,
   sourceFingerprint,
@@ -207,6 +390,7 @@ export async function isCommittedBaseAutomaticRun(connection, {
   domainId,
   sourceFingerprint,
   source,
+  sourceDispatchIdentity = null,
 }) {
   const [rows] = await connection.query(
     'SELECT r.primary_domain_id AS domainId, es.manifest_json AS manifestJson FROM crawler_automation_run r'
@@ -227,12 +411,23 @@ export async function isCommittedBaseAutomaticRun(connection, {
   if (recordedFingerprint != null && recordedFingerprint !== sourceFingerprint) {
     throw new Error('committed automatic run evidence does not match frozen source');
   }
+  if (sourceDispatchIdentity != null
+      && !sameSourceDispatchIdentity(manifest?.sourceDispatchIdentity, sourceDispatchIdentity)) {
+    throw new Error('committed automatic run evidence does not match the scheduler source dispatch identity');
+  }
   const exactFrozenSource = manifest?.source?.path === source.path
     && manifest?.source?.sha256 === source.sha256;
   const derivedRunMatches = runId === buildAutomaticRunId(domainId, sourceFingerprint);
   if (exactFrozenSource || recordedFingerprint === sourceFingerprint && recordedFingerprint != null
       || recordedFingerprint == null && derivedRunMatches) return true;
   throw new Error('committed automatic run evidence does not match frozen source');
+}
+
+function sameSourceDispatchIdentity(actual, expected) {
+  return actual != null
+    && actual.sourceFingerprint === expected.sourceFingerprint
+    && actual.sourceRunIdentity === expected.sourceRunIdentity
+    && actual.sourceContentIdentity === expected.sourceContentIdentity;
 }
 
 function runSource({ domain, progressPath, env }) {
@@ -270,7 +465,15 @@ export function acknowledgeBaseDomainSource({
   domain,
   repoRoot,
   manifestPath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+  sourceDispatchIdentity = null,
+  validatedSourceFingerprint = null,
 }) {
+  if (sourceDispatchIdentity != null) {
+    const currentFingerprint = validatedSourceFingerprint == null
+      ? readBaseDomainSourceFingerprint(domain)
+      : canonicalSourceFingerprint(validatedSourceFingerprint);
+    assertFrozenSourceMatchesDispatchIdentity(sourceDispatchIdentity, currentFingerprint);
+  }
   if (['items', 'npcs', 'projectiles'].includes(domain)) {
     return finalizeBackendRefreshActionIngestionManifest({
       actionId: actionId(domain),
@@ -297,9 +500,61 @@ export function acknowledgeBaseDomainSource({
   return advanceWikiIngestionManifestForSource({ ...source, manifestPath });
 }
 
-function acknowledgeBaseDomainSourceIfLive({ sourceMode, domain, repoRoot, manifestPath }) {
+async function acknowledgeBaseDomainSourceIfLive({
+  sourceMode,
+  domain,
+  repoRoot,
+  manifestPath,
+  sourceDispatchIdentity = null,
+  validatedSourceFingerprint = null,
+  acknowledgeSourceImpl = acknowledgeBaseDomainSource,
+}) {
   if (sourceMode !== 'live') return;
-  acknowledgeBaseDomainSource({ domain, repoRoot, manifestPath });
+  return await acknowledgeSourceImpl({
+    domain,
+    repoRoot,
+    manifestPath,
+    sourceDispatchIdentity,
+    validatedSourceFingerprint,
+  });
+}
+
+async function acknowledgeBaseDomainSourceWithFreshActivation({
+  connection,
+  initialActivation,
+  startTime,
+  sourceCheckedAt,
+  nowProvider,
+  sourceDispatchIdentity = null,
+  readSourceFingerprintImpl = readBaseDomainSourceFingerprint,
+  ...acknowledgement
+}) {
+  if (acknowledgement.sourceMode !== 'live') return;
+  assertCurrentSourceMonitorStateMatchesDispatchIdentity({
+    identity: sourceDispatchIdentity,
+    domain: acknowledgement.domain,
+    repoRoot: acknowledgement.repoRoot,
+    sourceStatePath: acknowledgement.sourceStatePath,
+    readSourceMonitorStateImpl: acknowledgement.readSourceMonitorStateImpl,
+  });
+  const validatedSourceFingerprint = sourceDispatchIdentity == null
+    ? null
+    : canonicalSourceFingerprint(readSourceFingerprintImpl(acknowledgement.domain));
+  if (validatedSourceFingerprint != null) {
+    assertFrozenSourceMatchesDispatchIdentity(sourceDispatchIdentity, validatedSourceFingerprint);
+  }
+  await loadFreshActivationForMutation({
+    connection,
+    initialActivation,
+    startTime,
+    sourceCheckedAt,
+    nowProvider,
+  });
+  return await acknowledgeBaseDomainSourceIfLive({
+    ...acknowledgement,
+    sourceDispatchIdentity,
+    validatedSourceFingerprint,
+  });
 }
 
 function withBaseSourceAcknowledgement(result, sourceMode) {
@@ -357,14 +612,12 @@ function freezeStandardizedInput({ domain, runId, repoRoot }) {
     datasets[entity] = payload;
   }
   const payload = { schemaVersion: 1, domainId: domain, runId, datasets };
-  const base = `automation-${domain.replaceAll('_', '-')}-${runId}`;
-  const relativeSourcePath = `reports/authorization/canonical/${base}.source.json`;
-  const sourcePath = path.join(repoRoot, relativeSourcePath);
-  const bundlePath = path.join(repoRoot, `reports/authorization/canonical/${base}.bundle.json`);
-  writeJsonAtomic(sourcePath, payload);
+  const artifactPaths = buildBaseAutomaticArtifactPaths({ repoRoot, domain, runId });
   return {
-    source: { path: relativeSourcePath, sha256: hashFrozenSourcePayload(payload) },
-    bundlePath,
+    source: { path: artifactPaths.sourceRelativePath, sha256: hashFrozenSourcePayload(payload) },
+    sourcePayload: payload,
+    bundlePath: artifactPaths.bundlePath,
+    artifactPaths,
     datasets,
     importPlan: {
       entity: domain,
@@ -372,6 +625,247 @@ function freezeStandardizedInput({ domain, runId, repoRoot }) {
       itemDependencyCount: datasets.items.records.length,
     },
   };
+}
+
+export function buildBaseAutomaticArtifactPaths({ repoRoot, domain, runId } = {}) {
+  const root = path.resolve(requireText(repoRoot, 'repoRoot'));
+  const domainId = requireBaseAutomaticArtifactDomain(domain);
+  const automaticRunId = requireBaseAutomaticArtifactRunId(runId, domainId);
+  const relativeRoot = path.posix.join(
+    'reports',
+    'authorization',
+    'canonical',
+    'automatic',
+    domainId,
+    automaticRunId,
+  );
+  const artifactRoot = path.resolve(root, relativeRoot);
+  return Object.freeze({
+    repoRoot: root,
+    domainId,
+    runId: automaticRunId,
+    relativeRoot,
+    root: artifactRoot,
+    sourceRelativePath: `${relativeRoot}/source.json`,
+    sourcePath: path.join(artifactRoot, 'source.json'),
+    bundlePath: path.join(artifactRoot, 'bundle.json'),
+  });
+}
+
+function reserveBaseAutomaticArtifactDirectory({ repoRoot, frozen } = {}) {
+  const artifactPaths = frozen?.artifactPaths;
+  if (!artifactPaths || path.resolve(requireText(repoRoot, 'repoRoot')) !== artifactPaths.repoRoot) {
+    throw new Error('base automatic artifact paths must match the repository root');
+  }
+  assertSecureBaseAutomaticArtifactPublicationSupported();
+  const artifactRoot = artifactPaths.root;
+  const parentRoot = path.dirname(artifactRoot);
+  const parentBinding = bindBaseAutomaticDirectory({
+    repoRoot: artifactPaths.repoRoot,
+    directoryPath: parentRoot,
+    createParent: true,
+  });
+  let artifactFd = null;
+  try {
+    assertBaseAutomaticDirectoryIdentityAtPath(parentRoot, parentBinding.identity);
+    const childPath = path.join(descriptorDirectoryPathFor(parentBinding.directoryFd), path.basename(artifactRoot));
+    try {
+      fs.mkdirSync(childPath, { mode: 0o700 });
+    } catch (error) {
+      if (error?.code === 'EEXIST') {
+        throw new Error(`base automatic artifact directory already exists; overwrite is forbidden: ${artifactRoot}`);
+      }
+      throw error;
+    }
+    fs.fsyncSync(parentBinding.directoryFd);
+    artifactFd = openBaseDirectoryAtPath(childPath);
+    const artifactStat = fs.fstatSync(artifactFd);
+    assertPrivateBaseAutomaticDirectory(artifactStat, 'base automatic artifact directory');
+    assertCanonicalBaseAutomaticDirectoryPath(artifactRoot, 'base automatic artifact directory');
+    assertBaseAutomaticDirectoryIdentityAtPath(parentRoot, parentBinding.identity);
+    return Object.freeze({
+      ...artifactPaths,
+      root: artifactRoot,
+      sourcePath: path.join(artifactRoot, 'source.json'),
+      bundlePath: path.join(artifactRoot, 'bundle.json'),
+      identity: Object.freeze({ dev: artifactStat.dev, ino: artifactStat.ino }),
+    });
+  } finally {
+    if (artifactFd != null) fs.closeSync(artifactFd);
+    fs.closeSync(parentBinding.directoryFd);
+  }
+}
+
+function writeBaseAutomaticArtifacts({ frozen, bundle = null, artifactPaths } = {}) {
+  if (!artifactPaths || frozen?.artifactPaths?.root !== artifactPaths.root
+      || frozen.artifactPaths.repoRoot !== artifactPaths.repoRoot) {
+    throw new Error('base automatic artifact paths must be reserved before publication');
+  }
+  const binding = bindBaseAutomaticDirectory({
+    repoRoot: artifactPaths.repoRoot,
+    directoryPath: artifactPaths.root,
+  });
+  try {
+    if (!sameBaseFileIdentity(binding.identity, artifactPaths.identity)) {
+      throw new Error('base automatic artifact directory identity changed or is unavailable');
+    }
+    writeBasePrivateJsonNoOverwrite(binding.directoryFd, 'source.json', frozen.sourcePayload, 'base automatic source artifact');
+    if (bundle != null) {
+      writeBasePrivateJsonNoOverwrite(binding.directoryFd, 'bundle.json', bundle, 'base automatic bundle artifact');
+    }
+    assertBaseAutomaticDirectoryIdentityAtPath(artifactPaths.root, binding.identity);
+  } finally {
+    fs.closeSync(binding.directoryFd);
+  }
+}
+
+function writeBasePrivateJsonNoOverwrite(directoryFd, fileName, payload, label) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(fileName)) {
+    throw new Error(`${label} must name a safe file`);
+  }
+  const directoryPath = descriptorDirectoryPathFor(directoryFd);
+  const temporaryPath = path.join(directoryPath, `.${fileName}.${process.pid}.${randomBytes(16).toString('hex')}.tmp`);
+  let temporaryFd = null;
+  try {
+    temporaryFd = fs.openSync(
+      temporaryPath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW,
+      0o600,
+    );
+    fs.writeFileSync(temporaryFd, serializeFrozenSourcePayload(payload));
+    fs.fchmodSync(temporaryFd, 0o600);
+    fs.fsyncSync(temporaryFd);
+    const staged = fs.fstatSync(temporaryFd);
+    assertPrivateBaseAutomaticFile(staged, `${label} staged artifact`);
+    fs.closeSync(temporaryFd);
+    temporaryFd = null;
+    const destinationPath = path.join(directoryPath, fileName);
+    fs.linkSync(temporaryPath, destinationPath);
+    let destinationFd = null;
+    try {
+      destinationFd = fs.openSync(destinationPath, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+      const destination = fs.fstatSync(destinationFd);
+      assertPrivateBaseAutomaticFile(destination, label);
+      if (!sameBaseFileIdentity(staged, destination) || destination.size !== staged.size) {
+        throw new Error(`${label} identity or byte length changed during publication`);
+      }
+    } finally {
+      if (destinationFd != null) fs.closeSync(destinationFd);
+    }
+    fs.unlinkSync(temporaryPath);
+    fs.fsyncSync(directoryFd);
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      throw new Error(`${label} already exists; overwrite is forbidden: ${path.join(directoryPath, fileName)}`);
+    }
+    throw error;
+  } finally {
+    if (temporaryFd != null) fs.closeSync(temporaryFd);
+    try { fs.unlinkSync(temporaryPath); } catch {}
+  }
+}
+
+function assertSecureBaseAutomaticArtifactPublicationSupported() {
+  if (process.platform !== 'linux'
+      || typeof process.getuid !== 'function'
+      || typeof fs.constants.O_NOFOLLOW !== 'number'
+      || typeof fs.constants.O_DIRECTORY !== 'number'
+      || !fs.existsSync('/proc/self/fd')) {
+    throw new Error('secure base automatic artifact publication is unavailable on this platform');
+  }
+}
+
+function bindBaseAutomaticDirectory({ repoRoot, directoryPath, createParent = false } = {}) {
+  assertSecureBaseAutomaticArtifactPublicationSupported();
+  const root = path.resolve(requireText(repoRoot, 'repository root'));
+  const target = path.resolve(requireText(directoryPath, 'base automatic artifact directory'));
+  const relative = path.relative(root, target);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error('base automatic artifact directory must remain inside the repository');
+  }
+  assertCanonicalBaseAutomaticDirectoryPath(root, 'repository root');
+  let directoryFd = openBaseDirectoryAtPath(root);
+  try {
+    assertPrivateBaseAutomaticDirectory(fs.fstatSync(directoryFd), 'repository root');
+    let current = root;
+    for (const segment of relative.split(path.sep)) {
+      const childPath = path.join(descriptorDirectoryPathFor(directoryFd), segment);
+      let childFd;
+      try {
+        childFd = openBaseDirectoryAtPath(childPath);
+      } catch (error) {
+        if (error?.code !== 'ENOENT' || !createParent) throw baseAutomaticArtifactDirectoryError(error);
+        fs.mkdirSync(childPath, { mode: 0o700 });
+        childFd = openBaseDirectoryAtPath(childPath);
+      }
+      fs.closeSync(directoryFd);
+      directoryFd = childFd;
+      current = path.join(current, segment);
+      assertPrivateBaseAutomaticDirectory(fs.fstatSync(directoryFd), 'base automatic artifact ancestor');
+      assertCanonicalBaseAutomaticDirectoryPath(current, 'base automatic artifact ancestor');
+    }
+    const identity = fs.fstatSync(directoryFd);
+    return Object.freeze({ directoryFd, identity: Object.freeze({ dev: identity.dev, ino: identity.ino }) });
+  } catch (error) {
+    fs.closeSync(directoryFd);
+    throw baseAutomaticArtifactDirectoryError(error);
+  }
+}
+
+function openBaseDirectoryAtPath(directoryPath) {
+  return fs.openSync(
+    directoryPath,
+    fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW,
+  );
+}
+
+function assertCanonicalBaseAutomaticDirectoryPath(directoryPath, label) {
+  const target = path.resolve(directoryPath);
+  const stat = fs.lstatSync(target);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new Error(`${label} must be a canonical ordinary directory`);
+  }
+  if (path.resolve(fs.realpathSync(target)) !== target) {
+    throw new Error(`${label} must be a canonical ordinary directory`);
+  }
+  return stat;
+}
+
+function assertPrivateBaseAutomaticDirectory(stat, label) {
+  if (!stat?.isDirectory?.() || stat.isSymbolicLink?.()
+      || Number(stat.uid) !== Number(process.getuid()) || (stat.mode & 0o022) !== 0) {
+    throw new Error(`${label} must be owned by the automation service UID and not group/other writable`);
+  }
+}
+
+function assertPrivateBaseAutomaticFile(stat, label) {
+  if (!stat?.isFile?.() || stat.isSymbolicLink?.()
+      || Number(stat.uid) !== Number(process.getuid()) || (stat.mode & 0o7777) !== 0o600) {
+    throw new Error(`${label} must be an ordinary private 0600 file owned by the automation service UID`);
+  }
+}
+
+function assertBaseAutomaticDirectoryIdentityAtPath(directoryPath, expectedIdentity) {
+  const currentFd = openBaseDirectoryAtPath(directoryPath);
+  try {
+    const current = fs.fstatSync(currentFd);
+    if (!sameBaseFileIdentity(current, expectedIdentity)) {
+      throw new Error('base automatic artifact directory identity changed or is unavailable');
+    }
+  } finally {
+    fs.closeSync(currentFd);
+  }
+}
+
+function sameBaseFileIdentity(left, right) {
+  return left != null && right != null && left.dev === right.dev && left.ino === right.ino;
+}
+
+function baseAutomaticArtifactDirectoryError(error) {
+  if (['ELOOP', 'ENOENT', 'ENOTDIR'].includes(error?.code)) {
+    return new Error('base automatic artifact directory identity changed or is unavailable', { cause: error });
+  }
+  return error;
 }
 
 async function loadFreshActivation(connection) {
@@ -385,6 +879,54 @@ async function loadFreshActivation(connection) {
     ['SCHEDULER_ACTIVATION', SCHEDULER_ACTIVATION_DOMAIN],
   );
   return rows?.[0] ?? null;
+}
+
+async function loadFreshActivationForMutation({
+  connection,
+  initialActivation,
+  startTime,
+  sourceCheckedAt,
+  nowProvider,
+}) {
+  const activation = await loadFreshActivation(connection);
+  assertActivationUnchanged(initialActivation, activation);
+  const executionTime = maxBaseAutomaticExecutionTime(
+    startTime,
+    sourceCheckedAt,
+    nowProvider(),
+  );
+  assertActivationValidAt(activation, executionTime);
+  return { activation, executionTime };
+}
+
+function assertActivationUnchanged(initial, latest) {
+  if (!latest) {
+    throw new Error('scheduler activation expired or was revoked before automatic mutation');
+  }
+  for (const field of [
+    'decisionIdentity',
+    'packetHash',
+    'policySetHash',
+    'actor',
+    'reason',
+    'authorizationReference',
+    'authorizedAt',
+    'expiresAt',
+  ]) {
+    if (latest[field] !== initial?.[field]) {
+      throw new Error(`scheduler activation changed before automatic mutation (${field})`);
+    }
+  }
+}
+
+function assertActivationValidAt(activation, executionTime) {
+  const authorizedAt = requireTimestamp(activation?.authorizedAt, 'authorization start');
+  const expiresAt = requireTimestamp(activation?.expiresAt, 'authorization expiry');
+  const effectiveTime = requireTimestamp(executionTime, 'current execution time');
+  if (Date.parse(effectiveTime) < Date.parse(authorizedAt)
+      || Date.parse(effectiveTime) >= Date.parse(expiresAt)) {
+    throw new Error('scheduler activation is not valid at mutation time');
+  }
 }
 
 function activationContext(activation, operationId) {
@@ -470,20 +1012,312 @@ function parseArgs(argv) {
   }));
 }
 
-export function hashFrozenSourcePayload(value) {
-  return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+export function serializeFrozenSourcePayload(value) {
+  return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-function writeJsonAtomic(filePath, payload) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const temporary = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
-  fs.renameSync(temporary, filePath);
+export function hashFrozenSourcePayload(value) {
+  return `sha256:${createHash('sha256').update(serializeFrozenSourcePayload(value)).digest('hex')}`;
+}
+
+function resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot } = {}) {
+  if (!outputPath) return null;
+  const resolvedOutputPath = path.resolve(outputPath);
+  assertOutputPathHasNoSymbolicLinkAncestor(resolvedOutputPath);
+  const protectedArtifactRoot = path.resolve(requireText(artifactRoot, 'base automatic artifact root'));
+  if (pathsOverlap(resolvedOutputPath, protectedArtifactRoot)) {
+    throw new Error('--output must not overlap the protected base automatic artifact directory');
+  }
+  return resolvedOutputPath;
+}
+
+function writeBaseAutomaticResultOutput({
+  outputPath,
+  artifactRoot,
+  repoRoot,
+  payload,
+  requireProtectedArtifactIdentity = false,
+} = {}) {
+  const protectedArtifact = requireProtectedArtifactIdentity
+    ? bindProtectedBaseAutomaticArtifactDirectory({ repoRoot, artifactRoot })
+    : null;
+  try {
+    const confinedOutputPath = resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot });
+    writeBoundExternalJsonAtomic({
+      outputPath: confinedOutputPath,
+      protectedArtifact,
+      payload,
+    });
+  } finally {
+    if (protectedArtifact) fs.closeSync(protectedArtifact.directoryFd);
+  }
+}
+
+function assertOutputPathHasNoSymbolicLinkAncestor(outputPath) {
+  const outputDirectory = path.dirname(outputPath);
+  const filesystemRoot = path.parse(outputDirectory).root;
+  let current = filesystemRoot;
+  for (const segment of path.relative(filesystemRoot, outputDirectory).split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if (error?.code === 'ENOENT') return;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error('--output must not have a symbolic-link ancestor');
+    }
+    if (!stat.isDirectory()) {
+      throw new Error('--output must have only directory ancestors');
+    }
+  }
+}
+
+function pathsOverlap(leftPath, rightPath) {
+  return isSameOrDescendant(leftPath, rightPath) || isSameOrDescendant(rightPath, leftPath);
+}
+
+function isSameOrDescendant(candidatePath, ancestorPath) {
+  const relativePath = path.relative(ancestorPath, candidatePath);
+  return relativePath === ''
+    || (!relativePath.startsWith(`..${path.sep}`)
+      && relativePath !== '..'
+      && !path.isAbsolute(relativePath));
+}
+
+function writeBoundExternalJsonAtomic({ outputPath, protectedArtifact = null, payload } = {}) {
+  assertSecureExternalOutputPublicationSupported();
+  const outputDirectory = path.dirname(outputPath);
+  const outputName = path.basename(outputPath);
+  if (!outputName || outputName === '.' || outputName === '..') {
+    throw new Error('--output must name a file');
+  }
+
+  const directoryFd = openBoundOutputDirectory(outputDirectory);
+  let temporaryPath = null;
+  let temporaryFd = null;
+  try {
+    if (protectedArtifact) {
+      assertProtectedBaseAutomaticArtifactIdentity(protectedArtifact);
+      assertBoundOutputDirectoryDoesNotOverlapArtifact({ directoryFd, protectedArtifact });
+    }
+    const descriptorDirectoryPath = descriptorDirectoryPathFor(directoryFd);
+    const destinationPath = path.join(descriptorDirectoryPath, outputName);
+    ({ temporaryPath, temporaryFd } = createBoundOutputTemporaryFile({
+      descriptorDirectoryPath,
+      outputName,
+    }));
+    fs.writeFileSync(temporaryFd, `${JSON.stringify(payload, null, 2)}\n`);
+    fs.fchmodSync(temporaryFd, 0o600);
+    fs.closeSync(temporaryFd);
+    temporaryFd = null;
+    fs.renameSync(temporaryPath, destinationPath);
+    temporaryPath = null;
+  } finally {
+    if (temporaryFd != null) fs.closeSync(temporaryFd);
+    if (temporaryPath != null) fs.rmSync(temporaryPath, { force: true });
+    fs.closeSync(directoryFd);
+  }
+}
+
+function assertSecureExternalOutputPublicationSupported({ platform = process.platform } = {}) {
+  if (platform !== 'linux'
+      || typeof fs.constants.O_NOFOLLOW !== 'number'
+      || typeof fs.constants.O_DIRECTORY !== 'number'
+      || !fs.existsSync('/proc/self/fd')) {
+    throw new Error('secure external --output publication is unavailable on this platform');
+  }
+}
+
+function openBoundOutputDirectory(outputDirectory) {
+  const root = path.parse(outputDirectory).root;
+  let directoryFd = openBoundDirectoryAtPath(root);
+  try {
+    for (const segment of path.relative(root, outputDirectory).split(path.sep).filter(Boolean)) {
+      const parentDescriptorPath = descriptorDirectoryPathFor(directoryFd);
+      const childPath = path.join(parentDescriptorPath, segment);
+      let childFd;
+      try {
+        childFd = openBoundDirectoryAtPath(childPath);
+      } catch (error) {
+        if (error?.code !== 'ENOENT') throw outputDirectoryError(error);
+        try {
+          fs.mkdirSync(childPath, { mode: 0o700 });
+        } catch (mkdirError) {
+          if (mkdirError?.code !== 'EEXIST') throw outputDirectoryError(mkdirError);
+        }
+        try {
+          childFd = openBoundDirectoryAtPath(childPath);
+        } catch (openError) {
+          throw outputDirectoryError(openError);
+        }
+      }
+      fs.closeSync(directoryFd);
+      directoryFd = childFd;
+    }
+    return directoryFd;
+  } catch (error) {
+    fs.closeSync(directoryFd);
+    throw error;
+  }
+}
+
+function bindProtectedBaseAutomaticArtifactDirectory({ repoRoot, artifactRoot } = {}) {
+  const trustedRoot = path.resolve(requireText(repoRoot, 'repository root'));
+  const root = path.resolve(requireText(artifactRoot, 'base automatic artifact root'));
+  const directoryFd = openBoundProtectedBaseAutomaticArtifactDirectory({
+    repoRoot: trustedRoot,
+    artifactRoot: root,
+  });
+  try {
+    const identity = fs.fstatSync(directoryFd);
+    return Object.freeze({
+      repoRoot: trustedRoot,
+      root,
+      directoryFd,
+      dev: identity.dev,
+      ino: identity.ino,
+    });
+  } catch (error) {
+    fs.closeSync(directoryFd);
+    throw error;
+  }
+}
+
+function openBoundProtectedBaseAutomaticArtifactDirectory({ repoRoot, artifactRoot } = {}) {
+  const trustedRoot = path.resolve(requireText(repoRoot, 'repository root'));
+  const target = path.resolve(requireText(artifactRoot, 'base automatic artifact root'));
+  const relative = path.relative(trustedRoot, target);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error('protected base automatic artifact directory must remain inside the repository');
+  }
+  let directoryFd;
+  try {
+    assertCanonicalBaseAutomaticDirectoryPath(trustedRoot, 'repository root');
+    directoryFd = openBoundDirectoryAtPath(trustedRoot);
+    assertPrivateBaseAutomaticDirectory(fs.fstatSync(directoryFd), `protected base automatic artifact ancestor: ${trustedRoot}`);
+    let currentPath = trustedRoot;
+    for (const segment of relative.split(path.sep).filter(Boolean)) {
+      const childFd = openBoundDirectoryAtPath(path.join(descriptorDirectoryPathFor(directoryFd), segment));
+      fs.closeSync(directoryFd);
+      directoryFd = childFd;
+      currentPath = path.join(currentPath, segment);
+      assertPrivateBaseAutomaticDirectory(fs.fstatSync(directoryFd), `protected base automatic artifact ancestor: ${currentPath}`);
+    }
+    return directoryFd;
+  } catch (error) {
+    if (directoryFd != null) fs.closeSync(directoryFd);
+    throw protectedBaseAutomaticArtifactDirectoryError(error);
+  }
+}
+
+function assertProtectedBaseAutomaticArtifactIdentity(protectedArtifact) {
+  const currentFd = openBoundProtectedBaseAutomaticArtifactDirectory({
+    repoRoot: protectedArtifact.repoRoot,
+    artifactRoot: protectedArtifact.root,
+  });
+  try {
+    const current = fs.fstatSync(currentFd);
+    if (current.dev !== protectedArtifact.dev || current.ino !== protectedArtifact.ino) {
+      throw new Error('protected base automatic artifact directory identity changed or is unavailable');
+    }
+  } finally {
+    fs.closeSync(currentFd);
+  }
+}
+
+function protectedBaseAutomaticArtifactDirectoryError(error) {
+  if (['ELOOP', 'ENOENT', 'ENOTDIR'].includes(error?.code)) {
+    return new Error('protected base automatic artifact directory identity changed or is unavailable');
+  }
+  return error;
+}
+
+function openBoundDirectoryAtPath(directoryPath) {
+  return fs.openSync(
+    directoryPath,
+    fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW,
+  );
+}
+
+function descriptorDirectoryPathFor(directoryFd) {
+  return `/proc/self/fd/${directoryFd}`;
+}
+
+function outputDirectoryError(error) {
+  if (error?.code === 'ELOOP') {
+    return new Error('--output must not have a symbolic-link ancestor');
+  }
+  if (error?.code === 'ENOTDIR') {
+    return new Error('--output must have only directory ancestors');
+  }
+  return error;
+}
+
+function assertBoundOutputDirectoryDoesNotOverlapArtifact({ directoryFd, protectedArtifact }) {
+  const outputDirectory = fs.fstatSync(directoryFd);
+  if (outputDirectory.dev === protectedArtifact.dev && outputDirectory.ino === protectedArtifact.ino) {
+    throw new Error('--output must not overlap the protected base automatic artifact directory');
+  }
+}
+
+function createBoundOutputTemporaryFile({ descriptorDirectoryPath, outputName }) {
+  const flags = fs.constants.O_WRONLY
+    | fs.constants.O_CREAT
+    | fs.constants.O_EXCL
+    | fs.constants.O_NOFOLLOW;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const temporaryPath = path.join(
+      descriptorDirectoryPath,
+      `.${outputName}.${randomBytes(16).toString('hex')}.tmp`,
+    );
+    try {
+      return {
+        temporaryPath,
+        temporaryFd: fs.openSync(temporaryPath, flags, 0o600),
+      };
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+    }
+  }
+  throw new Error('unable to reserve a secure external --output temporary file');
+}
+
+function requireBaseAutomaticArtifactDomain(value) {
+  const domain = requireText(value, 'base automatic artifact domain');
+  if (!BASE_DOMAINS.has(domain)) throw new Error(`unsupported base automatic artifact domain: ${domain}`);
+  return domain;
+}
+
+function requireBaseAutomaticArtifactRunId(value, domain) {
+  const runId = requireText(value, 'base automatic artifact runId');
+  const prefix = `${domain}_l1_auto_`;
+  const digest = runId.slice(prefix.length);
+  if (!runId.startsWith(prefix) || !/^[a-f0-9]{32}$/.test(digest)) {
+    throw new Error('base automatic artifact runId must be the content-derived automatic run identity');
+  }
+  return runId;
 }
 
 function requireText(value, label) {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`${label} is required`);
   return value.trim();
+}
+
+function requireTimestamp(value, label) {
+  const text = requireText(value, label);
+  if (!Number.isFinite(Date.parse(text))) throw new Error(`${label} must be an ISO timestamp`);
+  return text;
+}
+
+function maxBaseAutomaticExecutionTime(now, sourceCheckedAt, currentTime = now) {
+  const requestedTime = requireTimestamp(now, 'execution time');
+  const checkedTime = requireTimestamp(sourceCheckedAt, 'sourceCheckedAt');
+  const freshTime = requireTimestamp(currentTime, 'current execution time');
+  const latest = Math.max(Date.parse(requestedTime), Date.parse(checkedTime), Date.parse(freshTime));
+  return [requestedTime, checkedTime, freshTime].find((value) => Date.parse(value) === latest);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

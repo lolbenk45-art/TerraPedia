@@ -130,6 +130,92 @@ test('read-only producer binds frozen source, table readback, attempt state, and
   }).evidenceHash, evidence.evidenceHash);
 });
 
+test('read-only producer accepts a bounded activation-gated L2 automatic bundle', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-automatic-reconciliation-'));
+  const runId = 'items_l1_auto_20260831_01';
+  const bundlePath = 'reports/authorization/canonical/automatic/items/bundle.json';
+  const sourcePath = 'reports/authorization/canonical/automatic/items/source.json';
+  const root = `reports/runtime/l1-reconciliation/items/${runId}`;
+  const sourceCoveragePath = `${root}/source-coverage.json`;
+  const tablePath = `${root}/owned-table-readback.json`;
+  const attemptPath = `${root}/attempt-state.json`;
+  const sourceDispatchIdentity = {
+    sourceFingerprint: HASH_C,
+    sourceRunIdentity: '2026-08-31T12:00:00.000Z',
+    sourceContentIdentity: HASH_D,
+  };
+  const write = (relativePath, value) => {
+    const absolute = path.join(repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(absolute), { recursive: true });
+    fs.writeFileSync(absolute, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+    return `sha256:${createHash('sha256').update(fs.readFileSync(absolute)).digest('hex')}`;
+  };
+  const sourceHash = write(sourcePath, { frozen: 'automatic-source' });
+  const ownedTables = [{ databaseRole: 'local', table: 'items', fieldGroup: 'all_columns' }];
+  const bundle = {
+    schemaVersion: 1,
+    operationId: 'automation-items-l1',
+    runId,
+    domainId: 'items',
+    databaseName: 'terria_v1_local',
+    executionMode: 'ACTIVATION_GATED_AUTO',
+    policy: {
+      level: 'L2', operationalState: 'ACTIVE', policyVersion: 2, policyHash: HASH_A, policySetHash: HASH_B,
+      policyJson: { ownedTables },
+    },
+    source: { path: sourcePath, sha256: sourceHash },
+    sourceDispatchIdentity,
+    ownedTables,
+  };
+  bundle.bundleHash = canonicalHash(bundle);
+  write(bundlePath, bundle);
+  write(sourceCoveragePath, {
+    schemaVersion: 1, artifactKind: 'l1-source-coverage', domainId: 'items', runId,
+    sourcePath, sourceSha256: sourceHash, completeSourceCoverage: true, terminalProgress: true, unclassifiedCount: 0,
+    sourceDispatchIdentity,
+  });
+  write(tablePath, {
+    schemaVersion: 1, artifactKind: 'l1-owned-table-readback', domainId: 'items', runId,
+    ownedTables, generationReadback: true, unauthorizedMutationCount: 0, unclassifiedMutationCount: 0,
+    sourceDispatchIdentity,
+  });
+  write(attemptPath, {
+    schemaVersion: 1, artifactKind: 'l1-attempt-state', domainId: 'items', runId,
+    activeAttemptCount: 0, overdueAttemptCount: 0,
+    sourceDispatchIdentity,
+  });
+
+  const result = buildL1ReconciliationEvidence({
+    repoRoot,
+    bundlePath,
+    sourceCoveragePath,
+    ownedTableReadbackPath: tablePath,
+    attemptStatePath: attemptPath,
+  });
+  assert.equal(result.fullReconciliation, true);
+  assert.equal(result.policyVersion, 2);
+  assert.deepEqual(result.sourceDispatchIdentity, sourceDispatchIdentity);
+
+  write(attemptPath, {
+    schemaVersion: 1, artifactKind: 'l1-attempt-state', domainId: 'items', runId,
+    activeAttemptCount: 0, overdueAttemptCount: 0,
+    sourceDispatchIdentity: {
+      ...sourceDispatchIdentity,
+      sourceContentIdentity: HASH_A,
+    },
+  });
+  assert.throws(
+    () => buildL1ReconciliationEvidence({
+      repoRoot,
+      bundlePath,
+      sourceCoveragePath,
+      ownedTableReadbackPath: tablePath,
+      attemptStatePath: attemptPath,
+    }),
+    /source dispatch identity/i,
+  );
+});
+
 test('reconciliation producer rejects incomplete source coverage and refuses overwrite', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-reconciliation-'));
   assert.throws(() => buildL1ReconciliationEvidence({ repoRoot }), /bundlePath|bundle/i);

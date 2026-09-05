@@ -7,12 +7,12 @@ import {
   DEFAULT_WIKI_API_URL,
   fetchWikiModuleContent,
   fetchWikiPageMetadataBatch,
-  ensureDir,
   fetchWikiUrlText,
   isTerrariaWikiUrl,
   parseCliArgs,
   sharedDataPath,
-  writeJson
+  writeJson,
+  writeJsonNoOverwrite
 } from '../lib/wiki-item-utils.mjs';
 import {
   createContentHash,
@@ -20,10 +20,7 @@ import {
   loadWikiSourceManifest,
   resolveIngestedRecord
 } from '../lib/wiki-sync-manifest.mjs';
-import {
-  buildActionProgressPayload,
-  writeJsonFile
-} from '../workflow/backend-refresh-runtime-state.mjs';
+import { buildActionProgressPayload } from '../workflow/backend-refresh-runtime-state.mjs';
 import { resolveConfiguredPath } from '../../scripts/lib/project-constants.mjs';
 import { compareWikiSourceFingerprint } from './source-update-comparison.mjs';
 import {
@@ -51,23 +48,46 @@ const progressPath = resolveOptionPath(
 );
 const wikiApiUrl = options['wiki-api-url'] ?? DEFAULT_WIKI_API_URL;
 const officialCheckMode = resolveOfficialCheckMode(options);
-const previousState = readJsonIfExists(statePath);
-const previousSourceMap = buildPreviousSourceMap(previousState);
-const ingestionManifest = loadWikiSourceManifest(manifestPath);
 const monitorProgress = createSourceUpdateProgressHeartbeat({
   heartbeatMs: options['heartbeat-ms'] ?? options.heartbeatMs,
   writeProgress: writeMonitorProgress,
 });
+const sourceTotal = buildWikiSources().length + (officialCheckMode !== 'never' ? buildOfficialSources().length : 0);
 
-ensureDir(reportDir);
-ensureDir(path.dirname(statePath));
-monitorProgress.publish({
-  status: 'running',
-  phase: 'start',
-  message: 'checking source update fingerprints',
-  current: 0,
-  total: buildWikiSources().length + (officialCheckMode !== 'never' ? buildOfficialSources().length : 0)
-});
+try {
+  monitorProgress.publish({
+    status: 'running',
+    phase: 'start',
+    message: 'checking source update fingerprints',
+    current: 0,
+    total: sourceTotal
+  });
+} catch (error) {
+  publishTerminalFailure({
+    phase: 'initialization',
+    message: `source monitor progress initialization failed: ${compactError(error)}`,
+    current: 0,
+    total: sourceTotal,
+  });
+  throw error;
+}
+
+let previousState;
+let previousSourceMap;
+let ingestionManifest;
+try {
+  previousState = readJsonIfExists(statePath);
+  previousSourceMap = buildPreviousSourceMap(previousState);
+  ingestionManifest = loadWikiSourceManifest(manifestPath);
+} catch (error) {
+  publishTerminalFailure({
+    phase: 'initialization',
+    message: `source monitor initialization failed: ${compactError(error)}`,
+    current: 0,
+    total: sourceTotal,
+  });
+  throw error;
+}
 
 function resolveOptionPath(value, fallback) {
   if (value == null || String(value).trim() === '') {
@@ -81,67 +101,101 @@ function resolveOptionPath(value, fallback) {
 }
 
 const sources = [];
-
-for (const source of buildWikiSources()) {
-  sources.push(await checkWikiSource(source));
-  monitorProgress.publish({
-    status: 'running',
-    phase: 'wiki',
-    message: `checked ${source.key}`,
-    current: sources.length,
-    total: buildWikiSources().length + (officialCheckMode !== 'never' ? buildOfficialSources().length : 0)
-  });
-}
-
-if (officialCheckMode !== 'never') {
-  for (const source of buildOfficialSources()) {
-    sources.push(await checkOfficialSource(source));
+const reportPath = path.join(reportDir, `source-update-check-${timestamp}.json`);
+try {
+  for (const source of buildWikiSources()) {
+    monitorProgress.assertHealthy();
+    sources.push(await checkWikiSource(source));
+    monitorProgress.assertHealthy();
     monitorProgress.publish({
       status: 'running',
-      phase: 'official',
+      phase: 'wiki',
       message: `checked ${source.key}`,
       current: sources.length,
-      total: buildWikiSources().length + buildOfficialSources().length
+      total: sourceTotal
     });
   }
+
+  if (officialCheckMode !== 'never') {
+    for (const source of buildOfficialSources()) {
+      monitorProgress.assertHealthy();
+      sources.push(await checkOfficialSource(source));
+      monitorProgress.assertHealthy();
+      monitorProgress.publish({
+        status: 'running',
+        phase: 'official',
+        message: `checked ${source.key}`,
+        current: sources.length,
+        total: sourceTotal
+      });
+    }
+  }
+
+  monitorProgress.assertHealthy();
+  const summary = buildSummary(sources);
+  const recommendedActions = buildRecommendedActions(summary);
+  const payload = {
+    schemaVersion: '1.0.0',
+    checkedAt,
+    wikiApiUrl,
+    officialCheckMode,
+    stateFile: toWorkspaceRelative(statePath),
+    summary,
+    recommendedActions,
+    sources
+  };
+
+  try {
+    // Publish the immutable report first. The mutable latest state advances
+    // only after the durable evidence exists, so a report failure cannot hide
+    // an upstream change from the next probe.
+    writeJsonNoOverwrite(reportPath, {
+      ...payload,
+      reportFile: toWorkspaceRelative(reportPath)
+    });
+  } catch (error) {
+    throw new Error(`report publication failed: ${compactError(error)}`, { cause: error });
+  }
+  try {
+    writeJson(statePath, payload);
+  } catch (error) {
+    throw new Error(`state publication failed: ${compactError(error)}`, { cause: error });
+  }
+  monitorProgress.publish({
+    status: summary.probeHealthy ? 'completed' : 'failed',
+    phase: 'write',
+    message: summary.probeHealthy
+      ? `checked ${summary.checkedSources} source(s); changed=${summary.changedSources}`
+      : `source probe failed for ${summary.errorSources} source(s); automation blocked`,
+    current: sources.length,
+    total: sources.length,
+    outputPath: statePath,
+    reportPath
+  });
+  monitorProgress.stop();
+
+  console.log(`Checked at: ${checkedAt}`);
+  console.log(`Sources checked: ${summary.checkedSources}`);
+  console.log(`Changed sources: ${summary.changedSources}`);
+  console.log(`Needs full refetch: ${summary.requiresFullRefetch}`);
+  console.log(`Probe healthy: ${summary.probeHealthy}`);
+  console.log(`State: ${statePath}`);
+  console.log(`Report: ${reportPath}`);
+
+  if (!summary.probeHealthy) {
+    process.exitCode = 1;
+  }
+} catch (error) {
+  publishTerminalFailure({
+    phase: 'publication',
+    message: `source monitor failed: ${compactError(error)}`,
+    current: sources.length,
+    total: sourceTotal,
+    outputPath: statePath,
+    reportPath,
+  });
+  throw error;
 }
-
-const summary = buildSummary(sources);
-const recommendedActions = buildRecommendedActions(summary);
-const payload = {
-  schemaVersion: '1.0.0',
-  checkedAt,
-  wikiApiUrl,
-  officialCheckMode,
-  stateFile: toWorkspaceRelative(statePath),
-  summary,
-  recommendedActions,
-  sources
-};
-
-const reportPath = path.join(reportDir, `source-update-check-${timestamp}.json`);
-writeJson(statePath, payload);
-writeJson(reportPath, {
-  ...payload,
-  reportFile: toWorkspaceRelative(reportPath)
-});
-monitorProgress.publish({
-  status: 'completed',
-  phase: 'write',
-  message: `checked ${summary.checkedSources} source(s); changed=${summary.changedSources}`,
-  current: sources.length,
-  total: sources.length,
-  outputPath: statePath,
-  reportPath
-});
-monitorProgress.stop();
-
-console.log(`Checked at: ${checkedAt}`);
-console.log(`Sources checked: ${summary.checkedSources}`);
-console.log(`Changed sources: ${summary.changedSources}`);
-console.log(`Needs full refetch: ${summary.requiresFullRefetch}`);
-console.log(`State: ${statePath}`);
-console.log(`Report: ${reportPath}`);
 
 function buildWikiSources() {
   return [
@@ -372,6 +426,9 @@ function buildSummary(sources) {
   const wikiChangedSources = sources.filter((entry) => entry.changed && entry.provider === 'terraria.wiki.gg').length;
   const officialChangedSources = sources.filter((entry) => entry.changed && entry.provider === 'official').length;
   const requiresFullRefetch = sources.some((entry) => entry.changed && entry.trigger === 'full_refetch');
+  const failedSourceKeys = sources
+    .filter((entry) => entry.status !== 'ok')
+    .map((entry) => entry.key);
 
   return {
     checkedSources,
@@ -381,11 +438,22 @@ function buildSummary(sources) {
     wikiChangedSources,
     officialChangedSources,
     requiresFullRefetch,
-    requiresStandardizeRefresh: requiresFullRefetch
+    requiresStandardizeRefresh: requiresFullRefetch,
+    probeHealthy: errorSources === 0,
+    failedSourceKeys
   };
 }
 
 function buildRecommendedActions(summary) {
+  if (!summary.probeHealthy) {
+    return [
+      {
+        type: 'block_automation',
+        reason: 'source_probe_failed',
+        sourceKeys: summary.failedSourceKeys
+      }
+    ];
+  }
   if (!summary.requiresFullRefetch) {
     return [
       {
@@ -437,13 +505,31 @@ function hasChanged(previousValue, currentValue) {
 
 function writeMonitorProgress(progress) {
   const generatedAt = progress.generatedAt ?? new Date().toISOString();
-  writeJsonFile(progressPath, buildActionProgressPayload({
+  writeJson(progressPath, buildActionProgressPayload({
     ...progress,
     actionId: 'source-update-monitor-check',
     generatedAt,
     lastHeartbeatAt: generatedAt,
     childStatusPath: progressPath
   }));
+}
+
+function publishTerminalFailure({ phase, message, current, total, outputPath, reportPath }) {
+  try {
+    monitorProgress.publish({
+      status: 'failed',
+      phase: phase ?? 'failed',
+      message: message ?? 'source monitor failed',
+      current: current ?? 0,
+      total: total ?? sourceTotal,
+      ...(outputPath ? { outputPath } : {}),
+      ...(reportPath ? { reportPath } : {}),
+    });
+  } catch (progressError) {
+    console.error(`Unable to publish source monitor failed progress: ${compactError(progressError)}`);
+  } finally {
+    monitorProgress.stop();
+  }
 }
 
 function compactError(error) {

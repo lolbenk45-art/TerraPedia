@@ -294,6 +294,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
         long ttlMillis = validateRetryCommand(command);
         CrawlerQueueV2Queue queue = command.updatedQueue();
         CrawlerQueueV2Attempt attempt = command.attempt();
+        validatePersistedRetryBinding(queue, attempt);
         List<String> keys = List.of(
             key("meta:engine"),
             key("meta:epoch"),
@@ -1023,11 +1024,41 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             || isBlank(queue.lane())
             || isBlank(queue.dedupeKey())
             || !Objects.equals(queue.lane(), attempt.lane())
+            || !Objects.equals(queue.domain(), attempt.domain())
+            || !Objects.equals(queue.actionId(), attempt.actionId())
             || !Objects.equals(queue.coveredDomains(), attempt.coveredDomains())) {
             throw invalidMutation("V2 retry payload 身份或状态无效");
         }
         sortedDomains(queue.coveredDomains());
+        if (!queue.hasExactAttemptBinding(attempt)) {
+            throw invalidMutation("V2 retry queue/attempt immutable binding 无效");
+        }
+        validateSourceDispatchIdentity(queue, attempt.sourceDispatchIdentity());
         return ttlMillis;
+    }
+
+    private void validatePersistedRetryBinding(
+        CrawlerQueueV2Queue retryQueue,
+        CrawlerQueueV2Attempt retryAttempt
+    ) {
+        CrawlerQueueV2Queue storedQueue = findQueue(retryQueue.queueId())
+            .orElseThrow(() -> invalidMutation("V2 retry 缺少权威 queue 记录"));
+        CrawlerQueueV2Attempt priorAttempt = findAttempt(retryAttempt.retryOfAttemptId())
+            .orElseThrow(() -> invalidMutation("V2 retry 缺少权威 prior attempt 记录"));
+        boolean retainedPriorAttempt = !storedQueue.attemptIds().isEmpty()
+            && Objects.equals(
+                storedQueue.attemptIds().get(storedQueue.attemptIds().size() - 1),
+                priorAttempt.attemptId()
+            );
+        if (!Objects.equals(storedQueue.origin(), retryQueue.origin())
+            || !Objects.equals(storedQueue.requestedBy(), retryQueue.requestedBy())
+            || !Objects.equals(retryAttempt.retryOfAttemptId(), priorAttempt.attemptId())
+            || !retainedPriorAttempt
+            || !storedQueue.hasExactAttemptBinding(priorAttempt)
+            || !Objects.equals(priorAttempt.sourceDispatchIdentity(), retryAttempt.sourceDispatchIdentity())) {
+            throw invalidMutation("V2 retry 与权威 queue/prior attempt 的 immutable identity 不一致");
+        }
+        validateSourceDispatchIdentity(storedQueue, priorAttempt.sourceDispatchIdentity());
     }
 
     private List<String> sortedDomains(List<String> coveredDomains) {
@@ -1308,7 +1339,29 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             || !Objects.equals(queue.coveredDomains(), attempt.coveredDomains())) {
             throw invalidMutation("V2 enqueue payload 不是同一个未 claim 的任务");
         }
+        if (!queue.hasExactAttemptBinding(attempt)) {
+            throw invalidMutation("V2 enqueue queue/attempt immutable binding 无效");
+        }
+        validateSourceDispatchIdentity(queue, attempt.sourceDispatchIdentity());
         return dedupeTtlMillis;
+    }
+
+    private void validateSourceDispatchIdentity(
+        CrawlerQueueV2Queue queue,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
+        if (!queue.isSchedulerOwned()) {
+            if (sourceDispatchIdentity != null) {
+                throw invalidMutation("manual V2 enqueue 不可携带 sourceDispatchIdentity");
+            }
+            return;
+        }
+        if (sourceDispatchIdentity == null) {
+            throw invalidMutation("scheduler-owned V2 enqueue 缺少 sourceDispatchIdentity");
+        }
+        if (!queue.hasExactSourceDispatchBinding(sourceDispatchIdentity)) {
+            throw invalidMutation("scheduler-owned V2 dedupeKey 未绑定 sourceFingerprint");
+        }
     }
 
     private <T> Optional<T> readRecord(String type, String id, Class<T> valueType) {

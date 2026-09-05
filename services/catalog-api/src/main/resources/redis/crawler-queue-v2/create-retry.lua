@@ -30,6 +30,55 @@ local function sameArray(left, right)
   return true
 end
 
+local function isNull(value)
+  return value == nil or value == cjson.null
+end
+
+local function sameNullableValue(left, right)
+  return (isNull(left) and isNull(right)) or left == right
+end
+
+local function isValidSourceHash(value)
+  return type(value) == 'string'
+    and #value == 71
+    and string.match(value, '^sha256:[0-9a-f]+$') ~= nil
+end
+
+local function sameSourceDispatchIdentity(left, right)
+  if isNull(left) or isNull(right) then
+    return isNull(left) and isNull(right)
+  end
+  return type(left) == 'table'
+    and type(right) == 'table'
+    and left.sourceFingerprint == right.sourceFingerprint
+    and left.sourceRunIdentity == right.sourceRunIdentity
+    and left.sourceContentIdentity == right.sourceContentIdentity
+end
+
+local function hasExactSourceDispatchBinding(queue, identity)
+  local schedulerOwned = queue.origin == 'scheduler' and queue.requestedBy == 'v2-automation'
+  if not schedulerOwned then
+    return (isNull(queue.origin) or queue.origin == 'manual')
+      and queue.requestedBy ~= 'v2-automation'
+      and isNull(identity)
+  end
+  if type(identity) ~= 'table'
+    or not isValidSourceHash(identity.sourceFingerprint)
+    or not isValidInstant(identity.sourceRunIdentity)
+    or not isValidSourceHash(identity.sourceContentIdentity)
+    or type(queue.lane) ~= 'string'
+    or type(queue.actionId) ~= 'string'
+    or type(queue.dedupeKey) ~= 'string' then
+    return false
+  end
+  local prefix = queue.lane .. ':' .. queue.actionId .. ':' .. identity.sourceFingerprint .. ':'
+  if string.sub(queue.dedupeKey, 1, #prefix) ~= prefix then
+    return false
+  end
+  local suffix = string.sub(queue.dedupeKey, #prefix + 1)
+  return suffix == 'fresh' or suffix == 'resume' or suffix == 'auto'
+end
+
 local terminalStatuses = {
   completed = true,
   failed = true,
@@ -96,7 +145,18 @@ if queue.queueId ~= storedQueue.queueId
   or queue.currentAttemptId ~= attempt.attemptId
   or queue.lane ~= storedQueue.lane
   or queue.lane ~= attempt.lane
+  or queue.domain ~= storedQueue.domain
+  or queue.domain ~= attempt.domain
+  or storedQueue.domain ~= priorAttempt.domain
+  or queue.actionId ~= storedQueue.actionId
+  or queue.actionId ~= attempt.actionId
+  or storedQueue.actionId ~= priorAttempt.actionId
   or queue.dedupeKey ~= storedQueue.dedupeKey
+  or not sameNullableValue(queue.origin, storedQueue.origin)
+  or not sameNullableValue(queue.requestedBy, storedQueue.requestedBy)
+  or not hasExactSourceDispatchBinding(storedQueue, priorAttempt.sourceDispatchIdentity)
+  or not hasExactSourceDispatchBinding(queue, attempt.sourceDispatchIdentity)
+  or not sameSourceDispatchIdentity(priorAttempt.sourceDispatchIdentity, attempt.sourceDispatchIdentity)
   or not sameArray(queue.coveredDomains, storedQueue.coveredDomains)
   or not sameArray(queue.coveredDomains, attempt.coveredDomains)
   or type(storedQueue.attemptIds) ~= 'table'

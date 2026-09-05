@@ -299,6 +299,269 @@ class RedisCrawlerQueueV2RepositoryTest {
     }
 
     @Test
+    void shouldRejectManualEnqueueWithSourceDispatchIdentityBeforeCallingRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.CreateQueueCommand command = command();
+        CrawlerQueueV2Attempt source = command.attempt();
+        CrawlerQueueV2Attempt manualAttempt = new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), source.artifacts(), new SourceDispatchIdentity(
+                "sha256:" + "8".repeat(64),
+                "2026-07-11T13:00:00Z",
+                "sha256:" + "9".repeat(64)
+            )
+        );
+        CrawlerQueueV2Repository.CreateQueueCommand invalid = new CrawlerQueueV2Repository.CreateQueueCommand(
+            command.expectedEpoch(), command.queue(), manualAttempt, command.readyScore(), command.dedupeTtl(),
+            command.event()
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.createQueue(invalid)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void shouldRejectSchedulerOriginWithNonAutomationRequesterBeforeCallingRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.CreateQueueCommand source = command();
+        CrawlerQueueV2Queue malformedQueue = new CrawlerQueueV2Queue(
+            source.queue().contractVersion(), source.queue().stateStoreEpoch(), source.queue().queueId(),
+            source.queue().lane(), source.queue().domain(), source.queue().coveredDomains(), source.queue().actionId(),
+            source.queue().dedupeKey(), source.queue().requestedAt(), "admin", source.queue().currentAttemptId(),
+            source.queue().attemptIds(), source.queue().legacyQueueId(), "scheduler"
+        );
+        CrawlerQueueV2Repository.CreateQueueCommand invalid = new CrawlerQueueV2Repository.CreateQueueCommand(
+            source.expectedEpoch(), malformedQueue, source.attempt(), source.readyScore(), source.dedupeTtl(),
+            source.event()
+        );
+
+        assertThrows(CrawlerQueueV2Exception.class, () -> repository.createQueue(invalid));
+
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void shouldRejectRetryWithSchedulerOriginAndNonAutomationRequesterBeforeCallingRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.CreateRetryCommand source = retryCommandForValidation();
+        CrawlerQueueV2Queue queue = source.updatedQueue();
+        CrawlerQueueV2Queue malformedQueue = new CrawlerQueueV2Queue(
+            queue.contractVersion(), queue.stateStoreEpoch(), queue.queueId(), queue.lane(), queue.domain(),
+            queue.coveredDomains(), queue.actionId(), queue.dedupeKey(), queue.requestedAt(), "admin",
+            queue.currentAttemptId(), queue.attemptIds(), queue.legacyQueueId(), "scheduler"
+        );
+        assertThrows(CrawlerQueueV2Exception.class, () -> repository.createRetry(
+            new CrawlerQueueV2Repository.CreateRetryCommand(
+                source.expectedEpoch(), malformedQueue, source.attempt(), source.expectedPriorStateVersion(),
+                source.readyScore(), source.dedupeTtl(), source.event()
+            )
+        ));
+
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void shouldRejectSchedulerEnqueueWithEmbeddedFingerprintBeforeCallingRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.CreateQueueCommand command = command();
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            command.queue().contractVersion(), command.queue().stateStoreEpoch(), command.queue().queueId(),
+            command.queue().lane(), command.queue().domain(), command.queue().coveredDomains(),
+            command.queue().actionId(), "unexpected:" + identity.sourceFingerprint() + ":standard:domain-source-bosses:fresh",
+            command.queue().requestedAt(), "v2-automation", command.queue().currentAttemptId(),
+            command.queue().attemptIds(), command.queue().legacyQueueId(), "scheduler"
+        );
+        CrawlerQueueV2Attempt source = command.attempt();
+        CrawlerQueueV2Attempt attempt = new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), source.artifacts(), identity
+        );
+        CrawlerQueueV2Repository.CreateQueueCommand invalid = new CrawlerQueueV2Repository.CreateQueueCommand(
+            command.expectedEpoch(), queue, attempt, command.readyScore(), command.dedupeTtl(), command.event()
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.createQueue(invalid)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void shouldRejectRetryWhenQueueDomainDiffersFromAttemptBeforeCallingRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.CreateRetryCommand source = retryCommandForValidation();
+        CrawlerQueueV2Queue queue = source.updatedQueue();
+        CrawlerQueueV2Queue driftedQueue = new CrawlerQueueV2Queue(
+            queue.contractVersion(), queue.stateStoreEpoch(), queue.queueId(), queue.lane(),
+            "npcs", queue.coveredDomains(), queue.actionId(), queue.dedupeKey(), queue.requestedAt(),
+            queue.requestedBy(), queue.currentAttemptId(), queue.attemptIds(), queue.legacyQueueId(), queue.origin()
+        );
+        CrawlerQueueV2Repository.CreateRetryCommand invalid = new CrawlerQueueV2Repository.CreateRetryCommand(
+            source.expectedEpoch(), driftedQueue, source.attempt(), source.expectedPriorStateVersion(),
+            source.readyScore(), source.dedupeTtl(), source.event()
+        );
+
+        assertThrows(CrawlerQueueV2Exception.class, () -> repository.createRetry(invalid));
+
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void shouldRejectRetryWhenQueueActionDiffersFromAttemptBeforeCallingRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.CreateRetryCommand source = retryCommandForValidation();
+        CrawlerQueueV2Queue queue = source.updatedQueue();
+        CrawlerQueueV2Queue driftedQueue = new CrawlerQueueV2Queue(
+            queue.contractVersion(), queue.stateStoreEpoch(), queue.queueId(), queue.lane(), queue.domain(),
+            queue.coveredDomains(), "wiki-npcs-refresh", queue.dedupeKey(), queue.requestedAt(), queue.requestedBy(),
+            queue.currentAttemptId(), queue.attemptIds(), queue.legacyQueueId(), queue.origin()
+        );
+        CrawlerQueueV2Repository.CreateRetryCommand invalid = new CrawlerQueueV2Repository.CreateRetryCommand(
+            source.expectedEpoch(), driftedQueue, source.attempt(), source.expectedPriorStateVersion(),
+            source.readyScore(), source.dedupeTtl(), source.event()
+        );
+
+        assertThrows(CrawlerQueueV2Exception.class, () -> repository.createRetry(invalid));
+
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void shouldRejectRetryWhenPersistedSchedulerSourceRunAndContentIdentityDriftBeforeLua() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        SourceDispatchIdentity priorIdentity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        SourceDispatchIdentity driftedRetryIdentity = new SourceDispatchIdentity(
+            priorIdentity.sourceFingerprint(),
+            "2026-07-11T13:01:00Z",
+            "sha256:" + "c".repeat(64)
+        );
+        CrawlerQueueV2Repository.CreateRetryCommand command = schedulerRetryCommand(
+            priorIdentity,
+            driftedRetryIdentity
+        );
+        stubStoredRetryState(redis, schedulerStoredQueue(command, priorIdentity), schedulerPriorAttempt(command, priorIdentity));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.createRetry(command)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        verify(redis, never()).execute(any(RedisScript.class), anyList(), any(Object[].class));
+    }
+
+    @Test
+    void shouldRejectRetryWhenPersistedSchedulerOwnershipIsDowngradedToManualBeforeLua() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "d".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "e".repeat(64)
+        );
+        CrawlerQueueV2Repository.CreateRetryCommand scheduler = schedulerRetryCommand(identity, identity);
+        CrawlerQueueV2Queue downgradedQueue = new CrawlerQueueV2Queue(
+            scheduler.updatedQueue().contractVersion(),
+            scheduler.updatedQueue().stateStoreEpoch(),
+            scheduler.updatedQueue().queueId(),
+            scheduler.updatedQueue().lane(),
+            scheduler.updatedQueue().domain(),
+            scheduler.updatedQueue().coveredDomains(),
+            scheduler.updatedQueue().actionId(),
+            scheduler.updatedQueue().lane() + ":" + scheduler.updatedQueue().actionId() + ":fresh",
+            scheduler.updatedQueue().requestedAt(),
+            "admin",
+            scheduler.updatedQueue().currentAttemptId(),
+            scheduler.updatedQueue().attemptIds(),
+            scheduler.updatedQueue().legacyQueueId(),
+            "manual"
+        );
+        CrawlerQueueV2Attempt downgradedAttempt = copyWithSourceIdentity(scheduler.attempt(), null);
+        CrawlerQueueV2Repository.CreateRetryCommand command = new CrawlerQueueV2Repository.CreateRetryCommand(
+            scheduler.expectedEpoch(),
+            downgradedQueue,
+            downgradedAttempt,
+            scheduler.expectedPriorStateVersion(),
+            scheduler.readyScore(),
+            scheduler.dedupeTtl(),
+            scheduler.event()
+        );
+        stubStoredRetryState(redis, schedulerStoredQueue(scheduler, identity), schedulerPriorAttempt(scheduler, identity));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.createRetry(command)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        verify(redis, never()).execute(any(RedisScript.class), anyList(), any(Object[].class));
+    }
+
+    @Test
+    void createRetryLuaChecksPersistedOwnershipAndSourceIdentityBeforeItsFirstWrite() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/create-retry.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        int firstWrite = source.indexOf("redis.call('SET', KEYS[3]");
+
+        assertTrue(firstWrite > 0);
+        assertTrue(source.indexOf("queue.domain ~= attempt.domain") >= 0
+            && source.indexOf("queue.domain ~= attempt.domain") < firstWrite);
+        assertTrue(source.indexOf("queue.actionId ~= attempt.actionId") >= 0
+            && source.indexOf("queue.actionId ~= attempt.actionId") < firstWrite);
+        assertTrue(source.indexOf("queue.domain ~= storedQueue.domain") >= 0
+            && source.indexOf("queue.domain ~= storedQueue.domain") < firstWrite);
+        assertTrue(source.indexOf("queue.actionId ~= storedQueue.actionId") >= 0
+            && source.indexOf("queue.actionId ~= storedQueue.actionId") < firstWrite);
+        assertTrue(source.indexOf("not sameNullableValue(queue.origin, storedQueue.origin)") >= 0
+            && source.indexOf("not sameNullableValue(queue.origin, storedQueue.origin)") < firstWrite);
+        assertTrue(source.indexOf("not sameNullableValue(queue.requestedBy, storedQueue.requestedBy)") >= 0
+            && source.indexOf("not sameNullableValue(queue.requestedBy, storedQueue.requestedBy)") < firstWrite);
+        assertTrue(source.indexOf("not sameSourceDispatchIdentity(priorAttempt.sourceDispatchIdentity, attempt.sourceDispatchIdentity)") >= 0
+            && source.indexOf("not sameSourceDispatchIdentity(priorAttempt.sourceDispatchIdentity, attempt.sourceDispatchIdentity)") < firstWrite);
+        assertTrue(source.indexOf("not hasExactSourceDispatchBinding(storedQueue, priorAttempt.sourceDispatchIdentity)") >= 0
+            && source.indexOf("not hasExactSourceDispatchBinding(storedQueue, priorAttempt.sourceDispatchIdentity)") < firstWrite);
+        assertTrue(source.indexOf("not hasExactSourceDispatchBinding(queue, attempt.sourceDispatchIdentity)") >= 0
+            && source.indexOf("not hasExactSourceDispatchBinding(queue, attempt.sourceDispatchIdentity)") < firstWrite);
+        assertTrue(source.indexOf("left.sourceFingerprint == right.sourceFingerprint") >= 0);
+        assertTrue(source.indexOf("left.sourceRunIdentity == right.sourceRunIdentity") >= 0);
+        assertTrue(source.indexOf("left.sourceContentIdentity == right.sourceContentIdentity") >= 0);
+    }
+
+    @Test
     void shouldRejectUndispatchableInitialIdentityBeforeCallingRedis() {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
@@ -1460,6 +1723,225 @@ class RedisCrawlerQueueV2RepositoryTest {
                 "queue.created", "epoch-1", "queue-1", "attempt-1", null, 1L,
                 CrawlerQueueV2Status.QUEUED, null, NOW
             )
+        );
+    }
+
+    private CrawlerQueueV2Repository.CreateRetryCommand schedulerRetryCommand(
+        SourceDispatchIdentity priorIdentity,
+        SourceDispatchIdentity retryIdentity
+    ) {
+        CrawlerQueueV2Repository.CreateQueueCommand source = command();
+        CrawlerQueueV2Queue baseQueue = source.queue();
+        CrawlerQueueV2Attempt baseAttempt = source.attempt();
+        String retryAttemptId = "attempt-retry";
+        String dedupeKey = baseQueue.lane() + ":" + baseQueue.actionId() + ":"
+            + priorIdentity.sourceFingerprint() + ":fresh";
+        CrawlerQueueV2Queue updatedQueue = new CrawlerQueueV2Queue(
+            baseQueue.contractVersion(),
+            baseQueue.stateStoreEpoch(),
+            baseQueue.queueId(),
+            baseQueue.lane(),
+            baseQueue.domain(),
+            baseQueue.coveredDomains(),
+            baseQueue.actionId(),
+            dedupeKey,
+            baseQueue.requestedAt(),
+            "v2-automation",
+            retryAttemptId,
+            List.of(baseAttempt.attemptId(), retryAttemptId),
+            baseQueue.legacyQueueId(),
+            "scheduler"
+        );
+        CrawlerQueueV2Attempt retryAttempt = new CrawlerQueueV2Attempt(
+            baseAttempt.contractVersion(),
+            baseAttempt.stateStoreEpoch(),
+            baseAttempt.queueId(),
+            retryAttemptId,
+            null,
+            1L,
+            CrawlerQueueV2Status.RETRY_WAIT,
+            baseAttempt.lane(),
+            baseAttempt.domain(),
+            baseAttempt.coveredDomains(),
+            baseAttempt.actionId(),
+            baseAttempt.attemptId(),
+            NOW,
+            NOW,
+            NOW,
+            null,
+            null,
+            NOW,
+            NOW.plus(Duration.ofHours(2)),
+            null,
+            null,
+            0L,
+            "retry_wait",
+            0L,
+            null,
+            null,
+            null,
+            baseAttempt.artifacts(),
+            retryIdentity
+        );
+        CrawlerQueueV2Event event = new CrawlerQueueV2Event(
+            "attempt.created",
+            baseQueue.stateStoreEpoch(),
+            baseQueue.queueId(),
+            retryAttemptId,
+            null,
+            1L,
+            CrawlerQueueV2Status.RETRY_WAIT,
+            null,
+            NOW
+        );
+        return new CrawlerQueueV2Repository.CreateRetryCommand(
+            source.expectedEpoch(),
+            updatedQueue,
+            retryAttempt,
+            3L,
+            NOW.toEpochMilli(),
+            Duration.ofHours(2),
+            event
+        );
+    }
+
+    private CrawlerQueueV2Queue schedulerStoredQueue(
+        CrawlerQueueV2Repository.CreateRetryCommand command,
+        SourceDispatchIdentity identity
+    ) {
+        CrawlerQueueV2Queue updatedQueue = command.updatedQueue();
+        String priorAttemptId = command.attempt().retryOfAttemptId();
+        return new CrawlerQueueV2Queue(
+            updatedQueue.contractVersion(),
+            updatedQueue.stateStoreEpoch(),
+            updatedQueue.queueId(),
+            updatedQueue.lane(),
+            updatedQueue.domain(),
+            updatedQueue.coveredDomains(),
+            updatedQueue.actionId(),
+            updatedQueue.lane() + ":" + updatedQueue.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            updatedQueue.requestedAt(),
+            "v2-automation",
+            priorAttemptId,
+            List.of(priorAttemptId),
+            updatedQueue.legacyQueueId(),
+            "scheduler"
+        );
+    }
+
+    private CrawlerQueueV2Attempt schedulerPriorAttempt(
+        CrawlerQueueV2Repository.CreateRetryCommand command,
+        SourceDispatchIdentity identity
+    ) {
+        CrawlerQueueV2Attempt retry = command.attempt();
+        return new CrawlerQueueV2Attempt(
+            retry.contractVersion(),
+            retry.stateStoreEpoch(),
+            retry.queueId(),
+            retry.retryOfAttemptId(),
+            7L,
+            command.expectedPriorStateVersion(),
+            CrawlerQueueV2Status.FAILED,
+            retry.lane(),
+            retry.domain(),
+            retry.coveredDomains(),
+            retry.actionId(),
+            null,
+            NOW.minusSeconds(60),
+            NOW.minusSeconds(60),
+            NOW.minusSeconds(30),
+            NOW.minusSeconds(30),
+            NOW.minusSeconds(1),
+            NOW.minusSeconds(1),
+            null,
+            1234L,
+            NOW.minusSeconds(30),
+            1L,
+            "failed",
+            1L,
+            2L,
+            "failed",
+            CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED,
+            retry.artifacts(),
+            identity
+        );
+    }
+
+    private void stubStoredRetryState(
+        StringRedisTemplate redis,
+        CrawlerQueueV2Queue queue,
+        CrawlerQueueV2Attempt priorAttempt
+    ) throws Exception {
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.get(RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX + "queue:" + queue.queueId()))
+            .thenReturn(objectMapper.writeValueAsString(queue));
+        when(values.get(RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX + "attempt:" + priorAttempt.attemptId()))
+            .thenReturn(objectMapper.writeValueAsString(priorAttempt));
+    }
+
+    private static CrawlerQueueV2Attempt copyWithSourceIdentity(
+        CrawlerQueueV2Attempt attempt,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
+        return new CrawlerQueueV2Attempt(
+            attempt.contractVersion(),
+            attempt.stateStoreEpoch(),
+            attempt.queueId(),
+            attempt.attemptId(),
+            attempt.fenceToken(),
+            attempt.stateVersion(),
+            attempt.status(),
+            attempt.lane(),
+            attempt.domain(),
+            attempt.coveredDomains(),
+            attempt.actionId(),
+            attempt.retryOfAttemptId(),
+            attempt.requestedAt(),
+            attempt.eligibleAt(),
+            attempt.enteredAt(),
+            attempt.startedAt(),
+            attempt.completedAt(),
+            attempt.lastHeartbeatAt(),
+            attempt.deadlineAt(),
+            attempt.pid(),
+            attempt.processStartedAt(),
+            attempt.progressSequence(),
+            attempt.phase(),
+            attempt.current(),
+            attempt.total(),
+            attempt.workerMessage(),
+            attempt.reasonCode(),
+            attempt.artifacts(),
+            sourceDispatchIdentity
+        );
+    }
+
+    private CrawlerQueueV2Repository.CreateRetryCommand retryCommandForValidation() {
+        CrawlerQueueV2Repository.CreateQueueCommand source = command();
+        CrawlerQueueV2Queue baseQueue = source.queue();
+        CrawlerQueueV2Attempt baseAttempt = source.attempt();
+        String retryAttemptId = "attempt-retry";
+        CrawlerQueueV2Queue updatedQueue = new CrawlerQueueV2Queue(
+            baseQueue.contractVersion(), baseQueue.stateStoreEpoch(), baseQueue.queueId(), baseQueue.lane(),
+            baseQueue.domain(), baseQueue.coveredDomains(), baseQueue.actionId(), baseQueue.dedupeKey(),
+            baseQueue.requestedAt(), baseQueue.requestedBy(), retryAttemptId,
+            List.of(baseAttempt.attemptId(), retryAttemptId), baseQueue.legacyQueueId(), baseQueue.origin()
+        );
+        CrawlerQueueV2Attempt retryAttempt = new CrawlerQueueV2Attempt(
+            baseAttempt.contractVersion(), baseAttempt.stateStoreEpoch(), baseAttempt.queueId(), retryAttemptId,
+            null, 1L, CrawlerQueueV2Status.RETRY_WAIT, baseAttempt.lane(), baseAttempt.domain(),
+            baseAttempt.coveredDomains(), baseAttempt.actionId(), baseAttempt.attemptId(), NOW, NOW, NOW,
+            null, null, NOW, NOW.plus(Duration.ofHours(2)), null, null, 0L, "retry_wait", 0L, null,
+            null, null, baseAttempt.artifacts()
+        );
+        CrawlerQueueV2Event event = new CrawlerQueueV2Event(
+            "attempt.created", baseQueue.stateStoreEpoch(), baseQueue.queueId(), retryAttemptId, null, 1L,
+            CrawlerQueueV2Status.RETRY_WAIT, null, NOW
+        );
+        return new CrawlerQueueV2Repository.CreateRetryCommand(
+            source.expectedEpoch(), updatedQueue, retryAttempt, baseAttempt.stateVersion(), NOW.toEpochMilli(),
+            Duration.ofHours(2), event
         );
     }
 }

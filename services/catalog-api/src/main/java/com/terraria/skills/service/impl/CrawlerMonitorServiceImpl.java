@@ -24,11 +24,14 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2CutoverService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
+import com.terraria.skills.service.impl.crawlerv2.SourceDispatchIdentity;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -39,20 +42,30 @@ import java.io.IOException;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -61,7 +74,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -92,8 +108,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path WIKI_AUDIO_ASSETS_PROGRESS_FILE = Path.of("data", "generated", "wiki-audio-assets-progress.latest.json");
     private static final Path WIKI_SOURCE_UPDATE_STATE_FILE = Path.of("data", "generated", "source-update-monitor.latest.json");
     private static final Path SOURCE_UPDATE_MONITOR_PROGRESS_FILE = Path.of("data", "generated", "source-update-monitor-progress.latest.json");
+    private static final Path SOURCE_UPDATE_MONITOR_RUNTIME_FILE = Path.of("data", "generated", "source-update-monitor.runtime.json");
     private static final Path AUTO_DISPATCH_CONFIG_FILE = Path.of("reports", "crawler-monitor", "auto-dispatch.config.json");
     private static final Path AUTO_DISPATCH_LAST_SWEEP_FILE = Path.of("reports", "crawler-monitor", "auto-dispatch.last-sweep.json");
+    private static final Path AUTOMATION_ALERT_DELIVERY_RETRY_FILE = Path.of(
+        "reports", "crawler-monitor", "automation-alert-delivery.latest.json"
+    );
+    private static final Path AUTOMATION_ALERT_DELIVERY_RETRY_LOCK_FILE = Path.of(
+        "reports", "crawler-monitor", "automation-alert-delivery.lock"
+    );
+    private static final ConcurrentHashMap<Path, ReentrantLock> AUTOMATION_ALERT_DELIVERY_RETRY_PROCESS_LOCKS =
+        new ConcurrentHashMap<>();
+    private static final ThreadLocal<Map<Path, Integer>> HELD_AUTOMATION_ALERT_DELIVERY_RETRY_LOCKS =
+        ThreadLocal.withInitial(HashMap::new);
     private static final Path V2_AUTOMATION_CONFIG_FILE = Path.of("reports", "crawler-monitor", "v2", "automation-config.json");
     private static final Path V2_AUTOMATION_LAST_SWEEP_FILE = Path.of("reports", "crawler-monitor", "v2", "automation-last-sweep.json");
     private static final Path V2_AUTOMATION_SWEEP_LOCK_FILE = Path.of("reports", "crawler-monitor", "v2", "automation-sweep.lock");
@@ -121,7 +148,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path AUDIT_REPORTS_DIR = Path.of("reports", "audit");
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
     private static final Duration PROGRESS_STALE_THRESHOLD = Duration.ofMinutes(10);
+    private static final Duration SOURCE_UPDATE_STATE_MAX_AGE = Duration.ofMinutes(15);
     private static final Duration DEFAULT_HEARTBEAT_STALE_THRESHOLD = Duration.ofMinutes(30);
+    private static final long PROCESS_DESTROY_GRACE_MILLIS = 250L;
+    private static final long PROCESS_DESTROY_FORCE_WAIT_MILLIS = 1000L;
+    private static final long PROCESS_GROUP_CLEANUP_DEADLINE_MILLIS = 2500L;
+    private static final Path PROC_ROOT = Path.of("/proc");
+    private static final Duration PROCESS_GROUP_SETUP_TIMEOUT = Duration.ofMillis(500);
+    private static final long PROCESS_GROUP_POLL_MILLIS = 10L;
     private static final List<String> REDIS_HEARTBEAT_ENTITIES = List.of("items", "buffs");
     private static final List<String> WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS = List.of(
         "items",
@@ -148,6 +182,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorActionRegistry.defaults();
     private static final List<CrawlerMonitorActionDefinition> WIKI_MONITOR_RULES =
         CRAWLER_MONITOR_ACTION_REGISTRY.defaultOperations();
+    private static final Set<String> AUTO_ELIGIBLE_SOURCE_KEYS = WIKI_MONITOR_RULES.stream()
+        .filter(rule -> rule.wikiDomain() && CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains(rule.domain()))
+        .map(CrawlerMonitorActionDefinition::sourceKey)
+        .collect(Collectors.toUnmodifiableSet());
 
     private final ObjectMapper objectMapper;
     private Path repoRootOverride;
@@ -165,11 +203,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final CrawlerQueueV2ApplicationService queueV2ApplicationService;
     private CrawlerAutomationPolicyService crawlerAutomationPolicyService;
     private CrawlerQueueV2CutoverService queueV2CutoverService;
+    private volatile JdbcTemplate jdbcTemplate;
     private final CrawlerDomainStateReducer domainStateReducer = new CrawlerDomainStateReducer();
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
     private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> queueStartMetadata = new ConcurrentHashMap<>();
     private final Set<String> cancellingDispatches = ConcurrentHashMap.newKeySet();
+    private final Object standardDispatchLifecycleMonitor = new Object();
+    private final Object standardDispatchCleanupFailureMonitor = new Object();
     private volatile Duration dispatchTimeout = WIKI_MONITOR_DISPATCH_TIMEOUT;
     private static final long OVERVIEW_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(2);
     private volatile CrawlerMonitorOverviewDTO cachedOverview;
@@ -303,6 +344,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         this.crawlerAutomationPolicyService = crawlerAutomationPolicyService;
     }
 
+    @Autowired(required = false)
+    void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
     @Override
     public CrawlerQueueV2CutoverResultDTO cutoverCrawlerQueueV2(
         CrawlerQueueV2CutoverRequestDTO request,
@@ -424,6 +470,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (repoRootOverride == null && configuredRepoRoot != null && !configuredRepoRoot.isBlank()) {
             repoRootOverride = Path.of(configuredRepoRoot).toAbsolutePath().normalize();
         }
+        try {
+            reconcileSourceUpdateMonitorOnStartup(resolveRepoRoot());
+        } catch (RuntimeException exception) {
+            log.warn("Failed to reconcile source update monitor runtime on startup: {}", exception.getMessage());
+        }
         runLegacyBackgroundMutation("startup V1 dispatch recovery", this::reconcileActiveDispatchesOnStartupUnderPermit);
     }
 
@@ -448,22 +499,103 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             }
             long pid = asLong(payload.get("pid"));
             String processStartedAt = recoveredProcessStartedAt(repoRoot, dispatchId, payload);
-            Process process = pid > 0 && processStartedAt != null ? processLauncher.recoverRecordedProcess(pid, processStartedAt) : null;
+            Process process = pid > 0 && processStartedAt != null
+                ? processLauncher.recoverRecordedProcess(
+                    pid,
+                    processStartedAt,
+                    asString(payload.get("processGroupToken")),
+                    asLong(payload.get("processGroupId")),
+                    asLong(payload.get("sessionId"))
+                )
+                : null;
             if (process != null && process.isAlive()) {
+                String processGroupToken = AdminTextUtils.trimToNull(asString(payload.get("processGroupToken")));
+                if (processLauncher.supportsPersistedProcessGroupInspection() && processGroupToken != null) {
+                    List<ProcessHandle> verifiedGroup = processLauncher.snapshotPersistedProcessGroup(
+                        pid,
+                        processGroupToken,
+                        processStartedAt
+                    );
+                    if (verifiedGroup == null || verifiedGroup.isEmpty()) {
+                        retainOrphanedDispatchLockAfterRestart(
+                            repoRoot,
+                            dispatchId,
+                            rule,
+                            "dispatch process-group members could not be verified after backend restart; lock retained"
+                        );
+                        return;
+                    }
+                }
                 DispatchPaths paths = reconstructDispatchPaths(repoRoot, dispatchId, rule);
                 activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, domain, actionId, process, paths));
                 watchDispatchProcess(repoRoot, recoveredQueueId(repoRoot, dispatchId, payload), dispatchId, rule, paths, process, parseInstant(processStartedAt));
                 log.info("Recovered running wiki monitor dispatch {} (pid={}) after restart.", dispatchId, pid);
+            } else if (pid > 0 && processStartedAt != null && processLauncher.supportsPersistedProcessGroupInspection()) {
+                List<ProcessHandle> residualGroup = processLauncher.snapshotPersistedProcessGroup(
+                    pid,
+                    asString(payload.get("processGroupToken")),
+                    processStartedAt
+                );
+                if (residualGroup == null) {
+                    retainOrphanedDispatchLockAfterRestart(
+                        repoRoot,
+                        dispatchId,
+                        rule,
+                        "dispatch process-group inspection unavailable after backend restart; lock retained"
+                    );
+                    return;
+                }
+                if (!residualGroup.isEmpty()) {
+                    String processGroupToken = AdminTextUtils.trimToNull(asString(payload.get("processGroupToken")));
+                    if (processGroupToken == null) {
+                        retainOrphanedDispatchLockAfterRestart(
+                            repoRoot,
+                            dispatchId,
+                            rule,
+                            "dispatch process-group identity is missing after backend restart; lock retained"
+                        );
+                        return;
+                    }
+                    boolean cleanupSucceeded = processLauncher.destroyPersistedProcessGroup(
+                        pid,
+                        processGroupToken,
+                        processStartedAt,
+                        residualGroup
+                    );
+                    boolean groupEmpty = processLauncher.awaitPersistedProcessGroupEmpty(
+                        pid,
+                        processGroupToken,
+                        processStartedAt,
+                        PROCESS_DESTROY_FORCE_WAIT_MILLIS
+                    );
+                    if (!cleanupSucceeded || !groupEmpty) {
+                        retainOrphanedDispatchLockAfterRestart(
+                            repoRoot,
+                            dispatchId,
+                            rule,
+                            "dispatch process-group cleanup failed after backend restart; lock retained"
+                        );
+                        return;
+                    }
+                }
+                if (convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule)) {
+                    log.warn("Released orphaned wiki monitor dispatch lock {} after restart (pid={} not alive).", dispatchId, pid);
+                } else {
+                    log.error("Retained orphaned wiki monitor dispatch lock {} after restart because process cleanup remains unverified.", dispatchId);
+                }
             } else {
-                convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule);
-                log.warn("Released orphaned wiki monitor dispatch lock {} after restart (pid={} not alive).", dispatchId, pid);
+                if (convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule)) {
+                    log.warn("Released orphaned wiki monitor dispatch lock {} after restart (pid={} not alive).", dispatchId, pid);
+                } else {
+                    log.error("Retained orphaned wiki monitor dispatch lock {} after restart because process cleanup remains unverified.", dispatchId);
+                }
             }
         } catch (RuntimeException exception) {
             log.warn("Failed to reconcile active dispatches on startup: {}", exception.getMessage());
         }
     }
 
-    private void convergeOrphanedDispatch(
+    private boolean convergeOrphanedDispatch(
         Path repoRoot,
         Path lockPath,
         String dispatchId,
@@ -481,6 +613,177 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             writeJsonFile(statePath, merged);
         }
         releaseDispatchLock(lockPath, dispatchId);
+        return !Files.exists(lockPath);
+    }
+
+    private void reconcileSourceUpdateMonitorOnStartup(Path repoRoot) {
+        Path runtimePath = repoRoot.resolve(SOURCE_UPDATE_MONITOR_RUNTIME_FILE).normalize();
+        ReadResult runtime = readJsonMap(runtimePath);
+        if (!runtime.readable()) {
+            return;
+        }
+        Map<String, Object> payload = runtime.payload();
+        String status = asString(payload.get("status"));
+        if (!"running".equalsIgnoreCase(status) && !"launching".equalsIgnoreCase(status)) {
+            return;
+        }
+        String token = AdminTextUtils.trimToNull(asString(payload.get("processGroupToken")));
+        String startedAt = firstValidInstantString(
+            asString(payload.get("processStartedAt")),
+            asString(payload.get("startedAt")),
+            asString(payload.get("requestedAt"))
+        );
+        if (token == null || startedAt == null || !processLauncher.supportsPersistedProcessGroupInspection()) {
+            failSourceUpdateRuntimeAfterStartup(
+                repoRoot,
+                payload,
+                "source update monitor runtime identity is incomplete after backend restart"
+            );
+            return;
+        }
+
+        long pid = asLong(payload.get("pid"));
+        long processGroupId = asLong(payload.get("processGroupId"));
+        long sessionId = asLong(payload.get("sessionId"));
+        if (pid > 0L && processGroupId > 0L && processGroupId != pid
+            || pid > 0L && sessionId > 0L && sessionId != pid) {
+            failSourceUpdateRuntimeAfterStartup(
+                repoRoot,
+                payload,
+                "source update monitor runtime process-group identity does not match its root pid"
+            );
+            return;
+        }
+
+        PersistedProcessGroup persisted;
+        if (pid > 0L) {
+            List<ProcessHandle> members = processLauncher.snapshotPersistedProcessGroup(pid, token, startedAt);
+            if (members == null) {
+                failSourceUpdateRuntimeAfterStartup(
+                    repoRoot,
+                    payload,
+                    "source update monitor process-group identity could not be verified after backend restart"
+                );
+                return;
+            }
+            persisted = new PersistedProcessGroup(pid, pid, members);
+        } else {
+            persisted = processLauncher.snapshotPersistedProcessGroupByToken(token, startedAt);
+            if (persisted == null) {
+                failSourceUpdateRuntimeAfterStartup(
+                    repoRoot,
+                    payload,
+                    "source update monitor launch identity could not be inspected after backend restart"
+                );
+                return;
+            }
+        }
+
+        if (!persisted.members().isEmpty()) {
+            if (persisted.processGroupId() <= 0L) {
+                failSourceUpdateRuntimeAfterStartup(
+                    repoRoot,
+                    payload,
+                    "source update monitor process group has no verifiable group id after backend restart"
+                );
+                return;
+            }
+            boolean cleanupSucceeded = processLauncher.destroyPersistedProcessGroup(
+                persisted.processGroupId(),
+                token,
+                startedAt,
+                persisted.members()
+            );
+            boolean groupEmpty = processLauncher.awaitPersistedProcessGroupEmpty(
+                persisted.processGroupId(),
+                token,
+                startedAt,
+                PROCESS_DESTROY_FORCE_WAIT_MILLIS
+            );
+            if (!cleanupSucceeded || !groupEmpty) {
+                failSourceUpdateRuntimeAfterStartup(
+                    repoRoot,
+                    payload,
+                    "source update monitor process-group cleanup failed after backend restart"
+                );
+                return;
+            }
+        }
+        failSourceUpdateRuntimeAfterStartup(
+            repoRoot,
+            payload,
+            "source update monitor interrupted by backend restart"
+        );
+    }
+
+    private void failSourceUpdateRuntimeAfterStartup(
+        Path repoRoot,
+        Map<String, Object> payload,
+        String message
+    ) {
+        LinkedHashMap<String, Object> failed = new LinkedHashMap<>(payload == null ? Map.of() : payload);
+        failed.put("status", "failed");
+        failed.put("message", message);
+        failed.put("completedAt", Instant.now(clock).toString());
+        try {
+            writeSourceUpdateRuntimeFile(repoRoot, failed);
+        } catch (RuntimeException exception) {
+            log.error("Failed to persist source update monitor startup recovery state.", exception);
+        }
+        try {
+            recordAutomationAlert(
+                asString(failed.get("runId")),
+                "CRITICAL",
+                "scheduler:source-probe-startup:" + firstNonBlank(asString(failed.get("runId")), "unknown"),
+                Map.of(
+                    "title", "Source update monitor requires startup recovery",
+                    "details", message,
+                    "reason", "source_probe_startup_recovery",
+                    "status", "failed"
+                )
+            );
+        } catch (RuntimeException exception) {
+            log.error("Failed to persist source update monitor startup recovery alert.", exception);
+        }
+    }
+
+    private void retainOrphanedDispatchLockAfterRestart(
+        Path repoRoot,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        String message
+    ) {
+        log.error("{} (dispatchId={})", message, dispatchId);
+        Path statePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        ReadResult state = readJsonMap(statePath);
+        if (state.readable() && dispatchId.equals(asString(state.payload().get("dispatchId")))) {
+            LinkedHashMap<String, Object> merged = new LinkedHashMap<>(state.payload());
+            merged.put("status", "failed");
+            merged.put("message", message);
+            merged.put("completedAt", Instant.now(clock).toString());
+            try {
+                writeJsonFile(statePath, merged);
+            } catch (RuntimeException exception) {
+                log.error("Failed to persist startup process-group cleanup state for {}.", dispatchId, exception);
+            }
+        }
+        try {
+            recordAutomationAlert(
+                dispatchId,
+                "CRITICAL",
+                "scheduler:v1-startup-process-group:" + dispatchId,
+                Map.of(
+                    "title", "Crawler dispatch process group requires operator cleanup",
+                    "details", message,
+                    "reason", "process_group_cleanup_failed",
+                    "actionId", rule.actionId(),
+                    "dispatchId", dispatchId,
+                    "status", "running"
+                )
+            );
+        } catch (RuntimeException exception) {
+            log.error("Failed to persist startup process-group cleanup alert for {}.", dispatchId, exception);
+        }
     }
 
     private CrawlerMonitorActionDefinition findWikiMonitorRule(String domain, String actionId) {
@@ -735,6 +1038,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String requestedBy,
         CrawlerMonitorActionDefinition rule
     ) {
+        return dispatchV2WikiMonitorTask(request, requestedBy, rule, null);
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchV2WikiMonitorTask(
+        CrawlerMonitorDispatchRequestDTO request,
+        String requestedBy,
+        CrawlerMonitorActionDefinition rule,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
         CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
             queueV2ApplicationService,
             "V2 router requires CrawlerQueueV2ApplicationService"
@@ -746,7 +1058,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 "standard",
                 request.getResumeMode(),
                 requireOperator(requestedBy, "requestedBy"),
-                request.getLegacyQueueId()
+                request.getLegacyQueueId(),
+                sourceDispatchIdentity
             )
         );
         invalidateCachedOverview();
@@ -1820,6 +2133,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (cancellingDispatches.contains(item.getDispatchId())) {
                 continue;
             }
+            if (hasDurableCleanupFailure(repoRoot, item)) {
+                // A failed process-tree cleanup is a hard fence. This check is
+                // intentionally durable so a queue transition/readback failure
+                // cannot turn it into a timed_out item whose lock is released.
+                continue;
+            }
             if (hasHealthyTrackedActiveQueueProcess(repoRoot, item)) {
                 continue;
             }
@@ -1902,19 +2221,29 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void markLatestDispatchFailedIfMatches(Path repoRoot, WikiMonitorQueueItem item, String message, Instant completedAt) {
+        markLatestDispatchTerminalIfMatches(repoRoot, item, "failed", message, completedAt);
+    }
+
+    private void markLatestDispatchTerminalIfMatches(
+        Path repoRoot,
+        WikiMonitorQueueItem item,
+        String terminalStatus,
+        String message,
+        Instant completedAt
+    ) {
         Path statePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
         ReadResult state = readJsonMap(statePath);
         if (!state.readable() || !latestDispatchMatchesQueueItem(item, state.payload())) {
             return;
         }
-        String status = asString(state.payload().get("status"));
-        if (!"paused".equals(status) && !"running".equals(status)) {
+        String currentStatus = asString(state.payload().get("status"));
+        if (!"paused".equals(currentStatus) && !"running".equals(currentStatus)) {
             return;
         }
         LinkedHashMap<String, Object> merged = new LinkedHashMap<>(state.payload());
-        merged.put("status", "failed");
+        merged.put("status", terminalStatus);
         merged.put("message", message);
-        merged.put("completedAt", completedAt.toString());
+        merged.put("completedAt", (completedAt == null ? Instant.now(clock) : completedAt).toString());
         writeJsonFile(statePath, merged);
     }
 
@@ -2104,14 +2433,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return;
         }
         Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
-        ReadResult lock = readJsonMap(lockPath);
-        if (!lock.readable() || !item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
-            return;
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            ReadResult lock = readJsonMap(lockPath);
+            if (!lock.readable() || !item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
+                return;
+            }
+            if (isRecordedProcessAlive(lock.payload())
+                || shouldRetainStandardDispatchLockAfterCleanupFailure(lockPath, asString(lock.payload().get("dispatchId")))) {
+                return;
+            }
+            forceDeleteLock(lockPath);
         }
-        if (isRecordedProcessAlive(lock.payload())) {
-            return;
-        }
-        forceDeleteLock(lockPath);
     }
 
     private boolean hasHealthyTrackedActiveQueueProcess(Path repoRoot, WikiMonitorQueueItem item) {
@@ -2122,20 +2454,112 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             Process process = activeDomainSmokeProcesses.get(item.getDispatchId());
             return process != null && process.isAlive();
         }
-        ActiveDispatchProcess active = activeDispatchProcesses.get(item.getDispatchId());
-        if (active == null || !active.process().isAlive()) {
-            return false;
+        ActiveDispatchProcess active;
+        synchronized (standardDispatchLifecycleMonitor) {
+            active = activeDispatchProcesses.get(item.getDispatchId());
+            if (active == null || !active.process().isAlive()) {
+                return false;
+            }
+            if (!"running".equals(item.getStatus()) || !runtimeHeartbeatIsStale(repoRoot, item)) {
+                return true;
+            }
+            cancellingDispatches.add(item.getDispatchId());
         }
-        if ("running".equals(item.getStatus()) && runtimeHeartbeatIsStale(repoRoot, item)) {
-            processLauncher.destroy(active.process());
+        boolean cleanupSucceeded = processLauncher.destroy(active.process());
+        if (!cleanupSucceeded) {
+            CrawlerMonitorActionDefinition rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
+            boolean failureMarkerPublished = false;
+            if (rule != null) {
+                recordStandardDispatchCleanupFailure(
+                    repoRoot,
+                    item.getQueueId(),
+                    item.getDispatchId(),
+                    rule,
+                    active.paths(),
+                    "dispatch timed out after a stale progress heartbeat; process tree cleanup failed; lock retained"
+                );
+                failureMarkerPublished = requiresRetainedDispatchLockAfterCleanupFailure(
+                    readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize()),
+                    item.getDispatchId()
+                );
+                activeDispatchProcesses.remove(item.getDispatchId());
+            } else {
+                log.error("Cannot record stale-heartbeat cleanup failure for unknown wiki monitor dispatch {}.", item.getDispatchId());
+            }
+            // Keep the cancellation fence until the durable failure marker has been
+            // published. The watcher may wake as soon as destroy(...) returns; it
+            // must observe controlled cancellation or the persisted cleanup failure,
+            // never the old running state in between those writes.
+            if (failureMarkerPublished) {
+                cancellingDispatches.remove(item.getDispatchId());
+            }
+            return true;
+        }
+        markLatestDispatchTerminalIfMatches(
+            repoRoot,
+            item,
+            "timed_out",
+            "dispatch timed out after a stale progress heartbeat",
+            Instant.now(clock)
+        );
+        synchronized (standardDispatchLifecycleMonitor) {
             activeDispatchProcesses.remove(item.getDispatchId());
+            clearStandardDispatchCancellationFenceAfterSuccessfulStaleCleanup(repoRoot, item.getDispatchId());
+        }
+        return false;
+    }
+
+    private boolean hasDurableCleanupFailure(Path repoRoot, WikiMonitorQueueItem item) {
+        if (item == null || !"standard".equals(item.getLane())) {
             return false;
         }
-        return true;
+        String dispatchId = AdminTextUtils.trimToNull(item.getDispatchId());
+        if (dispatchId == null) {
+            ReadResult lock = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+            dispatchId = verifiedLockDispatchIdForQueueItem(lock, item);
+        }
+        if (dispatchId == null) {
+            return false;
+        }
+        return requiresRetainedDispatchLockAfterCleanupFailure(
+            readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize()),
+            dispatchId
+        );
+    }
+
+    private boolean hasDurableCleanupFailure(
+        Path repoRoot,
+        WikiMonitorQueueItem item,
+        ReadResult verifiedLock
+    ) {
+        if (item == null || !"standard".equals(item.getLane())) {
+            return false;
+        }
+        String dispatchId = verifiedLockDispatchIdForQueueItem(verifiedLock, item);
+        if (dispatchId == null) {
+            dispatchId = AdminTextUtils.trimToNull(item.getDispatchId());
+        }
+        return dispatchId != null && requiresRetainedDispatchLockAfterCleanupFailure(
+            readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize()),
+            dispatchId
+        );
+    }
+
+    private String verifiedLockDispatchIdForQueueItem(ReadResult lock, WikiMonitorQueueItem item) {
+        if (lock == null || !lock.readable() || item == null || item.getQueueId() == null) {
+            return null;
+        }
+        if (!item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
+            return null;
+        }
+        return AdminTextUtils.trimToNull(asString(lock.payload().get("dispatchId")));
     }
 
     private void releaseLaneLockForDeadItem(Path repoRoot, WikiMonitorQueueItem item) {
         if (item == null) {
+            return;
+        }
+        if ("standard".equals(item.getLane()) && hasDurableCleanupFailure(repoRoot, item)) {
             return;
         }
         Path lockPath = "domain_smoke".equals(item.getLane())
@@ -2152,7 +2576,26 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return;
         }
         if (deadLockBelongsToQueueItem(lock.payload(), item, true)) {
-            forceDeleteLock(lockPath);
+            synchronized (standardDispatchCleanupFailureMonitor) {
+                if ("standard".equals(item.getLane()) && cancellingDispatches.contains(item.getDispatchId())) {
+                    return;
+                }
+                ReadResult currentLock = readJsonMap(lockPath);
+                if (!currentLock.readable()
+                    || !deadLockBelongsToQueueItem(currentLock.payload(), item, true)
+                    || !Objects.equals(
+                        asString(lock.payload().get("dispatchId")),
+                        asString(currentLock.payload().get("dispatchId"))
+                    )
+                    || isRecordedProcessAlive(currentLock.payload())) {
+                    return;
+                }
+                // Re-check the durable failure fence while serializing deletion with its publication.
+                if ("standard".equals(item.getLane()) && hasDurableCleanupFailure(repoRoot, item, currentLock)) {
+                    return;
+                }
+                forceDeleteLock(lockPath);
+            }
         }
     }
 
@@ -2467,6 +2910,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         monitor.setAutoDispatchEnabled(settings.isEnabled());
         monitor.setAutoDispatchSettings(settings);
         monitor.setLastSweep(readLastSweep(repoRoot));
+        monitor.setAlerts(loadAutomationAlerts());
         monitor.setDomains(domains);
         monitor.setDispatchPlan(dispatchPlan);
         monitor.setDispatchQueue(includeV1LiveQueue ? buildWikiMonitorDispatchQueue() : List.of());
@@ -2482,6 +2926,671 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         summary.setFailedCount(domains.stream().filter(domain -> "failed".equals(domain.getStatus())).count());
         monitor.setSummary(summary);
         return monitor;
+    }
+
+    /**
+     * Reads OPEN scheduler alerts from the durable automation ledger. A monitor
+     * overview must remain available when the optional automation schema is not
+     * installed yet (for example during a read-only bootstrap or unit test).
+     */
+    private List<CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO> loadAutomationAlerts() {
+        JdbcTemplate template = jdbcTemplate;
+        if (template == null) {
+            return List.of();
+        }
+        try {
+            return template.queryForList(
+                "SELECT id, run_id AS runId, severity, dedupe_key AS dedupeKey, status, details_json AS detailsJson,"
+                    + " first_seen_at AS firstSeenAt, last_seen_at AS lastSeenAt"
+                    + " FROM crawler_automation_alert"
+                    + " WHERE status = 'OPEN'"
+                    + " ORDER BY last_seen_at DESC, id DESC LIMIT 100"
+            ).stream().map(row -> {
+                    CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO alert =
+                        new CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO();
+                    alert.setId(asNullableLong(row.get("id")));
+                    alert.setRunId(asString(row.get("runId")));
+                    alert.setSeverity(asString(row.get("severity")));
+                    alert.setDedupeKey(asString(row.get("dedupeKey")));
+                    alert.setStatus(asString(row.get("status")));
+                    alert.setCreatedAt(asString(row.get("firstSeenAt")));
+                    alert.setLastSeenAt(asString(row.get("lastSeenAt")));
+                    applyAlertDetails(alert, asString(row.get("detailsJson")));
+                    return alert;
+                }).toList();
+        } catch (DataAccessException exception) {
+            log.warn("Unable to read crawler automation alerts: {}", exception.getMessage());
+            return List.of(syntheticAutomationAlertsReadFailure(exception));
+        }
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO syntheticAutomationAlertsReadFailure(
+        DataAccessException exception
+    ) {
+        CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO alert =
+            new CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO();
+        alert.setSeverity("CRITICAL");
+        alert.setDedupeKey("crawler-monitor:automation-alerts-read");
+        alert.setStatus("OPEN");
+        alert.setTitle("Crawler automation alerts unavailable");
+        alert.setDetails(firstNonBlank(
+            exception == null ? null : exception.getMessage(),
+            exception == null ? null : exception.getClass().getSimpleName(),
+            "automation alert ledger read failed"
+        ));
+        String now = Instant.now(clock).toString();
+        alert.setCreatedAt(now);
+        alert.setLastSeenAt(now);
+        return alert;
+    }
+
+    private void applyAlertDetails(CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO alert, String rawDetails) {
+        if (rawDetails == null || rawDetails.isBlank()) {
+            alert.setDetails("");
+            return;
+        }
+        try {
+            JsonNode details = objectMapper.readTree(rawDetails);
+            alert.setTitle(firstNonBlank(
+                details.path("title").asText(null),
+                details.path("message").asText(null),
+                "Crawler automation alert"
+            ));
+            alert.setDetails(firstNonBlank(
+                details.path("details").asText(null),
+                details.path("message").asText(null),
+                details.path("reason").asText(null),
+                rawDetails
+            ));
+            alert.setDomain(details.path("domain").asText(null));
+            return;
+        } catch (IOException ignored) {
+            // Keep the raw payload visible when a legacy row contains invalid JSON.
+        }
+        alert.setTitle("Crawler automation alert");
+        alert.setDetails(rawDetails);
+    }
+
+    /** Package-visible seam for focused service tests. */
+    List<CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO> loadAutomationAlertsForTesting() {
+        return loadAutomationAlerts();
+    }
+
+    void recordAutomationAlertForTesting(
+        String runId,
+        String severity,
+        String dedupeKey,
+        Map<String, Object> details
+    ) {
+        recordAutomationAlert(runId, severity, dedupeKey, details);
+    }
+
+    private AutomationAlertDeliveryResult recordAutomationAlert(
+        String runId,
+        String severity,
+        String dedupeKey,
+        Map<String, Object> details
+    ) {
+        if (dedupeKey == null || dedupeKey.isBlank()) {
+            throw new IllegalArgumentException("Crawler automation alert requires a dedupe key");
+        }
+        JdbcTemplate template = jdbcTemplate;
+        if (template == null) {
+            return queueAutomationAlertDeliveryRetry(
+                resolveRepoRoot(),
+                runId,
+                severity,
+                dedupeKey,
+                details,
+                "JDBC_TEMPLATE_UNAVAILABLE",
+                "JdbcTemplate is unavailable"
+            );
+        }
+        try {
+            persistAutomationAlert(template, runId, severity, dedupeKey, details);
+            resolveAutomationAlertDeliveryRetry(resolveRepoRoot(), dedupeKey);
+            return AutomationAlertDeliveryResult.persisted();
+        } catch (DataAccessException | IOException exception) {
+            log.warn("Unable to persist crawler automation alert {}: {}", dedupeKey, exception.getMessage());
+            return queueAutomationAlertDeliveryRetry(
+                resolveRepoRoot(),
+                runId,
+                severity,
+                dedupeKey,
+                details,
+                "JDBC_ALERT_PERSISTENCE_FAILED",
+                firstNonBlank(exception.getMessage(), exception.getClass().getSimpleName())
+            );
+        }
+    }
+
+    private void persistAutomationAlert(
+        JdbcTemplate template,
+        String runId,
+        String severity,
+        String dedupeKey,
+        Map<String, Object> details
+    ) throws IOException {
+        String detailsJson = objectMapper.writeValueAsString(details == null ? Map.of() : details);
+        template.update(
+            "INSERT INTO crawler_automation_alert"
+                + " (run_id, severity, dedupe_key, status, details_json, first_seen_at, last_seen_at)"
+                + " VALUES (?, ?, ?, 'OPEN', CAST(? AS JSON), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                + " ON DUPLICATE KEY UPDATE run_id = VALUES(run_id), severity = VALUES(severity),"
+                + " status = 'OPEN', details_json = VALUES(details_json), last_seen_at = CURRENT_TIMESTAMP,"
+                + " acknowledged_by = NULL, acknowledged_at = NULL",
+            runId,
+            normalizeAlertSeverity(severity),
+            dedupeKey,
+            detailsJson
+        );
+    }
+
+    private AutomationAlertDeliveryResult queueAutomationAlertDeliveryRetry(
+        Path repoRoot,
+        String runId,
+        String severity,
+        String dedupeKey,
+        Map<String, Object> details,
+        String failureCode,
+        String failureMessage
+    ) {
+        Path retryPath = repoRoot.resolve(AUTOMATION_ALERT_DELIVERY_RETRY_FILE).normalize();
+        return withAutomationAlertDeliveryRetryLock(repoRoot, () -> {
+            AutomationAlertDeliveryRetryState previous = readAutomationAlertDeliveryRetry(retryPath);
+            List<Map<String, Object>> alerts = new ArrayList<>(previous.alerts());
+            Map<String, Object> previousAlert = alerts.stream()
+                .filter(alert -> dedupeKey.equals(asString(alert.get("dedupeKey"))))
+                .findFirst()
+                .orElse(Map.of());
+            alerts.removeIf(alert -> dedupeKey.equals(asString(alert.get("dedupeKey"))));
+
+            Instant now = Instant.now(clock);
+            LinkedHashMap<String, Object> pending = new LinkedHashMap<>();
+            pending.put("runId", runId);
+            pending.put("severity", normalizeAlertSeverity(severity));
+            pending.put("dedupeKey", dedupeKey);
+            pending.put("details", details == null ? Map.of() : new LinkedHashMap<>(details));
+            pending.put("firstFailedAt", firstNonBlank(asString(previousAlert.get("firstFailedAt")), now.toString()));
+            pending.put("lastFailedAt", now.toString());
+            pending.put("attempts", Math.max(1, asInt(previousAlert.get("attempts"), 0) + 1));
+            pending.put("failureCode", failureCode);
+            pending.put("failureMessage", firstNonBlank(failureMessage, failureCode));
+            alerts.add(pending);
+            writeAutomationAlertDeliveryRetry(retryPath, previous.payload(), "retry_pending", alerts);
+            return AutomationAlertDeliveryResult.retryPending(pending.get("failureMessage").toString());
+        });
+    }
+
+    private void resolveAutomationAlertDeliveryRetry(Path repoRoot, String dedupeKey) {
+        Path retryPath = repoRoot.resolve(AUTOMATION_ALERT_DELIVERY_RETRY_FILE).normalize();
+        withAutomationAlertDeliveryRetryLock(repoRoot, () -> {
+            AutomationAlertDeliveryRetryState pending = readAutomationAlertDeliveryRetry(retryPath);
+            if (!pending.found()) {
+                return null;
+            }
+            List<Map<String, Object>> alerts = new ArrayList<>(pending.alerts());
+            if (!alerts.removeIf(alert -> dedupeKey.equals(asString(alert.get("dedupeKey"))))) {
+                return null;
+            }
+            writeAutomationAlertDeliveryRetry(
+                retryPath,
+                pending.payload(),
+                alerts.isEmpty() ? "delivered" : "retry_pending",
+                alerts
+            );
+            return null;
+        });
+    }
+
+    private void writeAutomationAlertDeliveryRetry(
+        Path retryPath,
+        Map<String, Object> previousPayload,
+        String status,
+        List<Map<String, Object>> alerts
+    ) {
+        LinkedHashMap<String, Object> payload = previousPayload == null
+            ? new LinkedHashMap<>()
+            : new LinkedHashMap<>(previousPayload);
+        payload.put("status", status);
+        payload.put("updatedAt", Instant.now(clock).toString());
+        payload.put("alerts", alerts);
+        writeAutomationAlertDeliveryRetryAtomically(retryPath, payload);
+    }
+
+    private void retryPendingAutomationAlertDeliveries(Path repoRoot, JdbcTemplate template) {
+        Path retryPath = repoRoot.resolve(AUTOMATION_ALERT_DELIVERY_RETRY_FILE).normalize();
+        withAutomationAlertDeliveryRetryLock(repoRoot, () -> {
+            AutomationAlertDeliveryRetryState pending = readAutomationAlertDeliveryRetry(retryPath);
+            if (!pending.found()) {
+                return null;
+            }
+            List<Map<String, Object>> remaining = new ArrayList<>();
+            for (Map<String, Object> alert : pending.alerts()) {
+                String dedupeKey = asString(alert.get("dedupeKey"));
+                if (dedupeKey == null || dedupeKey.isBlank()) {
+                    remaining.add(alert);
+                    continue;
+                }
+                try {
+                    persistAutomationAlert(
+                        template,
+                        asString(alert.get("runId")),
+                        asString(alert.get("severity")),
+                        dedupeKey,
+                        asMap(alert.get("details"))
+                    );
+                } catch (DataAccessException | IOException exception) {
+                    LinkedHashMap<String, Object> failed = new LinkedHashMap<>(alert);
+                    failed.put("lastFailedAt", Instant.now(clock).toString());
+                    failed.put("attempts", Math.max(1, asInt(alert.get("attempts"), 0) + 1));
+                    failed.put("failureCode", "JDBC_ALERT_PERSISTENCE_FAILED");
+                    failed.put("failureMessage", firstNonBlank(exception.getMessage(), exception.getClass().getSimpleName()));
+                    remaining.add(failed);
+                }
+            }
+            writeAutomationAlertDeliveryRetry(
+                retryPath,
+                pending.payload(),
+                remaining.isEmpty() ? "delivered" : "retry_pending",
+                remaining
+            );
+            return null;
+        });
+    }
+
+    /**
+     * Serializes all mutation paths for the durable retry outbox. The JVM lock
+     * prevents an overlapping OS lock in this process; the file lock extends
+     * the same read/merge/write exclusion across backend processes.
+     */
+    private <T> T withAutomationAlertDeliveryRetryLock(
+        Path repoRoot,
+        AutomationAlertDeliveryRetryOperation<T> operation
+    ) {
+        Objects.requireNonNull(repoRoot, "repoRoot");
+        Objects.requireNonNull(operation, "operation");
+        Path normalizedRoot = repoRoot.toAbsolutePath().normalize();
+        Path lockPath = requireAutomationAlertRetryParent(
+            normalizedRoot,
+            normalizedRoot.resolve(AUTOMATION_ALERT_DELIVERY_RETRY_LOCK_FILE).toAbsolutePath().normalize(),
+            true
+        ).resolve(AUTOMATION_ALERT_DELIVERY_RETRY_LOCK_FILE.getFileName());
+        if (automationAlertDeliveryRetryLockHeld(lockPath)) {
+            return runAutomationAlertDeliveryRetryOperation(operation);
+        }
+
+        ReentrantLock processLock = AUTOMATION_ALERT_DELIVERY_RETRY_PROCESS_LOCKS.computeIfAbsent(
+            lockPath,
+            ignored -> new ReentrantLock(true)
+        );
+        processLock.lock();
+        try {
+            requireAutomationAlertRetryParent(normalizedRoot, lockPath, true);
+            requireRegularAutomationAlertRetryLock(lockPath);
+            try (FileChannel channel = FileChannel.open(lockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                 FileLock ignored = channel.lock()) {
+                retainAutomationAlertDeliveryRetryLock(lockPath);
+                try {
+                    return runAutomationAlertDeliveryRetryOperation(operation);
+                } finally {
+                    releaseAutomationAlertDeliveryRetryLock(lockPath);
+                }
+            }
+        } catch (OverlappingFileLockException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("Failed to serialize automation alert retry outbox", exception);
+        } catch (IOException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("Failed to lock automation alert retry outbox", exception);
+        } finally {
+            processLock.unlock();
+        }
+    }
+
+    private <T> T runAutomationAlertDeliveryRetryOperation(AutomationAlertDeliveryRetryOperation<T> operation) {
+        try {
+            return operation.run();
+        } catch (IOException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("Failed to update automation alert retry outbox", exception);
+        }
+    }
+
+    private boolean automationAlertDeliveryRetryLockHeld(Path lockPath) {
+        return HELD_AUTOMATION_ALERT_DELIVERY_RETRY_LOCKS.get().getOrDefault(lockPath, 0) > 0;
+    }
+
+    private void retainAutomationAlertDeliveryRetryLock(Path lockPath) {
+        Map<Path, Integer> heldLocks = HELD_AUTOMATION_ALERT_DELIVERY_RETRY_LOCKS.get();
+        heldLocks.put(lockPath, heldLocks.getOrDefault(lockPath, 0) + 1);
+    }
+
+    private void releaseAutomationAlertDeliveryRetryLock(Path lockPath) {
+        Map<Path, Integer> heldLocks = HELD_AUTOMATION_ALERT_DELIVERY_RETRY_LOCKS.get();
+        int count = heldLocks.getOrDefault(lockPath, 0);
+        if (count <= 1) {
+            heldLocks.remove(lockPath);
+        } else {
+            heldLocks.put(lockPath, count - 1);
+        }
+        if (heldLocks.isEmpty()) {
+            HELD_AUTOMATION_ALERT_DELIVERY_RETRY_LOCKS.remove();
+        }
+    }
+
+    private void requireRegularAutomationAlertRetryLock(Path lockPath) {
+        if (Files.isSymbolicLink(lockPath)
+            || (Files.exists(lockPath, LinkOption.NOFOLLOW_LINKS)
+                && !Files.isRegularFile(lockPath, LinkOption.NOFOLLOW_LINKS))) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox lock is not a regular file");
+        }
+    }
+
+    private AutomationAlertDeliveryRetryState readAutomationAlertDeliveryRetry(Path retryPath) {
+        Path normalizedRetryPath = requireAutomationAlertRetryParent(
+            resolveRepoRoot(),
+            retryPath.toAbsolutePath().normalize(),
+            false
+        ).resolve(retryPath.getFileName());
+        if (Files.isSymbolicLink(normalizedRetryPath)) {
+            throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+        }
+        if (Files.notExists(normalizedRetryPath, LinkOption.NOFOLLOW_LINKS)) {
+            return AutomationAlertDeliveryRetryState.missing();
+        }
+        if (!Files.isRegularFile(normalizedRetryPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+        }
+
+        Map<String, Object> payload;
+        try {
+            payload = objectMapper.readValue(normalizedRetryPath.toFile(), MAP_TYPE);
+        } catch (IOException | RuntimeException exception) {
+            throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, exception);
+        }
+        if (payload == null || !payload.containsKey("alerts") || !(payload.get("alerts") instanceof List<?> rawAlerts)) {
+            throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+        }
+        String status = asString(payload.get("status"));
+        if (!("delivered".equals(status) || "retry_pending".equals(status))) {
+            throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+        }
+
+        List<Map<String, Object>> alerts = new ArrayList<>();
+        for (Object rawAlert : rawAlerts) {
+            if (!(rawAlert instanceof Map<?, ?> map)) {
+                throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+            }
+            Map<String, Object> alert = copyObjectMap(map);
+            String dedupeKey = asString(alert.get("dedupeKey"));
+            if (dedupeKey == null || dedupeKey.isBlank()) {
+                throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+            }
+            alerts.add(alert);
+        }
+        if (("delivered".equals(status) && !alerts.isEmpty())
+            || ("retry_pending".equals(status) && alerts.isEmpty())) {
+            throw unreadableAutomationAlertDeliveryRetry(normalizedRetryPath, null);
+        }
+        return new AutomationAlertDeliveryRetryState(new LinkedHashMap<>(payload), alerts, true);
+    }
+
+    private AutomationAlertDeliveryBoundaryException unreadableAutomationAlertDeliveryRetry(Path retryPath, Exception cause) {
+        String message = "automation alert retry outbox is unreadable: " + retryPath;
+        return cause == null
+            ? new AutomationAlertDeliveryBoundaryException(message)
+            : new AutomationAlertDeliveryBoundaryException(message, cause);
+    }
+
+    private void writeAutomationAlertDeliveryRetryAtomically(Path retryPath, Map<String, Object> payload) {
+        Path normalizedRetryPath = retryPath.toAbsolutePath().normalize();
+        Path parent = requireAutomationAlertRetryParent(resolveRepoRoot(), normalizedRetryPath, true);
+        if (parent == null) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox has no parent directory");
+        }
+
+        Path temporary = null;
+        try {
+            parent = requireAutomationAlertRetryParent(resolveRepoRoot(), normalizedRetryPath, true);
+            if (Files.isSymbolicLink(normalizedRetryPath)
+                || (Files.exists(normalizedRetryPath, LinkOption.NOFOLLOW_LINKS)
+                    && !Files.isRegularFile(normalizedRetryPath, LinkOption.NOFOLLOW_LINKS))) {
+                throw new IOException("automation alert retry outbox is not a regular file");
+            }
+            temporary = Files.createTempFile(parent, normalizedRetryPath.getFileName().toString() + ".", ".tmp");
+            byte[] serialized = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(payload);
+            try (FileChannel channel = FileChannel.open(
+                temporary,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING
+            )) {
+                ByteBuffer bytes = ByteBuffer.wrap(serialized);
+                while (bytes.hasRemaining()) {
+                    channel.write(bytes);
+                }
+                channel.force(true);
+            }
+            if (Files.isSymbolicLink(normalizedRetryPath)) {
+                throw new IOException("automation alert retry outbox became a symbolic link");
+            }
+            parent = requireAutomationAlertRetryParent(resolveRepoRoot(), normalizedRetryPath, false);
+            try {
+                Files.move(
+                    temporary,
+                    normalizedRetryPath,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (AtomicMoveNotSupportedException exception) {
+                throw new IOException("atomic retry outbox replacement is unavailable", exception);
+            }
+            forceAutomationAlertRetryDirectory(parent);
+        } catch (IOException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("Failed to atomically write automation alert retry outbox", exception);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException ignored) {
+                    // The committed retry outbox stays authoritative; stale temp files remain diagnostic evidence.
+                }
+            }
+        }
+    }
+
+    private void forceAutomationAlertRetryDirectory(Path directory) throws IOException {
+        try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
+            channel.force(true);
+        } catch (UnsupportedOperationException | IOException exception) {
+            throw new IOException("automation alert retry outbox directory sync failed", exception);
+        }
+    }
+
+    /**
+     * Validate and, when requested, create the parent chain for retry outbox
+     * paths without following symbolic-link ancestors. The caller still
+     * revalidates immediately before the atomic replacement; same-UID actors
+     * that can rename an owner-only trusted directory are outside the deployment
+     * boundary.
+     */
+    private Path requireAutomationAlertRetryParent(Path repoRoot, Path target, boolean createParents) {
+        Path root = repoRoot.toAbsolutePath().normalize();
+        Path normalizedTarget = target.toAbsolutePath().normalize();
+        Path relative;
+        try {
+            relative = root.relativize(normalizedTarget);
+        } catch (IllegalArgumentException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined", exception);
+        }
+        if (relative.getNameCount() == 0 || relative.startsWith(Path.of(".."))) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined");
+        }
+        requireAutomationAlertRetryDirectory(root, root);
+        Path parent = root;
+        int parentCount = relative.getNameCount() - 1;
+        for (int index = 0; index < parentCount; index++) {
+            parent = parent.resolve(relative.getName(index));
+            if (Files.notExists(parent, LinkOption.NOFOLLOW_LINKS)) {
+                if (!createParents) {
+                    break;
+                }
+                try {
+                    Files.createDirectory(parent);
+                } catch (IOException exception) {
+                    if (Files.notExists(parent, LinkOption.NOFOLLOW_LINKS)) {
+                        throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox parent is unavailable", exception);
+                    }
+                }
+            }
+            requireAutomationAlertRetryDirectory(root, parent);
+        }
+        return parent;
+    }
+
+    private void requireAutomationAlertRetryDirectory(Path root, Path directory) {
+        if (Files.isSymbolicLink(directory)
+            || !Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS)) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined");
+        }
+        try {
+            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(directory, LinkOption.NOFOLLOW_LINKS);
+            if (permissions.contains(PosixFilePermission.GROUP_WRITE)
+                || permissions.contains(PosixFilePermission.OTHERS_WRITE)) {
+                throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined");
+            }
+            Object directoryUid = Files.getAttribute(directory, "unix:uid", LinkOption.NOFOLLOW_LINKS);
+            Object processUid = Files.getAttribute(
+                PROC_ROOT.resolve(Long.toString(ProcessHandle.current().pid())),
+                "unix:uid",
+                LinkOption.NOFOLLOW_LINKS
+            );
+            if (!(directoryUid instanceof Number directoryNumber)
+                || !(processUid instanceof Number processNumber)
+                || directoryNumber.longValue() != processNumber.longValue()) {
+                throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined");
+            }
+        } catch (UnsupportedOperationException | IOException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined", exception);
+        }
+        try {
+            Path realRoot = root.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            Path realDirectory = directory.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            if (!realDirectory.startsWith(realRoot)) {
+                throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined");
+            }
+            if (!realDirectory.equals(directory.toAbsolutePath().normalize())) {
+                throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined");
+            }
+        } catch (IOException exception) {
+            throw new AutomationAlertDeliveryBoundaryException("automation alert retry outbox path is not confined", exception);
+        }
+    }
+
+    private void resolveSourceProbeAlerts(Path repoRoot) {
+        validateAutomationAlertDeliveryRetryOutbox(repoRoot);
+        JdbcTemplate template = jdbcTemplate;
+        if (template == null) {
+            return;
+        }
+        retryPendingAutomationAlertDeliveries(repoRoot, template);
+        try {
+            template.update(
+                "UPDATE crawler_automation_alert SET status = 'RESOLVED', last_seen_at = CURRENT_TIMESTAMP"
+                    + " WHERE dedupe_key LIKE 'scheduler:source-probe:%' AND status = 'OPEN'"
+            );
+        } catch (DataAccessException exception) {
+            log.warn("Unable to resolve crawler source probe alerts: {}", exception.getMessage());
+        }
+    }
+
+    /**
+     * A healthy probe must not bypass a damaged durable alert outbox merely
+     * because JDBC persistence is unavailable. Read it under the same lock as
+     * writers so malformed, symbolic-link, and non-regular files fail closed.
+     */
+    private void validateAutomationAlertDeliveryRetryOutbox(Path repoRoot) {
+        Path retryPath = repoRoot.resolve(AUTOMATION_ALERT_DELIVERY_RETRY_FILE).normalize();
+        withAutomationAlertDeliveryRetryLock(repoRoot, () -> {
+            readAutomationAlertDeliveryRetry(retryPath);
+            return null;
+        });
+    }
+
+    private AutomationAlertDeliveryResult recordSourceProbeAlerts(Path repoRoot, SourceUpdateCheckResult result) {
+        List<String> failedKeys = result.failedSourceKeys();
+        if (failedKeys.isEmpty()) {
+            failedKeys = List.of("all");
+        }
+        AutomationAlertDeliveryResult delivery = AutomationAlertDeliveryResult.persisted();
+        for (String sourceKey : failedKeys) {
+            String safeKey = sourceKey == null || sourceKey.isBlank() ? "all" : sourceKey;
+            AutomationAlertDeliveryResult candidate = recordAutomationAlert(
+                null,
+                "CRITICAL",
+                "scheduler:source-probe:" + safeKey,
+                Map.of(
+                    "title", "Source probe failed",
+                    "details", result.message(),
+                    "reason", "source_probe_failed",
+                    "sourceKey", safeKey,
+                    "reportPath", SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/'),
+                    "repoRoot", repoRoot.toString()
+                )
+            );
+            if (candidate.retryPending()) {
+                delivery = candidate;
+            }
+        }
+        return delivery;
+    }
+
+    private String normalizeAlertSeverity(String severity) {
+        String normalized = severity == null ? "WARNING" : severity.trim().toUpperCase(Locale.ROOT);
+        return Set.of("INFO", "WARNING", "CRITICAL").contains(normalized) ? normalized : "WARNING";
+    }
+
+    private boolean isTerminalFailureStatus(String status) {
+        return status != null && Set.of("failed", "timed_out", "interrupted", "rejected").contains(status.toLowerCase(Locale.ROOT));
+    }
+
+    private void recordV2AttemptFailureAlerts() {
+        CrawlerQueueV2ApplicationService service = queueV2ApplicationService;
+        if (service == null) {
+            return;
+        }
+        try {
+            CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
+            if (snapshot == null) {
+                return;
+            }
+            List<CrawlerQueueV2OverviewDTO.AttemptDTO> history = snapshot.attemptHistory() == null
+                ? List.of()
+                : snapshot.attemptHistory();
+            List<CrawlerQueueV2OverviewDTO.AttemptDTO> live = snapshot.liveQueue() == null
+                ? List.of()
+                : snapshot.liveQueue();
+            Stream.concat(history.stream(), live.stream())
+                .filter(attempt -> isTerminalFailureStatus(attempt.status()))
+                .filter(attempt -> attempt.attemptId() != null && !attempt.attemptId().isBlank())
+                .forEach(attempt -> recordAutomationAlert(
+                    null,
+                    "CRITICAL",
+                    "scheduler:attempt:" + attempt.attemptId(),
+                    Map.of(
+                        "title", "Automatic crawler attempt failed",
+                        "details", firstNonBlank(
+                            attempt.messageZh(),
+                            attempt.reasonCode() == null ? null : attempt.reasonCode().name(),
+                            attempt.status()
+                        ),
+                        "reason", "attempt_failed",
+                        "domain", firstNonBlank(attempt.domain(), "unknown"),
+                        "actionId", firstNonBlank(attempt.actionId(), "unknown"),
+                        "attemptId", attempt.attemptId(),
+                        "status", firstNonBlank(attempt.status(), "unknown")
+                    )
+                ));
+        } catch (RuntimeException exception) {
+            log.warn("Unable to observe V2 attempt failures: {}", exception.getMessage());
+        }
     }
 
     private List<CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO> buildWikiMonitorDispatchQueue() {
@@ -3034,15 +4143,54 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
      * dispatch can be controlled by precise PID ownership after the in-memory tracking is lost
      * (e.g. a backend restart), instead of resorting to fuzzy {@code /proc} command matching.
      */
-    private void recordDispatchRuntime(Path repoRoot, Path lockPath, String dispatchId, long pid, String startedAt) {
+    private void recordDispatchRuntime(
+        Path repoRoot,
+        Path lockPath,
+        String dispatchId,
+        long pid,
+        String startedAt,
+        String processGroupToken
+    ) {
+        recordDispatchRuntime(repoRoot, lockPath, dispatchId, pid, startedAt, processGroupToken, null, startedAt);
+    }
+
+    private void recordDispatchRuntime(
+        Path repoRoot,
+        Path lockPath,
+        String dispatchId,
+        long pid,
+        String startedAt,
+        String processGroupToken,
+        ProcessGroupIdentity processGroupIdentity,
+        String processStartedAt
+    ) {
         if (pid <= 0) {
             return;
         }
         LinkedHashMap<String, Object> runtime = new LinkedHashMap<>();
         runtime.put("pid", pid);
         runtime.put("startedAt", startedAt);
+        if (processStartedAt != null && !processStartedAt.isBlank()) {
+            runtime.put("processStartedAt", processStartedAt);
+        }
+        if (processGroupToken != null && !processGroupToken.isBlank()) {
+            runtime.put("processGroupToken", processGroupToken);
+        }
+        if (processGroupIdentity != null) {
+            runtime.put("processGroupId", processGroupIdentity.processGroupId());
+            runtime.put("sessionId", processGroupIdentity.sessionId());
+        }
         mergeDispatchJson(lockPath, dispatchId, runtime);
-        mergeDispatchJson(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), dispatchId, Map.of("pid", pid));
+        LinkedHashMap<String, Object> stateRuntime = new LinkedHashMap<>();
+        stateRuntime.put("pid", pid);
+        if (processStartedAt != null && !processStartedAt.isBlank()) {
+            stateRuntime.put("processStartedAt", processStartedAt);
+        }
+        if (processGroupIdentity != null) {
+            stateRuntime.put("processGroupId", processGroupIdentity.processGroupId());
+            stateRuntime.put("sessionId", processGroupIdentity.sessionId());
+        }
+        mergeDispatchJson(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), dispatchId, stateRuntime);
     }
 
     private void mergeDispatchJson(Path path, String dispatchId, Map<String, Object> updates) {
@@ -3074,15 +4222,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (pid <= 0 || dispatchId == null) {
             return null;
         }
-        Optional<ProcessHandle> handle = ProcessHandle.of(pid);
-        if (handle.isEmpty() || !handle.get().isAlive()) {
-            return null;
-        }
-        if (!processStartMatches(handle.get(), asString(payload.get("startedAt")))) {
+        String processStartedAt = firstValidInstantString(
+            asString(payload.get("processStartedAt")),
+            asString(payload.get("startedAt"))
+        );
+        Process process = processLauncher.recoverRecordedProcess(
+            pid,
+            processStartedAt,
+            asString(payload.get("processGroupToken")),
+            asLong(payload.get("processGroupId")),
+            asLong(payload.get("sessionId"))
+        );
+        if (process == null || !process.isAlive()) {
             return null;
         }
         return new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(),
-            new HandleBackedProcess(handle.get()), buildLegacyDispatchPaths(rule));
+            process, buildLegacyDispatchPaths(rule));
     }
 
     private ActiveDispatchProcess reconstructDispatchFromQueueItem(CrawlerMonitorActionDefinition rule, WikiMonitorQueueItem item) {
@@ -3131,7 +4286,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             Instant recorded = Instant.parse(recordedStartedAt);
             return Duration.between(recorded, processStart.get()).abs().compareTo(Duration.ofMinutes(2)) <= 0;
         } catch (RuntimeException exception) {
-            return true;
+            return false;
         }
     }
 
@@ -3366,6 +4521,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         lockPayload.put("dispatchId", dispatchId);
         lockPayload.put("domain", rule.domain());
         lockPayload.put("actionId", rule.actionId());
+        lockPayload.put("processGroupToken", dispatchId);
         lockPayload.put("lockedAt", timestamp);
         releaseStaleDispatchLock(lockPath);
         if (!acquireDispatchLock(lockPath, lockPayload)) {
@@ -3394,6 +4550,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (metadata != null) {
             effectiveMetadata.putAll(metadata);
         }
+        effectiveMetadata.put("processGroupToken", dispatchId);
         String message = firstNonBlank(
             queueItem == null ? null : queueItem.getMessage(),
             firstNonBlank(asString(effectiveMetadata.get("message")), "dispatch accepted")
@@ -3406,11 +4563,25 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
 
         LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths, effectiveMetadata);
+        Process process = null;
         try {
-            Process process = processLauncher.launch(launchRequest);
+            process = processLauncher.launch(launchRequest);
             long pid = safePid(process);
             Instant processStartedAt = Instant.parse(timestamp);
-            recordDispatchRuntime(repoRoot, lockPath, dispatchId, pid, timestamp);
+            String recordedProcessStartedAt = processStartInstant(process)
+                .orElse(processStartedAt)
+                .toString();
+            ProcessGroupIdentity processGroupIdentity = processLauncher.inspectProcessGroupIdentity(process);
+            recordDispatchRuntime(
+                repoRoot,
+                lockPath,
+                dispatchId,
+                pid,
+                timestamp,
+                dispatchId,
+                processGroupIdentity,
+                recordedProcessStartedAt
+            );
             activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(), process, dispatchPaths));
             if (queueId == null) {
                 watchDispatchProcess(repoRoot, null, dispatchId, rule, dispatchPaths, process, processStartedAt);
@@ -3430,7 +4601,29 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 process,
                 message
             );
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
+            String failureMessage = exception.getMessage();
+            boolean cleanupSucceeded = true;
+            if (process != null) {
+                try {
+                    cleanupSucceeded = processLauncher.destroy(process);
+                    if (!cleanupSucceeded) {
+                        failureMessage = firstNonBlank(
+                            failureMessage,
+                            exception.getClass().getSimpleName()
+                        ) + "; process-group cleanup failed";
+                    }
+                } catch (RuntimeException cleanupException) {
+                    cleanupSucceeded = false;
+                    failureMessage = firstNonBlank(
+                        failureMessage,
+                        exception.getClass().getSimpleName()
+                    ) + "; process-group cleanup failed: " + firstNonBlank(
+                        cleanupException.getMessage(),
+                        cleanupException.getClass().getSimpleName()
+                    );
+                }
+            }
             LinkedHashMap<String, Object> failedState = buildDispatchState(
                 dispatchId,
                 rule,
@@ -3438,14 +4631,18 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 timestamp,
                 Instant.now(clock).toString(),
                 dispatchPaths,
-                exception.getMessage()
+                failureMessage
             );
             failedState.putAll(effectiveMetadata);
             if (queueId != null) {
                 failedState.put("queueId", queueId);
             }
             writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), failedState);
-            releaseDispatchLock(lockPath, dispatchId);
+            if (cleanupSucceeded) {
+                releaseDispatchLock(lockPath, dispatchId);
+            } else {
+                log.error("Retaining wiki monitor dispatch lock {} because post-launch cleanup failed.", lockPath);
+            }
             return queueStartResult(
                 queueId,
                 dispatchId,
@@ -3459,7 +4656,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 null,
                 null,
                 null,
-                exception.getMessage()
+                failureMessage
             );
         }
     }
@@ -3623,40 +4820,77 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void releaseDispatchLock(Path lockPath, String dispatchId) {
-        ReadResult lock = readJsonMap(lockPath);
-        if (lock.readable() && dispatchId.equals(asString(lock.payload().get("dispatchId")))) {
-            try {
-                Files.deleteIfExists(lockPath);
-            } catch (IOException ignored) {
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            if (shouldRetainStandardDispatchLockAfterCleanupFailure(lockPath, dispatchId)) {
+                log.error("Retaining wiki monitor dispatch lock {} because process cleanup remains unverified.", lockPath);
+                return;
+            }
+            ReadResult lock = readJsonMap(lockPath);
+            if (lock.readable() && dispatchId.equals(asString(lock.payload().get("dispatchId")))) {
+                try {
+                    Files.deleteIfExists(lockPath);
+                } catch (IOException ignored) {
+                }
             }
         }
     }
 
     private void releaseStaleDispatchLock(Path lockPath) {
-        ReadResult lock = readJsonMap(lockPath);
-        if (!lock.readable()) {
-            return;
-        }
-        Map<String, Object> payload = lock.payload();
-        String lockedAt = asString(payload.get("lockedAt"));
-        if (lockedAt == null) {
-            return;
-        }
-        try {
-            if (Duration.between(Instant.parse(lockedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_LOCK_STALE) <= 0) {
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            ReadResult lock = readJsonMap(lockPath);
+            if (!lock.readable()) {
                 return;
             }
-            if (isDomainSmokeLockPath(lockPath) && !hasRecordedProcessRuntime(payload)) {
+            Map<String, Object> payload = lock.payload();
+            String lockedAt = asString(payload.get("lockedAt"));
+            if (lockedAt == null) {
                 return;
             }
-            if (isRecordedProcessAlive(payload)) {
-                log.warn("Wiki monitor dispatch lock {} is past the stale threshold but its recorded process (pid={}) is still alive; keeping the lock.",
-                    lockPath, asLong(payload.get("pid")));
-                return;
+            try {
+                if (Duration.between(Instant.parse(lockedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_LOCK_STALE) <= 0) {
+                    return;
+                }
+                if (isDomainSmokeLockPath(lockPath) && !hasRecordedProcessRuntime(payload)) {
+                    return;
+                }
+                if (isRecordedProcessAlive(payload)) {
+                    log.warn("Wiki monitor dispatch lock {} is past the stale threshold but its recorded process (pid={}) is still alive; keeping the lock.",
+                        lockPath, asLong(payload.get("pid")));
+                    return;
+                }
+                if (processLauncher.supportsPersistedProcessGroupInspection()
+                    && hasRecordedProcessRuntime(payload)) {
+                    List<ProcessHandle> residualGroup = processLauncher.snapshotPersistedProcessGroup(
+                        asLong(payload.get("pid")),
+                        asString(payload.get("processGroupToken")),
+                        firstValidInstantString(
+                            asString(payload.get("processStartedAt")),
+                            asString(payload.get("startedAt"))
+                        )
+                    );
+                    if (residualGroup == null || !residualGroup.isEmpty()) {
+                        log.warn("Wiki monitor dispatch lock {} has an unverified or residual process group; keeping the lock.", lockPath);
+                        return;
+                    }
+                }
+                if (shouldRetainStandardDispatchLockAfterCleanupFailure(lockPath, asString(payload.get("dispatchId")))) {
+                    return;
+                }
+                Files.deleteIfExists(lockPath);
+            } catch (RuntimeException | IOException ignored) {
             }
-            Files.deleteIfExists(lockPath);
-        } catch (RuntimeException | IOException ignored) {
         }
+    }
+
+    private boolean shouldRetainStandardDispatchLockAfterCleanupFailure(Path lockPath, String dispatchId) {
+        if (lockPath == null
+            || dispatchId == null
+            || !WIKI_MONITOR_DISPATCH_LOCK_FILE.getFileName().equals(lockPath.getFileName())
+            || lockPath.getParent() == null) {
+            return false;
+        }
+        Path dispatchStatePath = lockPath.getParent().resolve(WIKI_MONITOR_DISPATCH_FILE.getFileName()).normalize();
+        return requiresRetainedDispatchLockAfterCleanupFailure(readJsonMap(dispatchStatePath), dispatchId);
     }
 
     private boolean isDomainSmokeLockPath(Path lockPath) {
@@ -3784,6 +5018,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, String> environment = new LinkedHashMap<>();
         environment.put("WORKTREE_ROOT", repoRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", rule.actionId());
+        String processGroupToken = AdminTextUtils.trimToNull(
+            asString(metadata == null ? null : metadata.get("processGroupToken"))
+        );
+        if (processGroupToken != null) {
+            environment.put("TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN", processGroupToken);
+        }
         environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", paths.progressPath());
         applyFailureModeEnvironment(environment, rule, metadata);
         return new LaunchRequest(command, repoRoot.toFile(), environment, repoRoot.resolve(paths.logPath()).normalize().toFile());
@@ -3898,11 +5138,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             } finally {
                 boolean terminalTimedOut = timedOut;
                 int terminalExitCode = exitCode;
+                boolean terminalMutationRan = false;
                 if (watcherInterrupted) {
                     log.debug("Skipping V1 standard dispatch terminal mutation because watcher {} was interrupted.", dispatchId);
                 } else {
-                    runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
-                        completeWatchedStandardDispatch(
+                    terminalMutationRan = runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
+                        completeWatchedStandardDispatchAndRetire(
                             repoRoot,
                             queueIdOrNull,
                             dispatchId,
@@ -3915,15 +5156,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                         )
                     );
                 }
-                activeDispatchProcesses.remove(dispatchId);
-                cancellingDispatches.remove(dispatchId);
+                if (watcherInterrupted || !terminalMutationRan) {
+                    retireWatchedStandardDispatch(repoRoot, dispatchId);
+                }
             }
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
     }
 
-    private void completeWatchedStandardDispatch(
+    private boolean completeWatchedStandardDispatch(
         Path repoRoot,
         String queueIdOrNull,
         String dispatchId,
@@ -3934,11 +5176,36 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         boolean timedOut,
         int exitCode
     ) {
-        if (timedOut) {
-            processLauncher.destroy(process);
-        }
         ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         boolean controlledCancel = cancellingDispatches.contains(dispatchId);
+        if (timedOut) {
+            boolean cleanupSucceeded = processLauncher.destroy(process);
+            if (!cleanupSucceeded) {
+                if (!controlledCancel
+                    && !(currentDispatch.readable()
+                        && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
+                        && isWikiMonitorDispatchTerminalStatus(asString(currentDispatch.payload().get("status"))))) {
+                    recordStandardDispatchCleanupFailure(
+                        repoRoot,
+                        queueIdOrNull,
+                        dispatchId,
+                        rule,
+                        paths,
+                        "dispatch timed out after " + timeout.toMinutes()
+                            + " minutes; process tree cleanup failed; lock retained"
+                    );
+                } else {
+                    log.error("Wiki monitor standard dispatch {} process tree cleanup failed; retaining its lock.", dispatchId);
+                }
+                return false;
+            }
+        }
+        ReadResult durableDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (requiresRetainedDispatchLockAfterCleanupFailure(durableDispatch, dispatchId)) {
+            log.error("Wiki monitor standard dispatch {} process cleanup remains unverified; retaining its lock.", dispatchId);
+            return false;
+        }
+        currentDispatch = durableDispatch;
         if (!controlledCancel
             && !(currentDispatch.readable()
                 && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
@@ -3963,11 +5230,250 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 invalidateCachedOverview();
             }
         }
+        ReadResult durableDispatchBeforeRelease = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (requiresRetainedDispatchLockAfterCleanupFailure(durableDispatchBeforeRelease, dispatchId)) {
+            log.error("Wiki monitor standard dispatch {} process cleanup remains unverified; retaining its lock.", dispatchId);
+            return false;
+        }
+        if (controlledCancel
+            && !(durableDispatchBeforeRelease.readable()
+                && dispatchId.equals(asString(durableDispatchBeforeRelease.payload().get("dispatchId")))
+                && isWikiMonitorDispatchTerminalStatus(asString(durableDispatchBeforeRelease.payload().get("status"))))) {
+            log.warn("Wiki monitor standard dispatch {} has a controlled cancellation without a durable terminal state; retaining its lock.", dispatchId);
+            return false;
+        }
         releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
-        if (!controlledCancel) {
-            cancellingDispatches.remove(dispatchId);
+        return !controlledCancel;
+    }
+
+    private void completeWatchedStandardDispatchAndRetire(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        DispatchPaths paths,
+        Process process,
+        Duration timeout,
+        boolean timedOut,
+        int exitCode
+    ) {
+        boolean shouldDrainQueue;
+        synchronized (standardDispatchLifecycleMonitor) {
+            shouldDrainQueue = completeWatchedStandardDispatch(
+                repoRoot,
+                queueIdOrNull,
+                dispatchId,
+                rule,
+                paths,
+                process,
+                timeout,
+                timedOut,
+                exitCode
+            );
+            activeDispatchProcesses.remove(dispatchId);
+            clearStandardDispatchCancellationFenceAfterWatcherExit(repoRoot, dispatchId);
+        }
+        if (shouldDrainQueue) {
+            // Queue draining acquires the drain lock, so it must follow lifecycle retirement.
             drainWikiMonitorDispatchQueue("standard-terminal");
         }
+    }
+
+    private void retireWatchedStandardDispatch(Path repoRoot, String dispatchId) {
+        synchronized (standardDispatchLifecycleMonitor) {
+            activeDispatchProcesses.remove(dispatchId);
+            clearStandardDispatchCancellationFenceAfterWatcherExit(repoRoot, dispatchId);
+        }
+    }
+
+    private void clearStandardDispatchCancellationFenceAfterWatcherExit(Path repoRoot, String dispatchId) {
+        if (!cancellingDispatches.contains(dispatchId)) {
+            return;
+        }
+        ReadResult durableDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (durableDispatch.readable()
+            && dispatchId.equals(asString(durableDispatch.payload().get("dispatchId")))
+            && isWikiMonitorDispatchTerminalStatus(asString(durableDispatch.payload().get("status")))) {
+            cancellingDispatches.remove(dispatchId);
+        }
+    }
+
+    private void clearStandardDispatchCancellationFenceAfterSuccessfulStaleCleanup(Path repoRoot, String dispatchId) {
+        if (!cancellingDispatches.contains(dispatchId)) {
+            return;
+        }
+        ReadResult durableDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (durableDispatch.readable()
+            && dispatchId.equals(asString(durableDispatch.payload().get("dispatchId")))
+            && "timed_out".equals(asString(durableDispatch.payload().get("status")))) {
+            cancellingDispatches.remove(dispatchId);
+        }
+    }
+
+    private boolean recordStandardDispatchCleanupFailure(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        DispatchPaths paths,
+        String message
+    ) {
+        Path dispatchStatePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        boolean persisted = false;
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            ReadResult latestDispatch = readJsonMap(dispatchStatePath);
+            if (!canPublishStandardDispatchCleanupFailure(latestDispatch, queueIdOrNull, dispatchId)) {
+                log.warn("Skipping stale standard dispatch cleanup failure publication for {}.", dispatchId);
+            } else if (!ensureStandardDispatchCleanupFailureLock(
+                repoRoot,
+                queueIdOrNull,
+                dispatchId,
+                rule,
+                latestDispatch
+            )) {
+                log.error("Cannot retain the standard dispatch lock for cleanup failure {}.", dispatchId);
+            } else {
+                latestDispatch = readJsonMap(dispatchStatePath);
+                if (!canPublishStandardDispatchCleanupFailure(latestDispatch, queueIdOrNull, dispatchId)) {
+                    log.warn("Skipping stale standard dispatch cleanup failure publication for {} after lock validation.", dispatchId);
+                } else {
+                    LinkedHashMap<String, Object> state = buildDispatchState(
+                        dispatchId,
+                        rule,
+                        "failed",
+                        asString(latestDispatch.payload().get("startedAt")),
+                        Instant.now(clock).toString(),
+                        paths,
+                        message
+                    );
+                    preserveDispatchMetadata(latestDispatch.payload(), state);
+                    state.put("processCleanupFailed", true);
+                    try {
+                        writeJsonFile(dispatchStatePath, state);
+                        persisted = true;
+                    } catch (RuntimeException exception) {
+                        log.error("Failed to persist standard dispatch cleanup failure for {}.", dispatchId, exception);
+                    }
+                }
+            }
+        }
+        if (!persisted) {
+            recordStandardDispatchCleanupFailureAlert(dispatchId, rule, message);
+            return false;
+        }
+        writeTerminalFailureSummaryToEmptyLog(repoRoot, paths, dispatchId, rule, "failed", message);
+        if (queueIdOrNull != null) {
+            try {
+                queueRepository.markTerminal(queueIdOrNull, "failed", Instant.now(clock), message);
+                invalidateCachedOverview();
+            } catch (RuntimeException exception) {
+                log.error("Failed to persist queue terminal state after standard dispatch cleanup failure for {}.", dispatchId, exception);
+            }
+        }
+        recordStandardDispatchCleanupFailureAlert(dispatchId, rule, message);
+        return true;
+    }
+
+    private void recordStandardDispatchCleanupFailureAlert(
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        String message
+    ) {
+        try {
+            recordAutomationAlert(
+                dispatchId,
+                "CRITICAL",
+                "scheduler:v1-dispatch-cleanup:" + dispatchId,
+                Map.of(
+                    "title", "Crawler dispatch process cleanup failed",
+                    "details", message,
+                    "reason", "process_cleanup_failed",
+                    "actionId", rule.actionId(),
+                    "dispatchId", dispatchId,
+                    "status", "failed"
+                )
+            );
+        } catch (RuntimeException exception) {
+            log.error("Failed to persist standard dispatch cleanup alert for {}.", dispatchId, exception);
+        }
+    }
+
+    private boolean canPublishStandardDispatchCleanupFailure(
+        ReadResult latestDispatch,
+        String queueIdOrNull,
+        String dispatchId
+    ) {
+        if (!latestDispatch.readable()
+            || !dispatchId.equals(asString(latestDispatch.payload().get("dispatchId")))
+            || isWikiMonitorDispatchTerminalStatus(asString(latestDispatch.payload().get("status")))) {
+            return false;
+        }
+        String latestQueueId = asString(latestDispatch.payload().get("queueId"));
+        return queueIdOrNull == null || latestQueueId == null || queueIdOrNull.equals(latestQueueId);
+    }
+
+    private boolean ensureStandardDispatchCleanupFailureLock(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        ReadResult latestDispatch
+    ) {
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        ReadResult currentLock = readJsonMap(lockPath);
+        if (currentLock.found()) {
+            return currentLock.readable()
+                && standardDispatchCleanupFailureLockMatches(
+                    currentLock.payload(),
+                    queueIdOrNull,
+                    dispatchId,
+                    rule
+                );
+        }
+        LinkedHashMap<String, Object> recoveredLock = new LinkedHashMap<>();
+        recoveredLock.put("dispatchId", dispatchId);
+        String queueId = firstNonBlank(queueIdOrNull, asString(latestDispatch.payload().get("queueId")));
+        if (queueId != null) {
+            recoveredLock.put("queueId", queueId);
+        }
+        recoveredLock.put("domain", rule.domain());
+        recoveredLock.put("actionId", rule.actionId());
+        recoveredLock.put("lockedAt", Instant.now(clock).toString());
+        String startedAt = firstValidInstantString(
+            asString(latestDispatch.payload().get("processStartedAt")),
+            asString(latestDispatch.payload().get("startedAt"))
+        );
+        if (startedAt != null) {
+            recoveredLock.put("startedAt", startedAt);
+        }
+        for (String key : List.of("pid", "processStartedAt", "processGroupToken", "processGroupId", "sessionId")) {
+            if (latestDispatch.payload().containsKey(key)) {
+                recoveredLock.put(key, latestDispatch.payload().get(key));
+            }
+        }
+        return acquireDispatchLock(lockPath, recoveredLock);
+    }
+
+    private boolean standardDispatchCleanupFailureLockMatches(
+        Map<String, Object> lockPayload,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule
+    ) {
+        if (!dispatchId.equals(asString(lockPayload.get("dispatchId")))
+            || !rule.domain().equals(asString(lockPayload.get("domain")))
+            || !rule.actionId().equals(asString(lockPayload.get("actionId")))) {
+            return false;
+        }
+        String lockQueueId = asString(lockPayload.get("queueId"));
+        return queueIdOrNull == null || lockQueueId == null || queueIdOrNull.equals(lockQueueId);
+    }
+
+    private boolean requiresRetainedDispatchLockAfterCleanupFailure(ReadResult currentDispatch, String dispatchId) {
+        return currentDispatch.readable()
+            && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
+            && "failed".equals(asString(currentDispatch.payload().get("status")))
+            && asBoolean(currentDispatch.payload().get("processCleanupFailed"));
     }
 
     private void writeTerminalFailureSummaryToEmptyLog(
@@ -4014,7 +5520,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void preserveDispatchMetadata(Map<String, Object> currentPayload, LinkedHashMap<String, Object> target) {
-        for (String key : List.of("queueId", "retryOf", "retryCount", "retryReason", "controlAction", "controlledAt", "pid")) {
+        for (String key : List.of(
+            "queueId", "retryOf", "retryCount", "retryReason", "controlAction", "controlledAt", "pid", "processGroupToken"
+        )) {
             if (currentPayload.containsKey(key)) {
                 target.put(key, currentPayload.get(key));
             }
@@ -4077,7 +5585,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     ) {
         boolean controlledCancel = cancellingDispatches.contains(dispatchId);
         if (timedOut) {
-            processLauncher.destroy(process);
+            boolean cleanupSucceeded = processLauncher.destroy(process);
+            if (!cleanupSucceeded) {
+                log.error("Wiki monitor domain smoke {} process tree cleanup failed; retaining its lock.", dispatchId);
+                return;
+            }
         }
         if (!controlledCancel) {
             String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
@@ -4236,6 +5748,91 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    private void writeSourceUpdateRuntimeFile(Path repoRoot, Map<String, Object> payload) {
+        Path path = repoRoot.resolve(SOURCE_UPDATE_MONITOR_RUNTIME_FILE).normalize();
+        Path parent = path.getParent();
+        Path temporary = null;
+        try {
+            assertNoSymlinkedAncestors(path);
+            Files.createDirectories(parent);
+            assertNoSymlinkedAncestors(path);
+            if (Files.isSymbolicLink(path)) {
+                throw new IOException("source update monitor runtime path must not be symbolic-linked");
+            }
+            temporary = Files.createTempFile(parent, ".source-update-monitor-runtime-", ".tmp");
+            byte[] bytes = objectMapper.writerWithDefaultPrettyPrinter()
+                .writeValueAsString(payload)
+                .getBytes(StandardCharsets.UTF_8);
+            try (FileChannel channel = FileChannel.open(
+                temporary,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING
+            )) {
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
+                channel.force(true);
+            }
+            try {
+                Files.setPosixFilePermissions(
+                    temporary,
+                    Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)
+                );
+            } catch (UnsupportedOperationException ignored) {
+                // The runtime is still private on platforms without POSIX modes.
+            }
+            forceDirectory(parent);
+            Files.move(
+                temporary,
+                path,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            );
+            temporary = null;
+            forceDirectory(parent);
+        } catch (AtomicMoveNotSupportedException exception) {
+            throw new IllegalStateException("source update monitor runtime publication is not atomic", exception);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to write source update monitor runtime " + path, exception);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException ignored) {
+                    log.warn("Unable to remove source update monitor runtime temporary file {}", temporary);
+                }
+            }
+        }
+    }
+
+    private void forceDirectory(Path directory) throws IOException {
+        try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
+            channel.force(true);
+        }
+    }
+
+    private void assertNoSymlinkedAncestors(Path path) throws IOException {
+        Path absolute = path.toAbsolutePath().normalize();
+        Path parent = absolute.getParent();
+        if (parent == null) {
+            throw new IOException("source update monitor runtime path has no parent directory");
+        }
+        Path current = absolute.getRoot();
+        if (current == null) {
+            throw new IOException("source update monitor runtime path has no filesystem root");
+        }
+        for (Path segment : current.relativize(parent)) {
+            current = current.resolve(segment);
+            if (Files.isSymbolicLink(current)) {
+                throw new IOException("source update monitor runtime ancestor must not be symbolic-linked: " + current);
+            }
+            if (Files.exists(current, LinkOption.NOFOLLOW_LINKS) && !Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("source update monitor runtime ancestor is not a directory: " + current);
+            }
+        }
+    }
+
     @Override
     public CrawlerMonitorAutoDispatchDTO getAutoDispatchSettings() {
         return readAutoDispatchSettings(resolveRepoRoot());
@@ -4304,10 +5901,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO previousSweep = readV2AutomationLastSweep(repoRoot);
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
         sweep.setCheckedAt(Instant.now(clock).toString());
-        if (settings.isEnabled()) {
+        if (!fixtureScheduledAutomationEnabled) {
             List<String> activationReasons = schedulerActivationGateReasons();
             if (!activationReasons.isEmpty()) {
                 sweep.setStatus("blocked");
+                recordAutomationAlert(
+                    null,
+                    "CRITICAL",
+                    "scheduler:activation-gate",
+                    Map.of(
+                        "title", "Scheduler activation blocked",
+                        "details", String.join(", ", activationReasons),
+                        "reason", "scheduler_activation_required",
+                        "reasons", activationReasons
+                    )
+                );
                 sweep.getSkipped().add(Map.of(
                     "domain", "all",
                     "reason", "scheduler_activation_required",
@@ -4319,21 +5927,38 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
         Map<String, Map<String, Object>> sourceByKey = Map.of();
+        ValidatedSourceUpdateState validatedSourceState = null;
         if (!fixtureScheduledAutomationEnabled) {
-            SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
+            SourceUpdateCheckResult sourceUpdateCheck = sourceUpdateCheckForDispatch(
+                repoRoot,
+                runSourceUpdateMonitorCheck(repoRoot)
+            );
             if (!sourceUpdateCheck.success()) {
                 sweep.setStatus("error");
-                sweep.getSkipped().add(Map.of("domain", "all", "reason", "source_update_check_failed", "message", sourceUpdateCheck.message()));
+                LinkedHashMap<String, Object> skipped = new LinkedHashMap<>();
+                skipped.put("domain", "all");
+                skipped.put("reason", "source_update_check_failed");
+                skipped.put("message", sourceUpdateCheck.message());
+                if (sourceUpdateCheck.alertDelivery().retryPending()) {
+                    skipped.put("alertDeliveryStatus", sourceUpdateCheck.alertDelivery().status());
+                }
+                sweep.getSkipped().add(skipped);
                 writeV2AutomationLastSweep(repoRoot, sweep);
                 return sweep;
             }
-            ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
-            sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
+            validatedSourceState = sourceUpdateCheck.validatedSourceState();
+            sourceByKey = validatedSourceState.sourcesByKey();
             for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
                 if (!rule.wikiDomain() || !isAutoEligibleRule(rule)) continue;
                 Map<String, Object> source = sourceByKey.get(rule.sourceKey());
                 boolean changed = asBoolean(source == null ? null : source.get("changed"));
-                sweep.getDetected().add(Map.of("domain", rule.domain(), "sourceKey", rule.sourceKey(), "actionId", rule.actionId(), "changed", changed));
+                LinkedHashMap<String, Object> detected = new LinkedHashMap<>();
+                detected.put("domain", rule.domain());
+                detected.put("sourceKey", rule.sourceKey());
+                detected.put("actionId", rule.actionId());
+                detected.put("changed", changed);
+                appendSourceSnapshotIdentity(detected, validatedSourceState);
+                sweep.getDetected().add(detected);
                 if (changed) changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
             }
         }
@@ -4347,11 +5972,20 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             ));
             changedByAction.put(fixture.actionId(), List.of(fixture));
         }
+        boolean schedulerActivationBlocked = false;
         for (Map.Entry<String, List<CrawlerMonitorActionDefinition>> entry : changedByAction.entrySet()) {
             List<CrawlerMonitorActionDefinition> rules = entry.getValue();
             String sourceFingerprint = v2AutomationSourceFingerprint(rules, sourceByKey);
             String acknowledgedSourceFingerprint = v2AutomationAcknowledgedSourceFingerprint(rules, sourceByKey);
-            String previousSourceFingerprint = v2AutomationSourceFingerprint(previousSweep, entry.getKey());
+            SourceDispatchIdentity sourceDispatchIdentityCandidate = sourceDispatchIdentityFor(
+                rules,
+                sourceByKey,
+                validatedSourceState
+            );
+            if (fixtureScheduledAutomationEnabled && sourceDispatchIdentityCandidate == null) {
+                sourceDispatchIdentityCandidate = fixtureSourceDispatchIdentity(sweep.getCheckedAt());
+            }
+            final SourceDispatchIdentity sourceDispatchIdentity = sourceDispatchIdentityCandidate;
             if (!settings.isEnabled()) {
                 sweep.getSkipped().add(v2AutomationSkipped(entry.getKey(), "automation_disabled", rules, sourceFingerprint));
                 continue;
@@ -4360,6 +5994,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 if (permit.mode() != CrawlerQueueEngineMode.V2
                     || !readV2AutomationSettings(resolveRepoRoot()).isEnabled()) {
                     return null;
+                }
+                List<String> currentActivationReasons = schedulerActivationGateReasons();
+                if (!currentActivationReasons.isEmpty()) {
+                    return V2AutomationDispatchOutcome.schedulerActivationBlocked(currentActivationReasons);
+                }
+                if (!fixtureScheduledAutomationEnabled && sourceDispatchIdentity == null) {
+                    return new V2AutomationDispatchOutcome(null, "source_identity_invalid");
                 }
                 CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
                     queueV2ApplicationService,
@@ -4370,8 +6011,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     rules,
                     entry.getKey(),
                     sourceFingerprint,
-                    acknowledgedSourceFingerprint,
-                    previousSourceFingerprint
+                    acknowledgedSourceFingerprint
                 );
                 if (decision.skipReason() != null) {
                     return new V2AutomationDispatchOutcome(null, decision.skipReason());
@@ -4395,7 +6035,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 request.setActionId(entry.getKey());
                 request.setResumeMode("fresh");
                 return new V2AutomationDispatchOutcome(
-                    dispatchV2WikiMonitorTask(request, "v2-automation"),
+                    dispatchV2WikiMonitorTask(request, "v2-automation", rules.get(0), sourceDispatchIdentity),
                     null
                 );
             });
@@ -4404,7 +6044,55 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 continue;
             }
             if (outcome.skipReason() != null) {
-                sweep.getSkipped().add(v2AutomationSkipped(entry.getKey(), outcome.skipReason(), rules, sourceFingerprint));
+                LinkedHashMap<String, Object> skipped = new LinkedHashMap<>(
+                    v2AutomationSkipped(entry.getKey(), outcome.skipReason(), rules, sourceFingerprint)
+                );
+                if ("scheduler_activation_required".equals(outcome.skipReason())) {
+                    schedulerActivationBlocked = true;
+                    skipped.put("reasons", outcome.activationReasons());
+                    recordAutomationAlert(
+                        null,
+                        "CRITICAL",
+                        "scheduler:activation-gate",
+                        Map.of(
+                            "title", "Scheduler activation blocked",
+                            "details", String.join(", ", outcome.activationReasons()),
+                            "reason", "scheduler_activation_required",
+                            "reasons", outcome.activationReasons(),
+                            "actionId", entry.getKey(),
+                            "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()
+                        )
+                    );
+                }
+                sweep.getSkipped().add(skipped);
+                if (Set.of("automatic_retry_limit_reached", "automatic_retry_unavailable").contains(outcome.skipReason())) {
+                    recordAutomationAlert(
+                        null,
+                        "CRITICAL",
+                        "scheduler:retry:" + entry.getKey(),
+                        Map.of(
+                            "title", "Automatic crawler retry blocked",
+                            "details", outcome.skipReason(),
+                            "reason", outcome.skipReason(),
+                            "actionId", entry.getKey(),
+                            "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()
+                        )
+                    );
+                }
+                if ("source_identity_invalid".equals(outcome.skipReason())) {
+                    recordAutomationAlert(
+                        null,
+                        "CRITICAL",
+                        "scheduler:source-identity:" + entry.getKey(),
+                        Map.of(
+                            "title", "Automatic crawler source identity invalid",
+                            "details", "source probe snapshot is not a single content-hash source",
+                            "reason", "source_identity_invalid",
+                            "actionId", entry.getKey(),
+                            "domains", rules.stream().map(CrawlerMonitorActionDefinition::domain).toList()
+                        )
+                    );
+                }
                 continue;
             }
             CrawlerMonitorDispatchResultDTO result = outcome.result();
@@ -4417,9 +6105,29 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (sourceFingerprint != null) {
                 dispatched.put("sourceFingerprint", sourceFingerprint);
             }
+            if (validatedSourceState != null) {
+                appendSourceSnapshotIdentity(dispatched, validatedSourceState);
+            }
             sweep.getDispatched().add(dispatched);
+            if (!result.isAccepted() || isTerminalFailureStatus(result.getStatus())) {
+                recordAutomationAlert(
+                    null,
+                    "CRITICAL",
+                    "scheduler:dispatch:" + entry.getKey(),
+                    Map.of(
+                        "title", "Crawler dispatch failed",
+                        "details", firstNonBlank(result.getMessage(), result.getStatus(), "dispatch rejected"),
+                        "reason", "dispatch_failed",
+                        "actionId", entry.getKey(),
+                        "status", firstNonBlank(result.getStatus(), "unknown"),
+                        "dispatchId", firstNonBlank(result.getAttemptId(), "")
+                    )
+                );
+            }
         }
-        sweep.setStatus(settings.isEnabled() ? "completed" : "observed");
+        sweep.setStatus(
+            schedulerActivationBlocked ? "blocked" : (settings.isEnabled() ? "completed" : "observed")
+        );
         writeV2AutomationLastSweep(repoRoot, sweep);
         invalidateCachedOverview();
         return sweep;
@@ -4430,8 +6138,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE");
         }
         for (String domain : CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS) {
-            CrawlerAutomationPolicyService.AutomationEligibility eligibility =
-                crawlerAutomationPolicyService.schedulerEligibility(domain);
+            CrawlerAutomationPolicyService.AutomationEligibility eligibility;
+            try {
+                eligibility = crawlerAutomationPolicyService.schedulerEligibility(domain);
+            } catch (RuntimeException exception) {
+                log.warn("Crawler scheduler eligibility lookup failed for domain {}: {}", domain, exception.getMessage());
+                return List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE");
+            }
             if (eligibility == null || !eligibility.eligible()) {
                 if (eligibility == null || eligibility.reasonCodes() == null || eligibility.reasonCodes().isEmpty()) {
                     return List.of("SCHEDULER_ACTIVATION_REQUIRED");
@@ -4447,16 +6160,44 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         List<CrawlerMonitorActionDefinition> rules,
         String actionId,
         String sourceFingerprint,
-        String acknowledgedSourceFingerprint,
-        String previousSourceFingerprint
+        String acknowledgedSourceFingerprint
     ) {
         List<CrawlerQueueV2OverviewDTO.AttemptDTO> live = snapshot == null ? List.of() : snapshot.liveQueue();
-        if (live.stream().anyMatch(attempt -> matchesV2AutomationAction(attempt, rules, actionId))) {
-            return V2AutomationRecoveryDecision.skip("automatic_attempt_active");
+        for (CrawlerQueueV2OverviewDTO.AttemptDTO attempt : live) {
+            if (!matchesV2AutomationAction(attempt, rules, actionId)) {
+                continue;
+            }
+            V2QueueOwnership ownership = v2QueueOwnership(attempt);
+            if (ownership == V2QueueOwnership.UNTRUSTED) {
+                return V2AutomationRecoveryDecision.skip("automatic_queue_metadata_untrusted");
+            }
+            if (ownership == V2QueueOwnership.MANUAL) {
+                continue;
+            }
+            String activeFingerprint = attempt.sourceDispatchIdentity() == null
+                ? null
+                : attempt.sourceDispatchIdentity().sourceFingerprint();
+            if (activeFingerprint == null) {
+                return V2AutomationRecoveryDecision.skip("automatic_source_identity_missing");
+            }
+            if (sameV2AutomationSourceFingerprint(sourceFingerprint, activeFingerprint)) {
+                return V2AutomationRecoveryDecision.skip("automatic_attempt_active");
+            }
         }
-        List<CrawlerQueueV2OverviewDTO.AttemptDTO> history = snapshot == null ? List.of() : snapshot.attemptHistory().stream()
-            .filter(attempt -> matchesV2AutomationAction(attempt, rules, actionId))
-            .toList();
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> history = new ArrayList<>();
+        for (CrawlerQueueV2OverviewDTO.AttemptDTO attempt : snapshot == null ? List.<CrawlerQueueV2OverviewDTO.AttemptDTO>of()
+            : snapshot.attemptHistory()) {
+            if (!matchesV2AutomationAction(attempt, rules, actionId)) {
+                continue;
+            }
+            V2QueueOwnership ownership = v2QueueOwnership(attempt);
+            if (ownership == V2QueueOwnership.UNTRUSTED) {
+                return V2AutomationRecoveryDecision.skip("automatic_queue_metadata_untrusted");
+            }
+            if (ownership == V2QueueOwnership.SCHEDULER) {
+                history.add(attempt);
+            }
+        }
         if (history.isEmpty()) {
             return V2AutomationRecoveryDecision.fresh();
         }
@@ -4467,15 +6208,25 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             )
             .orElseThrow();
         if ("completed".equals(latest.status())) {
-            return sameV2AutomationSourceFingerprint(sourceFingerprint, acknowledgedSourceFingerprint)
+            String completedFingerprint = latest.sourceDispatchIdentity() == null
+                ? null
+                : latest.sourceDispatchIdentity().sourceFingerprint();
+            return sameV2AutomationSourceFingerprint(sourceFingerprint, completedFingerprint)
                 ? V2AutomationRecoveryDecision.skip("automatic_attempt_completed")
-                : V2AutomationRecoveryDecision.fresh();
+                : completedFingerprint == null
+                    ? V2AutomationRecoveryDecision.skip("automatic_source_identity_missing")
+                    : V2AutomationRecoveryDecision.fresh();
         }
         if (!List.of("failed", "timed_out", "interrupted").contains(latest.status())) {
             return V2AutomationRecoveryDecision.skip("automatic_retry_not_failed");
         }
-        if (sourceFingerprint != null
-            && !Objects.equals(sourceFingerprint, previousSourceFingerprint)) {
+        String failedFingerprint = latest.sourceDispatchIdentity() == null
+            ? null
+            : latest.sourceDispatchIdentity().sourceFingerprint();
+        if (failedFingerprint == null) {
+            return V2AutomationRecoveryDecision.skip("automatic_source_identity_missing");
+        }
+        if (sourceFingerprint != null && !Objects.equals(sourceFingerprint, failedFingerprint)) {
             return V2AutomationRecoveryDecision.fresh();
         }
         if (!latest.allowedActions().contains("retry")) {
@@ -4502,6 +6253,27 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return attempt.coveredDomains().stream().anyMatch(domains::contains);
     }
 
+    private boolean isSchedulerOwnedV2Attempt(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
+        return v2QueueOwnership(attempt) == V2QueueOwnership.SCHEDULER;
+    }
+
+    private V2QueueOwnership v2QueueOwnership(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
+        if (attempt == null || !attempt.queueMetadataAvailable()) {
+            return V2QueueOwnership.UNTRUSTED;
+        }
+        if ("scheduler".equals(attempt.queueOrigin())
+            && "v2-automation".equals(attempt.queueRequestedBy())) {
+            return V2QueueOwnership.SCHEDULER;
+        }
+        if ("manual".equals(attempt.queueOrigin())
+            && attempt.queueRequestedBy() != null
+            && !attempt.queueRequestedBy().isBlank()
+            && !"v2-automation".equals(attempt.queueRequestedBy())) {
+            return V2QueueOwnership.MANUAL;
+        }
+        return V2QueueOwnership.UNTRUSTED;
+    }
+
     private Instant v2AttemptTerminalTime(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
         return attempt.completedAt() == null ? attempt.requestedAt() : attempt.completedAt();
     }
@@ -4510,36 +6282,35 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         List<CrawlerMonitorActionDefinition> rules,
         Map<String, Map<String, Object>> sourceByKey
     ) {
+        if (rules == null || rules.size() != 1) {
+            return null;
+        }
         List<String> values = rules.stream()
             .map(CrawlerMonitorActionDefinition::sourceKey)
             .sorted()
             .map(sourceKey -> {
                 Map<String, Object> source = sourceByKey.get(sourceKey);
-                String value = firstNonBlank(
-                    firstNonBlank(
-                        asString(source == null ? null : source.get("currentValue")),
-                        asString(source == null ? null : source.get("revisionId"))
-                    ),
-                    asString(source == null ? null : source.get("revisionTimestamp"))
-                );
-                return value == null ? null : sourceKey + "=" + value;
+                String value = canonicalSourceFingerprint(asString(source == null ? null : source.get("currentValue")));
+                return value;
             })
             .filter(Objects::nonNull)
             .toList();
-        return values.isEmpty() ? null : String.join("|", values);
+        return values.size() == 1 ? values.get(0) : null;
     }
 
     private String v2AutomationAcknowledgedSourceFingerprint(
         List<CrawlerMonitorActionDefinition> rules,
         Map<String, Map<String, Object>> sourceByKey
     ) {
+        if (rules == null || rules.size() != 1) {
+            return null;
+        }
         List<String> values = rules.stream()
             .map(CrawlerMonitorActionDefinition::sourceKey)
             .sorted()
             .map(sourceKey -> {
                 Map<String, Object> source = sourceByKey.get(sourceKey);
-                String value = asString(source == null ? null : source.get("previousValue"));
-                return value == null ? null : sourceKey + "=" + value;
+                return canonicalSourceFingerprint(asString(source == null ? null : source.get("previousValue")));
             })
             .filter(Objects::nonNull)
             .toList();
@@ -4579,6 +6350,57 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private boolean sameV2AutomationSourceFingerprint(String current, String previous) {
         return current != null && Objects.equals(current, previous);
+    }
+
+    private SourceDispatchIdentity sourceDispatchIdentityFor(
+        List<CrawlerMonitorActionDefinition> rules,
+        Map<String, Map<String, Object>> sourceByKey,
+        ValidatedSourceUpdateState sourceState
+    ) {
+        if (sourceState == null) {
+            return null;
+        }
+        String fingerprint = v2AutomationSourceFingerprint(rules, sourceByKey);
+        if (fingerprint == null) {
+            return null;
+        }
+        try {
+            return new SourceDispatchIdentity(
+                fingerprint,
+                sourceState.runIdentity(),
+                sourceState.contentIdentity()
+            );
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private String canonicalSourceFingerprint(String currentValue) {
+        if (currentValue == null) {
+            return null;
+        }
+        String value = currentValue.trim();
+        String hex = value.startsWith("sha256:") ? value.substring("sha256:".length()) : value;
+        if (!hex.matches("[0-9A-Fa-f]{64}")) {
+            return null;
+        }
+        return "sha256:" + hex.toLowerCase(Locale.ROOT);
+    }
+
+    private SourceDispatchIdentity fixtureSourceDispatchIdentity(String runIdentity) {
+        String safeRun = firstNonBlank(runIdentity, Instant.now(clock).toString());
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String fingerprint = "sha256:" + HexFormat.of().formatHex(
+                digest.digest(("fixture:" + safeRun).getBytes(StandardCharsets.UTF_8))
+            );
+            String contentIdentity = "sha256:" + HexFormat.of().formatHex(
+                digest.digest(("fixture-content:" + safeRun).getBytes(StandardCharsets.UTF_8))
+            );
+            return new SourceDispatchIdentity(fingerprint, safeRun, contentIdentity);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable for fixture source identity", exception);
+        }
     }
 
     private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO busyV2AutomationSweep() {
@@ -4682,7 +6504,32 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             writeLastSweep(repoRoot, sweep);
             return sweep;
         }
-        SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
+        List<String> activationReasons = schedulerActivationGateReasons();
+        if (!activationReasons.isEmpty()) {
+            sweep.setStatus("blocked");
+            recordAutomationAlert(
+                null,
+                "CRITICAL",
+                "scheduler:activation-gate",
+                Map.of(
+                    "title", "Scheduler activation blocked",
+                    "details", String.join(", ", activationReasons),
+                    "reason", "scheduler_activation_required",
+                    "reasons", activationReasons
+                )
+            );
+            sweep.getSkipped().add(Map.of(
+                "domain", "all",
+                "reason", "scheduler_activation_required",
+                "reasons", activationReasons
+            ));
+            writeLastSweep(repoRoot, sweep);
+            return sweep;
+        }
+        SourceUpdateCheckResult sourceUpdateCheck = sourceUpdateCheckForDispatch(
+            repoRoot,
+            runSourceUpdateMonitorCheck(repoRoot)
+        );
         if (!sourceUpdateCheck.success()) {
             sweep.setStatus("error");
             LinkedHashMap<String, Object> skipped = new LinkedHashMap<>();
@@ -4690,13 +6537,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             skipped.put("actionId", "source-update-monitor-check");
             skipped.put("reason", "source_update_check_failed");
             skipped.put("message", sourceUpdateCheck.message());
+            if (sourceUpdateCheck.alertDelivery().retryPending()) {
+                skipped.put("alertDeliveryStatus", sourceUpdateCheck.alertDelivery().status());
+            }
             sweep.getSkipped().add(skipped);
             writeLastSweep(repoRoot, sweep);
             return sweep;
         }
 
-        ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
-        Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
+        ValidatedSourceUpdateState validatedSourceState = sourceUpdateCheck.validatedSourceState();
+        Map<String, Map<String, Object>> sourceByKey = validatedSourceState.sourcesByKey();
         Map<String, List<CrawlerMonitorActionDefinition>> changedByAction = new LinkedHashMap<>();
         for (CrawlerMonitorActionDefinition rule : WIKI_MONITOR_RULES) {
             if (!rule.wikiDomain()) {
@@ -4712,6 +6562,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             detected.put("sourceKey", rule.sourceKey());
             detected.put("actionId", rule.actionId());
             detected.put("changed", changed);
+            appendSourceSnapshotIdentity(detected, validatedSourceState);
             sweep.getDetected().add(detected);
             if (!changed) {
                 continue;
@@ -4722,6 +6573,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 skipped.put("actionId", rule.actionId());
                 skipped.put("reason", "not_auto_eligible");
                 skipped.put("message", "domain is outside v1 changed-only auto dispatch coverage");
+                appendSourceSnapshotIdentity(skipped, validatedSourceState);
                 sweep.getSkipped().add(skipped);
                 continue;
             }
@@ -4741,7 +6593,23 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             dispatched.put("dispatchId", result.getDispatchId());
             dispatched.put("status", result.getStatus());
             dispatched.put("message", result.getMessage());
+            appendSourceSnapshotIdentity(dispatched, validatedSourceState);
             sweep.getDispatched().add(dispatched);
+            if (!result.isAccepted() || isTerminalFailureStatus(result.getStatus())) {
+                recordAutomationAlert(
+                    null,
+                    "CRITICAL",
+                    "scheduler:v1-dispatch:" + entry.getKey(),
+                    Map.of(
+                        "title", "Crawler dispatch failed",
+                        "details", firstNonBlank(result.getMessage(), result.getStatus(), "dispatch rejected"),
+                        "reason", "dispatch_failed",
+                        "actionId", entry.getKey(),
+                        "status", firstNonBlank(result.getStatus(), "unknown"),
+                        "dispatchId", firstNonBlank(result.getDispatchId(), "")
+                    )
+                );
+            }
         }
         sweep.setStatus("completed");
         writeLastSweep(repoRoot, sweep);
@@ -4756,10 +6624,34 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private SourceUpdateCheckResult runSourceUpdateMonitorCheck(Path repoRoot) {
-        String timestamp = Instant.now(clock).toString();
+        ReadResult existingRuntime = readJsonMap(repoRoot.resolve(SOURCE_UPDATE_MONITOR_RUNTIME_FILE).normalize());
+        if (existingRuntime.found() && (!existingRuntime.readable()
+            || "running".equalsIgnoreCase(asString(existingRuntime.payload().get("status")))
+            || "launching".equalsIgnoreCase(asString(existingRuntime.payload().get("status")))
+            || Boolean.TRUE.equals(existingRuntime.payload().get("processCleanupFailed")))) {
+            return sourceUpdateCheckFailureWithAlert(
+                repoRoot,
+                existingRuntime.readable()
+                    ? Boolean.TRUE.equals(existingRuntime.payload().get("processCleanupFailed"))
+                        ? "source update monitor process tree cleanup remains unverified"
+                        : "source update monitor already has an active runtime"
+                    : "source update monitor runtime record is unreadable"
+            );
+        }
+        Instant sourceCheckStartedAt = Instant.now(clock);
+        String runId = "source-update-monitor-" + UUID.randomUUID();
+        String processGroupToken = runId;
+        String timestamp = sourceCheckStartedAt.toString();
         String logPath = "reports/crawler-monitor/source-update-monitor-check-"
             + timestamp.replaceAll("[^0-9A-Za-z]+", "-")
             + ".log";
+        LinkedHashMap<String, Object> sourceRuntime = new LinkedHashMap<>();
+        sourceRuntime.put("actionId", "source-update-monitor-check");
+        sourceRuntime.put("runId", runId);
+        sourceRuntime.put("status", "launching");
+        sourceRuntime.put("requestedAt", timestamp);
+        sourceRuntime.put("processGroupToken", processGroupToken);
+        sourceRuntime.put("progressPath", SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/'));
         LaunchRequest request = new LaunchRequest(
             List.of(
                 "node",
@@ -4772,23 +6664,749 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             Map.of(
                 "WORKTREE_ROOT", repoRoot.toString(),
                 "TERRAPEDIA_CRAWLER_ACTION_ID", "source-update-monitor-check",
+                "TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN", processGroupToken,
                 "TERRAPEDIA_CRAWLER_PROGRESS_PATH", SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/')
             ),
             repoRoot.resolve(logPath).normalize().toFile()
         );
+        Process process = null;
+        SourceUpdateCheckResult outcome = null;
+        boolean processCleanupFailed = false;
+        boolean interruptedDuringProbe = false;
         try {
-            Process process = processLauncher.launch(request);
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                return new SourceUpdateCheckResult(false, "source update monitor check exited with code " + exitCode);
+            writeSourceUpdateRuntimeFile(repoRoot, sourceRuntime);
+            process = processLauncher.launch(request);
+            long pid = safePid(process);
+            String processStartedAt = processStartInstant(process)
+                .orElse(sourceCheckStartedAt)
+                .toString();
+            ProcessGroupIdentity processGroupIdentity = processLauncher.inspectProcessGroupIdentity(process);
+            boolean identityRequired = processLauncher.supportsPersistedProcessGroupInspection()
+                || processLauncher.supportsIsolatedProcessGroup(process);
+            if (identityRequired && (pid <= 0L || processGroupIdentity == null
+                || processGroupIdentity.processGroupId() != pid
+                || processGroupIdentity.sessionId() != pid)) {
+                boolean cleanupSucceeded = destroySourceUpdateProcess(
+                    process,
+                    "process-group identity could not be verified after launch"
+                );
+                processCleanupFailed |= !cleanupSucceeded;
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    cleanupSucceeded
+                        ? "source update monitor process-group identity could not be verified after launch; cleanup succeeded"
+                        : "source update monitor process-group identity could not be verified after launch; cleanup failed"
+                );
+                return outcome;
             }
-            return new SourceUpdateCheckResult(true, "source update monitor check completed");
+            sourceRuntime.put("status", "running");
+            if (pid > 0L) {
+                sourceRuntime.put("pid", pid);
+            }
+            sourceRuntime.put("processStartedAt", processStartedAt);
+            if (processGroupIdentity != null) {
+                sourceRuntime.put("processGroupId", processGroupIdentity.processGroupId());
+                sourceRuntime.put("sessionId", processGroupIdentity.sessionId());
+            }
+            writeSourceUpdateRuntimeFile(repoRoot, sourceRuntime);
+            List<ProcessHandle> observedDescendants = snapshotSourceUpdateDescendants(process);
+            if (observedDescendants == null) {
+                boolean cleanupSucceeded = destroySourceUpdateProcess(
+                    process,
+                    "descendant inspection unavailable"
+                );
+                processCleanupFailed |= !cleanupSucceeded;
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    cleanupSucceeded
+                        ? "source update monitor check could not inspect descendants; process tree cleanup succeeded but probe is rejected"
+                    : "source update monitor check could not inspect descendants; process tree cleanup failed"
+                );
+                return outcome;
+            }
+            boolean isolatedProcessGroup = processLauncher.supportsIsolatedProcessGroup(process);
+            if (isolatedProcessGroup) {
+                List<ProcessHandle> initialGroup = processLauncher.snapshotProcessGroup(process);
+                if (initialGroup == null || initialGroup.isEmpty()) {
+                    boolean cleanupSucceeded = destroySourceUpdateProcess(
+                        process,
+                        "isolated process-group inspection unavailable"
+                    );
+                    processCleanupFailed |= !cleanupSucceeded;
+                    outcome = sourceUpdateCheckFailureWithAlert(
+                        repoRoot,
+                        cleanupSucceeded
+                            ? "source update monitor check could not verify its isolated process group; cleanup succeeded but probe is rejected"
+                            : "source update monitor check could not verify its isolated process group; process tree cleanup failed"
+                    );
+                    return outcome;
+                }
+            }
+            Duration timeout = dispatchTimeout;
+            boolean completed = process.waitFor(Math.max(0L, timeout.toMillis()), TimeUnit.MILLISECONDS);
+            if (!completed) {
+                boolean cleanupSucceeded = destroySourceUpdateProcess(
+                    process,
+                    "timed out after " + timeout.toMinutes() + " minutes"
+                );
+                processCleanupFailed |= !cleanupSucceeded;
+                String failureMessage = "source update monitor check timed out after " + timeout.toMinutes() + " minutes";
+                if (!cleanupSucceeded) {
+                    failureMessage += "; process tree cleanup failed; a child process may still be alive";
+                }
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    failureMessage
+                );
+                return outcome;
+            }
+            if (isProcessAlive(process)) {
+                boolean cleanupSucceeded = destroySourceUpdateProcess(process, "root remained alive after wait");
+                processCleanupFailed |= !cleanupSucceeded;
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    cleanupSucceeded
+                        ? "source update monitor check did not terminate its root process"
+                    : "source update monitor check did not terminate its root process; process tree cleanup failed"
+                );
+                return outcome;
+            }
+            if (isolatedProcessGroup) {
+                List<ProcessHandle> liveGroup = processLauncher.snapshotProcessGroup(process);
+                if (liveGroup == null) {
+                    boolean cleanupSucceeded = destroySourceUpdateProcess(
+                        process,
+                        "isolated process-group inspection unavailable after root exit"
+                    );
+                    processCleanupFailed |= !cleanupSucceeded;
+                    outcome = sourceUpdateCheckFailureWithAlert(
+                        repoRoot,
+                        cleanupSucceeded
+                            ? "source update monitor check could not inspect its process group after root exit; cleanup succeeded but probe is rejected"
+                            : "source update monitor check could not inspect its process group after root exit; process tree cleanup failed"
+                    );
+                    return outcome;
+                }
+                if (!liveGroup.isEmpty()) {
+                    boolean cleanupSucceeded = destroySourceUpdateProcess(
+                        process,
+                        "root exited with live process-group member"
+                    );
+                    processCleanupFailed |= !cleanupSucceeded;
+                    boolean groupEmpty = processLauncher.awaitProcessGroupEmpty(
+                        process,
+                        PROCESS_DESTROY_FORCE_WAIT_MILLIS
+                    );
+                    processCleanupFailed |= !cleanupSucceeded || !groupEmpty;
+                    outcome = sourceUpdateCheckFailureWithAlert(
+                        repoRoot,
+                        cleanupSucceeded && groupEmpty
+                            ? "source update monitor check completed with a live descendant in its process group; cleanup succeeded but probe is rejected"
+                            : "source update monitor check completed with a live descendant in its process group; process-group cleanup failed"
+                    );
+                    return outcome;
+                }
+            }
+            List<ProcessHandle> liveDescendants = observedDescendants.stream().filter(ProcessHandle::isAlive).toList();
+            if (!liveDescendants.isEmpty()) {
+                boolean cleanupSucceeded = destroySourceUpdateDescendants(
+                    liveDescendants,
+                    "root exited with live descendant"
+                );
+                processCleanupFailed |= !cleanupSucceeded;
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    cleanupSucceeded
+                        ? "source update monitor check completed with a live descendant; cleanup succeeded but probe is rejected"
+                        : "source update monitor check completed with a live descendant; process tree cleanup failed"
+                );
+                return outcome;
+            }
+            int exitCode = process.exitValue();
+            if (exitCode != 0) {
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    "source update monitor check exited with code " + exitCode
+                );
+                return outcome;
+            }
+            ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+            ValidatedSourceUpdateState validatedSourceState = validatedSourceUpdateState(sourceState, sourceCheckStartedAt);
+            if (validatedSourceState == null) {
+                outcome = sourceUpdateCheckFailureWithAlert(
+                    repoRoot,
+                    "source update monitor reported an unhealthy probe result"
+                );
+                return outcome;
+            }
+            resolveSourceProbeAlerts(repoRoot);
+            outcome = new SourceUpdateCheckResult(
+                true,
+                "source update monitor check completed",
+                List.of(),
+                validatedSourceState,
+                AutomationAlertDeliveryResult.persisted()
+            );
+            return outcome;
         } catch (IOException exception) {
-            return new SourceUpdateCheckResult(false, exception.getMessage());
+            outcome = sourceUpdateCheckFailureWithAlert(repoRoot, exception.getMessage());
+            return outcome;
+        } catch (AutomationAlertDeliveryBoundaryException exception) {
+            if (process != null && processCleanupFailed) {
+                boolean retryCleanupSucceeded = destroySourceUpdateProcess(
+                    process,
+                    "retry outbox boundary failure after source-probe cleanup failure"
+                );
+                if (!retryCleanupSucceeded) {
+                    exception.addSuppressed(new IllegalStateException(
+                        "source update monitor process tree cleanup remained unverified after retry outbox failure"
+                    ));
+                }
+            }
+            throw exception;
+        } catch (RuntimeException exception) {
+            boolean cleanupSucceeded = process == null
+                || destroySourceUpdateProcess(process, "source probe runtime failure");
+            processCleanupFailed |= !cleanupSucceeded;
+            String failureMessage = firstNonBlank(
+                exception.getMessage(),
+                exception.getClass().getSimpleName(),
+                "source update monitor check failed"
+            );
+            if (!cleanupSucceeded) {
+                failureMessage += "; process tree cleanup failed; a child process may still be alive";
+            }
+            try {
+                outcome = sourceUpdateCheckFailureWithAlert(repoRoot, failureMessage);
+            } catch (AutomationAlertDeliveryBoundaryException alertException) {
+                throw alertException;
+            } catch (RuntimeException alertException) {
+                outcome = new SourceUpdateCheckResult(false, failureMessage, List.of());
+                log.error("Unable to persist source update monitor runtime-failure alert.", alertException);
+            }
+            return outcome;
         } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return new SourceUpdateCheckResult(false, "source update monitor check interrupted");
+            boolean cleanupSucceeded = destroySourceUpdateProcess(process, "interrupted");
+            processCleanupFailed |= !cleanupSucceeded;
+            interruptedDuringProbe = true;
+            Thread.interrupted();
+            outcome = sourceUpdateCheckFailureWithAlert(
+                repoRoot,
+                cleanupSucceeded
+                    ? "source update monitor check interrupted"
+                    : "source update monitor check interrupted; process tree cleanup failed; a child process may still be alive"
+            );
+            return outcome;
+        } finally {
+            if (interruptedDuringProbe) {
+                Thread.interrupted();
+            }
+            if (processCleanupFailed) {
+                sourceRuntime.put("processCleanupFailed", true);
+            }
+            try {
+                finalizeSourceUpdateRuntime(repoRoot, sourceRuntime, outcome);
+            } finally {
+                if (interruptedDuringProbe) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
+    }
+
+    private Optional<Instant> processStartInstant(Process process) {
+        if (process == null) {
+            return Optional.empty();
+        }
+        try {
+            return process.toHandle().info().startInstant();
+        } catch (RuntimeException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private void finalizeSourceUpdateRuntime(
+        Path repoRoot,
+        Map<String, Object> sourceRuntime,
+        SourceUpdateCheckResult outcome
+    ) {
+        if (sourceRuntime == null || sourceRuntime.isEmpty()) {
+            return;
+        }
+        LinkedHashMap<String, Object> terminal = new LinkedHashMap<>(sourceRuntime);
+        terminal.put("status", outcome != null && outcome.success() ? "completed" : "failed");
+        terminal.put(
+            "message",
+            outcome == null
+                ? "source update monitor check failed before a terminal result was produced"
+                : outcome.message()
+        );
+        terminal.put("completedAt", Instant.now(clock).toString());
+        RuntimeException publicationFailure = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                writeSourceUpdateRuntimeFile(repoRoot, terminal);
+                return;
+            } catch (RuntimeException exception) {
+                if (publicationFailure == null) {
+                    publicationFailure = exception;
+                } else {
+                    publicationFailure.addSuppressed(exception);
+                }
+                if (attempt == 1) {
+                    log.warn("Retrying source update monitor terminal runtime state publication.", exception);
+                }
+            }
+        }
+
+        String failureMessage = firstNonBlank(
+            publicationFailure == null ? null : publicationFailure.getMessage(),
+            publicationFailure == null ? null : publicationFailure.getClass().getSimpleName(),
+            "source update monitor terminal runtime publication failed"
+        );
+        try {
+            AutomationAlertDeliveryResult alertDelivery = recordAutomationAlert(
+                null,
+                "CRITICAL",
+                "scheduler:source-probe:runtime-finalization",
+                Map.of(
+                    "title", "Source probe terminal runtime publication failed",
+                    "details", failureMessage,
+                    "reason", "source_probe_runtime_finalization_failed",
+                    "runtimePath", SOURCE_UPDATE_MONITOR_RUNTIME_FILE.toString().replace('\\', '/'),
+                    "repoRoot", repoRoot.toString()
+                )
+            );
+            if (alertDelivery.retryPending()) {
+                throw new AutomationAlertDeliveryBoundaryException(
+                    "source update monitor terminal runtime publication failed; CRITICAL alert retry pending",
+                    publicationFailure
+                );
+            }
+        } catch (AutomationAlertDeliveryBoundaryException exception) {
+            if (publicationFailure != null && exception != publicationFailure) {
+                exception.addSuppressed(publicationFailure);
+            }
+            try {
+                writeSourceUpdateRuntimeFallbackFile(repoRoot, sourceRuntime, failureMessage);
+            } catch (RuntimeException fallbackFailure) {
+                exception.addSuppressed(fallbackFailure);
+                clearOrRetainSourceUpdateRuntimeAfterPublicationFailure(repoRoot, sourceRuntime, exception);
+            }
+            throw exception;
+        } catch (RuntimeException alertException) {
+            if (publicationFailure != null && alertException != publicationFailure) {
+                alertException.addSuppressed(publicationFailure);
+            }
+            try {
+                writeSourceUpdateRuntimeFallbackFile(repoRoot, sourceRuntime, failureMessage);
+            } catch (RuntimeException fallbackFailure) {
+                alertException.addSuppressed(fallbackFailure);
+                clearOrRetainSourceUpdateRuntimeAfterPublicationFailure(repoRoot, sourceRuntime, alertException);
+            }
+            throw alertException;
+        }
+        try {
+            writeSourceUpdateRuntimeFallbackFile(repoRoot, sourceRuntime, failureMessage);
+        } catch (RuntimeException fallbackFailure) {
+            IllegalStateException terminalFailure = new IllegalStateException(
+                "Failed to persist source update monitor terminal runtime state and fallback marker",
+                publicationFailure
+            );
+            terminalFailure.addSuppressed(fallbackFailure);
+            clearOrRetainSourceUpdateRuntimeAfterPublicationFailure(repoRoot, sourceRuntime, terminalFailure);
+            throw terminalFailure;
+        }
+        throw new IllegalStateException(
+            "Failed to persist source update monitor terminal runtime state: "
+                + failureMessage
+                + "; CRITICAL alert recorded",
+            publicationFailure
+        );
+    }
+
+    private void writeSourceUpdateRuntimeFallbackFile(
+        Path repoRoot,
+        Map<String, Object> sourceRuntime,
+        String failureMessage
+    ) {
+        Path path = repoRoot.resolve(SOURCE_UPDATE_MONITOR_RUNTIME_FILE).normalize();
+        Path parent = path.getParent();
+        Path temporary = null;
+        String runId = asString(sourceRuntime.get("runId"));
+        String requestedAt = asString(sourceRuntime.get("requestedAt"));
+        String processGroupToken = asString(sourceRuntime.get("processGroupToken"));
+        String progressPath = asString(sourceRuntime.get("progressPath"));
+        boolean processCleanupFailed = Boolean.TRUE.equals(sourceRuntime.get("processCleanupFailed"));
+        String completedAt = Instant.now(clock).toString();
+        String serialized = "{\n"
+            + "  \"actionId\": \"source-update-monitor-check\",\n"
+            + "  \"runId\": " + jsonString(runId) + ",\n"
+            + "  \"status\": \"failed\",\n"
+            + "  \"requestedAt\": " + jsonString(requestedAt) + ",\n"
+            + "  \"processGroupToken\": " + jsonString(processGroupToken) + ",\n"
+            + "  \"progressPath\": " + jsonString(progressPath) + ",\n"
+            + "  \"processCleanupFailed\": " + processCleanupFailed + ",\n"
+            + "  \"message\": " + jsonString(
+                firstNonBlank(failureMessage, "source update monitor terminal runtime publication failed")
+            ) + ",\n"
+            + "  \"completedAt\": " + jsonString(completedAt) + "\n"
+            + "}\n";
+        try {
+            assertNoSymlinkedAncestors(path);
+            Files.createDirectories(parent);
+            assertNoSymlinkedAncestors(path);
+            if (Files.isSymbolicLink(path)) {
+                throw new IOException("source update monitor runtime path must not be symbolic-linked");
+            }
+            temporary = Files.createTempFile(parent, ".source-update-monitor-runtime-fallback-", ".tmp");
+            byte[] bytes = serialized.getBytes(StandardCharsets.UTF_8);
+            try (FileChannel channel = FileChannel.open(
+                temporary,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING
+            )) {
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
+                channel.force(true);
+            }
+            try {
+                Files.setPosixFilePermissions(
+                    temporary,
+                    Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)
+                );
+            } catch (UnsupportedOperationException ignored) {
+                // The runtime is still private on platforms without POSIX modes.
+            }
+            forceDirectory(parent);
+            Files.move(
+                temporary,
+                path,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            );
+            temporary = null;
+            forceDirectory(parent);
+        } catch (AtomicMoveNotSupportedException exception) {
+            throw new IllegalStateException("source update monitor runtime fallback publication is not atomic", exception);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to write source update monitor runtime fallback " + path, exception);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException ignored) {
+                    // Preserve the original publication failure; the stale temp is diagnostic evidence.
+                }
+            }
+        }
+    }
+
+    private void clearOrRetainSourceUpdateRuntimeAfterPublicationFailure(
+        Path repoRoot,
+        Map<String, Object> sourceRuntime,
+        RuntimeException failure
+    ) {
+        if (Boolean.TRUE.equals(sourceRuntime.get("processCleanupFailed"))) {
+            retainSourceUpdateRuntimeAfterPublicationFailure(repoRoot, failure);
+            return;
+        }
+        removeSourceUpdateRuntimeAfterPublicationFailure(repoRoot, failure);
+    }
+
+    /**
+     * A cleanup-uncertain probe must keep its runtime fence even when neither
+     * terminal publication path is writable.  The next probe treats an
+     * existing running/unreadable marker as a hard stop until an operator
+     * verifies the process tree and repairs the artifact.
+     */
+    private void retainSourceUpdateRuntimeAfterPublicationFailure(
+        Path repoRoot,
+        RuntimeException failure
+    ) {
+        Path path = repoRoot.resolve(SOURCE_UPDATE_MONITOR_RUNTIME_FILE).normalize();
+        try {
+            assertNoSymlinkedAncestors(path);
+            if (Files.isSymbolicLink(path)) {
+                throw new IOException("source update monitor runtime path must not be symbolic-linked");
+            }
+            if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+                throw new IOException("source update monitor cleanup-uncertain runtime fence is missing");
+            }
+        } catch (IOException | RuntimeException retentionFailure) {
+            failure.addSuppressed(retentionFailure);
+        }
+    }
+
+    private void removeSourceUpdateRuntimeAfterPublicationFailure(Path repoRoot, RuntimeException failure) {
+        Path path = repoRoot.resolve(SOURCE_UPDATE_MONITOR_RUNTIME_FILE).normalize();
+        Path parent = path.getParent();
+        try {
+            assertNoSymlinkedAncestors(path);
+            if (Files.isSymbolicLink(path)) {
+                throw new IOException("source update monitor runtime path must not be symbolic-linked");
+            }
+            if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+                Files.deleteIfExists(path);
+                if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+                    throw new IOException("source update monitor runtime path remained after deletion");
+                }
+            }
+            if (parent == null) {
+                throw new IOException("source update monitor runtime path has no parent directory");
+            }
+            forceDirectory(parent);
+        } catch (IOException | RuntimeException cleanupFailure) {
+            failure.addSuppressed(cleanupFailure);
+        }
+    }
+
+    private String jsonString(String value) {
+        if (value == null) {
+            return "null";
+        }
+        StringBuilder escaped = new StringBuilder(value.length() + 2).append('"');
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            switch (character) {
+                case '\\' -> escaped.append("\\\\");
+                case '"' -> escaped.append("\\\"");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                case '\b' -> escaped.append("\\b");
+                case '\f' -> escaped.append("\\f");
+                default -> {
+                    if (character < 0x20) {
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        escaped.append(character);
+                    }
+                }
+            }
+        }
+        return escaped.append('"').toString();
+    }
+
+    private List<ProcessHandle> snapshotSourceUpdateDescendants(Process process) {
+        if (process == null) {
+            return List.of();
+        }
+        try {
+            return process.toHandle().descendants().toList();
+        } catch (RuntimeException exception) {
+            log.warn("Unable to inspect source update monitor descendants: {}", exception.getMessage());
+            return null;
+        }
+    }
+
+    private boolean isProcessAlive(Process process) {
+        try {
+            return process != null && process.isAlive();
+        } catch (RuntimeException exception) {
+            log.warn("Unable to inspect source update monitor root process: {}", exception.getMessage());
+            return true;
+        }
+    }
+
+    private boolean destroySourceUpdateDescendants(List<ProcessHandle> descendants, String reason) {
+        if (descendants == null || descendants.isEmpty()) {
+            return true;
+        }
+        try {
+            log.warn("Destroying observed source update monitor descendants ({})", reason);
+            boolean destroyed = processLauncher.destroyHandles(descendants);
+            boolean noLiveDescendants = descendants.stream().noneMatch(ProcessHandle::isAlive);
+            if (!destroyed || !noLiveDescendants) {
+                log.error("Observed source update monitor descendants remain after cleanup ({})", reason);
+                return false;
+            }
+            return true;
+        } catch (RuntimeException exception) {
+            log.error("Unable to destroy observed source update monitor descendants ({})", reason, exception);
+            return false;
+        }
+    }
+
+    private boolean destroySourceUpdateProcess(Process process, String reason) {
+        if (process == null) {
+            return false;
+        }
+        try {
+            log.warn("Destroying source update monitor process tree ({})", reason);
+            boolean destroyed = processLauncher.destroy(process);
+            if (!destroyed) {
+                log.error("Source update monitor process tree cleanup did not complete ({})", reason);
+            }
+            return destroyed;
+        } catch (RuntimeException exception) {
+            log.error("Unable to destroy source update monitor process tree ({})", reason, exception);
+            return false;
+        }
+    }
+
+    private SourceUpdateCheckResult sourceUpdateCheckFailureWithAlert(Path repoRoot, String message) {
+        SourceUpdateCheckResult result = sourceUpdateCheckFailure(repoRoot, message);
+        return result.withAlertDelivery(recordSourceProbeAlerts(repoRoot, result));
+    }
+
+    private SourceUpdateCheckResult sourceUpdateCheckFailure(Path repoRoot, String message) {
+        ReadResult state = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+        if (!state.readable()) {
+            return new SourceUpdateCheckResult(false, firstNonBlank(message, "source update monitor check failed"), List.of());
+        }
+        Map<String, Object> payload = state.payload();
+        Map<String, Object> summary = payload.get("summary") instanceof Map<?, ?> raw
+            ? copyObjectMap(raw)
+            : Map.of();
+        List<String> failed = toStringList(summary.get("failedSourceKeys"));
+        if (failed.isEmpty() && payload.get("sources") instanceof List<?> sources) {
+            failed = sources.stream()
+                .filter(source -> source instanceof Map<?, ?> raw
+                    && "error".equalsIgnoreCase(asString(raw.get("status"))))
+                .map(source -> asString(((Map<?, ?>) source).get("key")))
+                .filter(Objects::nonNull)
+                .toList();
+        }
+        return new SourceUpdateCheckResult(
+            false,
+            firstNonBlank(message, "source update monitor check failed"),
+            failed
+        );
+    }
+
+    /**
+     * A successful probe process is not sufficient evidence for scheduling. The
+     * checker writes a report even when one upstream request fails, so inspect
+     * the report and fail closed before any changed-only dispatch is admitted.
+     */
+    boolean sourceUpdateStateHealthyForTesting(Map<String, Object> payload) {
+        return sourceUpdateStateHealthy(payload, null);
+    }
+
+    private ValidatedSourceUpdateState validatedSourceUpdateState(
+        ReadResult state,
+        Instant sourceCheckStartedAt
+    ) {
+        if (!state.readable() || !sourceUpdateStateHealthy(state.payload(), sourceCheckStartedAt)) {
+            return null;
+        }
+        Map<String, Object> payloadSnapshot = immutableJsonObjectMap(state.payload());
+        String contentIdentity;
+        try {
+            contentIdentity = sourceStateContentIdentity(payloadSnapshot);
+        } catch (IOException | RuntimeException exception) {
+            return null;
+        }
+        LinkedHashMap<String, Map<String, Object>> snapshot = new LinkedHashMap<>();
+        sourceMap(payloadSnapshot.get("sources")).forEach((sourceKey, source) ->
+            snapshot.put(sourceKey, Collections.unmodifiableMap(new LinkedHashMap<>(source)))
+        );
+        return new ValidatedSourceUpdateState(
+            asString(payloadSnapshot.get("checkedAt")),
+            contentIdentity,
+            payloadSnapshot,
+            Collections.unmodifiableMap(snapshot)
+        );
+    }
+
+    private SourceUpdateCheckResult sourceUpdateCheckForDispatch(
+        Path repoRoot,
+        SourceUpdateCheckResult sourceUpdateCheck
+    ) {
+        if (!sourceUpdateCheck.success() || validatedSourceUpdateStateIdentityMatches(sourceUpdateCheck.validatedSourceState())) {
+            return sourceUpdateCheck;
+        }
+        SourceUpdateCheckResult failure = new SourceUpdateCheckResult(
+            false,
+            "validated source update state identity check failed",
+            List.of("all")
+        );
+        return failure.withAlertDelivery(recordSourceProbeAlerts(repoRoot, failure));
+    }
+
+    private boolean validatedSourceUpdateStateIdentityMatches(ValidatedSourceUpdateState state) {
+        if (state == null
+            || state.runIdentity() == null
+            || state.runIdentity().isBlank()
+            || state.contentIdentity() == null
+            || state.contentIdentity().isBlank()
+            || !Objects.equals(state.runIdentity(), asString(state.payloadSnapshot().get("checkedAt")))) {
+            return false;
+        }
+        try {
+            return Objects.equals(state.contentIdentity(), sourceStateContentIdentity(state.payloadSnapshot()));
+        } catch (IOException | RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private String sourceStateContentIdentity(Map<String, Object> payload) throws IOException {
+        byte[] bytes = objectMapper.writeValueAsString(payload).getBytes(StandardCharsets.UTF_8);
+        try {
+            return "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable for source state identity", exception);
+        }
+    }
+
+    private void appendSourceSnapshotIdentity(
+        Map<String, Object> target,
+        ValidatedSourceUpdateState sourceState
+    ) {
+        target.put("sourceRunIdentity", sourceState.runIdentity());
+        target.put("sourceContentIdentity", sourceState.contentIdentity());
+    }
+
+    private boolean sourceUpdateStateHealthy(Map<String, Object> payload, Instant sourceCheckStartedAt) {
+        if (payload == null) {
+            return false;
+        }
+        String checkedAtText = asString(payload.get("checkedAt"));
+        Instant checkedAt = parseInstant(checkedAtText);
+        Instant now = Instant.now(clock);
+        if (checkedAt == null
+            || checkedAt.isAfter(now)
+            || Duration.between(checkedAt, now).compareTo(SOURCE_UPDATE_STATE_MAX_AGE) > 0
+            || (sourceCheckStartedAt != null && checkedAt.isBefore(sourceCheckStartedAt))) {
+            return false;
+        }
+        Map<String, Object> summary = payload.get("summary") instanceof Map<?, ?> raw
+            ? copyObjectMap(raw)
+            : Map.of();
+        if (!Boolean.TRUE.equals(summary.get("probeHealthy"))) {
+            return false;
+        }
+        if (asInt(summary.get("errorSources"), -1) != 0) {
+            return false;
+        }
+        Object sourcesValue = payload.get("sources");
+        if (!(sourcesValue instanceof List<?> sources)) {
+            return false;
+        }
+        Map<String, Integer> sourceCounts = new LinkedHashMap<>();
+        for (Object source : sources) {
+            if (!(source instanceof Map<?, ?> raw)) {
+                return false;
+            }
+            Map<String, Object> sourcePayload = copyObjectMap(raw);
+            String sourceKey = asString(sourcePayload.get("key"));
+            if (sourceKey == null
+                || sourceKey.isBlank()
+                || !"ok".equalsIgnoreCase(asString(sourcePayload.get("status")))
+                || !Objects.equals(checkedAtText, asString(sourcePayload.get("checkedAt")))
+                || !(sourcePayload.get("changed") instanceof Boolean)) {
+                return false;
+            }
+            int sourceCount = sourceCounts.merge(sourceKey, 1, Integer::sum);
+            if (sourceCount != 1) {
+                return false;
+            }
+        }
+        return AUTO_ELIGIBLE_SOURCE_KEYS.stream()
+            .allMatch(sourceKey -> sourceCounts.getOrDefault(sourceKey, 0) == 1);
     }
 
     @Scheduled(fixedDelayString = "${terrapedia.crawler-monitor.auto-dispatch.poll-ms:60000}")
@@ -4800,6 +7418,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             }
             runAutoDispatchSweepOnce();
         } catch (RuntimeException exception) {
+            recordAutomationAlert(
+                null,
+                "CRITICAL",
+                "scheduler:v1-sweep",
+                Map.of(
+                    "title", "V1 automation sweep failed",
+                    "details", firstNonBlank(exception.getMessage(), exception.getClass().getSimpleName()),
+                    "reason", "v1_sweep_failed"
+                )
+            );
             log.warn("Crawler monitor auto-dispatch sweep failed: {}", exception.getMessage(), exception);
         }
     }
@@ -4811,6 +7439,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 if (permit.mode() != CrawlerQueueEngineMode.V2) {
                     return false;
                 }
+                recordV2AttemptFailureAlerts();
                 Path repoRoot = resolveRepoRoot();
                 CrawlerV2AutomationDTO settings = readV2AutomationSettings(repoRoot);
                 return settings.isEnabled() && isV2AutomationSweepDue(settings);
@@ -4832,6 +7461,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 return null;
             }, null);
         } catch (RuntimeException exception) {
+            recordAutomationAlert(
+                null,
+                "CRITICAL",
+                "scheduler:v2-sweep",
+                Map.of(
+                    "title", "V2 automation sweep failed",
+                    "details", firstNonBlank(exception.getMessage(), exception.getClass().getSimpleName()),
+                    "reason", "v2_sweep_failed"
+                )
+            );
             log.warn("Crawler monitor V2 automation sweep failed: {}", exception.getMessage(), exception);
         }
     }
@@ -7081,11 +9720,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .toList();
     }
 
-    private String firstNonBlank(String first, String second) {
-        if (first != null && !first.isBlank()) {
-            return first;
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
         }
-        return second == null || second.isBlank() ? null : second;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private LinkedHashMap<String, Object> copyPayload(Map<String, Object> payload) {
@@ -7123,6 +9767,42 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> immutableJsonObjectMap(Map<String, Object> payload) {
+        return (Map<String, Object>) immutableJsonValue(payload == null ? Map.of() : payload);
+    }
+
+    private Object immutableJsonValue(Object value) {
+        if (value instanceof Map<?, ?> raw) {
+            LinkedHashMap<String, Object> copy = new LinkedHashMap<>();
+            raw.forEach((key, nested) -> copy.put(String.valueOf(key), immutableJsonValue(nested)));
+            return Collections.unmodifiableMap(copy);
+        }
+        if (value instanceof List<?> raw) {
+            List<Object> copy = new ArrayList<>(raw.size());
+            for (Object nested : raw) {
+                copy.add(immutableJsonValue(nested));
+            }
+            return Collections.unmodifiableList(copy);
+        }
+        return value;
+    }
+
+    @FunctionalInterface
+    private interface AutomationAlertDeliveryRetryOperation<T> {
+        T run() throws IOException;
+    }
+
+    private record AutomationAlertDeliveryRetryState(
+        Map<String, Object> payload,
+        List<Map<String, Object>> alerts,
+        boolean found
+    ) {
+        static AutomationAlertDeliveryRetryState missing() {
+            return new AutomationAlertDeliveryRetryState(new LinkedHashMap<>(), new ArrayList<>(), false);
+        }
+    }
+
     private record ReadResult(
         Path path,
         String displayPath,
@@ -7155,8 +9835,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private record V2AutomationDispatchOutcome(
         CrawlerMonitorDispatchResultDTO result,
-        String skipReason
-    ) {}
+        String skipReason,
+        List<String> activationReasons
+    ) {
+        private V2AutomationDispatchOutcome(CrawlerMonitorDispatchResultDTO result, String skipReason) {
+            this(result, skipReason, List.of());
+        }
+
+        private static V2AutomationDispatchOutcome schedulerActivationBlocked(List<String> activationReasons) {
+            return new V2AutomationDispatchOutcome(
+                null,
+                "scheduler_activation_required",
+                List.copyOf(activationReasons)
+            );
+        }
+    }
 
     private record V2AutomationRecoveryDecision(
         CrawlerQueueV2OverviewDTO.AttemptDTO retryAttempt,
@@ -7175,6 +9868,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    private enum V2QueueOwnership {
+        SCHEDULER,
+        MANUAL,
+        UNTRUSTED
+    }
+
     record DispatchPaths(String reportPath, String progressPath, String lockPath, String outputPath, String logPath) {}
 
     record QueueBlocker(String blockedByDispatchId, String blockedByDomain, String blockedByActionId) {
@@ -7187,7 +9886,69 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     record LaunchRequest(List<String> command, File directory, Map<String, String> environment, File logFile) {}
 
-    record SourceUpdateCheckResult(boolean success, String message) {}
+    record ProcessGroupIdentity(long processGroupId, long sessionId) {}
+
+    record PersistedProcessGroup(long processGroupId, long sessionId, List<ProcessHandle> members) {
+        PersistedProcessGroup {
+            members = members == null ? List.of() : List.copyOf(members);
+        }
+
+        static PersistedProcessGroup empty() {
+            return new PersistedProcessGroup(0L, 0L, List.of());
+        }
+    }
+
+    record ValidatedSourceUpdateState(
+        String runIdentity,
+        String contentIdentity,
+        Map<String, Object> payloadSnapshot,
+        Map<String, Map<String, Object>> sourcesByKey
+    ) {}
+
+    record AutomationAlertDeliveryResult(String status, String failureMessage) {
+        static AutomationAlertDeliveryResult persisted() {
+            return new AutomationAlertDeliveryResult("persisted", null);
+        }
+
+        static AutomationAlertDeliveryResult retryPending(String failureMessage) {
+            return new AutomationAlertDeliveryResult("retry_pending", failureMessage);
+        }
+
+        boolean retryPending() {
+            return "retry_pending".equals(status);
+        }
+    }
+
+    private static final class AutomationAlertDeliveryBoundaryException extends IllegalStateException {
+        private AutomationAlertDeliveryBoundaryException(String message) {
+            super(message);
+        }
+
+        private AutomationAlertDeliveryBoundaryException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    record SourceUpdateCheckResult(
+        boolean success,
+        String message,
+        List<String> failedSourceKeys,
+        ValidatedSourceUpdateState validatedSourceState,
+        AutomationAlertDeliveryResult alertDelivery
+    ) {
+        SourceUpdateCheckResult(boolean success, String message, List<String> failedSourceKeys) {
+            this(success, message, failedSourceKeys, null, AutomationAlertDeliveryResult.persisted());
+        }
+
+        SourceUpdateCheckResult {
+            failedSourceKeys = failedSourceKeys == null ? List.of() : List.copyOf(failedSourceKeys);
+            alertDelivery = alertDelivery == null ? AutomationAlertDeliveryResult.persisted() : alertDelivery;
+        }
+
+        SourceUpdateCheckResult withAlertDelivery(AutomationAlertDeliveryResult delivery) {
+            return new SourceUpdateCheckResult(success, message, failedSourceKeys, validatedSourceState, delivery);
+        }
+    }
 
     record LegacyProcessRequest(String actionId, Path repoRoot, List<String> commandNeedles, long minStartEpochMillis) {}
 
@@ -7207,6 +9968,188 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     interface ProcessLauncher {
         Process launch(LaunchRequest request) throws IOException;
 
+        default boolean supportsIsolatedProcessGroup(Process process) {
+            return false;
+        }
+
+        default boolean supportsPersistedProcessGroupInspection() {
+            return false;
+        }
+
+        default ProcessGroupIdentity inspectProcessGroupIdentity(Process process) {
+            if (process == null) {
+                return null;
+            }
+            try {
+                long pid = process.pid();
+                return pid > 0L ? new ProcessGroupIdentity(pid, pid) : null;
+            } catch (RuntimeException exception) {
+                return null;
+            }
+        }
+
+        /**
+         * Returns live members of the launcher's isolated process group. A
+         * {@code null} result means the group could not be inspected; an empty
+         * list is a successful observation proving that the group is empty.
+         */
+        default List<ProcessHandle> snapshotProcessGroup(Process process) {
+            return null;
+        }
+
+        default List<ProcessHandle> snapshotProcessGroup(long processGroupId) {
+            return null;
+        }
+
+        default List<ProcessHandle> snapshotPersistedProcessGroup(
+            long processGroupId,
+            String processGroupToken,
+            String recordedStartedAt
+        ) {
+            return snapshotProcessGroup(processGroupId);
+        }
+
+        /**
+         * Scans all isolated groups for a launch token. A {@code null} result
+         * means inspection is unavailable; an empty group with id {@code 0}
+         * proves that no matching group is live.
+         */
+        default PersistedProcessGroup snapshotPersistedProcessGroupByToken(
+            String processGroupToken,
+            String recordedStartedAt
+        ) {
+            return null;
+        }
+
+        default boolean destroyProcessGroup(long processGroupId) {
+            List<ProcessHandle> members = snapshotProcessGroup(processGroupId);
+            if (members == null) {
+                return false;
+            }
+            return destroyProcessGroupWithRescan(
+                processGroupId,
+                members,
+                null,
+                ignored -> snapshotProcessGroup(processGroupId)
+            );
+        }
+
+        default boolean destroyPersistedProcessGroup(long processGroupId, List<ProcessHandle> members) {
+            return destroyProcessGroup(members);
+        }
+
+        default boolean destroyPersistedProcessGroup(
+            long processGroupId,
+            String processGroupToken,
+            String recordedStartedAt,
+            List<ProcessHandle> members
+        ) {
+            return destroyProcessGroupWithRescan(
+                processGroupId,
+                members,
+                null,
+                ignored -> snapshotPersistedProcessGroup(processGroupId, processGroupToken, recordedStartedAt)
+            );
+        }
+
+        default boolean destroyProcessGroup(List<ProcessHandle> members) {
+            if (members == null) {
+                return false;
+            }
+            try {
+                return destroyHandles(members, null);
+            } catch (IOException | InterruptedException | UnsupportedOperationException exception) {
+                if (exception instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                return false;
+            }
+        }
+
+        default boolean awaitProcessGroupEmpty(long processGroupId, long timeoutMillis) {
+            if (processGroupId <= 0L || timeoutMillis < 0L) {
+                return false;
+            }
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+            while (true) {
+                List<ProcessHandle> members = snapshotProcessGroup(processGroupId);
+                if (members == null) {
+                    return false;
+                }
+                if (members.isEmpty()) {
+                    return true;
+                }
+                if (System.nanoTime() >= deadline) {
+                    return false;
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(PROCESS_GROUP_POLL_MILLIS);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+
+        default boolean awaitPersistedProcessGroupEmpty(
+            long processGroupId,
+            String processGroupToken,
+            String recordedStartedAt,
+            long timeoutMillis
+        ) {
+            if (processGroupId <= 0L || timeoutMillis < 0L) {
+                return false;
+            }
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+            while (true) {
+                List<ProcessHandle> members = snapshotPersistedProcessGroup(
+                    processGroupId,
+                    processGroupToken,
+                    recordedStartedAt
+                );
+                if (members == null) {
+                    return false;
+                }
+                if (members.isEmpty()) {
+                    return true;
+                }
+                if (System.nanoTime() >= deadline) {
+                    return false;
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(PROCESS_GROUP_POLL_MILLIS);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+
+        default boolean awaitProcessGroupEmpty(Process process, long timeoutMillis) {
+            if (process == null || timeoutMillis < 0L) {
+                return false;
+            }
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+            while (true) {
+                List<ProcessHandle> members = snapshotProcessGroup(process);
+                if (members == null) {
+                    return false;
+                }
+                if (members.isEmpty()) {
+                    return true;
+                }
+                if (System.nanoTime() >= deadline) {
+                    return false;
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(PROCESS_GROUP_POLL_MILLIS);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+
         default Process recoverRecordedProcess(long pid, String recordedStartedAt) {
             if (pid <= 0) {
                 return null;
@@ -7216,6 +10159,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 return null;
             }
             return new HandleBackedProcess(handle.get());
+        }
+
+        default Process recoverRecordedProcess(
+            long pid,
+            String recordedStartedAt,
+            String processGroupToken,
+            long processGroupId,
+            long sessionId
+        ) {
+            return recoverRecordedProcess(pid, recordedStartedAt);
         }
 
         default Process findLegacyProcess(LegacyProcessRequest request) {
@@ -7252,29 +10205,168 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
 
         default boolean destroy(Process process) {
-            if (process == null || !process.isAlive()) {
+            if (process == null) {
                 return false;
             }
             try {
-                boolean sent = true;
-                List<ProcessHandle> handles = Stream.concat(process.toHandle().descendants(), Stream.of(process.toHandle()))
-                    .filter(ProcessHandle::isAlive)
-                    .toList();
-                log.warn("Destroying wiki monitor dispatch process tree: pids={}",
-                    handles.stream().map(ProcessHandle::pid).toList());
-                for (ProcessHandle handle : handles) {
-                    sendSignal(handle, "CONT");
+                if (supportsIsolatedProcessGroup(process)) {
+                    List<ProcessHandle> group = snapshotProcessGroup(process);
+                    if (group == null || (group.isEmpty() && process.isAlive())) {
+                        return false;
+                    }
+                    return destroyProcessGroup(process, group);
                 }
-                for (ProcessHandle handle : handles) {
-                    sent = handle.destroy() && sent;
+                List<ProcessHandle> handles = processTree(process);
+                if (handles.isEmpty()) {
+                    // A dead root does not prove that all descendants are gone.
+                    return false;
                 }
-                return sent;
+                return destroyHandles(handles, process);
             } catch (IOException | InterruptedException | UnsupportedOperationException exception) {
                 if (exception instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
                 }
                 return false;
             }
+        }
+
+        default boolean destroyProcessGroup(Process process, List<ProcessHandle> members) {
+            if (process == null) {
+                return false;
+            }
+            long processGroupId;
+            try {
+                processGroupId = process.pid();
+            } catch (RuntimeException exception) {
+                return false;
+            }
+            return destroyProcessGroupWithRescan(
+                processGroupId,
+                members,
+                process,
+                ignored -> snapshotProcessGroup(processGroupId)
+            );
+        }
+
+        private boolean destroyProcessGroupWithRescan(
+            long processGroupId,
+            List<ProcessHandle> initialMembers,
+            Process root,
+            Function<Long, List<ProcessHandle>> rescan
+        ) {
+            if (processGroupId <= 0L || initialMembers == null || rescan == null) {
+                return false;
+            }
+            long deadline = System.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(PROCESS_GROUP_CLEANUP_DEADLINE_MILLIS);
+            List<ProcessHandle> current = initialMembers;
+            boolean cleanupAttempted = false;
+            while (true) {
+                if (current == null) {
+                    return false;
+                }
+                if (!current.isEmpty()) {
+                    cleanupAttempted = true;
+                    destroyProcessGroup(current);
+                }
+                List<ProcessHandle> remaining = rescan.apply(processGroupId);
+                if (remaining == null) {
+                    return false;
+                }
+                if (remaining.isEmpty()) {
+                    return cleanupAttempted || initialMembers.isEmpty();
+                }
+                if (System.nanoTime() >= deadline) {
+                    return false;
+                }
+                current = remaining;
+                try {
+                    TimeUnit.MILLISECONDS.sleep(PROCESS_GROUP_POLL_MILLIS);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+
+        default boolean destroyHandles(List<ProcessHandle> handles) {
+            try {
+                return destroyHandles(handles, null);
+            } catch (IOException | InterruptedException | UnsupportedOperationException exception) {
+                if (exception instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                return false;
+            }
+        }
+
+        private static boolean destroyHandles(List<ProcessHandle> handles, Process root)
+            throws IOException, InterruptedException, UnsupportedOperationException {
+            List<ProcessHandle> liveHandles = handles == null
+                ? List.of()
+                : handles.stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .filter(ProcessHandle::isAlive)
+                    .toList();
+            if (liveHandles.isEmpty()) {
+                return true;
+            }
+            log.warn("Destroying wiki monitor dispatch process tree: pids={}",
+                liveHandles.stream().map(ProcessHandle::pid).toList());
+            for (ProcessHandle handle : liveHandles) {
+                sendSignal(handle, "CONT");
+            }
+            for (ProcessHandle handle : liveHandles) {
+                handle.destroy();
+            }
+            if (awaitProcessHandles(liveHandles, PROCESS_DESTROY_GRACE_MILLIS)) {
+                return true;
+            }
+            List<ProcessHandle> forceHandles = Stream.concat(
+                    liveHandles.stream(),
+                    root == null ? Stream.empty() : root.toHandle().descendants()
+                )
+                .distinct()
+                .filter(ProcessHandle::isAlive)
+                .toList();
+            log.warn("Forcefully destroying remaining wiki monitor process tree: pids={}",
+                forceHandles.stream().map(ProcessHandle::pid).toList());
+            for (ProcessHandle handle : forceHandles) {
+                handle.destroyForcibly();
+            }
+            return awaitProcessHandles(forceHandles, PROCESS_DESTROY_FORCE_WAIT_MILLIS);
+        }
+
+        private static List<ProcessHandle> processTree(Process process) {
+            return Stream.concat(process.toHandle().descendants(), Stream.of(process.toHandle()))
+                .filter(ProcessHandle::isAlive)
+                .toList();
+        }
+
+        private static boolean awaitProcessHandles(List<ProcessHandle> handles, long timeoutMillis)
+            throws InterruptedException {
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+            for (ProcessHandle handle : handles) {
+                if (!handle.isAlive()) {
+                    continue;
+                }
+                long remainingNanos = deadline - System.nanoTime();
+                if (remainingNanos <= 0L) {
+                    return false;
+                }
+                try {
+                    handle.onExit().get(
+                        Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remainingNanos)),
+                        TimeUnit.MILLISECONDS
+                    );
+                } catch (ExecutionException | TimeoutException exception) {
+                    if (handle.isAlive()) {
+                        return false;
+                    }
+                }
+            }
+            return handles.stream().noneMatch(ProcessHandle::isAlive);
         }
 
         private static boolean sendSignal(Process process, String signal) {
@@ -7392,9 +10484,93 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private static class ProcessBuilderLauncher implements ProcessLauncher {
+        private final Set<Long> isolatedProcessPids = ConcurrentHashMap.newKeySet();
+
+        @Override
+        public boolean supportsIsolatedProcessGroup(Process process) {
+            if (process == null) {
+                return false;
+            }
+            try {
+                long groupId = process.pid();
+                if (isolatedProcessPids.contains(groupId)) {
+                    return true;
+                }
+                List<ProcessHandle> members = snapshotProcessGroup(process);
+                return members != null && !members.isEmpty();
+            } catch (RuntimeException exception) {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean supportsPersistedProcessGroupInspection() {
+            return Files.isDirectory(PROC_ROOT);
+        }
+
+        @Override
+        public ProcessGroupIdentity inspectProcessGroupIdentity(Process process) {
+            if (process == null || !Files.isDirectory(PROC_ROOT)) {
+                return null;
+            }
+            long pid;
+            try {
+                pid = process.pid();
+            } catch (RuntimeException exception) {
+                return null;
+            }
+            ProcessGroupStat stat = readProcessGroupStat(PROC_ROOT.resolve(Long.toString(pid)));
+            if (stat == null || stat.pid() != pid) {
+                return null;
+            }
+            return new ProcessGroupIdentity(stat.processGroupId(), stat.sessionId());
+        }
+
+        @Override
+        public Process recoverRecordedProcess(
+            long pid,
+            String recordedStartedAt,
+            String processGroupToken,
+            long processGroupId,
+            long sessionId
+        ) {
+            if (processGroupToken == null || processGroupToken.isBlank()) {
+                return null;
+            }
+            if (pid <= 0L || !Files.isDirectory(PROC_ROOT)) {
+                return null;
+            }
+            Optional<ProcessHandle> handle = ProcessHandle.of(pid);
+            if (handle.isEmpty() || !handle.get().isAlive()
+                || !processStartMatches(handle.get(), recordedStartedAt)) {
+                return null;
+            }
+            ProcessGroupStat stat = readProcessGroupStat(PROC_ROOT.resolve(Long.toString(pid)));
+            if (stat == null || stat.pid() != pid
+                || stat.processGroupId() != pid
+                || stat.sessionId() != pid
+                || (processGroupId > 0L && stat.processGroupId() != processGroupId)
+                || (sessionId > 0L && stat.sessionId() != sessionId)
+                || !processGroupToken.equals(readProcessGroupToken(pid))) {
+                return null;
+            }
+            return new HandleBackedProcess(handle.get());
+        }
+
         @Override
         public Process launch(LaunchRequest request) throws IOException {
-            ProcessBuilder builder = new ProcessBuilder(request.command());
+            if (!Files.isDirectory(PROC_ROOT)) {
+                throw new IOException("source update monitor process-group isolation requires Linux/WSL /proc");
+            }
+            List<String> isolatedCommand = new ArrayList<>(request.command().size() + 6);
+            isolatedCommand.add("setsid");
+            isolatedCommand.add("--");
+            isolatedCommand.add("sh");
+            isolatedCommand.add("-c");
+            isolatedCommand.add("kill -STOP $$; exec \"$@\"");
+            isolatedCommand.add("terrapedia-source-monitor-pre-exec");
+            isolatedCommand.addAll(request.command());
+            ProcessBuilder builder = new ProcessBuilder(isolatedCommand);
             builder.directory(request.directory());
             builder.environment().putAll(request.environment());
             File logFile = request.logFile();
@@ -7403,7 +10579,310 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 builder.redirectOutput(ProcessBuilder.Redirect.to(logFile));
                 builder.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
             }
-            return builder.start();
+            Process process = builder.start();
+            if (!awaitIsolatedProcessGroupReady(process.pid(), PROCESS_GROUP_SETUP_TIMEOUT)) {
+                process.destroyForcibly();
+                awaitProcessExit(process, PROCESS_GROUP_SETUP_TIMEOUT);
+                throw new IOException("source update monitor process did not establish an isolated session/process-group");
+            }
+            if (!sendSignalToPid(process.pid(), "CONT")) {
+                process.destroyForcibly();
+                awaitProcessExit(process, PROCESS_GROUP_SETUP_TIMEOUT);
+                throw new IOException("source update monitor process could not leave its pre-exec stop state");
+            }
+            isolatedProcessPids.add(process.pid());
+            return process;
+        }
+
+        @Override
+        public List<ProcessHandle> snapshotProcessGroup(Process process) {
+            if (process == null || !Files.isDirectory(PROC_ROOT)) {
+                return null;
+            }
+            long groupId;
+            try {
+                groupId = process.pid();
+            } catch (RuntimeException exception) {
+                return null;
+            }
+            if (process.isAlive()) {
+                ProcessGroupIdentity identity = inspectProcessGroupIdentity(process);
+                if (identity == null || identity.processGroupId() != groupId || identity.sessionId() != groupId) {
+                    return null;
+                }
+            }
+            List<ProcessHandle> members = snapshotProcessGroup(groupId);
+            if (members != null && members.isEmpty() && !process.isAlive()) {
+                isolatedProcessPids.remove(groupId);
+            }
+            return members;
+        }
+
+        @Override
+        public List<ProcessHandle> snapshotProcessGroup(long groupId) {
+            if (!Files.isDirectory(PROC_ROOT) || groupId <= 0L) {
+                return null;
+            }
+            List<ProcessHandle> members = new ArrayList<>();
+            try (Stream<Path> paths = Files.list(PROC_ROOT)) {
+                for (Path path : paths.filter(ProcessBuilderLauncher::isNumericProcessDirectory).toList()) {
+                    ProcessGroupStat stat = readProcessGroupStat(path);
+                    if (stat == null) {
+                        continue;
+                    }
+                    if (stat.processGroupId() == groupId
+                        && stat.sessionId() == groupId
+                        && stat.isAlive()) {
+                        ProcessHandle.of(stat.pid()).ifPresent(members::add);
+                    }
+                }
+                return members;
+            } catch (IOException | RuntimeException exception) {
+                log.warn("Unable to inspect isolated source update monitor process group: {}", exception.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        public List<ProcessHandle> snapshotPersistedProcessGroup(
+            long groupId,
+            String processGroupToken,
+            String recordedStartedAt
+        ) {
+            if (groupId <= 0L || !Files.isDirectory(PROC_ROOT)) {
+                return null;
+            }
+            Optional<ProcessHandle> root = ProcessHandle.of(groupId);
+            if (root.isPresent() && root.get().isAlive()) {
+                ProcessGroupStat rootStat = readProcessGroupStat(PROC_ROOT.resolve(Long.toString(groupId)));
+                if (rootStat == null || rootStat.pid() != groupId
+                    || rootStat.processGroupId() != groupId
+                    || rootStat.sessionId() != groupId
+                    || !processStartMatches(root.get(), recordedStartedAt)) {
+                    return null;
+                }
+                if (processGroupToken != null && !processGroupToken.isBlank()
+                    && !processGroupToken.equals(readProcessGroupToken(groupId))) {
+                    return null;
+                }
+            }
+            List<ProcessHandle> members = snapshotProcessGroup(groupId);
+            if (members == null || members.isEmpty()) {
+                return members;
+            }
+            Instant recorded = parseRecordedProcessStart(recordedStartedAt);
+            boolean tokenRequired = processGroupToken != null && !processGroupToken.isBlank();
+            List<ProcessHandle> verified = new ArrayList<>();
+            for (ProcessHandle member : members) {
+                Optional<Instant> startedAt = member.info().startInstant();
+                if (recorded != null && startedAt.isPresent()
+                    && startedAt.get().isBefore(recorded.minus(Duration.ofMinutes(2)))) {
+                    if (tokenRequired) {
+                        return null;
+                    }
+                    continue;
+                }
+                if (!tokenRequired) {
+                    verified.add(member);
+                    continue;
+                }
+                String actualToken = readProcessGroupToken(member.pid());
+                if (!processGroupToken.equals(actualToken)) {
+                    return null;
+                }
+                verified.add(member);
+            }
+            return verified;
+        }
+
+        @Override
+        public PersistedProcessGroup snapshotPersistedProcessGroupByToken(
+            String processGroupToken,
+            String recordedStartedAt
+        ) {
+            if (processGroupToken == null || processGroupToken.isBlank() || !Files.isDirectory(PROC_ROOT)) {
+                return null;
+            }
+            Instant recorded = parseRecordedProcessStart(recordedStartedAt);
+            Map<Long, List<ProcessHandle>> groups = new LinkedHashMap<>();
+            try (Stream<Path> paths = Files.list(PROC_ROOT)) {
+                for (Path path : paths.filter(ProcessBuilderLauncher::isNumericProcessDirectory).toList()) {
+                    ProcessGroupStat stat = readProcessGroupStat(path);
+                    if (stat == null || !stat.isAlive() || stat.processGroupId() != stat.sessionId()) {
+                        continue;
+                    }
+                    ProcessHandle handle = ProcessHandle.of(stat.pid()).orElse(null);
+                    if (handle == null || !handle.isAlive()) {
+                        continue;
+                    }
+                    Optional<Instant> startedAt = handle.info().startInstant();
+                    if (recorded != null && startedAt.isPresent()
+                        && startedAt.get().isBefore(recorded.minus(Duration.ofMinutes(2)))) {
+                        continue;
+                    }
+                    if (!processGroupToken.equals(readProcessGroupToken(stat.pid()))) {
+                        continue;
+                    }
+                    groups.computeIfAbsent(stat.processGroupId(), ignored -> new ArrayList<>()).add(handle);
+                }
+            } catch (IOException | RuntimeException exception) {
+                log.warn("Unable to inspect persisted source update monitor groups by token: {}", exception.getMessage());
+                return null;
+            }
+            if (groups.isEmpty()) {
+                return PersistedProcessGroup.empty();
+            }
+            if (groups.size() != 1) {
+                return null;
+            }
+            Map.Entry<Long, List<ProcessHandle>> entry = groups.entrySet().iterator().next();
+            List<ProcessHandle> allMembers = snapshotProcessGroup(entry.getKey());
+            if (allMembers == null || allMembers.isEmpty()) {
+                return allMembers == null ? null : PersistedProcessGroup.empty();
+            }
+            for (ProcessHandle member : allMembers) {
+                if (!processGroupToken.equals(readProcessGroupToken(member.pid()))) {
+                    return null;
+                }
+                Optional<Instant> startedAt = member.info().startInstant();
+                if (recorded != null && startedAt.isPresent()
+                    && startedAt.get().isBefore(recorded.minus(Duration.ofMinutes(2)))) {
+                    return null;
+                }
+            }
+            return new PersistedProcessGroup(entry.getKey(), entry.getKey(), allMembers);
+        }
+
+        private static Instant parseRecordedProcessStart(String recordedStartedAt) {
+            if (recordedStartedAt == null || recordedStartedAt.isBlank()) {
+                return null;
+            }
+            try {
+                return Instant.parse(recordedStartedAt);
+            } catch (RuntimeException exception) {
+                return null;
+            }
+        }
+
+        private static String readProcessGroupToken(long pid) {
+            try {
+                byte[] raw = Files.readAllBytes(PROC_ROOT.resolve(Long.toString(pid)).resolve("environ"));
+                String prefix = "TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN=";
+                int start = 0;
+                for (int index = 0; index <= raw.length; index++) {
+                    if (index == raw.length || raw[index] == 0) {
+                        String entry = new String(raw, start, index - start, StandardCharsets.UTF_8);
+                        if (entry.startsWith(prefix)) {
+                            return entry.substring(prefix.length());
+                        }
+                        start = index + 1;
+                    }
+                }
+                return null;
+            } catch (IOException | RuntimeException exception) {
+                return null;
+            }
+        }
+
+        private static boolean awaitIsolatedProcessGroupReady(long pid, Duration timeout) {
+            if (pid <= 0L || timeout == null || timeout.isNegative()) {
+                return false;
+            }
+            long deadline = System.nanoTime() + timeout.toNanos();
+            while (System.nanoTime() < deadline) {
+                ProcessGroupStat stat;
+                try {
+                    stat = readProcessGroupStat(PROC_ROOT.resolve(Long.toString(pid)));
+                } catch (RuntimeException exception) {
+                    return false;
+                }
+                if (stat != null
+                    && stat.pid() == pid
+                    && stat.processGroupId() == pid
+                    && stat.sessionId() == pid
+                    && stat.isStopped()) {
+                    return true;
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(PROCESS_GROUP_POLL_MILLIS);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        private static boolean sendSignalToPid(long pid, String signal) {
+            try {
+                Process signalProcess = new ProcessBuilder("kill", "-" + signal, Long.toString(pid)).start();
+                return signalProcess.waitFor() == 0;
+            } catch (IOException exception) {
+                return false;
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        private static void awaitProcessExit(Process process, Duration timeout) {
+            if (process == null || timeout == null || timeout.isNegative()) {
+                return;
+            }
+            try {
+                process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        private static boolean isNumericProcessDirectory(Path path) {
+            String name = path.getFileName().toString();
+            if (name.isEmpty()) {
+                return false;
+            }
+            for (int index = 0; index < name.length(); index++) {
+                if (!Character.isDigit(name.charAt(index))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static ProcessGroupStat readProcessGroupStat(Path processDirectory) {
+            try {
+                String raw = Files.readString(processDirectory.resolve("stat"));
+                int firstSpace = raw.indexOf(' ');
+                int commandEnd = raw.lastIndexOf(')');
+                if (firstSpace < 1 || commandEnd < firstSpace || commandEnd + 2 >= raw.length()) {
+                    throw new IllegalStateException("malformed process stat");
+                }
+                long pid = Long.parseLong(raw.substring(0, firstSpace));
+                String[] fields = raw.substring(commandEnd + 2).trim().split("\\s+");
+                if (fields.length < 4 || fields[0].length() != 1) {
+                    throw new IllegalStateException("malformed process stat fields");
+                }
+                return new ProcessGroupStat(
+                    pid,
+                    fields[0].charAt(0),
+                    Long.parseLong(fields[2]),
+                    Long.parseLong(fields[3])
+                );
+            } catch (NoSuchFileException exception) {
+                return null;
+            } catch (IOException | NumberFormatException | SecurityException exception) {
+                throw new IllegalStateException("unable to read process stat", exception);
+            }
+        }
+
+        private record ProcessGroupStat(long pid, char state, long processGroupId, long sessionId) {
+            private boolean isAlive() {
+                return state != 'Z' && state != 'X' && state != 'x';
+            }
+
+            private boolean isStopped() {
+                return state == 'T' || state == 't';
+            }
         }
     }
 }

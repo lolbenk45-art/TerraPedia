@@ -92,6 +92,17 @@ public class CrawlerAttemptSupervisor {
         requireAttempt(attempt);
         return withAttemptLock(attempt.attemptId(), () -> {
             CrawlerQueueV2Attempt current = requireCurrentSnapshot(attempt, attempt.status());
+            if (isSchedulerOwned(current)) {
+                try {
+                    requireExactManifest(current);
+                } catch (RuntimeException exception) {
+                    appendWatcherFailureEvent(new LaunchIdentity(
+                        current.stateStoreEpoch(), current.queueId(), current.attemptId(), current.fenceToken(),
+                        current.pid(), current.processStartedAt()
+                    ));
+                    return false;
+                }
+            }
             CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(current);
             if (lookup.code() != CrawlerAttemptProcessLauncher.LookupCode.FOUND) {
                 return false;
@@ -120,10 +131,19 @@ public class CrawlerAttemptSupervisor {
     }
 
     private StartResult startSerialized(CrawlerQueueV2Attempt attempt) {
-            CrawlerQueueV2Attempt current = requireCurrentSnapshot(
-                attempt,
-                CrawlerQueueV2Status.STARTING
-            );
+            CrawlerQueueV2Attempt current;
+            try {
+                current = requireCurrentSnapshot(attempt, CrawlerQueueV2Status.STARTING);
+            } catch (RuntimeException exception) {
+                CrawlerQueueV2Attempt latest = loadCurrentAttempt(attempt.attemptId());
+                if (latest.status() != CrawlerQueueV2Status.STARTING
+                    || latest.stateVersion() != attempt.stateVersion()
+                    || !Objects.equals(latest.pid(), attempt.pid())
+                    || !Objects.equals(latest.processStartedAt(), attempt.processStartedAt())) {
+                    throw exception;
+                }
+                return terminalizeStartFailure(latest, "launch validation failed", exception);
+            }
             if (current.pid() != null || current.processStartedAt() != null) {
                 throw new IllegalStateException("STARTING attempt 已记录进程身份：" + current.attemptId());
             }
@@ -133,11 +153,14 @@ public class CrawlerAttemptSupervisor {
             Map<String, String> environment;
             try {
                 definition = resolveLaunchAction(current);
-                requireExactManifest(current);
+                CrawlerAttemptManifest manifest = requireExactManifest(current);
                 resolveAttemptPath(current, current.artifacts().progressPath());
                 logPath = resolveAttemptPath(current, current.artifacts().logPath());
                 CrawlerQueueV2Queue queue = repository.findQueue(current.queueId())
                     .orElseThrow(() -> new IllegalStateException("V2 queue 不存在：" + current.queueId()));
+                if (!queue.hasExactAttemptBinding(current)) {
+                    throw new SecurityException("V2 queue 与 STARTING attempt 的 immutable binding 不一致");
+                }
                 command = new ArrayList<>(definition.renderCommand(
                     launchArtifactPath(current.artifacts().reportPath()),
                     launchArtifactPath(current.artifacts().progressPath()),
@@ -290,6 +313,9 @@ public class CrawlerAttemptSupervisor {
     public ProgressResult ingestProgress(CrawlerQueueV2Attempt attempt) {
         requireAttempt(attempt);
         CrawlerQueueV2Attempt current = loadCurrentAttempt(attempt.attemptId());
+        if (isSchedulerOwned(current)) {
+            requireExactManifest(current);
+        }
         Optional<CrawlerAttemptProgressPayload> progress;
         try {
             progress = artifactStore.readProgress(current.attemptId());
@@ -564,6 +590,31 @@ public class CrawlerAttemptSupervisor {
         return withAttemptLock(attempt.attemptId(), () -> cancelSerialized(attempt));
     }
 
+    /**
+     * Validates the immutable queue/artifact identity before a cancellation
+     * path is allowed to inspect or signal a child process. Identity-free
+     * manual attempts still use the queue binding only; scheduler-owned
+     * attempts must also have matching manifest and operation-plan evidence.
+     */
+    boolean hasExactIdentityBinding(CrawlerQueueV2Attempt attempt) {
+        if (attempt == null) {
+            return false;
+        }
+        try {
+            CrawlerQueueV2Queue queue = repository.findQueue(attempt.queueId()).orElse(null);
+            if (queue == null || !queue.hasExactAttemptBinding(attempt)) {
+                return false;
+            }
+            if (attempt.sourceDispatchIdentity() == null) {
+                return true;
+            }
+            requireExactManifest(attempt);
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
     public CrawlerQueueV2Attempt handleLeaseRenewalFailure(CrawlerQueueV2Attempt attempt) {
         requireAttempt(attempt);
         return withAttemptLock(attempt.attemptId(), () -> handleLeaseRenewalFailureSerialized(attempt));
@@ -657,6 +708,9 @@ public class CrawlerAttemptSupervisor {
             attempt,
             CrawlerQueueV2Status.CANCEL_REQUESTED
         );
+        if (!hasExactIdentityBinding(current)) {
+            return transitionIdentityFailure(current);
+        }
         CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(current);
         if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND
             || lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.START_TIME_MISMATCH) {
@@ -682,6 +736,36 @@ public class CrawlerAttemptSupervisor {
             return transitionCancelled(terminationAuthority);
         }
         return transitionTerminationUnconfirmed(terminationAuthority);
+    }
+
+    private CrawlerQueueV2Attempt transitionIdentityFailure(CrawlerQueueV2Attempt attempt) {
+        if (!stateMachine.canTransition(attempt.status(), CrawlerQueueV2Status.STALLED)) {
+            throw new IllegalStateException(
+                "identity gate failed but V2 attempt cannot enter STALLED: " + attempt.attemptId()
+            );
+        }
+        return mutate(
+            attempt,
+            CrawlerQueueV2Status.STALLED,
+            CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED,
+            stateMachine.deadlineFor(
+                CrawlerQueueV2Status.STALLED,
+                clock.instant(),
+                attempt.lastHeartbeatAt(),
+                attempt.eligibleAt()
+            ),
+            attempt.lastHeartbeatAt(),
+            null,
+            null,
+            null,
+            null,
+            "attempt identity binding failed",
+            null,
+            null,
+            false,
+            null,
+            "attempt.transitioned"
+        );
     }
 
     int serializerEntryCount() {
@@ -1056,6 +1140,19 @@ public class CrawlerAttemptSupervisor {
             .map(CrawlerQueueV2Queue::requestedBy)
             .filter(requestedBy -> requestedBy != null && !requestedBy.isBlank())
             .ifPresent(requestedBy -> environment.put("TERRAPEDIA_CRAWLER_REQUESTED_BY", requestedBy));
+        if (isSchedulerOwned(attempt)) {
+            SourceDispatchIdentity identity = attempt.sourceDispatchIdentity();
+            if (identity == null) {
+                throw new SecurityException("scheduler-owned attempt 缺少 sourceDispatchIdentity");
+            }
+            environment.put("TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT", identity.sourceFingerprint());
+            environment.put("TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY", identity.sourceRunIdentity());
+            environment.put("TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY", identity.sourceContentIdentity());
+            environment.put(
+                "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH",
+                worktreeRoot.resolve("data/generated/source-update-monitor.latest.json").toString()
+            );
+        }
         return environment;
     }
 
@@ -1103,7 +1200,8 @@ public class CrawlerAttemptSupervisor {
             && Objects.equals(request.lane(), current.lane())
             && Objects.equals(request.domain(), current.domain())
             && Objects.equals(request.coveredDomains(), current.coveredDomains())
-            && Objects.equals(request.actionId(), current.actionId());
+            && Objects.equals(request.actionId(), current.actionId())
+            && Objects.equals(request.sourceDispatchIdentity(), current.sourceDispatchIdentity());
     }
 
     private boolean progressIdentityMatches(
@@ -1437,6 +1535,23 @@ public class CrawlerAttemptSupervisor {
             || !Objects.equals(manifest.actionId(), attempt.actionId())) {
             throw new SecurityException("attempt manifest 身份与 STARTING attempt 不一致");
         }
+        if (!Objects.equals(manifest.sourceDispatchIdentity(), attempt.sourceDispatchIdentity())) {
+            throw new SecurityException("attempt manifest source identity 与 STARTING attempt 不一致");
+        }
+        if (isSchedulerOwned(attempt)) {
+            SourceDispatchIdentity identity = attempt.sourceDispatchIdentity();
+            if (identity == null) {
+                throw new SecurityException("scheduler-owned attempt 缺少 sourceDispatchIdentity");
+            }
+            CrawlerOperationPlanSnapshot plan = artifactStore.readOperationPlan(attempt.attemptId())
+                .orElseThrow(() -> new SecurityException(
+                    "scheduler-owned attempt 缺少 immutable operation plan：" + attempt.attemptId()
+                ));
+            if (!Objects.equals(plan.actionId(), attempt.actionId())
+                || !Objects.equals(plan.sourceDispatchIdentity(), identity)) {
+                throw new SecurityException("scheduler-owned operation plan source identity 不一致");
+            }
+        }
         CrawlerQueueV2Artifacts artifacts = attempt.artifacts();
         if (!Objects.equals(manifest.progressPath(), artifacts.progressPath())
             || !Objects.equals(manifest.logPath(), artifacts.logPath())
@@ -1456,9 +1571,19 @@ public class CrawlerAttemptSupervisor {
                 attempt.pid(), attempt.processStartedAt(), attempt.artifacts().progressPath(),
                 attempt.artifacts().logPath(), attempt.artifacts().reportPath(), attempt.artifacts().outputPath(),
                 existing.retentionExpiresAt(), existing.artifactsExpiredAt(), existing.cleanedAt(),
-                existing.cleanedBy(), existing.cleanedPaths()
+                existing.cleanedBy(), existing.cleanedPaths(),
+                existing.sourceDispatchIdentity() == null
+                    ? attempt.sourceDispatchIdentity()
+                    : existing.sourceDispatchIdentity()
             ))
         );
+    }
+
+    private boolean isSchedulerOwned(CrawlerQueueV2Attempt attempt) {
+        return repository.findQueue(attempt.queueId())
+            .map(CrawlerQueueV2Queue::isSchedulerOwned)
+            .filter(Boolean::booleanValue)
+            .isPresent();
     }
 
     private void requireAttempt(CrawlerQueueV2Attempt attempt) {

@@ -68,6 +68,19 @@ restore, own, or report V2 live work. See
 `docs/runbooks/crawler-monitor-queue-v2-cutover.md` for the authenticated
 cutover, first-mutation, reset, and restart procedure.
 
+Scheduler-owned automatic V2 attempts additionally carry one immutable source
+dispatch identity: a canonical content fingerprint, the validated probe run
+identity, and the validated probe-content identity. Redis attempt state,
+attempt manifest/operation plan, worker environment, automatic bundle,
+reconciliation evidence, and final V2 readback must agree exactly. Missing or
+mismatched identity fails before the worker can apply data or acknowledge the
+source. Retries retain the original identity; a changed fingerprint creates a
+new attempt identity rather than relying on mutable last-sweep output.
+Automatic runner source-monitor verification binds the configured monitor state
+to a repository-confined ordinary file through no-follow descriptor access and
+rechecks its object identity after reading; a symbolic link, replacement race,
+or malformed state fails before publication, mutation, or acknowledgement.
+
 Canonical item-group runtime reads use the published formal
 `terria_v1_local` projection backed by maint and relation lineage. The admin
 item-group, admin recipe-group, and recipe-tree consumers have no production

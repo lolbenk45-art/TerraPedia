@@ -196,11 +196,11 @@ async function ensureBuffOptionalColumn(conn, columnName, definition) {
   }
 }
 
-async function loadItemsLookup(conn) {
-  const [rows] = await conn.query('SELECT id, internal_name, name FROM items WHERE deleted = 0');
+async function loadItemsLookup(conn, rowsOverride = null) {
+  const rows = rowsOverride ?? (await conn.query('SELECT id, source_id, internal_name, name FROM items WHERE deleted = 0'))[0];
   const byId = new Map();
   const byInternal = new Map();
-  for (const row of rows) {
+  for (const row of Array.isArray(rows) ? rows : []) {
     const id = Number(row.id);
     const internalName = normalizeInternalName(row.internal_name);
     const name = toNullableString(row.name);
@@ -210,10 +210,10 @@ async function loadItemsLookup(conn) {
   return { byId, byInternal };
 }
 
-async function loadCategoryCodeMap(conn) {
-  const [rows] = await conn.query('SELECT id, code FROM category WHERE deleted = 0');
+async function loadCategoryCodeMap(conn, rowsOverride = null) {
+  const rows = rowsOverride ?? (await conn.query('SELECT id, code FROM category WHERE deleted = 0'))[0];
   const byCode = new Map();
-  for (const row of rows) {
+  for (const row of Array.isArray(rows) ? rows : []) {
     const code = toNullableString(row.code);
     const id = toNullableInteger(row.id);
     if (code && id != null && !byCode.has(code)) {
@@ -474,8 +474,15 @@ async function reconcileBuffSourceItems(conn, buffId, targetRows, relationStats)
   }
 }
 
-export async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryByCode, stats, linkStats) {
-  const npcZhMap = loadNpcZhMap();
+export async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryByCode, stats, linkStats, npcZhRows = null) {
+  const npcZhMap = npcZhRows == null
+    ? loadNpcZhMap()
+    : new Map((Array.isArray(npcZhRows) ? npcZhRows : [])
+      .map((row) => [toNullableString(row?.internalName ?? row?.internal_name), {
+        nameZh: toNullableString(row?.nameZh ?? row?.name_zh),
+        subNameZh: toNullableString(row?.subNameZh ?? row?.sub_name_zh),
+      }])
+      .filter(([key, value]) => key && (value.nameZh || value.subNameZh)));
   stats.input = Array.isArray(records) ? records.length : 0;
   for (let i = 0; i < stats.input; i += 1) {
     const r = records[i];
@@ -670,6 +677,53 @@ function loadNpcZhMap() {
       ])
       .filter(([internalName, zh]) => internalName && (zh?.nameZh || zh?.subNameZh))
   );
+}
+
+export function buildIndependentNpcRows(records = [], {
+  itemRows = [],
+  sourceItemRows = [],
+  categoryRows = [],
+  npcZhRows = [],
+  existingRows = [],
+} = {}) {
+  if (!Array.isArray(records)) throw new Error('independent NPC projection records must be an array');
+  const categoryByCode = new Map((Array.isArray(categoryRows) ? categoryRows : [])
+    .map((row) => [toNullableString(row?.code)?.toUpperCase(), toNullableInteger(row?.id)])
+    .filter(([code, id]) => code && id != null));
+  const sourceItemLookup = loadSourceItemLookup(sourceItemRows);
+  const itemLookup = { byInternal: new Map() };
+  for (const row of Array.isArray(itemRows) ? itemRows : []) {
+    const id = toNullableInteger(row?.id);
+    const internalName = normalizeInternalName(row?.internal_name ?? row?.internalName);
+    if (id != null && internalName) {
+      itemLookup.byInternal.set(internalName, {
+        id,
+        internalName,
+        name: toNullableString(row?.name),
+      });
+    }
+  }
+  const npcZhMap = new Map((Array.isArray(npcZhRows) ? npcZhRows : [])
+    .map((row) => [toNullableString(row?.internalName ?? row?.internal_name), {
+      nameZh: toNullableString(row?.nameZh ?? row?.name_zh),
+      subNameZh: toNullableString(row?.subNameZh ?? row?.sub_name_zh),
+    }])
+    .filter(([key, value]) => key && (value.nameZh || value.subNameZh)));
+  const existingBySourceId = new Map();
+  for (const row of Array.isArray(existingRows) ? existingRows : []) {
+    const sourceId = toNullableInteger(row?.source_id);
+    if (sourceId != null && !existingBySourceId.has(sourceId)) existingBySourceId.set(sourceId, row);
+  }
+  return records.map((record, index) => {
+    const existing = existingBySourceId.get(toNullableInteger(record?.id));
+    return buildIndependentNpcTargetRow(buildIndependentNpcColumnValueMap(record, index, {
+      categoryByCode,
+      sourceItemLookup,
+      itemLookup,
+      npcZhMap,
+      existingCategoryId: existing?.category_id,
+    }));
+  });
 }
 
 function stripNpcVariantPrefix(internalName) {
@@ -880,7 +934,7 @@ const PROJECTILE_NUMERIC_COLUMNS = [
   'deleted',
 ];
 
-function buildIndependentProjectileColumnValueMap(record, index, projectileZhLookup, imageUrl) {
+export function buildIndependentProjectileColumnValueMap(record, index, projectileZhLookup, imageUrl) {
   return {
     source_id: toNullableInteger(record.id),
     internal_name: normalizeInternalName(record.internalName, record.name || record.id || index),
@@ -904,7 +958,22 @@ function buildIndependentProjectileColumnValueMap(record, index, projectileZhLoo
   };
 }
 
-function resolveArmorSetSourceKey(record, index) {
+/**
+ * Pure DB-column projection used by the importer and read-only automation
+ * preview. It deliberately performs no lookup or SQL work.
+ */
+export function buildIndependentProjectileRows(records = []) {
+  if (!Array.isArray(records)) throw new Error('independent Projectile projection records must be an array');
+  const projectileZhLookup = buildProjectileZhLookup(records);
+  return records.map((record, index) => buildIndependentProjectileColumnValueMap(
+    record,
+    index,
+    projectileZhLookup,
+    toNullableString(record?.imageUrl ?? record?.image_url ?? record?.image),
+  ));
+}
+
+export function resolveIndependentArmorSetSourceKey(record, index) {
   return toNullableString(record.textKey)
     ?? toNullableString(record.benefitExpression)
     ?? `armor_set_${index + 1}`;
@@ -917,7 +986,7 @@ export async function importArmorSets(conn, records, itemLookup, sourceItemLooku
   for (let i = 0; i < stats.input; i += 1) {
     const r = records[i];
     try {
-      const sourceKey = resolveArmorSetSourceKey(r, i);
+      const sourceKey = resolveIndependentArmorSetSourceKey(r, i);
       const [[existing]] = await conn.execute(
         `SELECT id, ${ARMOR_SET_COMPARE_COLUMNS.join(', ')}
            FROM armor_sets
@@ -1091,7 +1160,7 @@ const ARMOR_SET_COMPARE_COLUMNS = [
   'deleted',
 ];
 
-function buildIndependentArmorSetColumnValueMap(record, sourceKey) {
+export function buildIndependentArmorSetColumnValueMap(record, sourceKey) {
   return {
     source_key: sourceKey,
     text_key: toNullableString(record.textKey),
@@ -1106,11 +1175,40 @@ function buildIndependentArmorSetColumnValueMap(record, sourceKey) {
   };
 }
 
+/**
+ * Pure parent-table projection. Child relation rows need an already verified
+ * parent ID and are intentionally derived by the automation adapter instead
+ * of guessing a future AUTO_INCREMENT value.
+ */
+export function buildIndependentArmorSetRows(records = []) {
+  if (!Array.isArray(records)) throw new Error('independent Armor Sets projection records must be an array');
+  return records.map((record, index) => {
+    const sourceKey = resolveIndependentArmorSetSourceKey(record, index);
+    return buildIndependentArmorSetColumnValueMap(record, sourceKey);
+  });
+}
+
+/**
+ * Pure parent-table projection for Buff imports. The actual importer adds the
+ * same status/deleted values immediately before its upsert.
+ */
+export function buildIndependentBuffRows(records = [], buffCategoryId = null) {
+  if (!Array.isArray(records)) throw new Error('independent Buff projection records must be an array');
+  return records.map((record, index) => ({
+    ...buildIndependentBuffColumnValueMap(record, index, buffCategoryId),
+    status: 1,
+    deleted: 0,
+  }));
+}
+
 export async function runIndependentEntityImport(args = {}, {
   connection = null,
   mysqlModule = null,
   transactionOwner = 'self',
   datasets = null,
+  itemRows = null,
+  categoryRows = null,
+  npcZhRows = null,
 } = {}) {
   const apply = resolveIndependentEntityImportApply(args);
   const selectedEntities = resolveSelectedEntities(args);
@@ -1166,15 +1264,15 @@ export async function runIndependentEntityImport(args = {}, {
   try {
     await conn.query('SET NAMES utf8mb4');
     if (transactionOwner === 'self') await ensureSchema(conn);
-    const itemLookup = await loadItemsLookup(conn);
-    const categoryByCode = await loadCategoryCodeMap(conn);
+    const itemLookup = await loadItemsLookup(conn, itemRows);
+    const categoryByCode = await loadCategoryCodeMap(conn, categoryRows);
 
     if (transactionOwner === 'self') await conn.beginTransaction();
     if (selectedEntities.has('buffs')) {
       await importBuffs(conn, buffs, itemLookup, sourceItemLookup, summary.buffs, summary.buffSourceItems);
     }
     if (selectedEntities.has('npcs')) {
-      await importNpcs(conn, npcs, itemLookup, sourceItemLookup, categoryByCode, summary.npcs, summary.npcItemLinks);
+      await importNpcs(conn, npcs, itemLookup, sourceItemLookup, categoryByCode, summary.npcs, summary.npcItemLinks, npcZhRows);
     }
     if (selectedEntities.has('projectiles')) {
       await importProjectiles(conn, projectiles, summary.projectiles);

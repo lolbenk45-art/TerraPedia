@@ -4,14 +4,236 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createContentHash } from '../lib/wiki-sync-manifest.mjs';
+import { writeJson } from '../lib/wiki-item-utils.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'check-source-updates.mjs');
+
+test('writeJson preserves the previous source evidence when target publication fails mid-write', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-atomic-'));
+  const targetPath = path.join(tempDir, 'source-update-monitor.latest.json');
+  const previous = '{"status":"previous","sources":[]}';
+  fs.writeFileSync(targetPath, previous, 'utf8');
+  const originalFsyncSync = fs.fsyncSync;
+  fs.fsyncSync = function patchedFsyncSync() {
+    throw new Error('simulated publication fsync failure');
+  };
+  try {
+    assert.throws(() => writeJson(targetPath, { status: 'replacement' }), /simulated publication fsync failure/);
+  } finally {
+    fs.fsyncSync = originalFsyncSync;
+  }
+  assert.equal(fs.readFileSync(targetPath, 'utf8'), previous);
+});
+
+test('check-source-updates publishes terminal failed progress when the previous state is corrupt', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-corrupt-state-'));
+  const statePath = path.join(tempDir, 'state.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.writeFileSync(statePath, '{not-json', 'utf8');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+
+  const result = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir: path.join(tempDir, 'reports'),
+    progressPath,
+    mockApiPath,
+  });
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assert.equal(progress.actionId, 'source-update-monitor-check');
+  assert.equal(progress.status, 'failed');
+  assert.equal(progress.phase, 'initialization');
+  assert.match(progress.message, /JSON|state/i);
+});
+
+test('check-source-updates fails closed before source work when the initial progress write fails once', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-initial-progress-'));
+  const statePath = path.join(tempDir, 'state.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  const preloadPath = path.join(tempDir, 'fail-first-progress-write.mjs');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+  fs.writeFileSync(preloadPath, `
+    import fs from 'node:fs';
+    const originalOpenSync = fs.openSync;
+    let failed = false;
+    fs.openSync = (filePath, ...args) => {
+      if (!failed && String(filePath).includes('progress.json')) {
+        failed = true;
+        throw new Error('simulated initial progress write failure');
+      }
+      return originalOpenSync(filePath, ...args);
+    };
+  `, 'utf8');
+
+  const result = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir: path.join(tempDir, 'reports'),
+    progressPath,
+    mockApiPath,
+    nodeOptions: `--import=${pathToFileURL(preloadPath).href}`,
+  });
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.equal(fs.existsSync(statePath), false, 'source work must not publish state after initial progress failure');
+  assert.equal(fs.existsSync(path.join(tempDir, 'reports')), false, 'source work must not create reports after initial progress failure');
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assert.equal(progress.actionId, 'source-update-monitor-check');
+  assert.equal(progress.status, 'failed');
+  assert.equal(progress.phase, 'initialization');
+  assert.match(progress.message, /initial progress write failure/i);
+});
+
+test('check-source-updates rejects a symbolic-link progress ancestor before publication', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-progress-symlink-'));
+  const outsideDir = path.join(tempDir, 'outside');
+  const linkedDir = path.join(tempDir, 'linked-progress');
+  const statePath = path.join(tempDir, 'state.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const progressPath = path.join(linkedDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.mkdirSync(outsideDir);
+  fs.symlinkSync(outsideDir, linkedDir, 'dir');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+
+  const result = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir: path.join(tempDir, 'reports'),
+    progressPath,
+    mockApiPath,
+  });
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.equal(fs.existsSync(path.join(outsideDir, 'progress.json')), false);
+  assert.equal(fs.existsSync(statePath), false);
+  assert.equal(fs.existsSync(path.join(tempDir, 'reports')), false);
+});
+
+for (const failure of [
+  {
+    name: 'state publication',
+    statePath: () => path.join('/sys', `terrapedia-source-state-${Date.now()}-${Math.random().toString(16).slice(2)}.json`),
+    reportDir: (tempDir) => path.join(tempDir, 'reports'),
+    message: /publication|read-only|EROFS|state/i,
+  },
+  {
+    name: 'report publication',
+    statePath: (tempDir) => path.join(tempDir, 'state.json'),
+    reportDir: () => '/sys',
+    message: /publication|read-only|EROFS|report/i,
+  },
+]) {
+  test(`check-source-updates publishes terminal failed progress when ${failure.name} fails`, () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-publication-'));
+    const statePath = typeof failure.statePath === 'function'
+      ? failure.statePath(tempDir)
+      : failure.statePath;
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+
+    const result = spawnSourceMonitor({
+      statePath,
+      manifestPath,
+      reportDir: failure.reportDir(tempDir),
+      progressPath,
+      mockApiPath,
+    });
+
+    assert.equal(result.status, 1, result.stderr || result.stdout);
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.actionId, 'source-update-monitor-check');
+    assert.equal(progress.status, 'failed');
+    assert.equal(progress.phase, 'publication');
+    assert.match(progress.message, failure.message);
+  });
+}
+
+test('check-source-updates publishes terminal failed progress when directory fsync fails', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-fsync-'));
+  const preloadPath = path.join(tempDir, 'fail-directory-fsync.mjs');
+  fs.writeFileSync(preloadPath, `
+    import fs from 'node:fs';
+    const originalFsyncSync = fs.fsyncSync;
+    let calls = 0;
+    fs.fsyncSync = (fd) => {
+      calls += 1;
+      if (calls === 4) throw new Error('simulated directory fsync failure');
+      return originalFsyncSync(fd);
+    };
+  `, 'utf8');
+  const statePath = path.join(tempDir, 'state.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+
+  const result = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir: path.join(tempDir, 'reports'),
+    progressPath,
+    mockApiPath,
+    nodeOptions: `--import=${pathToFileURL(preloadPath).href}`,
+  });
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assert.equal(progress.actionId, 'source-update-monitor-check');
+  assert.equal(progress.status, 'failed');
+  assert.equal(progress.phase, 'publication');
+  assert.match(progress.message, /directory fsync/i);
+});
+
+test('check-source-updates preserves the previous state when immutable report publication fails', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-report-preserve-'));
+  const statePath = path.join(tempDir, 'state.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  const previous = {
+    schemaVersion: '1.0.0',
+    checkedAt: '2026-08-31T00:00:00.000Z',
+    sentinel: 'previous-state-must-survive-report-failure',
+    sources: []
+  };
+  fs.writeFileSync(statePath, JSON.stringify(previous), 'utf8');
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+
+  const result = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir: '/sys',
+    progressPath,
+    mockApiPath,
+  });
+
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf8')), previous);
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assert.equal(progress.status, 'failed');
+  assert.equal(progress.phase, 'publication');
+});
 
 test('source update monitor disables official feeds unless explicitly requested', async () => {
   const { resolveOfficialCheckMode } = await import('./source-update-monitor-options.mjs');
@@ -207,7 +429,7 @@ test('check-source-updates compares wiki sources against ingestion manifest, not
     }
   });
 
-  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(result.status, 1, result.stderr || result.stdout);
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   const item = state.sources.find((source) => source.key === 'wiki.module.iteminfo');
   assert.equal(item.changed, false);
@@ -215,6 +437,7 @@ test('check-source-updates compares wiki sources against ingestion manifest, not
   assert.equal(item.meta.compareBasis, 'ingestion-manifest');
   assert.equal(item.meta.compareField, 'contentHash');
   assert.equal(state.summary.changedSources, 0);
+  assert.equal(state.summary.probeHealthy, false);
   assert.deepEqual(
     state.sources
       .filter((source) => source.key.startsWith('wiki.audio_assets.') || source.key.startsWith('wiki.bosses.') || source.key.startsWith('wiki.shimmer.'))
@@ -228,11 +451,11 @@ test('check-source-updates compares wiki sources against ingestion manifest, not
 
   const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
   assert.equal(progress.actionId, 'source-update-monitor-check');
-  assert.equal(progress.status, 'completed');
+  assert.equal(progress.status, 'failed');
   assert.equal(progress.childStatusPath, progressPath);
 });
 
-test('check-source-updates records wiki errors as unchanged and still writes completed progress', () => {
+test('check-source-updates fails closed when a wiki probe errors', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-progress-failed-'));
   const statePath = path.join(tempDir, 'state.json');
   const manifestPath = path.join(tempDir, 'manifest.json');
@@ -259,14 +482,16 @@ test('check-source-updates records wiki errors as unchanged and still writes com
     }
   });
 
-  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(result.status, 1, result.stderr || result.stdout);
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   assert.ok(state.sources.every((source) => source.status === 'error'));
   assert.ok(state.sources.every((source) => source.changed === false));
+  assert.equal(state.summary.probeHealthy, false);
+  assert.equal(state.summary.failedSourceKeys.length, state.sources.length);
 
   const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
   assert.equal(progress.actionId, 'source-update-monitor-check');
-  assert.equal(progress.status, 'completed');
+  assert.equal(progress.status, 'failed');
   assert.equal(progress.childStatusPath, progressPath);
 });
 
@@ -288,6 +513,33 @@ function wikiModuleResponse(title, content, revisionId, revisionTimestamp) {
       }]
     }
   };
+}
+
+function spawnSourceMonitor({
+  statePath,
+  manifestPath,
+  reportDir,
+  progressPath,
+  mockApiPath,
+  nodeOptions = process.env.NODE_OPTIONS,
+}) {
+  return spawnSync(process.execPath, [
+    scriptPath,
+    `--state-file=${statePath}`,
+    `--manifest-path=${manifestPath}`,
+    `--report-dir=${reportDir}`,
+    `--progress-path=${progressPath}`,
+    '--official-check-mode=never',
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath,
+      ...(nodeOptions ? { NODE_OPTIONS: nodeOptions } : {}),
+    },
+  });
 }
 
 function wikiPageResponse(title, revisionId, revisionTimestamp) {

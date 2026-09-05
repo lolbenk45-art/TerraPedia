@@ -66,13 +66,23 @@ class CrawlerAttemptSupervisorTest {
 
     @Test
     void shouldInjectTheCompleteAttemptIdentityAndUseAttemptScopedPaths() {
-        CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
+        SourceDispatchIdentity sourceIdentity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Attempt attempt = withSourceIdentity(startingAttempt(142L, 2L), sourceIdentity);
         FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
         CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
         when(repository.findQueue("queue-1")).thenReturn(Optional.of(new CrawlerQueueV2Queue(
             2, "epoch-1", "queue-1", "standard", "bosses", List.of("bosses"),
-            "domain-source-bosses", "dedupe-1", NOW, "v2-automation", "attempt-1",
-            List.of("attempt-1"), null
+            "domain-source-bosses", "standard:domain-source-bosses:" + sourceIdentity.sourceFingerprint() + ":fresh",
+            NOW, "v2-automation", "attempt-1", List.of("attempt-1"), null, "scheduler"
+        )));
+        when(artifactStore.readManifest("attempt-1")).thenReturn(Optional.of(manifest(attempt, null)));
+        when(artifactStore.readOperationPlan("attempt-1")).thenReturn(Optional.of(new CrawlerOperationPlanSnapshot(
+            "fresh", attempt.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, sourceIdentity
         )));
 
         supervisor.start(attempt);
@@ -88,11 +98,67 @@ class CrawlerAttemptSupervisorTest {
         assertEquals("0", spec.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE"));
         assertEquals(attempt.artifacts().progressPath(), spec.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
         assertEquals("v2-automation", spec.environment().get("TERRAPEDIA_CRAWLER_REQUESTED_BY"));
+        assertEquals(sourceIdentity.sourceFingerprint(), spec.environment().get("TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT"));
+        assertEquals(sourceIdentity.sourceRunIdentity(), spec.environment().get("TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY"));
+        assertEquals(sourceIdentity.sourceContentIdentity(), spec.environment().get("TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY"));
         assertEquals(attempt.artifacts().logPath(), storedPath(spec.logPath()));
         assertEquals(repoRoot.toAbsolutePath().normalize(), spec.directory());
         assertTrue(spec.command().contains("--progress-path=" + attempt.artifacts().progressPath()));
         assertTrue(spec.command().contains("--resume-mode=fresh"));
         assertTrue(spec.command().contains("--resume-state=data/generated/resume/domain-source-bosses.resume.json"));
+    }
+
+    @Test
+    void schedulerStartRejectsMalformedQueueSourceBindingBeforeLaunching() {
+        SourceDispatchIdentity sourceIdentity = new SourceDispatchIdentity(
+            "sha256:" + "c".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "d".repeat(64)
+        );
+        CrawlerQueueV2Attempt attempt = withSourceIdentity(startingAttempt(142L, 2L), sourceIdentity);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(new CrawlerQueueV2Queue(
+            2, "epoch-1", "queue-1", "standard", "bosses", List.of("bosses"),
+            "domain-source-bosses", "unexpected:" + sourceIdentity.sourceFingerprint() + ":standard:domain-source-bosses:fresh",
+            NOW, "v2-automation", "attempt-1", List.of("attempt-1"), null, "scheduler"
+        )));
+        when(artifactStore.readManifest("attempt-1")).thenReturn(Optional.of(manifest(attempt, null)));
+        when(artifactStore.readOperationPlan("attempt-1")).thenReturn(Optional.of(new CrawlerOperationPlanSnapshot(
+            "fresh", attempt.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, sourceIdentity
+        )));
+
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(attempt);
+
+        assertFalse(result.started());
+        assertTrue(result.terminalized());
+        assertEquals(0, launcher.launchCount());
+    }
+
+    @Test
+    void schedulerStartRejectsARequestWhoseSourceIdentityDiffersFromRedis() {
+        SourceDispatchIdentity requestIdentity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        SourceDispatchIdentity currentIdentity = new SourceDispatchIdentity(
+            "sha256:" + "c".repeat(64),
+            "2026-07-11T12:59:00Z",
+            "sha256:" + "d".repeat(64)
+        );
+        CrawlerQueueV2Attempt request = withSourceIdentity(startingAttempt(142L, 2L), requestIdentity);
+        CrawlerQueueV2Attempt current = withSourceIdentity(startingAttempt(142L, 2L), currentIdentity);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
+        when(repository.findAttempt(request.attemptId())).thenReturn(Optional.of(current));
+
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
+
+        assertFalse(result.started());
+        assertTrue(result.terminalized());
+        assertEquals(0, launcher.launchCount());
     }
 
     @Test
@@ -542,6 +608,43 @@ class CrawlerAttemptSupervisorTest {
                 && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
                 && command.workerMessage().startsWith("launch validation failed:")
                 && command.releaseOwnership()
+        ));
+    }
+
+    @Test
+    void schedulerAttemptWithMismatchedOperationPlanMustTerminalizeBeforeLaunching() {
+        SourceDispatchIdentity expected = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        SourceDispatchIdentity drifted = new SourceDispatchIdentity(
+            "sha256:" + "c".repeat(64),
+            "2026-07-11T12:59:00Z",
+            "sha256:" + "d".repeat(64)
+        );
+        CrawlerQueueV2Attempt request = withSourceIdentity(startingAttempt(142L, 2L), expected);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(new CrawlerQueueV2Queue(
+            2, "epoch-1", "queue-1", "standard", "bosses", List.of("bosses"),
+            "domain-source-bosses", "standard:domain-source-bosses:" + expected.sourceFingerprint() + ":fresh",
+            NOW, "v2-automation", "attempt-1", List.of("attempt-1"), null, "scheduler"
+        )));
+        when(artifactStore.readManifest("attempt-1")).thenReturn(Optional.of(manifest(request, null)));
+        when(artifactStore.readOperationPlan("attempt-1")).thenReturn(Optional.of(new CrawlerOperationPlanSnapshot(
+            "fresh", request.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, drifted
+        )));
+
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
+
+        assertFalse(result.started());
+        assertTrue(result.terminalized());
+        assertEquals(0, launcher.launchCount());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
         ));
     }
 
@@ -2118,6 +2221,33 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void cancelMustStallAnIdentityBearingAttemptWhenQueueSourceBindingIsInvalid() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Attempt request = withSourceIdentity(cancelRequestedAttempt(), identity);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(new CrawlerQueueV2Queue(
+            2, "epoch-1", "queue-1", "standard", "bosses", List.of("bosses"),
+            "domain-source-bosses", "unexpected:" + identity.sourceFingerprint(),
+            NOW, "v2-automation", "attempt-1", List.of("attempt-1"), null, "scheduler"
+        )));
+
+        CrawlerQueueV2Attempt result = supervisor.cancel(request);
+
+        assertEquals(CrawlerQueueV2Status.STALLED, result.status());
+        assertTrue(launcher.calls().isEmpty());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+                && !command.releaseOwnership()
+        ));
+    }
+
+    @Test
     void pauseMustRejectAStaleSnapshotBeforeChangingStateOrSendingSignal() {
         CrawlerQueueV2Attempt stale = runningAttempt(142L, 5L, 7L);
         FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
@@ -2246,7 +2376,7 @@ class CrawlerAttemptSupervisorTest {
     ) {
         AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
         when(repository.requireEpoch()).thenReturn("epoch-1");
-        when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue()));
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue(initialAttempt)));
         when(repository.findAttempt("attempt-1")).thenAnswer(ignored -> Optional.ofNullable(current.get()));
         when(repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
             CrawlerQueueEngineMode.V2, "epoch-1", "cutover-1", NOW.minusSeconds(60).toString()
@@ -2275,7 +2405,7 @@ class CrawlerAttemptSupervisorTest {
     ) {
         AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
         when(repository.requireEpoch()).thenReturn("epoch-1");
-        when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue()));
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue(initialAttempt)));
         when(repository.findAttempt("attempt-1")).thenAnswer(ignored -> Optional.ofNullable(current.get()));
         when(repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
             CrawlerQueueEngineMode.V2,
@@ -2569,6 +2699,21 @@ class CrawlerAttemptSupervisorTest {
         );
     }
 
+    private CrawlerQueueV2Attempt withSourceIdentity(
+        CrawlerQueueV2Attempt attempt,
+        SourceDispatchIdentity sourceIdentity
+    ) {
+        return new CrawlerQueueV2Attempt(
+            attempt.contractVersion(), attempt.stateStoreEpoch(), attempt.queueId(), attempt.attemptId(),
+            attempt.fenceToken(), attempt.stateVersion(), attempt.status(), attempt.lane(), attempt.domain(),
+            attempt.coveredDomains(), attempt.actionId(), attempt.retryOfAttemptId(), attempt.requestedAt(),
+            attempt.eligibleAt(), attempt.enteredAt(), attempt.startedAt(), attempt.completedAt(),
+            attempt.lastHeartbeatAt(), attempt.deadlineAt(), attempt.pid(), attempt.processStartedAt(),
+            attempt.progressSequence(), attempt.phase(), attempt.current(), attempt.total(),
+            attempt.workerMessage(), attempt.reasonCode(), attempt.artifacts(), sourceIdentity
+        );
+    }
+
     private CrawlerQueueV2Attempt withAction(
         CrawlerQueueV2Attempt attempt,
         String domain,
@@ -2674,21 +2819,28 @@ class CrawlerAttemptSupervisorTest {
         );
     }
 
-    private CrawlerQueueV2Queue queue() {
+    private CrawlerQueueV2Queue queue(CrawlerQueueV2Attempt attempt) {
+        SourceDispatchIdentity sourceIdentity = attempt.sourceDispatchIdentity();
+        String requestedBy = sourceIdentity == null ? "tester" : "v2-automation";
+        String origin = sourceIdentity == null ? "manual" : "scheduler";
+        String dedupeKey = sourceIdentity == null
+            ? attempt.lane() + ":" + attempt.actionId()
+            : attempt.lane() + ":" + attempt.actionId() + ":" + sourceIdentity.sourceFingerprint() + ":fresh";
         return new CrawlerQueueV2Queue(
-            2,
-            "epoch-1",
-            "queue-1",
-            "standard",
-            "bosses",
-            List.of("bosses"),
-            "domain-source-bosses",
-            "standard:domain-source-bosses",
+            attempt.contractVersion(),
+            attempt.stateStoreEpoch(),
+            attempt.queueId(),
+            attempt.lane(),
+            attempt.domain(),
+            attempt.coveredDomains(),
+            attempt.actionId(),
+            dedupeKey,
             NOW.minusSeconds(10),
-            "tester",
-            "attempt-1",
-            List.of("attempt-1"),
-            null
+            requestedBy,
+            attempt.attemptId(),
+            List.of(attempt.attemptId()),
+            null,
+            origin
         );
     }
 
@@ -2788,7 +2940,7 @@ class CrawlerAttemptSupervisorTest {
             attempt.completedAt(), attempt.reasonCode(), exitCode, attempt.pid(), attempt.processStartedAt(),
             attempt.artifacts().progressPath(),
             attempt.artifacts().logPath(), attempt.artifacts().reportPath(), attempt.artifacts().outputPath(),
-            null, null, null, null, List.of()
+            null, null, null, null, List.of(), attempt.sourceDispatchIdentity()
         );
     }
 

@@ -47,9 +47,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
       sourceStates.value = { ...sourceStates.value, [source.key]: nextState }
 
       if (newEvents.length) {
+        const knownIds = new Set(events.value.map((event) => event.id))
+        const unseenEvents = newEvents.filter((event) => !knownIds.has(event.id))
         events.value = mergeNotificationEvents(events.value, newEvents)
-        const toastworthy = newEvents.find((event) => event.level === 'danger')
-          || newEvents.find((event) => event.level === 'warning')
+        const toastworthy = unseenEvents.find((event) => event.level === 'danger')
+          || unseenEvents.find((event) => event.level === 'warning')
         if (toastworthy) {
           showToast(toastworthy.title, 'warning')
         }

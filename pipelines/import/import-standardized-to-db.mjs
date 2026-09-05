@@ -251,7 +251,7 @@ async function loadCategoryCodeMap(conn) {
   return map;
 }
 
-export async function runBaseItemsImport({ connection, records } = {}) {
+export async function runBaseItemsImport({ connection, records, categoryRows = null, existingRows = null } = {}) {
   if (!connection || typeof connection.query !== 'function' || typeof connection.execute !== 'function') {
     throw new TypeError('base Item import requires a MySQL connection');
   }
@@ -259,7 +259,9 @@ export async function runBaseItemsImport({ connection, records } = {}) {
     throw new TypeError('base Item import requires standardized Item records');
   }
 
-  const categoryByCode = await loadCategoryCodeMap(connection);
+  const categoryByCode = categoryRows == null
+    ? await loadCategoryCodeMap(connection)
+    : buildCategoryCodeMap(categoryRows);
   const requiredCategoryCodes = new Set(records
     .map((record) => resolveItemCategoryCode(record?.categoryCode, record))
     .filter(Boolean));
@@ -271,7 +273,7 @@ export async function runBaseItemsImport({ connection, records } = {}) {
   }
 
   const items = makeStatsSection();
-  await importItems(connection, records, categoryByCode, items);
+  await importItems(connection, records, categoryByCode, items, existingRows);
   return { items };
 }
 
@@ -362,6 +364,10 @@ async function loadItemLookup(conn) {
        FROM items
       WHERE deleted = 0`
   );
+  return buildItemLookup(rows);
+}
+
+function buildItemLookup(rows = []) {
   const byInternal = new Map();
   const byName = new Map();
   const byId = new Map();
@@ -402,6 +408,70 @@ async function loadItemLookup(conn) {
   return { byInternal, byName, byId };
 }
 
+function buildCategoryCodeMap(rows = []) {
+  const map = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const code = normalizeCode(row?.code);
+    const id = toNullableInteger(row?.id);
+    if (code && id != null && !map.has(code)) map.set(code, id);
+  }
+  return map;
+}
+
+/**
+ * Pure projection of standardized Item records into the columns owned by the
+ * Items importer. Existing rows are used only for the importer's preservation
+ * fallback (managed images and game identifiers); no database or filesystem
+ * access occurs here.
+ */
+export function buildStandardizedItemRows(records = [], {
+  categoryRows = [],
+  existingRows = [],
+} = {}) {
+  if (!Array.isArray(records)) throw new TypeError('standardized Item projection records must be an array');
+  const categoryByCode = buildCategoryCodeMap(categoryRows);
+  const existingLookup = buildItemLookup(existingRows);
+  return records.map((raw, index) => {
+    const name = toNullableString(raw?.name);
+    const internalName = normalizeInternalName(raw?.internalName, name ?? '');
+    const categoryCode = resolveItemCategoryCode(raw?.categoryCode, raw);
+    const categoryId = categoryCode ? categoryByCode.get(categoryCode) : null;
+    if (!name || !internalName || categoryId == null) {
+      throw new Error(`standardized Item projection cannot resolve items[${index}] category/name/internalName`);
+    }
+    const existingId = existingLookup.byInternal.get(internalName)
+      ?? (!toNullableString(raw?.internalName)
+        ? (existingLookup.byName.get(name.toLowerCase()) ?? null)
+        : null);
+    const existingItem = existingId != null ? existingLookup.byId.get(existingId) ?? null : null;
+    const stackObj = raw?.stack ?? {};
+    const statsObj = raw?.stats ?? {};
+    const economyObj = raw?.economy ?? {};
+    return itemPayloadToDbRow({
+      name,
+      internalName,
+      image: choosePreferredItemImage(raw?.image ?? raw?.imageUrl ?? raw?.image_url, existingItem?.image),
+      categoryId,
+      description: toNullableString(raw?.description),
+      damage: toNullableInteger(statsObj.damage ?? raw?.damage),
+      defense: toNullableInteger(statsObj.defense ?? raw?.defense),
+      knockback: toNullableInteger(statsObj.knockback ?? raw?.knockback),
+      useTime: toNullableInteger(statsObj.useTime ?? raw?.useTime ?? raw?.use_time),
+      width: toNullableInteger(statsObj.width ?? raw?.width),
+      height: toNullableInteger(statsObj.height ?? raw?.height),
+      buy: toNullableInteger(economyObj.buy ?? raw?.buy),
+      sell: toNullableInteger(economyObj.sell ?? raw?.sell),
+      tooltip: toNullableString(raw?.tooltip),
+      rarityId: mapRarityToId(raw?.rarityId, raw?.rarity),
+      gamePeriodId: choosePreferredInteger(raw?.gamePeriodId ?? raw?.game_period_id, existingItem?.gamePeriodId),
+      gameModelId: choosePreferredInteger(raw?.gameModelId ?? raw?.game_model_id, existingItem?.gameModelId),
+      isStackable: toTinyIntBoolean(stackObj.isStackable ?? raw?.isStackable ?? raw?.is_stackable, 0),
+      stackSize: toNullableInteger(stackObj.stackSize ?? raw?.stackSize ?? raw?.stack_size) ?? 1,
+      status: toNullableInteger(raw?.status) ?? 1,
+    });
+  });
+}
+
 async function loadBiomeCodeMap(conn) {
   const [rows] = await conn.query('SELECT id, code FROM biomes WHERE deleted = 0');
   const map = new Map();
@@ -413,11 +483,11 @@ async function loadBiomeCodeMap(conn) {
   return map;
 }
 
-async function importItems(conn, records, categoryByCode, stats) {
+async function importItems(conn, records, categoryByCode, stats, existingRows = null) {
   stats.input = Array.isArray(records) ? records.length : 0;
   if (!Array.isArray(records) || records.length === 0) return;
 
-  const existingLookup = await loadItemLookup(conn);
+  const existingLookup = existingRows == null ? await loadItemLookup(conn) : buildItemLookup(existingRows);
 
   for (let i = 0; i < records.length; i += 1) {
     const raw = records[i];
