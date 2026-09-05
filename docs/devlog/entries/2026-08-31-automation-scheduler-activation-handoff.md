@@ -2203,3 +2203,42 @@ See git for code-level diff details.
   boundary and a distinct ADMIN/Owner authorization exists; no scheduler
   enablement, sweep, source refresh, crawler/import, MySQL/Redis business
   write, or service lifecycle action is implied by this checkpoint.
+
+### Runtime restart recheck: 2026-09-06 05:36 CST
+
+- Resume fact check found the prior recorded listeners stale: PID files under
+  `reports/local-start/` point to exited processes, and no listener is present
+  on MySQL `13306`, Redis `6380`, or backend `18102`.
+- The canonical command was retried from this worktree with the primary
+  checkout's ignored `.env` and local-stack config, while inheriting
+  `SPRING_TASK_SCHEDULING_ENABLED=false`. It resolved slot 14 and stopped at
+  the read-only MySQL TCP preflight before starting Redis, MinIO, backend,
+  public-web, or admin-console. The attempt created only the empty process
+  manifest `reports/local-start/processes-20260906-053114.jsonl`.
+- The existing MySQL instance uses `/var/lib/mysql` and `/var/run/mysqld`, both
+  administrator-owned; this session has no non-interactive sudo. An
+  administrator must start that existing instance before the next fresh Phase
+  0 readback. No scheduler/API control, Redis state reset/copy, source probe,
+  crawler/import, business-table write, evidence copy, staging, or commit
+  occurred.
+- Next safe action: after MySQL is confirmed reachable, rerun the canonical
+  stack start with scheduling disabled, verify service ownership/health, then
+  perform the plan's fresh read-only Phase 0 baseline only under separate
+  scheduler authorization.
+
+### Phase 1 catalog refresh: 2026-09-06 05:40 CST
+
+- The linked ingestion worktree was revalidated without copying or mutating any
+  source file. The current catalog helper produced exactly `185` entries with
+  category counts `131/45/4/4/1` and classification counts
+  `131/45/9`; its focused suite passed `20/20`.
+- Fresh private output:
+  `.local/tmp/automation-evidence-catalog-scheduler-activation-20260906-retry-02.json`
+  (`0600`, ordinary file, logical SHA
+  `sha256:1e4bd9b5a8d596f962799aba4ff0dc5863ee22d5baa10153f686eb8ec0d2704e`).
+  The prior fixed output path was occupied and was intentionally not
+  overwritten; the old file is not treated as current evidence because it
+  predates the helper's `inventoryMode` schema.
+- Phase 1 acceptance is complete. Phase 0 remains blocked by the unavailable
+  MySQL instance and still requires a fresh read-only baseline plus distinct
+  scheduler authorization after service recovery.

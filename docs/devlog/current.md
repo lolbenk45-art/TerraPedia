@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-09-06 05:17 CST by Codex
+Last updated: 2026-09-06 05:36 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation` (scheduler handoff worktree)
 
@@ -54,19 +54,33 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   `items,npcs,projectiles,armor_sets,buffs,audio,bosses,shimmer`; global
   readback
   `sha256:34af46aacb92d171c232128712c47641cbb3882a689ae0fd18195302184445e0`.
-- Runtime boundary: MySQL `127.0.0.1:13306` (Flyway V60), Redis `6380` (`PONG`),
-  backend `18102`; the scheduler worktree's Redis DB 14 has no durable V2
-  cutover state while the existing state is in DB 3. V2 automation/preflight
-  reads therefore remain `409 STATE_STORE_RESET`; no reset, state copy, or
-  control write was performed.
+- Runtime boundary recorded by the prior checkpoint was MySQL
+  `127.0.0.1:13306` (Flyway V60), Redis `6380` (`PONG`), and backend `18102`;
+  the scheduler worktree's Redis DB 14 had no durable V2 cutover state while
+  existing state was in DB 3. A fresh check on 2026-09-06 found MySQL
+  `13306`, Redis `6380`, and backend `18102` all unavailable, and the canonical
+  start script stopped at its read-only MySQL TCP preflight. No Redis/backend
+  process was started, and no scheduler/API control, state reset, source
+  refresh, crawler/import, or business-table write occurred.
 - Next agent start point: perform a fresh Phase 0 readback only under the
   parent plan's separate authorization. Do not enable scheduler runtime
   automatically.
   After this checkpoint, Phase 0 still requires a fresh readback and a distinct
   ADMIN/Owner authorization; no scheduler activation may be inferred from this
   checkpoint.
-- Current risks: separate runtime authorization is still required, so runtime
-  stays blocked. The reviewer-requested content-only
+- Phase 1 evidence catalog was re-run against the linked ingestion worktree on
+  2026-09-06. The current helper passed `20/20` tests and produced exactly
+  `185` entries (`131/45/4/4/1`) at the private retry-02 path
+  `.local/tmp/automation-evidence-catalog-scheduler-activation-20260906-retry-02.json`
+  with mode `0600` and logical SHA
+  `sha256:1e4bd9b5a8d596f962799aba4ff0dc5863ee22d5baa10153f686eb8ec0d2704e`.
+  The historical fixed catalog path was already occupied and was not
+  overwritten.
+- Current risks: runtime is additionally blocked by the unavailable existing
+  MySQL instance; `/var/lib/mysql` and `/var/run/mysqld` require administrator
+  ownership, and this session has no non-interactive sudo. Separate runtime
+  authorization is still required even after services recover. The
+  reviewer-requested content-only
   post-apply and committed/DRY_RUN acknowledgement permutations remain a
   residual coverage consideration beyond the new pre-publication content-drift
   and normal acknowledgement-race regressions. No natural source-change-to-

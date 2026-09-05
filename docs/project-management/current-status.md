@@ -30,12 +30,22 @@ coordinator full Node automation rerun passed `965/965`, and the focused Java
   fresh readback and separate authorization exist.
 
 No fresh scheduler preflight, scheduler control write, sweep, source refresh,
-crawler/import, or business-table mutation has occurred. MySQL `13306`, Redis
-`6380`, and backend `18102` are reachable, but this worktree's Redis DB 14 has
-no durable V2 cutover state while existing V2 state is in DB 3; V2 automation
-and preflight correctly fail closed with `STATE_STORE_RESET`. A fresh Phase 0
-readback and an independent ADMIN/Owner authorization are required before any
-live activation.
+crawler/import, or business-table mutation has occurred. The prior checkpoint
+observed MySQL `13306`, Redis `6380`, and backend `18102`, but a fresh restart
+attempt on 2026-09-06 stopped at the canonical read-only MySQL TCP preflight;
+all three service ports are currently unavailable. The existing MySQL datadir
+and runtime directory require administrator ownership, and this session has no
+non-interactive sudo. After MySQL and the stack recover, this worktree's Redis
+DB 14 still requires a fresh state-store-boundary readback; no reset or state
+copy is authorized. A fresh Phase 0 readback and an independent ADMIN/Owner
+authorization are required before any live activation.
+
+Phase 1 evidence inventory is fresh and complete: the linked ingestion
+worktree revalidated `185` untracked files as `131/45/4/4/1`; the current
+catalog helper suite is `20/20`, and the private retry-02 catalog is `0600`
+with SHA `sha256:1e4bd9b5a8d596f962799aba4ff0dc5863ee22d5baa10153f686eb8ec0d2704e`.
+The historical catalog path was preserved because the helper correctly refused
+to overwrite it.
 
 All dated sections below are retained historical checkpoints and do not override
 the Scheduler Preparation Gate state above.
