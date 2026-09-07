@@ -104,6 +104,9 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   `terrapedia.crawler.queue-v2.repo-root` before Maven CWD discovery, while
   explicit test overrides remain highest priority. The RED-GREEN regression
   and related controller/preflight tests pass `29/29`.
+- The focused code checkpoint is `5bdd2fc8` (`fix(scheduler): bind configured
+  evidence roots and retry manifests`). Runtime reports and authorization
+  artifacts remain intentionally untracked and outside the checkpoint.
 - After backend restart, monitor readback reports `repoRoot=/home/lolben/TerraPedia`.
   A governed primary-root refresh regenerated 32/32 target panels at
   `2026-09-07T13:21:24.667Z` (`pass=32`, `warning=0`, `blocked=0`). Retry-03

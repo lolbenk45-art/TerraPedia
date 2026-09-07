@@ -2462,3 +2462,15 @@ See git for code-level diff details.
 - Current next action is human Owner review of the retry-03 request, followed
   by a separately authorized decision/activation phase. Until that occurs,
   leave scheduling disabled and do not consume the manifest.
+
+### Code checkpoint: 2026-09-07 21:27 CST
+
+- The configured evidence-root repair, retry-labelled scheduler manifest
+  binding, regression tests, and this handoff update were checkpointed in
+  `5bdd2fc8` (`fix(scheduler): bind configured evidence roots and retry manifests`).
+  Runtime reports and private authorization artifacts remain untracked and are
+  intentionally excluded from the code checkpoint.
+- Fresh verification before the checkpoint: focused Java `29/29`, offline
+  scheduler activation contracts `109/109`, `bash platform/local/verify-local-stack.sh
+  --skip-front` passed, and `git diff --check` passed. The independent review
+  agent did not return within the session and was not treated as approval.
