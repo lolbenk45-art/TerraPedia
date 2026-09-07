@@ -2474,3 +2474,20 @@ See git for code-level diff details.
   scheduler activation contracts `109/109`, `bash platform/local/verify-local-stack.sh
   --skip-front` passed, and `git diff --check` passed. The independent review
   agent did not return within the session and was not treated as approval.
+
+### Authorized continuation preflight repair: 2026-09-07 21:35 CST
+
+- The user authorized the remaining governed chain, including one Owner packet
+  and decision, scheduler enable, natural source observation, permitted
+  automatic import, readback, and rollback. Direct SQL/Redis writes, manual
+  sweeps, force crawls, synthetic source changes, and bypasses remain forbidden.
+- Before any write, the actual Phase 3 consumer chain was audited. The proposal
+  manifest supported retry labels, but the required
+  `automation-crawler-v2-scheduler-activation` policy-decision manifest and
+  authorization data-bundle resolver still selected flat paths. This would have
+  made a retry-labelled packet bind stale input bytes.
+- Two RED-GREEN regressions now make the policy-decision manifest bind matching
+  retry input/result paths and make the authorization bundle consume exactly
+  the private retry-labelled manifest input. Focused combined tests passed
+  `91/91`. A new clean code checkpoint is required before retry-04 artifacts
+  are generated; retry-01 through retry-03 remain historical and unconsumable.

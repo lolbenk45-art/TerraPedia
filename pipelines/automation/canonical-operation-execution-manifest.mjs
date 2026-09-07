@@ -798,7 +798,8 @@ export function buildCanonicalOperationExecutionContract({
   if (normalizedResultLabel
       && !NPC_OWNER_OPERATION_IDS.includes(operationId)
       && !L2_POLICY_DECISION_OPERATION_IDS.has(operationId)
-      && operationId !== 'canonical-crawler-v2-scheduler-activation') {
+      && operationId !== 'canonical-crawler-v2-scheduler-activation'
+      && operationId !== 'automation-crawler-v2-scheduler-activation') {
     throw new Error('result label is supported only for an NPC owner operation');
   }
   const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
@@ -1899,7 +1900,7 @@ function buildDefinition(
       return [operationId, policyCeilingRegistrationDefinition({ operationId, mode: policyCeilingRegistrationMode })];
     })),
     'automation-biomes-scheduler-activation': policyDecisionDefinition({ operationId }),
-    'automation-crawler-v2-scheduler-activation': policyDecisionDefinition({ operationId }),
+    'automation-crawler-v2-scheduler-activation': policyDecisionDefinition({ operationId, resultLabel }),
     'automation-crawler-v2-scheduler-reactivation': policyDecisionDefinition({ operationId }),
     ...Object.fromEntries(['items', 'projectiles'].flatMap((domainId) => [
       [`automation-${domainId}-l0-bootstrap`, supplementaryBootstrapDefinition({

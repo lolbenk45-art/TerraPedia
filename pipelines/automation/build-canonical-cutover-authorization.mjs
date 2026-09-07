@@ -36,6 +36,8 @@ const ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID =
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 const HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID =
   'automation-l1-historical-source-hash-disposition';
+const SCHEDULER_ACTIVATION_POLICY_OPERATION_ID =
+  'automation-crawler-v2-scheduler-activation';
 const HISTORICAL_DISPOSITION_CANDIDATE_ROOT =
   'reports/authorization/canonical/l1-historical-source-hash-disposition/';
 const HISTORICAL_DISPOSITION_CANDIDATE_PATH_PATTERN =
@@ -320,6 +322,9 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
       throw new Error('canonical base-entity restoration execution manifest is required');
     }
     dataEntries = readItemCanonicalBaseEntityRestorationDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === SCHEDULER_ACTIVATION_POLICY_OPERATION_ID
+      && verifiedExecutionManifest != null) {
+    dataEntries = readSchedulerActivationPolicyDataEntries(root, operationId, verifiedExecutionManifest);
   } else {
     dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
   }
@@ -1340,6 +1345,27 @@ function readCompleteEntries(repoRoot, relativePaths) {
     return !fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile();
   })) return null;
   return readRequiredEntries(repoRoot, relativePaths);
+}
+
+function readSchedulerActivationPolicyDataEntries(repoRoot, operationId, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1) {
+    throw new Error('scheduler activation execution manifest must declare exactly one input path');
+  }
+  const inputPath = requireNormalizedPath(
+    executionManifest.inputPaths[0],
+    'scheduler activation execution manifest input path',
+  );
+  const prefix = `reports/authorization/canonical/${operationId}`;
+  const match = new RegExp(
+    `^${escapeRegExp(prefix)}(?:\\.([a-z0-9]+(?:-[a-z0-9]+)*))?\\.input\\.json$`,
+  ).exec(inputPath);
+  if (!match || (executionManifest.resultLabel != null && match[1] !== executionManifest.resultLabel)) {
+    throw new Error('scheduler activation manifest input path must match its retry label');
+  }
+  return [readConfinedEntry(repoRoot, inputPath, {
+    label: 'scheduler activation policy input',
+    privateFile: true,
+  })];
 }
 
 function readNpcCrawlerEntries(repoRoot) {

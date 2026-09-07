@@ -1595,6 +1595,32 @@ test('scheduler activation manifest binds retry-labelled proposal inputs and out
   assert.equal(manifest.resultLabel, 'retry-02');
 });
 
+test('scheduler policy decision manifest binds retry-labelled input and result', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'automation-crawler-v2-scheduler-activation',
+    artifactDate: '2026-09-07',
+    resultLabel: 'retry-04',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    '--operation-id=automation-crawler-v2-scheduler-activation',
+    '--input=reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.input.json',
+    '--output=reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.result.json',
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.input.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.result.json',
+  ]);
+  assert.equal(manifest.resultLabel, 'retry-04');
+  assert.equal(manifest.databaseWrites, true);
+});
+
 test('image and boss manifests require and freeze the active backend API base', () => {
   assert.throws(
     () => buildCanonicalOperationExecutionManifest({

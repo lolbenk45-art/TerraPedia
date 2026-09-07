@@ -107,6 +107,12 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
 - The focused code checkpoint is `5bdd2fc8` (`fix(scheduler): bind configured
   evidence roots and retry manifests`). Runtime reports and authorization
   artifacts remain intentionally untracked and outside the checkpoint.
+- Before Owner consumption, a second retry-path audit found the policy-decision
+  manifest and its authorization data bundle still fixed scheduler activation
+  to flat paths. RED-GREEN repairs now bind retry-labelled policy-decision
+  inputs/results and require the authorization bundle to read the exact private
+  manifest input. The active code checkpoint is updated after these repairs;
+  retry-03 remains historical and must not be consumed.
 - After backend restart, monitor readback reports `repoRoot=/home/lolben/TerraPedia`.
   A governed primary-root refresh regenerated 32/32 target panels at
   `2026-09-07T13:21:24.667Z` (`pass=32`, `warning=0`, `blocked=0`). Retry-03

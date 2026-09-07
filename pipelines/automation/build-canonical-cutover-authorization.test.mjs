@@ -564,6 +564,35 @@ test('L2 authorization data bundles include the exact policy artifact and propos
   ]);
 });
 
+test('scheduler activation authorization binds the retry-labelled manifest input', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '../..');
+  const retryLabel = 'scheduler-auth-test';
+  const inputPath = `reports/authorization/canonical/automation-crawler-v2-scheduler-activation.${retryLabel}.input.json`;
+  const inputFile = path.join(repoRoot, inputPath);
+  try {
+    fs.writeFileSync(inputFile, '{"schemaVersion":1,"retry":"scheduler-auth-test"}\n', {
+      mode: 0o600,
+      flag: 'wx',
+    });
+    const executionManifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: 'automation-crawler-v2-scheduler-activation',
+      artifactDate: '2026-09-07',
+      resultLabel: retryLabel,
+    });
+
+    const resolved = resolveCanonicalOperationTechnicalInput({
+      repoRoot,
+      operationId: executionManifest.operationId,
+      executionManifest,
+    });
+
+    assert.deepEqual(resolved.dataEntries.map((entry) => entry.path), [inputPath]);
+  } finally {
+    fs.rmSync(inputFile, { force: true });
+  }
+});
+
 test('historical disposition authorization resolves the manifest-bound candidate path and file hash', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-data-bundle-'));
   const policySetHash = HASH;
