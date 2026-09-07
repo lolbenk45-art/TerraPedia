@@ -1570,6 +1570,31 @@ test('scheduler activation manifest consumes explicit preflight and T1 paths wit
   assert.ok(manifest.codeBundleEntries.some((entry) => entry.path.endsWith('crawler-v2-scheduler-activation-preflight.mjs')));
 });
 
+test('scheduler activation manifest binds retry-labelled proposal inputs and output', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-crawler-v2-scheduler-activation',
+    artifactDate: '2026-09-07',
+    resultLabel: 'retry-02',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'pipelines/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
+    '--preflight=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.preflight.json',
+    '--t1-report=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    '--output=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.proposal.json',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.preflight.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.proposal.json',
+  ]);
+  assert.equal(manifest.resultLabel, 'retry-02');
+});
+
 test('image and boss manifests require and freeze the active backend API base', () => {
   assert.throws(
     () => buildCanonicalOperationExecutionManifest({

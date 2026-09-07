@@ -2251,3 +2251,214 @@ See git for code-level diff details.
 - The live Phase 2 preflight collector was not run because MySQL `13306`, Redis
   `6380`, and backend `18102` remain unreachable. No scheduler/API control,
   source probe, crawler/import, or database/Redis business write occurred.
+
+### Resume verification: 2026-09-06 19:07 CST
+
+- Re-ran the recorded canonical startup command with
+  `SPRING_TASK_SCHEDULING_ENABLED=false`. The script resolved slot 14 and
+  exited `1` at the read-only MySQL TCP preflight:
+  `127.0.0.1:13306 is not reachable`.
+- Independent TCP probes confirm MySQL `13306`, Redis `6380`, and backend
+  `18102` are all unreachable; no matching `mysqld`, Redis, or backend process
+  is running. WSL has no active systemd bus, and `/var/lib/mysql` is owned by
+  `mysql:mysql` with no MySQL socket present, so this session cannot recover
+  the existing instance.
+- `git diff --check` passes. The only untracked paths remain the three
+  previously recorded generated audit/relation reports; no scheduler/API
+  control, source probe, crawler/import, database/Redis business write,
+  staging, or commit occurred.
+- Next safe action is unchanged: an administrator must restore MySQL; then
+  rerun the canonical stack start with scheduling disabled and perform only a
+  fresh read-only Phase 0 baseline before any separately authorized scheduler
+  operation.
+
+### Runtime recovery and Phase 0 readback: 2026-09-06 19:25-19:33 CST
+
+- The existing MySQL instance was restored manually with `mysqld_safe` using
+  `/var/lib/mysql`; read-only identity matches the recorded server UUID
+  `b4ae6728-4f72-11f1-bcc9-00155d37eadf`, port `13306`, and all three target
+  databases. The canonical stack then started successfully with scheduling
+  disabled: Redis `6380`, MinIO `19000`, image compatibility `9000`, backend
+  `18102`, public web `5188`, and admin `3015` are reachable. The run manifest
+  is `reports/local-start/run-manifest.json`.
+- The first attempt exposed only a path-resolution issue for the private
+  MinIO credentials file; rerunning with
+  `TERRAPEDIA_MINIO_CREDENTIALS_FILE=/home/lolben/TerraPedia/.local/tmp/minio-local-credentials.json`
+  reused the existing `0600` file without copying or printing its contents.
+- Fresh read-only API checks authenticated successfully. Overview returned
+  `200`, but both V2 automation and V2 preflight returned `409
+  STATE_STORE_RESET` because scheduler-worktree Redis DB14 has only two keys
+  and no `terrapedia:crawler:wiki-monitor:v2:*` state. Read-only MySQL counts
+  show eight L2 policy versions, zero L2 promotion decisions, zero live
+  reservations, zero active fences, and Flyway installed rank/version `60`.
+- Phase 0 acceptance remains blocked on the state-store reset boundary and
+  cannot be repaired by this session: no Redis reset/copy, scheduler/API
+  control write, source probe, crawler/import, or business-table write was
+  performed. The stack is intentionally left running for an operator decision.
+
+### Redis state-store alignment and fresh readback: 2026-09-06 19:40-19:50 CST
+
+- Root cause was isolated to worktree slot isolation: the durable marker in the
+  primary checkout and the matching V2 Redis authority were in DB3, while the
+  scheduler continuation slot used empty DB14. DB3 contained 221 terminal
+  attempts (217 `completed`/`failed`, four `timed_out`) and no active locks.
+- After stopping only this worktree's processes, the fixed V2 prefix
+  (`terrapedia:crawler:wiki-monitor:v2:`) was copied with Redis `COPY` from
+  DB3 to the empty DB14: 407/407 keys, source DB3 unchanged. The backend was
+  restarted with `SPRING_APPLICATION_JSON` pointing
+  `terrapedia.crawler.queue-v2.repo-root` to the primary checkout's existing
+  marker; no marker file was duplicated and no new epoch was created.
+- Fresh authenticated readback now returns HTTP `200` for both V2 automation
+  and V2 preflight. Epoch, namespace, and contract version match; live attempts
+  and sweep claims are `0`; reconciler is healthy; policy-set hash is H8
+  `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`.
+- Phase 0 still fails its acceptance contract: persisted control remains
+  `enabled=true`/`changed-only`, and all eight readiness rows are `blocked`
+  with stale 2026-08-24/25 observations. No scheduler control write, source
+  probe/refresh, crawler/import, business-table DML, or forward epoch reset was
+  performed. Further progress requires separate authorization to change the
+  control and a governed readiness refresh.
+
+### Phase 0 baseline and collector recheck: 2026-09-06 20:12 CST
+
+- A fresh read-only baseline was captured at
+  `.local/tmp/automation-scheduler-baseline-scheduler-activation-20260906-retry-04.json`
+  (`0600`, ordinary file, logical SHA
+  `sha256:829fd4300b9ae03d46fe591bf619952a14a55a420ff2e07751bf59262fb89274`).
+  It records API health/automation/preflight `200`, matching H8 policy hash,
+  Redis DB14 V2 key count `407`, zero live attempts/claims, zero current H8
+  runs, zero current-H8 full reconciliation runs, and the remaining Phase 0
+  blockers.
+- Retry-03 contained a diagnostic-only H8 comparison literal typo; retry-04
+  compares the exact handoff hash and reports `h8PolicyMatch=true`. Retry-03
+  remains unchanged and is not current evidence.
+- The authenticated activation preflight collector was rerun with a
+  one-process ADMIN token and failed closed before publication with
+  `preflight requires disabled automation`; no API mutation or artifact write
+  occurred. No scheduler control write, source probe/refresh, crawler/import,
+  business-table DML, or evidence copy was performed.
+
+### Runtime verification continuation: 2026-09-06 20:25 CST
+
+- `bash platform/local/verify-local-stack.sh --skip-front` passed the database
+  TCP preflight, 10 MyBatis mapper XML checks, backend compile, and admin
+  typecheck. The local stack remains running with scheduling disabled.
+- A follow-up combined API summary exceeded the single command wait window
+  after the verification stages and produced no additional evidence; it was
+  not treated as a pass or failure. No scheduler/API control, source probe,
+  crawler/import, or business-table write occurred.
+
+### Runtime restart recheck: 2026-09-07
+
+- Re-ran the canonical startup command from this worktree with
+  `SPRING_TASK_SCHEDULING_ENABLED=false`. The script resolved slot 14 but
+  stopped at the read-only MySQL TCP preflight: `127.0.0.1:13306` refused the
+  connection. Redis `6380` and backend `18102` were also unreachable, so no
+  local service was started by this attempt.
+- Process and socket checks found no active `mysqld`, `mysqld_safe`, Redis, or
+  backend process and no `/var/run/mysqld` socket directory. The MySQL error
+  log contains prior successful starts on port `13306`; the current blocker is
+  the administrator-owned system instance not being running in this WSL
+  session, not a schema or application failure.
+- No scheduler control/API mutation, source probe or refresh, crawler/import,
+  Redis state write, business-table DML, evidence copy, staging, or commit was
+  performed. The next safe action is one administrator-started MySQL recovery,
+  followed by the same canonical stack command and fresh read-only Phase 0
+  readback.
+
+### Authorized runtime recovery and Phase 3 preparation: 2026-09-07 08:06-08:22 CST
+
+- MySQL was restored by the operator and the canonical stack was started with
+  scheduling disabled. The first restart omitted the durable marker root and
+  returned `STATE_STORE_RESET`; no mutation was performed. A second restart
+  bound `SPRING_APPLICATION_JSON` property
+  `terrapedia.crawler.queue-v2.repo-root` to `/home/lolben/TerraPedia`,
+  preserving the existing DB14/DB3 state alignment. MySQL `13306`, Redis
+  `6380`, backend `18102`, public `5188`, admin `3015`, and MinIO `19000`
+  were all reachable; backend compile and Admin typecheck passed.
+- Authenticated readback initially confirmed H8
+  `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`,
+  queue epoch `epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346`, 407 V2 Redis
+  keys, zero live attempts/claims, and a healthy reconciler. The persisted
+  control was `enabled=true`, `changed-only`, interval `1`.
+- Under the previously granted runtime scope, authenticated `PUT
+  /admin/crawler-monitor/v2/automation` changed the durable control to
+  `enabled=false`, `mode=changed-only`, interval `1`; HTTP `200` and immediate
+  GET readback confirmed the exact values. No scheduler sweep endpoint was
+  called and scheduling remains disabled.
+- A dry-run against the canonical primary runtime root showed all 32 panels
+  across the eight target domains as `pass`. The governed report generator then
+  wrote 32 new `2026-09-07` reports in the primary `reports/domain` root. It
+  executes no manifest generator commands and performed no crawler/import,
+  Redis, or business-table write. Fresh preflight readback is now `eligible`
+  for all eight scheduler domains, with source hashes, H8, zero live work,
+  healthy reconciler, and all three no-write flags intact.
+- Fresh immutable artifacts in this scheduler worktree are:
+  - preflight `canonical-crawler-v2-scheduler-activation.retry-01.preflight.json`,
+    mode `0600`, hash
+    `sha256:64af39b786004cac70f544db19bc355a79105a8eb513c20c3d5a02beda091fdf`;
+  - proposal `canonical-crawler-v2-scheduler-activation.retry-01.proposal.json`,
+    `proposalOnly=true`, `enabled=false`, embedded proposal hash
+    `sha256:b79c047f1a0b09b5e57ab5afdf9e8c5ca866f2a7ce4ba40dd6d3821752c12b4a`;
+  - request `canonical-crawler-v2-scheduler-activation.retry-01.request.json`,
+    status `AWAITING_OWNER`, hash
+    `sha256:1f981c0137b04e36db5817799f2cd544464df1660a0bd330cae72bff29f22774`;
+  - execution manifest
+    `automation-crawler-v2-scheduler-activation.retry-01.execution-manifest.json`.
+- The plan's first manifest command included `--result-label=retry-01`; the
+  current CLI rejected that argument because result labels are restricted to
+  NPC owner operations. Re-running without the label succeeded and emitted the
+  scheduler manifest. This is recorded as a plan/CLI wording discrepancy, not
+  a runtime failure.
+- No Owner input, packet, policy decision, scheduler enable, sweep, source
+  probe, crawler/import, business-table DML, staging, or commit was performed.
+
+### Evidence-root repair and retry-02 preparation: 2026-09-07 08:50-21:10 CST
+
+- Root-cause investigation found that `DomainAcceptanceServiceImpl` only used
+  its test override or Maven CWD discovery, while `CrawlerMonitorServiceImpl`
+  already consumed `terrapedia.crawler.queue-v2.repo-root`. This mixed the
+  primary report bytes with worktree report metadata and made retry-01 unsafe
+  to consume. The issue was reproduced by a RED regression: a configured
+  one-domain temporary root still returned the CWD's 13-domain registry.
+- The minimal repair injects the Spring property into
+  `DomainAcceptanceServiceImpl`, with explicit constructor override first,
+  configured root second, and CWD discovery last. The regression then passed;
+  focused controller/preflight coverage is `29/29` with zero failures.
+- The canonical stack was restarted with scheduling disabled and the durable
+  root property set to `/home/lolben/TerraPedia`. Runtime readback now reports
+  that root, control `enabled=false/mode=changed-only/interval=1`, H8 unchanged,
+  0 live attempts, 0 sweep claims, and a healthy reconciler. No queue reset,
+  sweep, source probe, crawler/import, or business-table write occurred.
+- The prior 2026-09-07 report set was stale for the 15-minute preflight gate.
+  The authorized governed generator refreshed exactly 32 primary-root reports
+  at `2026-09-07T13:05:43.391Z`; all 32 passed with zero warnings/blockers.
+  Worktree-vs-primary comparison now confirms the backend hashes are sourced
+  from the primary root, including the previously divergent NPC/Boss reports.
+- Retry-02 preflight was written as a new `0600` no-overwrite artifact with
+  self-consistent hash
+  `sha256:00f31040c3fca23e5603ec868b1d110ac0c3cc5c50b04d884b931e7a88076648`.
+  The eight rows are eligible, observed at the same generated timestamp, and
+  retain no-write flags. Retry-02 proposal and request were generated with
+  `proposalOnly=true`, `enabled=false`, and `AWAITING_OWNER`; request hash is
+  `sha256:4455e3e58ecfbbf5bd69242c2f132453e6057931cec7efb70d824d23a4627367`.
+- A retry-02 execution manifest was emitted for structural inspection only.
+  The current manifest CLI still hard-codes the scheduler proposal's historical
+  flat paths and cannot bind retry-labelled artifacts, so this manifest is not
+  an authorization or execution-consumption artifact. No Owner input, packet,
+  decision, scheduler enable, sweep, source probe, crawler/import, or business
+  table write occurred.
+- A follow-up manifest RED-GREEN repair added retry-label support only for the
+  scheduler activation proposal operation. The manifest now binds the exact
+  `retry-03.preflight.json` input and `retry-03.proposal.json` output; the
+  default historical flat paths remain unchanged for an omitted label. The
+  focused manifest suite is `57/57`, and the combined offline activation
+  contract suite is `109/109`.
+- Because the previous retry-02 code bundle was captured before this manifest
+  repair, retry-03 was regenerated after the repair. Its four artifacts are
+  `0600`; preflight/proposal self-hashes verify, request binding is under
+  `request.proposal`, and the manifest is
+  `formal_activation_proposal_only` with all three no-write flags false.
+- Current next action is human Owner review of the retry-03 request, followed
+  by a separately authorized decision/activation phase. Until that occurs,
+  leave scheduling disabled and do not consume the manifest.

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.DomainAcceptanceOverviewDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -895,6 +896,62 @@ class DomainAcceptanceServiceImplTest {
         DomainAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot).getOverview();
 
         assertEquals("missing", panel(domain(overview, "bosses"), "sourceReadiness").getStatus());
+    }
+
+    @Test
+    void shouldPreferConfiguredRepoRootOverWorkingDirectoryDiscovery() throws Exception {
+        Path configuredRoot = createRepoRoot();
+        writeRegistry(configuredRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {"single": ["sourceReadiness"]},
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [{
+                "domainId": "configured.domain",
+                "domainType": "support",
+                "tier": "B",
+                "chainStage": "support-readiness",
+                "panelSet": "single",
+                "backendRefreshStepIds": ["support-sync"],
+                "managementRoute": "/configured",
+                "publicExposure": "admin-only",
+                "publicRoute": null
+              }]
+            }
+            """);
+        writeDomainReport(configuredRoot, "configured.domain", "source-readiness", "pass", "2026-05-03T00:00:00Z", 0, 0);
+
+        new ApplicationContextRunner()
+            .withPropertyValues("terrapedia.crawler.queue-v2.repo-root=" + configuredRoot)
+            .withBean(ObjectMapper.class, ObjectMapper::new)
+            .withBean(DomainAcceptanceServiceImpl.class)
+            .run(context -> {
+                DomainAcceptanceServiceImpl service = context.getBean(DomainAcceptanceServiceImpl.class);
+                DomainAcceptanceOverviewDTO overview = service.getOverview();
+
+                assertEquals(1, overview.getDomainCount());
+                assertEquals("configured.domain", overview.getDomains().get(0).getDomainId());
+                assertEquals("reports/domain/configured.domain/source-readiness-2026-05-03.json",
+                    overview.getDomains().get(0).getPanels().get(0).getReportPath());
+            });
     }
 
     private DomainAcceptanceServiceImpl serviceWithRepo(Path repoRoot) {

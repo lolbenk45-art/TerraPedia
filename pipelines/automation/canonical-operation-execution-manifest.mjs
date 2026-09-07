@@ -797,7 +797,8 @@ export function buildCanonicalOperationExecutionContract({
   const normalizedResultLabel = normalizeResultLabel(resultLabel);
   if (normalizedResultLabel
       && !NPC_OWNER_OPERATION_IDS.includes(operationId)
-      && !L2_POLICY_DECISION_OPERATION_IDS.has(operationId)) {
+      && !L2_POLICY_DECISION_OPERATION_IDS.has(operationId)
+      && operationId !== 'canonical-crawler-v2-scheduler-activation') {
     throw new Error('result label is supported only for an NPC owner operation');
   }
   const npcT1Acceptance = ['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
@@ -1821,7 +1822,7 @@ function buildDefinition(
       ? { [operationId]: schedulerT1AcceptanceDefinition(operationId, npcT1Acceptance, { itemMode: true }) }
       : {}),
     ...(operationId === 'canonical-crawler-v2-scheduler-activation'
-      ? { [operationId]: schedulerActivationProposalDefinition(operationId) }
+      ? { [operationId]: schedulerActivationProposalDefinition(operationId, resultLabel) }
       : {}),
     ...(operationId === 'canonical-npc-t2-cutover-verification'
       ? { [operationId]: npcT2Definition({ operationId, attemptRoot: npcT2AttemptRoot, backendApiBase }) }
@@ -2760,19 +2761,25 @@ function schedulerT1AcceptanceDefinition(operationId, isolatedAcceptance, { item
   };
 }
 
-function schedulerActivationProposalDefinition(operationId) {
+function schedulerActivationProposalDefinition(operationId, resultLabel = null) {
+  const suffix = resultLabel == null ? '' : `.${resultLabel}`;
+  const preflightPath = `reports/authorization/canonical/canonical-crawler-v2-scheduler-activation${suffix}.preflight.json`;
+  const proposalPath = `reports/authorization/canonical/canonical-crawler-v2-scheduler-activation${suffix}.proposal.json`;
   return {
     executionClass: 'formal_activation_proposal_only',
     command: [
       'node',
       CANONICAL_OPERATION_ENTRYPOINTS[operationId],
-      '--preflight=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.preflight.json',
+      `--preflight=${preflightPath}`,
       '--t1-report=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
-      '--output=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json',
+      `--output=${proposalPath}`,
     ],
-    inputPaths: [...CANONICAL_OPERATION_DATA_PATHS[operationId]],
-    outputPaths: ['reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json'],
-    reportPaths: ['reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.proposal.json'],
+    inputPaths: [
+      'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+      preflightPath,
+    ],
+    outputPaths: [proposalPath],
+    reportPaths: [proposalPath],
     progressPaths: [], databaseWrites: false, isolatedResourceWrites: false, networkAccess: false,
   };
 }

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-09-06 05:40 CST by Codex
+Last updated: 2026-09-07 21:25 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation` (scheduler handoff worktree)
 
@@ -54,14 +54,14 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   `items,npcs,projectiles,armor_sets,buffs,audio,bosses,shimmer`; global
   readback
   `sha256:34af46aacb92d171c232128712c47641cbb3882a689ae0fd18195302184445e0`.
-- Runtime boundary recorded by the prior checkpoint was MySQL
-  `127.0.0.1:13306` (Flyway V60), Redis `6380` (`PONG`), and backend `18102`;
-  the scheduler worktree's Redis DB 14 had no durable V2 cutover state while
-  existing state was in DB 3. A fresh check on 2026-09-06 found MySQL
-  `13306`, Redis `6380`, and backend `18102` all unavailable, and the canonical
-  start script stopped at its read-only MySQL TCP preflight. No Redis/backend
-  process was started, and no scheduler/API control, state reset, source
-  refresh, crawler/import, or business-table write occurred.
+- Runtime boundary is MySQL `127.0.0.1:13306` (Flyway V60), Redis `6380`
+  (`PONG`), and backend `18102`. The scheduler worktree's DB14 was aligned
+  from the matching DB3 V2 prefix without changing DB3; fresh API preflight is
+  HTTP `200` with H8 identity, zero live attempts/claims, and a healthy
+  reconciler. Phase 0 remains blocked because persisted control is
+  `enabled=true`, all eight readiness rows are stale/blocked, and no current
+  H8 qualifying L1 runs/full reconciliation exist. No scheduler control,
+  source refresh, crawler/import, or business-table write has occurred.
 - Next agent start point: perform a fresh Phase 0 readback only under the
   parent plan's separate authorization. Do not enable scheduler runtime
   automatically.
@@ -77,12 +77,51 @@ Active branch: `feat/automation-scheduler-continuation` (scheduler handoff workt
   The historical fixed catalog path was already occupied and was not
   overwritten.
 - Phase 2 offline activation-contract tests were rerun on the resumed session:
-  `108/108` passed. The live preflight portion remains pending because MySQL,
-  Redis, and backend are currently unreachable.
-- Current risks: runtime is additionally blocked by the unavailable existing
-  MySQL instance; `/var/lib/mysql` and `/var/run/mysqld` require administrator
-  ownership, and this session has no non-interactive sudo. Separate runtime
-  authorization is still required even after services recover. The
+  `108/108` passed. A fresh Phase 0 baseline is recorded at
+  `.local/tmp/automation-scheduler-baseline-scheduler-activation-20260906-retry-04.json`;
+  the authenticated collector failed closed at `preflight requires disabled
+  automation` before publication.
+- Runtime verification at 20:25 CST passed `verify-local-stack.sh --skip-front`
+  (database TCP, mapper XML, backend compile, and admin typecheck). No new
+  API or data mutation was performed.
+- On 2026-09-07 the canonical startup command was re-run and stopped at the
+  MySQL TCP preflight because `127.0.0.1:13306` refused the connection;
+  Redis `6380` and backend `18102` are also currently down. No runtime
+  mutation occurred. An administrator must start the existing MySQL instance
+  before the stack and fresh Phase 0 readback can continue.
+- MySQL was subsequently restored by the operator. The stack is now healthy
+  with the backend bound to the primary durable V2 marker root and scheduling
+  disabled. The authorized control PUT is read back as
+  `enabled=false/mode=changed-only/interval=1`.
+- Governed readiness refresh wrote 32 fresh reports for the eight target
+  domains; fresh preflight is `8/8 eligible`, H8 remains unchanged, live work
+  is zero, and the reconciler is healthy. Phase 3 proposal/request/manifest
+  artifacts are generated under retry-01; the request remains
+  `AWAITING_OWNER`. No scheduler enable, Owner packet/decision, sweep,
+  source probe, crawler/import, or business-table write occurred.
+- The backend evidence-root repair is now implemented in
+  `DomainAcceptanceServiceImpl`: Spring runtime consumes the configured
+  `terrapedia.crawler.queue-v2.repo-root` before Maven CWD discovery, while
+  explicit test overrides remain highest priority. The RED-GREEN regression
+  and related controller/preflight tests pass `29/29`.
+- After backend restart, monitor readback reports `repoRoot=/home/lolben/TerraPedia`.
+  A governed primary-root refresh regenerated 32/32 target panels at
+  `2026-09-07T13:21:24.667Z` (`pass=32`, `warning=0`, `blocked=0`). Retry-03
+  preflight is self-consistent with H8, 8/8 eligible, zero live work, and all
+  no-write flags. Preflight hash:
+  `sha256:6834da54d50b64296b13eeb56713f8c0c08d13b334d809fba82b07973b480305`.
+- Retry-03 proposal/request are self-hash-consistent and remain
+  `proposalOnly=true`, `enabled=false`, `AWAITING_OWNER`; request hash is
+  `sha256:57e3fa5e1d3914a8e76e4eed1e56d140728bf4ba86060b0e7f0dc18708571f99`.
+  The scheduler execution-manifest CLI now accepts a retry label only for this
+  proposal operation and binds retry-03 preflight/proposal paths exactly;
+  retry-03 manifest is therefore structurally consumable after separate Owner
+  authorization. Retry-01/02 remain retained historical artifacts and are not
+  consumable.
+- Current risks: MySQL and the local stack are currently reachable, but the
+  existing system MySQL still requires administrator ownership to recover after
+  a stop. Separate runtime authorization is still required even with healthy
+  services. The
   reviewer-requested content-only
   post-apply and committed/DRY_RUN acknowledgement permutations remain a
   residual coverage consideration beyond the new pre-publication content-drift
