@@ -10,6 +10,79 @@ import * as operationModule from './run-supplementary-domain-l1-operation.mjs';
 
 const { executeSupplementaryL1Operation } = operationModule;
 
+for (const executionMode of ['MANUAL_OWNER_L1', 'ACTIVATION_GATED_AUTO']) {
+  test(`Shimmer ${executionMode} rejects undeclared importer writes before starting a transaction`, async () => {
+    const frozen = executionMode === 'ACTIVATION_GATED_AUTO' ? automaticBundle('shimmer') : bundle('shimmer');
+    const calls = [];
+    const adapter = Object.fromEntries([
+      'begin', 'lockCurrentContext', 'persistRunChain', 'applyFrozenImport',
+      'advanceMutationGenerations', 'persistCommittedApply', 'commit', 'rollback',
+    ].map((method) => [method, async () => { calls.push(method); }]));
+    const context = {
+      ...authorization(frozen.operationId),
+      executionMode,
+      ...(executionMode === 'ACTIVATION_GATED_AUTO' ? {
+        activationPolicySetHash: HASH('b'),
+        activationDecisionIdentity: 'activation-1',
+        activationPacketHash: HASH('e'),
+      } : {}),
+    };
+
+    await assert.rejects(executeSupplementaryL1Operation({
+      adapter,
+      bundle: frozen,
+      authorizationContext: context,
+      now: '2026-08-14T06:02:00.000Z',
+    }), /Shimmer importer write scope.*local\.world_contexts.*local\.entity_source_snapshots/);
+    assert.deepEqual(calls, []);
+  });
+}
+
+test('frozen Shimmer apply rejects incomplete write scope before database access', async () => {
+  const fixture = writeFrozenSource({});
+  const calls = [];
+  const connection = {
+    query: async (...args) => { calls.push(args); return [[]]; },
+    execute: async (...args) => { calls.push(args); return [[]]; },
+  };
+
+  await assert.rejects(operationModule.applyFrozenDomainImport({
+    connection,
+    repoRoot: fixture.root,
+    bundle: { ...bundle('shimmer'), source: fixture.source },
+  }), /Shimmer importer write scope.*local\.world_contexts.*local\.entity_source_snapshots/);
+  assert.deepEqual(calls, []);
+});
+
+test('Shimmer rejects a six-table whole-owner scope without cross-owner partition contract', async () => {
+  const fixture = writeFrozenSource({});
+  const calls = [];
+  const connection = { query: async (...args) => { calls.push(args); return [[]]; }, execute: async (...args) => { calls.push(args); return [[]]; } };
+  const tables = ['world_contexts', 'entity_source_snapshots', 'shimmer_item_transforms', 'shimmer_decraft_rules', 'shimmer_entity_transforms', 'shimmer_npc_transforms'];
+  await assert.rejects(operationModule.applyFrozenDomainImport({
+    connection,
+    repoRoot: fixture.root,
+    bundle: { ...bundle('shimmer'), source: fixture.source, ownedTables: tables.map((table) => ({ databaseRole: 'local', table, fieldGroup: 'all_columns' })) },
+  }), /cross-owner partition contract/);
+  assert.deepEqual(calls, []);
+});
+
+test('Shimmer cannot authorize auxiliary owner writes with a caller-supplied mode string', async () => {
+  const fixture = writeFrozenSource({});
+  let queries = 0;
+  const tables = ['world_contexts', 'entity_source_snapshots', 'shimmer_item_transforms', 'shimmer_decraft_rules', 'shimmer_entity_transforms', 'shimmer_npc_transforms'];
+  await assert.rejects(operationModule.applyFrozenDomainImport({
+    connection: { query: async () => { queries += 1; return [[]]; } },
+    repoRoot: fixture.root,
+    bundle: {
+      ...bundle('shimmer'), source: fixture.source,
+      ownedTables: tables.map((table) => ({ databaseRole: 'local', table, fieldGroup: 'all_columns' })),
+      importPlan: { canonicalOwnershipRepairContract: { mode: 'partitioned-cross-owner-reconciliation-required' } },
+    },
+  }), /cross-owner.*executor|cross-owner partition contract/);
+  assert.equal(queries, 0);
+});
+
 test('uses string dates so frozen shimmer previews are deterministic at apply time', () => {
   assert.equal(operationModule.connectionOptions({
     TERRAPEDIA_DB_HOST: '127.0.0.1',

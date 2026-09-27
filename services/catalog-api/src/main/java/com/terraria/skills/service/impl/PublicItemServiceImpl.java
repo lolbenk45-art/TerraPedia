@@ -95,7 +95,9 @@ public class PublicItemServiceImpl implements PublicItemService {
             source_page AS sourcePage,
             source_revision_timestamp AS sourceRevisionTimestamp
         FROM `terria_v1_relation`.`projection_item_armor_attributes`
-        WHERE item_id = ?
+        WHERE status = 1
+            AND deleted = 0
+            AND item_id = ?
         ORDER BY slot_group ASC, id ASC
         """;
 
@@ -120,7 +122,9 @@ public class PublicItemServiceImpl implements PublicItemService {
             raw_text AS rawText,
             parse_status AS parseStatus
         FROM `terria_v1_relation`.`projection_equipment_effect_attributes`
-        WHERE owner_kind = 'item'
+        WHERE status = 1
+            AND deleted = 0
+            AND owner_kind = 'item'
             AND owner_id = ?
         ORDER BY effect_index ASC, id ASC
         """;

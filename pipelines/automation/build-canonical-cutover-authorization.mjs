@@ -31,6 +31,7 @@ import {
   buildItemImageProjectionInputContract,
   canonicalItemImageProjectionHash,
 } from '../relation/item-image-projection-contract.mjs';
+const ARMOR_CANONICAL_OPERATION_ID = 'canonical-armor-ingestion';
 const ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID =
   'canonical-item-image-projection-missing-row-insert';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
@@ -288,8 +289,24 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
   let dataEntries;
   if (operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) {
     dataEntries = readHistoricalDispositionDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-armor-set-projection-incremental'
+      || operationId === 'canonical-armor-secondary-projection'
+      || operationId === 'canonical-armor-image-cache') {
+    if (verifiedExecutionManifest == null) throw new Error('Armor projection execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map(inputPath => readConfinedEntry(root, inputPath, {
+      label: 'Armor projection proposal', privateFile: true,
+    }));
+  } else if (operationId === 'canonical-armor-semantic-repair') {
+    if (verifiedExecutionManifest == null) throw new Error('Armor semantic repair execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Armor semantic repair proposal', privateFile: true,
+    }));
+  } else if (operationId === ARMOR_CANONICAL_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor canonical ingestion execution manifest is required');
+    dataEntries = readArmorCanonicalIntentDataEntries(root, verifiedExecutionManifest);
   } else if (operationId.startsWith('automation-')
-      && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) {
+      && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration')
+        || operationId.endsWith('-l2-reauthorization'))) {
     dataEntries = readL2AuthorizationDataEntries(root, operationId, verifiedExecutionManifest);
   } else if (operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
     if (verifiedExecutionManifest == null) {
@@ -515,7 +532,13 @@ function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest
   });
   const input = parseJsonBytes(inputEntry.bytes, `${operationId} input`);
   const entries = [inputEntry];
-  if (operationId.endsWith('-l2-promotion')) {
+  if (operationId.endsWith('-l2-reauthorization')) {
+    entries.push(readProjectionBoundEntry(repoRoot, input.proposalPath, input.proposalSha256, {
+      label: `${operationId} proposal`,
+      privateFile: true,
+    }));
+    assertReauthorizationProposalBinding(input, entries.at(-1), operationId);
+  } else if (operationId.endsWith('-l2-promotion')) {
     entries.push(readProjectionBoundEntry(repoRoot, input.proposalPath, input.proposalSha256, {
       label: `${operationId} proposal`,
       privateFile: true,
@@ -562,6 +585,24 @@ function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest
     seen.add(entry.path);
   }
   return entries;
+}
+
+function assertReauthorizationProposalBinding(input, proposalEntry, operationId) {
+  const expectedPrefix = `reports/authorization/canonical/${operationId}/`;
+  const proposalPath = requireNormalizedPath(input.proposalPath, `${operationId} proposal path`);
+  if (!proposalPath.startsWith(expectedPrefix)
+      || !/^[a-f0-9]{64}\/proposal\.json$/.test(proposalPath.slice(expectedPrefix.length))) {
+    throw new Error(`${operationId} proposal path must be content-addressed`);
+  }
+  const proposal = parseJsonBytes(proposalEntry.bytes, `${operationId} proposal`);
+  if (proposal?.operationId !== operationId || proposal?.proposalOnly !== true
+      || proposal?.proposalHash !== input.proposalHash) {
+    throw new Error(`${operationId} proposal identity does not match the input`);
+  }
+  if (proposalPath.slice(expectedPrefix.length, expectedPrefix.length + 64)
+      !== String(input.proposalHash ?? '').slice(7)) {
+    throw new Error(`${operationId} proposal path does not match proposalHash`);
+  }
 }
 
 function resolveL2AuthorizationInputPath(operationId, executionManifest) {
@@ -874,7 +915,7 @@ export function deriveCanonicalTechnicalIdentity(input) {
     executionManifest: input.executionManifest,
     serverFingerprint: input.serverFingerprint,
   });
-  return {
+  const technical = {
     operationId,
     targetDatabases,
     serverFingerprint: input.serverFingerprint == null
@@ -903,6 +944,16 @@ export function deriveCanonicalTechnicalIdentity(input) {
       : requireExecutionManifest(input.executionManifest),
     requiredTechnicalFields,
   };
+  if (operationId === ARMOR_CANONICAL_OPERATION_ID && input.executionManifest?.armorCanonicalIntent) {
+    const binding = input.executionManifest.armorCanonicalIntent;
+    if (technical.serverFingerprint !== binding.serverFingerprint) {
+      throw new Error('Armor canonical operation server fingerprint drifted from the execution manifest binding');
+    }
+    if (technical.policySetHash !== binding.policySetHash) {
+      throw new Error('Armor canonical operation policy set drifted from the execution manifest binding');
+    }
+  }
+  return technical;
 }
 
 function deriveTechnicalIdentity(input) {
@@ -1366,6 +1417,48 @@ function readSchedulerActivationPolicyDataEntries(repoRoot, operationId, executi
     label: 'scheduler activation policy input',
     privateFile: true,
   })];
+}
+
+function readArmorCanonicalIntentDataEntries(repoRoot, executionManifest) {
+  const binding = executionManifest?.armorCanonicalIntent;
+  const intentPath = requireNormalizedPath(binding?.intentPath, 'Armor canonical intent path');
+  if (!Array.isArray(executionManifest?.inputPaths)
+      || executionManifest.inputPaths.length !== 1
+      || executionManifest.inputPaths[0] !== intentPath
+      || executionManifest.resultLabel == null
+      || intentPath !== `reports/authorization/canonical/${ARMOR_CANONICAL_OPERATION_ID}.${executionManifest.resultLabel}.intent.json`) {
+    throw new Error('Armor canonical intent execution manifest path drifted');
+  }
+  if (binding.schemaVersion !== 'armor-canonical-operation-binding/v1'
+      || binding.operationId !== ARMOR_CANONICAL_OPERATION_ID
+      || !HASH_PATTERN.test(binding.intentFileSha256 ?? '')
+      || !HASH_PATTERN.test(binding.fullChainSha256 ?? '')
+      || !HASH_PATTERN.test(binding.serverFingerprint ?? '')
+      || !HASH_PATTERN.test(binding.policySetHash ?? '')
+      || typeof binding.runId !== 'string' || !binding.runId.trim()
+      || typeof binding.fenceToken !== 'string' || !binding.fenceToken.trim()
+      || !binding.fenceCommit || !Number.isSafeInteger(binding.fenceCommit.generation)
+      || binding.fenceCommit.generation < 1 || typeof binding.fenceCommit.marker !== 'string'
+      || !binding.fenceCommit.marker.trim()) {
+    throw new Error('Armor canonical intent operation binding is incomplete');
+  }
+  const entry = readConfinedEntry(repoRoot, intentPath, {
+    label: 'Armor canonical full-chain intent', privateFile: true,
+  });
+  const actual = `sha256:${createHash('sha256').update(entry.bytes).digest('hex')}`;
+  if (actual !== binding.intentFileSha256) throw new Error('Armor canonical full-chain intent bytes drifted');
+  let intent;
+  try { intent = JSON.parse(entry.bytes.toString('utf8')); }
+  catch { throw new Error('Armor canonical full-chain intent must be valid JSON'); }
+  if (intent.schemaVersion !== 'armor-canonical-full-chain-intent/v1'
+      || intent.operationId !== ARMOR_CANONICAL_OPERATION_ID
+      || intent.executable !== false
+      || intent.executionBlocker !== 'registered-full-chain-executor-required'
+      || !HASH_PATTERN.test(intent.fullChainSha256 ?? '')) {
+    throw new Error('Armor canonical full-chain intent identity is invalid');
+  }
+  if (intent.fullChainSha256 !== binding.fullChainSha256) throw new Error('Armor canonical full-chain hash drifted from binding');
+  return [entry];
 }
 
 function readNpcCrawlerEntries(repoRoot) {

@@ -1660,7 +1660,7 @@ function createRunnerFixture(domain) {
     bundlePath: null,
     previewBundle,
     now,
-    runPreviewImpl: async ({ argv = [] } = {}) => {
+    runPreviewImpl: async ({ argv = [], env = {} } = {}) => {
       const runIdArg = argv.find((arg) => arg.startsWith('--run-id='));
       assert.ok(runIdArg, 'automatic runner must provide a preview run id');
       const previewRunId = runIdArg.slice('--run-id='.length);
@@ -1668,6 +1668,17 @@ function createRunnerFixture(domain) {
       assert.ok(artifactArg, 'automatic runner must provide an artifact root');
       const artifactRoot = path.resolve(repoRoot, artifactArg.slice('--artifact-root='.length));
       fs.mkdirSync(artifactRoot, { recursive: true, mode: 0o700 });
+      const progressArg = argv.find((arg) => arg.startsWith('--progress-path='));
+      if (progressArg) {
+        const progressPath = progressArg.slice('--progress-path='.length);
+        fs.mkdirSync(path.dirname(progressPath), { recursive: true });
+        fs.writeFileSync(progressPath, JSON.stringify({
+          status: 'completed', generatedAt: now,
+          stateStoreEpoch: env.TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH,
+          queueId: env.TERRAPEDIA_CRAWLER_QUEUE_ID,
+          attemptId: env.TERRAPEDIA_CRAWLER_ATTEMPT_ID,
+        }), { mode: 0o600 });
+      }
       const bundlePath = path.join(artifactRoot, 'bundle.json');
       const sourcePath = path.join(artifactRoot, 'source.json');
       const sourceBytes = Buffer.from('{"records":[]}\n', 'utf8');
@@ -1841,6 +1852,11 @@ function hashBytes(bytes) {
 
 function databaseEnv(repoRoot) {
   return {
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-1',
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_FENCE_TOKEN: '1',
+    TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION: '1',
     WORKTREE_ROOT: repoRoot,
     TERRAPEDIA_DB_HOST: '127.0.0.1',
     TERRAPEDIA_DB_PORT: '13306',
@@ -1848,4 +1864,107 @@ function databaseEnv(repoRoot) {
     TERRAPEDIA_DB_PASSWORD: 'root',
     TERRAPEDIA_DB_NAME: 'terria_v1_local',
   };
+}
+
+function schedulerSupplementaryEnv(fixture, attemptId = 'attempt-1') {
+  return {
+    ...databaseEnv(fixture.repoRoot),
+    TERRAPEDIA_CRAWLER_REQUESTED_BY: 'v2-automation',
+    TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT: HASH('f'),
+    TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY: fixture.now,
+    TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY: fixture.sourceContentIdentity,
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: attemptId,
+  };
+}
+
+test('supplementary scheduler retries isolate retained failed artifacts and preserve logical run dedupe', async (t) => {
+  const fixture = createRunnerFixture('bosses');
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  const bundles = [];
+  const run = (attemptId) => runSupplementaryDomainAutomaticOperation({
+    argv: ['--domain=bosses'], env: schedulerSupplementaryEnv(fixture, attemptId), now: fixture.now,
+    mysqlModule: fixture.mysqlModule([[]]), runPreviewImpl: fixture.runPreviewImpl,
+    executeOperationImpl: async ({ bundle }) => { bundles.push(bundle); throw new Error('retained preapply failure'); },
+  });
+  await assert.rejects(run('attempt-1'), /retained preapply failure/);
+  const original = fs.readFileSync(path.join(fixture.repoRoot, bundles[0].source.path));
+  await assert.rejects(run('attempt-2'), /retained preapply failure/);
+  assert.equal(bundles[0].runId, bundles[1].runId);
+  assert.notEqual(bundles[0].source.path, bundles[1].source.path);
+  assert.notEqual(bundles[0].reconciliationInput.outputPath, bundles[1].reconciliationInput.outputPath);
+  assert.equal(bundles[1].importPlan.automaticAttemptIdentity.attemptId, 'attempt-2');
+  const snapshotPath = path.join(fixture.repoRoot, path.dirname(bundles[1].reconciliationInput.outputPath), 'source-progress.json');
+  assert.equal(JSON.parse(fs.readFileSync(snapshotPath)).attemptId, 'attempt-2');
+  assert.deepEqual(fs.readFileSync(path.join(fixture.repoRoot, bundles[0].source.path)), original);
+  await assert.rejects(run('attempt-2'), /already exists|overwrite|EEXIST/);
+});
+
+for (const corruption of [null, 'hash', 'source-triple', 'sibling-progress', 'progress-drift-before-ack']) {
+  test(`supplementary scheduler committed retry ${corruption ? `rejects ${corruption}` : 'acknowledges using verified original immutable evidence'}`, async (t) => {
+    const fixture = createRunnerFixture('bosses');
+    t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+    let originalBundle;
+    const first = await runSupplementaryDomainAutomaticOperation({
+      argv: ['--domain=bosses'], env: schedulerSupplementaryEnv(fixture), now: fixture.now,
+      mysqlModule: fixture.mysqlModule([[]]), runPreviewImpl: fixture.runPreviewImpl,
+      executeOperationImpl: async ({ bundle }) => { originalBundle = bundle; return { status: 'completed' }; },
+      acknowledgeSourceImpl: () => {},
+    });
+    const originalBytes = fs.readFileSync(first.operationBundlePath);
+    const manifest = {
+      automaticSourceFingerprint: HASH('f'), sourceDispatchIdentity: originalBundle.sourceDispatchIdentity,
+      privatePath: first.operationBundlePath, bundleFileHash: hashBytes(originalBytes), source: originalBundle.source,
+    };
+    if (corruption === 'hash') manifest.bundleFileHash = HASH('0');
+    if (corruption === 'source-triple') manifest.sourceDispatchIdentity = { ...manifest.sourceDispatchIdentity, sourceContentIdentity: HASH('0') };
+    let acknowledgements = 0;
+    let retryProgressPath;
+    const replaceProgressWithSibling = () => {
+      const progress = JSON.parse(fs.readFileSync(retryProgressPath));
+      fs.writeFileSync(retryProgressPath, JSON.stringify({ ...progress, attemptId: 'sibling-attempt' }));
+    };
+    const retryPromise = runSupplementaryDomainAutomaticOperation({
+      argv: ['--domain=bosses'], env: schedulerSupplementaryEnv(fixture, 'attempt-2'), now: fixture.now,
+      mysqlModule: fixture.mysqlModule([[{ domainId: 'bosses', manifestJson: manifest }]]),
+      runPreviewImpl: async (input) => {
+        const preview = await fixture.runPreviewImpl(input);
+        retryProgressPath = input.argv.find((arg) => arg.startsWith('--progress-path=')).slice('--progress-path='.length);
+        if (corruption === 'sibling-progress') replaceProgressWithSibling();
+        return preview;
+      },
+      nowProvider: () => {
+        if (corruption === 'progress-drift-before-ack') replaceProgressWithSibling();
+        return fixture.now;
+      },
+      executeOperationImpl: async () => { assert.fail('committed retry must not import'); },
+      acknowledgeSourceImpl: ({ outputPath }) => {
+        assert.equal(outputPath, first.operationBundlePath);
+        acknowledgements += 1;
+      },
+    });
+    if (corruption) {
+      await assert.rejects(retryPromise, /bundle hash mismatch|source dispatch identity|source progress.*attempt identity/);
+      assert.equal(acknowledgements, 0);
+    } else {
+      const retry = await retryPromise;
+      assert.equal(retry.reconciledCommittedRun, true);
+      assert.equal(retry.operationBundlePath, first.operationBundlePath);
+      assert.equal(acknowledgements, 1);
+    }
+    assert.deepEqual(fs.readFileSync(first.operationBundlePath), originalBytes);
+  });
+}
+
+for (const value of [undefined, '', '../attempt']) {
+  test(`supplementary scheduler rejects incomplete or malformed tuple before preview: ${String(value)}`, async (t) => {
+    const fixture = createRunnerFixture('bosses');
+    t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+    let previews = 0;
+    await assert.rejects(runSupplementaryDomainAutomaticOperation({
+      argv: ['--domain=bosses'], env: { ...schedulerSupplementaryEnv(fixture), TERRAPEDIA_CRAWLER_QUEUE_ID: value },
+      now: fixture.now, mysqlModule: fixture.mysqlModule([[]]),
+      runPreviewImpl: async () => { previews += 1; throw new Error('preview must not start'); },
+    }), /automatic attempt identity|queueId/);
+    assert.equal(previews, 0);
+  });
 }

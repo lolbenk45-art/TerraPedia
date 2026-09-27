@@ -17,7 +17,8 @@ public interface CrawlerAutomationActivationDecisionMapper {
                decision_identity AS decisionIdentity, packet_hash AS packetHash,
                authorized_at AS authorizedAt, expires_at AS expiresAt,
                (authorized_at <= CURRENT_TIMESTAMP
-                 AND expires_at > CURRENT_TIMESTAMP) AS fresh
+                 AND expires_at > CURRENT_TIMESTAMP) AS fresh,
+               authorized_action_id AS authorizedActionId
         FROM crawler_automation_activation_decision
         WHERE decision_kind = #{decisionKind} AND domain_id = #{domainId}
         ORDER BY authorized_at DESC, id DESC
@@ -35,12 +36,7 @@ public interface CrawlerAutomationActivationDecisionMapper {
           ON rp.run_id = a.run_id AND rp.policy_set_hash = a.policy_set_hash
         JOIN crawler_automation_apply_bundle b
           ON b.run_id = a.run_id AND b.bundle_hash = a.bundle_hash
-        JOIN crawler_automation_policy_version pv
-          ON pv.domain_id = rp.domain_id
-         AND pv.policy_version = rp.policy_version
-         AND pv.policy_hash = rp.policy_hash
         WHERE rp.domain_id = #{domainId}
-          AND pv.level = 'L1'
           AND rp.policy_version < #{currentPolicyVersion}
           AND a.status = 'COMMITTED'
         """)

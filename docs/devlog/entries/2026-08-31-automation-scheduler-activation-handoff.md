@@ -19,6 +19,18 @@
 
 ## Task Contract
 
+Current continuation2026-09-26: governed A6 secondary projection repair
+`armor-secondary-a6-20260926-01` consumed one packet/permit and committed514
+inserts (224 attributes,290 effects), exact DB/public/admin readback passed.
+Source snapshot unchanged; scheduler remains disabled, attempts/claims0/0,
+healthy reconciler and unchanged H8/epoch. Private artifact prefix:
+`reports/authorization/canonical/canonical-armor-secondary-projection.a6-20260926-01`.
+New upstream slot/class semantic defects block full-chain acceptance; plan A6.3
+requires a new source/maint/relation repair amendment. Active detail is
+`2026-09-26-armor-secondary-projection-continuation.md`; no repeat two-table
+authorization or batch replay. No source probe/crawler, Redis, local item or
+schema write occurred in this slice.
+
 - User goal: preserve the completed serial L2 chain and prepare the next
   scheduler-specific continuation without hash drift or cross-branch ambiguity.
 - Success criteria: a fresh scheduler preflight and, only after a distinct
@@ -37,6 +49,90 @@
 - Plan/spec: `docs/superpowers/plans/2026-08-26-eight-domain-l2-readiness-and-promotion.md`.
 
 ## Progress
+
+### 2026-09-26 14:20 CST continuation
+
+- Same worktree/branch/HEAD; current Armor child records the image revision
+  producer/progress repair and fresh validation: focused21/21, related Node
+  1725 passed/0 failed/1 existing skip, monitor backend328/328 and UI58/58.
+- Fresh read-only preflight/MySQL/API checks retain disabled control and
+  unchanged H8/epoch/server. Existing175 image revisions and two empty secondary
+  projections still block acceptance; Ninja member effect arrays remain empty.
+  Request only the A6 proposed secondary projection amendment before expanded
+  ownership work. No live fetch/import, business write, packet/permit
+  consumption, scheduler window or Git mutation occurred.
+
+### Current continuation pointer: 2026-09-22
+
+- Current owner remains Codex. Active child is
+  `2026-09-22-automation-ingestion-plan-repair.md`; it supersedes historical
+  next-action/service-down statements below. Standing register still applies.
+- Plan repaired to distinguish mechanism/no-op, real API-visible changes and
+  sustained operation. Public armor/Buff lineage and Shimmer actual write scope
+  cannot be claimed complete from local-table reports. Shimmer fail-closed
+  containment has independent spec/quality approval and full 1004/1004 tests.
+- Canonical dual-root restart passed, scheduling=true. Fresh L2 retry-24
+  decisions 66–73 were serialized and read back at unchanged H8.
+- Fresh projectiles scheduler Retry-41/decision74 produced one natural attempt
+  `attempt-a6263cae-23cf-4895-9f89-031723f0db35`. Control was restored false.
+  Child failed before apply on a retained content-derived artifact directory;
+  preserve Retry-39 and Retry-41 evidence. No manual sweep or direct DB/Redis
+  mutation. Identity repair and terminal readback are tracked in the child.
+- Retry-42 then consumed decision `75` and naturally dispatched only projectiles
+  attempt `attempt-05bc9dc1-ec64-4b5b-aef2-d1b8fb7d068c`. It completed with
+  automatic gate passed but zero row mutations (`1111` skipped), so it is
+  mechanism/no-op evidence only. Control is disabled, DB/API/Redis terminal
+  readback is healthy, and the retained Retry-39 artifact baseline is unchanged.
+  Do not reuse decision75 or release its persisted projectiles fence.
+
+### Current continuation pointer: 2026-09-25
+
+- The prior `STATE_STORE_RESET` was diagnosed as a runtime root binding error:
+  the JVM used the continuation worktree for the durable V2 marker while the
+  marker is owned by the primary repository root. The canonical stack was
+  restarted with scheduling disabled, primary repo-root
+  `/home/lolben/TerraPedia`, and continuation command-root
+  `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`.
+  Authenticated overview/preflight now return HTTP 200 with control disabled,
+  zero live attempts/claims, healthy reconciler, and unchanged H8/epoch; no
+  reset, Redis write, scheduler write, source probe, crawler/import, or
+  business-table DML occurred.
+- Current-model self-review repaired the Armor typed-intent database-role and
+  reference seam. The pure A2.2 contract now binds projection rows to the
+  schema-owned relation database, rejects unsupported/duplicate references,
+  requires the exact relation-parent ID reference, and verifies candidate and
+  generated declaration identities. Focused Armor tests are 235/235.
+- Next safe action is A3/A4 full-chain implementation: immutable
+  source-evidence landing partitions, generated-ID materialization/recovery
+  journal, and a registered bounded transaction executor. Pure candidates and
+  no-op projection evidence do not authorize a packet or close data-visible
+  acceptance.
+
+### Retry-39 projectiles failure, root-cause repair, and runtime stop: 2026-09-20 to 2026-09-21
+
+- A fresh action-bound scheduler decision (`id=65`) admitted exactly one
+  natural `wiki-projectiles-refresh` attempt,
+  `attempt-5edc8956-1a2f-4a01-bbef-fc4652b9e3ee`. Scheduler control was
+  restored to `enabled=false` immediately after the natural sweep.
+- The attempt fetched/staged the projectile module but failed before import
+  with `Unknown column 'source_id' in 'field list'`. It did not mutate a
+  business table: projectiles still has `1111` rows and its maximum
+  `updated_at` remains `2026-08-17 08:21:29`.
+- Root cause: the shared independent importer queried unused
+  `items.source_id`, but the canonical `terria_v1_local.items` schema has no
+  such column. The minimal RED-GREEN repair exports `loadItemsLookup()` for
+  direct testing and changes its query to `id, internal_name, name`; focused
+  importer validation is `9/9` passing. See Git for code-level diff details.
+- Retry-39, packet `sha256:7fe1e04ea85cebca2303d92ee1f6ade56ce203d6ca8dc0a94dc881b824452bf2`,
+  and decision identity
+  `automation-crawler-v2-scheduler-activation-20260920-standing-projectiles-16`
+  are terminal historical evidence and cannot be reused.
+- Current runtime blocker: MySQL `127.0.0.1:13306` is stopped, which prevents
+  canonical stack startup and leaves Redis/backend unavailable. The start
+  script correctly stopped at the read-only TCP preflight. Next safe action:
+  user starts the existing system MySQL instance, then Codex runs the canonical
+  stack startup with scheduling disabled, fresh source/readiness/preflight,
+  and a new Retry-40-or-later projectiles authorization chain.
 
 ### Execution plan recorded: 2026-08-31 08:22 CST
 
@@ -333,6 +429,106 @@
   the verified readback, so activation remains unauthorized.
 
 ## Validation
+
+### Retry-17 natural-tick terminal readback: 2026-09-19 13:50 CST
+
+- Fresh scheduler retry-17 was authorized only for
+  `wiki-items-refresh/items`: preflight hash
+  `sha256:52be1a54ea9849455939724daa82a0a10f2c4948379060526e7a2bdd764c0aed`,
+  packet hash
+  `sha256:31b9aa33900533665c248dafb275368efcfacff007a6c40af8395b8062db4be2`,
+  and authoritative MySQL decision `id=42`. H8 was unchanged.
+- The one-minute scheduler window reached a natural V2 tick at
+  `2026-09-19T05:41:56.683152201Z`, which detected the eight source panels,
+  dispatched `0`, excluded every non-canary action, and skipped items as
+  `automatic_queue_metadata_untrusted`. The control rollback read back
+  `enabled=false`, `mode=changed-only`, `sweepIntervalMinutes=60`, and
+  `canaryActionId=wiki-items-refresh` at `2026-09-19T05:44:48.569744697Z`.
+  No crawler/import writer, Redis queue mutation, or business-data write
+  occurred.
+- The terminal reason comes from V2 history ownership validation: an items
+  attempt with unavailable or non-scheduler queue metadata is intentionally
+  fail-closed. Read-only Redis DB14 inventory found `221` V2 attempts, with
+  `32` items attempts all missing `queueOrigin`, `queueRequestedBy`, and source
+  identity; zero items attempts are scheduler-owned. The newest is failed
+  `attempt-58a1abe9-8def-4d04-aad1-e96d54169462` requested at
+  `2026-08-26T09:25:32.549402927Z`. Direct Redis reset/cleanup and another
+  scheduler window are prohibited until a governed remediation is reviewed.
+- A completed independent canary-scope review also found two P1 offline code
+  contract defects: capture does not bind `authorizedActionId` to the canary,
+  and the MyBatis activation-decision select order can hydrate the record
+  incorrectly. These findings are not accepted as closed; they require a
+  focused TDD repair and fresh review before code checkpoint/closeout.
+- Re-read disposition for the mapper P1 (2026-09-19 13:55 CST): not
+  reproducible against the current shared worktree. The mapper's fifteen
+  selected values are ordered exactly as `ActivationDecisionRecord` declares
+  them, with `authorized_action_id AS authorizedActionId` after `fresh`; the
+  source contract test asserts that order and passed `2/2` via
+  `mvn -Dtest=CrawlerAutomationActivationDecisionMapperSqlContractTest test`.
+  The reviewer evidently observed a superseded in-progress hunk. No Java
+  change is warranted; the Node cross-boundary binding finding remains active.
+- Repair coordination: Codex is the sole coordinator and only editor of this
+  entry and `docs/devlog/current.md`. First, a serialized Node repair owns
+  only `capture-crawler-v2-scheduler-activation-input.mjs`,
+  `run-automation-policy-decision.mjs`, and their matching tests; it must add
+  RED cases for absent/mismatched `authorizedActionId`, make no runtime call,
+  and return focused test evidence. After separate specification and
+  code-quality review, a fresh Java repair may own only the activation-decision
+  mapper plus its mapper contract test. No worker may touch scheduler control,
+  MySQL/Redis runtime state, generated reports, plans, devlog files, staging,
+  commits, or any shared service lifecycle.
+- Node repair result: the scoped implementer added RED-GREEN coverage for a
+  missing/mismatched `request.requested.canaryActionId`, then made capture
+  require it, compare it to the normalized request canary action, and freeze
+  it as `authorizedActionId`. RED was one expected assertion failure (`6/7`
+  passing); GREEN is the capture plus policy-decision suites `69/69`, with
+  scoped `git diff --check` clean. Specification review is now pending; no
+  runtime operation occurred.
+- Node specification review returned `CHANGES_REQUIRED`: the new capture path
+  validates only the format of `requestHash`, not the canonical request
+  envelope/body/status, and its tests omit the CLI boundary that must reject an
+  invalid request before opening MySQL. The original Node implementer is the
+  sole resolver for those two defects; no code-quality review may start until
+  a fresh specification review approves the correction.
+- The repair added a canonical `AWAITING_OWNER` envelope self-hash/time-range
+  check before `createConnection`, a RED regression proving a forged request
+  cannot open MySQL, and a CLI success regression proving the private request
+  path/file-SHA/request-SHA is frozen. Focused capture plus policy-decision
+  validation is `71/71`; the fresh specification re-review approved with
+  capture `9/9`. Code-quality review is pending; no runtime operation
+  occurred.
+- Coordinator quality gate (2026-09-19 14:48 CST): full
+  `node --test pipelines/automation/*.test.mjs` passed `994/994`; focused
+  mapper contract `mvn -Dtest=CrawlerAutomationActivationDecisionMapperSqlContractTest test`
+  passed `2/2`; `git diff --check` passed. Read-only runtime state remains
+  server UUID `b4ae6728-4f72-11f1-bcc9-00155d37eadf`, decision `id=42`
+  present, active run attempts `0`, scheduler `enabled=false`, and last sweep
+  retry-17 with `dispatched=0`. The serialized independent quality-review
+  slot was unavailable after spec approval, so these are coordinator quality
+  checks rather than an independent reviewer approval; no commit or runtime
+  mutation is claimed.
+- Authorization interpretation clarification (2026-09-19): the retry-17 stop
+  is a runtime `blocked` state, not a request for another user confirmation.
+  AUTH-05 was authorized and consumed; AUTH-06 stopped because 32 historical
+  items attempts lack `queueOrigin`, `queueRequestedBy`, and source identity.
+  Read-only repository search found no non-destructive canonical operation
+  that repairs or reclassifies those historical Redis records. The repository
+  does expose the formal authenticated state-store reset endpoint, but that
+  creates a new empty epoch, interrupts old manifests, and quarantines
+  unconfirmed ownership; it is AUTH-09 and remains outside the standing
+  register. The next allowed action is a read-only governed repair proposal;
+  direct Redis edits, forced reset, manual sweep, and blind scheduler retry
+  remain outside the register.
+- AUTH-09 reset attempt disposition (2026-09-19 15:02 CST): the user supplied
+  the exact confirmation `RESET_CRAWLER_QUEUE_V2_EPOCH`. Read-only preflight
+  showed the durable marker and Redis state-store are healthy and identical:
+  `mode=V2`, cutover
+  `crawler-v2-20260717T175352Z`, epoch
+  `epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346`, and matching
+  `firstLiveMutationAt=2026-08-11T19:43:12.005608776Z`. The formal reset
+  service rejects this condition as `当前 V2 epoch 健康，无需 reset`, so the
+  endpoint was not called. No maintenance transition, marker write, Redis
+  write, queue reset, crawler/import, or scheduler change occurred.
 
 - Previous commit validation: targeted domain/automation tests `259/259`, full
   `node --test pipelines/automation/*.test.mjs` `635/635`, changed-module
@@ -2491,3 +2687,669 @@ See git for code-level diff details.
   the private retry-labelled manifest input. Focused combined tests passed
   `91/91`. A new clean code checkpoint is required before retry-04 artifacts
   are generated; retry-01 through retry-03 remain historical and unconsumable.
+
+### Resume reconciliation: 2026-09-12 CST
+
+- Observed from the worktree: `0f871e94` remains the active scheduler code
+  checkpoint; retry-04 private authorization artifacts and the canonical
+  `used-decisions.json` ledger show one consumed scheduler activation identity
+  `automation-crawler-v2-scheduler-activation-20260907-retry-04`. Its packet
+  expiry was `2026-09-08T14:03:40.746Z`, so it is no longer usable.
+- Recorded by the interrupted runtime-session handoff, but not independently
+  re-read after service shutdown: scheduler was briefly enabled through the
+  authenticated API, a natural tick reached the activation gate and stopped
+  with `L2_PROMOTION_DECISION_STALE`, and the control was rolled back to
+  disabled. No source probe, crawler/import, or business-table write was
+  reported; an activation-gate alert ledger write may exist.
+- Observed now: MySQL `127.0.0.1:13306`, Redis `6380`, backend `18102`, MinIO
+  `19000`, public `5188`, and admin `3015` are unreachable. The canonical
+  start script previously reaches its MySQL read-only preflight before it can
+  start the rest of the stack; the worktree must use the existing primary-root
+  private MinIO credentials file via
+  `TERRAPEDIA_MINIO_CREDENTIALS_FILE=/home/lolben/TerraPedia/.local/tmp/minio-local-credentials.json`.
+- Next safe action: restore the administrator-owned MySQL instance, start the
+  canonical local stack with Spring scheduling disabled, perform a fresh Phase
+  0 readback, then use the supported serial L2 promotion authorization path to
+  create eight new domain decisions before generating any new scheduler
+  activation packet. Do not replay retry-04, mutate a historical decision, or
+  enable the scheduler before that chain is current.
+
+### Fresh runtime baseline and L2 reauthorization gap: 2026-09-12 CST
+
+- MySQL was restored by the operator and canonical startup completed with
+  Spring scheduling disabled. The stack passed database TCP, mapper XML,
+  backend compile, and admin typecheck; MySQL `13306`, Redis `6380`, backend
+  `18102`, MinIO `19000`, public `5188`, and admin `3015` are reachable.
+- Fresh authenticated API/Redis/MySQL reads confirm H8, V2 epoch
+  `epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346`, namespace
+  `terrapedia:crawler:wiki-monitor:v2:`, queue contract `2`, zero live
+  attempts/sweep claims/active write fences, and a healthy reconciler. The
+  control remains `enabled=false`, `changed-only`, interval `60`.
+- The backend consumes its configured primary-root report directory rather
+  than scheduler-worktree reports. A first scheduler-worktree report refresh
+  was therefore not consumed and remains untracked; it was not copied or
+  moved. The same generator then refreshed the primary root's 32 target-domain
+  reports at `2026-09-12T00:29:00Z`. Its current truth is `31 pass`, `1
+  blocked`: Items image lineage is blocked outside the scheduler source gate.
+  All eight `sourceReadiness` reports pass, and authenticated preflight now
+  reports exactly `8/8 eligible` with fresh source hashes.
+- Read-only activation-decision inspection proves all eight prior
+  `L2_PROMOTION` records and retry-04 scheduler activation are expired. The
+  existing policy-decision runner accepts eight-domain L2 operations only as
+  `L1 -> L2`; it has no supported policy-stable reauthorization operation for
+  current `L2/ACTIVE` rows. Replaying promotion input would fail its current
+  level check and is forbidden.
+- A safety-critical contract gap is therefore active. The new implementation
+  plan is `docs/superpowers/plans/2026-09-12-l2-policy-stable-reauthorization.md`:
+  create explicit, append-only per-domain reauthorization operations that bind
+  current L2/H8 plus predecessor-L1/full-reconciliation evidence and perform
+  no policy update. Phase 3 scheduler authorization remains blocked until
+  this contract is implemented, tested, reviewed, checkpointed, and then
+  consumed through fresh serial authorization chains.
+
+### L2 stable reauthorization contract implementation: 2026-09-18 CST
+
+- Implemented the explicit eight-domain `automation-*-l2-reauthorization`
+  operation family. The contract binds current `L2/ACTIVE` policy identity,
+  current H8 policy-set hash, one expired prior `L2_PROMOTION` decision, and
+  predecessor L1 evidence requiring three committed runs plus full
+  reconciliation. It never declares or executes a policy transition.
+- Added fresh read-only capture and proposal builders. Capture uses
+  `START TRANSACTION READ ONLY`, emits private retry-labelled no-overwrite
+  artifacts, and the proposal is an awaiting-owner read-only artifact with a
+  content-addressed proposal identity and `policyUpdate=false`.
+- Registered all eight IDs in the canonical catalog, data-path resolver, and
+  execution manifest. Retry-labelled input/result paths are paired exactly;
+  authorization bundle resolution reads only the reauthorization input and its
+  content-addressed proposal and does not reuse the old L2 ceiling/registration
+  branch.
+- The policy decision runner now accepts the reauthorization operation family,
+  validates the private proposal before connecting, locks the latest prior
+  decision, checks current L2 ceiling/fences/evidence, inserts one immutable
+  `L2_PROMOTION` decision, and never calls `updatePolicy` for this mode.
+- Fresh validation: `node --test pipelines/automation/*.test.mjs` = `981/981`;
+  focused Java mapper and migration contracts pass; `git diff --check` passes.
+  The Java historical-evidence query intentionally no longer joins immutable
+  policy-version rows or filters `pv.level='L1'`, because committed v1
+  evidence rows are immutable `L0` rows while the bundle records carry L1.
+- Runtime continuation is blocked only by system MySQL: the canonical startup
+  command was rerun with scheduling disabled and stopped at the read-only
+  preflight because `127.0.0.1:13306` refused the connection. `sudo -n` also
+  confirms the current shell cannot start the administrator-owned instance.
+  No capture, proposal consumption, scheduler control write, source probe,
+  crawler/import, Redis mutation, or business-table write was performed.
+- After MySQL recovery, rerun the canonical command from this worktree, then
+  restart the backend if needed and begin fresh per-domain capture/proposal/
+  Owner authorization serially. Do not replay retry-04 or any expired packet.
+
+### Natural scheduler observation and fail-closed source gate: 2026-09-18 19:13-19:18 CST
+
+- Observed runtime after operator startup: MySQL `127.0.0.1:13306`, Redis
+  `6380`, backend `18102`, MinIO `19000`, public `5188`, and admin `3015` are
+  reachable. The backend process is built from this scheduler worktree but has
+  `terrapedia.crawler.queue-v2.repo-root=/home/lolben/TerraPedia`; the durable
+  V2 state and source-monitor command CWD therefore resolve under the primary
+  worktree.
+- Fresh authenticated readback before activation confirmed control
+  `enabled=false/mode=changed-only/interval=60`, H8
+  `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`,
+  eight eligible scheduler domains, zero live attempts/claims, and a healthy
+  reconciler. Read-only SQL confirmed current scheduler decision `id=39`,
+  `automation-crawler-v2-scheduler-activation-20260918-owner-08`, expires at
+  local database time `2026-09-19 18:36:37`.
+- Under that bounded decision, authenticated API control set the scheduler to
+  enabled once. No `/sweep` endpoint was called. A natural tick created the
+  fresh `automation-last-sweep.json` record at
+  `2026-09-18T11:14:38.769378219Z`, then the control was immediately restored
+  through the authenticated API to `enabled=false/mode=changed-only/interval=60`.
+  The tick result is `status=error`, `detected=[]`, `dispatched=[]`, with
+  `source_update_check_failed`; no crawler, import, Redis queue, or business
+  table write was dispatched.
+- Root cause is a code-root/state-root version mismatch, not an upstream
+  transport failure. The primary-root
+  `pipelines/monitor/check-source-updates.mjs` completed all nine requests
+  (`errorSources=0`) but is older than the backend contract and emits no
+  `summary.probeHealthy`. The current worktree producer emits that field, while
+  the backend's `sourceUpdateStateHealthy` requires it. The resulting report
+  also has eight changed source identities and one
+  `wiki.page.biomes_anchor` row with `status=missing_ingestion_manifest`; the
+  backend requires every present source row to be `ok`, so it must remain
+  fail-closed even after producer parity is restored.
+- The source probe was a consequence of the authorized natural scheduler tick;
+  it created only source-monitor state/progress and a source-probe alert
+  (`scheduler:source-probe:all`). It did not start a crawler or importer. Do
+  not repeat it, enable scheduler automation, manually sweep, or launch source
+  refresh/import without an explicit new authorization after the code-root /
+  state-root contract and the missing Biomes ingestion-manifest state are
+  resolved. See git for code-level diff details.
+
+### Single-action canary scope repair: 2026-09-18 20:40-21:31 CST
+
+- Goal: bind one scheduler canary action from disabled preflight through the
+  immutable activation decision and V2 mutation permit. Missing, legacy-null,
+  or mismatched scope must block before source probe or queue mutation;
+  non-selected changed actions are excluded. This repair does not authorize
+  scheduler enablement, source probing, crawling, importing, Redis queue
+  writes, or business-table writes.
+- Local stack config now separates the durable V2 state root from command root.
+  `start-local-stack.sh` resolves/exports both roots and passes
+  `terrapedia.crawler.queue-v2.repo-root` plus
+  `terrapedia.crawler.queue-v2.command-root` to the JVM. The monitor reads
+  source-monitor code only from the command root and retains durable state in
+  the configured repo root.
+- Read-only scheduler artifacts now require and preserve canonical scope
+  `{ actionId: "wiki-items-refresh", domainId: "items" }`. Preflight requires
+  `--canary-action-id`; proposal, request, and captured policy input validate
+  the action/domain pair and bind the request identity.
+- V61 adds nullable `authorized_action_id VARCHAR(128)` to the immutable
+  activation-decision table. The policy writer requires it only for
+  `automation-crawler-v2-scheduler-activation`; mapper and policy eligibility
+  expose and validate it. Production V2 requires a configured action before
+  its first source probe, passes that action to every eligibility lookup, and
+  rechecks it inside the mutation permit. Fixture-only automation remains
+  isolated and does not relax production behavior.
+- Independent review found and the final repair closes two cross-boundary P1
+  gaps: capture now writes `authorizedActionId` from the validated canary, and
+  the writer rejects missing or mismatched capture/action/domain identity. The
+  mapper select now keeps `authorized_action_id` as the final column, matching
+  the final component of `ActivationDecisionRecord` for constructor mapping.
+- The scheduler activation execution manifest now pins local start/config,
+  V2 monitor, policy service, mapper, and V61 migration with its existing
+  preflight/proposal code bundle.
+- Validation completed without runtime mutation:
+  - local-stack root contract: `1/1`;
+  - preflight/proposal/request/capture scope chain: `56/56`;
+  - policy decision, migration contract, and execution-manifest suites:
+    `127/127`;
+  - focused Java policy/monitor/mapper suite: `326/326`;
+  - `git diff --check`: passed.
+- Read-only runtime check at 21:31 CST: MySQL `13306` answered `mysqld is
+  alive`; backend `18102` health is UP; Flyway top version is V60. Therefore
+  V61 is not applied and backend `18102` remains the pre-V61 process. No
+  authenticated API control call occurred. This repair performed no scheduler
+  control, source probe, crawler/import, Redis queue, or business-data write.
+- Next safe action, after a separately authorized canonical restart: start
+  with `SPRING_TASK_SCHEDULING_ENABLED=false` so Flyway applies V61, then make
+  an authenticated readback of both configured roots and V61. Only then create
+  a new retry-labelled read-only preflight with
+  `--canary-action-id=wiki-items-refresh`. Do not reuse old preflight, packet,
+  request, or decision; do not enable scheduler automation. The Biomes
+  `missing_ingestion_manifest` state remains a separate fail-closed source gate
+  requiring its own authorization/remediation.
+
+### V61 restart and fresh readback: 2026-09-19 05:26-05:32 CST
+
+- The canonical `platform/local/start-local-stack.sh` ran from this worktree
+  with `SPRING_TASK_SCHEDULING_ENABLED=false`, the primary local config, the
+  existing private MinIO credentials file, and explicit V2 roots. It stopped
+  only this worktree's prior processes and retained shared Redis. Its database,
+  mapper XML, backend compile, and admin typecheck preflight passed; backend
+  `18102`, public `5188`, admin `3015`, MinIO `19000`, Redis `6380`, and MySQL
+  `13306` are reachable.
+- Read-only MySQL and JVM inspection confirm Flyway V61 is successful and the
+  `authorized_action_id` column exists. The running backend has durable
+  `terrapedia.crawler.queue-v2.repo-root=/home/lolben/TerraPedia` and command
+  root `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`.
+  Redis DB14 retains 407 V2 keys; this removes the earlier
+  `STATE_STORE_RESET` caused by the worktree durable-root fallback.
+- Authenticated GET-only reads of V2 automation and preflight are HTTP `200`:
+  control is `enabled=false`, `changed-only`, interval 60; V2 has zero live
+  attempts and sweep claims; reconciler is healthy; all eight registered
+  domains are eligible and the policy set remains H8. Normal successful admin
+  login audit records may have been written by authentication; no scheduler
+  control, sweep, source probe, crawler/import, Redis queue, or business-data
+  write occurred.
+- The first new no-overwrite preflight candidate used
+  `--canary-action-id=wiki-items-refresh` and retry label `retry-12`. It
+  failed before publication with `wiki-items-refresh readiness observation is
+  stale`; the retry-12 preflight path is absent. The returned snapshot was
+  older than the 15-minute freshness bound, so no proposal, request, packet,
+  decision, or activation path is now valid. Do not reuse an older artifact.
+- Next action is blocked on explicit source-refresh/import authorization to
+  refresh source readiness. The existing Biomes
+  `missing_ingestion_manifest` condition remains a separate fail-closed gate;
+  do not remediate it, enable automation, or call sweep without separate
+  authorization.
+
+### Retry-12 source evidence and read-only authorization artifacts: 2026-09-19 06:49-06:50 CST
+
+- The governed source-readiness evidence refresh was limited to the eight
+  scheduler domains (`items`, `npcs`, `projectiles`, `armor_sets`, `buffs`,
+  `audio`, `bosses`, `shimmer`). Each source panel rebuilt from the primary
+  runtime root with `status=pass`; no upstream network request, crawler, import,
+  MySQL DML, Redis queue mutation, or scheduler control was run. The refreshed
+  report files are the existing `reports/domain/<domain>/source-readiness-2026-09-18.json`
+  paths in the primary root and are intentionally runtime evidence, not code
+  checkpoint inputs.
+- Because the backend durable root is the primary checkout, these eight fresh
+  `reports/domain/**/source-readiness-2026-09-18.json` files appear as
+  untracked generated artifacts in `/home/lolben/TerraPedia`. They are retained
+  for the live readback and excluded from code staging/commit scope; no existing
+  source file was deleted or overwritten outside these report paths.
+- Authenticated GET-only preflight now returns HTTP `200`, `enabled=false`,
+  `changed-only`, zero live attempts/claims, healthy reconciler, 8/8 eligible
+  domains, and H8
+  `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`.
+  The retry-12 preflight is private `0600`, canary
+  `{actionId: "wiki-items-refresh", domainId: "items"}`, and has
+  `preflightHash=sha256:e6574c5a91cb8e4e5494c76068ee9a8f78bf4311441490a39039d58be44597b0`.
+- Fresh read-only artifacts were then emitted without overwriting any prior
+  artifact:
+  - `canonical-crawler-v2-scheduler-activation.retry-12.preflight.json`, file
+    SHA `sha256:452b1583fd1e04299be2eb0bfc706e300b490445b43f079e30c34d0584e2b8f1`;
+  - `canonical-crawler-v2-scheduler-activation.retry-12.proposal.json`,
+    `proposalOnly=true`, `AWAITING_OWNER`, proposal hash
+    `sha256:5c2946b42ff5765c73cdf8ae0385579a6bc637b0d8c1d2e1fd64208ab40bb5b7`;
+  - `canonical-crawler-v2-scheduler-activation.retry-12.request.json`,
+    `AWAITING_OWNER`, request hash
+    `sha256:7142505ff748b5e2b1e07831915415bbe53456b3b47dd4450d9a4643d4d08ffe`;
+  - `automation-crawler-v2-scheduler-activation.retry-12.execution-manifest.json`,
+    file SHA `sha256:ed20ff0950549d6827be84f94320a63b6e92930a6a944f601e0cd90f732b86e2`,
+    with the future policy-decision command explicitly bound to `--apply=true`.
+- The 114-test focused offline contract run passed (`114/114`); `git diff
+  --check` passed. No Owner fields were supplied or inferred. The next gate is
+  an independent Owner authorization with explicit `actor`, `reason`,
+  `authorizationReference`, `decisionIdentity`, `authorizedAt`, and bounded
+  `expiresAt`. Until that exists, do not build a packet, run the policy
+  decision manifest, enable automation, call sweep, or start source/crawler/
+  import work. The Biomes `missing_ingestion_manifest` gate remains separate.
+
+### Retry-14 Owner authorization and natural-tick readback: 2026-09-19 07:28-07:50 CST
+
+- The stale retry-12/13 chains were retained as historical artifacts and not
+  consumed. Eight source-readiness panels were refreshed read-only in the
+  primary runtime root; retry-14 preflight returned HTTP 200 with H8
+  `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`,
+  canary `{ actionId: "wiki-items-refresh", domainId: "items" }`, and 8/8
+  eligible domains.
+- Database readback confirmed the singleton Owner `admin/ACTIVE`. The retry-14
+  Owner input used a new decision identity and conversation reference. The
+  authorization packet was hash-consistent and private (`0600`), then the
+  supported policy-decision manifest was executed. It produced authoritative
+  `completed` result and immutable database decision `id=40`, packet hash
+  `sha256:b1acd0d7ffa713b31ea4b627d57859a0d306b79e507871c733590c5b717d4256`,
+  and `authorized_action_id=wiki-items-refresh`.
+- The first scheduling-enabled restart exposed a root-binding mistake and was
+  rejected fail-closed as `STATE_STORE_RESET`; no reset was attempted. The
+  canonical stack was restarted with durable V2 root `/home/lolben/TerraPedia`
+  and command root `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`.
+  After the corrected restart, the bounded control PUT enabled the exact
+  canary, and one natural scheduler tick ran without a manual `/sweep` call.
+- The natural tick wrote only source-monitor/sweep evidence and ended
+  fail-closed: `status=error`, `source_update_check_failed`, `detected=0`,
+  `dispatched=0`. The producer reported `probeHealthy=true` and eight `ok`
+  sources plus `wiki.page.biomes_anchor` with
+  `missing_ingestion_manifest`; the backend correctly rejects that source
+  state until a separately authorized refresh/import contract exists.
+  Scheduler control was restored to `enabled=false`; final preflight is 8/8
+  eligible with zero live attempts/claims and a healthy reconciler. No
+  crawler/import, Redis queue mutation, or business-table write occurred.
+- Validation/readback: all six local service ports reachable; MySQL decision
+  row and packet/result identities match; post-decision business attempt count
+  is zero; `git diff --check` passes. Runtime reports and authorization
+  artifacts remain untracked evidence outside code commit scope.
+
+### Authorized Biomes source refresh and retry-15 preflight: 2026-09-19 08:20-08:55 CST
+
+- User authorization in this session was explicitly limited to source refresh
+  for `wiki.page.biomes_anchor` locator `Forest`, manifest repair, and
+  standardization. It did not authorize scheduler enablement, manual sweep,
+  crawler/import DB writes, Redis queue mutation, or business-table DML.
+- Active-writer inspection found no crawler/import process. The bounded
+  `pipelines/fetch/fetch-wiki-biomes.mjs` run used action `biome-preview` and
+  the canonical monitor progress path. It completed with `47` records, `6`
+  derived records, and `0` unresolved; Forest is page `4077`, revision
+  `1029270`, timestamp `2026-09-12T12:46:24Z`. The importable transform also
+  completed with `47` records. Progress terminal state is `completed` at
+  `53/53` in `data/generated/wiki-sync-progress.latest.json`.
+- `finalizeBackendRefreshActionIngestionManifest({actionId: 'biome-sync'})`
+  added the exact Forest record to the primary canonical manifest. No import
+  command was run. The first read-only source monitor attempt failed only
+  because the default `reports/fetch` parent was group/other-writable; it was
+  rerun into a private `0700` temporary report directory and completed at
+  `2026-09-19T00:39:18.362Z` with `9/9 ok`, `errorSources=0`, and no failed
+  source keys. Forest current and ingested revisions both equal `1029270`.
+- The existing read-only domain acceptance generator rebuilt the eight
+  scheduler domains' `32/32` panels at `2026-09-19T00:51:28Z`, all `pass` with
+  zero warnings/blocks. No upstream fetch, DB DML, or scheduler operation was
+  part of this evidence refresh.
+- A fresh retry-15 preflight was then created by GET-only authenticated API
+  readback with canary `{actionId: "wiki-items-refresh", domainId: "items"}`.
+  It is private `0600` at
+  `reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-15.preflight.json`
+  with preflight hash
+  `sha256:32d3dc09cb71ddcf5f0adbc991f6b35ec475c862804c4749b36e754b656267cf`.
+  It reports `8/8 eligible`, live attempts/claims `0/0`, healthy reconciler,
+  and `databaseWrites=false/networkAccess=false/isolatedResourceWrites=false`.
+- Final runtime readback: backend `/api/actuator/health=200`, Redis `PONG`,
+  MySQL `mysqld is alive`; scheduler control remains `enabled=false`,
+  `changed-only`, interval `60`. No retry-15 proposal/request/packet/decision
+  was generated or consumed. The next action requires a separate scheduler
+  Owner authorization; any actual Biomes database import separately requires
+  `db_write=yes`. `git diff --check` passes for the handoff edits.
+
+### Retry-16 scheduler authorization and bounded natural tick: 2026-09-19 09:10-09:35 CST
+
+- The user supplied explicit bounded Owner authorization for the fresh H8
+  scheduler preflight, limited to the `wiki-items-refresh/items` canary. The
+  owner packet is private `0600`, `AUTHORIZED`, and binds actor `admin`,
+  authorization reference
+  `user://conversation/2026-09-19/scheduler-activation/retry-16`, decision
+  identity `automation-crawler-v2-scheduler-activation-20260919-owner-02`,
+  authorized action `wiki-items-refresh`, H8 policy-set hash, and packet hash
+  `sha256:86c8b9ed0b08512ce766d07a20edfa0e0c8e867bf9ccaf7db8011d0a166c34f1`.
+  The authorization reason explicitly forbids manual sweep, source refresh,
+  crawler/import, and business-table writes, and requires immediate rollback.
+- The retry-16 execution manifest was run with the canonical policy-decision
+  CLI and `--apply=true`. It returned authoritative `completed` and published
+  the private `0600` result
+  `reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-16.result.json`
+  with SHA
+  `sha256:a436c91d44e8090942bf52e79ac2c8bff4e87834aeeb0756b002a3de2e1433b1`.
+  MySQL readback confirms immutable decision `id=41`,
+  `decision_kind=SCHEDULER_ACTIVATION`, `domain_id=crawler_v2_scheduler`,
+  `authorized_action_id=wiki-items-refresh`, actor `admin`, and the exact H8
+  policy identity. No scheduler control or queue mutation occurred before the
+  decision readback.
+- Authenticated API control began `enabled=false`, `changed-only`, interval
+  `60`, with canary `wiki-items-refresh`. The first bounded enable used the
+  60-minute interval and only exposed the prior sweep; it was rolled back
+  without treating that stale read as a new tick. A second bounded enable used
+  the exact canary and a one-minute interval so the natural scheduler could
+  run within the authorization window. No `/sweep` endpoint was called. The
+  resulting natural tick completed at
+  `2026-09-19T01:46:26.192975608Z`, detected all eight source panels, and
+  dispatched `0`: six non-canary actions were skipped as
+  `canary_scope_excluded`, while `wiki-items-refresh` was skipped as
+  `automation_disabled` during the rollback race. No crawler/import work was
+  dispatched.
+- An exit cleanup PUT restored `enabled=false`, `changed-only`, interval `60`,
+  while preserving `canaryActionId=wiki-items-refresh`. Final authenticated
+  preflight is HTTP `200`, H8 unchanged, `8/8 eligible`,
+  live attempts/claims `0/0`, and reconciler `healthy` with zero overdue or
+  failed attempts. MySQL `crawler_automation_run_attempt` count remains `0`;
+  Redis DB14 readback is `409` keys after the natural tick, with no queue
+  claims. No manual sweep, source probe, crawler or
+  import execution, Redis queue mutation, or business-table DML occurred.
+- Validation/readback completed with real service endpoints, packet/result
+  identity checks, MySQL decision readback, final control and preflight reads,
+  Redis DBSIZE, and private-result hash. The first exploratory count query used
+  a nonexistent alert `created_at` column and was corrected by reading the
+  actual schema; no mutation was issued by that failed read-only query.
+  `git diff --check` remains the required documentation validation. Retry-16 is
+  consumed and must not be reused; any further scheduler activation needs a
+  new Owner authorization and fresh preflight. Biomes database import remains
+  separately gated by `db_write=yes`.
+
+### Standing task authorization register: 2026-09-19 09:56 CST
+
+- The user directed uninterrupted continuation and explicitly requested one
+  authorization list instead of repeated chat confirmation. The active
+  register is `docs/devlog/entries/2026-09-19-automation-scheduler-authorization-list.md`.
+  It authorizes local, registered, per-phase work for this scheduler handoff:
+  service lifecycle, read-only checks, scoped code/test/docs work, fresh
+  serial L2 reauthorization, one-action natural scheduler canaries, registered
+  source refresh/crawl, and gated canonical local database import/apply.
+- The register does not relax immutable runtime protections: every operation
+  still requires fresh identity-bound artifacts, packet/result readback,
+  no-active-writer state, monitor-visible progress, and fail-closed rollback.
+  It explicitly continues to prohibit manual `/sweep`, direct SQL/Redis/JSON
+  writes, DDL/destructive cleanup, non-local targets, and unregistered actions.
+- AUTH-04 readback at 10:00 CST corrected the historical-expiry assumption:
+  all eight latest L2 reauthorization decisions are still fresh (earliest
+  expiry 14:36 CST), their policy rows are L2/ACTIVE at H8, and active
+  attempts/reservations/fences are all zero. No duplicate decision may be
+  inserted. The next action is the already authorized
+  `wiki-items-refresh/items` natural canary: establish progress, active-writer,
+  and DB baseline evidence, allow one terminal natural action outcome, then
+  restore disabled control and read back queue/database/API state. Do not
+  request a new user confirmation for an action listed in the register.
+
+### Retry-22 terminal root-split repair and retry-24 preparation: 2026-09-19 16:37-17:17 CST
+
+- Retry-22 performed one natural `wiki-items-refresh/items` scheduler dispatch
+  under decision `id=50`; all six other changed actions were recorded as
+  `canary_scope_excluded`. Attempt
+  `attempt-50ae2298-de8a-497a-ad41-c466d30d4101` is terminal `failed` with
+  `PROCESS_EXIT_NONZERO`. It completed the authorized source fetch and
+  normalization, then failed before any automatic database apply because the
+  V2 supervisor executed the durable primary checkout's old L1-only runner.
+  Items DB readback remains unchanged (`6159` rows; latest `updated_at`
+  `2026-08-29T08:36:56`); MySQL runs/reservations/active fences are `0` and
+  Redis has no scheduler-owned nonterminal attempt.
+- Root cause was an incomplete dual-root binding: the source monitor used the
+  configured command root, while `CrawlerQueueV2Configuration` passed only
+  durable `repo-root` to `CrawlerAttemptSupervisor`. The repaired supervisor
+  preserves durable cwd, `WORKTREE_ROOT`, and attempt artifacts, but resolves
+  only the registered Node entrypoint from a confined regular command-root
+  file. Red-green evidence: config test first failed on the missing command
+  root, then `CrawlerQueueV2ConfigurationTest=3/3` and
+  `CrawlerAttemptSupervisorTest=93/93` passed; focused Java cross-validation
+  is `464/464`, Node local-stack/automation validation is `243/243`, and
+  `git diff --check` passed.
+- The canonical local stack restart initially stopped at a relative MinIO
+  credentials-path mismatch. The only existing durable `0600` local credential
+  was supplied by absolute path; no credential value was read or recorded.
+  The resulting run manifest confirms durable root
+  `/home/lolben/TerraPedia`, command root this worktree, backend `18102`,
+  Redis `6380`, MySQL `13306`, MinIO `19000`, public `5188`, and admin `3015`.
+  Scheduler control remains `enabled=false`, `changed-only`, interval `60`.
+- A fresh read-only Phase 0 rebuilt eight source-readiness reports at
+  `2026-09-19T09:09:45Z` through `09:09:47Z`; each is `pass`,
+  `writesDatabase=false`, and `requiresDatabase=false`. Authenticated
+  preflight is HTTP `200`, H8, 8/8 eligible, zero live attempts/claims, and a
+  healthy reconciler. Retry-23 preflight was written private `0600`, then
+  intentionally not consumed because it revealed its frozen code bundle did
+  not include the two repaired V2 launch files.
+- The activation manifest now pins
+  `CrawlerQueueV2Configuration.java` and `CrawlerAttemptSupervisor.java`;
+  its red-green contract test is `58/58`. Retry-23 remains immutable
+  historical evidence. Next action: create a fresh no-overwrite retry-24
+  preflight with the expanded code bundle, then follow the standing
+  authorization register's proposal/packet/readback gates. Do not re-enable
+  automation, call `/sweep`, or retry the failed attempt directly.
+
+### Retry-24 disposition and P1 canary-scope bundle repair: 2026-09-19 17:24-17:30 CST
+
+- Retry-24 emitted only its private `0600` preflight, proposal, and request;
+  no Owner input, packet, policy-decision execution, scheduler control write,
+  source probe, crawler/import run, Redis queue mutation, or business-table
+  write occurred. Its request remains `AWAITING_OWNER` and is preserved as
+  historical evidence, not a consumable authorization path.
+- Independent review found that owner-input capture had not frozen the request
+  `canaryActionId` as `authorizedActionId`, while the policy-decision runner
+  required it. A forged cross-action input could therefore reach the writer.
+  Capture now rejects a missing/mismatched requested action and freezes the
+  exact canary action; the runner independently verifies the captured
+  action/domain binding. The capture/runner Node suites pass `71/71`.
+- The same review identified positional MyBatis result risk after V61 added
+  `authorized_action_id`. The mapper selects that column last, matching the
+  final `ActivationDecisionRecord` component; the SQL contract passes `2/2`.
+  Scheduler eligibility now rejects absent or mismatched decision action scope;
+  focused policy service validation passes `35/35`, and monitor/policy/mapper
+  validation passes `328/328`.
+- The canonical activation bundle now also pins the request builder,
+  owner-input capture, policy-decision runner, API automation DTO, and policy
+  service interface, in addition to the V2 launch files, mapper, and V61
+  migration. The new required-path assertion was observed RED before this
+  manifest update and is green at `58/58`, including recursive local-import
+  coverage. Retry-24 predates these pinned bytes, so retry-25 is the next
+  allowed fresh identity. Before it is emitted, re-read the running backend,
+  V61 state, API preflight, active-writer state, and queue state; do not
+  consume retry-24 or enable automation.
+
+### Retry-25 action-bound decision and probe-only natural tick: 2026-09-19 17:38-17:52 CST
+
+- Primary-root eight-domain runtime reports were regenerated as `32/32 pass`;
+  the eight source-readiness panels are report-only (`writesDatabase=false`,
+  `requiresDatabase=false`). Retry-25 then created private `0600` preflight,
+  proposal, scheduler request, policy input, policy rows, server fingerprint,
+  execution manifest, canonical Owner request, Owner input, and packet
+  artifacts without overwriting retry-23/24 or any prior result. Its preflight
+  hash is `sha256:498cf8f225c4adc981bd60dab35c579db3797a62036162fdb8700753160ce611`,
+  request hash is `sha256:2baedc17952ef84875c966b4d18baa05572f1a282ff767133e9379b712304521`,
+  policy packet hash is
+  `sha256:4a579dadb5bdac1a35db69d2c896d815ca2d37bf7f47fdd5ea5def7670e61566`,
+  and all packet/input/result artifacts are `0600`.
+- Registered policy-decision execution completed once and inserted immutable
+  scheduler activation decision `id=51`, identity
+  `automation-crawler-v2-scheduler-activation-20260919-standing-items-05`,
+  for H8 and exactly `authorized_action_id=wiki-items-refresh`. Pre-write and
+  post-write MySQL reads show zero active attempts, reservations, and fences;
+  no policy row, crawler/import, or business table changed.
+- A natural `60`-minute V2 tick started at `2026-09-19T09:49:58Z`. JVM thread
+  evidence proves `scheduling-1` was waiting in the registered
+  `runSourceUpdateMonitorCheck`, not disabled or absent. That monitor completed
+  `9/9` healthy, `7` changed, and wrote terminal monitor-visible progress. The
+  bounded observer incorrectly restored `enabled=false` while the source probe
+  was still running; the mutation-time settings recheck therefore skipped only
+  items as `automation_disabled`, while six other actions were
+  `canary_scope_excluded`. The sweep is terminal `completed`, `dispatched=[]`.
+  This is a fail-closed probe-only outcome, not an item attempt.
+- Final readback: control is disabled/changed-only/60 with items canary; queue
+  has no active attempt/reservation/fence; `items=6159` and max `updated_at`
+  remains `2026-08-29T08:36:56`. Retry-25 must not be reused for a second
+  window. The next due cadence is about `2026-09-19T10:49:58Z` (18:49 CST),
+  after which source readiness and the entire retry-26 authorization chain
+  must be fresh. Do not use `/sweep`, a lower interval, direct queue state
+  writes, or an old retry artifact.
+
+### Retry-27 terminal attempt readback and stale-retry repair: 2026-09-19 20:22-20:45 CST
+
+- Retry-27 dispatched only `wiki-items-refresh/items`. Attempt
+  `attempt-d44c3cb1-6178-490e-a0e9-b9a3c1e2b8d1` reached terminal
+  `failed`/`PROCESS_EXIT_NONZERO` at `2026-09-19T12:22:56.056Z`; its Redis
+  record is retained with queue `queue-ec46a99e-4aa9-42f2-af90-67f757b4367c`,
+  fence `223`, and state version `4`. It was not left running and was not
+  directly retried.
+- The runner log root cause is `base automatic operation failed: scheduler
+  source monitor checkedAt does not match the dispatch identity`. The attempt
+  carried the prior run identity `2026-09-19T08:39:20.690Z`, while the fresh
+  probe was `2026-09-19T12:20:23.106Z` with content identity
+  `sha256:831d4f1043bb098f4cf47f5b412dd123417de644706fe78a4c7acc63cc265ce9`.
+  Recovery compared only the fingerprint and incorrectly reused a stale retry;
+  the child runner correctly failed closed on the full identity mismatch.
+- Recovery now requires exact equality of the complete `SourceDispatchIdentity`
+  (fingerprint, source-run identity, and source-content identity) before retry;
+  any run/content drift creates a fresh attempt. A focused RED regression first
+  selected the stale retry, then GREEN passed together with the existing
+  same-snapshot retry contract (`2/2`); the complete
+  `CrawlerMonitorServiceImplTest` class is green at `292/292`.
+- Backend compile, admin typecheck, and the focused Maven test passed. The
+  stack was restarted with scheduler disabled, durable repo root
+  `/home/lolben/TerraPedia`, and this worktree as command root. Final API
+  preflight is `8/8 eligible`, live attempts/claims `0/0`, reconciler healthy;
+  MySQL attempts/reservations/active fences are `0/0/0`, items remains `6159`,
+  and no item row changed after the tick. No crawler/import process or business
+  table write occurred.
+- Retry-27 is terminal historical evidence. The next window must use fresh
+  source-readiness and a fresh action-bound packet/decision; do not reuse this
+  retry, call `/sweep`, edit Redis/queue JSON, or directly retry the attempt.
+
+### Retry-28/30 scheduler canary and artifact-boundary stop: 2026-09-19 23:25-23:56 CST
+
+- Fresh retry-28 source-readiness regenerated `32/32 pass` in the primary
+  runtime root. The retry-28 preflight was `8/8 eligible`, H8 and the V2 epoch
+  were unchanged, live attempts/claims were `0/0`, and the reconciler was
+  healthy. A new action-bound Owner packet was authorized under the standing
+  register with decision identity
+  `automation-crawler-v2-scheduler-activation-20260919-standing-items-08`,
+  packet hash
+  `sha256:1131135a9c3b7bbaa9e13f6398e80cbbdce9f5d96107f9c7548c7e69d92630a4`,
+  and MySQL decision `id=57` for `wiki-items-refresh` only. The policy
+  decision was completed through the governed runner; no direct SQL or Redis
+  write was used.
+- The first bounded control window briefly used `enabled=true` while the
+  backend was still running with `SPRING_TASK_SCHEDULING_ENABLED=false`; no
+  natural tick occurred. Control was restored to `enabled=false`.
+- The canonical stack was then restarted with
+  `SPRING_TASK_SCHEDULING_ENABLED=true` and the primary private MinIO
+  credentials path. MySQL/Redis/backend/front/admin/MinIO preflight passed,
+  and the JVM log showed the real `[scheduling-1]` task thread. Retry-30 fresh
+  preflight hash was
+  `sha256:68c50427c0acb634d9a674fe2d6214d205efed76b14f77b664dc351aa82e8e2a`.
+- One natural scheduler tick completed source monitoring `9/9 ok` with seven
+  changed sources and dispatched only `wiki-items-refresh`; six other changed
+  actions were recorded as `canary_scope_excluded`. The first attempt was
+  `attempt-7fb2fe28-8441-441b-8785-8b2b44d0eb31`; an in-flight second tick
+  started before rollback and produced
+  `attempt-2543899e-7d3a-408c-8ec8-8263bad4579f`. Both attempts reached
+  terminal `failed`/`PROCESS_EXIT_NONZERO` before database apply with
+  `base automatic artifact ancestor must be owned by the automation service
+  UID and not group/other writable`. This is a fail-closed artifact boundary,
+  not a crawler/import or business-data write.
+- Progress evidence is terminal and monitor-visible: source monitor `9/9`
+  completed, item wiki sync completed `1/1`, and both attempt progress files
+  are `failed` with sequence `8`. Redis retains both complete source dispatch
+  identities and fences; final authenticated preflight is `enabled=false`,
+  interval `60`, canary `wiki-items-refresh`, live attempts/claims `0/0`, and
+  healthy reconciler. MySQL readback shows attempt/reservation/active-fence
+  counts `0/0/0`; `items` remains `6159` with unchanged max `updated_at`.
+- Retry-28/30 artifacts and generated runtime reports remain private evidence
+  outside code commit scope. Do not retry either attempt, change artifact
+  ownership/modes ad hoc, call `/sweep`, or open another scheduler window.
+  The next safe action is a separately reviewed repair of the service-UID
+  artifact ancestor contract, followed by fresh preflight and a new action
+  identity.
+
+### Retry-31 policy decision and bounded natural window: 2026-09-20 01:07-01:28 CST
+
+- The exact Retry-31 packet was executed through the governed policy-decision
+  runner. Its private result is
+  `reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-31.result.json`;
+  it is `completed`/`authoritative`, `SCHEDULER_ACTIVATION`, identity
+  `automation-crawler-v2-scheduler-activation-20260920-standing-items-09`,
+  action `wiki-items-refresh`, H8 unchanged, packet hash
+  `sha256:bc9234d95562e45571135e87803418cecfb74ea5a20be83a264efea8fdb80ed4`.
+- MySQL readback confirms one immutable row (`id=58`) with the exact identity,
+  packet hash, actor `admin`, authorization reference,
+  `authorized_action_id=wiki-items-refresh`, and duplicate identity count `1`.
+- Fresh pre-enable API readback was HTTP `200`: control disabled,
+  `changed-only`, interval `60`, canary `wiki-items-refresh`; preflight `8/8
+  eligible`, zero live attempts/claims, healthy reconciler, unchanged epoch
+  and H8. MySQL readback also showed zero live attempts, reservations, and
+  active local fences.
+- A natural-only watcher enabled the exact canary at
+  `2026-09-19T17:24:27.904Z` and observed 48 polls over four minutes. The
+  last sweep remained the historical `2026-09-19T15:49:43.507Z`; no fresh
+  sweep, attempt, source monitor, crawler/import, Redis queue mutation, or
+  business-table DML occurred. Exit cleanup restored `enabled=false`,
+  `changed-only`, interval `60`, and the canary. Final MySQL counts are zero
+  live attempts, zero active reservations, and zero active fences.
+- Residual issue: the effective scheduled poll did not fire during this short
+  bounded window despite the JVM being alive. The next safe action is
+  read-only cadence diagnosis and a new fresh preflight; Retry-31 cannot be
+  reused for another activation window.
+
+### Retry-32 source refresh, decision, and observer error: 2026-09-20 02:18-02:32 CST
+
+- The private primary-root source monitor report
+  `reports/authorization/canonical/source-monitor-retry-32/source-update-check-2026-09-19T18-18-48.658Z.json`
+  completed read-only with `9/9` sources healthy, `7` changed sources, and
+  `probeHealthy=true`. Eight scheduler-domain acceptance reports were
+  regenerated; all `38` registered panels passed. No crawler/import or
+  business-table write occurred during this refresh.
+- Fresh Retry-32 preflight is private mode `0600`, hash
+  `sha256:c4151791dc14a7f532cad6bb7c1889d2910891e1dc4ad64362667998f5dbcd7b`:
+  `8/8 eligible`, H8 and epoch unchanged, live attempts/claims `0/0`, and a
+  healthy reconciler. The governed policy decision was inserted and read back
+  as immutable MySQL `id=59`, with identity
+  `automation-crawler-v2-scheduler-activation-20260920-standing-items-10`,
+  `authorized_action_id=wiki-items-refresh`, packet hash
+  `sha256:b23dd852b27bd8f76d11c9259fa193c30b5269d827a72f8eb0a6e7309f745e97`,
+  and exactly one matching identity row.
+- The exact canary control was enabled once under AUTH-05/06. The first
+  observer invocation incorrectly supplied `BASELINE=...` as a Node argument,
+  so it treated the unchanged historical `lastSweep.checkedAt`
+  (`2026-09-19T15:49:43.507328063Z`) as a fresh tick and immediately restored
+  `enabled=false`. Corrected API readback confirms no natural scheduler tick,
+  no attempt, source probe, crawler/import, Redis queue mutation, or
+  business-table DML. The decision and retry are consumed and must not be
+  reused.
+- The generated private
+  `automation-crawler-v2-scheduler-activation.retry-32.execution-manifest.json`
+  is retained as an erroneous artifact because its operation ID is canonical;
+  the authoritative generic policy manifest is the matching
+  `.policy-decision-manifest.json`. Next action: create a fresh Retry-33
+  preflight/packet only after read-only cadence diagnosis, with the corrected
+  `BASELINE="$baseline" node ...` observer form.

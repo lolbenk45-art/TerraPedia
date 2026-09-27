@@ -109,6 +109,36 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void resolvesTheNodeEntrypointFromTheCommandRootWithoutMovingDurableAttemptState() throws Exception {
+        Path commandRoot = repoRoot.resolveSibling("scheduler-command-root");
+        Path commandScript = commandRoot.resolve(
+            "pipelines/automation/run-supplementary-domain-automatic-operation.mjs"
+        );
+        Files.createDirectories(commandScript.getParent());
+        Files.writeString(commandScript, "// command-root fixture\n");
+        CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            attempt,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            v2Router().router(),
+            repoRoot,
+            repoRoot,
+            commandRoot
+        );
+
+        supervisor.start(attempt);
+
+        CrawlerAttemptProcessLauncher.LaunchSpec spec = launcher.lastLaunchSpec();
+        assertEquals(repoRoot.toAbsolutePath().normalize(), spec.directory());
+        assertEquals(repoRoot.toString(), spec.environment().get("WORKTREE_ROOT"));
+        assertEquals(commandScript.toString(), spec.command().get(1));
+        assertTrue(spec.command().contains("--progress-path=" + attempt.artifacts().progressPath()));
+    }
+
+    @Test
     void schedulerStartRejectsMalformedQueueSourceBindingBeforeLaunching() {
         SourceDispatchIdentity sourceIdentity = new SourceDispatchIdentity(
             "sha256:" + "c".repeat(64),
@@ -2374,6 +2404,28 @@ class CrawlerAttemptSupervisorTest {
         Path worktreeRoot,
         Path artifactRoot
     ) {
+        return supervisor(
+            launcher,
+            initialAttempt,
+            actionRegistry,
+            properties,
+            router,
+            worktreeRoot,
+            artifactRoot,
+            worktreeRoot
+        );
+    }
+
+    private CrawlerAttemptSupervisor supervisor(
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerQueueV2Attempt initialAttempt,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerQueueV2Properties properties,
+        CrawlerQueueEngineRouter router,
+        Path worktreeRoot,
+        Path artifactRoot,
+        Path commandRoot
+    ) {
         AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
         when(repository.requireEpoch()).thenReturn("epoch-1");
         when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue(initialAttempt)));
@@ -2392,7 +2444,7 @@ class CrawlerAttemptSupervisorTest {
         latestAttempt = current;
         return new CrawlerAttemptSupervisor(
             repository, artifactStore, actionRegistry, launcher, new CrawlerAttemptStateMachine(properties), properties,
-            worktreeRoot, artifactRoot, Clock.fixed(NOW, ZoneOffset.UTC), router
+            worktreeRoot, artifactRoot, commandRoot, Clock.fixed(NOW, ZoneOffset.UTC), router
         );
     }
 

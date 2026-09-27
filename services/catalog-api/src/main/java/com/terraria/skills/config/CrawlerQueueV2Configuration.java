@@ -116,7 +116,8 @@ public class CrawlerQueueV2Configuration {
         CrawlerQueueV2Properties properties,
         Clock crawlerQueueV2Clock,
         CrawlerQueueEngineRouter router,
-        @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
+        @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot,
+        @Value("${terrapedia.crawler.queue-v2.command-root:}") String configuredCommandRoot
     ) {
         return new CrawlerAttemptSupervisor(
             repository,
@@ -127,6 +128,7 @@ public class CrawlerQueueV2Configuration {
             properties,
             resolveRepoRoot(configuredRepoRoot),
             resolveFixtureRoot(configuredRepoRoot, properties),
+            resolveCommandRoot(configuredCommandRoot, configuredRepoRoot),
             crawlerQueueV2Clock,
             router
         );
@@ -236,6 +238,13 @@ public class CrawlerQueueV2Configuration {
             return Path.of(configuredRepoRoot).toAbsolutePath().normalize();
         }
         return ProjectConstants.discover().repoRoot();
+    }
+
+    private Path resolveCommandRoot(String configuredCommandRoot, String configuredRepoRoot) {
+        if (configuredCommandRoot != null && !configuredCommandRoot.isBlank()) {
+            return Path.of(configuredCommandRoot).toAbsolutePath().normalize();
+        }
+        return resolveRepoRoot(configuredRepoRoot);
     }
 
     private Path resolveFixtureRoot(String configuredRepoRoot, CrawlerQueueV2Properties properties) {

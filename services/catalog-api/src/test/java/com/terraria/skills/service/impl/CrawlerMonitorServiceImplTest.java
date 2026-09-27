@@ -82,7 +82,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -980,6 +983,57 @@ class CrawlerMonitorServiceImplTest {
         );
     }
 
+    private CrawlerQueueV2OverviewDTO.AttemptDTO v2AttemptBoundToCurrentProbe(
+        String queueId,
+        String attemptId,
+        String status,
+        String domain,
+        String actionId,
+        boolean resumeSupported,
+        List<String> allowedActions,
+        String sourceValue
+    ) throws Exception {
+        Map<String, Object> state = readJsonMap(repoRoot.resolve("data/generated/source-update-monitor.latest.json"));
+        String checkedAt = String.valueOf(state.get("checkedAt"));
+        String contentIdentity = testSourceFingerprint(new ObjectMapper().writeValueAsString(state));
+        Instant now = Instant.parse("2026-07-13T01:00:00Z");
+        return new CrawlerQueueV2OverviewDTO.AttemptDTO(
+            queueId,
+            attemptId,
+            "epoch-1",
+            null,
+            1L,
+            status,
+            "standard",
+            domain,
+            List.of(domain),
+            actionId,
+            status,
+            null,
+            null,
+            now,
+            null,
+            now,
+            now,
+            now,
+            null,
+            null,
+            null,
+            resumeSupported,
+            allowedActions,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new SourceDispatchIdentity(testSourceFingerprint(sourceValue), checkedAt, contentIdentity),
+            "scheduler",
+            "v2-automation",
+            true
+        );
+    }
+
     private static void configureMutationPermit(CrawlerQueueEngineRouter router) {
         CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
         when(permit.mode()).thenAnswer(invocation -> router.mode());
@@ -1216,7 +1270,8 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
             "enabled", true,
             "mode", "changed-only",
-            "sweepIntervalMinutes", 1
+            "sweepIntervalMinutes", 1,
+            "canaryActionId", "wiki-items-refresh"
         ));
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1242,7 +1297,8 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
             "enabled", true,
             "mode", "changed-only",
-            "sweepIntervalMinutes", 1
+            "sweepIntervalMinutes", 1,
+            "canaryActionId", "wiki-items-refresh"
         ));
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1394,6 +1450,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1461,6 +1518,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1511,6 +1569,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1565,6 +1624,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         service.scheduledV2AutomationSweep();
@@ -1613,6 +1673,9 @@ class CrawlerMonitorServiceImplTest {
             mock(WikiMonitorDispatchQueueRepository.class)
         );
         allowSchedulerActivation(service);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
@@ -5327,6 +5390,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -5406,6 +5470,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -5713,6 +5778,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         IllegalStateException failure = assertThrows(IllegalStateException.class, service::runV2AutomationSweepOnce);
@@ -6136,6 +6202,34 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void sourceMonitorUsesConfiguredCodeRootWhileRetainingDurableStateRoot() throws Exception {
+        Path commandRoot = repoRoot.resolveSibling("scheduler-command-root");
+        Path commandScript = commandRoot.resolve("pipelines/monitor/check-source-updates.mjs");
+        Files.createDirectories(commandScript.getParent());
+        Files.writeString(commandScript, "// test command root\n");
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-06-20T03:00:00Z")
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T03:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        Field commandRootField = CrawlerMonitorServiceImpl.class.getDeclaredField("configuredQueueV2CommandRoot");
+        commandRootField.setAccessible(true);
+        commandRootField.set(service, commandRoot.toString());
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertTrue(result.success());
+        assertEquals(commandScript.toString(), launcher.requests.get(0).command().get(1));
+        assertEquals(repoRoot.toFile(), launcher.requests.get(0).directory());
+        assertEquals(repoRoot.toString(), launcher.requests.get(0).environment().get("WORKTREE_ROOT"));
+    }
+
+    @Test
     void shouldObserveChangedSourcesWithoutV2EnqueueWhenAutomationIsDisabled() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
@@ -6158,6 +6252,8 @@ class CrawlerMonitorServiceImplTest {
         assertFalse(settings.isEnabled());
         assertEquals("changed-only", settings.getMode());
         assertEquals(60, settings.getSweepIntervalMinutes());
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
@@ -6194,6 +6290,9 @@ class CrawlerMonitorServiceImplTest {
             )
         );
         service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
@@ -6202,6 +6301,68 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(0, launcher.launchCount);
         assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
         verifyNoInteractions(v2Service);
+    }
+
+    @Test
+    void blocksV2AutomationBeforeSourceCheckWhenCanaryScopeIsMissing() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-06-20T03:00:00Z")
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
+            "enabled", true,
+            "mode", "changed-only",
+            "sweepIntervalMinutes", 60
+        ));
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals(List.of("SCHEDULER_CANARY_SCOPE_REQUIRED"), sweep.getSkipped().get(0).get("reasons"));
+        assertEquals(0, launcher.launchCount);
+        verifyNoInteractions(v2Service);
+    }
+
+    @Test
+    void checksTheConfiguredCanaryScopeForEverySchedulerEligibilityDomain() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-06-20T03:00:00Z")
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString(), eq("wiki-items-refresh"))).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        Method gate = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "schedulerActivationGateReasons", String.class
+        );
+        gate.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<String> reasons = (List<String>) gate.invoke(service, "wiki-items-refresh");
+
+        assertEquals(List.of(), reasons);
+        verify(policyService, times(8)).schedulerEligibility(anyString(), eq("wiki-items-refresh"));
+        verify(policyService, never()).schedulerEligibility(anyString(), isNull());
     }
 
     @Test
@@ -6229,6 +6390,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6246,15 +6408,67 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldRetryFailedResumableSourceThroughV2WhenAutomationIsEnabled() {
+    void enqueuesOnlyConfiguredV2CanaryActionWhenMultipleEligibleSourcesChange() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        CrawlerQueueV2OverviewDTO.AttemptDTO failedBuff = v2Attempt(
-            "queue-buff", "attempt-buff-failed", "failed", "buffs",
-            "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash"
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items", "attempt-items", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        String checkedAt = "2026-06-20T03:00:00Z";
+        List<Map<String, Object>> sources = new ArrayList<>();
+        for (String sourceKey : List.of("wiki.module.iteminfo", "wiki.module.npcinfo")) {
+            Map<String, Object> source = new java.util.LinkedHashMap<>(sourceEntry(sourceKey, checkedAt));
+            source.put("changed", true);
+            sources.add(source);
+        }
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            sourceState(checkedAt, true, sources)
         );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedBuff)));
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals("wiki-items-refresh", service.getV2AutomationSettings().getCanaryActionId());
+        assertEquals(8, sweep.getDetected().size());
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "wiki-npcs-refresh".equals(item.get("actionId"))
+                && "canary_scope_excluded".equals(item.get("reason"))
+        ));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("wiki-items-refresh", command.getValue().actionId());
+    }
+
+    @Test
+    void shouldRetryFailedResumableSourceThroughV2WhenAutomationIsEnabled() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenAnswer(invocation -> v2Overview(
+            List.of(),
+            List.of(v2AttemptBoundToCurrentProbe(
+                "queue-buff", "attempt-buff-failed", "failed", "buffs",
+                "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash"
+            ))
+        ));
         when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
             true, true, 1, "queue-buff", "attempt-buff-retry", null, 1L,
             CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
@@ -6281,6 +6495,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6299,17 +6514,23 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldPauseAutomaticRecoveryAfterThreeFailedResumeAttempts() {
+    void shouldStartFreshAutomationWhenFailedAttemptHasStaleSourceRunIdentity() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        List<CrawlerQueueV2OverviewDTO.AttemptDTO> failedAttempts = List.of(
-            v2Attempt("queue-buff", "attempt-buff-initial", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
-            v2Attempt("queue-buff", "attempt-buff-retry-1", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
-            v2Attempt("queue-buff", "attempt-buff-retry-2", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
-            v2Attempt("queue-buff", "attempt-buff-retry-3", "failed", "buffs", "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash")
+        CrawlerQueueV2OverviewDTO.AttemptDTO failedBuff = v2Attempt(
+            "queue-buff", "attempt-buff-stale", "failed", "buffs",
+            "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash"
         );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), failedAttempts));
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedBuff)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-buff-fresh", "attempt-buff-fresh", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-buff", "attempt-buff-retry", null, 1L,
+            CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
+        ));
         SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
             repoRoot,
             Map.of(
@@ -6332,6 +6553,50 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-buff-fresh", sweep.getDispatched().get(0).get("attemptId"));
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldPauseAutomaticRecoveryAfterThreeFailedResumeAttempts() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenAnswer(invocation -> v2Overview(List.of(), List.of(
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-initial", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-retry-1", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-retry-2", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-retry-3", "failed", "buffs", "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash")
+        )));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.page.template_getbuffinfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "buff-hash",
+                    "previousValue", "buff-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6350,11 +6615,12 @@ class CrawlerMonitorServiceImplTest {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        CrawlerQueueV2OverviewDTO.AttemptDTO timedOutShimmer = v2Attempt(
-            "queue-shimmer", "attempt-shimmer-timeout", "timed_out", "shimmer",
-            "domain-source-shimmer", false, List.of("retry", "cleanup"), "shimmer-hash"
-        );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(timedOutShimmer)));
+        when(v2Service.overview()).thenAnswer(invocation -> v2Overview(List.of(), List.of(
+            v2AttemptBoundToCurrentProbe(
+                "queue-shimmer", "attempt-shimmer-timeout", "timed_out", "shimmer",
+                "domain-source-shimmer", false, List.of("retry", "cleanup"), "shimmer-hash"
+            )
+        )));
         when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
             true, true, 1, "queue-shimmer", "attempt-shimmer-retry", null, 1L,
             CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
@@ -6390,6 +6656,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("domain-source-shimmer");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6458,6 +6725,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6465,9 +6733,6 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(sweep.getDispatched().isEmpty());
         assertTrue(sweep.getSkipped().stream().anyMatch(item ->
             "automatic_attempt_active".equals(item.get("reason"))
-        ));
-        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
-            "automatic_attempt_completed".equals(item.get("reason"))
         ));
 
         when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedBuff, completedArmor)));
@@ -6543,6 +6808,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("domain-source-armor-sets");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6602,12 +6868,103 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
         assertEquals("attempt-items-new", sweep.getDispatched().get(0).get("attemptId"));
         verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldIgnoreTerminalLegacyAttemptWithUnavailableQueueMetadata() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO legacyItems = v2Attempt(
+            "queue-items-legacy", "attempt-items-legacy", "completed", "items",
+            "wiki-items-refresh", false, List.of("cleanup"), null, null, null, false
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(legacyItems)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items-new", "attempt-items-new", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "live-items-hash",
+                    "previousValue", "stale-canonical-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-items-new", sweep.getDispatched().get(0).get("attemptId"));
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldStillBlockNonTerminalLegacyAttemptWithUnavailableQueueMetadata() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO legacyItems = v2Attempt(
+            "queue-items-legacy", "attempt-items-legacy", "running", "items",
+            "wiki-items-refresh", false, List.of("cancel"), null, null, null, false
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(legacyItems)));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "live-items-hash",
+                    "previousValue", "stale-canonical-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_queue_metadata_untrusted".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).enqueue(any());
         verify(v2Service, never()).control(any());
     }
 
@@ -6657,6 +7014,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6700,6 +7058,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6754,6 +7113,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-npcs-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -6830,6 +7190,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO enabled = new CrawlerV2AutomationDTO();
         enabled.setEnabled(true);
         enabled.setSweepIntervalMinutes(60);
+        enabled.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(enabled);
 
         CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);

@@ -7,11 +7,64 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { summarizeImageScopes } from './run-wiki-sync.mjs';
+import { buildCanonicalOperationExecutionManifest } from '../automation/canonical-operation-execution-manifest.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'run-wiki-sync.mjs');
+
+test('importing wiki sync does not dispatch CLI modes or write runtime state', (t) => {
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wiki-sync-import-'));
+  t.after(() => fs.rmSync(dataRoot, { recursive: true, force: true }));
+  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', `
+    process.argv = [process.execPath, 'not-the-workflow-entrypoint', '--mode=not-a-cli-invocation'];
+    const { summarizeImageScopes } = await import(${JSON.stringify(scriptPath)});
+    if (typeof summarizeImageScopes !== 'function') throw new Error('missing imported helper');
+  `], {
+    cwd: dataRoot,
+    env: { ...process.env, WORKTREE_ROOT: dataRoot, TERRAPEDIA_SHARED_DATA_ROOT: path.join(dataRoot, 'shared') },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.deepEqual(fs.readdirSync(dataRoot), []);
+});
+
+test('wiki sync nested fetch uses reviewed code with separate durable data and progress roots', (t) => {
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wiki-sync-split-roots-'));
+  t.after(() => fs.rmSync(temporaryRoot, { recursive: true, force: true }));
+  const codeRoot = path.join(temporaryRoot, 'reviewed-code');
+  const dataRoot = path.join(temporaryRoot, 'durable-data');
+  const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId: 'canonical-crawler-v2-scheduler-activation' });
+  for (const entry of manifest.codeBundleEntries) {
+    const destination = path.join(codeRoot, entry.path);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(path.join(repoRoot, entry.path), destination);
+  }
+  fs.mkdirSync(path.join(dataRoot, 'data/generated'), { recursive: true });
+  fs.writeFileSync(path.join(dataRoot, 'manifest.json'), JSON.stringify({ records: [] }));
+  fs.writeFileSync(path.join(dataRoot, 'monitor.json'), JSON.stringify({ sources: [{ key: 'wiki.module.projectileinfo', changed: true }] }));
+  for (const [root, selectedCode] of [[codeRoot, 'reviewed'], [dataRoot, 'stale-primary']]) {
+    const child = path.join(root, 'pipelines/fetch/fetch-wiki-projectileinfo.mjs');
+    fs.mkdirSync(path.dirname(child), { recursive: true });
+    fs.writeFileSync(child, `import fs from 'node:fs'; import path from 'node:path';
+      fs.writeFileSync(path.join(process.env.WORKTREE_ROOT, 'data/generated/selected-source.json'), JSON.stringify({ selectedCode: ${JSON.stringify(selectedCode)}, cwd: process.cwd() }));`);
+  }
+  const result = spawnSync(process.execPath, [path.join(codeRoot, 'pipelines/workflow/run-wiki-sync.mjs'),
+    '--mode=apply', '--entity=projectiles', '--force=true', '--manifest-path=manifest.json', '--monitor-state=monitor.json',
+    '--plan-path=data/generated/plan.json', '--progress-path=data/generated/attempt-progress.json'], {
+    cwd: dataRoot, env: { ...process.env, WORKTREE_ROOT: dataRoot, TERRAPEDIA_SHARED_DATA_ROOT: path.join(dataRoot, 'shared') }, encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dataRoot, 'data/generated/selected-source.json'))), { selectedCode: 'reviewed', cwd: dataRoot });
+  const plan = JSON.parse(fs.readFileSync(path.join(dataRoot, 'data/generated/plan.json')));
+  assert.equal(plan.actions[0].args[0], path.join(codeRoot, 'pipelines/fetch/fetch-wiki-projectileinfo.mjs'));
+  for (const progress of ['attempt-progress.json', 'wiki-sync-progress.latest.json']) {
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dataRoot, 'data/generated', progress))).status, 'completed');
+  }
+  assert.equal(fs.existsSync(path.join(codeRoot, 'data/generated')), false);
+});
 
 test('item page plan passes explicit only-changed=false to fetch action', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-'));

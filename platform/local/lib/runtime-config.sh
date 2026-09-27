@@ -135,6 +135,8 @@ const values = {
   TP_REDIS_SERVER_EXE: env('TERRAPEDIA_REDIS_SERVER_EXE', get(['redis', 'serverExe'], '')),
   TP_REDIS_DATA_DIR: env('TERRAPEDIA_REDIS_DATA_DIR', get(['redis', 'dataDir'], `${process.env.HOME || root}/.local/share/terrapedia/redis/redis-${redisPort}`)),
   TP_BACKEND_PORT: env('APP_PORT', get(['backend', 'port'], 18088)),
+  TP_CRAWLER_QUEUE_V2_REPO_ROOT: env('TERRAPEDIA_CRAWLER_QUEUE_V2_REPO_ROOT', get(['backend', 'crawlerQueueV2', 'repoRoot'], root)),
+  TP_CRAWLER_QUEUE_V2_COMMAND_ROOT: env('TERRAPEDIA_CRAWLER_QUEUE_V2_COMMAND_ROOT', get(['backend', 'crawlerQueueV2', 'commandRoot'], root)),
   TP_FRONT_PROJECT_DIR: env('TERRAPEDIA_FRONT_PROJECT_DIR', get(['front', 'projectDir'], 'apps/public-web')),
   TP_FRONT_PORT: env('TERRAPEDIA_FRONT_PORT', get(['front', 'port'], 5174)),
   TP_ADMIN_PORT: env('TERRAPEDIA_ADMIN_PORT', get(['admin', 'port'], 3001)),

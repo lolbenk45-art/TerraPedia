@@ -8,7 +8,9 @@ import test from 'node:test';
 import {
   approveHistoricalSourceHashDisposition,
   buildHistoricalSourceHashDisposition,
+  prepareHistoricalSourceHashDispositionAuthorization,
   readHistoricalSourceHashDisposition,
+  writeHistoricalSourceHashDispositionCandidate,
   writeHistoricalSourceHashDisposition,
 } from './historical-source-hash-disposition.mjs';
 import {
@@ -51,6 +53,56 @@ test('builds an exact candidate for a legacy semantic-JSON source hash mismatch'
   assert.equal(candidate.entries[0].source.declaredSha256, candidate.entries[0].source.semanticJsonSha256);
   assert.notEqual(candidate.entries[0].source.declaredSha256, candidate.entries[0].source.actualByteSha256);
   assert.match(candidate.artifactHash, /^sha256:[0-9a-f]{64}$/);
+});
+
+test('writes one private content-addressed candidate without overwrite', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-candidate-'));
+  const sourceBytes = Buffer.from('{"domain":"items","records":[1,2]}\n', 'utf8');
+  const candidate = buildHistoricalSourceHashDisposition({
+    domainId: 'items',
+    currentPolicy: policy('items'),
+    entries: [fixtureEntry({ domainId: 'items', sourceBytes, declaredSourceHash: semanticHash(sourceBytes) })],
+    generatedAt: '2026-08-29T05:00:00.000Z',
+  });
+  try {
+    const written = writeHistoricalSourceHashDispositionCandidate({ repoRoot, candidate });
+    assert.equal(written.path, `reports/authorization/canonical/l1-historical-source-hash-disposition/items/${candidate.artifactHash.slice(7)}/candidate.json`);
+    assert.equal(fs.statSync(path.join(repoRoot, written.path)).mode & 0o777, 0o600);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(repoRoot, written.path), 'utf8')), candidate);
+    assert.throws(() => writeHistoricalSourceHashDispositionCandidate({ repoRoot, candidate }), /overwrite|exists/i);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('prepares a candidate-scoped private authorization bundle without overwrite', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-preparation-'));
+  const policyRows = [{ domainId: 'items', policyVersion: 1, policyHash: POLICY_HASHES.items }];
+  const sourceBytes = Buffer.from('{"domain":"items","records":[4]}\n', 'utf8');
+  const candidate = buildHistoricalSourceHashDisposition({
+    domainId: 'items',
+    currentPolicy: { ...policy('items'), policySetHash: computePolicySetHash(policyRows) },
+    entries: [fixtureEntry({ domainId: 'items', sourceBytes, declaredSourceHash: semanticHash(sourceBytes) })],
+    generatedAt: '2026-08-29T05:00:00.000Z',
+  });
+  const serverFingerprint = {
+    host: '127.0.0.1', port: 13306, serverUuid: 'server-1',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  try {
+    const prepared = prepareHistoricalSourceHashDispositionAuthorization({
+      repoRoot, candidate, policyRows, serverFingerprint,
+    });
+    for (const outputPath of [prepared.candidatePath, prepared.policyRowsPath, prepared.serverFingerprintPath, prepared.executionManifestPath]) {
+      assert.equal(fs.statSync(path.join(repoRoot, outputPath)).mode & 0o777, 0o600);
+    }
+    assert.equal(prepared.executionManifest.scope.candidateArtifactHash, candidate.artifactHash);
+    assert.throws(() => prepareHistoricalSourceHashDispositionAuthorization({
+      repoRoot, candidate, policyRows, serverFingerprint,
+    }), /overwrite|exists/i);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
 });
 
 test('approval changes only the review envelope and preserves the exact content identity', () => {

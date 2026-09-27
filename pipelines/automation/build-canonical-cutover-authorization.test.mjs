@@ -307,6 +307,11 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-projectile-image-origin-normalization',
     'canonical-biome-image-origin-normalization',
     'canonical-armor-set-projection-restoration',
+    'canonical-armor-set-projection-incremental',
+    'canonical-armor-ingestion',
+    'canonical-armor-semantic-repair',
+    'canonical-armor-secondary-projection',
+    'canonical-armor-image-cache',
     'canonical-two-item-image-quarantine-repair',
     'canonical-item-base-entity-restoration',
     'canonical-item-source-local-npc-admission',
@@ -369,6 +374,14 @@ test('operation request builder exposes all governed IDs', () => {
     'automation-audio-l2-policy-ceiling-registration',
     'automation-bosses-l2-policy-ceiling-registration',
     'automation-shimmer-l2-policy-ceiling-registration',
+    'automation-items-l2-reauthorization',
+    'automation-npcs-l2-reauthorization',
+    'automation-projectiles-l2-reauthorization',
+    'automation-armor-sets-l2-reauthorization',
+    'automation-buffs-l2-reauthorization',
+    'automation-audio-l2-reauthorization',
+    'automation-bosses-l2-reauthorization',
+    'automation-shimmer-l2-reauthorization',
     'automation-biomes-scheduler-activation',
     'automation-crawler-v2-scheduler-activation',
     'automation-crawler-v2-scheduler-reactivation',
@@ -902,13 +915,22 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
   write('services/catalog-api/src/main/resources/db/migration/V58__c.sql', 'DDL-58');
 
   for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
+    if (operationId === 'canonical-armor-set-projection-incremental'
+        || operationId === 'canonical-armor-secondary-projection'
+        || operationId === 'canonical-armor-image-cache'
+        || operationId === 'canonical-armor-semantic-repair'
+        || operationId === 'canonical-armor-ingestion') {
+      assert.throws(() => buildCanonicalAuthorizationRequestForOperation({ repoRoot, operationId, generatedAt: GENERATED_AT, expiresAt: EXPIRES_AT }), /manifest/);
+      continue;
+    }
     if (operationId === 'canonical-item-image-lineage-apply'
         || operationId === 'canonical-item-image-projection-apply'
         || operationId === 'canonical-item-image-projection-missing-row-insert'
         || operationId === 'canonical-item-base-entity-restoration'
         || operationId === 'canonical-item-source-local-npc-admission') continue;
     if (operationId.startsWith('automation-')
-        && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) continue;
+        && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration')
+          || operationId.endsWith('-l2-reauthorization'))) continue;
     if (operationId === 'automation-l1-historical-source-hash-disposition') {
       assert.throws(
         () => buildCanonicalAuthorizationRequestForOperation({

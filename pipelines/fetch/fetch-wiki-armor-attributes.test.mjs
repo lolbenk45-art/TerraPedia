@@ -60,6 +60,49 @@ test('parseWikiArmorAttributeRows extracts linked item identity and structured s
   }]);
 });
 
+test('parseWikiArmorAttributeRows resets the armor slot when a level-four slot heading changes', () => {
+  const html = `
+    <h2>困难模式</h2>
+    <h3>头盔</h3>
+    <table><tr><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+      <tr><td><a title="木头盔">木头盔</a></td><td>1</td><td>+1% 暴击率</td></tr></table>
+    <h4>胸甲</h4>
+    <table><tr><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+      <tr><td><a title="木胸甲">木胸甲</a></td><td>2</td><td>+2% 暴击率</td></tr></table>
+    <h4>护腿</h4>
+    <table><tr><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+      <tr><td><a title="木护胫">木护胫</a></td><td>3</td><td>+3% 暴击率</td></tr></table>`;
+
+  const actual = parseWikiArmorAttributeRows({ html });
+
+  assert.deepEqual(actual.map((row) => [row.itemNameZh, row.slotGroup]), [
+    ['木头盔', 'head'],
+    ['木胸甲', 'body'],
+    ['木护胫', 'legs']
+  ]);
+});
+
+test('parseWikiArmorAttributeRows understands the live wiki 上衣 and 裤装 section headings', () => {
+  const html = `
+    <h2>困难模式之前的头盔</h2>
+    <table><tr><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+      <tr><td><a title="木头盔">木头盔</a></td><td>1</td><td>+1%</td></tr></table>
+    <h2>困难模式之前的上衣</h2>
+    <table><tr><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+      <tr><td><a title="木胸甲">木胸甲</a></td><td>2</td><td>+2%</td></tr></table>
+    <h2>困难模式之前的裤装</h2>
+    <table><tr><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+      <tr><td><a title="木护胫">木护胫</a></td><td>3</td><td>+3%</td></tr></table>`;
+
+  const actual = parseWikiArmorAttributeRows({ html });
+
+  assert.deepEqual(actual.map((row) => [row.itemNameZh, row.slotGroup]), [
+    ['木头盔', 'head'],
+    ['木胸甲', 'body'],
+    ['木护胫', 'legs']
+  ]);
+});
+
 test('fetcher writes monitor-visible progress to an explicit path before network failure', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armor-attributes-'));
   const outputDir = path.join(tempDir, 'generated');

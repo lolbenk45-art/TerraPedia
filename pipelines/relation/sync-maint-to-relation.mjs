@@ -1188,16 +1188,16 @@ function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
   return [...rows, ...derivedRows];
 }
 
-function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
+export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
   const rows = [];
   const effectSpecs = [
     ['meleeDamage', 'damage_bonus', '近战伤害', 'melee'],
     ['rangedDamage', 'damage_bonus', '远程伤害', 'ranged'],
     ['magicDamage', 'damage_bonus', '魔法伤害', 'magic'],
     ['summonDamage', 'damage_bonus', '召唤伤害', 'summon'],
-    ['meleeCritChance', 'crit_chance', '暴击率', 'all'],
-    ['rangedCritChance', 'crit_chance', '暴击率', 'all'],
-    ['magicCritChance', 'crit_chance', '暴击率', 'all'],
+    ['meleeCritChance', 'crit_chance', '近战暴击率', 'melee'],
+    ['rangedCritChance', 'crit_chance', '远程暴击率', 'ranged'],
+    ['magicCritChance', 'crit_chance', '魔法暴击率', 'magic'],
     ['classSpecific', 'melee_speed', '近战速度', 'melee']
   ];
   for (const armorRow of relationArmorAttributeRows) {
@@ -1262,22 +1262,35 @@ function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
   return rows;
 }
 
-function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [] } = {}) {
+export function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [], relationArmorSetItems = [] } = {}) {
   const itemIndex = buildArmorAttributeItemIndex(maintItems);
+  const exactPartRoles = new Map();
+  for (const part of relationArmorSetItems) {
+    const itemId = Number(part.item_source_id ?? part.itemSourceId);
+    const role = String(part.part_role ?? part.partRole ?? '').trim();
+    if (!Number.isSafeInteger(itemId) || itemId <= 0 || !['head', 'body', 'legs'].includes(role)) continue;
+    const roles = exactPartRoles.get(itemId) ?? new Set();
+    roles.add(role);
+    exactPartRoles.set(itemId, roles);
+  }
   const rows = maintArmorAttributeRows.map((row) => {
     const item = itemIndex.get(normalizeLookupText(row.item_name_zh))
       ?? itemIndex.get(normalizeLookupText(row.item_page_title))
       ?? null;
     const resolved = item != null;
+    const itemId = resolved ? Number(item.source_id) : null;
+    const roles = itemId == null ? null : exactPartRoles.get(itemId);
+    const reconciledSlotGroup = roles?.size === 1 ? [...roles][0] : null;
+    const slotGroup = reconciledSlotGroup ?? row.slot_group ?? null;
     return {
       recordKey: row.record_key,
-      itemId: resolved ? Number(item.source_id) : null,
+      itemId,
       itemInternalName: resolved ? (item.internal_name ?? null) : null,
       itemNameZh: row.item_name_zh ?? null,
       itemPageTitle: row.item_page_title ?? null,
       itemHref: row.item_href ?? null,
       sectionCode: row.section_code ?? null,
-      slotGroup: row.slot_group ?? null,
+      slotGroup,
       defenseValue: resolved && item.defense_value != null ? Number(item.defense_value) : (row.defense_value == null ? null : Number(row.defense_value)),
       rawCellsJson: row.raw_cells_json ?? null,
       sourceMaintTable: 'maint_armor_attribute_rows',
@@ -1290,7 +1303,11 @@ function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems
       sourcePage: row.source_page ?? null,
       sourceRevisionTimestamp: row.source_revision_timestamp ?? null,
       confidence: resolved ? 1 : 0,
-      reason: resolved ? 'matched_maint_item_by_wiki_identity' : 'unresolved_maint_item_by_wiki_identity',
+      reason: !resolved
+        ? 'unresolved_maint_item_by_wiki_identity'
+        : reconciledSlotGroup && reconciledSlotGroup !== row.slot_group
+          ? 'reconciled_slot_group_from_relation_armor_set_item'
+          : 'matched_maint_item_by_wiki_identity',
       reviewStatus: resolved ? 'accepted' : 'unresolved',
       rawJson: row.raw_json ?? JSON.stringify(row)
     };
@@ -1491,7 +1508,11 @@ export async function runSync(options, dependencies = {}) {
   });
 
   const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
-  results.relationArmorAttributeRows = buildArmorAttributeRelations({ maintArmorAttributeRows, maintItems });
+  results.relationArmorAttributeRows = buildArmorAttributeRelations({
+    maintArmorAttributeRows,
+    maintItems,
+    relationArmorSetItems: results.relationArmorSetItems
+  });
   results.relationItems = baseEntities.relationItems;
   results.relationNpcs = baseEntities.relationNpcs;
   results.relationProjectiles = baseEntities.relationProjectiles;

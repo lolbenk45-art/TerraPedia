@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 
 import { runIndependentEntityImport } from '../import/import-independent-entities-to-db.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
@@ -24,9 +25,17 @@ import {
   executeSupplementaryL1Operation,
   readCurrentSupplementaryContext,
   assertImportSummaryHealthy,
+  readVerifiedCommittedAutomaticBundle,
 } from './run-supplementary-domain-l1-operation.mjs';
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 import { buildAutomaticRunId, runImportThenAcknowledge } from './run-automatic-domain-operation.mjs';
+import {
+  automaticArtifactRunId,
+  automaticAttemptIdentityFromEnvironment,
+  automaticReconciliationRoot,
+  freezeAutomaticSourceProgressSnapshot,
+  assertAutomaticAttemptMatches,
+} from './automatic-execution-artifacts.mjs';
 import {
   assertCurrentSourceMonitorStateMatchesDispatchIdentity,
   assertFrozenSourceMatchesDispatchIdentity,
@@ -56,7 +65,7 @@ export async function runBaseDomainAutomaticOperation({
   runSourceImpl = runSource,
   readSourceFingerprintImpl = readBaseDomainSourceFingerprint,
   readCurrentContextImpl = readCurrentSupplementaryContext,
-  isCommittedRunImpl = isCommittedBaseAutomaticRun,
+  isCommittedRunImpl = readCommittedBaseAutomaticRun,
   createAdapterImpl = createMysqlSupplementaryL1Adapter,
   executeOperationImpl = executeSupplementaryL1Operation,
   acknowledgeSourceImpl = acknowledgeBaseDomainSource,
@@ -71,6 +80,7 @@ export async function runBaseDomainAutomaticOperation({
   if (!BASE_DOMAINS.has(domain)) throw new Error(`unsupported base automatic domain: ${domain}`);
   if (args.output) assertSecureExternalOutputPublicationSupported({ platform: externalOutputPlatform });
   const sourceDispatchIdentity = sourceDispatchIdentityFromEnvironment(env);
+  const automaticAttemptIdentity = automaticAttemptIdentityFromEnvironment(env, sourceDispatchIdentity);
   const config = requireAutoDomainOperationImpl(domain);
   const repoRoot = env.WORKTREE_ROOT ?? process.cwd();
   const sourceStatePath = env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH;
@@ -102,6 +112,9 @@ export async function runBaseDomainAutomaticOperation({
     if (!['live', 'local'].includes(sourceMode)) throw new Error('--source-mode must be live or local');
     if (sourceMode === 'live') {
       await runSourceImpl({ domain, progressPath, runId: crawlRunId, env });
+      if (automaticAttemptIdentity != null) {
+        readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPath, automaticAttemptIdentity });
+      }
     } else {
       runnerProgress.publish({ status: 'running', phase: 'local-frozen-source', runId: crawlRunId });
     }
@@ -110,10 +123,13 @@ export async function runBaseDomainAutomaticOperation({
     const sourceFingerprint = canonicalSourceFingerprint(readSourceFingerprintImpl(domain));
     assertFrozenSourceMonitorStateMatches(sourceDispatchIdentity, frozenProbeState);
     assertFrozenSourceMatchesDispatchIdentity(sourceDispatchIdentity, sourceFingerprint);
-    const { runId, frozen } = freezeBaseAutomaticInput({ domain, sourceFingerprint, repoRoot });
+    const { runId, frozen } = freezeBaseAutomaticInput({
+      domain, sourceFingerprint, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity,
+    });
     const outputPath = resolveBaseAutomaticResultOutputPath({
       outputPath: args.output,
       artifactRoot: frozen.artifactPaths.root,
+      repoRoot,
     });
 
     const alreadyCommitted = await isCommittedRunImpl(connection, {
@@ -124,6 +140,26 @@ export async function runBaseDomainAutomaticOperation({
       sourceDispatchIdentity,
     });
     if (alreadyCommitted) {
+      let committedArtifactRoot = frozen.artifactPaths.root;
+      if (sourceDispatchIdentity != null) {
+        const original = readVerifiedCommittedAutomaticBundle({
+          repoRoot, manifest: alreadyCommitted, runId, domainId: domain, sourceDispatchIdentity,
+        });
+        if (original.bundle.source.sha256 !== frozen.source.sha256) {
+          throw new Error('committed automatic source does not match the fresh frozen source');
+        }
+        const current = await readCurrentContextImpl(connection, { bundle: original.bundle });
+        if (original.bundle.policy.policySetHash !== activation.policySetHash
+            || original.bundle.policy.policySetHash !== current.policySetHash
+            || original.bundle.policy.policyHash !== current.policyHash
+            || original.bundle.policy.policyVersion !== current.policyVersion
+            || current.currentLevel !== 'L2' || current.operationalState !== 'ACTIVE'
+            || !isDeepStrictEqual(original.bundle.policy.policyJson, current.policyJson)
+            || !isDeepStrictEqual(original.bundle.ownedTables, current.ownedTables)) {
+          throw new Error('committed automatic bundle policy does not match current policy');
+        }
+        committedArtifactRoot = path.dirname(original.bundlePath);
+      }
       const result = await runImportThenAcknowledge({
         alreadyCommitted: true,
         executeImport: async () => { throw new Error('committed automatic run must not execute import'); },
@@ -137,7 +173,7 @@ export async function runBaseDomainAutomaticOperation({
       const completedResult = withBaseSourceAcknowledgement({ ...result, domainId: domain, runId }, sourceMode);
       if (outputPath) writeBaseAutomaticResultOutput({
         outputPath,
-        artifactRoot: frozen.artifactPaths.root,
+        artifactRoot: committedArtifactRoot,
         repoRoot: frozen.artifactPaths.repoRoot,
         payload: completedResult,
         requireProtectedArtifactIdentity: true,
@@ -180,6 +216,8 @@ export async function runBaseDomainAutomaticOperation({
       domain,
       runId,
       progressPath,
+      sourceDispatchIdentity,
+      automaticAttemptIdentity,
     });
     const frozenSourceCheckedAt = readCompletedBaseSourceProgressTimestamp({
       repoRoot,
@@ -210,7 +248,7 @@ export async function runBaseDomainAutomaticOperation({
       sourceCheckedAt: frozenSourceCheckedAt,
       sourceDispatchIdentity,
       reconciliationInput: buildReconciliationInputFromArgs(args)
-        ?? buildAutomaticReconciliationInput(domain, runId),
+        ?? buildAutomaticReconciliationInput(domain, runId, { sourceDispatchIdentity, importPlan: frozen.importPlan }),
     });
     writeBaseAutomaticArtifacts({ frozen, bundle, artifactPaths });
     runnerProgress.publish({ status: 'running', phase: 'database-apply', runId });
@@ -272,8 +310,8 @@ export function buildReconciliationInputFromArgs(args = {}) {
   };
 }
 
-export function buildAutomaticReconciliationInput(domain, runId) {
-  const root = `reports/runtime/l1-reconciliation/${domain}/${runId}`;
+export function buildAutomaticReconciliationInput(domain, runId, binding = {}) {
+  const root = automaticReconciliationRoot({ ...binding, domainId: domain, runId });
   return {
     sourceCoveragePath: `${root}/source-coverage.json`,
     ownedTableReadbackPath: `${root}/owned-table-readback.json`,
@@ -327,38 +365,17 @@ export function buildBaseAutomaticBundle({
   });
 }
 
-export function freezeBaseSourceProgressSnapshot({ repoRoot, domain, runId, progressPath } = {}) {
-  const root = path.resolve(requireText(repoRoot, 'repoRoot'));
-  const sourcePath = assertRepositoryOrdinaryFile({
-    repoRoot: root,
-    filePath: requireText(progressPath, 'progressPath'),
-    label: 'source progress',
+export function freezeBaseSourceProgressSnapshot({
+  repoRoot, domain, runId, progressPath, sourceDispatchIdentity = null, automaticAttemptIdentity = null,
+} = {}) {
+  return freezeAutomaticSourceProgressSnapshot({
+    repoRoot: path.resolve(requireText(repoRoot, 'repoRoot')),
+    progressPath: requireText(progressPath, 'progressPath'),
+    binding: { domainId: domain, runId, sourceDispatchIdentity, importPlan: { automaticAttemptIdentity } },
   });
-  const payload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
-  if (String(payload?.status ?? '').toLowerCase() !== 'completed') {
-    throw new Error('source progress must be terminal before database apply');
-  }
-  const targetPath = assertRepositoryPathConfinement({
-    repoRoot: root,
-    filePath: path.join(
-      root,
-      'reports',
-      'runtime',
-      'l1-reconciliation',
-      requireText(domain, 'domain'),
-      requireText(runId, 'runId'),
-      'source-progress.json',
-    ),
-    label: 'source progress snapshot',
-    createParent: true,
-  });
-  const bytes = Buffer.from(`${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(targetPath, bytes, { mode: 0o600, flag: 'wx' });
-  fs.chmodSync(targetPath, 0o600);
-  return targetPath;
 }
 
-export function readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPath } = {}) {
+export function readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPath, automaticAttemptIdentity = null } = {}) {
   const root = path.resolve(requireText(repoRoot, 'repoRoot'));
   const sourcePath = assertRepositoryOrdinaryFile({
     repoRoot: root,
@@ -366,6 +383,7 @@ export function readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPat
     label: 'source progress',
   });
   const payload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+  assertAutomaticAttemptMatches(payload, automaticAttemptIdentity, 'source progress');
   if (String(payload?.status ?? '').toLowerCase() !== 'completed') {
     throw new Error('source progress must be terminal before automatic diff preview');
   }
@@ -376,16 +394,22 @@ export function freezeBaseAutomaticInput({
   domain,
   sourceFingerprint,
   repoRoot,
+  sourceDispatchIdentity = null,
+  automaticAttemptIdentity = null,
   freezeInputImpl = freezeStandardizedInput,
 }) {
   const runId = buildAutomaticRunId(domain, sourceFingerprint);
   return {
     runId,
-    frozen: freezeInputImpl({ domain, runId, repoRoot }),
+    frozen: freezeInputImpl({ domain, runId, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity }),
   };
 }
 
-export async function isCommittedBaseAutomaticRun(connection, {
+export async function isCommittedBaseAutomaticRun(connection, options) {
+  return Boolean(await readCommittedBaseAutomaticRun(connection, options));
+}
+
+export async function readCommittedBaseAutomaticRun(connection, {
   runId,
   domainId,
   sourceFingerprint,
@@ -419,7 +443,7 @@ export async function isCommittedBaseAutomaticRun(connection, {
     && manifest?.source?.sha256 === source.sha256;
   const derivedRunMatches = runId === buildAutomaticRunId(domainId, sourceFingerprint);
   if (exactFrozenSource || recordedFingerprint === sourceFingerprint && recordedFingerprint != null
-      || recordedFingerprint == null && derivedRunMatches) return true;
+      || recordedFingerprint == null && derivedRunMatches) return manifest;
   throw new Error('committed automatic run evidence does not match frozen source');
 }
 
@@ -431,8 +455,9 @@ function sameSourceDispatchIdentity(actual, expected) {
 }
 
 function runSource({ domain, progressPath, env }) {
-  const command = buildBaseDomainSourceCommand(domain, progressPath);
-  const result = spawnSync(process.execPath, command, {
+  const [script, ...args] = buildBaseDomainSourceCommand(domain, progressPath);
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+  const result = spawnSync(process.execPath, [path.resolve(sourceRoot, script), ...args], {
     cwd: env.WORKTREE_ROOT ?? process.cwd(),
     env: { ...env, TERRAPEDIA_CRAWLER_PROGRESS_PATH: progressPath },
     stdio: 'inherit',
@@ -601,7 +626,7 @@ export function readBaseDomainSourceFingerprint(domain) {
   return `sha256:${createContentHash(moduleContent)}`;
 }
 
-function freezeStandardizedInput({ domain, runId, repoRoot }) {
+function freezeStandardizedInput({ domain, runId, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity }) {
   const datasets = {};
   for (const entity of new Set([domain, 'items'])) {
     const filePath = path.join(repoRoot, 'data', 'standardized', `${entity}.standardized.json`);
@@ -612,7 +637,9 @@ function freezeStandardizedInput({ domain, runId, repoRoot }) {
     datasets[entity] = payload;
   }
   const payload = { schemaVersion: 1, domainId: domain, runId, datasets };
-  const artifactPaths = buildBaseAutomaticArtifactPaths({ repoRoot, domain, runId });
+  const artifactPaths = buildBaseAutomaticArtifactPaths({
+    repoRoot, domain, runId, sourceDispatchIdentity, importPlan: { automaticAttemptIdentity },
+  });
   return {
     source: { path: artifactPaths.sourceRelativePath, sha256: hashFrozenSourcePayload(payload) },
     sourcePayload: payload,
@@ -623,11 +650,12 @@ function freezeStandardizedInput({ domain, runId, repoRoot }) {
       entity: domain,
       recordCount: datasets[domain].records.length,
       itemDependencyCount: datasets.items.records.length,
+      ...(automaticAttemptIdentity == null ? {} : { automaticAttemptIdentity }),
     },
   };
 }
 
-export function buildBaseAutomaticArtifactPaths({ repoRoot, domain, runId } = {}) {
+export function buildBaseAutomaticArtifactPaths({ repoRoot, domain, runId, sourceDispatchIdentity, importPlan } = {}) {
   const root = path.resolve(requireText(repoRoot, 'repoRoot'));
   const domainId = requireBaseAutomaticArtifactDomain(domain);
   const automaticRunId = requireBaseAutomaticArtifactRunId(runId, domainId);
@@ -637,7 +665,7 @@ export function buildBaseAutomaticArtifactPaths({ repoRoot, domain, runId } = {}
     'canonical',
     'automatic',
     domainId,
-    automaticRunId,
+    automaticArtifactRunId({ runId: automaticRunId, sourceDispatchIdentity, importPlan }),
   );
   const artifactRoot = path.resolve(root, relativeRoot);
   return Object.freeze({
@@ -1020,7 +1048,7 @@ export function hashFrozenSourcePayload(value) {
   return `sha256:${createHash('sha256').update(serializeFrozenSourcePayload(value)).digest('hex')}`;
 }
 
-function resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot } = {}) {
+function resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot, repoRoot } = {}) {
   if (!outputPath) return null;
   const resolvedOutputPath = path.resolve(outputPath);
   assertOutputPathHasNoSymbolicLinkAncestor(resolvedOutputPath);
@@ -1028,7 +1056,17 @@ function resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot } = {})
   if (pathsOverlap(resolvedOutputPath, protectedArtifactRoot)) {
     throw new Error('--output must not overlap the protected base automatic artifact directory');
   }
+  assertOutputOutsideImmutableArtifactRoots({ outputPath: resolvedOutputPath, repoRoot });
   return resolvedOutputPath;
+}
+
+function assertOutputOutsideImmutableArtifactRoots({ outputPath, repoRoot }) {
+  const root = path.resolve(requireText(repoRoot, 'repository root'));
+  for (const relativeRoot of ['reports/authorization/canonical/automatic', 'reports/runtime/l1-reconciliation']) {
+    if (pathsOverlap(path.resolve(outputPath), path.resolve(root, relativeRoot))) {
+      throw new Error('--output must not overlap immutable automatic or reconciliation artifacts');
+    }
+  }
 }
 
 function writeBaseAutomaticResultOutput({
@@ -1042,10 +1080,11 @@ function writeBaseAutomaticResultOutput({
     ? bindProtectedBaseAutomaticArtifactDirectory({ repoRoot, artifactRoot })
     : null;
   try {
-    const confinedOutputPath = resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot });
+    const confinedOutputPath = resolveBaseAutomaticResultOutputPath({ outputPath, artifactRoot, repoRoot });
     writeBoundExternalJsonAtomic({
       outputPath: confinedOutputPath,
       protectedArtifact,
+      repoRoot,
       payload,
     });
   } finally {
@@ -1087,7 +1126,7 @@ function isSameOrDescendant(candidatePath, ancestorPath) {
       && !path.isAbsolute(relativePath));
 }
 
-function writeBoundExternalJsonAtomic({ outputPath, protectedArtifact = null, payload } = {}) {
+function writeBoundExternalJsonAtomic({ outputPath, protectedArtifact = null, repoRoot, payload } = {}) {
   assertSecureExternalOutputPublicationSupported();
   const outputDirectory = path.dirname(outputPath);
   const outputName = path.basename(outputPath);
@@ -1104,6 +1143,10 @@ function writeBoundExternalJsonAtomic({ outputPath, protectedArtifact = null, pa
       assertBoundOutputDirectoryDoesNotOverlapArtifact({ directoryFd, protectedArtifact });
     }
     const descriptorDirectoryPath = descriptorDirectoryPathFor(directoryFd);
+    assertOutputOutsideImmutableArtifactRoots({
+      outputPath: path.join(fs.realpathSync(descriptorDirectoryPath), outputName),
+      repoRoot,
+    });
     const destinationPath = path.join(descriptorDirectoryPath, outputName);
     ({ temporaryPath, temporaryFd } = createBoundOutputTemporaryFile({
       descriptorDirectoryPath,

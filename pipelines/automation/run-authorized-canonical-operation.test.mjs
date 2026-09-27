@@ -883,3 +883,17 @@ test('manifest command rejects a dangling symbolic-link output endpoint before d
     fs.rmSync(outsideRoot, { recursive: true, force: true });
   }
 });
+
+test('manifest command rejects a failed Armor image cache result even when child exits zero', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'armor-cache-terminal-'));
+  try {
+    const operationId = 'canonical-armor-image-cache';
+    const outputPath = `reports/authorization/canonical/${operationId}.test.result.json`;
+    const output = path.join(repoRoot, outputPath); fs.mkdirSync(path.dirname(output), { recursive: true });
+    fs.writeFileSync(output, JSON.stringify({ operationId, status: 'FAILED', databaseWrites: false }), { mode: 0o600 });
+    await assert.rejects(runExecutionManifestCommand({ cwd: repoRoot,
+      manifest: { operationId, command: ['node', 'pipelines/workflow/run-armor-image-cache.mjs'], outputPaths: [outputPath] },
+      spawnImpl: async () => ({ exitCode: 0 }),
+    }), /COMPLETED/);
+  } finally { fs.rmSync(repoRoot, { recursive: true, force: true }); }
+});

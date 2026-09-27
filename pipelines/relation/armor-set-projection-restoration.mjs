@@ -48,7 +48,7 @@ const EXPECTED_SOURCE_COUNTS = Object.freeze({
   relationEquipmentEffectAttributes: 320,
 });
 
-const TARGET_COLUMNS = Object.freeze([
+export const ARMOR_SET_PROJECTION_COLUMNS = Object.freeze([
   'id',
   'relation_record_key',
   'text_key',
@@ -80,9 +80,10 @@ const TARGET_COLUMNS = Object.freeze([
   'created_at',
   'updated_at',
 ]);
+const TARGET_COLUMNS = ARMOR_SET_PROJECTION_COLUMNS;
 
 const ARMOR_ROW_FIELDS = Object.freeze(TARGET_COLUMNS.map(toCamel));
-const SOURCE_TABLES = Object.freeze({
+export const ARMOR_SET_PROJECTION_SOURCE_TABLES = Object.freeze({
   relationItems: 'terria_v1_relation.relation_items',
   relationItemImages: 'terria_v1_relation.relation_item_images',
   relationArmorSets: 'terria_v1_relation.relation_armor_sets',
@@ -91,6 +92,7 @@ const SOURCE_TABLES = Object.freeze({
   relationArmorAttributeRows: 'terria_v1_relation.relation_armor_attribute_rows',
   relationEquipmentEffectAttributes: 'terria_v1_relation.relation_equipment_effect_attributes',
 });
+const SOURCE_TABLES = ARMOR_SET_PROJECTION_SOURCE_TABLES;
 
 export function buildArmorSetProjectionRestorationProposal({
   beforeRows = [],
@@ -451,7 +453,7 @@ export function toMysqlDateTime(value) {
   return iso.slice(0, 19).replace('T', ' ');
 }
 
-async function readArmorSourceRows(connection, { forUpdate = false } = {}) {
+export async function readArmorSourceRows(connection, { forUpdate = false } = {}) {
   const result = {};
   for (const [key, table] of Object.entries(SOURCE_TABLES)) {
     const lock = forUpdate ? ' FOR SHARE' : '';

@@ -5,6 +5,8 @@ import com.terraria.skills.service.impl.CrawlerMonitorActionDefinition;
 import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -28,6 +30,7 @@ public class CrawlerAttemptSupervisor {
     private final CrawlerQueueV2Properties properties;
     private final Path worktreeRoot;
     private final Path artifactRoot;
+    private final Path commandRoot;
     private final Clock clock;
     private final CrawlerQueueEngineRouter router;
     private final Map<String, CrawlerAttemptProcessLauncher.ManagedProcess> processes =
@@ -54,6 +57,7 @@ public class CrawlerAttemptSupervisor {
             properties,
             repoRoot,
             repoRoot,
+            repoRoot,
             clock,
             router
         );
@@ -71,6 +75,34 @@ public class CrawlerAttemptSupervisor {
         Clock clock,
         CrawlerQueueEngineRouter router
     ) {
+        this(
+            repository,
+            artifactStore,
+            actionRegistry,
+            launcher,
+            stateMachine,
+            properties,
+            worktreeRoot,
+            artifactRoot,
+            worktreeRoot,
+            clock,
+            router
+        );
+    }
+
+    public CrawlerAttemptSupervisor(
+        CrawlerQueueV2Repository repository,
+        CrawlerAttemptArtifactStore artifactStore,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerAttemptStateMachine stateMachine,
+        CrawlerQueueV2Properties properties,
+        Path worktreeRoot,
+        Path artifactRoot,
+        Path commandRoot,
+        Clock clock,
+        CrawlerQueueEngineRouter router
+    ) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.artifactStore = Objects.requireNonNull(artifactStore, "artifactStore");
         this.actionRegistry = Objects.requireNonNull(actionRegistry, "actionRegistry");
@@ -79,6 +111,7 @@ public class CrawlerAttemptSupervisor {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.worktreeRoot = Objects.requireNonNull(worktreeRoot, "worktreeRoot").toAbsolutePath().normalize();
         this.artifactRoot = Objects.requireNonNull(artifactRoot, "artifactRoot").toAbsolutePath().normalize();
+        this.commandRoot = Objects.requireNonNull(commandRoot, "commandRoot").toAbsolutePath().normalize();
         this.clock = Objects.requireNonNull(clock, "clock");
         this.router = Objects.requireNonNull(router, "router");
     }
@@ -166,6 +199,7 @@ public class CrawlerAttemptSupervisor {
                     launchArtifactPath(current.artifacts().progressPath()),
                     effectiveResumeMode(current, queue, definition)
                 ));
+                command = resolveCommandFromRoot(command);
                 environment = launchEnvironment(current);
             } catch (RuntimeException exception) {
                 return terminalizeStartFailure(current, "launch validation failed", exception);
@@ -411,6 +445,30 @@ public class CrawlerAttemptSupervisor {
             }
         }
         return definition.defaultResumeMode();
+    }
+
+    private List<String> resolveCommandFromRoot(List<String> command) {
+        if (commandRoot.equals(worktreeRoot)) {
+            return command;
+        }
+        if (command.size() < 2 || !"node".equals(command.get(0))) {
+            throw new SecurityException("configured V2 command root requires a registered node entrypoint");
+        }
+        Path entrypoint = Path.of(command.get(1));
+        if (entrypoint.isAbsolute()) {
+            throw new SecurityException("registered V2 node entrypoint must be relative to the command root");
+        }
+        Path resolved = commandRoot.resolve(entrypoint).normalize();
+        if (!resolved.startsWith(commandRoot)
+            || Files.isSymbolicLink(commandRoot)
+            || !Files.isDirectory(commandRoot, LinkOption.NOFOLLOW_LINKS)
+            || Files.isSymbolicLink(resolved)
+            || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) {
+            throw new SecurityException("configured V2 command root does not contain a regular registered entrypoint");
+        }
+        List<String> resolvedCommand = new ArrayList<>(command);
+        resolvedCommand.set(1, resolved.toString());
+        return List.copyOf(resolvedCommand);
     }
 
     private CrawlerQueueV2Attempt mutateProgress(

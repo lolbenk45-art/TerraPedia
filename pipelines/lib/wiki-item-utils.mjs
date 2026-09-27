@@ -366,7 +366,7 @@ export async function fetchWikiImageInfo({
   url.searchParams.set('action', 'query');
   url.searchParams.set('titles', normalizedTitle);
   url.searchParams.set('prop', 'imageinfo');
-  url.searchParams.set('iiprop', 'url|size|mime');
+  url.searchParams.set('iiprop', 'url|size|mime|timestamp');
   url.searchParams.set('format', 'json');
   url.searchParams.set('formatversion', '2');
 
@@ -384,6 +384,7 @@ export async function fetchWikiImageInfo({
     fileTitle: page.title ?? normalizedTitle,
     url: imageinfo.url,
     descriptionUrl: imageinfo.descriptionurl ?? null,
+    revisionTimestamp: imageinfo.timestamp ?? null,
     mime: imageinfo.mime ?? null,
     width: imageinfo.width ?? null,
     height: imageinfo.height ?? null,

@@ -1,21 +1,41 @@
 #!/usr/bin/env node
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalServerFingerprint } from './automation-database-contract.mjs';
 import { canonicalizePolicySet, computePolicySetHash } from './policy-set-hash.mjs';
+import {
+  normalizeSchedulerCanaryAction,
+  sha256Json,
+} from './crawler-v2-scheduler-activation-preflight.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
-import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 
 const OPERATION_ID = 'automation-crawler-v2-scheduler-activation';
 const DOMAIN_ID = 'crawler_v2_scheduler';
 const DATABASE_NAME = 'terria_v1_local';
 const MINIMUM_SUCCESSFUL_L1_RUNS = 2;
+const REQUEST_OPERATION_ID = 'canonical-crawler-v2-scheduler-activation';
+const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const SCHEDULER_DOMAINS = Object.freeze([
+  ['items', 'wiki-items-refresh'], ['npcs', 'wiki-npcs-refresh'],
+  ['projectiles', 'wiki-projectiles-refresh'], ['armor_sets', 'domain-source-armor-sets'],
+  ['buffs', 'buff-page-immunity-refresh'], ['audio', 'wiki-audio-assets-refresh'],
+  ['bosses', 'domain-source-bosses'], ['shimmer', 'domain-source-shimmer'],
+].map(([domainId, actionId]) => ({ domainId, actionId })));
 
-export function buildCrawlerV2SchedulerActivationSnapshot({ policyRows, serverFingerprint } = {}) {
+export function buildCrawlerV2SchedulerActivationSnapshot({
+  policyRows,
+  serverFingerprint,
+  request,
+  authorizationRequest = null,
+} = {}) {
   if (!Array.isArray(policyRows)) throw new Error('policy rows must be an array');
   const scheduler = policyRows.find((row) => row?.domainId === DOMAIN_ID);
   if (!scheduler || scheduler.currentLevel !== 'L1' || scheduler.operationalState !== 'ACTIVE') {
@@ -24,6 +44,24 @@ export function buildCrawlerV2SchedulerActivationSnapshot({ policyRows, serverFi
   const canonicalPolicyRows = canonicalizePolicySet(policyRows);
   const policy = canonicalPolicyRows.find((row) => row.domainId === DOMAIN_ID);
   if (!policy) throw new Error('crawler_v2_scheduler policy is missing');
+  if (request?.operationId !== REQUEST_OPERATION_ID || !HASH_PATTERN.test(request?.requestHash ?? '')) {
+    throw new Error('scheduler canary authorization request is invalid');
+  }
+  const canary = normalizeSchedulerCanaryAction(request.canary?.actionId, SCHEDULER_DOMAINS);
+  if (request.canary?.domainId !== canary.domainId) {
+    throw new Error('scheduler canary request domain does not match its action');
+  }
+  const authorizedActionId = requireText(
+    request.requested?.canaryActionId,
+    'scheduler requested canary actionId',
+  );
+  if (authorizedActionId !== canary.actionId) {
+    throw new Error('scheduler requested canary action does not match its scope');
+  }
+  const requestIdentity = authorizationRequest ?? { requestHash: request.requestHash };
+  if (requestIdentity.requestHash !== request.requestHash) {
+    throw new Error('scheduler canary authorization request identity drifted');
+  }
   const fingerprint = canonicalServerFingerprint(serverFingerprint);
   return Object.freeze({
     input: Object.freeze({
@@ -35,6 +73,9 @@ export function buildCrawlerV2SchedulerActivationSnapshot({ policyRows, serverFi
       policyVersion: policy.policyVersion,
       policyHash: policy.policyHash,
       minimumSuccessfulL1Runs: MINIMUM_SUCCESSFUL_L1_RUNS,
+      canary,
+      authorizedActionId,
+      authorizationRequest: requestIdentity,
     }),
     policyRows: Object.freeze(canonicalPolicyRows),
     serverFingerprint: fingerprint,
@@ -78,11 +119,16 @@ export async function captureCrawlerV2SchedulerActivationInputCli({
   mysqlModule = null,
 } = {}) {
   const args = parseArgs(argv);
+  if (!args.request) throw new Error('--request=<path> is required');
   const outputPaths = {
     inputPath: requireText(args.input, '--input'),
     policyRowsPath: requireText(args['policy-rows'], '--policy-rows'),
     serverFingerprintPath: requireText(args['server-fingerprint'], '--server-fingerprint'),
   };
+  const request = readSchedulerAuthorizationRequest({
+    repoRoot: env.WORKTREE_ROOT ?? process.cwd(),
+    requestPath: requireText(args.request, '--request'),
+  });
   const connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env));
   let transactionOpen = false;
   try {
@@ -104,6 +150,8 @@ export async function captureCrawlerV2SchedulerActivationInputCli({
         serverUuid: serverRows?.[0]?.serverUuid,
         databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
       },
+      request: request.payload,
+      authorizationRequest: request.identity,
     });
     const outputs = writeCrawlerV2SchedulerActivationSnapshot({
       repoRoot: env.WORKTREE_ROOT ?? process.cwd(),
@@ -152,6 +200,56 @@ function parseArgs(argv) {
     const [key, ...rest] = value.slice(2).split('=');
     return [key, rest.join('=')];
   }));
+}
+
+function readSchedulerAuthorizationRequest({ repoRoot, requestPath }) {
+  const root = path.resolve(repoRoot);
+  const requested = path.resolve(root, requestPath);
+  const canonicalRoot = path.resolve(root, 'reports', 'authorization', 'canonical');
+  if (!requested.startsWith(`${canonicalRoot}${path.sep}`)) {
+    throw new Error('scheduler authorization request must remain under reports/authorization/canonical');
+  }
+  const confined = assertRepositoryOrdinaryFile({ repoRoot: root, filePath: requested, label: 'scheduler authorization request' });
+  if ((fs.lstatSync(confined).mode & 0o077) !== 0) throw new Error('scheduler authorization request must be private');
+  const bytes = fs.readFileSync(confined);
+  let payload;
+  try { payload = JSON.parse(bytes.toString('utf8')); } catch { throw new Error('scheduler authorization request must contain valid JSON'); }
+  assertSchedulerAuthorizationRequestEnvelope(payload);
+  return {
+    payload,
+    identity: {
+      path: requestPath,
+      fileSha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+      requestHash: payload?.requestHash,
+    },
+  };
+}
+
+function assertSchedulerAuthorizationRequestEnvelope(request) {
+  if (!request || typeof request !== 'object' || Array.isArray(request)) {
+    throw new Error('scheduler authorization request must be an object');
+  }
+  if (request.schemaVersion !== 1
+      || request.requestKind !== 'scheduler_activation_authorization'
+      || request.operationId !== REQUEST_OPERATION_ID
+      || request.authorizationStatus !== 'AWAITING_OWNER'
+      || request.databaseWrites !== false
+      || request.networkAccess !== false
+      || request.isolatedResourceWrites !== false) {
+    throw new Error('scheduler authorization request envelope is invalid');
+  }
+  if (!HASH_PATTERN.test(request.requestHash ?? '')) {
+    throw new Error('scheduler authorization request hash is invalid');
+  }
+  const { requestHash, ...payload } = request;
+  if (sha256Json(payload) !== requestHash) {
+    throw new Error('scheduler authorization request hash or content mismatch');
+  }
+  const generatedAt = Date.parse(request.generatedAt ?? '');
+  const expiresAt = Date.parse(request.expiresAt ?? '');
+  if (!Number.isFinite(generatedAt) || !Number.isFinite(expiresAt) || expiresAt <= generatedAt) {
+    throw new Error('scheduler authorization request timestamps are invalid');
+  }
 }
 
 function resolveAuthorizationOutput(repoRoot, outputPath) {

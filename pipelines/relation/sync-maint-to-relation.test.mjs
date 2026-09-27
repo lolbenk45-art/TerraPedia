@@ -6,11 +6,60 @@ import path from 'node:path';
 
 import {
   buildCanonicalItemGroupRelationProjection,
+  buildArmorAttributeEffectRows,
+  buildArmorAttributeRelations,
   parseArgs,
   readWikiArmorSets,
   rewriteArmorSetRelatedItemImages,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
+
+test('buildArmorAttributeEffectRows keeps class-specific critical cells typed by class', () => {
+  const rows = buildArmorAttributeEffectRows([{
+    recordKey: 'a'.repeat(64),
+    itemId: 728,
+    itemInternalName: 'WoodBreastplate',
+    itemNameZh: '木胸甲',
+    slotGroup: 'body',
+    rawCellsJson: JSON.stringify({
+      meleeCritChance: '+5%',
+      rangedCritChance: '+6%',
+      magicCritChance: '+7%'
+    })
+  }]);
+
+  assert.deepEqual(rows.map((row) => [row.statKey, row.classScope]), [
+    ['crit_chance', 'melee'],
+    ['crit_chance', 'ranged'],
+    ['crit_chance', 'magic']
+  ]);
+});
+
+test('buildArmorAttributeRelations reconciles a stale source slot to one exact armor-set part role', () => {
+  const rows = buildArmorAttributeRelations({
+    maintArmorAttributeRows: [{
+      record_key: 'b'.repeat(64),
+      item_name_zh: '木胸甲',
+      item_page_title: '木胸甲',
+      slot_group: 'head',
+      raw_cells_json: '{}'
+    }],
+    maintItems: [{
+      source_id: 728,
+      internal_name: 'WoodBreastplate',
+      name_zh: '木胸甲',
+      raw_json: '{}'
+    }],
+    relationArmorSetItems: [{
+      item_source_id: 728,
+      item_internal_name: 'WoodBreastplate',
+      part_role: 'body'
+    }]
+  });
+
+  assert.equal(rows[0].slotGroup, 'body');
+  assert.equal(rows[0].reason, 'reconciled_slot_group_from_relation_armor_set_item');
+});
 
 test('buildNpcCrawlerFactRelationInputs reconstructs non-empty shop, loot, and buff inputs', async () => {
   const { buildNpcCrawlerFactRelationInputs } = await import('./sync-maint-to-relation.mjs');
@@ -285,7 +334,7 @@ test('runSync creates item-owned armor attribute effects from wiki armor attribu
       itemInternalName: 'HallowedMask',
       slotType: 'headSlot',
       statKey: 'crit_chance',
-      classScope: 'all',
+      classScope: 'melee',
       valueDecimal: 10,
       unit: 'percent'
     },
@@ -466,7 +515,7 @@ test('runSync derives ancient hallowed armor attribute effects from hallowed wik
       ownerKey: 'HallowedMask',
       itemInternalName: 'HallowedMask',
       statKey: 'crit_chance',
-      classScope: 'all',
+      classScope: 'melee',
       valueDecimal: 10
     },
     {
@@ -490,7 +539,7 @@ test('runSync derives ancient hallowed armor attribute effects from hallowed wik
       ownerKey: 'AncientHallowedMask',
       itemInternalName: 'AncientHallowedMask',
       statKey: 'crit_chance',
-      classScope: 'all',
+      classScope: 'melee',
       valueDecimal: 10
     },
     {

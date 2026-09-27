@@ -243,3 +243,26 @@ function runNodeModule(source, options = {}) {
     child.on('close', (code) => resolve({ code, stdout, stderr }));
   });
 }
+
+test('fetchWikiImageInfo requests and preserves the file revision, leaving absent evidence null', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-image-revision-'));
+  const moduleUrl = new URL('./wiki-item-utils.mjs', import.meta.url).href;
+  const result = await runNodeModule(`
+    const calls = [];
+    globalThis.fetch = async (url) => {
+      calls.push(new URL(url).searchParams.get('iiprop'));
+      const image = { url: 'https://terraria.wiki.gg/images/Wood_armor.png', width: 64, height: 64, mime: 'image/png' };
+      if (calls.length === 1) image.timestamp = '2026-06-01T12:34:56Z';
+      return new Response(JSON.stringify({ query: { pages: [{ title: 'File:Wood armor.png', imageinfo: [image] }] } }));
+    };
+    const { fetchWikiImageInfo } = await import(${JSON.stringify(moduleUrl)});
+    const present = await fetchWikiImageInfo({ fileTitle: 'Wood armor.png' });
+    const missing = await fetchWikiImageInfo({ fileTitle: 'Wood armor.png' });
+    console.log(JSON.stringify({ calls, present, missing }));
+  `, { env: { ...process.env, WORKTREE_ROOT: tempDir, TERRAPEDIA_SHARED_DATA_ROOT: tempDir } });
+  assert.equal(result.code, 0, result.stderr);
+  const actual = JSON.parse(result.stdout);
+  assert.ok(actual.calls.every(value => value.split('|').includes('timestamp')), 'request must ask for real file revision');
+  assert.equal(actual.present.revisionTimestamp, '2026-06-01T12:34:56Z');
+  assert.equal(actual.missing.revisionTimestamp, null);
+});

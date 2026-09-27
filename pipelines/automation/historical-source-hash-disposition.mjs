@@ -492,6 +492,102 @@ export function writeHistoricalSourceHashDisposition({
   });
 }
 
+export function writeHistoricalSourceHashDispositionCandidate({
+  repoRoot = process.cwd(),
+  candidate,
+} = {}) {
+  assertCandidate(candidate);
+  const root = path.resolve(repoRoot);
+  const outputPath = path.resolve(
+    root,
+    DISPOSITION_ROOT,
+    candidate.domainId,
+    candidate.artifactHash.slice(7),
+    'candidate.json',
+  );
+  const confined = assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: outputPath,
+    label: 'historical source hash disposition candidate',
+    createParent: true,
+  });
+  assertNoExistingEntry(confined, 'historical source hash disposition candidate');
+  const bytes = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(confined, bytes, { mode: 0o600, flag: 'wx' });
+  return Object.freeze({
+    path: path.relative(root, confined).replaceAll('\\', '/'),
+    sha256: byteHash(bytes),
+    artifactHash: candidate.artifactHash,
+  });
+}
+
+export function prepareHistoricalSourceHashDispositionAuthorization({
+  repoRoot = process.cwd(),
+  candidate,
+  policyRows,
+  serverFingerprint,
+} = {}) {
+  assertCandidate(candidate);
+  if (!Array.isArray(policyRows) || computePolicySetHash(policyRows) !== candidate.currentPolicy.policySetHash) {
+    throw new Error('historical disposition policy rows do not match the candidate policy set');
+  }
+  if (!serverFingerprint || typeof serverFingerprint !== 'object' || Array.isArray(serverFingerprint)) {
+    throw new Error('historical disposition server fingerprint is required');
+  }
+  const root = path.resolve(repoRoot);
+  const relativeRoot = `${DISPOSITION_ROOT}${candidate.domainId}/${candidate.artifactHash.slice(7)}`;
+  const paths = {
+    candidatePath: `${relativeRoot}/candidate.json`,
+    policyRowsPath: `${relativeRoot}/policy-rows.json`,
+    serverFingerprintPath: `${relativeRoot}/server-fingerprint.json`,
+    executionManifestPath: `${relativeRoot}/execution-manifest.json`,
+  };
+  const candidateBytes = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`, 'utf8');
+  const executionManifest = {
+    schemaVersion: 1,
+    operationId: HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID,
+    executionClass: 'historical_source_hash_disposition',
+    command: ['node', 'pipelines/automation/historical-source-hash-disposition.mjs'],
+    inputPaths: [paths.candidatePath],
+    outputPaths: [],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: false,
+    networkAccess: false,
+    historicalSourceHashDisposition: {
+      candidatePath: paths.candidatePath,
+      candidateFileSha256: byteHash(candidateBytes),
+      candidateArtifactHash: candidate.artifactHash,
+    },
+    scope: {
+      domainId: candidate.domainId,
+      runId: candidate.entries[0].runId,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+  };
+  const outputs = [
+    [paths.candidatePath, candidateBytes],
+    [paths.policyRowsPath, Buffer.from(`${JSON.stringify(policyRows, null, 2)}\n`, 'utf8')],
+    [paths.serverFingerprintPath, Buffer.from(`${JSON.stringify(serverFingerprint, null, 2)}\n`, 'utf8')],
+    [paths.executionManifestPath, Buffer.from(`${JSON.stringify(executionManifest, null, 2)}\n`, 'utf8')],
+  ].map(([relativePath, bytes]) => [
+    assertRepositoryPathConfinement({
+      repoRoot: root,
+      filePath: path.resolve(root, relativePath),
+      label: 'historical disposition authorization preparation output',
+      createParent: true,
+    }),
+    bytes,
+  ]);
+  for (const [outputPath] of outputs) assertNoExistingEntry(outputPath, 'historical disposition authorization preparation output');
+  for (const [outputPath, bytes] of outputs) fs.writeFileSync(outputPath, bytes, { mode: 0o600, flag: 'wx' });
+  return Object.freeze({
+    ...paths,
+    candidateFileSha256: byteHash(candidateBytes),
+    executionManifest,
+  });
+}
+
 export function readHistoricalSourceHashDisposition({
   repoRoot = process.cwd(),
   dispositionPath,

@@ -576,8 +576,9 @@ function buildDomainImportPlan(domainId, sourcePayload, sourceResult) {
 }
 
 function runNode([script, ...args], { cwd, env }) {
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [script, ...args], {
+    const child = spawn(process.execPath, [path.resolve(sourceRoot, script), ...args], {
       cwd,
       env: { ...process.env, ...env },
       stdio: ['ignore', 'inherit', 'inherit'],

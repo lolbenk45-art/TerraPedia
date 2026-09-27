@@ -19,7 +19,8 @@ const EXCLUSIVE_PARTITIONS = Object.freeze({
   }),
   landing_dataset: Object.freeze({
     resolver: 'resolveLandingDataset',
-    partitions: new Set(['npcs_base', 'npc_crawler_facts', 'other']),
+    resolverVersion: 2,
+    partitions: new Set(['npcs_base', 'npc_crawler_facts', 'armor_sets', 'armor_set_images', 'other']),
   }),
 });
 
@@ -76,7 +77,8 @@ function predicateAll() {
 }
 
 function predicatePartition(group, partition) {
-  return Object.freeze({ kind: 'partition', group, partition, resolver: EXCLUSIVE_PARTITIONS[group].resolver, resolverVersion: 1 });
+  const spec = EXCLUSIVE_PARTITIONS[group];
+  return Object.freeze({ kind: 'partition', group, partition, resolver: spec.resolver, resolverVersion: spec.resolverVersion ?? 1 });
 }
 
 function predicateSerializedSingleton(mutex, singletonKey) {
@@ -201,12 +203,14 @@ const localRows = [
     key: `local.${table}`, capability, databaseRole: 'local', table
   })),
   ...[
-    ['npcs_base', 'npcs_base'],
-    ['npc_crawler_facts', 'npc_crawler_facts'],
-    ['other', 'other'],
-  ].map(([keySuffix, partition]) => row({
+    ['npcs_base', 'npcs_base', 'landing'],
+    ['npc_crawler_facts', 'npc_crawler_facts', 'landing'],
+    ['armor_sets', 'armor_sets', 'armor_sets'],
+    ['armor_set_images', 'armor_set_images', 'armor_sets'],
+    ['other', 'other', 'landing'],
+  ].map(([keySuffix, partition, capability]) => row({
     key: `local.source_dataset_landings.${keySuffix}`,
-    capability: 'landing',
+    capability,
     databaseRole: 'local',
     table: 'source_dataset_landings',
     logicalPredicate: predicatePartition('landing_dataset', partition),
@@ -278,11 +282,16 @@ function predicatesAreCertifiedDisjoint(left, right) {
   const rightPredicate = right.logicalPredicate;
   if (leftPredicate.kind !== 'partition' || rightPredicate.kind !== 'partition') return false;
   if (leftPredicate.group !== rightPredicate.group) return false;
-  const partitions = EXCLUSIVE_PARTITIONS[leftPredicate.group]?.partitions;
-  return Boolean(partitions
-    && partitions.has(leftPredicate.partition)
-    && partitions.has(rightPredicate.partition)
+  return Boolean(isCurrentPartition(leftPredicate)
+    && isCurrentPartition(rightPredicate)
     && leftPredicate.partition !== rightPredicate.partition);
+}
+
+function isCurrentPartition(predicate) {
+  const spec = EXCLUSIVE_PARTITIONS[predicate.group];
+  return Boolean(spec?.partitions.has(predicate.partition)
+    && predicate.resolver === spec.resolver
+    && predicate.resolverVersion === (spec.resolverVersion ?? 1));
 }
 
 function predicatesShareCertifiedSerialization(left, right) {
@@ -340,9 +349,7 @@ export function validateOwnershipMatrix(rows = TABLE_OWNERSHIP_MATRIX) {
     }
     const predicate = requireStructuredPredicate(entry.logicalPredicate, entry.key);
     if (predicate.kind === 'partition') {
-      const partitionSpec = EXCLUSIVE_PARTITIONS[predicate.group];
-      if (!partitionSpec?.partitions.has(predicate.partition)
-        || predicate.resolver !== partitionSpec.resolver || predicate.resolverVersion !== 1) {
+      if (!isCurrentPartition(predicate)) {
         throw new Error(`unknown predicate partition or resolver for ${entry.key}`);
       }
     }
@@ -391,6 +398,7 @@ export function matchesOwnershipPredicate(entry, candidate) {
   if (predicate.kind === 'serialized_singleton') {
     return Number(candidate.singletonKey ?? candidate.singleton_key) === predicate.singletonKey;
   }
+  if (!isCurrentPartition(predicate)) return false;
   const resolver = {
     resolveNpcKind: (value) => {
       const marker = value.isTownNpc ?? value.is_town_npc;
@@ -411,10 +419,15 @@ export function matchesOwnershipPredicate(entry, candidate) {
       return null;
     },
     resolveLandingDataset: (value) => {
+      if (Object.hasOwn(value, 'datasetType') && Object.hasOwn(value, 'dataset_type')
+        && value.datasetType !== value.dataset_type) return null;
       const datasetType = value.datasetType ?? value.dataset_type;
+      if (typeof datasetType !== 'string' || !datasetType || datasetType.trim() !== datasetType) return null;
       if (datasetType === 'npcs_base_raw') return 'npcs_base';
       if (datasetType === 'npc_crawler_facts_raw') return 'npc_crawler_facts';
-      return datasetType ? 'other' : null;
+      if (datasetType === 'armor_sets_raw') return 'armor_sets';
+      if (datasetType === 'armor_set_images_raw') return 'armor_set_images';
+      return 'other';
     },
   }[predicate.resolver];
   if (!resolver) return false;

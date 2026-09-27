@@ -4,25 +4,43 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
-import { buildRelationSchemaStatements } from './relation-schema.mjs';
-import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import { buildBuffEntityRelations } from './buff-entity-processor.mjs';
+import { normalizeText } from './relation-trace.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
+import { isManagedImagePath, normalizeManagedImageUrlPrefixes } from './managed-image-url-policy.mjs';
 
 const repoRoot = getProjectRoot();
 const moduleRequire = createRequire(import.meta.url);
 let mysqlModule = null;
 
-const BUFF_RELATION_TABLES = [
+const BUFF_INCREMENTAL_TABLES = Object.freeze([
+  'relation_buffs',
   'item_buff_relations',
   'npc_buff_relations',
+  'relation_buff_images',
   'projection_buffs',
-  'relation_buffs',
-];
+]);
+const PAYLOAD_TABLES = Object.freeze({
+  relation_buffs: 'relationBuffs',
+  item_buff_relations: 'itemBuffRelations',
+  npc_buff_relations: 'npcBuffRelations',
+  relation_buff_images: 'relationBuffImages',
+  projection_buffs: 'projectionBuffs',
+});
+const TRACE_COLUMNS = 'source_maint_table source_maint_record_key source_maint_id landing_source_id landing_source_key landing_content_hash source_provider source_page source_revision_timestamp';
+const AUDIT_COLUMNS = 'id record_key confidence reason review_status raw_json status deleted created_at updated_at';
+const CANDIDATE_COLUMNS = Object.freeze({
+  relation_buffs: `${TRACE_COLUMNS} ${AUDIT_COLUMNS} source_id internal_name english_name name_zh buff_type tooltip_en tooltip_zh source_item_count immune_npc_count source_items_json inflicting_npcs_json immune_npcs_json immune_npc_sample_json source_evidence_json`,
+  item_buff_relations: `${TRACE_COLUMNS} ${AUDIT_COLUMNS} item_source_id item_internal_name buff_source_id buff_internal_name relation_type duration_ticks chance_value chance_text conditions`,
+  npc_buff_relations: `${TRACE_COLUMNS} ${AUDIT_COLUMNS} npc_source_id npc_internal_name npc_name buff_source_id buff_internal_name relation_type duration_ticks chance_value chance_text conditions`,
+  relation_buff_images: `${TRACE_COLUMNS} ${AUDIT_COLUMNS} buff_internal_name buff_name role source_file_title original_url cached_url width height content_type is_primary sort_order`,
+  projection_buffs: 'id relation_record_key source_id internal_name english_name name_zh tooltip_en tooltip_zh image buff_type source_item_count immune_npc_count source_items_json inflicting_npcs_json immune_npcs_json immune_npc_sample_json source_evidence_json status deleted created_at updated_at',
+});
 
 function loadMysqlModule() {
   if (mysqlModule) return mysqlModule;
@@ -58,7 +76,9 @@ function camelToSnake(value) {
 function mapRowToDb(row) {
   const mapped = {};
   for (const [key, value] of Object.entries(row)) {
-    mapped[camelToSnake(key)] = value;
+    const column = camelToSnake(key);
+    if (Object.hasOwn(mapped, column)) throw new Error(`duplicate column alias: ${column}`);
+    mapped[column] = value;
   }
   return mapped;
 }
@@ -68,83 +88,444 @@ async function queryRows(connection, sql) {
   return rows;
 }
 
-async function upsertRows(connection, tableName, rows) {
-  if (!rows || rows.length === 0) return 0;
-  let total = 0;
-  for (const row of rows) {
-    const mapped = mapRowToDb(row);
-    const columns = Object.keys(mapped);
-    const placeholders = columns.map(() => '?').join(', ');
-    const updates = columns
-      .filter((column) => column !== 'record_key')
-      .map((column) => `\`${column}\` = VALUES(\`${column}\`)`)
-      .join(', ');
-    const sql = `
-INSERT INTO \`${tableName}\` (${columns.map((column) => `\`${column}\``).join(', ')})
-VALUES (${placeholders})
-ON DUPLICATE KEY UPDATE ${updates || '`record_key` = VALUES(`record_key`)'}
-`.trim();
-    await connection.execute(sql, columns.map((column) => mapped[column]));
-    total += 1;
+function parseRequiredJson(value, label, array = false) {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try { parsed = JSON.parse(value); } catch { throw new Error(`invalid ${label} JSON`); }
   }
-  return total;
+  if (array ? !Array.isArray(parsed) : !parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`invalid ${label} ${array ? 'array' : 'object'}`);
+  }
+  return parsed;
 }
 
-async function clearBuffRelationTables(connection) {
-  await connection.query('SET FOREIGN_KEY_CHECKS = 0');
-  try {
-    for (const tableName of BUFF_RELATION_TABLES) {
-      await connection.query(`DELETE FROM \`${tableName}\``);
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value instanceof Date) return value.toISOString();
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+
+function equalJson(left, right) {
+  return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
+}
+
+function requiredText(value, label) {
+  if (typeof value !== 'string' || !value.trim() || value !== value.trim()) throw new Error(`missing or invalid ${label}`);
+  return value;
+}
+
+export function normalizeBuffPageEvidence({ evidence } = {}) {
+  if (!evidence) throw new Error('buff page immunity evidence is missing');
+  const sourceEvidence = parseRequiredJson(evidence.sourceEvidence, 'source evidence');
+  const parseStatus = sourceEvidence.parseStatus;
+  const group = sourceEvidence.factGroups?.immuneNpcs;
+  if (parseStatus !== 'parsed' || !Array.isArray(sourceEvidence.unresolvedFacts) || sourceEvidence.unresolvedFacts.length > 0) {
+    throw new Error('buff page immunity evidence is incomplete');
+  }
+  if (group?.status !== 'parsed' || !Array.isArray(group.sections) || group.sections.length === 0) {
+    throw new Error('buff page immunity evidence requires a parsed immunity section');
+  }
+  const immuneNpcs = parseRequiredJson(evidence.immuneNpcs, 'immunity list', true);
+  const immuneNpcSample = parseRequiredJson(evidence.immuneNpcSample, 'immunity sample', true);
+  const count = evidence.immuneNpcCount;
+  if (!Number.isSafeInteger(count) || count < 0 || count !== immuneNpcs.length || group.count !== count) {
+    throw new Error('buff page immunity count is inconsistent');
+  }
+  const identities = immuneNpcs.map((row) => requiredText(row?.pageTitle ?? row?.internalName, 'immunity NPC identity'));
+  if (new Set(identities).size !== identities.length) throw new Error('duplicate immunity NPC identity');
+  if (immuneNpcSample.length > count || !equalJson(immuneNpcSample, immuneNpcs.slice(0, immuneNpcSample.length))) {
+    throw new Error('buff page immunity sample is inconsistent');
+  }
+  const sourcePage = requiredText(sourceEvidence.canonicalPageTitle, 'page evidence canonical page');
+  requiredText(sourceEvidence.pageTitle, 'page evidence page title');
+  if (sourceEvidence.provider !== 'terraria.wiki.gg') throw new Error('buff page evidence provider mismatch');
+  if (!Number.isSafeInteger(sourceEvidence.revisionId) || sourceEvidence.revisionId <= 0
+      || typeof sourceEvidence.revisionTimestamp !== 'string'
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(sourceEvidence.revisionTimestamp)
+      || !Number.isFinite(Date.parse(sourceEvidence.revisionTimestamp))) {
+    throw new Error('buff page evidence revision identity is missing or invalid');
+  }
+  const buffId = evidence.buffId ?? evidence.id;
+  if (!Number.isSafeInteger(Number(buffId)) || Number(buffId) <= 0
+      || (evidence.buffId != null && evidence.id != null && Number(evidence.buffId) !== Number(evidence.id))) {
+    throw new Error('buff page evidence buff identity is missing or invalid');
+  }
+  return {
+    buffId: Number(buffId),
+    sourcePage,
+    revisionId: sourceEvidence.revisionId,
+    revisionTimestamp: sourceEvidence.revisionTimestamp,
+    parseStatus,
+    hasImmuneSection: true,
+    immuneNpcCount: count,
+    immuneNpcs,
+    immuneNpcSample,
+    sourceEvidence,
+  };
+}
+
+export function buildBuffIncrementalMutationPlan({
+  currentRows,
+  payload,
+  landingRows = [],
+  pageEvidenceByInternalName = new Map(),
+  managedImageUrlPrefixes = [],
+} = {}) {
+  if (!payload || Object.keys(payload).some((key) => ![...Object.values(PAYLOAD_TABLES), 'issues'].includes(key))
+      || Object.values(PAYLOAD_TABLES).some((key) => !Array.isArray(payload[key]))) {
+    throw new Error('buff candidate payload table set is invalid');
+  }
+  if (!currentRows || BUFF_INCREMENTAL_TABLES.some((table) => !Array.isArray(currentRows[table]))) {
+    throw new Error('buff candidate requires a complete current table snapshot');
+  }
+  if (Object.keys(currentRows).some((table) => !BUFF_INCREMENTAL_TABLES.includes(table))) throw new Error('unrelated baseline table');
+  if (!Array.isArray(payload.issues) || payload.issues.length > 0) throw new Error('buff candidate has unresolved facts');
+  const prefixes = normalizeManagedImageUrlPrefixes(managedImageUrlPrefixes);
+  if (!Array.isArray(managedImageUrlPrefixes) || prefixes.length === 0
+      || managedImageUrlPrefixes.some((prefix) => normalizeManagedImageUrlPrefixes([prefix]).length !== 1)) {
+    throw new Error('buff managed image prefixes are missing or invalid');
+  }
+  const candidates = Object.fromEntries(BUFF_INCREMENTAL_TABLES.map((table) => [table, payload[PAYLOAD_TABLES[table]].map(mapRowToDb)]));
+  const baseline = Object.fromEntries(BUFF_INCREMENTAL_TABLES.map((table) => [table, currentRows[table].map(mapRowToDb)]));
+  for (const table of BUFF_INCREMENTAL_TABLES) {
+    const allowed = new Set(CANDIDATE_COLUMNS[table].split(' '));
+    if (candidates[table].some((row) => Object.keys(row).some((column) => !allowed.has(column)))) {
+      throw new Error(`unowned candidate column in ${table}`);
     }
-  } finally {
-    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
+    indexRows(candidates[table], table);
+    indexRows(baseline[table], table);
   }
-}
-
-async function getTableColumns(connection, databaseName, tableName) {
-  const [rows] = await connection.query(
-    'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = ? AND table_name = ?',
-    [databaseName, tableName]
-  );
-  return new Set(rows.map((row) => row.COLUMN_NAME));
-}
-
-async function ensureBuffRelationMigrations(connection, databaseName) {
-  const migrations = [
-    {
-      tableName: 'relation_buffs',
-      columns: [
-        ['inflicting_npcs_json', 'LONGTEXT AFTER `source_items_json`'],
-        ['source_evidence_json', 'LONGTEXT AFTER `immune_npc_sample_json`'],
-      ],
-    },
-    {
-      tableName: 'projection_buffs',
-      columns: [
-        ['inflicting_npcs_json', 'LONGTEXT AFTER `source_items_json`'],
-        ['source_evidence_json', 'LONGTEXT AFTER `immune_npc_sample_json`'],
-      ],
-    },
-  ];
-  for (const migration of migrations) {
-    const columns = await getTableColumns(connection, databaseName, migration.tableName);
-    for (const [columnName, ddl] of migration.columns) {
-      if (!columns.has(columnName)) {
-        await connection.query(`ALTER TABLE \`${databaseName}\`.\`${migration.tableName}\` ADD COLUMN \`${columnName}\` ${ddl}`);
+  const landings = validateLandingRows(landingRows);
+  const evidenceMap = pageEvidenceByInternalName instanceof Map
+    ? pageEvidenceByInternalName
+    : new Map(Object.entries(pageEvidenceByInternalName ?? {}));
+  const relationByName = new Map();
+  const sourceIds = new Set();
+  for (const row of candidates.relation_buffs) {
+    const name = requiredText(row.internal_name, 'buff identity');
+    if (relationByName.has(name) || sourceIds.has(String(row.source_id))) throw new Error('duplicate buff identity');
+    const sourceEvidence = evidenceMap.get(name);
+    const evidence = normalizeBuffPageEvidence({ evidence: sourceEvidence });
+    bindPageEvidence(row, sourceEvidence, evidence, landings);
+    validateDerivedBuffRow(row, JSON.parse(row.raw_json), evidence);
+    row.immune_npc_count = evidence.immuneNpcCount;
+    row.immune_npcs_json = JSON.stringify(evidence.immuneNpcs);
+    row.immune_npc_sample_json = JSON.stringify(evidence.immuneNpcSample);
+    row.source_evidence_json = JSON.stringify(evidence.sourceEvidence);
+    relationByName.set(name, row);
+    sourceIds.add(String(row.source_id));
+  }
+  if ([...evidenceMap.keys()].some((name) => !relationByName.has(name))) throw new Error('unrelated page evidence identity');
+  for (const table of ['item_buff_relations', 'npc_buff_relations', 'relation_buff_images']) {
+    for (const row of candidates[table]) {
+      const buff = relationByName.get(row.buff_internal_name);
+      if (!buff || (table !== 'relation_buff_images' && String(row.buff_source_id) !== String(buff.source_id))) {
+        throw new Error(`buff ${table} identity mismatch`);
       }
+      if (table !== 'relation_buff_images') validateSecondaryRelation(row, table, buff, evidenceMap.get(buff.internal_name));
     }
+  }
+  const imagesByName = new Map();
+  const currentImages = indexRows(baseline.relation_buff_images, 'relation_buff_images');
+  const candidateImages = indexRows(candidates.relation_buff_images, 'relation_buff_images');
+  if (baseline.relation_buff_images.some((row) => relationByName.has(row.buff_internal_name)
+      && Number(row.status) === 1 && Number(row.deleted) === 0 && !candidateImages.has(row.record_key))) {
+    throw new Error('buff image snapshot coverage is incomplete');
+  }
+  for (const row of candidates.relation_buff_images) {
+    if (Number(row.status) !== 1 || Number(row.deleted) !== 0 || !managedImage(row.cached_url, prefixes)) {
+      throw new Error('buff relation image ownership is unmanaged or inactive');
+    }
+    const current = currentImages.get(row.record_key);
+    if (!current || changedColumns(current, row, 'relation_buff_images').length > 0) {
+      throw new Error('buff image writes require separate upstream image evidence');
+    }
+    const images = imagesByName.get(row.buff_internal_name) ?? [];
+    images.push(row);
+    imagesByName.set(row.buff_internal_name, images);
+  }
+  const projectionNames = new Set();
+  for (const row of candidates.projection_buffs) {
+    const relation = relationByName.get(row.internal_name);
+    if (!relation || String(row.id) !== String(relation.source_id) || String(row.source_id) !== String(relation.source_id)
+        || row.relation_record_key !== relation.record_key || projectionNames.has(row.internal_name)) {
+      throw new Error('buff projection identity mismatch');
+    }
+    projectionNames.add(row.internal_name);
+    for (const column of ['english_name', 'name_zh', 'buff_type', 'tooltip_en', 'tooltip_zh']) {
+      if (row[column] !== relation[column]) throw new Error(`buff projection field drifted: ${column}`);
+    }
+    for (const column of ['immune_npc_count', 'immune_npcs_json', 'immune_npc_sample_json', 'source_evidence_json']) {
+      row[column] = relation[column];
+    }
+    const images = imagesByName.get(row.internal_name) ?? [];
+    const primary = images.filter((image) => Number(image.is_primary) === 1);
+    if (primary.length > 1) throw new Error('ambiguous primary buff image identity');
+    const selected = primary[0] ?? (images.length === 1 ? images[0] : null);
+    if ((row.image != null && (!managedImage(row.image, prefixes) || row.image !== selected?.cached_url))
+        || (selected && row.image !== selected.cached_url)) {
+      throw new Error('buff projection image does not match managed relation image');
+    }
+  }
+  if (projectionNames.size !== relationByName.size) throw new Error('buff projection coverage mismatch');
+  const changes = {};
+  const expectedRows = {};
+  const summary = { inserts: 0, updates: 0, unchanged: 0, preserved: 0 };
+  for (const table of BUFF_INCREMENTAL_TABLES) {
+    const delta = buildTableDelta(baseline[table], candidates[table], table);
+    changes[table] = delta.changes;
+    expectedRows[table] = delta.expectedRows;
+    for (const kind of Object.keys(summary)) summary[kind] += delta.changes[kind].length;
+  }
+  return {
+    schemaVersion: 'buff-incremental-candidate/v1',
+    executable: false,
+    executionBlocker: 'registered-executor-required',
+    tables: [...BUFF_INCREMENTAL_TABLES],
+    changes,
+    expectedRows,
+    summary,
+    deletes: [],
+    managedImageUrlPrefixes: prefixes,
+    managedImageUrlPrefixesSha256: `sha256:${createHash('sha256').update(JSON.stringify(prefixes)).digest('hex')}`,
+    destructiveClear: false,
+  };
+}
+
+function validateLandingRows(rows) {
+  if (!Array.isArray(rows)) throw new Error('invalid landing rows');
+  const result = new Map();
+  for (const input of rows) {
+    const row = mapRowToDb(input);
+    const payload = parseRequiredJson(row.payload_json, 'landing payload');
+    const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    if (row.content_hash !== hash) throw new Error('landing content hash mismatch');
+    if (row.dataset_type !== 'buffs_raw' || row.parse_status !== 'ok' || Number(row.is_current) !== 1
+        || !Number.isSafeInteger(Number(row.id)) || Number(row.id) <= 0) throw new Error('invalid current Buff landing identity');
+    if (result.has(String(row.id))) throw new Error('duplicate landing identity');
+    const records = payload.records ?? payload.buffs;
+    if (!Array.isArray(records)) throw new Error('invalid landing record list');
+    result.set(String(row.id), { row, records });
+  }
+  return result;
+}
+
+function bindPageEvidence(row, input, evidence, landings) {
+  const landing = landings.get(String(row.landing_source_id));
+  if (!landing) throw new Error('buff landing source binding is missing');
+  if (!Number.isSafeInteger(Number(row.source_id)) || Number(row.source_id) <= 0
+      || evidence.buffId !== Number(row.source_id)) throw new Error('buff evidence identity mismatch');
+  for (const [column, source] of [
+    ['landing_content_hash', 'content_hash'], ['landing_source_key', 'source_key'],
+    ['source_provider', 'provider'], ['source_page', 'source_page'],
+  ]) {
+    if (row[column] !== landing.row[source]) throw new Error(`buff source binding mismatch: ${column}`);
+  }
+  if (!equalJson(comparable(row.source_revision_timestamp, 'source_revision_timestamp'),
+    comparable(landing.row.source_revision_timestamp, 'source_revision_timestamp'))) {
+    throw new Error('buff source revision binding mismatch');
+  }
+  const matching = landing.records.filter((record) => record.internalName === row.internal_name && record.id === Number(row.source_id));
+  if (matching.length !== 1) throw new Error('buff landing record identity is missing or duplicate');
+  const record = matching[0];
+  const raw = parseRequiredJson(row.raw_json, 'buff raw');
+  if (!equalJson(record, raw)) throw new Error('buff raw record binding mismatch');
+  for (const [column, field] of [['source_items_json', 'sourceItems'], ['inflicting_npcs_json', 'inflictingNpcs']]) {
+    const facts = parseRequiredJson(row[column], column, true);
+    if (!equalJson(facts, record[field])) throw new Error(`buff source fact binding mismatch: ${column}`);
+  }
+  const bound = normalizeBuffPageEvidence({ evidence: record });
+  if (!equalJson(evidence, bound)) throw new Error('buff page evidence content/revision binding mismatch');
+}
+
+function validateDerivedBuffRow(row, raw, evidence) {
+  if (Number(row.source_id) !== Number(raw.id) || row.internal_name !== raw.internalName) {
+    throw new Error('buff derived identity is not landing-bound');
+  }
+  const expected = [
+    ['english_name', raw.name ?? raw.englishName], ['name_zh', raw.localized?.zh?.name], ['buff_type', raw.type],
+    ['tooltip_en', raw.localized?.en?.tooltip], ['tooltip_zh', raw.localized?.zh?.tooltip],
+  ];
+  for (const [column, value] of expected) {
+    if (row[column] !== normalizeText(value)) throw new Error(`buff derived field drifted: ${column}`);
+  }
+  const expectedSourceItemCount = raw.sourceItemCount ?? (Array.isArray(raw.sourceItems) ? raw.sourceItems.length : null);
+  if (expectedSourceItemCount != null && Number(row.source_item_count) !== Number(expectedSourceItemCount)) {
+    throw new Error('buff source item count is not landing-bound');
+  }
+  if (Number(row.immune_npc_count) !== evidence.immuneNpcCount) throw new Error('buff immunity count is not page-bound');
+}
+
+function relationFactMatches(row, fact, kind) {
+  const id = kind === 'item' ? row.item_source_id : row.npc_source_id;
+  const internalName = kind === 'item' ? row.item_internal_name : row.npc_internal_name;
+  const factId = fact?.itemId ?? fact?.itemSourceId ?? fact?.npcId ?? fact?.npcSourceId ?? fact?.sourceId;
+  const factName = fact?.internalName ?? fact?.itemInternalName ?? fact?.npcInternalName;
+  const idMatches = factId != null && Number.isSafeInteger(Number(id))
+    && Number.isSafeInteger(Number(factId)) && Number(factId) === Number(id);
+  const nameMatches = factName != null && factName === internalName;
+  if (factId != null && factName != null) return idMatches && nameMatches;
+  return idMatches || nameMatches;
+}
+
+function validateSecondaryRelation(row, table, buff, evidenceInput) {
+  const kind = table === 'item_buff_relations' ? 'item' : 'npc';
+  const relationType = row.relation_type;
+  const allowedType = table === 'item_buff_relations'
+    ? relationType === 'buff_source_item'
+    : relationType === 'inflicts' || relationType === 'immune';
+  if (!allowedType) throw new Error(`Buff secondary relation type is not owned: ${relationType}`);
+  const raw = parseRequiredJson(buff.raw_json, 'buff raw');
+  const facts = relationType === 'buff_source_item'
+    ? parseRequiredJson(raw.sourceItems ?? [], 'buff source items', true)
+    : relationType === 'inflicts'
+      ? parseRequiredJson(raw.inflictingNpcs ?? [], 'buff inflicting NPCs', true)
+      : normalizeBuffPageEvidence({ evidence: evidenceInput }).immuneNpcs;
+  if (!facts.some(fact => relationFactMatches(row, fact, kind))) {
+    throw new Error(`Buff secondary relation ${kind} identity is not page-bound`);
+  }
+  const expectedOwner = relationType === 'immune' ? 'maint_npcs' : 'maint_buffs';
+  if (row.source_maint_table !== expectedOwner || !/^[a-f0-9]{64}$/.test(String(row.source_maint_record_key ?? ''))) {
+    throw new Error('Buff secondary relation owner trace is invalid');
+  }
+  for (const field of ['landing_source_id', 'landing_source_key', 'landing_content_hash', 'source_provider', 'source_page', 'source_revision_timestamp']) {
+    if (row[field] == null || row[field] === '') throw new Error('Buff secondary relation landing trace is incomplete');
+  }
+  if (expectedOwner === 'maint_buffs'
+      && (row.landing_source_id !== buff.landing_source_id || row.landing_source_key !== buff.landing_source_key
+        || row.landing_content_hash !== buff.landing_content_hash || row.source_provider !== buff.source_provider
+        || row.source_page !== buff.source_page || !equalJson(comparable(row.source_revision_timestamp, 'source_revision_timestamp'), comparable(buff.source_revision_timestamp, 'source_revision_timestamp')))) {
+    throw new Error('Buff secondary relation landing trace drifted');
   }
 }
 
-async function ensureBuffRelationSchema(connection, databaseName = 'terria_v1_relation') {
-  const relationStatements = buildRelationSchemaStatements(databaseName)
-    .filter((statement) => BUFF_RELATION_TABLES.some((tableName) => statement.includes(`\`${tableName}\``)));
-  const projectionStatements = buildProjectionSchemaStatements(databaseName)
-    .filter((statement) => statement.includes('`projection_buffs`'));
-  for (const statement of [...relationStatements, ...projectionStatements]) {
-    await connection.query(statement);
+function managedImage(value, prefixes) {
+  if (typeof value !== 'string' || value !== value.trim()
+      || /[?#\\\u0000-\u0020\u007f]/.test(value) || /%(?:25|2f|5c)/i.test(value)) return false;
+  let pathname;
+  try {
+    pathname = decodeURIComponent(value);
+    if (value.startsWith('/') && new URL(value, 'https://managed.invalid').pathname !== value) return false;
+  } catch { return false; }
+  if (pathname.split('/').some((segment) => segment === '.' || segment === '..') || /[\\\u0000-\u001f\u007f]/.test(pathname)) return false;
+  return isManagedImagePath(value, prefixes);
+}
+
+function rowKey(row, table) {
+  if (table === 'projection_buffs') {
+    if (!Number.isSafeInteger(Number(row.id)) || row.id == null || Number(row.id) < 0) throw new Error('invalid projection identity');
+    return String(row.id);
   }
-  await ensureBuffRelationMigrations(connection, databaseName);
+  if (typeof row.record_key !== 'string' || !/^[a-f0-9]{64}$/.test(row.record_key)) throw new Error(`invalid ${table} record key`);
+  return row.record_key;
+}
+
+function indexRows(rows, table) {
+  const index = new Map();
+  for (const row of rows) {
+    const key = rowKey(row, table);
+    if (index.has(key)) throw new Error(`duplicate ${table} record key`);
+    index.set(key, row);
+  }
+  return index;
+}
+
+function comparable(value, column) {
+  if (value == null) return null;
+  if (column.endsWith('_json')) {
+    if (typeof value !== 'string') return stableValue(value);
+    try { return stableValue(JSON.parse(value)); } catch { throw new Error(`invalid ${column} JSON`); }
+  }
+  if (column.endsWith('_timestamp') || column.endsWith('_at')) {
+    if (value instanceof Date) return value.toISOString();
+    const text = String(value);
+    const date = new Date(text.includes('T') ? text : `${text.replace(' ', 'T')}Z`);
+    return Number.isFinite(date.getTime()) ? date.toISOString() : value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean'
+      || /^(?:id|source_id|.*_id|.*_count|status|deleted|confidence|duration_ticks|chance_value|is_primary|sort_order|width|height)$/.test(column)) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : value;
+  }
+  return value;
+}
+
+function changedColumns(before, after, table) {
+  return Object.keys(after).filter((column) => {
+    if (['created_at', 'updated_at'].includes(column) || (column === 'id' && table !== 'projection_buffs')) return false;
+    return !equalJson(comparable(before[column], column), comparable(after[column], column));
+  }).sort();
+}
+
+function sameEntity(left, right, table) {
+  if (table === 'relation_buffs' || table === 'projection_buffs') {
+    return left.internal_name === right.internal_name || String(left.source_id) === String(right.source_id);
+  }
+  if (table === 'item_buff_relations') {
+    return ['buff_source_id', 'buff_internal_name', 'item_source_id', 'item_internal_name', 'relation_type']
+      .every(column => equalJson(comparable(left[column], column), comparable(right[column], column)));
+  }
+  if (table === 'npc_buff_relations') {
+    return ['buff_source_id', 'buff_internal_name', 'npc_source_id', 'npc_internal_name', 'relation_type']
+      .every(column => equalJson(comparable(left[column], column), comparable(right[column], column)));
+  }
+  return false;
+}
+
+function buildTableDelta(current, candidates, table) {
+  const beforeByKey = indexRows(current, table);
+  const proposedByKey = indexRows(candidates, table);
+  const changes = { inserts: [], updates: [], unchanged: [], preserved: [] };
+  const expected = new Map(beforeByKey);
+  for (const proposed of [...candidates].sort((left, right) => rowKey(left, table).localeCompare(rowKey(right, table)))) {
+    const key = rowKey(proposed, table);
+    if (current.some((row) => rowKey(row, table) !== key && sameEntity(row, proposed, table))) {
+      throw new Error(`remapped ${table} identity`);
+    }
+    const before = beforeByKey.get(key);
+    if (before && (table === 'relation_buffs' || table === 'projection_buffs')
+        && (before.internal_name !== proposed.internal_name || String(before.source_id) !== String(proposed.source_id))) {
+      throw new Error(`remapped ${table} identity`);
+    }
+    if (before && table === 'projection_buffs' && before.relation_record_key !== proposed.relation_record_key) {
+      throw new Error('remapped projection_buffs relation identity');
+    }
+    const identityColumns = table === 'item_buff_relations'
+      ? ['buff_source_id', 'buff_internal_name', 'item_source_id', 'item_internal_name', 'relation_type']
+      : table === 'npc_buff_relations'
+        ? ['buff_source_id', 'buff_internal_name', 'npc_source_id', 'npc_internal_name', 'relation_type']
+        : [];
+    if (before && identityColumns.some((column) => !equalJson(comparable(before[column], column), comparable(proposed[column], column)))) {
+      throw new Error(`remapped ${table} identity`);
+    }
+    const after = { ...proposed };
+    delete after.created_at;
+    delete after.updated_at;
+    if (table !== 'projection_buffs') delete after.id;
+    if (!before) {
+      changes.inserts.push(after);
+      expected.set(key, after);
+      continue;
+    }
+    const columns = changedColumns(before, after, table);
+    if (columns.length === 0) {
+      changes.unchanged.push(before);
+      continue;
+    }
+    const merged = { ...before, ...Object.fromEntries(columns.map((column) => [column, after[column]])) };
+    changes.updates.push({ key, before, after: merged, changedColumns: columns });
+    expected.set(key, merged);
+  }
+  for (const [key, row] of beforeByKey) {
+    if (!proposedByKey.has(key)) changes.preserved.push(row);
+  }
+  const sortRows = (left, right) => rowKey(left, table).localeCompare(rowKey(right, table));
+  changes.unchanged.sort(sortRows);
+  changes.preserved.sort(sortRows);
+  return { changes, expectedRows: [...expected.values()].sort(sortRows) };
 }
 
 export function parseArgs(argv) {
@@ -160,6 +541,7 @@ export function parseArgs(argv) {
   const dateTag = raw['date-tag'] ?? raw.dateTag ?? formatDateTag();
   return {
     apply: booleanOption(raw.apply, false),
+    prepareSchema: booleanOption(raw['prepare-schema'] ?? raw.prepareSchema, false),
     maintDatabase: raw['maint-database'] ?? raw.maintDatabase ?? 'terria_v1_local',
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? 'terria_v1_local',
@@ -174,6 +556,12 @@ export function buildBuffRelationSyncPayload({
   relationBuffImageRows = [],
   managedImageUrlPrefixes = [],
 } = {}) {
+  // Inactive evidence stays in the baseline, never in the publication candidate.
+  const relationBuffImages = relationBuffImageRows.map(mapRowToDb)
+    .filter((row) => Number(row.status) === 1 && Number(row.deleted) === 0)
+    .map((row) => Object.fromEntries(
+      Object.entries(row).map(([column, value]) => [column.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()), value]),
+    ));
   const { relationBuffs } = buildBuffEntityRelations({ maintBuffs: maintBuffRows });
   const secondary = buildSecondaryRelations({
     maintBuffRows,
@@ -182,7 +570,7 @@ export function buildBuffRelationSyncPayload({
   });
   const projection = buildProjectionPayload({
     relationBuffs,
-    relationBuffImages: relationBuffImageRows,
+    relationBuffImages,
     relationItems: maintItemRows.map((row) => ({
       sourceId: row.source_id,
       internalName: row.internal_name,
@@ -210,6 +598,7 @@ export function buildBuffRelationSyncPayload({
   });
   return {
     relationBuffs,
+    relationBuffImages,
     itemBuffRelations: secondary.itemBuffRelations,
     npcBuffRelations: secondary.npcBuffRelations,
     projectionBuffs: projection.projectionBuffs,
@@ -282,6 +671,9 @@ async function defaultWriteReport(reportPath, payload) {
 }
 
 export async function runBuffRelationSync(options = {}, dependencies = {}) {
+  if (options.apply || options.prepareSchema) {
+    throw new Error('registered-executor-required: Buff sync is read-only; apply and schema preparation require a registered governed executor');
+  }
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const mysqlOptions = {
     host: options.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
@@ -290,9 +682,8 @@ export async function runBuffRelationSync(options = {}, dependencies = {}) {
     password: options.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
   };
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
-  const mysql = dependencies.mysqlModule ?? loadMysqlModule();
-
   const queryMaint = dependencies.queryMaint ?? (async (sql) => {
+    const mysql = dependencies.mysqlModule ?? loadMysqlModule();
     const connection = await mysql.createConnection({ ...mysqlOptions, database: options.maintDatabase });
     try {
       return await queryRows(connection, sql);
@@ -301,6 +692,7 @@ export async function runBuffRelationSync(options = {}, dependencies = {}) {
     }
   });
   const queryRelation = dependencies.queryRelation ?? (async (sql) => {
+    const mysql = dependencies.mysqlModule ?? loadMysqlModule();
     const connection = await mysql.createConnection({ ...mysqlOptions, database: options.relationDatabase });
     try {
       return await queryRows(connection, sql);
@@ -308,20 +700,6 @@ export async function runBuffRelationSync(options = {}, dependencies = {}) {
       await connection.end();
     }
   });
-  const executeRelation = dependencies.executeRelation ?? (async (callback) => {
-    const connection = await mysql.createConnection({ ...mysqlOptions, database: options.relationDatabase });
-    try {
-      await connection.beginTransaction();
-      await callback(connection);
-      await connection.commit();
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      await connection.end();
-    }
-  });
-
   const [baseMaintBuffRows, maintItemRows, maintNpcRows, relationBuffImageRows, maintNpcCrawlerFactRows] = await Promise.all([
     queryMaint('SELECT * FROM maint_buffs WHERE status = 1 AND deleted = 0'),
     queryMaint('SELECT * FROM maint_items WHERE status = 1 AND deleted = 0'),
@@ -345,9 +723,13 @@ export async function runBuffRelationSync(options = {}, dependencies = {}) {
     apply: Boolean(options.apply),
     maintDatabase: options.maintDatabase,
     relationDatabase: options.relationDatabase,
+    candidateStatus: 'inventory-only',
+    executable: false,
+    executionBlocker: 'registered-executor-required',
     rows: {
       relationBuffs: payload.relationBuffs.length,
       projectionBuffs: payload.projectionBuffs.length,
+      relationBuffImages: payload.relationBuffImages.length,
       itemBuffRelations: payload.itemBuffRelations.length,
       npcBuffRelations: payload.npcBuffRelations.length,
       issues: payload.issues.length,
@@ -357,25 +739,11 @@ export async function runBuffRelationSync(options = {}, dependencies = {}) {
       projectionBuffs: 0,
       itemBuffRelations: 0,
       npcBuffRelations: 0,
+      relationBuffImages: 0,
       total: 0,
     },
     issueSamples: payload.issues.slice(0, 20),
   };
-
-  if (options.apply) {
-    await executeRelation(async (connection) => {
-      await ensureBuffRelationSchema(connection, options.relationDatabase);
-      await clearBuffRelationTables(connection);
-      report.writes.relationBuffs = await upsertRows(connection, 'relation_buffs', payload.relationBuffs);
-      report.writes.itemBuffRelations = await upsertRows(connection, 'item_buff_relations', payload.itemBuffRelations);
-      report.writes.npcBuffRelations = await upsertRows(connection, 'npc_buff_relations', payload.npcBuffRelations);
-      report.writes.projectionBuffs = await upsertRows(connection, 'projection_buffs', payload.projectionBuffs);
-      report.writes.total = report.writes.relationBuffs
-        + report.writes.itemBuffRelations
-        + report.writes.npcBuffRelations
-        + report.writes.projectionBuffs;
-    });
-  }
 
   if (options.output) {
     report.reportPath = await writeReport(options.output, report);

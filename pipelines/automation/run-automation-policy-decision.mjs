@@ -31,11 +31,17 @@ import {
   assertL2SerialTransition,
   isSerialL2PromotionOperation,
 } from './l2-promotion-serial-contract.mjs';
+import {
+  assertL2PolicyStableReauthorizationInput,
+  isL2PolicyStableReauthorizationOperation,
+  L2_POLICY_STABLE_REAUTHORIZATION_DOMAINS,
+} from './l2-policy-stable-reauthorization.mjs';
 import { assertApprovedL2PolicyCeilingArtifact } from './l2-policy-ceiling-artifact.mjs';
 import {
   loadHistoricalSourceHashDispositions,
   verifyHistoricalSourceHashDispositionEntry,
 } from './historical-source-hash-disposition.mjs';
+import { SCHEDULER_ACTION_BY_DOMAIN } from './crawler-v2-scheduler-activation-preflight.mjs';
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const L1_PROMOTION = Object.freeze({
@@ -105,6 +111,13 @@ const L2_OPERATION_IDS = Object.freeze({
   bosses: 'automation-bosses-l2-promotion',
   shimmer: 'automation-shimmer-l2-promotion',
 });
+const L2_REAUTHORIZATION_OPERATION_IDS = Object.freeze(Object.fromEntries(
+  L2_POLICY_STABLE_REAUTHORIZATION_DOMAINS.map((domainId) => [
+    domainId,
+    `automation-${domainId.replaceAll('_', '-')}-l2-reauthorization`,
+  ]),
+));
+const SCHEDULER_ACTION_IDS = Object.freeze(new Set(Object.values(SCHEDULER_ACTION_BY_DOMAIN)));
 for (const [domainId, operationId] of Object.entries(L2_OPERATION_IDS)) {
   OPERATION_DEFINITIONS[operationId] = Object.freeze({
     domainId,
@@ -113,6 +126,17 @@ for (const [domainId, operationId] of Object.entries(L2_OPERATION_IDS)) {
     targetLevel: 'L2',
     targetOperationalState: 'ACTIVE',
     decisionKind: 'L2_PROMOTION',
+  });
+}
+for (const [domainId, operationId] of Object.entries(L2_REAUTHORIZATION_OPERATION_IDS)) {
+  OPERATION_DEFINITIONS[operationId] = Object.freeze({
+    domainId,
+    currentLevel: 'L2',
+    currentStates: Object.freeze(['ACTIVE']),
+    targetLevel: null,
+    targetOperationalState: null,
+    decisionKind: 'L2_PROMOTION',
+    reauthorization: true,
   });
 }
 Object.freeze(OPERATION_DEFINITIONS);
@@ -125,6 +149,18 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
   const operationId = requireText(input.operationId, 'operationId');
   const definition = OPERATION_DEFINITIONS[operationId];
   if (!definition) throw new Error(`unsupported policy decision operationId: ${operationId}`);
+  if (isL2PolicyStableReauthorizationOperation(operationId)) {
+    return buildL2PolicyStableReauthorizationPlan(input, authorizationContext, definition);
+  }
+  const authorizedActionId = operationId === 'automation-crawler-v2-scheduler-activation'
+    ? requireText(input.authorizedActionId, 'authorizedActionId')
+    : null;
+  if (authorizedActionId != null && !SCHEDULER_ACTION_IDS.has(authorizedActionId)) {
+    throw new Error('authorizedActionId is not a registered scheduler action');
+  }
+  if (authorizedActionId != null) {
+    assertSchedulerCanaryScope(input, authorizedActionId);
+  }
   if (authorizationContext.operationId !== operationId) {
     throw new Error('authorization context operationId must match the policy decision operationId');
   }
@@ -185,6 +221,70 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
     ...serialBinding,
     ...(definition.decisionKind === 'L2_PROMOTION' ? validateL2TargetInput(input) : {}),
     ...definition,
+    ...(authorizedActionId == null ? {} : { authorizedActionId }),
+  });
+}
+
+function assertSchedulerCanaryScope(input, authorizedActionId) {
+  const canary = input?.canary;
+  if (!canary || typeof canary !== 'object' || Array.isArray(canary)) {
+    throw new Error('scheduler activation requires a captured canary scope');
+  }
+  const actionId = requireText(canary.actionId, 'captured canary actionId');
+  const domainId = requireText(canary.domainId, 'captured canary domainId');
+  if (SCHEDULER_ACTION_BY_DOMAIN[domainId] !== actionId) {
+    throw new Error('captured canary action/domain binding is invalid');
+  }
+  if (actionId !== authorizedActionId) {
+    throw new Error('authorizedActionId must match the captured canary action');
+  }
+}
+
+function buildL2PolicyStableReauthorizationPlan(input, authorizationContext, definition) {
+  if (authorizationContext.operationId !== input.operationId) {
+    throw new Error('authorization context operationId must match the policy decision operationId');
+  }
+  const authorization = assertL2PolicyStableReauthorizationInput(input, {
+    now: authorizationContext.authorizedAt,
+  });
+  const authorizedAt = requireTimestamp(authorizationContext.authorizedAt, 'authorizedAt');
+  const expiresAt = requireTimestamp(authorizationContext.expiresAt, 'expiresAt');
+  if (Date.parse(expiresAt) <= Date.parse(authorizedAt)) {
+    throw new Error('expiresAt must be after authorizedAt');
+  }
+  const current = authorization.currentPolicy;
+  const predecessor = authorization.predecessorL1Evidence;
+  return Object.freeze({
+    schemaVersion: 1,
+    operationId: authorization.operationId,
+    databaseName: authorization.databaseName,
+    domainId: authorization.domainId,
+    ownerUsername: requireText(authorizationContext.actor, 'actor'),
+    actor: requireText(authorizationContext.actor, 'actor'),
+    reason: requireText(authorizationContext.reason, 'reason'),
+    authorizationReference: requireText(authorizationContext.authorizationReference, 'authorizationReference'),
+    decisionIdentity: requireText(authorizationContext.decisionIdentity, 'decisionIdentity'),
+    packetHash: requireHash(authorizationContext.packetHash, 'packetHash'),
+    policySetHash: current.policySetHash,
+    policyVersion: current.policyVersion,
+    policyHash: current.policyHash,
+    minimumSuccessfulL1Runs: predecessor.minimumSuccessfulL1Runs,
+    authorizedAt,
+    expiresAt,
+    requiresSuccessfulL1Runs: true,
+    requiresFullReconciliation: true,
+    currentLevel: definition.currentLevel,
+    currentStates: definition.currentStates,
+    targetLevel: null,
+    targetOperationalState: null,
+    decisionKind: 'L2_PROMOTION',
+    reauthorization: true,
+    currentPolicy: current,
+    targetPolicy: authorization.targetPolicy,
+    priorDecision: authorization.priorDecision,
+    l1EvidencePolicyVersion: predecessor.policyVersion,
+    l1EvidencePolicyHash: predecessor.policyHash,
+    l1EvidencePolicySetHash: predecessor.policySetHash,
   });
 }
 
@@ -236,10 +336,58 @@ export async function executeAutomationPolicyDecision({
     if (plan.decisionKind === 'L2_PROMOTION' && isSerialL2PromotionOperation(plan.operationId)) {
       await assertSerialPromotionPredecessor({ adapter, plan, currentPolicySetHash });
     }
+    if (plan.reauthorization === true) {
+      await assertL2PolicyStableReauthorizationPredecessor({ adapter, plan, executionTime });
+    }
 
     let successfulL1Runs = null;
     let qualifyingEvidence = null;
-    if (plan.decisionKind === 'L2_PROMOTION') {
+    if (plan.decisionKind === 'L2_PROMOTION' && plan.reauthorization === true) {
+      if (typeof adapter.readTargetPolicyForUpdate !== 'function') {
+        throw new Error('current L2 policy reader is required for L2 reauthorization');
+      }
+      const targetPolicy = await adapter.readTargetPolicyForUpdate(plan.domainId, plan.policyVersion);
+      const targetPolicyJson = parsePolicyJson(targetPolicy?.policyJson);
+      if (!targetPolicy || targetPolicy.domainId !== plan.domainId
+          || Number(targetPolicy.policyVersion) !== plan.policyVersion
+          || targetPolicy.policyHash !== plan.policyHash
+          || targetPolicy.level !== 'L2'
+          || computePolicyHash(targetPolicyJson) !== plan.policyHash) {
+        throw new Error('current L2 policy version or ceiling does not match the reauthorization');
+      }
+      if (typeof adapter.readL2OwnershipFenceState !== 'function') {
+        throw new Error('L2 ownership fence reader is required for L2 reauthorization');
+      }
+      const fenceState = await adapter.readL2OwnershipFenceState(plan.domainId, targetPolicyJson.ownedTables);
+      if (!fenceState || [fenceState.activeAttempts, fenceState.activeReservations,
+        fenceState.activeFences, fenceState.mismatchedFences ?? 0]
+        .some((count) => !Number.isSafeInteger(Number(count)) || Number(count) !== 0)) {
+        throw new Error('active writer, reservation, or attempt blocks L2 reauthorization');
+      }
+      if (typeof adapter.readQualifyingL1Evidence !== 'function') {
+        throw new Error('full reconciliation evidence reader is required for L2 reauthorization');
+      }
+      qualifyingEvidence = await adapter.readQualifyingL1Evidence(plan.domainId, {
+        policyVersion: plan.l1EvidencePolicyVersion,
+        policyHash: plan.l1EvidencePolicyHash,
+        policySetHash: plan.l1EvidencePolicySetHash,
+        minimumSuccessfulL1Runs: plan.minimumSuccessfulL1Runs,
+      });
+      successfulL1Runs = Number(qualifyingEvidence?.distinctCommittedL1Runs);
+      if (!Number.isSafeInteger(successfulL1Runs) || successfulL1Runs < plan.minimumSuccessfulL1Runs) {
+        throw new Error(`at least ${plan.minimumSuccessfulL1Runs} distinct committed L1 runs are required`);
+      }
+      try {
+        verifyFullReconciliationEvidence(qualifyingEvidence.fullReconciliation, {
+          domainId: plan.domainId,
+          policyVersion: plan.l1EvidencePolicyVersion,
+          policyHash: plan.l1EvidencePolicyHash,
+          policySetHash: plan.l1EvidencePolicySetHash,
+        });
+      } catch (error) {
+        throw new Error(`full reconciliation evidence is required for L2 reauthorization: ${error.message}`);
+      }
+    } else if (plan.decisionKind === 'L2_PROMOTION') {
       if (typeof adapter.readTargetPolicyForUpdate !== 'function') {
         throw new Error('target L2 policy reader is required for L2 promotion');
       }
@@ -316,6 +464,7 @@ export async function executeAutomationPolicyDecision({
         authorizationReference: plan.authorizationReference,
         decisionIdentity: plan.decisionIdentity,
         packetHash: plan.packetHash,
+        authorizedActionId: plan.authorizedActionId ?? null,
         authorizedAt: plan.authorizedAt,
         expiresAt: plan.expiresAt,
       });
@@ -371,6 +520,27 @@ export async function executeAutomationPolicyDecision({
   } catch (error) {
     if (!transactionCommitted) await adapter.rollback();
     throw error;
+  }
+}
+
+async function assertL2PolicyStableReauthorizationPredecessor({ adapter, plan, executionTime }) {
+  if (typeof adapter.readLatestL2PromotionDecisionForUpdate !== 'function') {
+    throw new Error('latest L2 promotion decision reader is required for L2 reauthorization');
+  }
+  const actual = await adapter.readLatestL2PromotionDecisionForUpdate(plan.domainId);
+  const expected = plan.priorDecision;
+  if (!actual || actual.decisionKind !== 'L2_PROMOTION'
+      || actual.domainId !== plan.domainId
+      || Number(actual.policyVersion) !== plan.policyVersion
+      || actual.policyHash !== plan.policyHash
+      || actual.policySetHash !== expected.policySetHash
+      || actual.decisionIdentity !== expected.decisionIdentity
+      || actual.packetHash !== expected.packetHash
+      || requireTimestamp(actual.expiresAt, 'latest L2 promotion decision expiry') !== expected.expiresAt) {
+    throw new Error('latest L2 promotion decision does not match the reauthorization input');
+  }
+  if (Date.parse(actual.expiresAt) >= Date.parse(executionTime)) {
+    throw new Error('latest L2 promotion decision is not expired');
   }
 }
 
@@ -523,6 +693,23 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, {
         [domainId],
       );
       return rows?.[0] ?? null;
+    },
+    async readLatestL2PromotionDecisionForUpdate(domainId) {
+      const [rows] = await connection.query(
+        'SELECT decision_kind AS decisionKind, domain_id AS domainId,'
+        + ' policy_version AS policyVersion, policy_hash AS policyHash,'
+        + ' policy_set_hash AS policySetHash, decision_identity AS decisionIdentity,'
+        + ' packet_hash AS packetHash,'
+        + " DATE_FORMAT(expires_at, '%Y-%m-%d %H:%i:%s') AS expiresAt"
+        + ' FROM crawler_automation_activation_decision'
+        + " WHERE decision_kind = 'L2_PROMOTION' AND domain_id = ?"
+        + ' ORDER BY authorized_at DESC, id DESC LIMIT 1 FOR UPDATE',
+        [domainId],
+      );
+      const row = rows?.[0] ?? null;
+      return row == null
+        ? null
+        : { ...row, expiresAt: mysqlDateTimeToUtcIso(row.expiresAt) };
     },
     async readTargetPolicyForUpdate(domainId, policyVersion) {
       const [rows] = await connection.query(
@@ -903,12 +1090,12 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, {
         'INSERT INTO crawler_automation_activation_decision'
         + ' (decision_kind, domain_id, policy_version, policy_hash, policy_set_hash,'
         + ' minimum_successful_l1_runs, actor, reason, authorization_reference,'
-        + ' decision_identity, packet_hash, authorized_at, expires_at)'
-        + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        + ' decision_identity, packet_hash, authorized_action_id, authorized_at, expires_at)'
+        + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [values.decisionKind, values.domainId, values.policyVersion, values.policyHash,
           values.policySetHash, values.minimumSuccessfulL1Runs, values.actor, values.reason,
           values.authorizationReference, values.decisionIdentity, values.packetHash,
-          toMysqlTimestamp(values.authorizedAt), toMysqlTimestamp(values.expiresAt)],
+          values.authorizedActionId, toMysqlTimestamp(values.authorizedAt), toMysqlTimestamp(values.expiresAt)],
       );
     },
     async updatePolicy(values) {
@@ -1260,7 +1447,9 @@ export async function runAutomationPolicyDecisionCli({
   if (operationId !== input.operationId) {
     throw new Error('--operation-id must match the frozen input');
   }
-  if (input.targetPolicyLevel === 'L2') {
+  if (isL2PolicyStableReauthorizationOperation(operationId)) {
+    assertL2ReauthorizationExecutionInput({ repoRoot, operationId, input });
+  } else if (input.targetPolicyLevel === 'L2') {
     assertL2PromotionExecutionInput({ repoRoot, operationId: input.operationId, input });
   }
   const authorizationContext = loadAuthorizedOperationContext({
@@ -1741,7 +1930,42 @@ function isEightDomainL2Operation(operationId) {
 }
 
 function isL2PolicyDecisionOperation(operationId) {
-  return operationId === 'automation-biomes-l2-promotion' || isEightDomainL2Operation(operationId);
+  return operationId === 'automation-biomes-l2-promotion'
+    || isEightDomainL2Operation(operationId)
+    || isL2PolicyStableReauthorizationOperation(operationId);
+}
+
+function assertL2ReauthorizationExecutionInput({ repoRoot, operationId, input }) {
+  assertL2PolicyStableReauthorizationInput(input, { now: input.generatedAt ?? new Date().toISOString() });
+  const proposalPath = String(input.proposalPath ?? '').replaceAll('\\', '/');
+  const prefix = `reports/authorization/canonical/${operationId}/`;
+  if (!proposalPath.startsWith(prefix)
+      || !/^[a-f0-9]{64}\/proposal\.json$/.test(proposalPath.slice(prefix.length))) {
+    throw new Error('L2 reauthorization proposal path is not content-addressed');
+  }
+  const proposalHash = requireHash(input.proposalHash, 'proposalHash');
+  if (proposalPath.slice(prefix.length, prefix.length + 64) !== proposalHash.slice(7)) {
+    throw new Error('L2 reauthorization proposal path content address does not match proposalHash');
+  }
+  const confined = assertRepositoryOrdinaryFile({
+    repoRoot,
+    filePath: path.resolve(repoRoot, proposalPath),
+    label: 'L2 reauthorization proposal',
+  });
+  if ((fs.lstatSync(confined).mode & 0o077) !== 0) throw new Error('L2 reauthorization proposal must be private');
+  const bytes = fs.readFileSync(confined);
+  if (`sha256:${createHash('sha256').update(bytes).digest('hex')}` !== requireHash(input.proposalSha256, 'proposalSha256')) {
+    throw new Error('L2 reauthorization proposal file hash drifted');
+  }
+  let proposal;
+  try { proposal = JSON.parse(bytes.toString('utf8')); } catch { throw new Error('L2 reauthorization proposal must be valid JSON'); }
+  if (proposal?.operationId !== operationId || proposal?.proposalHash !== proposalHash
+      || proposal?.proposalOnly !== true || proposal?.policyUpdate !== false
+      || proposal?.currentPolicy?.policyHash !== input.currentPolicy?.policyHash
+      || proposal?.currentPolicySetHash !== input.currentPolicy?.policySetHash) {
+    throw new Error('L2 reauthorization proposal identity is invalid');
+  }
+  return true;
 }
 
 function requireExactRegistrationPath(value, promotionOperationId, marker) {
@@ -1819,8 +2043,54 @@ function requirePort(value) {
   return port;
 }
 
-function toMysqlTimestamp(value) {
-  return new Date(value).toISOString().slice(0, 19).replace('T', ' ');
+const MYSQL_DATETIME_TIME_ZONE = process.env.TERRAPEDIA_DB_TIME_ZONE ?? 'Asia/Shanghai';
+
+export function toMysqlTimestamp(value) {
+  const timestamp = new Date(requireTimestamp(value, 'timestamp'));
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: MYSQL_DATETIME_TIME_ZONE,
+    calendar: 'iso8601',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(timestamp)
+    .filter((part) => part.type !== 'literal')
+    .map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+function mysqlDateTimeToUtcIso(value) {
+  const text = requireText(value, 'MySQL DATETIME');
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) return new Date(text).toISOString();
+  const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/.exec(text);
+  if (!match) throw new Error('MySQL DATETIME must use YYYY-MM-DD HH:mm:ss');
+  const components = match.slice(1).map(Number);
+  const wallMs = Date.UTC(
+    components[0], components[1] - 1, components[2],
+    components[3], components[4], components[5],
+  );
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MYSQL_DATETIME_TIME_ZONE,
+    calendar: 'iso8601',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  });
+  let guess = wallMs;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]));
+    const representedMs = Date.UTC(
+      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour), Number(parts.minute), Number(parts.second),
+    );
+    guess += wallMs - representedMs;
+  }
+  return new Date(guess).toISOString();
 }
 
 function parseArgs(argv) {

@@ -8,8 +8,26 @@ import {
   importBuffs,
   importNpcs,
   importProjectiles,
+  loadItemsLookup,
   resolveMappedItem,
 } from './import-independent-entities-to-db.mjs';
+
+test('loadItemsLookup reads only columns present in the canonical items schema', async () => {
+  const calls = [];
+  const conn = {
+    async query(sql) {
+      calls.push(sql);
+      if (/source_id/i.test(sql)) throw new Error("Unknown column 'source_id' in 'field list'");
+      return [[{ id: 11, internal_name: 'WOOD', name: 'Wood' }]];
+    },
+  };
+
+  const lookup = await loadItemsLookup(conn);
+
+  assert.deepEqual([...lookup.byId.values()], [{ id: 11, internalName: 'WOOD', name: 'Wood' }]);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /^SELECT id, internal_name, name FROM items WHERE deleted = 0$/i);
+});
 
 test('importBuffs skips unchanged existing buff entity rows', async () => {
   const record = buffRecord();

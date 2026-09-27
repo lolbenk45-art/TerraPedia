@@ -1,5 +1,38 @@
 # TerraPedia Decision Log
 
+## D-2026-09-24-01: Keep canonical upstream execution separate from local-only H8
+
+Decision owner: Codex within the user's bounded ownership-repair approval.
+Projection-only Armor review and Buff candidate containment do not establish
+automated source-to-API ingestion. Preserve existing maint IDs/keys across source
+content changes, use immutable Armor source_evidence partitions without legacy
+pruning, and require revision-bound managed image evidence.
+
+The current H8 automatic policy owns only compatibility local Armor tables and
+its dispatch fingerprint covers only module content. Canonical manual executor
+development may continue, but automatic hookup needs an explicit reviewed
+policy/bundle/generation transition and composite module/image dispatch identity.
+No silent H8 widening, old-packet replay or image-only acceptance under a module
+hash. Evidence and ordered A1–A6 tasks are in the Sep24 execution devlog and the
+active scheduler plan; full ingestion remains open.
+
+## D-2026-09-22-01: Separate ingestion acceptance and preserve retry deduplication
+
+Decision owner: Codex, within the user's automation-plan repair and continuation
+request. Runtime authority remains the existing local standing register.
+
+Decision: distinguish M (natural mechanism/no-op), D (real changed-row API-visible
+ingestion per domain), and S (sustained cycles with renewal/restart). No-op results
+and source-readiness reports cannot close D or S. Keep affected armor/Buff lineage
+and Shimmer scope lanes blocked instead of changing consumer ownership implicitly.
+
+Retry-41 proved that content-derived execution directories collide with failed
+history. Preserve the logical content-derived DB run ID; derive immutable
+artifact namespaces from source-dispatch and attempt identities. Do not delete
+old evidence, randomize DB dedupe keys, waive hash checks or widen H8 to proceed.
+Implementation and review evidence belong to
+`docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md`.
+
 ## D-2026-05-05-01: CI v1 uses Windows CI-safe gate
 
 Decision: Use `windows-latest` and a CI-safe PowerShell gate for first CI integration.
@@ -297,3 +330,26 @@ spending the network budget first.
 Result: `total 6131 = existing 2119 + promoted 4012 + unresolved 0 + ambiguous 0
 + duplicate 0 + conflict 0`. The promotion bundle published for the first time at
 generation `79159314be3f282b8b117491711f95c7985bd7f189b08ee0c44126bbfd0d3f34`.
+## D-2026-09-25-01: Keep the Armor transaction core unregistered until full-chain bindings exist
+
+Decision: Add and test the bounded Armor transaction core, but do not register
+`canonical-armor-ingestion` or enable scheduler execution from this code alone.
+
+Reason: The core now proves transaction ordering, native `FOR UPDATE` partition/
+target locks, exact generated-ID receipts, projection-parent ID binding and
+commit-unknown quarantine. It does not yet compose the unresolved landing IDs
+with a relation intent, persist the operation-specific recovery journal through
+terminal states, bind a fresh packet/policy/server readback, or prove API-visible
+changed-row equality. Registering now would turn mechanism tests into false
+automatic-ingestion acceptance.
+
+Evidence: `pipelines/relation/armor-canonical-transaction-executor.mjs` and its
+test; focused executor suite `6/6`, journal-store suite `3/3`; fresh related
+Node22 regression `1581/1581` in
+`.local/logs/armor-current-model-final-20260925.log`. Scheduler
+remains disabled and no source probe, crawler/import, Redis write or business
+table DML occurred.
+
+Follow-up: compose and validate the full ID-independent relation graph, add the
+durable `armor-canonical-recovery-journal/v1` adapter and packet verifier,
+register only after terminal DB/API readback and fresh authorization gates pass.

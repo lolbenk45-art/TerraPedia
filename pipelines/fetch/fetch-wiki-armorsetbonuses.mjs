@@ -185,7 +185,7 @@ function writeProgress(progress) {
   }));
 }
 
-function parseArmorSetBonuses(content) {
+export function parseArmorSetBonuses(content) {
   const block = extractInitializeBlock(content);
   const statements = splitStatements(block);
   const records = [];
@@ -251,14 +251,16 @@ function parseArmorSetStatement(statement) {
 
 function parseAddStatement(statement) {
   const args = extractCallArgs(statement, 'ArmorSetBonuses.Add(');
-  if (args.length < 5) return null;
+  if (args.length < 5 || args.length > 6) return null;
   const benefitExpression = cleanEffectRef(args[0]);
   const textKey = stripQuotes(args[1]);
-  const set = [parseNumberArg(args[2]), parseNumberArg(args[3]), parseNumberArg(args[4])];
+  const primaryPart = args.length === 6 ? parsePrimaryPart(args[2]) : null;
+  const offset = args.length === 6 ? 1 : 0;
+  const set = [parseNumberArg(args[2 + offset]), parseNumberArg(args[3 + offset]), parseNumberArg(args[4 + offset])];
   return buildRecord({
     benefitExpression,
     textKey,
-    primaryPart: null,
+    primaryPart,
     sets: [set]
   });
 }

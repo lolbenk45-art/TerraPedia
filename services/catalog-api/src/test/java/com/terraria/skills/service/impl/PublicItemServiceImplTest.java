@@ -294,6 +294,14 @@ class PublicItemServiceImplTest {
     }
 
     @Test
+    void publicArmorProjectionQueriesExcludeRetiredRows() {
+        assertTrue(PublicItemServiceImpl.ITEM_ARMOR_ATTRIBUTES_SQL.contains("status = 1"));
+        assertTrue(PublicItemServiceImpl.ITEM_ARMOR_ATTRIBUTES_SQL.contains("deleted = 0"));
+        assertTrue(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL.contains("status = 1"));
+        assertTrue(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL.contains("deleted = 0"));
+    }
+
+    @Test
     void shouldQueryPublicItemEquipmentEffectsByLocalItemId() throws Exception {
         ResultSet resultSet = mock(ResultSet.class);
         when(resultSet.getLong("id")).thenReturn(1L);

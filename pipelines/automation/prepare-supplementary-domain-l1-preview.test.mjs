@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
 
 import {
   buildDomainSourceCommand,
@@ -16,6 +19,40 @@ import {
 } from './prepare-supplementary-domain-l1-preview.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+test('supplementary source executes reviewed child bytes while keeping outputs in the durable root', (t) => {
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-split-roots-'));
+  t.after(() => fs.rmSync(temporaryRoot, { recursive: true, force: true }));
+  const codeRoot = path.join(temporaryRoot, 'reviewed-code');
+  const dataRoot = path.join(temporaryRoot, 'durable-data');
+  const sourceRoot = path.resolve(import.meta.dirname, '../..');
+  const manifest = buildCanonicalOperationExecutionManifest({ repoRoot: sourceRoot, operationId: 'canonical-crawler-v2-scheduler-activation' });
+  for (const entry of manifest.codeBundleEntries) {
+    const destination = path.join(codeRoot, entry.path);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(path.join(sourceRoot, entry.path), destination);
+  }
+  fs.mkdirSync(path.join(dataRoot, 'data/generated'), { recursive: true });
+  const progressPath = path.join(dataRoot, 'data/generated/boss-progress.json');
+  for (const [root, selectedCode] of [[codeRoot, 'reviewed'], [dataRoot, 'stale-primary']]) {
+    const child = path.join(root, 'pipelines/fetch/fetch-wiki-bosses.mjs');
+    fs.mkdirSync(path.dirname(child), { recursive: true });
+    fs.writeFileSync(child, `import fs from 'node:fs'; import path from 'node:path';
+      const progressPath = process.argv.find((arg) => arg.startsWith('--progress-path=')).slice('--progress-path='.length);
+      fs.writeFileSync(path.join(process.env.WORKTREE_ROOT, 'data/generated/wiki-bosses.latest.json'), JSON.stringify({ selectedCode: ${JSON.stringify(selectedCode)}, cwd: process.cwd(), records: [] }));
+      fs.writeFileSync(progressPath, JSON.stringify({ status: 'completed' }));`);
+  }
+  const script = `const { runDomainSource } = await import(${JSON.stringify(pathToFileURL(path.join(codeRoot, 'pipelines/automation/prepare-supplementary-domain-l1-preview.mjs')).href)});
+    const result = await runDomainSource({ domainId: 'bosses', repoRoot: process.env.WORKTREE_ROOT, progressPath: ${JSON.stringify(progressPath)} }, { env: process.env, runId: 'bosses_l1_split_root_test', resumeMode: 'fresh' });
+    process.stdout.write(JSON.stringify(result));`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', script], {
+    cwd: dataRoot, env: { ...process.env, WORKTREE_ROOT: dataRoot }, encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).sourcePayload, { selectedCode: 'reviewed', cwd: dataRoot, records: [] });
+  assert.equal(JSON.parse(fs.readFileSync(progressPath)).status, 'completed');
+  assert.equal(fs.existsSync(path.join(codeRoot, 'data/generated')), false);
+});
 
 test('manual preview CLI keeps the owner-authorized execution mode by default', () => {
   assert.equal(resolveSupplementaryPreviewExecutionMode({}), 'MANUAL_OWNER_L1');

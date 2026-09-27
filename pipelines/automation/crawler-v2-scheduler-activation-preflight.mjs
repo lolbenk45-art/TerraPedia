@@ -144,17 +144,33 @@ function assertSnapshot(snapshot, { nowMs, maxAgeMs }) {
   return true;
 }
 
+export function normalizeSchedulerCanaryAction(actionId, domains) {
+  const normalizedActionId = requireText(actionId, 'scheduler canary actionId');
+  if (!Array.isArray(domains) || domains.length === 0) {
+    throw new Error('scheduler canary requires eligible domains');
+  }
+  const matches = domains.filter((domain) => domain?.actionId === normalizedActionId);
+  if (matches.length !== 1) throw new Error('scheduler canary action must match exactly one eligible domain');
+  const domainId = requireText(matches[0]?.domainId ?? matches[0]?.domain, 'scheduler canary domainId');
+  if (SCHEDULER_ACTION_BY_DOMAIN[domainId] !== normalizedActionId) {
+    throw new Error('scheduler canary action does not match its registered domain');
+  }
+  return Object.freeze({ actionId: normalizedActionId, domainId });
+}
+
 export function buildCrawlerV2SchedulerActivationPreflight({
   snapshot,
   t1Report,
   codeBundle = [],
   reader = null,
+  canaryActionId = null,
   now = new Date().toISOString(),
   maxAgeMs = DEFAULT_MAX_AGE_MS,
 } = {}) {
   assertReaderReadOnly(reader);
   const nowMs = parseTime(now, 'now');
   assertSnapshot(snapshot, { nowMs, maxAgeMs });
+  const canary = normalizeSchedulerCanaryAction(canaryActionId ?? snapshot.canaryActionId, snapshot.domains);
   if (!t1Report || t1Report.status !== 'passed' || t1Report.scheduledTickObserved !== true || t1Report.cleanupPassed !== true) {
     throw new Error('preflight requires a passed cleaned runtime T1 report');
   }
@@ -182,6 +198,7 @@ export function buildCrawlerV2SchedulerActivationPreflight({
     counts: snapshot.counts,
     reconciler: snapshot.reconciler,
     domains: snapshot.domains,
+    canary,
     policyRows: snapshot.policyRows,
     policySetHash: snapshot.policySetHash,
     t1Report: { ...t1Report },
@@ -223,7 +240,7 @@ function parseArgs(argv) {
     const [key, ...rest] = arg.slice(2).split('=');
     return [key, rest.join('=')];
   }));
-  for (const key of ['api-base', 't1-report', 'output']) {
+  for (const key of ['api-base', 't1-report', 'output', 'canary-action-id']) {
     if (!args[key]) throw new Error(`--${key}=<path> is required`);
   }
   return args;
@@ -321,6 +338,7 @@ async function main() {
     snapshot,
     t1Report,
     codeBundle,
+    canaryActionId: args['canary-action-id'],
   });
   const outputPath = writeSchedulerPreflightArtifact({
     repoRoot,

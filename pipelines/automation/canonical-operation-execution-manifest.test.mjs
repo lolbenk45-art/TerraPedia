@@ -16,7 +16,11 @@ import {
   CANONICAL_CUTOVER_OPERATION_IDS,
   CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
+  resolveCanonicalOperationTechnicalInput,
 } from './build-canonical-cutover-authorization.mjs';
+import { buildBaseDomainSourceCommand } from './run-base-domain-automatic-operation.mjs';
+import { buildDomainSourceCommand } from './prepare-supplementary-domain-l1-preview.mjs';
+import { getGovernedL1DomainConfig } from './run-governed-l1-operation.mjs';
 import {
   SHIMMER_IMPORT_PROVIDER_SCOPE,
   shimmerImportBindingFromInputContract,
@@ -32,6 +36,7 @@ import {
   buildItemSourceLocalNpcAdmissionAttemptPaths,
   buildItemSourceLocalNpcAdmissionInputContract,
 } from '../relation/item-source-local-npc-admission-contract.mjs';
+import { buildArmorCanonicalIntentArtifactBinding } from '../relation/armor-canonical-operation-binding.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
@@ -77,6 +82,29 @@ function governedL1ManifestOptions(operationId) {
 }
 
 function manifestOptions(operationId) {
+  if (operationId === 'canonical-armor-set-projection-incremental'
+      || operationId === 'canonical-armor-secondary-projection') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-image-cache') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-semantic-repair') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-ingestion') return {
+    resultLabel: 'test-01',
+    armorCanonicalIntentBinding: buildArmorCanonicalIntentArtifactBinding({
+      resultLabel: 'test-01',
+      intent: {
+        schemaVersion: 'armor-canonical-full-chain-intent/v1',
+        operationId: 'canonical-armor-ingestion',
+        executable: false,
+        executionBlocker: 'registered-full-chain-executor-required',
+        fullChainSha256: `sha256:${'a'.repeat(64)}`,
+      },
+      intentFileSha256: `sha256:${'b'.repeat(64)}`,
+      serverFingerprint: `sha256:${'c'.repeat(64)}`,
+      policySetHash: `sha256:${'d'.repeat(64)}`,
+      runId: 'armor-run-test-01',
+      fenceToken: 'armor-fence-test-01',
+      fenceCommit: { generation: 1, marker: 'armor-commit-test-01' },
+    }),
+  };
   const governed = governedL1ManifestOptions(operationId);
   if (governed.l1RunRoot) return governed;
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)) {
@@ -340,8 +368,8 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 111);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 109);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 124);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 122);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(
@@ -1567,8 +1595,80 @@ test('scheduler activation manifest consumes explicit preflight and T1 paths wit
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, false);
   assert.equal(manifest.networkAccess, false);
-  assert.ok(manifest.codeBundleEntries.some((entry) => entry.path.endsWith('crawler-v2-scheduler-activation-preflight.mjs')));
+  const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+  for (const requiredPath of [
+    'pipelines/automation/crawler-v2-scheduler-activation-preflight.mjs',
+    'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+    'pipelines/automation/capture-crawler-v2-scheduler-activation-input.mjs',
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    'platform/local/start-local-stack.sh',
+    'platform/local/lib/runtime-config.sh',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/dto/CrawlerV2AutomationDTO.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/CrawlerAutomationPolicyService.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImpl.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/mapper/CrawlerAutomationActivationDecisionMapper.java',
+    'services/catalog-api/src/main/resources/db/migration/V61__bind_scheduler_activation_canary_scope.sql',
+  ]) {
+    assert.ok(codePaths.has(requiredPath), `${requiredPath} must be pinned by the scheduler activation bundle`);
+  }
 });
+
+const SCHEDULER_RUNTIME_REQUIRED_PATHS = [
+  'pipelines/automation/run-base-domain-automatic-operation.mjs',
+  'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
+  'pipelines/automation/automatic-execution-artifacts.mjs',
+  'pipelines/automation/run-supplementary-domain-l1-operation.mjs',
+  'pipelines/automation/build-l1-reconciliation-evidence.mjs',
+  'pipelines/automation/source-dispatch-identity.mjs',
+  'pipelines/import/import-standardized-to-db.mjs',
+  'pipelines/import/import-independent-entities-to-db.mjs',
+  'pipelines/import/import-wiki-audio-assets-to-db.mjs',
+  'pipelines/import/import-wiki-bosses-to-db.mjs',
+  'pipelines/import/import-wiki-shimmer-to-db.mjs',
+  'pipelines/monitor/check-source-updates.mjs',
+  'pipelines/workflow/seed-wiki-source-manifest.mjs',
+  'pipelines/normalize/normalize-wiki-items.mjs',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java',
+  ...['items', 'npcs', 'projectiles', 'armor_sets', 'buffs'].map((domain) => buildBaseDomainSourceCommand(domain, '/tmp/progress.json')[0]),
+  ...['audio', 'bosses', 'shimmer'].map((domainId) => buildDomainSourceCommand({ domainId, progressPath: '/tmp/progress.json', runId: 'test', resumeMode: 'fresh' })[0]),
+  ...GOVERNED_L1_OPERATION_CASES.map(({ domainId }) => getGovernedL1DomainConfig(domainId).fetchScript),
+];
+
+for (const operationId of ['canonical-crawler-v2-scheduler-activation', 'automation-crawler-v2-scheduler-activation', 'automation-crawler-v2-scheduler-reactivation']) {
+  test(`${operationId} pins the existing eight-action child runtime and transitive importers`, () => {
+    const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+    const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+    for (const requiredPath of SCHEDULER_RUNTIME_REQUIRED_PATHS) {
+      assert.ok(codePaths.has(requiredPath), `${requiredPath} must be pinned by ${operationId}`);
+    }
+  });
+
+  for (const targetPath of [
+    'pipelines/automation/automatic-execution-artifacts.mjs',
+    'pipelines/automation/run-base-domain-automatic-operation.mjs',
+    'pipelines/import/import-independent-entities-to-db.mjs',
+    'pipelines/fetch/fetch-wiki-projectileinfo.mjs',
+  ]) {
+    test(`${operationId} detects frozen runtime byte drift in ${targetPath}`, (t) => {
+      const frozen = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+      assert.ok(frozen.codeBundleEntries.some((entry) => entry.path === targetPath), 'runtime file must be bound before byte verification');
+      const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'scheduler-manifest-runtime-'));
+      t.after(() => fs.rmSync(temporaryRoot, { recursive: true, force: true }));
+      for (const entry of frozen.codeBundleEntries) {
+        const target = path.join(temporaryRoot, entry.path);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.copyFileSync(path.join(repoRoot, entry.path), target);
+      }
+      fs.appendFileSync(path.join(temporaryRoot, targetPath), '\n// deliberate runtime byte drift\n');
+      assert.throws(() => resolveCanonicalOperationTechnicalInput({
+        repoRoot: temporaryRoot, operationId, executionManifest: frozen,
+      }), new RegExp(`code bundle hash mismatch: ${targetPath.replaceAll('.', '\\.')}`));
+    });
+  }
+}
 
 test('scheduler activation manifest binds retry-labelled proposal inputs and output', () => {
   const manifest = buildCanonicalOperationExecutionManifest({
@@ -1792,6 +1892,7 @@ test('item image projection manifest binds one decision-derived attempt root', (
       'pipelines/relation/projection-schema.mjs',
       'pipelines/relation/relation-schema.mjs',
       'pipelines/transform/shimmer-generation-contract.mjs',
+      'pipelines/workflow/armor-image-cache.mjs',
       'scripts/lib/local-runtime-config.mjs',
     ].sort());
   } finally {

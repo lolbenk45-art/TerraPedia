@@ -45,12 +45,36 @@ import {
   writeL1ReconciliationEvidence,
 } from './build-l1-reconciliation-evidence.mjs';
 
+import {
+  automaticArtifactRunId,
+  automaticReconciliationRoot,
+  assertAutomaticAttemptMatches,
+} from './automatic-execution-artifacts.mjs';
+
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const CRITICAL_ALERT_RETRY_ROOT = 'reports/runtime/automation-alert-retry';
 const CRITICAL_ALERT_RETRY_FILE = 'critical-alert-delivery-retry.json';
 const AUTOMATIC_BUNDLE_ROOT = 'reports/authorization/canonical/automatic';
 const AUTOMATIC_BUNDLE_FILENAMES = new Set(['bundle.json', 'operation.bundle.json']);
 const CLI_RESULT_FILE_NAME = 'result.json';
+
+export function readVerifiedCommittedAutomaticBundle({ repoRoot, manifest, runId, domainId, sourceDispatchIdentity }) {
+  const root = resolveCliRepositoryRoot(repoRoot);
+  const bundlePath = resolveCliArtifactPath(root, manifest?.privatePath, 'committed manifest privatePath');
+  const bytes = readPrivateCliFileBytes(root, bundlePath, 'committed automatic bundle');
+  if (sha256Bytes(bytes) !== manifest?.bundleFileHash) throw new Error('committed manifest bundle hash mismatch');
+  const bundle = JSON.parse(bytes.toString('utf8'));
+  validateSupplementaryL1Bundle(bundle);
+  if (bundle.executionMode !== 'ACTIVATION_GATED_AUTO' || bundle.runId !== runId || bundle.domainId !== domainId
+      || JSON.stringify(stableValue(bundle.source)) !== JSON.stringify(stableValue(manifest.source))
+      || bundle.importPlan.automaticSourceFingerprint !== manifest.automaticSourceFingerprint
+      || JSON.stringify(stableValue(bundle.sourceDispatchIdentity)) !== JSON.stringify(stableValue(sourceDispatchIdentity))) {
+    throw new Error('committed automatic bundle does not match its persisted source identity');
+  }
+  assertCliBundleArtifact({ repoRoot: root, inputPath: bundlePath, bundle });
+  if (bundle.importPlan?.automaticAttemptIdentity != null) assertAutomaticReconciliationPathBinding(bundle);
+  return { bundle, bundlePath };
+}
 
 export async function executeSupplementaryL1Operation({
   adapter,
@@ -76,6 +100,7 @@ export async function executeSupplementaryL1Operation({
   if (bundle.executionMode === 'ACTIVATION_GATED_AUTO') {
     assertAutomaticScopeCanEnterTransaction(bundle.ownedTables);
   }
+  assertShimmerImporterWriteScope(bundle);
   requireAdapter(adapter);
   await adapter.begin();
   let committed = false;
@@ -1068,6 +1093,10 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       bundle: parsedBundle,
     });
   }
+  if (parsedBundle?.importPlan?.automaticAttemptIdentity != null) {
+    assertBoundAutomaticProgress(root, frozenBundlePath, frozenProgressPath, parsedBundle);
+    assertUnusedAutomaticReconciliationInputs(root, parsedBundle);
+  }
   const bundleFileHash = sha256Bytes(bundleBytes);
   const state = { applyId: null, approvalId: null };
   return {
@@ -1226,7 +1255,13 @@ export function createMysqlSupplementaryL1Adapter(connection, {
         );
       }
     },
-    applyFrozenImport: (_plan, bundle) => applyFrozenDomainImport({ connection, bundle, repoRoot: root }),
+    applyFrozenImport: (_plan, bundle) => {
+      if (bundle.importPlan?.automaticAttemptIdentity != null) {
+        assertBoundAutomaticProgress(root, frozenBundlePath, frozenProgressPath, bundle);
+        assertUnusedAutomaticReconciliationInputs(root, bundle);
+      }
+      return applyFrozenDomainImport({ connection, bundle, repoRoot: root });
+    },
     async advanceMutationGenerations(bundle) {
       for (const generation of bundle.baseline.generations) {
         const [result] = await connection.query(
@@ -1306,6 +1341,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       if (progress.status !== 'completed') {
         throw new Error('L1 source progress is not terminal');
       }
+      assertAutomaticAttemptMatches(progress.payload, bundle.importPlan?.automaticAttemptIdentity, 'source progress');
 
       const generations = [];
       const tableRows = {};
@@ -1392,6 +1428,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       const sourceCoverage = {
         schemaVersion: 1,
         artifactKind: 'l1-source-coverage',
+        ...(bundle.importPlan?.automaticAttemptIdentity == null ? {} : { automaticAttemptIdentity: bundle.importPlan.automaticAttemptIdentity }),
         domainId: bundle.domainId,
         runId: bundle.runId,
         sourcePath: bundle.source.path,
@@ -1407,6 +1444,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       const ownedTableReadback = {
         schemaVersion: 1,
         artifactKind: 'l1-owned-table-readback',
+        ...(bundle.importPlan?.automaticAttemptIdentity == null ? {} : { automaticAttemptIdentity: bundle.importPlan.automaticAttemptIdentity }),
         domainId: bundle.domainId,
         runId: bundle.runId,
         ownedTables: bundle.ownedTables,
@@ -1422,6 +1460,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       const attemptState = {
         schemaVersion: 1,
         artifactKind: 'l1-attempt-state',
+        ...(bundle.importPlan?.automaticAttemptIdentity == null ? {} : { automaticAttemptIdentity: bundle.importPlan.automaticAttemptIdentity }),
         domainId: bundle.domainId,
         runId: bundle.runId,
         activeAttemptCount,
@@ -1942,12 +1981,43 @@ function toWritableRecoveryError(value) {
   return new Error(message, { cause: value });
 }
 
+function assertShimmerImporterWriteScope(bundle) {
+  if (bundle?.domainId !== 'shimmer') return;
+  // The importer also upserts shared context and source lineage. A four-table
+  // transform scope cannot fence, reconcile, or compensate those writes.
+  const writeTables = [
+    'world_contexts',
+    'entity_source_snapshots',
+    'shimmer_item_transforms',
+    'shimmer_decraft_rules',
+    'shimmer_entity_transforms',
+    'shimmer_npc_transforms',
+  ];
+  const ownedTables = Array.isArray(bundle.ownedTables) ? bundle.ownedTables : [];
+  const hasAllImporterTables = writeTables.every((table) => ownedTables.some((scope) => scope?.table === table));
+  if (hasAllImporterTables) {
+    throw new Error('Shimmer importer cross-owner partition contract requires a registered partition executor before apply');
+  }
+  const uncovered = writeTables.filter((table) => !ownedTables.some((scope) => (
+    scope?.databaseRole === 'local'
+    && scope.table === table
+    && (scope.fieldGroup ?? 'all_columns') === 'all_columns'
+    && scope.logicalPredicateHash == null
+  )));
+  if (uncovered.length > 0) {
+    throw new Error(
+      `Shimmer importer write scope is not covered by ownedTables: ${uncovered.map((table) => `local.${table}`).join(', ')}`,
+    );
+  }
+}
+
 export async function applyFrozenDomainImport({ connection, bundle, repoRoot }, {
   runBaseItemsImportImpl = runBaseItemsImport,
   runIndependentEntityImportImpl = runIndependentEntityImport,
   runAudioAssetImportImpl = runAudioAssetImport,
   runBossImportImpl = runBossImport,
 } = {}) {
+  assertShimmerImporterWriteScope(bundle);
   const sourcePath = path.resolve(repoRoot, bundle.source.path);
   const sourceBytes = fs.readFileSync(sourcePath);
   if (sha256Bytes(sourceBytes) !== bundle.source.sha256) throw new Error('frozen source hash drifted before apply');
@@ -2149,8 +2219,8 @@ function assertCliBundleArtifact({ repoRoot, inputPath, bundle }) {
   const root = path.resolve(repoRoot);
   if (bundle?.executionMode !== 'ACTIVATION_GATED_AUTO') return;
   const domain = requireCliPathSegment(bundle.domainId, 'automatic bundle domainId');
-  const runId = requireCliPathSegment(bundle.runId, 'automatic bundle runId');
-  const artifactRoot = path.resolve(root, AUTOMATIC_BUNDLE_ROOT, domain, runId);
+  requireCliPathSegment(bundle.runId, 'automatic bundle runId');
+  const artifactRoot = path.resolve(root, AUTOMATIC_BUNDLE_ROOT, domain, automaticArtifactRunId(bundle));
   const expectedBundlePaths = [...AUTOMATIC_BUNDLE_FILENAMES]
     .map((fileName) => path.join(artifactRoot, fileName));
   if (!expectedBundlePaths.includes(path.resolve(inputPath))) {
@@ -2177,8 +2247,8 @@ function assertCliResultOutputPath({ repoRoot, inputPath, outputPath, bundle }) 
   let expectedDirectory = path.dirname(inputPath);
   if (bundle?.executionMode === 'ACTIVATION_GATED_AUTO') {
     const domain = requireCliPathSegment(bundle.domainId, 'automatic bundle domainId');
-    const runId = requireCliPathSegment(bundle.runId, 'automatic bundle runId');
-    expectedDirectory = path.resolve(root, AUTOMATIC_BUNDLE_ROOT, domain, runId);
+    requireCliPathSegment(bundle.runId, 'automatic bundle runId');
+    expectedDirectory = path.resolve(root, AUTOMATIC_BUNDLE_ROOT, domain, automaticArtifactRunId(bundle));
     if (path.resolve(outputPath) !== path.join(expectedDirectory, CLI_RESULT_FILE_NAME)) {
       throw new Error('--output must be the canonical run-specific automatic result artifact');
     }
@@ -2486,7 +2556,7 @@ function normalizeReconciliationInputPaths({ root, bundle, reconciliationInput }
   for (const [field, artifactName] of Object.entries(names)) {
     const value = requireText(reconciliationInput[field], `reconciliationInput.${field}`)
       .replaceAll('\\', '/');
-    const expected = `reports/runtime/l1-reconciliation/${bundle.domainId}/${bundle.runId}/${artifactName}.json`;
+    const expected = `${automaticReconciliationRoot(bundle)}/${artifactName}.json`;
     if (value !== expected) {
       throw new Error(`reconciliationInput.${field} must use the exact L1 run path`);
     }
@@ -2498,6 +2568,40 @@ function normalizeReconciliationInputPaths({ root, bundle, reconciliationInput }
     });
   }
   return result;
+}
+
+function assertBoundAutomaticProgress(root, bundlePath, progressPath, bundle) {
+  const progress = readOptionalRunProgress(root, bundlePath, progressPath);
+  if (!progress || progress.status !== 'completed') throw new Error('automatic source progress must be completed before apply');
+  assertAutomaticAttemptMatches(progress.payload, bundle.importPlan.automaticAttemptIdentity, 'source progress');
+}
+
+function assertUnusedAutomaticReconciliationInputs(root, bundle) {
+  assertAutomaticReconciliationPathBinding(bundle);
+  const paths = normalizeReconciliationInputPaths({ root, bundle, reconciliationInput: bundle.reconciliationInput });
+  const expectedOutput = `${automaticReconciliationRoot(bundle)}/reconciliation-evidence.json`;
+  for (const filePath of [...Object.values(paths), path.resolve(root, expectedOutput)]) {
+    try { fs.lstatSync(filePath); } catch (error) {
+      if (error?.code === 'ENOENT') continue;
+      throw error;
+    }
+    throw new Error('automatic reconciliation artifact already exists; overwrite is forbidden');
+  }
+}
+
+function assertAutomaticReconciliationPathBinding(bundle) {
+  if (!bundle.reconciliationInput) throw new Error('automatic attempt requires reconciliation inputs');
+  const names = {
+    sourceCoveragePath: 'source-coverage',
+    ownedTableReadbackPath: 'owned-table-readback',
+    attemptStatePath: 'attempt-state',
+    outputPath: 'reconciliation-evidence',
+  };
+  for (const [field, name] of Object.entries(names)) {
+    if (bundle.reconciliationInput[field] !== `${automaticReconciliationRoot(bundle)}/${name}.json`) {
+      throw new Error(`reconciliationInput.${field} must use the exact L1 run path`);
+    }
+  }
 }
 
 function readOptionalRunProgress(root, bundlePath, explicitProgressPath = null) {
@@ -2526,6 +2630,7 @@ function readOptionalRunProgress(root, bundlePath, explicitProgressPath = null) 
   return {
     path: relativeRepositoryPath(root, confined),
     status: payload?.status ?? null,
+    payload,
   };
 }
 

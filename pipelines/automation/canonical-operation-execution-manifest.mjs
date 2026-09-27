@@ -82,6 +82,11 @@ const NPC_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-npc-image-origin-
 const PROJECTILE_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-projectile-image-origin-normalization';
 const BIOME_IMAGE_ORIGIN_NORMALIZATION_OPERATION_ID = 'canonical-biome-image-origin-normalization';
 const ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID = 'canonical-armor-set-projection-restoration';
+const ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID = 'canonical-armor-set-projection-incremental';
+const ARMOR_CANONICAL_OPERATION_ID = 'canonical-armor-ingestion';
+const ARMOR_SEMANTIC_REPAIR_OPERATION_ID = 'canonical-armor-semantic-repair';
+const ARMOR_SECONDARY_OPERATION_ID = 'canonical-armor-secondary-projection';
+const ARMOR_IMAGE_CACHE_OPERATION_ID = 'canonical-armor-image-cache';
 const TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID = 'canonical-two-item-image-quarantine-repair';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 const AUTHORIZED_RUNNER_CODE_PATH = 'pipelines/automation/run-authorized-canonical-operation.mjs';
@@ -95,9 +100,20 @@ const L2_OPERATION_IDS = Object.freeze({
   bosses: 'automation-bosses-l2-promotion',
   shimmer: 'automation-shimmer-l2-promotion',
 });
+const L2_REAUTHORIZATION_OPERATION_IDS = Object.freeze({
+  items: 'automation-items-l2-reauthorization',
+  npcs: 'automation-npcs-l2-reauthorization',
+  projectiles: 'automation-projectiles-l2-reauthorization',
+  armor_sets: 'automation-armor-sets-l2-reauthorization',
+  buffs: 'automation-buffs-l2-reauthorization',
+  audio: 'automation-audio-l2-reauthorization',
+  bosses: 'automation-bosses-l2-reauthorization',
+  shimmer: 'automation-shimmer-l2-reauthorization',
+});
 const L2_POLICY_DECISION_OPERATION_IDS = new Set([
   'automation-biomes-l2-promotion',
   ...Object.values(L2_OPERATION_IDS),
+  ...Object.values(L2_REAUTHORIZATION_OPERATION_IDS),
 ]);
 const GOVERNED_L1_OPERATION_DOMAINS = Object.freeze({
   'automation-items-l1': 'items',
@@ -116,6 +132,36 @@ const AUTHORIZED_CONTEXT_CODE_PATHS = Object.freeze([
   'pipelines/automation/canonical-operation-catalog.mjs',
   'pipelines/automation/canonical-operation-execution-manifest.mjs',
   'pipelines/automation/policy-set-hash.mjs',
+]);
+
+// Spawned scripts are not static imports. Pin the existing scheduler child
+// roots explicitly; the normal import expansion binds their helpers/importers.
+const SCHEDULER_RUNTIME_CODE_PATHS = Object.freeze([
+  'pipelines/automation/run-base-domain-automatic-operation.mjs',
+  'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
+  'pipelines/monitor/check-source-updates.mjs',
+  'pipelines/workflow/run-wiki-sync.mjs',
+  'pipelines/workflow/seed-wiki-source-manifest.mjs',
+  'pipelines/normalize/normalize-wiki-items.mjs',
+  'pipelines/fetch/fetch-wiki-iteminfo.mjs',
+  'pipelines/fetch/fetch-wiki-npcinfo.mjs',
+  'pipelines/fetch/fetch-wiki-projectileinfo.mjs',
+  'pipelines/fetch/fetch-wiki-armorsetbonuses.mjs',
+  'pipelines/fetch/fetch-wiki-buffs.mjs',
+  'pipelines/fetch/fetch-wiki-audio-assets.mjs',
+  'pipelines/fetch/fetch-wiki-bosses.mjs',
+  'pipelines/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
+  'platform/local/start-local-stack.sh',
+  'platform/local/lib/runtime-config.sh',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/dto/CrawlerV2AutomationDTO.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/CrawlerAutomationPolicyService.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImpl.java',
+  'services/catalog-api/src/main/java/com/terraria/skills/mapper/CrawlerAutomationActivationDecisionMapper.java',
+  'services/catalog-api/src/main/resources/db/migration/V61__bind_scheduler_activation_canary_scope.sql',
 ]);
 
 const CODE_PATHS = Object.freeze({
@@ -159,6 +205,17 @@ const CODE_PATHS = Object.freeze({
       'pipelines/automation/run-automation-policy-decision.mjs',
       'pipelines/automation/build-l2-promotion-proposal.mjs',
       'pipelines/automation/l2-policy-ceiling-artifact.mjs',
+      'pipelines/automation/reconciliation-evidence-contract.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+    ]),
+  ])),
+  ...Object.fromEntries(Object.entries(L2_REAUTHORIZATION_OPERATION_IDS).map(([domainId, operationId]) => [
+    operationId, Object.freeze([
+      'pipelines/automation/run-automation-policy-decision.mjs',
+      'pipelines/automation/capture-l2-policy-stable-reauthorization-input.mjs',
+      'pipelines/automation/build-l2-policy-stable-reauthorization-proposal.mjs',
+      'pipelines/automation/l2-policy-stable-reauthorization.mjs',
       'pipelines/automation/reconciliation-evidence-contract.mjs',
       ...AUTHORIZED_CONTEXT_CODE_PATHS,
       'pipelines/lib/mysql-module.mjs',
@@ -232,6 +289,29 @@ const CODE_PATHS = Object.freeze({
     'pipelines/lib/private-repository-path.mjs',
     'scripts/lib/local-runtime-config.mjs',
   ])])),
+  [ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-armor-set-projection-incremental.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  [ARMOR_CANONICAL_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-armor-canonical-ingestion.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  [ARMOR_SEMANTIC_REPAIR_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-armor-semantic-repair.mjs',
+    'pipelines/relation/armor-semantic-repair.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [ARMOR_IMAGE_CACHE_OPERATION_ID]: Object.freeze([
+    'pipelines/workflow/run-armor-image-cache.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  [ARMOR_SECONDARY_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-armor-secondary-projection.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
   [ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID]: Object.freeze([
     'pipelines/relation/armor-set-projection-restoration.mjs',
     'pipelines/relation/projection-sync.mjs',
@@ -535,6 +615,10 @@ const CODE_PATHS = Object.freeze({
   'canonical-crawler-v2-scheduler-activation': Object.freeze([
     'pipelines/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
     'pipelines/automation/crawler-v2-scheduler-activation-preflight.mjs',
+    'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+    'pipelines/automation/capture-crawler-v2-scheduler-activation-input.mjs',
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    ...SCHEDULER_RUNTIME_CODE_PATHS,
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
   'automation-biomes-l2-promotion': Object.freeze([
@@ -552,11 +636,13 @@ const CODE_PATHS = Object.freeze({
   ]),
   'automation-crawler-v2-scheduler-activation': Object.freeze([
     'pipelines/automation/run-automation-policy-decision.mjs',
+    ...SCHEDULER_RUNTIME_CODE_PATHS,
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
   ]),
   'automation-crawler-v2-scheduler-reactivation': Object.freeze([
     'pipelines/automation/run-automation-policy-decision.mjs',
+    ...SCHEDULER_RUNTIME_CODE_PATHS,
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/lib/mysql-module.mjs',
   ]),
@@ -702,6 +788,8 @@ export function buildCanonicalOperationExecutionManifest({
   l1RunRoot = null,
   databaseEvidenceRoot = null,
   historicalSourceHashDispositionPaths = [],
+  armorCanonicalIntentBinding = null,
+  armorImageCacheResumeResultPath = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -732,6 +820,8 @@ export function buildCanonicalOperationExecutionManifest({
     l1RunRoot,
     databaseEvidenceRoot,
     historicalSourceHashDispositionPaths,
+    armorCanonicalIntentBinding,
+    armorImageCacheResumeResultPath,
   });
   const codePaths = expandRepositoryCodePaths(root, operationCodePaths(operationId));
   if (operationId === 'canonical-item-image-projection-apply') {
@@ -778,6 +868,8 @@ export function buildCanonicalOperationExecutionContract({
   l1RunRoot = null,
   databaseEvidenceRoot = null,
   historicalSourceHashDispositionPaths = [],
+  armorCanonicalIntentBinding = null,
+  armorImageCacheResumeResultPath = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -795,10 +887,34 @@ export function buildCanonicalOperationExecutionContract({
     throw new Error('npcLimit must be exactly 25 for the frozen canonical NPC operation');
   }
   const normalizedResultLabel = normalizeResultLabel(resultLabel);
+  if (operationId === ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Armor incremental result label is required');
+  }
+  if (operationId === ARMOR_IMAGE_CACHE_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Armor cache result label is required');
+  }
+  if (operationId === ARMOR_SECONDARY_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Armor secondary result label is required');
+  }
+  if (operationId === ARMOR_CANONICAL_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Armor canonical ingestion result label is required');
+  }
+  if (operationId === ARMOR_SEMANTIC_REPAIR_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Armor semantic repair result label is required');
+  }
+  if (operationId === ARMOR_CANONICAL_OPERATION_ID
+      && (!armorCanonicalIntentBinding || typeof armorCanonicalIntentBinding !== 'object')) {
+    throw new Error('Armor canonical ingestion intent binding is required');
+  }
   if (normalizedResultLabel
       && !NPC_OWNER_OPERATION_IDS.includes(operationId)
       && !L2_POLICY_DECISION_OPERATION_IDS.has(operationId)
       && operationId !== 'canonical-crawler-v2-scheduler-activation'
+      && operationId !== ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID
+      && operationId !== ARMOR_CANONICAL_OPERATION_ID
+      && operationId !== ARMOR_SEMANTIC_REPAIR_OPERATION_ID
+      && operationId !== ARMOR_SECONDARY_OPERATION_ID
+      && operationId !== ARMOR_IMAGE_CACHE_OPERATION_ID
       && operationId !== 'automation-crawler-v2-scheduler-activation') {
     throw new Error('result label is supported only for an NPC owner operation');
   }
@@ -841,6 +957,8 @@ export function buildCanonicalOperationExecutionContract({
     l1RunRoot,
     databaseEvidenceRoot,
     historicalSourceHashDispositionPaths,
+    armorCanonicalIntentBinding,
+    armorImageCacheResumeResultPath,
   );
   return {
     schemaVersion: 1,
@@ -899,6 +1017,8 @@ export function assertCanonicalOperationExecutionManifestContract({
     l1RunRoot: manifest?.l1RunRoot ?? null,
     databaseEvidenceRoot: commandArgument('--database-evidence-root='),
     historicalSourceHashDispositionPaths: commandArgument('--historical-source-hash-disposition='),
+    armorCanonicalIntentBinding: manifest?.armorCanonicalIntent ?? null,
+    armorImageCacheResumeResultPath: manifest?.armorImageCacheResumeResultPath ?? null,
   });
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -1232,6 +1352,8 @@ function buildDefinition(
   l1RunRoot,
   databaseEvidenceRoot,
   historicalSourceHashDispositionPaths,
+  armorCanonicalIntentBinding,
+  armorImageCacheResumeResultPath,
 ) {
   const definitions = {
     'canonical-biome-image-contract-apply': {
@@ -1410,6 +1532,102 @@ function buildDefinition(
       databaseWrites: true,
       networkAccess: false,
     }])),
+    [ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID]: {
+      executionClass: 'formal_armor_set_projection_incremental',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID],
+        `--operation-id=${ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID}.${resultLabel}.proposal.json`],
+      outputPaths: [`reports/authorization/canonical/${ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID}.${resultLabel}.result.json`],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: ['relation.projection_armor_sets.update'],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+    },
+    [ARMOR_IMAGE_CACHE_OPERATION_ID]: {
+      executionClass: 'formal_asset_sync',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_IMAGE_CACHE_OPERATION_ID],
+        `--operation-id=${ARMOR_IMAGE_CACHE_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [
+        `reports/authorization/canonical/${ARMOR_IMAGE_CACHE_OPERATION_ID}.${resultLabel}.proposal.json`,
+        ...(armorImageCacheResumeResultPath ? [armorImageCacheResumeResultPath] : []),
+      ],
+      ...(armorImageCacheResumeResultPath ? { armorImageCacheResumeResultPath } : {}),
+      outputPaths: [`reports/authorization/canonical/${ARMOR_IMAGE_CACHE_OPERATION_ID}.${resultLabel}.prepared.json`,
+        `reports/authorization/canonical/${ARMOR_IMAGE_CACHE_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${ARMOR_IMAGE_CACHE_OPERATION_ID}.${resultLabel}.uploads.jsonl`],
+      reportPaths: [],
+      progressPaths: [`reports/backend-refresh/history/${ARMOR_IMAGE_CACHE_OPERATION_ID}.${resultLabel}.runtime/child-status.json`,
+        'data/generated/armor-image-cache-progress.latest.json'],
+      ownershipKeys: ['managed_objects.armor_source_images'], requiredOperationIds: [],
+      databaseWrites: false, networkAccess: true,
+    },
+    [ARMOR_SECONDARY_OPERATION_ID]: {
+      executionClass: 'formal_armor_secondary_projection',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_SECONDARY_OPERATION_ID],
+        `--operation-id=${ARMOR_SECONDARY_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${ARMOR_SECONDARY_OPERATION_ID}.${resultLabel}.proposal.json`],
+      outputPaths: [`reports/authorization/canonical/${ARMOR_SECONDARY_OPERATION_ID}.${resultLabel}.prepared.json`,
+        `reports/authorization/canonical/${ARMOR_SECONDARY_OPERATION_ID}.${resultLabel}.result.json`],
+      reportPaths: [], progressPaths: [],
+      ownershipKeys: ['relation.projection_item_armor_attributes.armor_members',
+        'relation.projection_equipment_effect_attributes.armor_member_item_cells'],
+      requiredOperationIds: [], databaseWrites: true, networkAccess: false,
+    },
+    [ARMOR_SEMANTIC_REPAIR_OPERATION_ID]: {
+      executionClass: 'formal_armor_semantic_repair',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_SEMANTIC_REPAIR_OPERATION_ID],
+        `--operation-id=${ARMOR_SEMANTIC_REPAIR_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${ARMOR_SEMANTIC_REPAIR_OPERATION_ID}.${resultLabel}.proposal.json`],
+      outputPaths: [`reports/authorization/canonical/${ARMOR_SEMANTIC_REPAIR_OPERATION_ID}.${resultLabel}.result.json`],
+      reportPaths: [], progressPaths: [],
+      ownershipKeys: [
+        'local.source_dataset_landings.armor_attributes_raw',
+        'maint.source_dataset_landings.armor_attributes_raw',
+        'maint.maint_armor_attribute_rows',
+        'relation.relation_armor_attribute_rows',
+        'relation.relation_equipment_effect_attributes.status_deleted',
+        'relation.relation_equipment_effect_attributes.insert',
+      ],
+      requiredOperationIds: [], databaseWrites: true, networkAccess: false,
+    },
+    [ARMOR_CANONICAL_OPERATION_ID]: {
+      executionClass: 'formal_armor_canonical_full_chain',
+      command: [
+        'node',
+        CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_CANONICAL_OPERATION_ID],
+        `--operation-id=${ARMOR_CANONICAL_OPERATION_ID}`,
+        `--result-label=${resultLabel}`,
+        `--intent=reports/authorization/canonical/${ARMOR_CANONICAL_OPERATION_ID}.${resultLabel}.intent.json`,
+        '--apply=true',
+      ],
+      inputPaths: [
+        `reports/authorization/canonical/${ARMOR_CANONICAL_OPERATION_ID}.${resultLabel}.intent.json`,
+      ],
+      outputPaths: [
+        `reports/authorization/canonical/${ARMOR_CANONICAL_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${ARMOR_CANONICAL_OPERATION_ID}.${resultLabel}.journal.json`,
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: [
+        'local.source_dataset_landings.armor_sets_raw',
+        'local.source_dataset_landings.armor_set_images_raw',
+        'maint.maint_armor_sets',
+        'maint.maint_armor_set_images',
+        'relation.relation_armor_sets',
+        'relation.relation_armor_set_items',
+        'relation.relation_armor_set_images',
+        'relation.projection_armor_sets',
+      ],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+      armorCanonicalIntent: {
+        ...armorCanonicalIntentBinding,
+      },
+    },
     [ARMOR_SET_PROJECTION_RESTORATION_OPERATION_ID]: {
       executionClass: 'formal_armor_set_projection_restoration',
       command: [
@@ -1891,6 +2109,16 @@ function buildDefinition(
       policyDecisionDefinition({
         operationId,
         resultLabel,
+        databaseEvidenceRoot,
+        historicalSourceHashDispositionPaths,
+      }),
+    ])),
+    ...Object.fromEntries(Object.entries(L2_REAUTHORIZATION_OPERATION_IDS).map(([domainId, operationId]) => [
+      operationId,
+      policyDecisionDefinition({
+        operationId,
+        resultLabel,
+        reauthorization: true,
         databaseEvidenceRoot,
         historicalSourceHashDispositionPaths,
       }),
@@ -3079,6 +3307,7 @@ function policyDecisionDefinition({
   resultLabel = null,
   databaseEvidenceRoot = null,
   historicalSourceHashDispositionPaths = [],
+  reauthorization = false,
 } = {}) {
   const suffix = resultLabel == null ? '' : `.${resultLabel}`;
   const inputPath = `reports/authorization/canonical/${operationId}${suffix}.input.json`;
@@ -3111,9 +3340,10 @@ function policyDecisionDefinition({
     reportPaths: [],
     progressPaths: [],
     ...(publication == null ? {} : { policyDecisionPublication: publication }),
-    ...(isL2Promotion && evidenceBinding != null
+    ...(evidenceBinding != null
       ? { policyDecisionEvidence: evidenceBinding.manifestBinding }
       : {}),
+    ...(reauthorization ? { policyDecisionReauthorization: true } : {}),
     databaseWrites: true,
     networkAccess: false,
   };

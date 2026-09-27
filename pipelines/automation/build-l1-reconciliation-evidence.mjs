@@ -9,6 +9,7 @@ import {
   verifyFullReconciliationEvidence,
 } from './reconciliation-evidence-contract.mjs';
 import { assertRepositoryOrdinaryFile, assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import { automaticReconciliationRoot, assertAutomaticAttemptMatches } from './automatic-execution-artifacts.mjs';
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const DOMAIN_L1_OPERATION_IDS = Object.freeze({
@@ -242,6 +243,7 @@ function assertArtifact(value, kind, bundle) {
       || value.domainId !== bundle.domainId || value.runId !== bundle.runId) {
     throw new Error(`${kind} artifact identity is invalid`);
   }
+  assertAutomaticAttemptMatches(value.automaticAttemptIdentity, bundle.importPlan?.automaticAttemptIdentity, kind);
 }
 
 function assertArtifactSourceDispatchIdentity(value, expected) {
@@ -301,9 +303,21 @@ function normalizeRelativePath(value, label) {
 
 function normalizeL1EvidencePath(value, label, binding, artifactName) {
   const normalized = normalizeRelativePath(value, label);
-  const domainId = requireText(binding?.domainId, `${label} domainId`);
-  const runId = requireText(binding?.runId, `${label} runId`);
-  const expected = `reports/runtime/l1-reconciliation/${domainId}/${runId}/${artifactName}.json`;
+  let root = automaticReconciliationRoot(binding);
+  // Final evidence already hashes all three artifact paths and their contents.
+  // Recover its execution root from those existing fields without a schema change.
+  if (binding.fullReconciliation === true && binding.sourceArtifactPath?.startsWith(`${root}_exec_`)) {
+    const suffix = binding.sourceArtifactPath.slice(root.length);
+    if (!/^_exec_[a-f0-9]{64}\/source-coverage\.json$/.test(suffix)) {
+      throw new Error(`${label} must be under the exact L1 run root`);
+    }
+    root = path.posix.dirname(binding.sourceArtifactPath);
+    if (binding.ownedTableReadbackPath !== `${root}/owned-table-readback.json`
+        || binding.attemptStatePath !== `${root}/attempt-state.json`) {
+      throw new Error(`${label} must be under the exact L1 run root`);
+    }
+  }
+  const expected = `${root}/${artifactName}.json`;
   if (normalized !== expected) {
     throw new Error(`${label} must be under the exact L1 run root`);
   }

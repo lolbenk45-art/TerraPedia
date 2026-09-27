@@ -3,8 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
 
 import * as baseOperationModule from './run-base-domain-automatic-operation.mjs';
+import { createMysqlSupplementaryL1Adapter, runSupplementaryL1OperationCli } from './run-supplementary-domain-l1-operation.mjs';
+import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 
 const {
   buildBaseDomainSourceCommand,
@@ -194,6 +199,28 @@ test('base automatic artifacts reject a group-writable ancestor before publicati
     /owner|writable|trust|artifact|directory/i,
   );
   assert.equal(fs.existsSync(path.join(automaticRoot, 'items')), false);
+});
+
+test('base automatic artifacts reject the runtime canonical authorization root when it is group-writable', async (t) => {
+  const fixture = createLiveBaseAutomaticRunnerFixture();
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  const canonicalRoot = path.join(fixture.repoRoot, 'reports', 'authorization', 'canonical');
+  fs.mkdirSync(canonicalRoot, { recursive: true, mode: 0o755 });
+  fs.chmodSync(canonicalRoot, 0o775);
+
+  await assert.rejects(
+    runBaseDomainAutomaticOperation({
+      ...createLiveBaseAutomaticRunnerOptions(fixture),
+      argv: ['--domain=items', '--source-mode=local', `--progress-path=${fixture.progressPath}`],
+      requireAutoDomainOperationImpl: () => ({
+        operationId: 'automation-items-l1',
+        databaseMode: 'DRY_RUN',
+        ownedTables: [{ databaseRole: 'local', table: 'items', fieldGroup: 'all_columns' }],
+      }),
+    }),
+    /owner|writable|trust|artifact|directory/i,
+  );
+  assert.equal(fs.existsSync(path.join(canonicalRoot, 'automatic')), false);
 });
 
 test('frozen source identity hashes the exact pretty JSON bytes published to source.json', () => {
@@ -1440,12 +1467,290 @@ test('local base reconciliation does not acknowledge the live canonical manifest
 
 function databaseEnv() {
   return {
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-1',
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_FENCE_TOKEN: '1',
+    TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION: '1',
     TERRAPEDIA_DB_HOST: '127.0.0.1',
     TERRAPEDIA_DB_PORT: '13306',
     TERRAPEDIA_DB_USERNAME: 'root',
     TERRAPEDIA_DB_PASSWORD: 'root',
     TERRAPEDIA_DB_NAME: 'terria_v1_local',
   };
+}
+
+function schedulerBaseEnv(fixture, overrides = {}) {
+  return {
+    ...fixture.env,
+    TERRAPEDIA_CRAWLER_REQUESTED_BY: 'v2-automation',
+    TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT: fixture.sourceFingerprint,
+    TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY: fixture.sourceRunIdentity,
+    TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY: fixture.sourceContentIdentity,
+    ...overrides,
+  };
+}
+
+test('base source executes reviewed code when the durable data root contains different child bytes', (t) => {
+  const fixture = createLiveBaseAutomaticRunnerFixture();
+  const codeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'base-reviewed-code-'));
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(codeRoot, { recursive: true, force: true }));
+  const sourceRoot = path.resolve(import.meta.dirname, '../..');
+  const manifest = buildCanonicalOperationExecutionManifest({ repoRoot: sourceRoot, operationId: 'canonical-crawler-v2-scheduler-activation' });
+  for (const entry of manifest.codeBundleEntries) {
+    const destination = path.join(codeRoot, entry.path);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(path.join(sourceRoot, entry.path), destination);
+  }
+  for (const [root, selectedCode] of [[codeRoot, 'reviewed'], [fixture.repoRoot, 'stale-primary']]) {
+    const child = path.join(root, 'pipelines/workflow/run-wiki-sync.mjs');
+    fs.mkdirSync(path.dirname(child), { recursive: true });
+    fs.writeFileSync(child, `import fs from 'node:fs'; import path from 'node:path';
+      const env = process.env;
+      fs.writeFileSync(path.join(env.WORKTREE_ROOT, 'selected-code.json'), JSON.stringify({ selectedCode: ${JSON.stringify(selectedCode)}, cwd: process.cwd() }));
+      fs.writeFileSync(env.TERRAPEDIA_CRAWLER_PROGRESS_PATH, JSON.stringify({ status: 'completed', generatedAt: ${JSON.stringify(fixture.sourceRunIdentity)},
+        stateStoreEpoch: env.TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH, queueId: env.TERRAPEDIA_CRAWLER_QUEUE_ID, attemptId: env.TERRAPEDIA_CRAWLER_ATTEMPT_ID }));`);
+  }
+  const activation = { decisionIdentity: 'activation-1', packetHash: `sha256:${'a'.repeat(64)}`,
+    policySetHash: fixture.current.policySetHash, actor: 'admin', reason: 'test', authorizationReference: 'test',
+    authorizedAt: '2000-01-01T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' };
+  const script = `const { runBaseDomainAutomaticOperation } = await import(${JSON.stringify(pathToFileURL(path.join(codeRoot, 'pipelines/automation/run-base-domain-automatic-operation.mjs')).href)});
+    await runBaseDomainAutomaticOperation({ argv: ['--domain=items', ${JSON.stringify(`--progress-path=${fixture.progressPath}`)}],
+      mysqlModule: { createConnection: async () => ({ query: async () => [[${JSON.stringify(activation)}]], end: async () => {} }) },
+      readSourceFingerprintImpl: () => ${JSON.stringify(fixture.sourceFingerprint)}, readCurrentContextImpl: async () => (${JSON.stringify(fixture.current)}),
+      isCommittedRunImpl: async () => false, createAdapterImpl: () => ({}), executeOperationImpl: async () => ({ status: 'completed' }), acknowledgeSourceImpl: () => {} });`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', script], {
+    cwd: fixture.repoRoot, env: { ...process.env, ...schedulerBaseEnv(fixture) }, encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(fixture.repoRoot, 'selected-code.json'))), { selectedCode: 'reviewed', cwd: fixture.repoRoot });
+  assert.equal(JSON.parse(fs.readFileSync(fixture.progressPath)).status, 'completed');
+  assert.equal(fs.existsSync(path.join(fixture.repoRoot, 'reports/authorization/canonical/automatic/items')), true);
+  assert.equal(fs.existsSync(path.join(codeRoot, 'reports')), false);
+  assert.equal(fs.existsSync(path.join(codeRoot, 'data/generated')), false);
+});
+
+for (const target of ['old-source', 'old-bundle', 'old-progress', 'old-reconciliation', 'other-domain', 'automatic-root', 'reconciliation-root', 'reports-ancestor']) {
+  test(`base retry output cannot replace immutable ${target} artifacts before apply or acknowledgement`, async (t) => {
+    const fixture = createLiveBaseAutomaticRunnerFixture();
+    t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+    let originalBundle;
+    await assert.rejects(runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+      env: schedulerBaseEnv(fixture),
+      executeOperationImpl: async ({ bundle }) => { originalBundle = bundle; throw new Error('retain failed attempt'); },
+    })), /retain failed attempt/);
+    const paths = {
+      'old-source': originalBundle.source.path,
+      'old-bundle': `${path.dirname(originalBundle.source.path)}/bundle.json`,
+      'old-progress': `${path.dirname(originalBundle.reconciliationInput.outputPath)}/source-progress.json`,
+      'old-reconciliation': originalBundle.reconciliationInput.outputPath,
+      'other-domain': 'reports/authorization/canonical/automatic/npcs/retained/source.json',
+      'automatic-root': 'reports/authorization/canonical/automatic',
+      'reconciliation-root': 'reports/runtime/l1-reconciliation',
+      'reports-ancestor': 'reports',
+    };
+    const outputPath = path.join(fixture.repoRoot, paths[target]);
+    if (['old-reconciliation', 'other-domain'].includes(target)) {
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, '{"retained":true}\n', { mode: 0o600 });
+    }
+    const originalSource = fs.readFileSync(path.join(fixture.repoRoot, originalBundle.source.path));
+    const originalOutput = fs.statSync(outputPath).isFile() ? fs.readFileSync(outputPath) : null;
+    let imports = 0;
+    let acknowledgements = 0;
+    await assert.rejects(runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+      argv: ['--domain=items', `--progress-path=${fixture.progressPath}`, `--output=${outputPath}`],
+      env: schedulerBaseEnv(fixture, { TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-2' }),
+      executeOperationImpl: async () => { imports += 1; return { status: 'completed' }; },
+      acknowledgeSourceImpl: () => { acknowledgements += 1; },
+    })), /--output.*overlap.*(protected|immutable)/);
+    assert.equal(imports, 0);
+    assert.equal(acknowledgements, 0);
+    assert.deepEqual(fs.readFileSync(path.join(fixture.repoRoot, originalBundle.source.path)), originalSource);
+    if (originalOutput) assert.deepEqual(fs.readFileSync(outputPath), originalOutput);
+  });
+}
+
+test('base scheduler result still publishes to its supervisor attempt report', async (t) => {
+  const fixture = createLiveBaseAutomaticRunnerFixture();
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  const outputPath = path.join(fixture.repoRoot, 'reports/crawler-monitor/v2/attempt-1/report.json');
+  const result = await runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+    argv: ['--domain=items', `--progress-path=${fixture.progressPath}`, `--output=${outputPath}`],
+    env: schedulerBaseEnv(fixture),
+  }));
+  assert.deepEqual(JSON.parse(fs.readFileSync(outputPath)), result);
+});
+
+test('base runner rejects sibling source progress before replacing it with runner progress', async (t) => {
+  const fixture = createLiveBaseAutomaticRunnerFixture();
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  let imports = 0;
+  await assert.rejects(runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+    env: schedulerBaseEnv(fixture),
+    runSourceImpl: async ({ progressPath }) => {
+      fs.writeFileSync(progressPath, JSON.stringify({
+        status: 'completed', generatedAt: fixture.sourceRunIdentity,
+        stateStoreEpoch: 'epoch-1', queueId: 'queue-1', attemptId: 'sibling-attempt',
+      }));
+    },
+    executeOperationImpl: async () => { imports += 1; return { status: 'completed' }; },
+  })), /source progress.*attempt identity/);
+  assert.equal(imports, 0);
+});
+
+test('automatic adapter rejects sibling progress before opening a transaction', async (t) => {
+  const fixture = createLiveBaseAutomaticRunnerFixture();
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  let frozen;
+  let bundlePath;
+  let progressPath;
+  await runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+    env: schedulerBaseEnv(fixture),
+    createAdapterImpl: (_connection, input) => { ({ bundlePath, progressPath } = input); return {}; },
+    executeOperationImpl: async ({ bundle }) => { frozen = bundle; return { status: 'completed' }; },
+  }));
+  const connection = { beginTransaction: () => assert.fail('must not begin'), query: () => assert.fail('must not query') };
+  assert.doesNotThrow(() => createMysqlSupplementaryL1Adapter(connection, { repoRoot: fixture.repoRoot, bundlePath, progressPath }));
+  const progress = JSON.parse(fs.readFileSync(progressPath));
+  assert.equal(progress.attemptId, frozen.importPlan.automaticAttemptIdentity.attemptId);
+  fs.writeFileSync(progressPath, JSON.stringify({ ...progress, attemptId: 'sibling-attempt' }), { mode: 0o600 });
+  assert.throws(() => createMysqlSupplementaryL1Adapter(connection, {
+    repoRoot: fixture.repoRoot, bundlePath, progressPath,
+  }), /progress.*attempt identity/);
+  fs.writeFileSync(progressPath, JSON.stringify(progress), { mode: 0o600 });
+  const injected = buildSupplementaryL1Bundle({
+    ...frozen, reconciliationInput: { ...frozen.reconciliationInput,
+      attemptStatePath: 'reports/runtime/l1-reconciliation/items/sibling/attempt-state.json' },
+  });
+  fs.writeFileSync(bundlePath, JSON.stringify(injected), { mode: 0o600 });
+  assert.throws(() => createMysqlSupplementaryL1Adapter(connection, {
+    repoRoot: fixture.repoRoot, bundlePath, progressPath,
+  }), /exact L1 run path/);
+  fs.writeFileSync(bundlePath, JSON.stringify(frozen), { mode: 0o600 });
+  const canonicalResult = path.join(path.dirname(bundlePath), 'result.json');
+  const cli = (output) => runSupplementaryL1OperationCli({
+    argv: ['--apply=true', `--input=${bundlePath}`, `--output=${output}`, `--operation-id=${frozen.operationId}`],
+    env: { WORKTREE_ROOT: fixture.repoRoot },
+    loadAuthorizationContextImpl: () => { throw new Error('valid paths reached authorization'); },
+  });
+  await assert.rejects(cli(canonicalResult), /valid paths reached authorization/);
+  await assert.rejects(cli(path.join(fixture.repoRoot, 'reports/authorization/canonical/automatic/items', frozen.runId, 'result.json')), /canonical run-specific automatic result/);
+  fs.writeFileSync(path.join(fixture.repoRoot, frozen.reconciliationInput.attemptStatePath), JSON.stringify({
+    automaticAttemptIdentity: { ...frozen.importPlan.automaticAttemptIdentity, attemptId: 'sibling-attempt' },
+  }), { mode: 0o600 });
+  assert.throws(() => createMysqlSupplementaryL1Adapter(connection, {
+    repoRoot: fixture.repoRoot, bundlePath, progressPath,
+  }), /already exists|overwrite/);
+});
+
+for (const corruption of [null, 'hash', 'source-triple', 'attempt-tuple', 'reconciliation', 'policy', 'policy-set']) {
+  test(`base scheduler committed retry ${corruption ? `rejects corrupted ${corruption}` : 'verifies original evidence without importing'}`, async (t) => {
+    const fixture = createLiveBaseAutomaticRunnerFixture();
+    t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+    let originalBundle;
+    await runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+      env: schedulerBaseEnv(fixture),
+      executeOperationImpl: async ({ bundle }) => { originalBundle = bundle; return { status: 'completed' }; },
+    }));
+    const bundlePath = path.join(fixture.repoRoot, path.dirname(originalBundle.source.path), 'bundle.json');
+    if (['attempt-tuple', 'reconciliation', 'policy'].includes(corruption)) {
+      const modified = buildSupplementaryL1Bundle({
+        ...originalBundle,
+        ...(corruption === 'attempt-tuple' ? { importPlan: {
+          ...originalBundle.importPlan, automaticAttemptIdentity: { ...originalBundle.importPlan.automaticAttemptIdentity, attemptId: 'sibling-attempt' },
+        } } : {}),
+        ...(corruption === 'reconciliation' ? { reconciliationInput: {
+          ...originalBundle.reconciliationInput, attemptStatePath: 'reports/runtime/l1-reconciliation/items/sibling/attempt-state.json',
+        } } : {}),
+        ...(corruption === 'policy' ? { policy: { ...originalBundle.policy, policyVersion: 99 } } : {}),
+      });
+      fs.writeFileSync(bundlePath, `${JSON.stringify(modified)}\n`, { mode: 0o600 });
+    }
+    const bytes = fs.readFileSync(bundlePath);
+    const manifest = {
+      automaticSourceFingerprint: fixture.sourceFingerprint,
+      sourceDispatchIdentity: corruption === 'source-triple'
+        ? { ...originalBundle.sourceDispatchIdentity, sourceRunIdentity: '2026-08-31T08:00:00.000Z' }
+        : originalBundle.sourceDispatchIdentity,
+      source: originalBundle.source, privatePath: bundlePath,
+      bundleFileHash: corruption === 'hash' ? `sha256:${'0'.repeat(64)}` : `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+    };
+    const query = fixture.connection.query;
+    fixture.connection.query = async (sql, ...args) => sql.includes('JOIN crawler_automation_apply')
+      ? [[{ domainId: 'items', manifestJson: manifest }]] : query(sql, ...args);
+    let acknowledged = 0;
+    const current = {
+      ...fixture.current,
+      policyJson: Object.fromEntries(Object.entries(fixture.current.policyJson).reverse()),
+      ...(corruption === 'policy-set' ? { policySetHash: `sha256:${'0'.repeat(64)}` } : {}),
+    };
+    const promise = runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+      env: schedulerBaseEnv(fixture, { TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-2' }),
+      isCommittedRunImpl: undefined,
+      readCurrentContextImpl: async () => current,
+      executeOperationImpl: async () => { assert.fail('committed retry must not import'); },
+      acknowledgeSourceImpl: () => { acknowledged += 1; },
+    }));
+    if (corruption) {
+      await assert.rejects(promise, /committed.*hash|manifest.*hash|source dispatch identity|canonical run-specific|exact L1 run path|policy/);
+      assert.equal(acknowledged, 0);
+    } else {
+      assert.equal((await promise).reconciledCommittedRun, true);
+      assert.equal(acknowledged, 1);
+    }
+    assert.deepEqual(fs.readFileSync(bundlePath), bytes);
+  });
+}
+
+for (const changedProbe of [false, true]) {
+  test(`base retry preserves failed artifacts with ${changedProbe ? 'a fresh probe' : 'the same source triple'} and a new attempt`, async (t) => {
+    const fixture = createLiveBaseAutomaticRunnerFixture();
+    t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+    const bundles = [];
+    const options = (env) => createLiveBaseAutomaticRunnerOptions(fixture, {
+      env,
+      executeOperationImpl: async ({ bundle }) => {
+        bundles.push(bundle);
+        throw new Error('retained preapply failure');
+      },
+    });
+    await assert.rejects(runBaseDomainAutomaticOperation(options(schedulerBaseEnv(fixture))), /retained preapply failure/);
+    const originalPath = path.join(fixture.repoRoot, bundles[0].source.path);
+    const originalBytes = fs.readFileSync(originalPath);
+    if (changedProbe) {
+      const state = JSON.parse(fs.readFileSync(fixture.sourceStatePath));
+      state.checkedAt = '2026-08-31T09:01:00.000Z';
+      state.sources[0].checkedAt = state.checkedAt;
+      fs.writeFileSync(fixture.sourceStatePath, JSON.stringify(state));
+      fixture.sourceRunIdentity = state.checkedAt;
+      fixture.sourceContentIdentity = `sha256:${createHash('sha256').update(JSON.stringify(state)).digest('hex')}`;
+    }
+    const retryEnv = schedulerBaseEnv(fixture, { TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-2' });
+    await assert.rejects(runBaseDomainAutomaticOperation(options(retryEnv)), /retained preapply failure/);
+    assert.equal(bundles[0].runId, bundles[1].runId);
+    assert.notEqual(bundles[0].source.path, bundles[1].source.path);
+    assert.notEqual(bundles[0].reconciliationInput.outputPath, bundles[1].reconciliationInput.outputPath);
+    assert.deepEqual(bundles[1].importPlan.automaticAttemptIdentity, {
+      stateStoreEpoch: 'epoch-1', queueId: 'queue-1', attemptId: 'attempt-2',
+    });
+    assert.deepEqual(fs.readFileSync(originalPath), originalBytes);
+    await assert.rejects(runBaseDomainAutomaticOperation(options(retryEnv)), /already exists|overwrite/);
+  });
+}
+
+for (const invalid of [undefined, '', '../attempt', ' attempt-1', 'a'.repeat(257)]) {
+  test(`base scheduler rejects invalid immutable attempt before source work: ${String(invalid)}`, async (t) => {
+    const fixture = createLiveBaseAutomaticRunnerFixture();
+    t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+    let sourceRuns = 0;
+    await assert.rejects(runBaseDomainAutomaticOperation(createLiveBaseAutomaticRunnerOptions(fixture, {
+      env: schedulerBaseEnv(fixture, { TERRAPEDIA_CRAWLER_ATTEMPT_ID: invalid }),
+      runSourceImpl: async () => { sourceRuns += 1; },
+    })), /automatic attempt identity|attemptId/);
+    assert.equal(sourceRuns, 0);
+  });
 }
 
 function createLiveBaseAutomaticRunnerFixture() {
@@ -1535,7 +1840,14 @@ function createLiveBaseAutomaticRunnerOptions(fixture, overrides = {}) {
     env: fixture.env,
     now: '2026-08-31T09:00:00.000Z',
     mysqlModule: { createConnection: async () => fixture.connection },
-    runSourceImpl: async () => {},
+    runSourceImpl: async ({ progressPath, env }) => {
+      fs.writeFileSync(progressPath, JSON.stringify({
+        status: 'completed', generatedAt: fixture.sourceRunIdentity,
+        stateStoreEpoch: env.TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH,
+        queueId: env.TERRAPEDIA_CRAWLER_QUEUE_ID,
+        attemptId: env.TERRAPEDIA_CRAWLER_ATTEMPT_ID,
+      }));
+    },
     readSourceFingerprintImpl: () => fixture.sourceFingerprint,
     readCurrentContextImpl: async () => fixture.current,
     isCommittedRunImpl: async () => false,

@@ -2,7 +2,66 @@
 
 ## Date
 
-2026-09-06
+2026-09-26
+
+## Canonical ingestion continuation (2026-09-26, current)
+
+已按新增 A6 两表授权完成一次真实受控发布：224条属性+290条效果，覆盖223/233个
+Armor成员；数据库全量 after-set、前后台 Ninja 样本字段一致，上游来源未改动。
+决策 `armor-secondary-a6-20260926-01` 已消耗，不可重放。相关测试1588/1588。
+07:06:30Z preflight：scheduler disabled、任务/claims0/0、reconciler healthy，H8/epoch未变。
+
+但运行态语义检查发现历史上游133条属性部位不符、181条效果部位不符、114条分职业
+暴击记录错误标为all。全链路仍未完成；当前阻塞为计划A6.3的新来源/maint/relation
+修复授权（不是重复申请已批准的两表投影范围）。10个缺来源成员仍排除；图片证据、
+Buff/Shimmer及自然tick验收仍待完成。详见当前devlog及2026-09-26子任务。
+
+## Canonical ingestion continuation (2026-09-24/25, historical)
+
+用户已授权有界 Armor/Buff/Shimmer 修复；当前仍在实现与验证阶段，未完成自动入库。
+Armor projection-only 与 Buff 不可执行候选/写入拦截已通过独立复审；Armor landing
+来源时间/修订号修复通过；A2.1维持层35/35、A2.2关系候选99/99，来源身份及
+模块时间文本/日历问题均已修复；四文件独立规格与质量复审均通过。
+投影依赖绑定和执行器尚未完成。2026-09-25 已新增未注册的 Armor 锁定事务核心：
+在同一 MySQL 事务内锁定两个 Armor landing 分区、Owner/server/fence 与目标行，
+锁后重派生，按真实 insertId 做回执和投影主键绑定，并对 commit 未知进入恢复路径；
+TDD 及相关 Node22 回归为 1581/1581。该核心没有 relation ID-independent 组合、持久化
+journal/packet/API 适配，也未注册或执行业务 DML，不能视为自动入库完成。
+Node22 整合验证为1509通过、0失败、1项既有 Shimmer 跳过；未执行本轮业务写入。
+
+11:21 CST 管理 API200：scheduler disabled、任务/claims0/0、reconciler healthy、
+H8/epoch未变；MySQL只读核对无 fresh decision 或活跃 fence。八域 readiness blocked。
+P0：完成 Armor A2 候选与完整执行器，补全 source_evidence 分区和图片来源证据
+（175张 maint 图片均缺修订号，1张缺缓存，不能沿用为 fresh evidence）；
+P1：Buff完整链及Shimmer跨owner分区；P2：真实变化/API验收及另行授权的持续运行。
+当前H8只覆盖旧local Armor表；复合模块/图片探针及精确策略迁移是自动接线前置条件，
+不能通过扩大旧packet或复用no-op报告绕过。详见Sep24 ownership execution devlog。
+以下日期检查点为历史，不能覆盖本节状态。
+
+## Scheduler continuation (2026-09-22, historical)
+
+The standing local authorization register is active. Fresh H8 readback matches;
+L2 reauthorization decisions 66–73 and projectiles scheduler decision 74 were
+consumed serially with unique MySQL readback. A natural Retry-41 dispatched only
+projectiles; it failed before apply on an immutable artifact path retained from
+Retry-39. Control is false; readback confirms no active work/fences and unchanged
+1111 projectile rows/1110 images. Retry identities remain non-reusable.
+
+The plan now separates mechanism/no-op, real API-visible mutation and sustained
+operation. Armor public projection and Buff relation ownership need canonical
+publication; Shimmer imports touch undeclared auxiliary tables and are now
+contained by a reviewed pre-write scope guard. Node tests after that guard were
+1004/1004; fresh focused Java scheduler/policy/supervisor tests are 420/420.
+
+Current engineering work separates content-level DB deduplication from
+attempt-specific immutable artifacts, without weakening ownership or replay
+protection. No further live window is permitted until repair/review/fresh gates;
+next cadence is no earlier than 2026-09-22T11:49:30Z. Eight-domain and unattended
+service acceptance remain open. See
+`docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md`.
+
+Earlier dated checkpoints below are history; their service-down, no-authorization
+and no-tick descriptions do not override this continuation.
 
 ## Scheduler Preparation Gate (2026-09-03)
 
@@ -134,10 +193,10 @@ artifacts, direct SQL, or broad relation rebuilds.
 
 ## Current Phase
 
-Scheduler Preparation Gate checkpoint. The parent local data-chain closure and
-the eight-domain L2 promotion chain are closed; scheduler activation remains
-separately gated by a fresh readback and independent ADMIN/Owner authorization.
-No scheduler or data-chain apply is active.
+Scheduler retry-artifact repair after a bounded natural canary. The parent
+data-chain closure and L2 promotion remain historical completed milestones,
+not proof of recurring end-to-end automatic ingestion. Control is disabled;
+no scheduler or data-chain apply is active.
 
 ## Current State
 
@@ -183,11 +242,12 @@ Root governance files `03`, `04`, and `07-12` were removed from the current tree
   No real preflight artifact was generated because no backend listener was
   available; starting one would cross the no-daemon/formal-store boundary.
 
-## Gate Boundary
+## Current Gate Boundary
 
 This is local readiness evidence, not release or production-deployment
-authority. Scheduler activation records bounded eligibility only; it does not
-authorize a recurring daemon or crawler run. Monitor projections remain
+authority. Scheduler activation records bounded eligibility only; the standing
+register separately permits the listed local natural canaries and registered
+crawler/import work. It does not authorize a new recurring daemon. Monitor projections remain
 read-only and `notGateEvidence=true`.
 
 Formal Scheduler enablement preparation must use a fresh read-only preflight
@@ -197,15 +257,17 @@ eligible-domain result, or consumed decision authorizes a production mutation.
 ## Current Risks
 
 - Crawler monitor and resume/recovery reliability remains the main P1 area.
-- Release, staging, recurring scheduler startup, crawler execution, push,
-  merge, and worktree cleanup require separate decisions.
+- Release, staging, a new sustained-operation controller, push, merge, and
+  worktree cleanup require separate decisions. Local listed canaries/source
+  work remain covered by the standing register and their fresh technical gates.
 - A proposal built from representative control values is not production-ready;
   it must bind a fresh observed disabled/changed-only state, zero activity,
   reconciler health, epoch/namespace, readiness, and code/report hashes.
 - The preparation implementation is now fail-closed for evidence paths outside
   the repository and for code bundle bytes changed after preflight. A future
-  request still requires a fresh production read-only GET and owner decision;
-  this branch has generated no proposal, request, packet, or permit.
+  request still requires a fresh local read-only GET and owner decision.
+  Retry-41 and earlier generated/consumed proposal, request and packet chains
+  are immutable history, not permission for the next window.
 - Current companion docs and gate evidence must remain synchronized with future
   workflow, API, runtime, and data-chain changes.
 - A code checkpoint and passing contract tests do not prove a natural
@@ -221,10 +283,11 @@ eligible-domain result, or consumed decision authorizes a production mutation.
 
 ## Next Actions
 
-- Finish the focused scheduler-safety checkpoint, then run Phase 0 only after
-  confirming the current worktree's V2 state-store boundary.
-- Obtain a distinct bounded ADMIN/Owner authorization before any scheduler
-  control write; observe a natural tick and canary only under that authorization.
+- Finish the retry-artifact repair, independent reviews and full automation
+  regression, then refresh Phase 0 with the current dual-root V2 boundary.
+- Near the next due natural cadence, generate a fresh bounded ADMIN/Owner
+  packet under the standing register; verify its exact latest decision before
+  enabling only projectiles, then restore disabled and read back terminal state.
 - Preserve all consumed operation identities and immutable evidence.
 - Rerun relevant runtime/backend/frontend/data gates before release, staging,
   or public-readiness claims.

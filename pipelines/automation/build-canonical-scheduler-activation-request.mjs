@@ -7,7 +7,10 @@ import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { sha256Json } from './crawler-v2-scheduler-activation-preflight.mjs';
+import {
+  normalizeSchedulerCanaryAction,
+  sha256Json,
+} from './crawler-v2-scheduler-activation-preflight.mjs';
 import {
   assertSchedulerPolicyBinding,
   normalizeSchedulerEligibleDomains,
@@ -105,6 +108,13 @@ function assertProposalEligible(proposal) {
     requireHash(entry?.sha256, 'codeBundle entry sha256');
   }
   const eligibleDomains = normalizeSchedulerEligibleDomains(proposal.eligibleDomains);
+  const canary = normalizeSchedulerCanaryAction(proposal?.canary?.actionId, eligibleDomains);
+  if (proposal?.canary?.domainId !== canary.domainId) {
+    throw new Error('proposal canary domain does not match its action');
+  }
+  if (proposal?.requested?.canaryActionId !== canary.actionId) {
+    throw new Error('proposal requested canary action does not match its scope');
+  }
   assertSchedulerPolicyBinding({
     policyRows: proposal.policyRows,
     policySetHash: proposal.policySetHash,
@@ -122,6 +132,7 @@ function assertProposalEligible(proposal) {
       throw new Error(`proposal must forbid operation: ${op}`);
     }
   }
+  return canary;
 }
 
 // 核心构建函数（纯函数，可单元测试）
@@ -132,9 +143,9 @@ export function buildSchedulerActivationRequest({
   proposalHash,
   generatedAt = new Date().toISOString(),
   expiresAt,
-} = {}) {
+  } = {}) {
   if (!proposal || typeof proposal !== 'object') throw new Error('proposal object is required');
-  assertProposalEligible(proposal);
+  const canary = assertProposalEligible(proposal);
   requireText(proposalPath, 'proposalPath');
   requireHash(proposalFileSha256, 'proposalFileSha256');
   requireHash(proposalHash, 'proposalHash');
@@ -176,6 +187,7 @@ export function buildSchedulerActivationRequest({
     policySetHash: proposal.policySetHash,
     current: proposal.current,
     eligibleDomains: normalizeSchedulerEligibleDomains(proposal.eligibleDomains),
+    canary,
     requested: proposal.requested,
     rollback: proposal.rollback,
     forbidden: proposal.forbidden,

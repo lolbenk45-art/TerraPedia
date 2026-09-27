@@ -196,8 +196,8 @@ async function ensureBuffOptionalColumn(conn, columnName, definition) {
   }
 }
 
-async function loadItemsLookup(conn, rowsOverride = null) {
-  const rows = rowsOverride ?? (await conn.query('SELECT id, source_id, internal_name, name FROM items WHERE deleted = 0'))[0];
+export async function loadItemsLookup(conn, rowsOverride = null) {
+  const rows = rowsOverride ?? (await conn.query('SELECT id, internal_name, name FROM items WHERE deleted = 0'))[0];
   const byId = new Map();
   const byInternal = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {

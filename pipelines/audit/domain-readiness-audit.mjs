@@ -2873,11 +2873,11 @@ function evidenceId(relativePath) {
 }
 
 function isoDateKey(generatedAt) {
-  const date = new Date(generatedAt);
-  if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString().slice(0, 10);
-  }
-  return date.toISOString().slice(0, 10);
+  const text = String(generatedAt ?? '').trim();
+  const calendarDate = text.match(/^(\d{4}-\d{2}-\d{2})(?:T|$)/)?.[1];
+  if (calendarDate) return calendarDate;
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString().slice(0, 10) : date.toISOString().slice(0, 10);
 }
 
 function datedNameValue(fileName) {

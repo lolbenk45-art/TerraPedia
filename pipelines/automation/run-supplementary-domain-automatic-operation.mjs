@@ -17,12 +17,20 @@ import {
 import {
   createMysqlSupplementaryL1Adapter,
   executeSupplementaryL1Operation,
+  readVerifiedCommittedAutomaticBundle,
 } from './run-supplementary-domain-l1-operation.mjs';
 import {
   buildSupplementaryL1Bundle,
   validateSupplementaryL1Bundle,
 } from './supplementary-domain-l1-contract.mjs';
 import { buildAutomaticRunId, runImportThenAcknowledge } from './run-automatic-domain-operation.mjs';
+import {
+  automaticArtifactRunId,
+  automaticAttemptIdentityFromEnvironment,
+  automaticReconciliationRoot,
+  freezeAutomaticSourceProgressSnapshot,
+  readAutomaticSourceProgress,
+} from './automatic-execution-artifacts.mjs';
 import {
   assertCurrentSourceMonitorStateMatchesDispatchIdentity,
   assertFrozenSourceMonitorStateMatches,
@@ -66,8 +74,10 @@ export async function runSupplementaryDomainAutomaticOperation({
   const repoRoot = path.resolve(env.WORKTREE_ROOT ?? process.cwd());
   const runnerProgress = createRunnerProgress({ args, env, domain, heartbeatIntervalMs });
   let sourceDispatchIdentity;
+  let automaticAttemptIdentity;
   try {
     sourceDispatchIdentity = sourceDispatchIdentityFromEnvironment(env);
+    automaticAttemptIdentity = automaticAttemptIdentityFromEnvironment(env, sourceDispatchIdentity);
   } catch (error) {
     runnerProgress.publish({ status: 'failed', phase: 'source-identity', message: error?.message ?? String(error) });
     runnerProgress.stop();
@@ -88,7 +98,10 @@ export async function runSupplementaryDomainAutomaticOperation({
     runnerProgress.stop();
     throw error;
   }
-  const previewRunId = buildAutomaticPreviewRunId(domain, env);
+  const executionBinding = { sourceDispatchIdentity, importPlan: { automaticAttemptIdentity } };
+  const previewRunId = automaticAttemptIdentity == null
+    ? buildAutomaticPreviewRunId(domain, env)
+    : automaticArtifactRunId({ runId: `${domain}_l1`, ...executionBinding });
   const previewArtifactRoot = resolveAutomaticPreviewArtifactRoot({ repoRoot, domain, previewRunId });
   const previewProgressPath = args['progress-path'] || env.TERRAPEDIA_CRAWLER_PROGRESS_PATH
     ? isolatePreviewProgressPath(args['progress-path'] ?? env.TERRAPEDIA_CRAWLER_PROGRESS_PATH)
@@ -196,9 +209,9 @@ export async function runSupplementaryDomainAutomaticOperation({
   const operationArtifactRoot = resolveAutomaticPreviewArtifactRoot({
     repoRoot,
     domain,
-    previewRunId: operationRunId,
+    previewRunId: automaticArtifactRunId({ runId: operationRunId, ...executionBinding }),
   });
-  const operationBundlePath = path.join(operationArtifactRoot, 'operation.bundle.json');
+  let operationBundlePath = path.join(operationArtifactRoot, 'operation.bundle.json');
   let expectedBundle;
   let previewSourceBytes;
   try {
@@ -228,9 +241,10 @@ export async function runSupplementaryDomainAutomaticOperation({
         automaticSourceFingerprint: preview.stableSourceSnapshot.contentHash,
         sourceCheckedAt: requireTimestamp(preview.stableSourceSnapshot.checkedAt, 'stable source checkedAt'),
         automaticPreviewSource: previewBundle.source,
+        ...(automaticAttemptIdentity == null ? {} : { automaticAttemptIdentity }),
       },
       sourceDispatchIdentity,
-      reconciliationInput: buildAutomaticReconciliationInput(domain, operationRunId),
+      reconciliationInput: buildAutomaticReconciliationInput(domain, operationRunId, executionBinding),
     });
   } catch (error) {
     runnerProgress.publish({ status: 'failed', phase: 'preview-artifact', message: error?.message ?? String(error) });
@@ -247,16 +261,32 @@ export async function runSupplementaryDomainAutomaticOperation({
     throw error;
   }
   try {
+    const sourceProgressSnapshotPath = automaticAttemptIdentity == null
+      ? previewProgressPath
+      : freezeAutomaticSourceProgressSnapshot({ repoRoot, progressPath: previewProgressPath, binding: expectedBundle });
     const existingArtifact = automaticOperationArtifactExists(operationArtifactRoot);
-    const alreadyCommitted = await isCommittedAutomaticRun(connection, {
+    const committedManifest = await readCommittedAutomaticRun(connection, {
       runId: operationRunId,
       domainId: domain,
       sourceFingerprint: preview.stableSourceSnapshot.contentHash,
       source: expectedBundle.source,
       sourceDispatchIdentity,
     });
+    const alreadyCommitted = Boolean(committedManifest);
     let bundle;
-    if (existingArtifact) {
+    if (alreadyCommitted && automaticAttemptIdentity != null) {
+      const original = readVerifiedCommittedAutomaticBundle({
+        repoRoot, manifest: committedManifest, runId: operationRunId, domainId: domain, sourceDispatchIdentity,
+      });
+      operationBundlePath = original.bundlePath;
+      bundle = readCommittedAutomaticRecoveryArtifact({
+        repoRoot,
+        artifactRoot: path.dirname(original.bundlePath),
+        expectedBundle,
+        expectedSourceBytes: previewSourceBytes,
+        originalBundle: original.bundle,
+      });
+    } else if (existingArtifact) {
       if (!alreadyCommitted) {
         throw new Error('existing automatic operation artifact requires a verified committed run for acknowledgement recovery');
       }
@@ -273,7 +303,7 @@ export async function runSupplementaryDomainAutomaticOperation({
       const operationArtifact = reserveAutomaticOperationArtifactDirectory({
         repoRoot,
         domain,
-        runId: operationRunId,
+        runId: automaticArtifactRunId({ runId: operationRunId, ...executionBinding }),
       });
       publishAutomaticOperationArtifactNoOverwrite({
         repoRoot,
@@ -334,6 +364,13 @@ export async function runSupplementaryDomainAutomaticOperation({
             nowProvider(),
           );
           assertActivationValidAt(acknowledgementActivation, acknowledgementTime);
+          if (automaticAttemptIdentity != null) {
+            // Recovery acknowledges this attempt's verified progress while the
+            // committed bundle intentionally retains the importing attempt.
+            for (const progressPath of [previewProgressPath, sourceProgressSnapshotPath]) {
+              readAutomaticSourceProgress({ repoRoot, progressPath, binding: expectedBundle });
+            }
+          }
           return acknowledgeSourceImpl({
             manifestPath: args['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
             snapshot: preview.stableSourceSnapshot,
@@ -347,7 +384,7 @@ export async function runSupplementaryDomainAutomaticOperation({
         adapter: createMysqlSupplementaryL1Adapter(connection, {
           bundlePath: operationBundlePath,
           repoRoot,
-          progressPath: previewProgressPath,
+          progressPath: sourceProgressSnapshotPath,
         }),
         bundle,
         authorizationContext,
@@ -388,8 +425,8 @@ function isolatePreviewProgressPath(progressPath) {
     : `${resolved}.preview.json`;
 }
 
-export function buildAutomaticReconciliationInput(domain, runId) {
-  const root = `reports/runtime/l1-reconciliation/${domain}/${runId}`;
+export function buildAutomaticReconciliationInput(domain, runId, binding = {}) {
+  const root = automaticReconciliationRoot({ ...binding, domainId: domain, runId });
   return {
     sourceCoveragePath: `${root}/source-coverage.json`,
     ownedTableReadbackPath: `${root}/owned-table-readback.json`,
@@ -448,7 +485,7 @@ function readProgressSequence(progressPath) {
   }
 }
 
-async function isCommittedAutomaticRun(connection, {
+async function readCommittedAutomaticRun(connection, {
   runId,
   domainId,
   sourceFingerprint,
@@ -480,7 +517,7 @@ async function isCommittedAutomaticRun(connection, {
   }
   const exactFrozenSource = manifest?.source?.path === source.path
     && manifest?.source?.sha256 === source.sha256;
-  if (exactFrozenSource) return true;
+  if (exactFrozenSource || sourceDispatchIdentity != null && manifest?.source?.sha256 === source.sha256) return manifest;
   throw new Error('committed automatic run evidence does not match frozen source');
 }
 
@@ -546,6 +583,7 @@ function readCommittedAutomaticRecoveryArtifact({
   artifactRoot,
   expectedBundle,
   expectedSourceBytes,
+  originalBundle = null,
 }) {
   const binding = bindAutomaticPreviewDirectory({ repoRoot, artifactRoot });
   try {
@@ -569,7 +607,10 @@ function readCommittedAutomaticRecoveryArtifact({
       throw new Error('committed automatic operation bundle is not valid JSON', { cause: error });
     }
     validateSupplementaryL1Bundle(bundle);
-    assertCommittedAutomaticRecoveryBundleMatches(bundle, expectedBundle);
+    if (originalBundle != null && !sameJsonValue(bundle, originalBundle)) {
+      throw new Error('committed automatic operation artifact changed after manifest verification');
+    }
+    assertCommittedAutomaticRecoveryBundleMatches(bundle, expectedBundle, originalBundle != null);
     assertAutomaticDirectoryIdentityAtPath(artifactRoot, binding.identity);
     return bundle;
   } finally {
@@ -577,7 +618,17 @@ function readCommittedAutomaticRecoveryArtifact({
   }
 }
 
-function assertCommittedAutomaticRecoveryBundleMatches(bundle, expectedBundle) {
+function assertCommittedAutomaticRecoveryBundleMatches(bundle, expectedBundle, verifiedOriginal = false) {
+  // Only a manifest-hash-verified original may retain its old execution paths
+  // and attempt tuple. All original bytes, source, scope and policy still bind.
+  if (verifiedOriginal) {
+    expectedBundle = {
+      ...expectedBundle,
+      source: { ...expectedBundle.source, path: bundle.source.path },
+      reconciliationInput: bundle.reconciliationInput,
+      importPlan: { ...expectedBundle.importPlan, automaticAttemptIdentity: bundle.importPlan.automaticAttemptIdentity },
+    };
+  }
   const identityFields = [
     'operationId',
     'runId',

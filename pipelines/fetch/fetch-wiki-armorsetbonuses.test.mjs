@@ -16,6 +16,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'fetch-wiki-armorsetbonuses.mjs');
 
+
 test('armorsetbonuses fetch writes progress and finalizes ingestion manifest after successful output writes', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-'));
   const worktreeRoot = path.join(tempDir, 'worktree');
@@ -73,6 +74,47 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(record.localPath, path.resolve(rawPath).replaceAll('\\', '/'));
   assert.equal(record.revisionTimestamp, '2026-05-21T00:00:00Z');
   assert.equal(record.contentHash, createContentHash('ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'));
+});
+
+test('armorsetbonuses parser preserves the six-argument primary-part overload', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-overload-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const sharedDataRoot = path.join(tempDir, 'shared');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.writeFileSync(mockApiPath, JSON.stringify({ query: { pages: [{
+    pageid: 778,
+    title: 'Module:ArmorSetBonuses',
+    revisions: [{
+      timestamp: '2026-05-22T00:00:00Z',
+      content: 'ArmorSetBonuses.Add(ArmorSetBonuses.Benefits.BeetleDamage, "ArmorSetBonus.BeetleDamage", ArmorSetBonus.PartType.Body, 2199, 2200, 2202);',
+    }],
+  }] } }), 'utf8');
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_SHARED_DATA_ROOT: sharedDataRoot,
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const parsed = JSON.parse(fs.readFileSync(
+    path.join(sharedDataRoot, 'raw', 'wiki', 'module__armorsetbonuses.parsed.latest.json'),
+    'utf8',
+  ));
+  assert.equal(parsed.armorSets.length, 1, JSON.stringify(parsed));
+  assert.deepEqual(parsed.armorSets[0], {
+    benefitExpression: 'ArmorSetBonuses.Benefits.BeetleDamage',
+    primaryPart: 'Body',
+    setCount: 1,
+    sets: [[2199, 2200, 2202]],
+    textKey: 'ArmorSetBonus.BeetleDamage',
+    uniqueItemIds: [2199, 2200, 2202],
+  });
 });
 
 test('armorsetbonuses fetch uses the isolated WORKTREE_ROOT canonical progress path by default', () => {

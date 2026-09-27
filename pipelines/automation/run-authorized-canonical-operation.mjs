@@ -13,7 +13,8 @@ import {
   revokeAuthorizedOperationDispatchPermit,
 } from './authorized-operation-context.mjs';
 import { canonicalServerFingerprint } from './automation-database-contract.mjs';
-import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import { assertRepositoryPathConfinement, assertRepositoryOrdinaryFile } from '../lib/private-repository-path.mjs';
+import { assertArmorImageCacheResult } from '../workflow/armor-image-cache.mjs';
 import {
   assertItemImageProjectionCompletedResult,
   assertItemImageProjectionFailedResult,
@@ -278,6 +279,16 @@ function verifyDeclaredManifestOutputs({ manifest, cwd, now, projectionContract 
       }
       if (manifest.operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
         assertItemSourceLocalNpcAdmissionCompletedResult({ manifest, result });
+        continue;
+      }
+      if (manifest.operationId === 'canonical-armor-image-cache') {
+        if (result.status !== 'COMPLETED') throw new Error('Armor cache result must be COMPLETED');
+        const proposalRelativePath = manifest.inputPaths?.find(value => String(value).endsWith('.proposal.json'));
+        if (!proposalRelativePath) throw new Error('Armor cache exact proposal path missing');
+        const proposalPath = assertRepositoryOrdinaryFile({ repoRoot: root,
+          filePath: path.resolve(root, proposalRelativePath), label: 'Armor cache terminal proposal' });
+        if ((fs.statSync(proposalPath).mode & 0o077) !== 0) throw new Error('Armor cache terminal proposal must be private');
+        assertArmorImageCacheResult({ proposal: JSON.parse(fs.readFileSync(proposalPath, 'utf8')), result });
         continue;
       }
       const requiresAppliedCompletion = manifest.operationId === 'canonical-shimmer-import';

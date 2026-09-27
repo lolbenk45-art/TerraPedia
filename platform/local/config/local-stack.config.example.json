@@ -31,7 +31,11 @@
     "formalDatabasesReadOnly": ["terria_v1_local", "terria_v1_maint", "terria_v1_relation"]
   },
   "backend": {
-    "port": 18088
+    "port": 18088,
+    "crawlerQueueV2": {
+      "repoRoot": ".",
+      "commandRoot": "."
+    }
   },
   "front": {
     "projectDir": "apps/public-web",

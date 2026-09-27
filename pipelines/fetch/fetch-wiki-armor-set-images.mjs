@@ -14,6 +14,7 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const defaultProgressPath = 'data/generated/wiki-sync-progress.latest.json';
@@ -54,7 +55,12 @@ export function buildArmorSetImageProgressPayload({
 }
 
 function writeProgress(progressPath, payload) {
-  writeJsonFile(path.resolve(process.cwd(), progressPath), payload);
+  const selectedPath = path.resolve(process.cwd(), progressPath);
+  const canonicalPath = path.resolve(getProjectRoot(), defaultProgressPath);
+  writeJsonFile(selectedPath, payload);
+  if (canonicalPath !== selectedPath) {
+    writeJsonFile(canonicalPath, payload);
+  }
 }
 
 function nullableString(value) {
@@ -259,7 +265,7 @@ export function buildArmorSetImageRows({
           contentType: nullableString(info.mime),
           isPrimary: entry.role === 'male' && !rows.some((row) => row.textKey === textKey && row.imageRole === 'male'),
           sortOrder,
-          sourceRevisionTimestamp: null,
+          sourceRevisionTimestamp: nullableString(info.revisionTimestamp),
           raw: {
             imageInfo: info
           }
@@ -312,6 +318,34 @@ async function fetchPageImageTitles({ pageTitle, apiUrl }) {
 
 async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
+  const progressPath = String(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath);
+  const startedAt = new Date().toISOString();
+  let latestProgress = buildArmorSetImageProgressPayload({
+    status: 'running', current: 0, total: 0,
+    message: 'reading armor set image input', progressPath, startedAt
+  });
+  const publishProgress = (payload) => {
+    latestProgress = payload;
+    writeProgress(progressPath, payload);
+  };
+  try {
+    publishProgress(latestProgress);
+    await fetchArmorSetImages(options, { progressPath, startedAt, publishProgress });
+  } catch (error) {
+    try {
+      publishProgress(buildArmorSetImageProgressPayload({
+        ...latestProgress, status: 'failed', progressPath,
+        message: `armor set image fetch failed: ${error instanceof Error ? error.message : String(error)}`
+      }));
+    } catch (progressError) {
+      // Preserve the original failure even when progress storage is unavailable.
+      console.error('Failed to publish terminal Armor image progress:', progressError.message);
+    }
+    throw error;
+  }
+}
+
+async function fetchArmorSetImages(options, { progressPath, startedAt, publishProgress }) {
   const apiUrl = String(options['api-url'] ?? 'https://terraria.wiki.gg/api.php');
   const inputPath = path.resolve(
     process.cwd(),
@@ -321,8 +355,6 @@ async function main(argv = process.argv.slice(2)) {
   const reportDir = path.resolve(process.cwd(), options['report-dir'] ?? sharedDataPath('reports', 'fetch'));
   const limit = Number(options.limit ?? 0);
   const keepSnapshot = shouldKeepSnapshot(options);
-  const progressPath = String(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath);
-  const startedAt = new Date().toISOString();
 
   ensureDir(rawDir);
   ensureDir(reportDir);
@@ -333,7 +365,7 @@ async function main(argv = process.argv.slice(2)) {
     .filter((record) => deriveArmorSetPageTitles(record).length > 0)
     .slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
 
-  writeProgress(progressPath, buildArmorSetImageProgressPayload({
+  publishProgress(buildArmorSetImageProgressPayload({
     status: 'running',
     current: 0,
     total: armorSets.length,
@@ -380,7 +412,7 @@ async function main(argv = process.argv.slice(2)) {
         });
       }
     }
-    writeProgress(progressPath, buildArmorSetImageProgressPayload({
+    publishProgress(buildArmorSetImageProgressPayload({
       status: 'running',
       current: index + 1,
       total: armorSets.length,
@@ -403,6 +435,7 @@ async function main(argv = process.argv.slice(2)) {
     source: 'terraria.wiki.gg:armor-set-pages:imageinfo',
     sourceApi: apiUrl,
     sourcePageTitle: 'Armor set pages',
+    // This collection has no single upstream revision; evidence lives on each file row.
     sourceRevisionTimestamp: null,
     fetchedAt,
     totalArmorSets: armorSets.length,
@@ -426,7 +459,7 @@ async function main(argv = process.argv.slice(2)) {
     warningCount: warnings.length,
     samples: armorSetImages.slice(0, 10)
   });
-  writeProgress(progressPath, buildArmorSetImageProgressPayload({
+  publishProgress(buildArmorSetImageProgressPayload({
     status: 'completed',
     current: armorSets.length,
     total: armorSets.length,

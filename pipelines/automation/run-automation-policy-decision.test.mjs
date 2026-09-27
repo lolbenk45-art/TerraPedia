@@ -16,6 +16,7 @@ import {
   buildPolicyDecisionCommitMarker,
   readPolicyDecisionPublication,
   writePolicyDecisionResult,
+  toMysqlTimestamp,
 } from './run-automation-policy-decision.mjs';
 import { computePolicyHash } from './bootstrap-automation-policy.mjs';
 import { buildFullReconciliationEvidence } from './reconciliation-evidence-contract.mjs';
@@ -63,6 +64,13 @@ const SERIAL_POLICY_ROWS = Object.freeze([
 const SERIAL_TARGET_POLICY_ROWS = Object.freeze([
   { domainId: 'items', policyVersion: 2, policyHash: L2_POLICY_HASH },
 ]);
+
+test('formats UTC authorization timestamps in the MySQL server timezone', () => {
+  assert.equal(
+    toMysqlTimestamp('2026-09-18T03:33:35.000Z'),
+    '2026-09-18 11:33:35',
+  );
+});
 
 test('CLI adapter options preserve the explicit evidence root and historical disposition bindings', () => {
   const serverFingerprint = canonicalServerFingerprint({
@@ -712,11 +720,40 @@ test('global crawler scheduler activation does not fabricate domain L1 apply his
   const plan = buildPlan(operationId, {
     domainId: 'crawler_v2_scheduler',
     minimumSuccessfulL1Runs: 3,
+    authorizedActionId: 'wiki-items-refresh',
+    canary: { actionId: 'wiki-items-refresh', domainId: 'items' },
   });
   assert.equal(plan.domainId, 'crawler_v2_scheduler');
   assert.equal(plan.currentLevel, 'L1');
   assert.equal(plan.decisionKind, 'SCHEDULER_ACTIVATION');
   assert.equal(plan.requiresSuccessfulL1Runs, false);
+});
+
+test('global crawler scheduler activation carries the exact authorized canary action', () => {
+  const operationId = 'automation-crawler-v2-scheduler-activation';
+  const plan = buildPlan(operationId, {
+    domainId: 'crawler_v2_scheduler',
+    minimumSuccessfulL1Runs: 2,
+    authorizedActionId: 'wiki-items-refresh',
+    canary: { actionId: 'wiki-items-refresh', domainId: 'items' },
+  });
+  assert.equal(plan.authorizedActionId, 'wiki-items-refresh');
+});
+
+test('global crawler scheduler activation requires the captured canary scope identity', () => {
+  const operationId = 'automation-crawler-v2-scheduler-activation';
+  for (const overrides of [
+    { authorizedActionId: 'wiki-items-refresh' },
+    {
+      authorizedActionId: 'wiki-npcs-refresh',
+      canary: { actionId: 'wiki-items-refresh', domainId: 'items' },
+    },
+  ]) {
+    assert.throws(
+      () => buildPlan(operationId, { domainId: 'crawler_v2_scheduler', ...overrides }),
+      /captured.*canary|authorizedActionId|canary/i,
+    );
+  }
 });
 
 test('scheduler reactivation is a separate current-policy decision', () => {
@@ -919,6 +956,27 @@ test('MySQL policy-set readbacks lock the complete set during a decision transac
   assert.equal(queries.length, 2);
   assert.match(queries[0], /ORDER BY p\.domain_id FOR UPDATE$/i);
   assert.match(queries[1], /ORDER BY p\.domain_id FOR UPDATE$/i);
+});
+
+test('MySQL decision readback converts local DATETIME expiry to UTC', async () => {
+  const connection = {
+    async query(sql) {
+      assert.match(sql, /DATE_FORMAT\(expires_at, '%Y-%m-%d %H:%i:%s'\)/);
+      return [[{
+        decisionKind: 'L2_PROMOTION',
+        domainId: 'items',
+        policyVersion: 2,
+        policyHash: HASH_A,
+        policySetHash: HASH_B,
+        decisionIdentity: 'items-l2-local-datetime',
+        packetHash: HASH_C,
+        expiresAt: '2026-09-18 14:56:30',
+      }]];
+    },
+  };
+  const adapter = createMysqlAutomationPolicyDecisionAdapter(connection);
+  const decision = await adapter.readLatestL2PromotionDecisionForUpdate('items');
+  assert.equal(decision.expiresAt, '2026-09-18T06:56:30.000Z');
 });
 
 test('MySQL policy adapter keeps the L1 update path independent from an L2 target row', async () => {

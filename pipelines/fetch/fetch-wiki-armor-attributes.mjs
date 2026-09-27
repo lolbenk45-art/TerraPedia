@@ -26,8 +26,8 @@ const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-armor
 
 const SLOT_GROUPS = [
   { code: 'head', headings: ['头盔', 'helmets', 'helmet'] },
-  { code: 'body', headings: ['胸甲', 'breastplates', 'breastplate', 'shirts'] },
-  { code: 'legs', headings: ['护腿', 'leggings', 'greaves', 'pants'] }
+  { code: 'body', headings: ['胸甲', '上衣', 'breastplates', 'breastplate', 'shirts'] },
+  { code: 'legs', headings: ['护腿', '裤装', 'leggings', 'greaves', 'pants'] }
 ];
 
 const FIXED_REAL_TABLE_KEYS = [
@@ -209,11 +209,11 @@ export function parseWikiArmorAttributeRows({
   const rows = [];
   let currentSectionCode = null;
   let currentSlotGroup = null;
-  const tokens = [...String(html ?? '').matchAll(/<(h[23])\b[^>]*>[\s\S]*?<\/\1>|<table\b[^>]*>[\s\S]*?<\/table>/gi)];
+  const tokens = [...String(html ?? '').matchAll(/<(h[234])\b[^>]*>[\s\S]*?<\/\1>|<table\b[^>]*>[\s\S]*?<\/table>/gi)];
 
   for (const token of tokens) {
     const fragment = token[0];
-    if (/^<h[23]\b/i.test(fragment)) {
+    if (/^<h[234]\b/i.test(fragment)) {
       const text = headingText(fragment);
       const sectionCode = classifySectionCode(text);
       const slotGroup = classifySlotGroup(text);

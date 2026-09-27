@@ -24,6 +24,7 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2CutoverService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Status;
 import com.terraria.skills.service.impl.crawlerv2.SourceDispatchIdentity;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -97,6 +98,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
     private static final Path ALERT_CONFIG_FILE = REFRESH_DIR.resolve("alert-config.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
+    private static final Path ARMOR_IMAGE_CACHE_PROGRESS_FILE = Path.of("data", "generated", "armor-image-cache-progress.latest.json");
     private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
     private static final Path BUFF_PAGE_EVIDENCE_CACHE_DIR = Path.of("data", "generated", "buff-page-evidence-cache");
     private static final Path WORLD_CONTEXT_FETCH_PROGRESS_FILE = Path.of("data", "generated", "wiki-world-contexts-progress.latest.json");
@@ -191,6 +193,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private Path repoRootOverride;
     @Value("${terrapedia.crawler.queue-v2.repo-root:}")
     private String configuredRepoRoot;
+    @Value("${terrapedia.crawler.queue-v2.command-root:}")
+    private String configuredQueueV2CommandRoot;
     @Value("${terraria.crawler.queue-v2.fixture-enabled:false}")
     private boolean fixtureScheduledAutomationEnabled;
     private final Clock clock;
@@ -5872,12 +5876,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             permit.requireMode(CrawlerQueueEngineMode.V2);
             CrawlerV2AutomationDTO normalized = normalizeV2AutomationSettings(settings);
             Path repoRoot = resolveRepoRoot();
-            writeJsonFile(repoRoot.resolve(V2_AUTOMATION_CONFIG_FILE).normalize(), Map.of(
-                "enabled", normalized.isEnabled(),
-                "mode", normalized.getMode(),
-                "sweepIntervalMinutes", normalized.getSweepIntervalMinutes(),
-                "updatedAt", Instant.now(clock).toString()
-            ));
+            LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+            payload.put("enabled", normalized.isEnabled());
+            payload.put("mode", normalized.getMode());
+            payload.put("sweepIntervalMinutes", normalized.getSweepIntervalMinutes());
+            payload.put("canaryActionId", normalized.getCanaryActionId());
+            payload.put("updatedAt", Instant.now(clock).toString());
+            writeJsonFile(repoRoot.resolve(V2_AUTOMATION_CONFIG_FILE).normalize(), payload);
             invalidateCachedOverview();
             return normalized;
         });
@@ -5902,7 +5907,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
         sweep.setCheckedAt(Instant.now(clock).toString());
         if (!fixtureScheduledAutomationEnabled) {
-            List<String> activationReasons = schedulerActivationGateReasons();
+            List<String> activationReasons = schedulerActivationGateReasons(settings.getCanaryActionId());
             if (!activationReasons.isEmpty()) {
                 sweep.setStatus("blocked");
                 recordAutomationAlert(
@@ -5959,7 +5964,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 detected.put("changed", changed);
                 appendSourceSnapshotIdentity(detected, validatedSourceState);
                 sweep.getDetected().add(detected);
-                if (changed) changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
+                if (!changed) {
+                    continue;
+                }
+                if (!isV2AutomationActionAllowed(settings, rule.actionId())) {
+                    sweep.getSkipped().add(v2AutomationSkipped(
+                        rule.actionId(),
+                        "canary_scope_excluded",
+                        List.of(rule),
+                        v2AutomationSourceFingerprint(List.of(rule), sourceByKey)
+                    ));
+                    continue;
+                }
+                changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
             }
         }
         if (fixtureScheduledAutomationEnabled) {
@@ -5991,13 +6008,18 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 continue;
             }
             V2AutomationDispatchOutcome outcome = queueEngineRouter.withMutationPermit(permit -> {
-                if (permit.mode() != CrawlerQueueEngineMode.V2
-                    || !readV2AutomationSettings(resolveRepoRoot()).isEnabled()) {
+                CrawlerV2AutomationDTO currentSettings = readV2AutomationSettings(resolveRepoRoot());
+                if (permit.mode() != CrawlerQueueEngineMode.V2 || !currentSettings.isEnabled()) {
                     return null;
                 }
-                List<String> currentActivationReasons = schedulerActivationGateReasons();
-                if (!currentActivationReasons.isEmpty()) {
-                    return V2AutomationDispatchOutcome.schedulerActivationBlocked(currentActivationReasons);
+                if (!isV2AutomationActionAllowed(currentSettings, entry.getKey())) {
+                    return new V2AutomationDispatchOutcome(null, "canary_scope_excluded");
+                }
+                if (!fixtureScheduledAutomationEnabled) {
+                    List<String> currentActivationReasons = schedulerActivationGateReasons(currentSettings.getCanaryActionId());
+                    if (!currentActivationReasons.isEmpty()) {
+                        return V2AutomationDispatchOutcome.schedulerActivationBlocked(currentActivationReasons);
+                    }
                 }
                 if (!fixtureScheduledAutomationEnabled && sourceDispatchIdentity == null) {
                     return new V2AutomationDispatchOutcome(null, "source_identity_invalid");
@@ -6011,7 +6033,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     rules,
                     entry.getKey(),
                     sourceFingerprint,
-                    acknowledgedSourceFingerprint
+                    acknowledgedSourceFingerprint,
+                    sourceDispatchIdentity
                 );
                 if (decision.skipReason() != null) {
                     return new V2AutomationDispatchOutcome(null, decision.skipReason());
@@ -6134,13 +6157,33 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private List<String> schedulerActivationGateReasons() {
+        return schedulerActivationGateReasons(null, false);
+    }
+
+    private List<String> schedulerActivationGateReasons(String canaryActionId) {
+        return schedulerActivationGateReasons(canaryActionId, true);
+    }
+
+    private List<String> schedulerActivationGateReasons(String canaryActionId, boolean requireCanaryScope) {
+        if (requireCanaryScope && (canaryActionId == null || canaryActionId.isBlank())) {
+            return List.of("SCHEDULER_CANARY_SCOPE_REQUIRED");
+        }
         if (crawlerAutomationPolicyService == null) {
             return List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE");
         }
         for (String domain : CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS) {
             CrawlerAutomationPolicyService.AutomationEligibility eligibility;
             try {
-                eligibility = crawlerAutomationPolicyService.schedulerEligibility(domain);
+                if (canaryActionId == null || canaryActionId.isBlank()) {
+                    eligibility = crawlerAutomationPolicyService.schedulerEligibility(domain);
+                } else {
+                    eligibility = crawlerAutomationPolicyService.schedulerEligibility(domain, canaryActionId);
+                    // Existing fixture-only tests and older policy-service doubles may
+                    // not implement the overload; production returns a non-null result.
+                    if (eligibility == null) {
+                        eligibility = crawlerAutomationPolicyService.schedulerEligibility(domain);
+                    }
+                }
             } catch (RuntimeException exception) {
                 log.warn("Crawler scheduler eligibility lookup failed for domain {}: {}", domain, exception.getMessage());
                 return List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE");
@@ -6160,7 +6203,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         List<CrawlerMonitorActionDefinition> rules,
         String actionId,
         String sourceFingerprint,
-        String acknowledgedSourceFingerprint
+        String acknowledgedSourceFingerprint,
+        SourceDispatchIdentity sourceDispatchIdentity
     ) {
         List<CrawlerQueueV2OverviewDTO.AttemptDTO> live = snapshot == null ? List.of() : snapshot.liveQueue();
         for (CrawlerQueueV2OverviewDTO.AttemptDTO attempt : live) {
@@ -6192,6 +6236,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             }
             V2QueueOwnership ownership = v2QueueOwnership(attempt);
             if (ownership == V2QueueOwnership.UNTRUSTED) {
+                if (isTerminalV2Attempt(attempt)) {
+                    continue;
+                }
                 return V2AutomationRecoveryDecision.skip("automatic_queue_metadata_untrusted");
             }
             if (ownership == V2QueueOwnership.SCHEDULER) {
@@ -6227,6 +6274,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return V2AutomationRecoveryDecision.skip("automatic_source_identity_missing");
         }
         if (sourceFingerprint != null && !Objects.equals(sourceFingerprint, failedFingerprint)) {
+            return V2AutomationRecoveryDecision.fresh();
+        }
+        if (sourceDispatchIdentity == null
+            || latest.sourceDispatchIdentity() == null
+            || !sourceDispatchIdentity.matches(latest.sourceDispatchIdentity())) {
             return V2AutomationRecoveryDecision.fresh();
         }
         if (!latest.allowedActions().contains("retry")) {
@@ -6272,6 +6324,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return V2QueueOwnership.MANUAL;
         }
         return V2QueueOwnership.UNTRUSTED;
+    }
+
+    private boolean isTerminalV2Attempt(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
+        if (attempt == null || attempt.status() == null) {
+            return false;
+        }
+        try {
+            return CrawlerQueueV2Status.fromValue(attempt.status()).terminal();
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
     private Instant v2AttemptTerminalTime(CrawlerQueueV2OverviewDTO.AttemptDTO attempt) {
@@ -6442,6 +6505,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             settings.setEnabled(asBoolean(config.payload().get("enabled")));
             settings.setMode("changed-only");
             settings.setSweepIntervalMinutes(Math.max(1, asInt(config.payload().get("sweepIntervalMinutes"), 60)));
+            settings.setCanaryActionId(normalizeV2AutomationCanaryActionId(
+                asString(config.payload().get("canaryActionId"))
+            ));
         }
         settings.setLastSweep(readV2AutomationLastSweep(repoRoot));
         return settings;
@@ -6452,7 +6518,34 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         settings.setEnabled(input != null && input.isEnabled());
         settings.setMode("changed-only");
         settings.setSweepIntervalMinutes(Math.max(1, input == null ? 60 : input.getSweepIntervalMinutes()));
+        settings.setCanaryActionId(normalizeV2AutomationCanaryActionId(
+            input == null ? null : input.getCanaryActionId()
+        ));
         return settings;
+    }
+
+    private String normalizeV2AutomationCanaryActionId(String value) {
+        String actionId = AdminTextUtils.trimToNull(value);
+        if (actionId == null) {
+            return null;
+        }
+        boolean registered = WIKI_MONITOR_RULES.stream().anyMatch(rule ->
+            rule.wikiDomain()
+                && isAutoEligibleRule(rule)
+                && actionId.equals(rule.actionId())
+        );
+        if (!registered) {
+            throw new IllegalArgumentException("V2 canary action is not an eligible scheduler action: " + actionId);
+        }
+        return actionId;
+    }
+
+    private boolean isV2AutomationActionAllowed(CrawlerV2AutomationDTO settings, String actionId) {
+        if (fixtureScheduledAutomationEnabled) {
+            return true;
+        }
+        String canaryActionId = settings == null ? null : settings.getCanaryActionId();
+        return canaryActionId != null && canaryActionId.equals(actionId);
     }
 
     private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO readV2AutomationLastSweep(Path repoRoot) {
@@ -6652,10 +6745,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         sourceRuntime.put("requestedAt", timestamp);
         sourceRuntime.put("processGroupToken", processGroupToken);
         sourceRuntime.put("progressPath", SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/'));
+        String sourceMonitorCommand = resolveSourceUpdateMonitorCommand(repoRoot);
         LaunchRequest request = new LaunchRequest(
             List.of(
                 "node",
-                "pipelines/monitor/check-source-updates.mjs",
+                sourceMonitorCommand,
                 "--state-file=" + WIKI_SOURCE_UPDATE_STATE_FILE.toString().replace('\\', '/'),
                 "--manifest-path=data/generated/wiki-source-manifest.latest.json",
                 "--progress-path=" + SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/')
@@ -8162,6 +8256,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         tasks.add(buildWorldContextFetchRefreshTask(repoRoot, worldContextFetchProgress));
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,
+            "armor-set-images",
+            "Armor source images",
+            ARMOR_IMAGE_CACHE_PROGRESS_FILE,
+            "reports/authorization/canonical/",
+            readJsonMap(repoRoot.resolve(ARMOR_IMAGE_CACHE_PROGRESS_FILE).normalize()),
+            "p0",
+            "Wiki image revisions and bytes -> verified managed Armor images",
+            "Verify the governed image result before canonical Armor ingestion."
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
             "domain-source-bosses",
             "Domain source: Bosses",
             DOMAIN_SOURCE_BOSSES_PROGRESS_FILE,
@@ -9523,6 +9628,23 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             current = current.getParent();
         }
         return Path.of("").toAbsolutePath().normalize();
+    }
+
+    private String resolveSourceUpdateMonitorCommand(Path repoRoot) {
+        String configuredRoot = AdminTextUtils.trimToNull(configuredQueueV2CommandRoot);
+        if (configuredRoot == null) {
+            return "pipelines/monitor/check-source-updates.mjs";
+        }
+        Path commandRoot = Path.of(configuredRoot).toAbsolutePath().normalize();
+        Path command = commandRoot.resolve("pipelines/monitor/check-source-updates.mjs").normalize();
+        if (!command.startsWith(commandRoot)
+            || Files.isSymbolicLink(commandRoot)
+            || !Files.isDirectory(commandRoot, LinkOption.NOFOLLOW_LINKS)
+            || Files.isSymbolicLink(command)
+            || !Files.isRegularFile(command, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalStateException("configured V2 command root does not contain a regular source monitor script");
+        }
+        return command.toString();
     }
 
     private boolean looksLikeRepoRoot(Path path) {

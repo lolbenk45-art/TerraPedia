@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { parseBuffPageEvidence } from '../fetch/buff-immunity-page-parser.mjs';
 
 import {
   buildBuffRelationSyncPayload,
+  buildBuffIncrementalMutationPlan,
+  normalizeBuffPageEvidence,
   mergeNpcCrawlerFactsIntoMaintBuffRows,
   parseArgs,
   runBuffRelationSync,
@@ -291,6 +295,8 @@ test('runBuffRelationSync dry-run does not mutate relation tables', async () => 
   assert.equal(result.apply, false);
   assert.equal(result.rows.relationBuffs, 1);
   assert.equal(result.writes.total, 0);
+  assert.equal(result.candidateStatus, 'inventory-only');
+  assert.equal(result.executable, false);
   assert.ok(relationQueries.some((sql) => sql.includes('relation_buff_images')));
 });
 
@@ -325,116 +331,368 @@ test('runBuffRelationSync reads MATCHED crawler facts before building NPC buff r
   assert.equal(result.rows.npcBuffRelations, 1);
 });
 
-test('runBuffRelationSync apply only clears and writes buff relation tables', async () => {
-  const statements = [];
-  const result = await runBuffRelationSync(
-    {
-      apply: true,
-      maintDatabase: 'terria_v1_local',
-      relationDatabase: 'terria_v1_relation',
-      localDatabase: 'terria_v1_local',
-    },
-    {
-      queryMaint: async (sql) => {
-        if (sql.includes('maint_buffs')) {
-          return [
-            {
-              id: 11,
-              source_id: 337,
-              internal_name: 'ShadowFlame',
-              english_name: 'Shadowflame',
-              raw_json: JSON.stringify({
-                sourceItems: [{ itemId: 1, internalName: 'ShadowFlameKnife' }],
-                inflictingNpcs: [{ npcId: 54, internalName: 'Clothier' }],
-              }),
-            },
-          ];
-        }
-        if (sql.includes('maint_items')) {
-          return [{ source_id: 1, internal_name: 'ShadowFlameKnife' }];
-        }
-        if (sql.includes('maint_npcs')) {
-          return [{ source_id: 54, internal_name: 'Clothier' }];
-        }
-        return [];
-      },
-      queryRelation: async () => [],
-      executeRelation: async (callback) => {
-        await callback({
-          async query(sql) {
-            statements.push(sql);
-            if (sql.includes('information_schema.columns')) {
-              return [[
-                { COLUMN_NAME: 'id' },
-                { COLUMN_NAME: 'inflicting_npcs_json' },
-                { COLUMN_NAME: 'source_evidence_json' },
-              ]];
-            }
-            return [];
-          },
-          async execute(sql) {
-            statements.push(sql);
-          },
-        });
-      },
-      writeReport: async () => {},
-    },
-  );
+for (const options of [
+  { apply: true },
+  { apply: true, prepareSchema: true },
+  { prepareSchema: true },
+  { apply: true, registeredExecutor: true, hasFreshPacket: true, operation: 'canonical-buff-image-projection-apply' },
+]) {
+  test(`general Buff sync rejects unregistered writes before any dependency: ${JSON.stringify(options)}`, async () => {
+    let reads = 0;
+    const dependencies = new Proxy({}, { get() { reads += 1; throw new Error('dependency accessed'); } });
+    await assert.rejects(runBuffRelationSync(options, dependencies), /registered-executor-required/);
+    assert.equal(reads, 0);
+  });
+}
 
-  assert.equal(result.apply, true);
-  assert.equal(result.rows.relationBuffs, 1);
-  assert.equal(result.rows.itemBuffRelations, 1);
-  assert.equal(result.rows.npcBuffRelations, 1);
-  assert.ok(statements.some((sql) => /DELETE FROM `relation_buffs`/.test(sql)));
-  assert.ok(statements.some((sql) => /DELETE FROM `projection_buffs`/.test(sql)));
-  assert.ok(statements.some((sql) => /DELETE FROM `item_buff_relations`/.test(sql)));
-  assert.ok(statements.some((sql) => /DELETE FROM `npc_buff_relations`/.test(sql)));
-  assert.ok(statements.some((sql) => /INSERT INTO `relation_buffs`/.test(sql)));
-  assert.ok(statements.some((sql) => /INSERT INTO `projection_buffs`/.test(sql)));
-  assert.ok(statements.every((sql) => !/relation_items|projection_items|relation_npcs|projection_npcs|relation_projectiles|projection_projectiles/.test(sql)));
+const BUFF_TABLES = ['relation_buffs', 'item_buff_relations', 'npc_buff_relations', 'relation_buff_images', 'projection_buffs'];
+const IMAGE_PREFIX = 'https://media.example.test/terrapedia-images/buffs/';
+
+function candidateFixture({ extraImages = [], rawFields = {} } = {}) {
+  const evidence = parseBuffPageEvidence({
+    buffId: 24,
+    buffName: 'On Fire!',
+    pageTitle: 'On Fire!',
+    revisionId: 12345,
+    revisionTimestamp: '2026-09-23T01:02:03Z',
+    html: '<h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2><div class="itemlist"><ul><li><span class="i"><a href="/wiki/Fire_Imp" title="Fire Imp"><img src="/images/Fire_Imp.png" /></a><span><span><a href="/wiki/Fire_Imp" title="Fire Imp">Fire Imp</a></span></span></span></li></ul></div><h2><span class="mw-headline" id="Notes">Notes</span></h2>',
+  });
+  assert.equal(evidence.sourceEvidence.factGroups.immuneNpcs.status, 'parsed');
+  const record = { id: 24, internalName: 'OnFire', englishName: 'On Fire!', ...evidence, ...rawFields };
+  const source = { records: [record] };
+  const landingRow = {
+    id: 31,
+    dataset_type: 'buffs_raw',
+    provider: 'terraria.wiki.gg',
+    source_key: 'generated.buffs.standardized',
+    source_page: 'Module:Buffinfo/data',
+    source_revision_timestamp: '2026-09-22T00:00:00Z',
+    content_hash: createHash('sha256').update(JSON.stringify(source)).digest('hex'),
+    payload_json: JSON.stringify(source),
+    parse_status: 'ok',
+    is_current: 1,
+  };
+  const maintBuffRows = [{
+    id: 11, record_key: 'a'.repeat(64), source_id: 24, internal_name: 'OnFire',
+    english_name: record.name ?? record.englishName, name_zh: record.localized?.zh?.name,
+    raw_json: JSON.stringify(record), landing_source_id: 31, landing_source_key: landingRow.source_key,
+    landing_content_hash: landingRow.content_hash, source_provider: landingRow.provider,
+    source_page: landingRow.source_page, source_revision_timestamp: landingRow.source_revision_timestamp,
+  }];
+  const image = {
+    record_key: 'b'.repeat(64), buff_internal_name: 'OnFire', role: 'icon',
+    original_url: 'https://terraria.wiki.gg/images/On_Fire.png',
+    cached_url: `${IMAGE_PREFIX}OnFire.png`, is_primary: 1, status: 1, deleted: 0,
+  };
+  return {
+    payload: buildBuffRelationSyncPayload({ maintBuffRows, relationBuffImageRows: [image, ...extraImages], managedImageUrlPrefixes: [IMAGE_PREFIX] }),
+    currentRows: { ...Object.fromEntries(BUFF_TABLES.map((table) => [table, []])), relation_buff_images: [image, ...extraImages] },
+    landingRows: [landingRow],
+    pageEvidenceByInternalName: new Map([['OnFire', evidence]]),
+    managedImageUrlPrefixes: [IMAGE_PREFIX],
+  };
+}
+
+function addBoundSourceItem(input) {
+  const item = { itemId: 101, internalName: 'MagicItem' };
+  const relation = input.payload.relationBuffs[0];
+  const raw = JSON.parse(relation.rawJson);
+  raw.sourceItemCount = 1;
+  raw.sourceItems = [item];
+  relation.rawJson = JSON.stringify(raw);
+  relation.sourceItemCount = 1;
+  relation.sourceItemsJson = JSON.stringify(raw.sourceItems);
+  const landing = input.landingRows[0];
+  const landingPayload = JSON.parse(landing.payload_json);
+  landingPayload.records[0].sourceItemCount = 1;
+  landingPayload.records[0].sourceItems = [item];
+  landing.payload_json = JSON.stringify(landingPayload);
+  landing.content_hash = createHash('sha256').update(JSON.stringify(landingPayload)).digest('hex');
+  relation.landingContentHash = landing.content_hash;
+  return relation;
+}
+
+function addBoundInflictingNpc(input) {
+  const npc = { npcId: 202, internalName: 'BoundNpc', name: 'Bound NPC' };
+  const relation = input.payload.relationBuffs[0];
+  const raw = JSON.parse(relation.rawJson);
+  raw.inflictingNpcs = [npc];
+  relation.rawJson = JSON.stringify(raw);
+  relation.inflictingNpcsJson = JSON.stringify(raw.inflictingNpcs);
+  const landing = input.landingRows[0];
+  const landingPayload = JSON.parse(landing.payload_json);
+  landingPayload.records[0].inflictingNpcs = [npc];
+  landing.payload_json = JSON.stringify(landingPayload);
+  landing.content_hash = createHash('sha256').update(JSON.stringify(landingPayload)).digest('hex');
+  relation.landingContentHash = landing.content_hash;
+  return relation;
+}
+
+test('normalizes the real page producer revision identity without top-level fallback', () => {
+  const evidence = candidateFixture().pageEvidenceByInternalName.get('OnFire');
+  const result = normalizeBuffPageEvidence({ evidence });
+  assert.equal(result.revisionId, 12345);
+  assert.equal(result.revisionTimestamp, '2026-09-23T01:02:03Z');
 });
 
-test('runBuffRelationSync applies buff projection migrations before writing existing tables', async () => {
-  const statements = [];
-  await runBuffRelationSync(
-    {
-      apply: true,
-      maintDatabase: 'terria_v1_local',
-      relationDatabase: 'terria_v1_relation',
-      localDatabase: 'terria_v1_local',
-    },
-    {
-      queryMaint: async (sql) => {
-        if (sql.includes('maint_buffs')) {
-          return [];
-        }
-        return [];
-      },
-      queryRelation: async () => [],
-      executeRelation: async (callback) => {
-        await callback({
-          async query(sql, params) {
-            statements.push({ sql, params });
-            if (sql.includes('information_schema.columns')) {
-              return [[
-                { COLUMN_NAME: 'id' },
-                { COLUMN_NAME: 'source_items_json' },
-                { COLUMN_NAME: 'immune_npc_sample_json' },
-              ]];
-            }
-            return [];
-          },
-          async execute(sql) {
-            statements.push({ sql });
-          },
-        });
-      },
-      writeReport: async () => {},
-    },
-  );
-
-  assert.ok(statements.some((statement) => /ALTER TABLE `terria_v1_relation`\.`relation_buffs` ADD COLUMN `inflicting_npcs_json`/.test(statement.sql)));
-  assert.ok(statements.some((statement) => /ALTER TABLE `terria_v1_relation`\.`relation_buffs` ADD COLUMN `source_evidence_json`/.test(statement.sql)));
-  assert.ok(statements.some((statement) => /ALTER TABLE `terria_v1_relation`\.`projection_buffs` ADD COLUMN `inflicting_npcs_json`/.test(statement.sql)));
-  assert.ok(statements.some((statement) => /ALTER TABLE `terria_v1_relation`\.`projection_buffs` ADD COLUMN `source_evidence_json`/.test(statement.sql)));
+test('Buff payload maps database image columns before projecting the cached image', () => {
+  assert.equal(candidateFixture().payload.projectionBuffs[0].image, `${IMAGE_PREFIX}OnFire.png`);
 });
+
+test('Buff payload excludes inactive images from publication and candidate preserves them unchanged', () => {
+  const inactive = {
+    record_key: 'c'.repeat(64), buff_internal_name: 'OnFire', role: 'icon',
+    cached_url: 'https://unmanaged.example.test/old.png', is_primary: 1, status: 0, deleted: 0,
+  };
+  const input = candidateFixture({ extraImages: [inactive] });
+  assert.equal(input.payload.relationBuffImages.length, 1);
+  assert.equal(input.payload.projectionBuffs[0].image, `${IMAGE_PREFIX}OnFire.png`);
+  const plan = buildBuffIncrementalMutationPlan(input);
+  assert.deepEqual(plan.changes.relation_buff_images.preserved, [inactive]);
+  assert.equal(plan.changes.relation_buff_images.updates.length, 0);
+});
+
+test('Buff candidate computes inserts, preserves unmatched rows, and becomes a semantic no-op', () => {
+  const input = candidateFixture();
+  const unmatched = { record_key: 'c'.repeat(64), source_id: 33, internal_name: 'Weak', raw_json: '{"untouched":true}' };
+  input.currentRows.relation_buffs.push(unmatched);
+  const first = buildBuffIncrementalMutationPlan(input);
+  assert.equal(first.changes.relation_buffs.inserts.length, 1);
+  assert.equal(first.changes.projection_buffs.inserts.length, 1);
+  assert.equal(first.changes.relation_buff_images.inserts.length, 0);
+  assert.equal(first.changes.relation_buff_images.updates.length, 0);
+  assert.deepEqual(first.changes.relation_buffs.preserved, [unmatched]);
+  assert.deepEqual(first.deletes, []);
+  assert.equal(first.executable, false);
+  const second = buildBuffIncrementalMutationPlan({ ...input, currentRows: first.expectedRows });
+  assert.equal(second.summary.inserts, 0);
+  assert.equal(second.summary.updates, 0);
+  assert.equal(second.summary.unchanged, 3);
+});
+
+test('Buff candidate emits only changed columns and preserves generated timestamps', () => {
+  const input = candidateFixture();
+  const baseline = buildBuffIncrementalMutationPlan(input).expectedRows;
+  baseline.relation_buffs[0].tooltip_en = 'stale';
+  baseline.relation_buffs[0].id = 412;
+  baseline.relation_buffs[0].created_at = '2026-01-01T00:00:00Z';
+  baseline.relation_buffs[0].updated_at = '2026-09-01T00:00:00Z';
+  baseline.projection_buffs[0].immune_npcs_json = JSON.stringify(JSON.parse(baseline.projection_buffs[0].immune_npcs_json), null, 2);
+  const result = buildBuffIncrementalMutationPlan({ ...input, currentRows: baseline });
+  assert.deepEqual(result.changes.relation_buffs.updates[0].changedColumns, ['tooltip_en']);
+  assert.equal(result.expectedRows.relation_buffs[0].id, 412);
+  assert.equal(result.expectedRows.relation_buffs[0].created_at, '2026-01-01T00:00:00Z');
+  assert.equal(result.changes.projection_buffs.updates.length, 0);
+});
+
+test('Buff candidate rejects secondary relations whose facts, owner trace, or relation type are not page-bound', () => {
+  const input = candidateFixture();
+  const relation = addBoundSourceItem(input);
+  const row = {
+    record_key: 'd'.repeat(64), item_source_id: 101, item_internal_name: 'MagicItem',
+    buff_source_id: relation.sourceId, buff_internal_name: relation.internalName,
+    relation_type: 'buff_source_item', source_maint_table: 'maint_buffs', source_maint_record_key: 'a'.repeat(64),
+    landing_source_id: 31, landing_source_key: input.landingRows[0].source_key,
+    landing_content_hash: input.landingRows[0].content_hash, source_provider: input.landingRows[0].provider,
+    source_page: input.landingRows[0].source_page, source_revision_timestamp: input.landingRows[0].source_revision_timestamp,
+    status: 1, deleted: 0,
+  };
+  input.payload.itemBuffRelations.push(row);
+  assert.doesNotThrow(() => buildBuffIncrementalMutationPlan(input));
+  row.item_internal_name = 'OtherItem';
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /secondary.*identity|page-bound|source item/i);
+  row.item_internal_name = 'MagicItem';
+  row.source_maint_table = 'maint_items';
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /owner trace|secondary/i);
+});
+
+test('Buff candidate rejects arbitrary secondary relation types and sort-order rekeying', () => {
+  const input = candidateFixture();
+  const relation = addBoundSourceItem(input);
+  const row = {
+    record_key: 'd'.repeat(64), item_source_id: 101, item_internal_name: 'MagicItem',
+    buff_source_id: relation.sourceId, buff_internal_name: relation.internalName,
+    relation_type: 'forged', source_maint_table: 'maint_buffs', source_maint_record_key: 'a'.repeat(64),
+    landing_source_id: 31, landing_source_key: input.landingRows[0].source_key,
+    landing_content_hash: input.landingRows[0].content_hash, source_provider: input.landingRows[0].provider,
+    source_page: input.landingRows[0].source_page, source_revision_timestamp: input.landingRows[0].source_revision_timestamp,
+    status: 1, deleted: 0,
+  };
+  input.payload.itemBuffRelations.push(row);
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /relation type|secondary/i);
+  row.relation_type = 'buff_source_item';
+  input.currentRows.item_buff_relations.push({ ...row, record_key: 'e'.repeat(64) });
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /remapped|identity|sort/i);
+});
+
+test('Buff candidate requires page buff identity, binds derived fields, and fingerprints managed prefixes', () => {
+  const input = candidateFixture();
+  input.pageEvidenceByInternalName.get('OnFire').buffId = undefined;
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /buff identity|page evidence/i);
+  const valid = candidateFixture();
+  valid.payload.relationBuffs[0].sourceItemCount = 99;
+  assert.throws(() => buildBuffIncrementalMutationPlan(valid), /source item|derived|landing/i);
+  const bound = buildBuffIncrementalMutationPlan(candidateFixture());
+  assert.match(bound.managedImageUrlPrefixesSha256, /^sha256:[a-f0-9]{64}$/);
+});
+
+test('Buff candidate binds standardized id-only page evidence to the relation identity', () => {
+  const input = candidateFixture();
+  const evidence = input.pageEvidenceByInternalName.get('OnFire');
+  evidence.buffId = undefined;
+  evidence.id = 24;
+  assert.doesNotThrow(() => buildBuffIncrementalMutationPlan(input));
+
+  const drifted = candidateFixture();
+  const driftedEvidence = drifted.pageEvidenceByInternalName.get('OnFire');
+  driftedEvidence.buffId = undefined;
+  driftedEvidence.id = 25;
+  assert.throws(() => buildBuffIncrementalMutationPlan(drifted), /identity/);
+});
+
+for (const field of ['englishName', 'nameZh', 'buffType', 'tooltipEn', 'tooltipZh']) {
+  test(`Buff candidate rejects unbound relation ${field}, including absent source values`, () => {
+    const input = candidateFixture();
+    input.payload.relationBuffs[0][field] = 'Forged';
+    assert.throws(() => buildBuffIncrementalMutationPlan(input), /derived field/);
+  });
+  test(`Buff candidate rejects projection ${field} drift from relation`, () => {
+    const input = candidateFixture();
+    input.payload.projectionBuffs[0][field] = 'Forged';
+    assert.throws(() => buildBuffIncrementalMutationPlan(input), /projection field/);
+  });
+}
+
+test('Buff candidate rejects conflicting page ID aliases', () => {
+  const input = candidateFixture();
+  input.pageEvidenceByInternalName.get('OnFire').id = 25;
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /identity/);
+});
+
+test('Buff candidate accepts scalar fields normalized by the real maint and relation builders', () => {
+  const input = candidateFixture({ rawFields: {
+    name: ' On Fire! ', type: ' debuff ',
+    localized: { en: { tooltip: ' Taking damage ' }, zh: { name: ' 着火了！ ', tooltip: ' 持续受伤 ' } },
+  } });
+  const plan = buildBuffIncrementalMutationPlan(input);
+  assert.equal(plan.expectedRows.relation_buffs[0].name_zh, '着火了！');
+  assert.equal(plan.expectedRows.projection_buffs[0].tooltip_en, 'Taking damage');
+});
+
+test('Buff candidate output does not depend on current row order and accepts managed paths', () => {
+  const input = candidateFixture();
+  const imagePath = '/terrapedia-images/buffs/OnFire.png';
+  input.payload.relationBuffImages[0].cachedUrl = imagePath;
+  input.currentRows.relation_buff_images[0].cached_url = imagePath;
+  input.payload.projectionBuffs[0].image = imagePath;
+  input.currentRows.relation_buffs = [
+    { record_key: 'd'.repeat(64), source_id: 47, internal_name: 'Frozen' },
+    { record_key: 'c'.repeat(64), source_id: 33, internal_name: 'Weak' },
+  ];
+  const before = structuredClone(input);
+  const first = buildBuffIncrementalMutationPlan(input);
+  assert.deepEqual(input, before);
+  const second = buildBuffIncrementalMutationPlan({ ...input, currentRows: {
+    ...input.currentRows, relation_buffs: [...input.currentRows.relation_buffs].reverse(),
+  } });
+  assert.deepEqual(first, second);
+});
+
+const rejectionCases = [
+  ['missing baseline table', (input) => { delete input.currentRows.npc_buff_relations; }, /snapshot/],
+  ['unrelated current table', (input) => { input.currentRows.relation_items = []; }, /table/],
+  ['unrelated payload table', (input) => { input.payload.relationItems = []; }, /table/],
+  ['missing payload table', (input) => { delete input.payload.npcBuffRelations; }, /table/],
+  ['missing evidence', (input) => { input.pageEvidenceByInternalName.clear(); }, /evidence/],
+  ['empty evidence fallback', (input) => { input.pageEvidenceByInternalName.set('OnFire', { immuneNpcSource: 'buff-page-immunities' }); }, /evidence/],
+  ['missing real revision', (input) => { delete input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.revisionId; }, /revision/],
+  ['wrong revision', (input) => { input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.revisionId += 1; }, /binding/],
+  ['wrong canonical page', (input) => { input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.canonicalPageTitle = 'Poisoned'; }, /binding/],
+  ['missing revision timestamp', (input) => { delete input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.revisionTimestamp; }, /revision/],
+  ['wrong source revision timestamp', (input) => { input.payload.relationBuffs[0].sourceRevisionTimestamp = '2020-01-01T00:00:00Z'; }, /binding/],
+  ['wrong buff id', (input) => { input.pageEvidenceByInternalName.get('OnFire').buffId = 20; }, /identity/],
+  ['invalid immunity JSON', (input) => { input.pageEvidenceByInternalName.get('OnFire').immuneNpcs = '{'; }, /immun/],
+  ['invalid sample JSON', (input) => { input.pageEvidenceByInternalName.get('OnFire').immuneNpcSample = '{'; }, /sample/i],
+  ['count larger than list', (input) => { input.pageEvidenceByInternalName.get('OnFire').immuneNpcCount = 2; }, /count/],
+  ['negative count', (input) => { input.pageEvidenceByInternalName.get('OnFire').immuneNpcCount = -1; }, /count/],
+  ['string count', (input) => { input.pageEvidenceByInternalName.get('OnFire').immuneNpcCount = '1'; }, /count/],
+  ['fact-group count mismatch', (input) => { input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.factGroups.immuneNpcs.count = 2; }, /count/],
+  ['sample from another buff', (input) => { input.pageEvidenceByInternalName.get('OnFire').immuneNpcSample = [{ pageTitle: 'Other' }]; }, /sample/],
+  ['section missing despite fallback', (input) => { input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.factGroups.immuneNpcs.status = 'section_missing'; }, /immun/],
+  ['unresolved parse errors', (input) => { input.pageEvidenceByInternalName.get('OnFire').sourceEvidence.unresolvedFacts.push({ group: 'immuneNpcs', status: 'no_rows' }); }, /incomplete/],
+  ['unresolved payload facts', (input) => { input.payload.issues.push({ reason: 'buff_source_item_unresolved' }); }, /unresolved/],
+  ['missing landing source', (input) => { input.landingRows = []; }, /landing/],
+  ['wrong landing hash', (input) => { input.landingRows[0].content_hash = 'f'.repeat(64); }, /hash/],
+  ['wrong relation hash', (input) => { input.payload.relationBuffs[0].landingContentHash = 'f'.repeat(64); }, /binding/],
+  ['wrong raw record', (input) => { input.payload.relationBuffs[0].rawJson = '{}'; }, /binding/],
+  ['invalid raw JSON', (input) => { input.payload.relationBuffs[0].rawJson = '{'; }, /JSON/],
+  ['duplicate buff key', (input) => { input.payload.relationBuffs.push({ ...input.payload.relationBuffs[0] }); }, /duplicate/],
+  ['duplicate baseline key', (input) => { input.currentRows.relation_buff_images.push({ ...input.currentRows.relation_buff_images[0] }); }, /duplicate/],
+  ['remapped relation key', (input) => { input.currentRows.relation_buffs = [{ ...input.payload.relationBuffs[0], recordKey: 'e'.repeat(64) }]; }, /remapped/],
+  ['remapped projection relation', (input) => { input.payload.projectionBuffs[0].relationRecordKey = 'e'.repeat(64); }, /identity/],
+  ['remapped baseline projection lineage', (input) => { input.currentRows.projection_buffs = [{ ...input.payload.projectionBuffs[0], relationRecordKey: 'e'.repeat(64) }]; }, /remapped/],
+  ['unexpected candidate column', (input) => { input.payload.relationBuffs[0].unownedColumn = 'value'; }, /column/],
+  ['modified relation source facts', (input) => { input.payload.relationBuffs[0].sourceItemsJson = '[{"internalName":"Fake"}]'; }, /binding/],
+  ['remapped item relation key', (input) => {
+    const relation = addBoundSourceItem(input);
+    const row = {
+      recordKey: 'e'.repeat(64), buffSourceId: relation.sourceId, buffInternalName: relation.internalName,
+      itemSourceId: 101, itemInternalName: 'MagicItem', relationType: 'buff_source_item',
+      sourceMaintTable: 'maint_buffs', sourceMaintRecordKey: 'a'.repeat(64),
+      landingSourceId: 31, landingSourceKey: input.landingRows[0].source_key,
+      landingContentHash: input.landingRows[0].content_hash, sourceProvider: input.landingRows[0].provider,
+      sourcePage: input.landingRows[0].source_page, sourceRevisionTimestamp: input.landingRows[0].source_revision_timestamp,
+      status: 1, deleted: 0,
+    };
+    input.payload.itemBuffRelations = [row];
+    input.currentRows.item_buff_relations = [{ ...row, itemInternalName: 'OtherItem', itemSourceId: 102 }];
+  }, /remapped/],
+  ['remapped NPC relation key', (input) => {
+    const relation = addBoundInflictingNpc(input);
+    const row = {
+      recordKey: 'e'.repeat(64), buffSourceId: relation.sourceId, buffInternalName: relation.internalName,
+      npcSourceId: 202, npcInternalName: 'BoundNpc', relationType: 'inflicts',
+      sourceMaintTable: 'maint_buffs', sourceMaintRecordKey: 'a'.repeat(64),
+      landingSourceId: 31, landingSourceKey: input.landingRows[0].source_key,
+      landingContentHash: input.landingRows[0].content_hash, sourceProvider: input.landingRows[0].provider,
+      sourcePage: input.landingRows[0].source_page, sourceRevisionTimestamp: input.landingRows[0].source_revision_timestamp,
+      status: 1, deleted: 0,
+    };
+    input.payload.npcBuffRelations = [row];
+    input.currentRows.npc_buff_relations = [{ ...row, relationType: 'immune' }];
+  }, /remapped/],
+  ['missing projection coverage', (input) => { input.payload.projectionBuffs = []; }, /coverage/],
+  ['unrelated image row', (input) => { input.payload.relationBuffImages[0].buffInternalName = 'Weak'; }, /identity/],
+  ['unrelated npc relation', (input) => { input.payload.npcBuffRelations.push({ recordKey: 'e'.repeat(64), buffInternalName: 'Weak', buffSourceId: 33 }); }, /identity/],
+  ['empty prefixes', (input) => { input.managedImageUrlPrefixes = ['']; }, /prefix/],
+  ['missing prefixes', (input) => { input.managedImageUrlPrefixes = []; }, /prefix/],
+  ['URL credentials trick', (input) => { input.payload.projectionBuffs[0].image = `${IMAGE_PREFIX.replace('https://', 'https://user@')}OnFire.png`; }, /image/],
+  ['URL path traversal', (input) => { input.payload.projectionBuffs[0].image = `${IMAGE_PREFIX}../items/Other.png`; }, /image/],
+  ['URL encoded path traversal', (input) => { input.payload.projectionBuffs[0].image = `${IMAGE_PREFIX}%2e%2e%2fitems/Other.png`; }, /image/],
+  ['root-relative encoded path traversal', (input) => { input.payload.projectionBuffs[0].image = '/terrapedia-images/buffs/%2e%2e/items/Other.png'; }, /image/],
+  ['root-relative control normalization', (input) => {
+    const image = '/terrapedia-images/buffs/.\n./items/Other.png';
+    input.payload.relationBuffImages[0].cachedUrl = image;
+    input.currentRows.relation_buff_images[0].cached_url = image;
+    input.payload.projectionBuffs[0].image = image;
+  }, /image/],
+  ['root-relative nested escape', (input) => {
+    const image = '/terrapedia-images/buffs/%252e%252e%252fitems/Other.png';
+    input.payload.relationBuffImages[0].cachedUrl = image;
+    input.currentRows.relation_buff_images[0].cached_url = image;
+    input.payload.projectionBuffs[0].image = image;
+  }, /image/],
+  ['URL query trick', (input) => { input.payload.projectionBuffs[0].image += '?elsewhere=1'; }, /image/],
+  ['projection-only managed image', (input) => { input.payload.projectionBuffs[0].image = `${IMAGE_PREFIX}Other.png`; }, /image/],
+  ['unmanaged cached row', (input) => { input.payload.relationBuffImages[0].cachedUrl = 'https://terraria.wiki.gg/images/On_Fire.png'; }, /image/],
+  ['unverified inserted image', (input) => { input.currentRows.relation_buff_images = []; }, /image/],
+  ['omitted current managed image', (input) => { input.payload.relationBuffImages = []; input.payload.projectionBuffs[0].image = null; }, /image.*coverage/],
+];
+
+for (const [name, mutate, pattern] of rejectionCases) {
+  test(`Buff candidate rejects ${name}`, () => {
+    const input = candidateFixture();
+    mutate(input);
+    assert.throws(() => buildBuffIncrementalMutationPlan(input), pattern);
+  });
+}
