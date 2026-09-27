@@ -185,6 +185,7 @@ async function verifySources(source, members) {
   const attributeIndex = index(source.relation_armor_attribute_rows, 'record_key', 'relation attribute');
   const effectIndex = index(source.relation_equipment_effect_attributes, 'record_key', 'relation effect');
   const attributes = [...attributeIndex.values()].filter(row => active(row) && members.has(row.item_id));
+  index(attributes, 'item_id', 'attribute member', id);
   const maintIndex = index(source.maint_armor_attribute_rows, 'record_key', 'maint attribute');
   const landingIndex = index(source.maint_landings, 'id', 'maint landing', id);
   const verifiedLandings = new Map();
@@ -256,6 +257,12 @@ function mergeTable(table, before, derived, sources, members) {
   for (const row of before) {
     const consumed = table === ARMOR_SECONDARY_PROJECTION_TABLES[0]
       ? members.has(row.item_id) : row.owner_kind === 'item' && members.has(row.owner_id);
+    // A prior governed retirement remains immutable history. It cannot
+    // satisfy a current derived key or be admitted without its source key.
+    if (consumed && row.status === 0 && row.deleted === 1
+        && historicalSourceKeys.has(row.relation_record_key)
+        && !expectedKeys.has(row.relation_record_key)
+        && identity(row) === identity(sourceIndex.get(row.relation_record_key))) continue;
     if (consumed && !active(row)) fail('foreign/inactive projection under a member');
     if (consumed && !expectedKeys.has(row.relation_record_key)
         && !historicalSourceKeys.has(row.relation_record_key)) {

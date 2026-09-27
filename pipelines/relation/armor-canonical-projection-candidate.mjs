@@ -317,10 +317,11 @@ function expectedItemEffects(attribute) {
     return [{ ownerKind: 'item', ownerRecordKey: attribute.record_key, ownerId: Number(attribute.item_id),
       ownerKey: attribute.item_internal_name, sourceKind: 'armor_attribute_cell', sourceLocale: 'zh', sourceLineIndex: 0,
       sourceLine: `${itemLabel} ${cellKey}: ${raw[cellKey]}`, effectIndex, applyScope: 'item_bonus',
-      variantLabel: itemLabel, itemInternalName: attribute.item_internal_name, slotType, statKey,
+      variantLabel: attribute.item_name_zh ?? attribute.item_page_title ?? null,
+      itemInternalName: attribute.item_internal_name, slotType, statKey,
       statLabelZh: ({ meleeDamage: '近战伤害', rangedDamage: '远程伤害', magicDamage: '魔法伤害',
-        summonDamage: '召唤伤害', meleeCritChance: '暴击率', rangedCritChance: '暴击率',
-        magicCritChance: '暴击率', classSpecific: '近战速度' })[cellKey], classScope,
+        summonDamage: '召唤伤害', meleeCritChance: '近战暴击率', rangedCritChance: '远程暴击率',
+        magicCritChance: '魔法暴击率', classSpecific: '近战速度' })[cellKey], classScope,
       operation: 'add', valueDecimal: value, valueMaxDecimal: null, unit: 'percent', conditionText: null,
       rawText: String(raw[cellKey]), parseStatus: 'parsed',
       sourceMaintTable: attribute.source_maint_table ?? null,
@@ -346,7 +347,7 @@ function checkItemEffects(sources, dependencies, block) {
   }
   const attributes = dependencies.relation_armor_attribute_rows;
   const activeAttributes = attributes.filter(active);
-  const sourceRows = dependencies.relation_equipment_effect_attributes;
+  const sourceRows = dependencies.relation_equipment_effect_attributes.filter(active);
   const accepted = [];
   const expectedKeys = new Set();
   for (const [itemSourceId, member] of members) {
@@ -355,6 +356,10 @@ function checkItemEffects(sources, dependencies, block) {
     if (!matching.length) {
       block('armor-attribute-source-missing', { itemSourceId, itemInternalName });
       block('item-effect-evidence-unresolved', { itemSourceId, itemInternalName });
+      continue;
+    }
+    if (matching.length > 1) {
+      block('armor-attribute-source-ambiguous', { itemSourceId, recordKeys: matching.map(row => row.record_key) });
       continue;
     }
     for (const attribute of matching) {
@@ -387,10 +392,10 @@ function checkItemEffects(sources, dependencies, block) {
     }
   }
   for (const row of sourceRows) {
-    if (row.owner_kind !== 'item') continue;
+    if (row.owner_kind !== 'item' || !members.has(Number(row.owner_id))) continue;
     const matches = [...expectedKeys].some(key => key.startsWith(`${row.owner_record_key}:`)
       && Number(key.slice(key.lastIndexOf(':') + 1)) === row.effect_index);
-    if (!matches || !members.has(Number(row.owner_id))) block('item-effect-evidence-unresolved', { recordKey: row.record_key });
+    if (!matches) block('item-effect-evidence-unresolved', { recordKey: row.record_key });
   }
   return accepted;
 }
@@ -453,7 +458,9 @@ function auditDependencies(snapshot, sources, payload, projections, expectations
       else if (!equalFields(expected, actual)) block(`${code}-stale`, { recordKey: expected.relation_record_key });
     }
     for (const actual of rows) {
-      // Defense SQL deliberately ignores status; effect SQL requires status=1.
+      // Armor admin attributes/item effects and set defense fallback read
+      // nondeleted rows even when inactive. Fully retired rows are excluded.
+      if (actual.deleted !== 0) continue;
       const consumed = table === 'projection_item_armor_attributes'
         ? requiredIds.has(actual.item_id)
         : (actual.owner_kind === 'item' && requiredIds.has(actual.owner_id))
@@ -461,7 +468,8 @@ function auditDependencies(snapshot, sources, payload, projections, expectations
       if (consumed && !expectedKeys.has(actual.relation_record_key)) block(`${code}-foreign`, { recordKey: actual.relation_record_key });
     }
   }
-  for (const row of [...snapshot.dependencyRows.relation_equipment_effect_attributes, ...snapshot.consumerRows.projection_equipment_effect_attributes]) {
+  for (const row of [...snapshot.dependencyRows.relation_equipment_effect_attributes.filter(active),
+    ...snapshot.consumerRows.projection_equipment_effect_attributes.filter(row => row.deleted === 0)]) {
     if (row.owner_kind === 'item' && requiredIds.has(row.owner_id)) {
       const rowKey = row.relation_record_key ?? row.record_key;
       const expected = expectations.projection_equipment_effect_attributes.some(effect => effect.owner_kind === 'item'
@@ -550,8 +558,10 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
   const expectedRows = [...expected.values()];
   uniqueIndex(expectedRows.filter(row => positiveId(row.id)), 'id', 'projection ID', positiveId);
   const owners = new Map(expectedRows.map(row => [row.text_key, row.id]));
+  const memberIds = new Set(sources.relation_armor_set_items.filter(active).map(row => row.item_source_id));
   const dependencyExpectations = {
-    projection_item_armor_attributes: payload.projectionItemArmorAttributes.map(snake).map(withoutStorageIdentity),
+    projection_item_armor_attributes: payload.projectionItemArmorAttributes
+      .filter(row => memberIds.has(row.itemId)).map(snake).map(withoutStorageIdentity),
     projection_equipment_effect_attributes: payload.projectionEquipmentEffectAttributes.map(snake)
       .map(row => withoutStorageIdentity({ ...row,
         owner_id: row.owner_kind === 'armor_set' ? owners.get(row.owner_key) ?? null : row.owner_id })),

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-09-28 07:12 CST by Codex
+Last updated: 2026-09-28 07:33 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation`
 Active focus: complete governed source → landing → maint → relation → projection/API ingestion; overall active.
@@ -22,8 +22,8 @@ Active focus: complete governed source → landing → maint → relation → pr
 - A6.3 selected subset has recorded committed projection repair `.a63-20260927-22`: 223 active attribute members and 290 active effects, public/admin Ninja parity. Consumed decisions must not be replayed; ten missing-source members remain excluded.
 - Image source `.a63-20260927-23` contains 419 rows (315 distinct file titles), all with individual revisions and original URLs; all cached URLs are null. Existing maint has 175 rows, all revisions missing and one cache missing. Raw source remains immutable.
 - Current candidate code rejected producer `part` images. Two RED tests reproduced it; minimal allowlist fixes now pass maint/relation tests 138/138 while preserving stable IDs/keys.
-- Next after checkpoint: RED/GREEN reconciliation of candidate crit labels, retired-row filters and member scope with the real producer/API consumer; then revision-bound set-effect sources and their owned repair path. Experimental dry-run counts are not authoritative source findings. Both `.32` and `.33` image results are completed/consumed; do not upload again.
-- Latest preflight is recorded in the active child; scheduler stays disabled until independent gates pass. Backend is healthy again with the existing local credential/config boundary. Fresh image-cache `.33` completed 315/315 uploads and verified byte readbacks; no database or Redis writes occurred. Buff full-chain executor and Shimmer six-scope fences remain implementation dependencies.
+- Candidate crit labels, retired-row/member scope and secondary retirement rederivation are corrected;214 Node22 integration tests pass. Next resolve two active MiningHelmet/item88 attribute sources (`sentrySlots`1/2), then revision-bound set-effect sources and their owned repair path. Both candidate and secondary proposal now reject ambiguous active member attributes. Experimental legacy-text dry-run counts are not authoritative source findings. Both `.32` and `.33` image results are completed/consumed; do not upload again.
+- Standard local stack recovery completed with scheduling/Flyway disabled. Fresh07:25 CST preflight confirms disabled,0/0,healthy,fences0 and unchanged H8/epoch/server. DB after-set still matches `.22`; public/admin Ninja256/257/258 readback matches DB. [Fresh readback summary](../audits/2026-09-28-armor-validator-readback.json). Buff full-chain executor and Shimmer six-scope fences remain implementation dependencies.
 - No local.items writes, DDL, direct SQL/Redis repair, H8 expansion, manual sweep or scheduler activation in this slice.
 
 ## History

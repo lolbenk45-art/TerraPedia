@@ -5,6 +5,7 @@ import { buildArmorCanonicalMaintCandidate } from '../maint/armor-canonical-main
 import { buildArmorCanonicalRelationCandidate } from './armor-canonical-relation-candidate.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
+import { buildArmorAttributeEffectRows } from './sync-maint-to-relation.mjs';
 import {
   buildArmorCanonicalProjectionCandidate as build,
   buildArmorCanonicalProjectionIdIndependentCandidate,
@@ -539,7 +540,7 @@ test('inactive or deleted item-owner source effects cannot be treated as a verif
   assert.ok(result.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
 });
 
-test('deleted consumer armor attribute rows remain visible to the SQL reader and block fallback-only success', async () => {
+test('retired consumer armor attributes cannot satisfy the required active projection', async () => {
   const input = await fixture();
   input.consumerRows.projection_item_armor_attributes[0].status = 0;
   input.consumerRows.projection_item_armor_attributes[0].deleted = 1;
@@ -548,7 +549,7 @@ test('deleted consumer armor attribute rows remain visible to the SQL reader and
   assert.ok(result.acceptance.blockers.some(row => row.code === 'armor-attribute-projection-stale'));
 });
 
-test('inactive or deleted consumer item-owner effects remain visible to PublicItemService SQL and block', async () => {
+test('retired consumer item-owner effects excluded by PublicItemService do not block', async () => {
   const input = await fixture();
   input.consumerRows.projection_equipment_effect_attributes.push({
     id: 777, relation_record_key: key('foreign-item-effect'), owner_kind: 'item', owner_id: 1,
@@ -559,8 +560,7 @@ test('inactive or deleted consumer item-owner effects remain visible to PublicIt
     confidence: 1, status: 0, deleted: 1,
   });
   const result = await build(input);
-  assert.equal(result.acceptance.status, 'blocked');
-  assert.ok(result.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
+  assert.equal(result.acceptance.status, 'dependencies-satisfied', JSON.stringify(result.acceptance.blockers));
 });
 
 test('unresolved relation armor attribute evidence cannot be treated as a verified zero-effect source', async () => {
@@ -574,6 +574,7 @@ test('unresolved relation armor attribute evidence cannot be treated as a verifi
 test('active item-owner armor attribute effects bind to the exact relation and projection owner rows', async () => {
   const input = await fixture();
   const attribute = input.dependencyRows.relation_armor_attribute_rows[0];
+  attribute.item_name_zh = 'WoodHelmet';
   attribute.raw_cells_json = JSON.stringify({ meleeDamage: '5%' });
   input.consumerRows.projection_item_armor_attributes[0].raw_cells_json = attribute.raw_cells_json;
   const effect = {
@@ -624,4 +625,103 @@ test('item-owner effect evidence must preserve the producer source line and line
   input.consumerRows.projection_equipment_effect_attributes.push({ ...effect, id: 901, relation_record_key: effect.record_key });
   const result = await build(input);
   assert.ok(result.acceptance.blockers.some(row => row.code === 'item-effect-source-stale'), JSON.stringify(result.acceptance.blockers));
+});
+
+function addProducerItemEffects(input, cells, { named = true } = {}) {
+  const attribute = input.dependencyRows.relation_armor_attribute_rows[0];
+  Object.assign(attribute, {
+    raw_cells_json: JSON.stringify(cells), item_name_zh: named ? '木头盔' : null,
+    item_page_title: null, source_maint_record_key: null, source_maint_id: null,
+    landing_source_id: null, landing_source_key: null, landing_content_hash: null,
+  });
+  const effects = buildArmorAttributeEffectRows([camel(attribute)])
+    .map((row, index) => ({ ...snake(row), id: 500 + index, status: 1, deleted: 0 }));
+  input.dependencyRows.relation_equipment_effect_attributes.push(...effects);
+  const projected = buildProjectionPayload({
+    relationArmorAttributeRows: input.dependencyRows.relation_armor_attribute_rows.map(camel),
+    relationEquipmentEffectAttributes: effects.map(camel),
+  });
+  input.consumerRows.projection_item_armor_attributes = projected.projectionItemArmorAttributes.map(snake);
+  input.consumerRows.projection_equipment_effect_attributes.push(
+    ...projected.projectionEquipmentEffectAttributes.map((row, index) => ({ ...snake(row), id: 900 + index })),
+  );
+  return effects;
+}
+
+for (const [cell, scope] of [['meleeCritChance', 'melee'], ['rangedCritChance', 'ranged'], ['magicCritChance', 'magic']]) {
+  test(`accepts real producer ${scope} crit evidence and rejects an all-class replacement`, async () => {
+    const input = await fixture();
+    const [effect] = addProducerItemEffects(input, { [cell]: '5%' });
+    const accepted = await build(input);
+    assert.equal(accepted.acceptance.status, 'dependencies-satisfied', JSON.stringify(accepted.acceptance.blockers));
+    effect.class_scope = 'all';
+    const rejected = await build(input);
+    assert.ok(rejected.acceptance.blockers.some(row => row.code === 'item-effect-source-stale'));
+  });
+}
+
+test('accepts the producer null variant label when only the internal item name exists', async () => {
+  const input = await fixture();
+  addProducerItemEffects(input, { meleeDamage: '5%' }, { named: false });
+  const result = await build(input);
+  assert.equal(result.acceptance.status, 'dependencies-satisfied', JSON.stringify(result.acceptance.blockers));
+});
+
+test('retired old keys coexist with the active replacement while active duplicates still block', async () => {
+  const input = await fixture();
+  const [effect] = addProducerItemEffects(input, { meleeDamage: '5%' });
+  const old = { ...effect, id: 800, record_key: key('retired-old-key'), status: 0, deleted: 1 };
+  input.dependencyRows.relation_equipment_effect_attributes.push(old);
+  const projection = input.consumerRows.projection_equipment_effect_attributes.find(row => row.owner_kind === 'item');
+  input.consumerRows.projection_equipment_effect_attributes.push({
+    ...projection, id: 801, relation_record_key: old.record_key, status: 0, deleted: 1,
+  });
+  const result = await build(input);
+  assert.equal(result.acceptance.status, 'dependencies-satisfied', JSON.stringify(result.acceptance.blockers));
+  old.status = 1;
+  old.deleted = 0;
+  const duplicate = await build(input);
+  assert.ok(duplicate.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
+});
+
+test('unrelated active attributes and effects do not become selected Armor member dependencies', async () => {
+  const input = await fixture();
+  const item = { ...input.relationInput.maintItems[0], id: 999, source_id: 999, internal_name: 'UnrelatedArmor' };
+  input.relationInput.maintItems.push(item);
+  input.dependencyRows.relation_armor_attribute_rows.push({
+    ...input.dependencyRows.relation_armor_attribute_rows[0], id: 999, item_id: 999,
+    item_internal_name: item.internal_name, record_key: key('unrelated-attribute'),
+  });
+  input.dependencyRows.relation_equipment_effect_attributes.push({
+    ...input.dependencyRows.relation_equipment_effect_attributes[0], id: 999,
+    record_key: key('unrelated-effect'), owner_kind: 'item', owner_id: 999,
+    owner_record_key: key('unrelated-attribute'),
+  });
+  const result = await build(input);
+  assert.equal(result.acceptance.status, 'dependencies-satisfied', JSON.stringify(result.acceptance.blockers));
+  assert.equal(result.dependencyExpectations.projection_item_armor_attributes.some(row => row.item_id === 999), false);
+});
+
+for (const table of ['projection_item_armor_attributes', 'projection_equipment_effect_attributes']) {
+  test(`inactive nondeleted ${table} still blocks because Armor admin reads it`, async () => {
+    const input = await fixture();
+    addProducerItemEffects(input, { meleeDamage: '5%' });
+    const row = input.consumerRows[table].find(row => table === 'projection_item_armor_attributes' || row.owner_kind === 'item');
+    input.consumerRows[table].push({ ...row, id: 777, relation_record_key: key(`inactive-extra:${table}`), status: 0, deleted: 0 });
+    const result = await build(input);
+    assert.ok(result.acceptance.blockers.some(blocker => blocker.code === (table === 'projection_item_armor_attributes'
+      ? 'armor-attribute-projection-foreign' : 'effect-projection-foreign')), JSON.stringify(result.acceptance.blockers));
+  });
+}
+
+test('multiple active source attributes for one member block instead of choosing a row by order', async () => {
+  const input = await fixture();
+  input.dependencyRows.relation_armor_attribute_rows.push({
+    ...input.dependencyRows.relation_armor_attribute_rows[0], id: 888, record_key: key('duplicate-member-attribute'),
+  });
+  input.consumerRows.projection_item_armor_attributes = buildProjectionPayload({
+    relationArmorAttributeRows: input.dependencyRows.relation_armor_attribute_rows.map(camel),
+  }).projectionItemArmorAttributes.map(snake);
+  const result = await build(input);
+  assert.ok(result.acceptance.blockers.some(row => row.code === 'armor-attribute-source-ambiguous'));
 });

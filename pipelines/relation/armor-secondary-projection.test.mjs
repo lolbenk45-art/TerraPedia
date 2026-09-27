@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { extractMaintEntitiesFromLandingRow } from '../maint/sync-landing-to-maint.mjs';
-import { buildArmorAttributeRelations } from './sync-maint-to-relation.mjs';
+import { buildArmorAttributeRelations, buildArmorAttributeEffectRows } from './sync-maint-to-relation.mjs';
 import { fixture, at, key, snake } from './armor-secondary-projection.fixture.mjs';
 import {
   buildArmorSecondaryProjectionProposal as build,
@@ -54,6 +54,50 @@ test('secondary proposal ignores retired historical Armor effect keys', async ()
   });
   const proposal = await build(input);
   assert.equal(proposal.changedRowCount, 2);
+});
+
+test('secondary rederivation preserves already-retired source-bound keys as an exact no-op', async () => {
+  const input = await fixture();
+  const first = await build(input);
+  const oldKey = key('historical-all-class-crit');
+  input.sourceRows.relation_equipment_effect_attributes.push({
+    ...input.sourceRows.relation_equipment_effect_attributes[0], id: 1906,
+    record_key: oldKey, class_scope: 'all', status: 0, deleted: 1,
+  });
+  input.beforeRows = structuredClone(first.afterRows);
+  input.beforeRows[tables[1]].push({
+    ...first.afterRows[tables[1]][0], id: 2906, relation_record_key: oldKey,
+    class_scope: 'all', created_at: at, updated_at: at,
+  });
+  const retirement = await build(input);
+  assert.equal(retirement.changedRowCount, 1);
+  input.beforeRows = structuredClone(retirement.afterRows);
+  const next = await build(input);
+  assert.equal(next.changedRowCount, 0);
+  assert.deepEqual(next.afterRows, retirement.afterRows);
+  assert.deepEqual(next.insertBindings, []);
+  await validate(next);
+
+  input.sourceRows.relation_equipment_effect_attributes.pop();
+  await assert.rejects(build(input), /foreign\/inactive projection/, 'unknown retired keys still fail closed');
+});
+
+test('secondary proposal rejects multiple source-proven active attribute rows for one member', async () => {
+  const input = await fixture();
+  const landing = input.sourceRows.maint_landings[0];
+  const payload = JSON.parse(landing.payload_json);
+  payload.records.push({ ...payload.records[0], rawCells: { meleeCritChance: '5%' } });
+  landing.payload_json = JSON.stringify(payload);
+  landing.content_hash = key(payload);
+  const { rows } = await extractMaintEntitiesFromLandingRow(landing);
+  input.sourceRows.maint_armor_attribute_rows = rows.map((row, i) => ({ ...snake(row), id: 34 + i, status: 1, deleted: 0 }));
+  const attributes = buildArmorAttributeRelations({
+    maintArmorAttributeRows: input.sourceRows.maint_armor_attribute_rows, maintItems: input.sourceRows.maint_items,
+  });
+  input.sourceRows.relation_armor_attribute_rows = attributes.map((row, i) => ({ ...snake(row), id: 734 + i, status: 1, deleted: 0 }));
+  input.sourceRows.relation_equipment_effect_attributes = buildArmorAttributeEffectRows(attributes)
+    .map((row, i) => ({ ...snake(row), id: 906 + i, status: 1, deleted: 0 }));
+  await assert.rejects(build(input), /attribute member.*duplicate|attribute member.*ambiguous/);
 });
 
 test('secondary update preserves existing identity and timestamps while repairing only owned fields', async () => {

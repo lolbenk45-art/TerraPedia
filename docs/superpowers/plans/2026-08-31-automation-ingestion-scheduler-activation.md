@@ -614,6 +614,13 @@ command. Implement these ordered tasks under the existing bounded scope:
   Ten missing-source members remain excluded; neither full A6 nor automatic
   ingestion is accepted. Continue source images through the registered bounded
   cache operation, then freeze and audit the complete A2–A6 candidate.
+  September28 checkpoint: image `.32/.33` operations are already consumed;
+  do not repeat them. Candidate producer/consumer and retired-key rederivation
+  regressions are repaired (214 focused tests). Before another publication,
+  resolve MiningHelmet/item88's two active attribute sources (sentrySlots1/2,
+  same landing18668); both proposal paths now reject this ambiguity. The `.22`
+  DB after-set and Ninja API parity still hold. See the active image devlog and
+  `docs/audits/2026-09-28-armor-validator-readback.json` for current evidence.
 - [ ] B1: Finish Buff registered full-chain execution with frozen landing/maint
   entity identity, complete secondary NPC/item evidence and projection derivation,
   source page immunity and runtime-config-bound managed images. Current candidate
