@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "items",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "items",
+    "policyVersion": 2,
+    "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:a3c7701fb6170b8a09171194328ce672a58665982c0c3649cf77b82e2eb11cc6",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-items-l2-reauthorization-20260919-standing-05",
+    "packetHash": "sha256:a5125126251cefe999af29893158470e533cbe9ffab38df6368ce96b6d65607c",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "expiresAt": "2026-09-20T11:57:28.000Z",
+    "domainId": "items"
+  },
+  "targetPolicy": {
+    "domainId": "items",
+    "policyVersion": 2,
+    "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "proposalOnly": false,
+  "proposalPath": "reports/authorization/canonical/automation-items-l2-reauthorization/a6f1b79a655481f13c2718d8a92be5c691d71774ebaa43cd867dacb3d6ae7148/proposal.json",
+  "proposalSha256": "sha256:bae8f86b28364c75d95eaaf13be82afe93b3e9bc52c193d9008c9df924dc0ca4",
+  "proposalHash": "sha256:a6f1b79a655481f13c2718d8a92be5c691d71774ebaa43cd867dacb3d6ae7148"
+}

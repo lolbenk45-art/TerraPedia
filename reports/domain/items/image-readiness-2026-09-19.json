@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-09-20T00:42:30+08:00",
+  "domainId": "items",
+  "panelId": "imageReadiness",
+  "status": "blocked",
+  "reportPath": "reports/domain/items/image-readiness-2026-09-19.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 1,
+    "warningCount": 0
+  },
+  "blockingReasons": [
+    "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/result.json: origin-repair lineage binding is missing or drifted"
+  ],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_standardized_items_standardized_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/items.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 6131,
+      "status": "pass",
+      "message": "Evidence present: data/standardized/items.standardized.json"
+    },
+    {
+      "id": "reports_authorization_canonical_item_image_projection_apply_latest_result_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/result.json",
+      "latestReportPath": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/result.json",
+      "recordCount": null,
+      "status": "blocked",
+      "message": "reports/authorization/canonical/item-image-projection-apply/8e31d3c6d2e178b1985c05b43efa18a408a84afd98ed2ec6a7fd176eca891026/result.json: origin-repair lineage binding is missing or drifted"
+    },
+    {
+      "id": "services_catalog_api_src_main_java_com_terraria_skills_controller_PublicItemRelationController_java",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "services/catalog-api/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: services/catalog-api/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java"
+    }
+  ]
+}

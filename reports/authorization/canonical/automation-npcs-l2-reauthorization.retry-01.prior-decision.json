@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-npcs-l2-promotion-20260830-admin-01",
+  "packetHash": "sha256:dac81047705d4b97a4cf6cab85450afc78e984b6e1c68b04cd204e7a13703769",
+  "policySetHash": "sha256:8298dadda4ee0ca18863fed1c51b510d26c4b5aed0de598f32741620737ae4ec",
+  "expiresAt": "2026-08-30T18:35:07.000Z",
+  "domainId": "npcs"
+}

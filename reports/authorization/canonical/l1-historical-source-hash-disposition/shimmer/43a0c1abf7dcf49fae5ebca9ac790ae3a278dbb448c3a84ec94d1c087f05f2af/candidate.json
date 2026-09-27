@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "l1-historical-source-hash-disposition",
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "status": "candidate",
+  "proposalOnly": true,
+  "generatedAt": "2026-09-21T08:43:31.971Z",
+  "databaseName": "terria_v1_local",
+  "domainId": "shimmer",
+  "currentPolicy": {
+    "domainId": "shimmer",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "disposition": "exclude_from_l1_qualification",
+  "reasonCode": "legacy_semantic_json_source_hash",
+  "entries": [
+    {
+      "domainId": "shimmer",
+      "runId": "shimmer_l1_20260824closure01",
+      "runStatus": "COMPLETED",
+      "applyStatus": "COMMITTED",
+      "bundle": {
+        "databasePrivatePath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
+        "relativePath": "reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
+        "hash": "sha256:d5a8b8a3368b1041de9c8e29de5bd1137cf21a9eb1893814b2cb26f6e8102da1",
+        "fileSha256": "sha256:e046ef44badb8f1af2701341d093b1fb8b176c9760fbb50637c6723aed468b54",
+        "evidenceHash": "sha256:10b7e51959aff604e7c94cc3e21f15ffc363977973fdd43e2645c7d44f9b301f",
+        "baselineFingerprint": "sha256:438796ee0b6871383f5f0a7959a5363c4eadb1862bbd2ff3bedd3d74f59a2184",
+        "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+      },
+      "source": {
+        "path": "reports/authorization/canonical/automation-shimmer-first-l1.source.json",
+        "declaredSha256": "sha256:85dff081c399c693b3ec0f9b03e598d2e776bffd5964f3397ed0e38c4ff68522",
+        "semanticJsonSha256": "sha256:85dff081c399c693b3ec0f9b03e598d2e776bffd5964f3397ed0e38c4ff68522",
+        "actualByteSha256": "sha256:abc3d6a0431e928bceb3adca37afaf3a2ac3c68803f38379dc5946ec612db911",
+        "bytes": 927,
+        "encoding": "utf8"
+      },
+      "exclusion": "legacy_semantic_json_source_hash"
+    }
+  ],
+  "approval": null,
+  "artifactHash": "sha256:43a0c1abf7dcf49fae5ebca9ac790ae3a278dbb448c3a84ec94d1c087f05f2af"
+}

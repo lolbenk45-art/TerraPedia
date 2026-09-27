@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-scheduler-activation",
+  "observedAt": "2026-09-26T07:03:46.499232779Z",
+  "endpoint": {
+    "method": "GET",
+    "path": "/admin/crawler-monitor/v2/automation/preflight",
+    "server": "spring-backend"
+  },
+  "control": {
+    "enabled": false,
+    "mode": "changed-only",
+    "sweepIntervalMinutes": 60,
+    "canaryActionId": "wiki-projectiles-refresh",
+    "configPresent": true,
+    "lastSweep": {
+      "checkedAt": "2026-09-22T12:17:02.153459116Z",
+      "status": "completed",
+      "detected": [
+        {
+          "domain": "items",
+          "sourceKey": "wiki.module.iteminfo",
+          "actionId": "wiki-items-refresh",
+          "changed": false,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "npcs",
+          "sourceKey": "wiki.module.npcinfo",
+          "actionId": "wiki-npcs-refresh",
+          "changed": false,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "projectiles",
+          "sourceKey": "wiki.module.projectileinfo",
+          "actionId": "wiki-projectiles-refresh",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "buffs",
+          "sourceKey": "wiki.page.template_getbuffinfo",
+          "actionId": "buff-page-immunity-refresh",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "armor_sets",
+          "sourceKey": "wiki.module.armorsetbonuses",
+          "actionId": "domain-source-armor-sets",
+          "changed": false,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "bosses",
+          "sourceKey": "wiki.bosses.catalog",
+          "actionId": "domain-source-bosses",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "shimmer",
+          "sourceKey": "wiki.shimmer.page_and_langlinks",
+          "actionId": "domain-source-shimmer",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        },
+        {
+          "domain": "audio",
+          "sourceKey": "wiki.audio_assets.catalog",
+          "actionId": "wiki-audio-assets-refresh",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        }
+      ],
+      "dispatched": [
+        {
+          "actionId": "wiki-projectiles-refresh",
+          "domains": [
+            "projectiles"
+          ],
+          "accepted": true,
+          "attemptId": "attempt-05bc9dc1-ec64-4b5b-aef2-d1b8fb7d068c",
+          "status": "queued",
+          "sourceFingerprint": "sha256:790d826421d6526d2979c6de307e70c99e3bc52e9e7f79f2fba59459128f69ca",
+          "sourceRunIdentity": "2026-09-22T12:17:02.297Z",
+          "sourceContentIdentity": "sha256:8bcce26a9fc370af4b76cedff1a469d1e717c952a1a40a1561c7b41cc377caf0"
+        }
+      ],
+      "skipped": [
+        {
+          "actionId": "buff-page-immunity-refresh",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "buffs"
+          ],
+          "sourceFingerprint": "sha256:a512db8cc60378dcefed3e3f7905480fe6a60cb9e04ef3adf947cd5205d5aa57"
+        },
+        {
+          "actionId": "domain-source-bosses",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "bosses"
+          ],
+          "sourceFingerprint": "sha256:617d6028a10767ed583941f0fa613ecaa2f95bffe23de466c4eaccc2d8544bb7"
+        },
+        {
+          "actionId": "domain-source-shimmer",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "shimmer"
+          ],
+          "sourceFingerprint": "sha256:61a2964ccac383f73e5362e44c61ba9961e397f34c06080a5d4ab911c5a974b1"
+        },
+        {
+          "actionId": "wiki-audio-assets-refresh",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "audio"
+          ],
+          "sourceFingerprint": "sha256:43793094e002fa87fb47e2b4031a146e9d45cbc3ced64849d563b9e0ec3f8223"
+        }
+      ]
+    }
+  },
+  "v2": {
+    "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:",
+    "queueContractVersion": 2
+  },
+  "counts": {
+    "liveAttempts": 0,
+    "sweepClaims": 0
+  },
+  "reconciler": {
+    "status": "healthy",
+    "overdueAttemptCount": 0,
+    "failureCount": 0
+  },
+  "domains": [
+    {
+      "domain": "items",
+      "actionId": "wiki-items-refresh",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:aa4d6849f18811eb5e9be6fe0a2f07b3f5a32b7b4d1cbc4d508926a05e685e07",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/items/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "npcs",
+      "actionId": "wiki-npcs-refresh",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:488d4b3aa4ce585b3ced62a3bae609aae99fc4b1a234bb08ea6dba7d88f83933",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/npcs/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "projectiles",
+      "actionId": "wiki-projectiles-refresh",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:4c7aaeed8054dd33ca1353c5f3aeb0ad6f0996a931d56f9c929f0e93b21fc1f5",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/projectiles/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "buffs",
+      "actionId": "buff-page-immunity-refresh",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:4735a276968730b06d529d1142584821ebc5e763ebdf592b7846a816daa79468",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/buffs/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "armor_sets",
+      "actionId": "domain-source-armor-sets",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:9fb4a90579f2c8425700001bdc978d59f31e942b3c95c6a14406cda74985ba04",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/armor_sets/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "bosses",
+      "actionId": "domain-source-bosses",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:6da0804bb9a61690e93d4cf811e2c4a9b0e7a03759af30cac476dd6002ddc457",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/bosses/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "shimmer",
+      "actionId": "domain-source-shimmer",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:da0c65f1b03a300534b238193c7d88d476bfa6ae1c521845d6cad9817b7076bb",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/shimmer/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "audio",
+      "actionId": "wiki-audio-assets-refresh",
+      "readinessStatus": "blocked",
+      "sourceHash": "sha256:43e5cd2f8008301f5b342116066a0b5c31249ca0fbb410db3669e6c2fba4a346",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/audio/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    }
+  ],
+  "policyRows": [
+    {
+      "domainId": "armor_sets",
+      "policyVersion": 2,
+      "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "audio",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "biomes",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "bosses",
+      "policyVersion": 2,
+      "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "buffs",
+      "policyVersion": 2,
+      "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "crawler_v2_scheduler",
+      "policyVersion": 1,
+      "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+      "currentLevel": "L1",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "items",
+      "policyVersion": 2,
+      "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "npcs",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "projectiles",
+      "policyVersion": 2,
+      "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "shimmer",
+      "policyVersion": 2,
+      "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    }
+  ],
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "databaseWrites": false,
+  "networkAccess": false,
+  "isolatedResourceWrites": false
+}

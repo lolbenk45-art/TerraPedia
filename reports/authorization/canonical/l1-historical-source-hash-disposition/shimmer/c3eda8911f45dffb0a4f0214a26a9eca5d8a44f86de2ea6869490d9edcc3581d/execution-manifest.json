@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "executionClass": "historical_source_hash_disposition",
+  "command": [
+    "node",
+    "pipelines/automation/historical-source-hash-disposition.mjs"
+  ],
+  "inputPaths": [
+    "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/c3eda8911f45dffb0a4f0214a26a9eca5d8a44f86de2ea6869490d9edcc3581d/candidate.json"
+  ],
+  "outputPaths": [],
+  "reportPaths": [],
+  "progressPaths": [],
+  "databaseWrites": false,
+  "networkAccess": false,
+  "historicalSourceHashDisposition": {
+    "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/c3eda8911f45dffb0a4f0214a26a9eca5d8a44f86de2ea6869490d9edcc3581d/candidate.json",
+    "candidateFileSha256": "sha256:bac64bd32269bb6b19ce4479d6eaf4b83c51fe653ea4cb0b50b450882a1fe11b",
+    "candidateArtifactHash": "sha256:c3eda8911f45dffb0a4f0214a26a9eca5d8a44f86de2ea6869490d9edcc3581d"
+  },
+  "scope": {
+    "domainId": "shimmer",
+    "runId": "shimmer_l1_20260824closure01",
+    "candidateArtifactHash": "sha256:c3eda8911f45dffb0a4f0214a26a9eca5d8a44f86de2ea6869490d9edcc3581d"
+  }
+}

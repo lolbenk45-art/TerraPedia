@@ -18,7 +18,7 @@ Active focus: complete governed source → landing → maint → relation → pr
 
 ## Verified checkpoint and next action
 
-- User requested a verified local checkpoint before continuation. Baseline HEAD `0f871e94`; checkpoint scope, validation and retained-artifact inventory: [workspace checkpoint](entries/2026-09-28-automation-workspace-checkpoint.md). Read Git for the resulting commit identities; no push requested.
+- Local workspace checkpoint: implementation `bf0df600`; evidence/closeout follows in Git. [Workspace checkpoint](entries/2026-09-28-automation-workspace-checkpoint.md) is closed with validation and the retained-artifact inventory. No push requested; overall ingestion remains active.
 - A6.3 selected subset has recorded committed projection repair `.a63-20260927-22`: 223 active attribute members and 290 active effects, public/admin Ninja parity. Consumed decisions must not be replayed; ten missing-source members remain excluded.
 - Image source `.a63-20260927-23` contains 419 rows (315 distinct file titles), all with individual revisions and original URLs; all cached URLs are null. Existing maint has 175 rows, all revisions missing and one cache missing. Raw source remains immutable.
 - Current candidate code rejected producer `part` images. Two RED tests reproduced it; minimal allowlist fixes now pass maint/relation tests 138/138 while preserving stable IDs/keys.

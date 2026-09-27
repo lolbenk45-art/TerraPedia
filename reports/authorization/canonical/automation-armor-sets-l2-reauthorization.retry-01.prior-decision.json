@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-armor-sets-l2-promotion-20260830-admin-02",
+  "packetHash": "sha256:8ccb0a503b506f6a267ecb311af3a3ed9c8c2900c222396b349825bb23c98df6",
+  "policySetHash": "sha256:fa9d32ef7c9740fbf88643d570d973269decf1e43e9acb56b875d40b2b1ada59",
+  "expiresAt": "2026-08-31T13:59:56.000Z",
+  "domainId": "armor_sets"
+}

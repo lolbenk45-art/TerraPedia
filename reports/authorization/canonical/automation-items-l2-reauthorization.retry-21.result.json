@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l2-reauthorization",
+  "domainId": "items",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-items-l2-reauthorization-20260919-standing-05",
+  "actor": "admin",
+  "reason": "Standing AUTH-04 prerequisite: append-only stable L2 reauthorization for expired items policy identity before retry-26 scheduler canary.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/items/retry-21",
+  "packetHash": "sha256:a5125126251cefe999af29893158470e533cbe9ffab38df6368ce96b6d65607c",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "completedAt": "2026-09-19T11:58:12.395Z"
+}

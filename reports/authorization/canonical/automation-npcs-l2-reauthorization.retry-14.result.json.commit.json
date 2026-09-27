@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-npcs-l2-reauthorization",
+  "domainId": "npcs",
+  "policyVersion": 2,
+  "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-npcs-l2-reauthorization-20260919-standing-01",
+  "actor": "admin",
+  "reason": "Standing AUTH-04 fresh append-only npcs L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and predecessor L1/full reconciliation, no policy update, scheduler activation, crawler, import, or business data write.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/retry-14/npcs",
+  "packetHash": "sha256:94c131f06282d29a87432f1054febe3eaa782e061a130dfd79742fef5d84edee",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-09-19T07:54:49.233Z"
+}

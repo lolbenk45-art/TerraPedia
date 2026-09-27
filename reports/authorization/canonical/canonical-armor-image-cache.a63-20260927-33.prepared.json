@@ -1,0 +1,22 @@
+{
+  "operationId": "canonical-armor-image-cache",
+  "proposalSha256": "sha256:f12dcf7c8e8cc2a801e6f65c5c8f3aa07fe59c60d9529b908100e3e04c0fc027",
+  "databaseWrites": false,
+  "status": "PREPARED",
+  "authorization": {
+    "decisionIdentity": "armor-image-cache-a63-20260927-33",
+    "packetHash": "sha256:344c615b8b3f2650ebd987a35bce05ff96e9922452d9c29ac50ada7d9e447c7b",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-09-27T10:30:06.954Z"
+}

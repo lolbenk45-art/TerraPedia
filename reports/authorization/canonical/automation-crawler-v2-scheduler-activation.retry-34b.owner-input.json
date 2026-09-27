@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: bounded V2 natural scheduler canary for wiki-npcs-refresh/npcs using fresh Retry-34 source monitor, 32/32 acceptance, and H8 preflight. Observe one natural durable tick and terminal outcome; no manual sweep, non-canary dispatch, direct Redis or JSON write; restore scheduler disabled after the window.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/npcs/retry-34",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260920-standing-npcs-12"
+}

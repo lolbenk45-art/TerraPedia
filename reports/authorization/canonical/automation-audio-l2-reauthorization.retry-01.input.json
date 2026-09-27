@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-audio-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "audio",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "audio",
+    "policyVersion": 2,
+    "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-audio-l2-promotion-20260830-admin-01",
+    "packetHash": "sha256:1f9712a1f8ae6a0ec45987cf2289545d96d90786044ca333e39d5575b0a859f0",
+    "policySetHash": "sha256:604d0c6705eb7c8f28f32a6d23f2cb2be7017968f1b94e7060f3590d4ca8dd97",
+    "expiresAt": "2026-08-31T15:40:00.000Z",
+    "domainId": "audio"
+  },
+  "targetPolicy": {
+    "domainId": "audio",
+    "policyVersion": 2,
+    "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  }
+}

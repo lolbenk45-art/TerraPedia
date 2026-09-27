@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized bounded V2 scheduler activation for the fresh retry-16 H8 preflight, limited to the wiki-items-refresh/items canary; natural tick only, no manual sweep, no source refresh, no crawler/import, and no business-table write, with immediate rollback on drift or failure.",
+  "authorizationReference": "user://conversation/2026-09-19/scheduler-activation/retry-16",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260919-owner-02",
+  "authorizedAt": "2026-09-19T01:10:45.000Z"
+}

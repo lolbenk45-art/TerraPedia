@@ -1,0 +1,828 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-crawler-v2-scheduler-activation",
+  "observedAt": "2026-09-22T12:16:03.771891839Z",
+  "endpoint": {
+    "method": "GET",
+    "path": "/admin/crawler-monitor/v2/automation/preflight",
+    "server": "spring-backend"
+  },
+  "control": {
+    "enabled": false,
+    "mode": "changed-only",
+    "sweepIntervalMinutes": 60,
+    "canaryActionId": "wiki-projectiles-refresh",
+    "configPresent": true,
+    "lastSweep": {
+      "checkedAt": "2026-09-22T10:49:30.814733471Z",
+      "status": "completed",
+      "detected": [
+        {
+          "domain": "items",
+          "sourceKey": "wiki.module.iteminfo",
+          "actionId": "wiki-items-refresh",
+          "changed": false,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "npcs",
+          "sourceKey": "wiki.module.npcinfo",
+          "actionId": "wiki-npcs-refresh",
+          "changed": false,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "projectiles",
+          "sourceKey": "wiki.module.projectileinfo",
+          "actionId": "wiki-projectiles-refresh",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "buffs",
+          "sourceKey": "wiki.page.template_getbuffinfo",
+          "actionId": "buff-page-immunity-refresh",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "armor_sets",
+          "sourceKey": "wiki.module.armorsetbonuses",
+          "actionId": "domain-source-armor-sets",
+          "changed": false,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "bosses",
+          "sourceKey": "wiki.bosses.catalog",
+          "actionId": "domain-source-bosses",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "shimmer",
+          "sourceKey": "wiki.shimmer.page_and_langlinks",
+          "actionId": "domain-source-shimmer",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        },
+        {
+          "domain": "audio",
+          "sourceKey": "wiki.audio_assets.catalog",
+          "actionId": "wiki-audio-assets-refresh",
+          "changed": true,
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        }
+      ],
+      "dispatched": [
+        {
+          "actionId": "wiki-projectiles-refresh",
+          "domains": [
+            "projectiles"
+          ],
+          "accepted": true,
+          "attemptId": "attempt-a6263cae-23cf-4895-9f89-031723f0db35",
+          "status": "queued",
+          "sourceFingerprint": "sha256:790d826421d6526d2979c6de307e70c99e3bc52e9e7f79f2fba59459128f69ca",
+          "sourceRunIdentity": "2026-09-22T10:49:30.956Z",
+          "sourceContentIdentity": "sha256:9231480ba87454a2f893ee6340374a4ff7baf6b2f9d9a02a7e5a1be3000e3627"
+        }
+      ],
+      "skipped": [
+        {
+          "actionId": "buff-page-immunity-refresh",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "buffs"
+          ],
+          "sourceFingerprint": "sha256:a512db8cc60378dcefed3e3f7905480fe6a60cb9e04ef3adf947cd5205d5aa57"
+        },
+        {
+          "actionId": "domain-source-bosses",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "bosses"
+          ],
+          "sourceFingerprint": "sha256:617d6028a10767ed583941f0fa613ecaa2f95bffe23de466c4eaccc2d8544bb7"
+        },
+        {
+          "actionId": "domain-source-shimmer",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "shimmer"
+          ],
+          "sourceFingerprint": "sha256:8c91d92ddf89ed61b827674f73e64f89ff0386f1193558a25cec304250c9f731"
+        },
+        {
+          "actionId": "wiki-audio-assets-refresh",
+          "reason": "canary_scope_excluded",
+          "domains": [
+            "audio"
+          ],
+          "sourceFingerprint": "sha256:43793094e002fa87fb47e2b4031a146e9d45cbc3ced64849d563b9e0ec3f8223"
+        }
+      ]
+    }
+  },
+  "v2": {
+    "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346",
+    "namespace": "terrapedia:crawler:wiki-monitor:v2:",
+    "queueContractVersion": 2
+  },
+  "counts": {
+    "liveAttempts": 0,
+    "sweepClaims": 0
+  },
+  "reconciler": {
+    "status": "healthy",
+    "overdueAttemptCount": 0,
+    "failureCount": 0
+  },
+  "domains": [
+    {
+      "domain": "items",
+      "actionId": "wiki-items-refresh",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:aa4d6849f18811eb5e9be6fe0a2f07b3f5a32b7b4d1cbc4d508926a05e685e07",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/items/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "npcs",
+      "actionId": "wiki-npcs-refresh",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:488d4b3aa4ce585b3ced62a3bae609aae99fc4b1a234bb08ea6dba7d88f83933",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/npcs/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "projectiles",
+      "actionId": "wiki-projectiles-refresh",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:4c7aaeed8054dd33ca1353c5f3aeb0ad6f0996a931d56f9c929f0e93b21fc1f5",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/projectiles/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "buffs",
+      "actionId": "buff-page-immunity-refresh",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:4735a276968730b06d529d1142584821ebc5e763ebdf592b7846a816daa79468",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/buffs/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "armor_sets",
+      "actionId": "domain-source-armor-sets",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:9fb4a90579f2c8425700001bdc978d59f31e942b3c95c6a14406cda74985ba04",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/armor_sets/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "bosses",
+      "actionId": "domain-source-bosses",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:6da0804bb9a61690e93d4cf811e2c4a9b0e7a03759af30cac476dd6002ddc457",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/bosses/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "shimmer",
+      "actionId": "domain-source-shimmer",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:da0c65f1b03a300534b238193c7d88d476bfa6ae1c521845d6cad9817b7076bb",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/shimmer/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    },
+    {
+      "domain": "audio",
+      "actionId": "wiki-audio-assets-refresh",
+      "readinessStatus": "eligible",
+      "sourceHash": "sha256:43e5cd2f8008301f5b342116066a0b5c31249ca0fbb410db3669e6c2fba4a346",
+      "observedAt": "2026-09-22T12:15:31.601Z",
+      "evidencePath": "reports/domain/audio/source-readiness-2026-09-22.json",
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346"
+    }
+  ],
+  "canary": {
+    "actionId": "wiki-projectiles-refresh",
+    "domainId": "projectiles"
+  },
+  "policyRows": [
+    {
+      "domainId": "armor_sets",
+      "policyVersion": 2,
+      "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "audio",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "biomes",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "bosses",
+      "policyVersion": 2,
+      "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "buffs",
+      "policyVersion": 2,
+      "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "crawler_v2_scheduler",
+      "policyVersion": 1,
+      "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+      "currentLevel": "L1",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "items",
+      "policyVersion": 2,
+      "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "npcs",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "projectiles",
+      "policyVersion": 2,
+      "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    },
+    {
+      "domainId": "shimmer",
+      "policyVersion": 2,
+      "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+      "currentLevel": "L2",
+      "operationalState": "ACTIVE"
+    }
+  ],
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "t1Report": {
+    "schemaVersion": 1,
+    "operationId": "canonical-crawler-v2-scheduler-t1-acceptance",
+    "reportKind": "canonical_crawler_v2_scheduler_t1_acceptance",
+    "status": "passed",
+    "cleanupPassed": true,
+    "offline": false,
+    "scheduledTickObserved": true,
+    "runtimeAssertionsDeferred": false,
+    "identity": {
+      "runId": "npc-t1-crawler-v2-auto-ingestion-20260809-04",
+      "namespace": "terrapedia:crawler:wiki-monitor:v2:test:npc-t1-crawler-v2-auto-ingestion-20260809-04:",
+      "redisDb": 14,
+      "epoch": "epoch-npc_a207497f24a9aeb9",
+      "fenceToken": "fence-npc_a207497f24a9aeb9",
+      "domain": "crawler_queue_v2_fixture",
+      "actionId": "crawler-queue-v2-fixture",
+      "operationId": "canonical-crawler-v2-scheduler-t1-acceptance"
+    },
+    "progress": {
+      "status": "completed",
+      "sequence": 22,
+      "actionId": "crawler-queue-v2-fixture",
+      "itemIngestion": null,
+      "itemDbReadback": null,
+      "recipeIngestion": {
+        "sourcePath": "data/generated/wiki-zh-recipe-pages.latest.json",
+        "sourceHash": "sha256:3503bdd42c623d8ec919aa3d4bc3c8e77d217f4cacb85a5bfd9d4c869752aefc",
+        "selectedRecords": 2,
+        "inputRecipes": 947,
+        "recipeRows": 947,
+        "ingredientRows": 1256,
+        "stationRows": 1015,
+        "unresolvedItemRows": 0,
+        "unresolvedStationRows": 0
+      },
+      "recipeDbReadback": {
+        "recipeRows": 947,
+        "ingredientRows": 1256,
+        "stationRows": 1015
+      }
+    },
+    "leaseRenewals": 2,
+    "concurrentDispatches": 1,
+    "restart": {
+      "adopted": true,
+      "mismatchRejected": true,
+      "epochRecreated": false
+    },
+    "leaseLoss": {
+      "childReaped": true,
+      "nextReadyClaimed": false,
+      "attemptId": "attempt-7c210f80-8d6d-4fb0-b7d6-3d28586043c0",
+      "reasonCode": "LEASE_RENEW_FAILED"
+    },
+    "cleanup": {
+      "backendProcesses": 0,
+      "childProcesses": 0,
+      "redisKeys": 0,
+      "credentials": 0,
+      "files": 0,
+      "permits": 0,
+      "ports": 0,
+      "databases": 0
+    },
+    "recipeIngestion": {
+      "sourcePath": "data/generated/wiki-zh-recipe-pages.latest.json",
+      "sourceHash": "sha256:3503bdd42c623d8ec919aa3d4bc3c8e77d217f4cacb85a5bfd9d4c869752aefc",
+      "selectedRecords": 2,
+      "inputRecipes": 947,
+      "recipeRows": 947,
+      "ingredientRows": 1256,
+      "stationRows": 1015,
+      "unresolvedItemRows": 0,
+      "unresolvedStationRows": 0
+    },
+    "recipeDbReadback": {
+      "recipeRows": 947,
+      "ingredientRows": 1256,
+      "stationRows": 1015
+    },
+    "generatedAt": "2026-08-09T11:12:45.373Z",
+    "path": "reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json",
+    "sha256": "sha256:bb3493ea5fb09da518f1d8a6b2db8712a86cf6a9784c17b5241288be5ed5a8d6",
+    "contentSha256": "sha256:bb3493ea5fb09da518f1d8a6b2db8712a86cf6a9784c17b5241288be5ed5a8d6"
+  },
+  "codeBundle": [
+    {
+      "path": "pipelines/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs",
+      "sha256": "sha256:6374dce6d5c58ac6b275f6f430c4b2a0f73dc68273a597dea87af5b8dcbe3007"
+    },
+    {
+      "path": "pipelines/automation/crawler-v2-scheduler-activation-preflight.mjs",
+      "sha256": "sha256:e051b8c2ed7df43ef6917eb5a55e19dc46c53f06ae989116d37392277af533d1"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-scheduler-activation-request.mjs",
+      "sha256": "sha256:ed11dcbdae6496bf122f6b4f74c7043b3b6bc68c46609f144a8c41346ef9bc4a"
+    },
+    {
+      "path": "pipelines/automation/capture-crawler-v2-scheduler-activation-input.mjs",
+      "sha256": "sha256:c8a992d80c91c4e286d3599fd2362578bb1ce6fb6dd2fa24c01e109eae374c23"
+    },
+    {
+      "path": "pipelines/automation/run-automation-policy-decision.mjs",
+      "sha256": "sha256:64cf6cc7f86d83b0befeee2c35291840aa82cbc84c063044bcabe0b7ef558836"
+    },
+    {
+      "path": "pipelines/automation/run-base-domain-automatic-operation.mjs",
+      "sha256": "sha256:d6f78d4ca294092c0dc1994021368328d14bc4404598bd9b6e79175783949a88"
+    },
+    {
+      "path": "pipelines/automation/run-supplementary-domain-automatic-operation.mjs",
+      "sha256": "sha256:f0e8796f6facf33af3577b9cff95a4445f28f30001b16602f8b87c38be5178f1"
+    },
+    {
+      "path": "pipelines/monitor/check-source-updates.mjs",
+      "sha256": "sha256:01c68aa74c2252ce93d9ebd87b9cd1996d44d7feab373ee6fe8903f64db534f3"
+    },
+    {
+      "path": "pipelines/workflow/run-wiki-sync.mjs",
+      "sha256": "sha256:5655af54c14281b69105556f2150bb90850729706db7d1c693031409c2d5ae7b"
+    },
+    {
+      "path": "pipelines/workflow/seed-wiki-source-manifest.mjs",
+      "sha256": "sha256:6a71d66b6c6333fd0b2b9630c5510eb1917bdb161a83efe572dc28f94de4febd"
+    },
+    {
+      "path": "pipelines/normalize/normalize-wiki-items.mjs",
+      "sha256": "sha256:e6b2db519e1ac6d01372a297bd029adb99050c86f3fdd272905ffebc3b37a016"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-iteminfo.mjs",
+      "sha256": "sha256:5dec28750fd8b58b8f8452e59b2b80816ee7e44eb83db03d9697ed3fe9132571"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-npcinfo.mjs",
+      "sha256": "sha256:fc80b62914202819d36a047870bb3c74e9e48dbe2aae2272ac3be607a082f29c"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-projectileinfo.mjs",
+      "sha256": "sha256:bd20684bd345f8a8bad9548f5515cd1c10f7cf0f38de939bd61d0c268bc53a1f"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-armorsetbonuses.mjs",
+      "sha256": "sha256:56abc42bc4cb41656debc59a7c19eb9d9d23329aa5df8652232c26b2bf91a979"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-buffs.mjs",
+      "sha256": "sha256:f3988c3c7c58b81eb1340e4fb1ad556c8b084bf0307476386a3964bc4e230691"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-audio-assets.mjs",
+      "sha256": "sha256:ef7e58825e55b7e257cf64c0f897689baec73632fdcf1d0c645f1449a128f394"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-bosses.mjs",
+      "sha256": "sha256:98a3b826a1f7ba0bcb61a20810d230826a846a8f3d71bb1d86d80366ea7f1ea7"
+    },
+    {
+      "path": "pipelines/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+      "sha256": "sha256:6810c7e85e722656f511f3c644da59a93c3c9a791e79d1e2df22bf0988bc4aa7"
+    },
+    {
+      "path": "platform/local/start-local-stack.sh",
+      "sha256": "sha256:f9ef340d28f0dbd41ab6a89bde7599ce4ee90523fe0628be4b6eb271403d890b"
+    },
+    {
+      "path": "platform/local/lib/runtime-config.sh",
+      "sha256": "sha256:a663863a63c0a7a8d4c3ef5e6b55f84225eacd021c8dfd9ce4a2fe9f7edbbcd3"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java",
+      "sha256": "sha256:cec2911cef6e5e8e046c78d8e4fc52298877867af42923d7ce29daa6d5c361b4"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java",
+      "sha256": "sha256:dd351028214a7cb358881f810cc04c944f4b81ab8c99898299d75108f942e598"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/dto/CrawlerV2AutomationDTO.java",
+      "sha256": "sha256:a14919b4f0dc5838adb81ef722dd277165a7e330437156168a373bbd753eadbf"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/service/CrawlerAutomationPolicyService.java",
+      "sha256": "sha256:f0c5169909ba688a5a650c954f913e0e01dfdd08d939ac38446b453047c8f7f5"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java",
+      "sha256": "sha256:9f235627aa0ce8b91b87549690ca5ba1eadbc2c1f659c977fca12531c88cab11"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java",
+      "sha256": "sha256:e9c3c09a451f32792b0c272c5ed5d58aaa30441c077a4ba37dadf138f0022a7d"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImpl.java",
+      "sha256": "sha256:7d4828ede3e576a3b773035a3e4e692e63cddf93af9855644a4f48ded784780c"
+    },
+    {
+      "path": "services/catalog-api/src/main/java/com/terraria/skills/mapper/CrawlerAutomationActivationDecisionMapper.java",
+      "sha256": "sha256:725335a7248b0e89c107ecc9958709d8002880c93e78250af4e0b488596bc55f"
+    },
+    {
+      "path": "services/catalog-api/src/main/resources/db/migration/V61__bind_scheduler_activation_canary_scope.sql",
+      "sha256": "sha256:f6ef1b38d162035eb79b4cffd137e64d88b2bc00f1e92f236b5b24ceefb26280"
+    },
+    {
+      "path": "pipelines/automation/authorized-operation-context.mjs",
+      "sha256": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-cutover-authorization.mjs",
+      "sha256": "sha256:3087c840aa340675439eb0d690efd191e94214f3018fc2af5700e7d70041a9c4"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-catalog.mjs",
+      "sha256": "sha256:008322eccc19b1611e03085e6ee2d7f090e2ad235c53f5de158eb7470aa15eb0"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-execution-manifest.mjs",
+      "sha256": "sha256:dae9d82ef76cdd62ad80c270b2d4e8c5552ce6554ffe701253db7c0a80f6ccfc"
+    },
+    {
+      "path": "pipelines/automation/policy-set-hash.mjs",
+      "sha256": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681"
+    },
+    {
+      "path": "pipelines/automation/run-authorized-canonical-operation.mjs",
+      "sha256": "sha256:8b40021ae3decd69eff8bae96c7c4653b283f50d8f69fddaef63b56baf5f191b"
+    },
+    {
+      "path": "pipelines/lib/private-repository-path.mjs",
+      "sha256": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0"
+    },
+    {
+      "path": "pipelines/automation/automation-database-contract.mjs",
+      "sha256": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8"
+    },
+    {
+      "path": "pipelines/lib/mysql-module.mjs",
+      "sha256": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0"
+    },
+    {
+      "path": "pipelines/automation/bootstrap-automation-policy.mjs",
+      "sha256": "sha256:877d174ff9db0300600c36f54fb4618bd8d07ff4f7bd004de2461057749ce734"
+    },
+    {
+      "path": "pipelines/automation/reconciliation-evidence-contract.mjs",
+      "sha256": "sha256:5738044fd388a5c22afe3ae56b0aed6162a68cb610501f76e8ec687e45f5208b"
+    },
+    {
+      "path": "pipelines/automation/build-l2-promotion-proposal.mjs",
+      "sha256": "sha256:902b73eb64fb7a582c013c81bdd0207b50439549a5904e7bb4b53d4a4577f287"
+    },
+    {
+      "path": "pipelines/automation/l2-promotion-serial-contract.mjs",
+      "sha256": "sha256:99766df41572124117ee4777ec46c36f9acf4d7a415ad4ad405b72394640b93d"
+    },
+    {
+      "path": "pipelines/automation/l2-policy-stable-reauthorization.mjs",
+      "sha256": "sha256:7cbffeb3d0302c842e9f972938f5afbc0cb2bbd2beaad734da169fd99e01db64"
+    },
+    {
+      "path": "pipelines/automation/l2-policy-ceiling-artifact.mjs",
+      "sha256": "sha256:03417f85184db1460ab260f30b222d1c90bc2df9442f7790e07243e6e3e07c76"
+    },
+    {
+      "path": "pipelines/automation/historical-source-hash-disposition.mjs",
+      "sha256": "sha256:23c830824b330f3bd99d88998026d6f418630b2aaa1dbb3ba9535bca912db922"
+    },
+    {
+      "path": "pipelines/import/import-independent-entities-to-db.mjs",
+      "sha256": "sha256:0f96adc73542e9a4c25e24988dc0b9df94e34594090e1d132b1365810e5f3d4c"
+    },
+    {
+      "path": "pipelines/lib/project-root.mjs",
+      "sha256": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74"
+    },
+    {
+      "path": "pipelines/lib/wiki-sync-manifest.mjs",
+      "sha256": "sha256:d13c96db3af7ca9d90ca89cf65621285fcd2c7e7147edbd9305a48ae64000cfc"
+    },
+    {
+      "path": "pipelines/workflow/backend-refresh-manifest-finalize.mjs",
+      "sha256": "sha256:e44dd45f1d996be4552d69379aa09a46ca4a035ff1258e80dc79da2163c5716b"
+    },
+    {
+      "path": "pipelines/automation/automatic-domain-operation-contract.mjs",
+      "sha256": "sha256:75a2ed87fccecdb3248dc027ad1b65836650ecc548b920d896d74c22062847c3"
+    },
+    {
+      "path": "pipelines/automation/run-supplementary-domain-l1-operation.mjs",
+      "sha256": "sha256:5de0af3cad53f3052c9c9502fa88c47de9c0a6d2b217e1b9cf72e0762625acc2"
+    },
+    {
+      "path": "pipelines/automation/supplementary-domain-l1-contract.mjs",
+      "sha256": "sha256:baf2cfde01746193a6d86e4704b795a723d1a1dfa3a7a57ab54373e1410104d5"
+    },
+    {
+      "path": "pipelines/automation/run-automatic-domain-operation.mjs",
+      "sha256": "sha256:90e8845061a36dcd29a077a4d85eca2b3fc57872f3c50cd74c7252fe9de16da9"
+    },
+    {
+      "path": "pipelines/automation/automatic-execution-artifacts.mjs",
+      "sha256": "sha256:e5cca1cf0b8abdd675f84f4d9ddb76a47a16aff82dc9495f06eee6b00189f3a7"
+    },
+    {
+      "path": "pipelines/automation/source-dispatch-identity.mjs",
+      "sha256": "sha256:c48ef81b00117698542f8be81cb48d77a21e6e94ab8dd6e687c3e0568443a2bc"
+    },
+    {
+      "path": "pipelines/workflow/backend-refresh-runtime-state.mjs",
+      "sha256": "sha256:2ee2102f5feba92acfaaca41945f6c0952b2f5d72f04e3af144e1fb907883801"
+    },
+    {
+      "path": "pipelines/automation/prepare-supplementary-domain-l1-preview.mjs",
+      "sha256": "sha256:2d1189b007adc75ca1130b9689b5428f6e2e36ceae1e60e0426c9c5733d82c7f"
+    },
+    {
+      "path": "pipelines/lib/wiki-item-utils.mjs",
+      "sha256": "sha256:f04cac1416ac60c93f4c2344db265b991afb916110ad8b056ebdcebc125078f3"
+    },
+    {
+      "path": "scripts/lib/project-constants.mjs",
+      "sha256": "sha256:2b70b9a5b5639ab8adb11cf1db7089d563d5d78c2dbcc978a5a72683b059360a"
+    },
+    {
+      "path": "pipelines/monitor/source-update-comparison.mjs",
+      "sha256": "sha256:ba7e315357e40a151b3c998bd5394731f95b386fd2f0c5301229bb25eb6c1b31"
+    },
+    {
+      "path": "pipelines/monitor/supplementary-source-probes.mjs",
+      "sha256": "sha256:70f4c9335a61064f2322c3ae52f4afaf6102ba64be4ed241c0a4f0d9990e0429"
+    },
+    {
+      "path": "pipelines/monitor/source-update-progress-heartbeat.mjs",
+      "sha256": "sha256:0b8917c662718ed6bc48fd2863a08759b89f85ded3b344588f8ca5ac03ea8354"
+    },
+    {
+      "path": "pipelines/monitor/source-update-monitor-options.mjs",
+      "sha256": "sha256:ba25a6c2b60fbc61b44a993547d3b98537e4a128bd211a605fe6375cd4913c75"
+    },
+    {
+      "path": "pipelines/relation/managed-image-url-policy.mjs",
+      "sha256": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591"
+    },
+    {
+      "path": "pipelines/lib/crawler-heartbeat.mjs",
+      "sha256": "sha256:57de54a75212d1657321e418a232194d51f80bbbb59a5287bdd03314760df42d"
+    },
+    {
+      "path": "pipelines/lib/crawler-monitor-redis-state.mjs",
+      "sha256": "sha256:fef080454d2c963ff17e66a46fb6d559d9f0ed0a4adf376d69e3b3ce5b162f71"
+    },
+    {
+      "path": "pipelines/lib/crawler-resume-state.mjs",
+      "sha256": "sha256:14ad5c99a8fc9207d516fa7f0dc31a4cdb9809c1d434a80bdff19ecaab9e9cc8"
+    },
+    {
+      "path": "pipelines/fetch/buff-immunity-page-parser.mjs",
+      "sha256": "sha256:9e591493bd8a34ee47b5a10d4cdf14e20489f3d6458033f0c131efe4a3e1f2ce"
+    },
+    {
+      "path": "pipelines/lib/wiki-request-gate.mjs",
+      "sha256": "sha256:b19bcd0b9eb2f23b730e753e96eae9e4ce455b51a9b5ec0b480b7257e755a91d"
+    },
+    {
+      "path": "pipelines/lib/wiki-page-utils.mjs",
+      "sha256": "sha256:2d5b9621d356c8f65d3862c8590dc793a0ae2841b672e71e383f63e89873bd57"
+    },
+    {
+      "path": "pipelines/lib/celestial-pillar-zh.mjs",
+      "sha256": "sha256:e9f7863fe633d5f75efe1d1422768efc3924c8d39448f36a778b5b8952bfb127"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-shimmer-langlinks.mjs",
+      "sha256": "sha256:c1d8515227289ddb4a162c7d661b28d6423086b43eada58917f9f4d26cc4995d"
+    },
+    {
+      "path": "pipelines/fetch/fetch-wiki-shimmer-page.mjs",
+      "sha256": "sha256:183942df81a3429cd57b86e5555f222fbf9ec9bea20d9d5cf22158cb64dfbcde"
+    },
+    {
+      "path": "pipelines/maint/shimmer-structured-parser.mjs",
+      "sha256": "sha256:3e8a5593d5e1c7831e0c14f170e7b359af89810975692b5319db385724315ba2"
+    },
+    {
+      "path": "pipelines/transform/shimmer-generation-builder.mjs",
+      "sha256": "sha256:c806d4b91012123c980e80c3f76140e40b6773a53ba500e3b9e82a445cb3e7b6"
+    },
+    {
+      "path": "pipelines/transform/shimmer-generation-contract.mjs",
+      "sha256": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9"
+    },
+    {
+      "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs",
+      "sha256": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d"
+    },
+    {
+      "path": "pipelines/relation/item-image-projection-contract.mjs",
+      "sha256": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4"
+    },
+    {
+      "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs",
+      "sha256": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb"
+    },
+    {
+      "path": "pipelines/automation/register-l2-policy-ceiling.mjs",
+      "sha256": "sha256:1c7935327827cc630a63b075174f838c6ccbf68b0143557102852de01f4b8ac3"
+    },
+    {
+      "path": "pipelines/import/independent-entity-import-mode.mjs",
+      "sha256": "sha256:57837476d3a9880821122b7f2174f7f459595044e4e592416f8389f2b6d9f1cf"
+    },
+    {
+      "path": "pipelines/lib/load-standardized-dataset.mjs",
+      "sha256": "sha256:00616a9c77ef05b81bc79e072ae63735acc09803909f8b6a4f2ca7386d137837"
+    },
+    {
+      "path": "pipelines/lib/base-domain-row-reconcile.mjs",
+      "sha256": "sha256:db30cbcfeb04dd4193ef0f6d6e918d5ca64061941162a0ac749702a998e06018"
+    },
+    {
+      "path": "pipelines/lib/projectile-name-resolver.mjs",
+      "sha256": "sha256:d21deca553ec25c9217805b35e6cd2f1ba28885aa59fc18c50adea9d11d5ff00"
+    },
+    {
+      "path": "pipelines/pipeline/independent-entity-sync-args.mjs",
+      "sha256": "sha256:d48c96f0a4baab28c17935f305f478189387335f29396e7c1e8e24964a90f87d"
+    },
+    {
+      "path": "pipelines/import/import-wiki-audio-assets-to-db.mjs",
+      "sha256": "sha256:a4a76f0eb4bd4309c59e5615305f83ec4534df7ceec55b85d1fac553ba75c325"
+    },
+    {
+      "path": "pipelines/import/import-wiki-bosses-to-db.mjs",
+      "sha256": "sha256:effd3870c5bf2c5f717535537a680a2241dd28e51d4ba1b2c00a697f335efd48"
+    },
+    {
+      "path": "pipelines/import/import-standardized-to-db.mjs",
+      "sha256": "sha256:a762eeb6657ec74382195f607ea9d0badecd2dc93e94922831cd57372b2749ae"
+    },
+    {
+      "path": "pipelines/import/import-wiki-shimmer-to-db.mjs",
+      "sha256": "sha256:12f86831291dc5cfabe8fcf501b132a4a6be1e22f34d7e3d761d9508b2e29bbe"
+    },
+    {
+      "path": "pipelines/automation/l2-automatic-ceiling.mjs",
+      "sha256": "sha256:46963483eff8b10aeb7d377716c7f17942e0ea9e43fb6215522fa6bb5059d64c"
+    },
+    {
+      "path": "pipelines/automation/l2-read-only-diff-producer.mjs",
+      "sha256": "sha256:d4b4cfa99536ddd0eae6577fe29b05a3d9fe91aa19422b49f83392f57075a4eb"
+    },
+    {
+      "path": "pipelines/automation/build-l1-reconciliation-evidence.mjs",
+      "sha256": "sha256:5fed31a65ad2cd229c41c0d834259e959c47fe428b265849b3706a49af8ad3fe"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-shimmer-import-proposal.mjs",
+      "sha256": "sha256:bdfbbae1ac8ecc33786cf27217b1d98a46791133963b9c8843588befa02409ab"
+    },
+    {
+      "path": "pipelines/lib/wiki-user-agent.mjs",
+      "sha256": "sha256:cc5ec3ea555bf6404a650c314a4407c686e9fd088c3c8d2373a73bcc8cd8bba3"
+    },
+    {
+      "path": "pipelines/lib/crawler-alerts.mjs",
+      "sha256": "sha256:f3c420eae97379c43554e875e31ab2c6d3f827131bcf5970265d1408c6d22fdc"
+    },
+    {
+      "path": "pipelines/lib/flaresolverr-bridge.mjs",
+      "sha256": "sha256:4e820dc1cc5cfc52d3490e46f375e36b352dc77478257338722aa33d6109e395"
+    },
+    {
+      "path": "pipelines/lib/recipe-material-reference.mjs",
+      "sha256": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650"
+    },
+    {
+      "path": "pipelines/automation/table-ownership-matrix.mjs",
+      "sha256": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642"
+    },
+    {
+      "path": "scripts/lib/local-runtime-config.mjs",
+      "sha256": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6"
+    },
+    {
+      "path": "pipelines/import/boss-import-strict-mode.mjs",
+      "sha256": "sha256:ba44c3398e8ccd5e059ada1127c347cc0031eb9eb6eaef0a8771b56189fed8eb"
+    },
+    {
+      "path": "pipelines/import/boss-reference-source.mjs",
+      "sha256": "sha256:be87454f1d8e160b006b787c52f01f615ecf32b97d924a1e2188a1a8debb82cb"
+    },
+    {
+      "path": "pipelines/lib/minio-image-upload.mjs",
+      "sha256": "sha256:7ab8888bb426dc07db064ab444742964908e0a8286ba58ed63c55e104c490e04"
+    },
+    {
+      "path": "pipelines/lib/base-domain-primary-db-guard.mjs",
+      "sha256": "sha256:ac151ed9efb272a57077ee2efeba92d02e16295384b87edf4cdb6db0acbca669"
+    },
+    {
+      "path": "pipelines/lib/public-item-cache.mjs",
+      "sha256": "sha256:15822677ebce9eaccdec5c2777a8b12638fbe5f00a05165187faae4a0ef18f1d"
+    },
+    {
+      "path": "pipelines/lib/item-category-normalization.mjs",
+      "sha256": "sha256:4d0c808271f37571ca3a00e677d0360d0c7e648db058079b3e72c5327d1050d8"
+    },
+    {
+      "path": "pipelines/maint/maint-schema.mjs",
+      "sha256": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886"
+    },
+    {
+      "path": "pipelines/relation/relation-schema.mjs",
+      "sha256": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719"
+    },
+    {
+      "path": "pipelines/relation/projection-schema.mjs",
+      "sha256": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe"
+    }
+  ],
+  "databaseWrites": false,
+  "networkAccess": false,
+  "isolatedResourceWrites": false,
+  "preflightHash": "sha256:bf915e22dd74aaca82fbf9e4abb1e8ed6027d3b802c5d1eff4bccc626cf3d467"
+}

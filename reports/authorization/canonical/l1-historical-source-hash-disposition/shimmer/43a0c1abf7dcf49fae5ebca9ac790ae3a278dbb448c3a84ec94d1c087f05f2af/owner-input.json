@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04 prerequisite: renew immutable historical source-hash disposition for shimmer so the expired L2 reauthorization can validate predecessor evidence.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/shimmer/historical-disposition/retry-02",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-shimmer-20260921-standing-02"
+}

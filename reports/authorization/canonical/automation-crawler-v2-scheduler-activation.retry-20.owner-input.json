@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: bounded V2 natural scheduler canary for wiki-items-refresh/items using fresh retry-20 H8 preflight. Permit registered source refresh and frozen-input dry-run only; no manual sweep, no non-canary dispatch, no direct Redis/JSON write, no external daemon, and restore scheduler control to disabled after terminal action outcome.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/items/retry-20",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260919-standing-items-02",
+  "authorizedAt": "2026-09-19T08:14:16.954Z"
+}

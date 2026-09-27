@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-activation",
+  "domainId": "crawler_v2_scheduler",
+  "status": "completed",
+  "authoritative": true,
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": "SCHEDULER_ACTIVATION",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-07",
+  "actor": "admin",
+  "reason": "User-authorized bounded V2 scheduler activation for the fresh H8 eight-domain preflight; natural tick only, no manual sweep, with immediate rollback on drift or failure.",
+  "authorizationReference": "user://conversation/2026-09-18/scheduler-activation/retry-10",
+  "packetHash": "sha256:b9c1297d8a45245aa7c8815d96d1ddee84b1dfbeb36405f3e8570f517d82946b",
+  "successfulL1Runs": null,
+  "completedAt": "2026-09-18T10:10:02.376Z"
+}

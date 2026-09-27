@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Scope and authority
 
@@ -29,4 +29,6 @@
 
 ## Commits
 
-- Pending verified implementation/evidence checkpoint commits; overall automation task remains active.
+- Implementation checkpoint: `bf0df600` (157 paths). Evidence checkpoint: commit SHA pending in final response (1610 report paths plus this closeout/current index).
+- Result: existing implementation is committed; compact historical evidence and ledger are staged and JSON/whitespace checked. 347 large files remain unchanged in place and in the verified private archive. No unrelated source hidden or discarded; no push or runtime writes.
+- Overall automation remains active. Follow-up owner Codex resumes candidate-validator RED/GREEN tests in `2026-09-27-armor-image-cache-continuation.md`, then authoritative source/effect and downstream gates. Historical unrelated open entries are preserved, not closed by this checkpoint.

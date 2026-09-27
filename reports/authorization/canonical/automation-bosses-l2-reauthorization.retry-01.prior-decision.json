@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-bosses-l2-promotion-20260830-admin-01",
+  "packetHash": "sha256:38c0487876bf2d728b9b9f0f87d216888c53a743f00c7276432d348a822cfa6f",
+  "policySetHash": "sha256:23b3385fab638a864aa4cfd8ab4ca394238f4ec0061c0787693350bf8a429f40",
+  "expiresAt": "2026-08-30T20:27:53.000Z",
+  "domainId": "bosses"
+}

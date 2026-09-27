@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: fresh historical disposition for shimmer predecessor evidence; no policy change or business write",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/shimmer/20260922-retry-24",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-shimmer-20260922-c7b5a6e8-4adf-410f-ba99-7b79562e6d71",
+  "authorizedAt": "2026-09-22T10:38:10.859Z"
+}

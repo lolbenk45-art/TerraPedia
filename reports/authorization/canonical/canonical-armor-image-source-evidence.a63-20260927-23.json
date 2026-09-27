@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "canonical-armor-image-source-evidence/v1",
+  "operationId": "canonical-armor-image-source-evidence",
+  "evidenceId": "canonical-armor-image-source-evidence-a63-20260927-23",
+  "generatedAt": "2026-09-27T03:52:12.149Z",
+  "proposalOnly": true,
+  "databaseWrites": false,
+  "localItemWrites": false,
+  "ddl": false,
+  "schedulerActivation": false,
+  "sourceArtifact": {
+    "path": "data/raw/wiki/armor_set_images.parsed.latest.json",
+    "sha256": "sha256:5b8f36a37deae2d9915a823e85e49f2bd01b3fee38d2b730ad8c040e866093b6",
+    "byteSize": 376123,
+    "contentHash": "sha256:3cc5330cbb0af44dac59121fb18c339f96566c7d40f0be1117677f7fb026948f"
+  },
+  "source": {
+    "source": "terraria.wiki.gg:armor-set-pages:imageinfo",
+    "sourceApi": "https://terraria.wiki.gg/api.php",
+    "sourcePageTitle": "Armor set pages",
+    "sourceRevisionTimestamp": null,
+    "fetchedAt": "2026-09-27T00:39:48.985Z",
+    "totalArmorSets": 63,
+    "totalArmorSetImages": 419,
+    "warnings": []
+  },
+  "roleSummary": {
+    "male": 67,
+    "female": 87,
+    "part": 238,
+    "demo": 27
+  },
+  "sourceRows": 419,
+  "sourceMissingRevision": 0,
+  "sourceMissingOriginal": 0,
+  "sourceMissingManagedCache": 419,
+  "managedCachePolicy": "required-before-canonical-Armor-acceptance",
+  "currentMaintSnapshot": {
+    "rowCount": 175,
+    "rowsMissingRevision": 175,
+    "rowsMissingCache": 1,
+    "roleSummary": {
+      "male": 33,
+      "female": 34,
+      "part": 95,
+      "demo": 13
+    },
+    "rowsHash": "sha256:e61abfa72229caed2a0eeda99ed570b6e060b837d5d1dc44e81fc642f9b8990e"
+  },
+  "blockers": [
+    "managed-image-cache-missing-for-all-source-rows",
+    "no-image-write-authority-in-current-bounded-operation"
+  ]
+}

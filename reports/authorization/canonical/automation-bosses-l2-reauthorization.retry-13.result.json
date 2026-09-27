@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l2-reauthorization",
+  "domainId": "bosses",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-bosses-l2-reauthorization-20260918-owner-03",
+  "actor": "admin",
+  "reason": "User-authorized fresh append-only bosses L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and predecessor L1/full reconciliation, no policy update, no crawler/import.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-reauthorization/retry-13/bosses",
+  "packetHash": "sha256:a7a516515db3ddc54c8aee0a07916610a5c32bb3c17b4adafb5b31b7c75346d9",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "completedAt": "2026-09-18T09:54:41.134Z"
+}

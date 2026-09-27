@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-shimmer-l2-reauthorization",
+  "domainId": "shimmer",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-shimmer-l2-reauthorization-20260918-owner-04",
+  "actor": "admin",
+  "reason": "User-authorized fresh append-only Shimmer L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and fresh historical disposition, no policy update, no crawler/import.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-reauthorization/retry-14/shimmer",
+  "packetHash": "sha256:b27eb423cf5587793a9bb626bda645fd0616849b1a3d653df19f1dc023cb7e59",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "completedAt": "2026-09-18T09:56:49.667Z"
+}

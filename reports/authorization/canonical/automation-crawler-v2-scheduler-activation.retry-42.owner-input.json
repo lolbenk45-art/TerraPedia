@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05: one bounded natural projectiles canary after reviewed retry-artifact isolation repair; restore disabled afterward",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05/projectiles/20260922-retry-42",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260922-projectiles-76ce1215-850a-460d-a757-5c4cc977788e",
+  "authorizedAt": "2026-09-22T12:16:04.182Z"
+}

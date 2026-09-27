@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized fresh immutable Shimmer historical source-hash disposition after prior packet expiry; exclude only the proven legacy semantic-JSON hash mismatch from L1 qualification.",
+  "authorizationReference": "user://conversation/2026-09-18/l1-historical-source-hash-disposition/shimmer-retry-01",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-shimmer-20260918-admin-02",
+  "authorizedAt": "2026-09-18T06:15:00.000Z"
+}

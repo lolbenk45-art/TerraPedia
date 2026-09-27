@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-armor-semantic-repair",
+  "artifactDate": "2026-09-27",
+  "resultLabel": "a63-20260927-07",
+  "executionClass": "formal_armor_semantic_repair",
+  "command": [
+    "node",
+    "pipelines/relation/run-armor-semantic-repair.mjs",
+    "--operation-id=canonical-armor-semantic-repair",
+    "--result-label=a63-20260927-07",
+    "--apply=true"
+  ],
+  "inputPaths": [
+    "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-07.proposal.json"
+  ],
+  "outputPaths": [
+    "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-07.result.json"
+  ],
+  "reportPaths": [],
+  "progressPaths": [],
+  "ownershipKeys": [
+    "local.source_dataset_landings.armor_attributes_raw",
+    "maint.maint_armor_attribute_rows",
+    "relation.relation_armor_attribute_rows",
+    "relation.relation_equipment_effect_attributes.status_deleted",
+    "relation.relation_equipment_effect_attributes.insert"
+  ],
+  "requiredOperationIds": [],
+  "databaseWrites": true,
+  "networkAccess": false,
+  "codeBundleEntries": [
+    {
+      "path": "pipelines/relation/run-armor-semantic-repair.mjs",
+      "contentHash": "sha256:3de7d9183c05347abb686e4c9976a617af82ae7f54b9a7574f9776f4e5c96977"
+    },
+    {
+      "path": "pipelines/relation/armor-semantic-repair.mjs",
+      "contentHash": "sha256:62697e54abfede4f449cf1a8388a7cf0b95fa191305a2ccccdd81e00c671d8ee"
+    },
+    {
+      "path": "pipelines/automation/authorized-operation-context.mjs",
+      "contentHash": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-cutover-authorization.mjs",
+      "contentHash": "sha256:06d87aced47d9f104ec18d607011e01f90c9a683e078b9029b6ba28f7d830640"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-catalog.mjs",
+      "contentHash": "sha256:d4dd708a6f1d082b48c44dc8a773a2ef80ff121b14d6760d408133c70967f73c"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-execution-manifest.mjs",
+      "contentHash": "sha256:9a9a1d22c703be41dae71ad34be384286a10b10d467fe89468e8987bb795c56e"
+    },
+    {
+      "path": "pipelines/automation/policy-set-hash.mjs",
+      "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681"
+    },
+    {
+      "path": "pipelines/lib/mysql-module.mjs",
+      "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0"
+    },
+    {
+      "path": "scripts/lib/local-runtime-config.mjs",
+      "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6"
+    },
+    {
+      "path": "pipelines/automation/run-authorized-canonical-operation.mjs",
+      "contentHash": "sha256:8b40021ae3decd69eff8bae96c7c4653b283f50d8f69fddaef63b56baf5f191b"
+    },
+    {
+      "path": "pipelines/lib/private-repository-path.mjs",
+      "contentHash": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0"
+    },
+    {
+      "path": "pipelines/automation/automation-database-contract.mjs",
+      "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8"
+    },
+    {
+      "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs",
+      "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d"
+    },
+    {
+      "path": "pipelines/relation/item-image-projection-contract.mjs",
+      "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4"
+    },
+    {
+      "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs",
+      "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb"
+    },
+    {
+      "path": "pipelines/lib/project-root.mjs",
+      "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74"
+    },
+    {
+      "path": "pipelines/transform/shimmer-generation-contract.mjs",
+      "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9"
+    },
+    {
+      "path": "pipelines/relation/managed-image-url-policy.mjs",
+      "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591"
+    },
+    {
+      "path": "pipelines/automation/table-ownership-matrix.mjs",
+      "contentHash": "sha256:19dada99f8bc8a5e31af064f92073c07c037368b41129c67f28c54ab2375f3af"
+    },
+    {
+      "path": "pipelines/maint/maint-schema.mjs",
+      "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886"
+    },
+    {
+      "path": "pipelines/relation/relation-schema.mjs",
+      "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719"
+    },
+    {
+      "path": "pipelines/relation/projection-schema.mjs",
+      "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe"
+    }
+  ]
+}

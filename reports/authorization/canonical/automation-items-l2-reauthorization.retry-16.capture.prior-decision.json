@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-07",
+  "packetHash": "sha256:d3647d76c63a6110971e66ff2aa89256dbbfa256b1023fabe307de04ec5a0e27",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "expiresAt": "2026-09-18T06:56:30.000Z",
+  "domainId": "items"
+}

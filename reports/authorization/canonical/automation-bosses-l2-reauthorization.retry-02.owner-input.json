@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized fresh bosses L2 stable reauthorization after expired predecessor; bind current H8 and prior decision without policy update.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-stable-reauthorization/bosses",
+  "decisionIdentity": "automation-bosses-l2-reauthorization-20260918-owner-01",
+  "authorizedAt": "2026-09-18T03:03:00.000Z"
+}

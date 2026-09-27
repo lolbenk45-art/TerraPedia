@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-09-21T08:44:30.000Z",
+  "expiresAt": "2026-09-22T08:44:30.000Z",
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:7e58478a78ee08be53a52d22893cec8fd6b60ff0e70f7c790f905faf72bb8400",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/items/37dc88e47158e3390adc89d20098b28f4db009443ad40baa5983fb4edc7686fc/candidate.json",
+      "sizeBytes": 2418,
+      "contentHash": "sha256:4e2c0959edf12ee6492fb4e911d7571120de5d79eab0537aa7ec9f40ff1493ef"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:fbc05de296465effaa6c1dd776db8a777a6be0bbf962716b1bb38ee26241824f",
+  "executionManifest": {
+    "command": [
+      "node",
+      "pipelines/automation/historical-source-hash-disposition.mjs"
+    ],
+    "databaseWrites": false,
+    "executionClass": "historical_source_hash_disposition",
+    "historicalSourceHashDisposition": {
+      "candidateArtifactHash": "sha256:37dc88e47158e3390adc89d20098b28f4db009443ad40baa5983fb4edc7686fc",
+      "candidateFileSha256": "sha256:4e2c0959edf12ee6492fb4e911d7571120de5d79eab0537aa7ec9f40ff1493ef",
+      "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/items/37dc88e47158e3390adc89d20098b28f4db009443ad40baa5983fb4edc7686fc/candidate.json"
+    },
+    "inputPaths": [
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/items/37dc88e47158e3390adc89d20098b28f4db009443ad40baa5983fb4edc7686fc/candidate.json"
+    ],
+    "networkAccess": false,
+    "operationId": "automation-l1-historical-source-hash-disposition",
+    "outputPaths": [],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1,
+    "scope": {
+      "candidateArtifactHash": "sha256:37dc88e47158e3390adc89d20098b28f4db009443ad40baa5983fb4edc7686fc",
+      "domainId": "items",
+      "runId": "items_l1_auto_0dfbd093f42b072192297f2a727d9c4d"
+    }
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "Standing AUTH-04 prerequisite: renew immutable historical source-hash disposition for items so the expired L2 reauthorization can validate predecessor evidence.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/items/historical-disposition/retry-02",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-items-20260921-standing-02",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "scope": {
+    "domainId": "items",
+    "runId": "items_l1_auto_0dfbd093f42b072192297f2a727d9c4d",
+    "candidateArtifactHash": "sha256:37dc88e47158e3390adc89d20098b28f4db009443ad40baa5983fb4edc7686fc"
+  },
+  "requestHash": "sha256:d2081758148502c78a07922e2a891afe098c2b284aba88f12974f3f49d6ef52e",
+  "authorizedAt": "2026-09-21T08:45:48.757Z",
+  "packetHash": "sha256:a8686e5a8a5501b4ffdc6941e2e82793a7911986e6aea3d45d906140da747bbf"
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "bosses",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "bosses",
+    "policyVersion": 2,
+    "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-bosses-l2-promotion-20260830-admin-01",
+    "packetHash": "sha256:38c0487876bf2d728b9b9f0f87d216888c53a743f00c7276432d348a822cfa6f",
+    "policySetHash": "sha256:23b3385fab638a864aa4cfd8ab4ca394238f4ec0061c0787693350bf8a429f40",
+    "expiresAt": "2026-08-30T20:27:53.000Z",
+    "domainId": "bosses"
+  },
+  "targetPolicy": {
+    "domainId": "bosses",
+    "policyVersion": 2,
+    "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  }
+}

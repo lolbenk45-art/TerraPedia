@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized A6.3 continuation: publish the fresh Armor secondary projection after semantic source/maint/relation repair, with exact retired projection keys, scheduler disabled, no local.items writes, and full DB/API readback.",
+  "authorizationReference": "user://conversation/2026-09-27/automation-ingestion-continuation",
+  "decisionIdentity": "canonical-armor-secondary-projection-a63-20260927-19",
+  "authorizedAt": "2026-09-26T23:36:00.000Z"
+}

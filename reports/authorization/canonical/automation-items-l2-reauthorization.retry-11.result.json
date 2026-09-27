@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l2-reauthorization",
+  "domainId": "items",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-07",
+  "actor": "admin",
+  "reason": "User-authorized fresh append-only Items L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and fresh primary-root historical disposition, no policy update, no crawler/import.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-reauthorization/retry-11/items",
+  "packetHash": "sha256:d3647d76c63a6110971e66ff2aa89256dbbfa256b1023fabe307de04ec5a0e27",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "completedAt": "2026-09-18T06:06:38.983Z"
+}

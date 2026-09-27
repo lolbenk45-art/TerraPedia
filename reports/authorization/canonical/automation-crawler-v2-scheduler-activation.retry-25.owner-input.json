@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: bounded V2 natural scheduler canary for wiki-items-refresh/items using fresh retry-25 H8 preflight. Observe one natural durable tick and its terminal action outcome before rollback; no manual sweep, no non-canary dispatch, no direct Redis/JSON write, no external daemon, and restore scheduler control to disabled after the bounded window.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/items/retry-25",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260919-standing-items-05",
+  "authorizedAt": "2026-09-19T09:41:57.000Z"
+}

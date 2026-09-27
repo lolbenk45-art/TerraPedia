@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized fresh immutable Items historical source-hash disposition after prior packet expiry; exclude only the proven legacy semantic-JSON hash mismatch from L1 qualification.",
+  "authorizationReference": "user://conversation/2026-09-18/l1-historical-source-hash-disposition/items-retry-01",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-items-20260918-admin-02",
+  "authorizedAt": "2026-09-18T05:38:00.000Z"
+}

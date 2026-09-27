@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "l2-policy-stable-reauthorization-proposal",
+  "operationId": "automation-armor-sets-l2-reauthorization",
+  "domainId": "armor_sets",
+  "databaseName": "terria_v1_local",
+  "proposalOnly": true,
+  "authorizationStatus": "AWAITING_OWNER",
+  "databaseWrites": false,
+  "networkAccess": false,
+  "policyUpdate": false,
+  "generatedAt": "2026-09-18T05:02:40.746Z",
+  "serverFingerprint": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "databases": [
+      "terria_v1_local",
+      "terria_v1_maint",
+      "terria_v1_relation"
+    ]
+  },
+  "serverFingerprintHash": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "currentPolicy": {
+    "domainId": "armor_sets",
+    "policyVersion": 2,
+    "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "targetPolicy": {
+    "domainId": "armor_sets",
+    "policyVersion": 2,
+    "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "currentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:ecf35935ed3681939f9d0b4fab8760a6cd802cccb8647f73a486e25de42c3871",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260918-owner-01",
+    "packetHash": "sha256:dd080562650607e6b4a628f6f992e999ba9baa2c41fe6a99b58258e086c13bca",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "expiresAt": "2026-09-18T04:02:00.000Z",
+    "domainId": "armor_sets"
+  },
+  "policyRows": [
+    {
+      "domainId": "armor_sets",
+      "policyVersion": 2,
+      "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8"
+    },
+    {
+      "domainId": "audio",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596"
+    },
+    {
+      "domainId": "biomes",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    },
+    {
+      "domainId": "bosses",
+      "policyVersion": 2,
+      "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38"
+    },
+    {
+      "domainId": "buffs",
+      "policyVersion": 2,
+      "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d"
+    },
+    {
+      "domainId": "crawler_v2_scheduler",
+      "policyVersion": 1,
+      "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479"
+    },
+    {
+      "domainId": "items",
+      "policyVersion": 2,
+      "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a"
+    },
+    {
+      "domainId": "npcs",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53"
+    },
+    {
+      "domainId": "projectiles",
+      "policyVersion": 2,
+      "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b"
+    },
+    {
+      "domainId": "shimmer",
+      "policyVersion": 2,
+      "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61"
+    }
+  ],
+  "forbidden": [
+    "direct-sql",
+    "policy-update",
+    "replay",
+    "source-refresh",
+    "scheduler-activation"
+  ],
+  "proposalHash": "sha256:0a07364ea60d131abb365073d20ce666ec5fe5ec48061a536bf0b0dd7c503212"
+}

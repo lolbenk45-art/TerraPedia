@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-buffs-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "buffs",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "buffs",
+    "policyVersion": 2,
+    "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:6e1668af3904b80148d5f341eb98874ef000a3c8bbdb1e1fd81b5de369cf93d4",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-buffs-l2-reauthorization-20260918-owner-01",
+    "packetHash": "sha256:7abb48773040d24a5d155cf689484565a9dfa78c10de5a10c4aaca78994f2400",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "expiresAt": "2026-09-18T04:02:00.000Z",
+    "domainId": "buffs"
+  },
+  "targetPolicy": {
+    "domainId": "buffs",
+    "policyVersion": 2,
+    "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "proposalOnly": false,
+  "proposalPath": "reports/authorization/canonical/automation-buffs-l2-reauthorization/348e89557ad534caaa8853fec271738933b951437b0a8d02e92587d9e608b8ed/proposal.json",
+  "proposalSha256": "sha256:ead26192216524ba82d5502ba42aaad438af81190ca1a97387b59ffda60f0b37",
+  "proposalHash": "sha256:348e89557ad534caaa8853fec271738933b951437b0a8d02e92587d9e608b8ed"
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-activation",
+  "domainId": "crawler_v2_scheduler",
+  "status": "completed",
+  "authoritative": true,
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": "SCHEDULER_ACTIVATION",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260922-projectiles-76ce1215-850a-460d-a757-5c4cc977788e",
+  "actor": "admin",
+  "reason": "Standing AUTH-05: one bounded natural projectiles canary after reviewed retry-artifact isolation repair; restore disabled afterward",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05/projectiles/20260922-retry-42",
+  "packetHash": "sha256:414c3cbf93d2d199514317ee01b4a5576f0c55286c285d09d80ce45e30759078",
+  "successfulL1Runs": null,
+  "completedAt": "2026-09-22T12:16:04.320Z"
+}

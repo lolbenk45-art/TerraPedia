@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: fresh historical disposition for projectiles predecessor evidence; no policy change or business write",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/20260922-retry-24",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-projectiles-20260922-6645179a-d206-4261-b537-993a768d8218",
+  "authorizedAt": "2026-09-22T10:38:10.817Z"
+}
