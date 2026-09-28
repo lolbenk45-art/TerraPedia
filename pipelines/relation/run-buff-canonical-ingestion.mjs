@@ -70,6 +70,7 @@ export async function applyBuffCanonicalIngestion({
 } = {}) {
   const root = path.resolve(suppliedRepoRoot);
   const paths = buildBuffCanonicalIngestionPaths(resultLabel);
+  assertBuffResultPathAvailable({ repoRoot: root, resultPath: paths.resultPath });
   const context = loadContext({ repoRoot: root, operationId: BUFF_CANONICAL_OPERATION_ID, env });
   assertAuthorizedOperationDataBundle({ repoRoot: root, authorizedContext: context });
   const binding = context.executionManifest?.buffFullChain;
@@ -133,6 +134,18 @@ export async function applyBuffCanonicalIngestion({
       // absence of a completed result when a pre-commit guard rejects.
     }
   }
+}
+
+
+export function assertBuffResultPathAvailable({ repoRoot: root, resultPath } = {}) {
+  const target = assertRepositoryPathConfinement({
+    repoRoot: path.resolve(root),
+    filePath: path.resolve(root, resultPath),
+    label: 'Buff canonical ingestion result',
+    createParent: true,
+  });
+  if (fs.existsSync(target)) throw new Error('Buff canonical ingestion result already exists; retry requires a new result label');
+  return target;
 }
 
 async function lockRuntime(connection, packet, envelope) {

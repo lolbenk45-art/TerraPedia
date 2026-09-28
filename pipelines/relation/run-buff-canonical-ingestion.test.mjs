@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   applyBuffCanonicalIngestion,
@@ -7,6 +10,7 @@ import {
   parseBuffCanonicalIngestionArgs,
   assertBuffLockedRowsMatchEnvelope,
   assertBuffSourceRowsMatchEnvelope,
+  assertBuffResultPathAvailable,
 } from './run-buff-canonical-ingestion.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
@@ -136,4 +140,22 @@ test('Buff locked comparison rejects distinct JSON objects', () => {
   assert.throws(() => assertBuffLockedRowsMatchEnvelope({
     envelope, rows: { relation_buffs: [{ ...baseline, raw_json: { a: 2 } }] },
   }), /drift/);
+});
+
+
+test('Buff result path freshness fails before any transaction when an old result exists', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'buff-result-freshness-'));
+  const relative = 'reports/authorization/canonical/result.json';
+  const target = path.join(root, relative);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  assert.doesNotThrow(() => assertBuffResultPathAvailable({ repoRoot: root, resultPath: relative }));
+  fs.writeFileSync(target, '{}\n', { mode: 0o600 });
+  assert.throws(() => assertBuffResultPathAvailable({ repoRoot: root, resultPath: relative }), /already exists|new result label/i);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('Buff result path freshness rejects a path outside the repository', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'buff-result-confinement-'));
+  assert.throws(() => assertBuffResultPathAvailable({ repoRoot: root, resultPath: '../result.json' }), /inside|confinement/i);
+  fs.rmSync(root, { recursive: true, force: true });
 });

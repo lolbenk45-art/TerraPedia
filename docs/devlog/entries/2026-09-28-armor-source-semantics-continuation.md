@@ -95,3 +95,5 @@
 
 - Review correction: category metadata cannot establish that NPC immunity is inapplicable. Report `.a63-20260929-05` is superseded and must not be used for proposal admission. The applicability contract now accepts only source-bound `source-page-contract/v1` evidence carrying exact page title/revision; category probes remain diagnostics.
 - Bounded fresh fetch `.a63-20260929-06` was stopped at 36/111 unique unknown pages after confirming it did not produce admissible applicability facts. Its source-status report records zero writes. No partial page output is promoted or merged into the prior source namespace.
+
+- Added result-path freshness/confinement checks to the Buff runner before loading or starting a transaction; existing result artifacts now fail before any permit consumption or DB connection work. Focused runner tests pass 13/13.
