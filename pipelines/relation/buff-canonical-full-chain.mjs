@@ -8,6 +8,7 @@ const TABLES = Object.freeze([
   'projection_buffs',
 ]);
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const CONTENT_HASH_PATTERN = /^[a-f0-9]{64}$/;
 
 export function buildBuffFullChainExecutionEnvelope({
   candidate,
@@ -84,7 +85,7 @@ function assertLandingRows(rows) {
   if (!Array.isArray(rows) || rows.length === 0) throw new Error('frozen Buff landing rows are required');
   for (const row of rows) {
     if (!Number.isSafeInteger(Number(row?.id)) || Number(row.id) < 1
-        || row.dataset_type !== 'buffs_raw' || !HASH_PATTERN.test(String(row.content_hash ?? ''))) {
+        || row.dataset_type !== 'buffs_raw' || !CONTENT_HASH_PATTERN.test(String(row.content_hash ?? ''))) {
       throw new Error('frozen Buff landing identity is invalid');
     }
   }

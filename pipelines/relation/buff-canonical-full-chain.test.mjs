@@ -33,9 +33,10 @@ function candidate() {
 }
 
 test('Buff full-chain envelope binds frozen landing, maint, page evidence, and managed image policy', () => {
+  const landingContentHash = 'a'.repeat(64);
   const result = buildBuffFullChainExecutionEnvelope({
     candidate: candidate(),
-    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: HASH }],
+    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: landingContentHash }],
     maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire', record_key: 'b'.repeat(64) }],
     pageEvidenceByInternalName: new Map([['OnFire', { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' }]]),
     runtimeManagedImagePolicySha256: HASH,
@@ -52,7 +53,7 @@ test('Buff full-chain envelope binds frozen landing, maint, page evidence, and m
 test('Buff full-chain envelope rejects missing page evidence before execution', () => {
   assert.throws(() => buildBuffFullChainExecutionEnvelope({
     candidate: candidate(),
-    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: HASH }],
+    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: 'a'.repeat(64) }],
     maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire', record_key: 'b'.repeat(64) }],
     pageEvidenceByInternalName: new Map(),
     runtimeManagedImagePolicySha256: HASH,
@@ -62,7 +63,7 @@ test('Buff full-chain envelope rejects missing page evidence before execution', 
 test('Buff full-chain envelope rejects managed image policy drift', () => {
   assert.throws(() => buildBuffFullChainExecutionEnvelope({
     candidate: candidate(),
-    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: HASH }],
+    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: 'a'.repeat(64) }],
     maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire', record_key: 'b'.repeat(64) }],
     pageEvidenceByInternalName: new Map([['OnFire', { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' }]]),
     runtimeManagedImagePolicySha256: `sha256:${'b'.repeat(64)}`,
