@@ -9,8 +9,20 @@ import { fileURLToPath } from 'node:url';
 import {
   buildBuffFetchProgressPayload,
   buildBuffRecords,
-  collectBuffPageImmunityFacts
+  collectBuffPageImmunityFacts,
+  fetchDefaultBuffPagePayload
 } from './fetch-wiki-buffs.mjs';
+
+test('default Buff page capture requires a revision-bound page payload', async () => {
+  let options;
+  const payload = await fetchDefaultBuffPagePayload({
+    pageTitle: 'Poisoned',
+    fetchRenderedHtml: undefined,
+    fetchPagePayloadImpl: async (value) => { options = value; return { pageTitle: 'Poisoned', revisionId: 123 }; }
+  });
+  assert.equal(payload.revisionId, 123);
+  assert.equal(options.requireRevisionBinding, true);
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
