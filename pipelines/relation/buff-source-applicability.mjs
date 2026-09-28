@@ -1,5 +1,5 @@
 const IMMUNITY_STATUSES = new Set(['parsed', 'section_missing']);
-const ITEM_CATEGORIES = new Set(['Category:Consumable items', 'Category:Potion items', 'Category:Pets', 'Category:Pet summon items', 'Category:Mount summon items', 'Category:Placeable items', 'Category:Weapons', 'Category:Tools', 'Category:Accessories']);
+const APPLICABILITY_EVIDENCE_TYPE = 'source-page-contract/v1';
 
 export function classifyBuffPageApplicability(record = {}, { pageClassification = null } = {}) {
   const evidence = record?.sourceEvidence;
@@ -14,26 +14,19 @@ export function classifyBuffPageApplicability(record = {}, { pageClassification 
     }
     return { status: 'parsed', reason: 'section-parsed', evidence: null };
   }
+  // Category probes and current-page metadata are diagnostic only. They do not
+  // prove that a missing immunity section is semantically inapplicable.
+  if (pageClassification != null) validatePageClassification(record, pageClassification);
   const applicability = evidence.applicability;
-  if (applicability == null && pageClassification != null) {
-    validatePageClassification(record, pageClassification);
-    if (pageClassification.categories.some(category => ITEM_CATEGORIES.has(category))) {
-      const bound = { status: 'not_applicable', reason: 'revision-bound-category:item' };
-      return { status: 'not_applicable', reason: bound.reason, evidence: bound };
-    }
+  if (applicability == null) return { status: 'unknown', reason: 'missing-applicability-evidence', evidence: null };
+  if (applicability.status !== 'not_applicable'
+      || applicability.evidenceType !== APPLICABILITY_EVIDENCE_TYPE
+      || typeof applicability.reason !== 'string' || !applicability.reason.trim()
+      || String(applicability.sourcePageTitle) !== String(evidence.pageTitle)
+      || Number(applicability.revisionId) !== Number(evidence.revisionId)) {
+    return { status: 'unknown', reason: 'unverified-applicability-claim', evidence: null };
   }
-  if (applicability == null) {
-    return { status: 'unknown', reason: 'missing-applicability-evidence', evidence: null };
-  }
-  if (applicability?.status !== 'not_applicable'
-      || typeof applicability.reason !== 'string' || !applicability.reason.trim()) {
-    throw new Error('Buff applicability evidence requires not_applicable status and reason');
-  }
-  return {
-    status: 'not_applicable',
-    reason: applicability.reason,
-    evidence: { status: 'not_applicable', reason: applicability.reason },
-  };
+  return { status: 'not_applicable', reason: applicability.reason, evidence: { ...applicability } };
 }
 
 export function summarizeBuffSourceApplicability(records = []) {
@@ -47,7 +40,6 @@ export function summarizeBuffSourceApplicability(records = []) {
   }
   return summary;
 }
-
 
 function validatePageClassification(record, classification) {
   if (!classification || !Number.isSafeInteger(Number(classification.pageId))

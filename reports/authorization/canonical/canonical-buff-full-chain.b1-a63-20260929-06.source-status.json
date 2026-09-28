@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "buff-applicability-aware-source-status/v1",
+  "operationId": "canonical-buff-full-chain",
+  "runId": "b1-a63-20260929-06",
+  "sourceRun": "b1-a63-20260928-03",
+  "status": "stopped",
+  "progress": {
+    "current": 39,
+    "total": 111,
+    "phase": "applicability-aware-page-fetch",
+    "message": "Stopped: item-category inference cannot establish Buff immunity applicability; outputs diagnostic only"
+  },
+  "decision": "diagnostic-only",
+  "reason": "item-category metadata does not prove Buff immunity applicability; no not_applicable facts were promoted",
+  "writes": {
+    "landing": 0,
+    "maint": 0,
+    "relation": 0,
+    "projection": 0,
+    "decision": 0
+  },
+  "generatedAt": "2026-09-28T21:49:34.874Z"
+}

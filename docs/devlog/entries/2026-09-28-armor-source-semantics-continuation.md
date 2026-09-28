@@ -92,3 +92,6 @@
 
 - The first classification report undercounted shared pages because one revision was mapped to only one Buff identity. A corrected fan-out report `.a63-20260929-05` binds classifications by exact captured revision and page title: 231 item-category candidates and 139 unknown. Current-page category responses whose revision drifted are excluded; no current-page fallback is accepted.
 - The Buff transaction regression after adding the upstream maint writer is 59/59 focused tests. The full previous suite remains the required next verification before the next checkpoint.
+
+- Review correction: category metadata cannot establish that NPC immunity is inapplicable. Report `.a63-20260929-05` is superseded and must not be used for proposal admission. The applicability contract now accepts only source-bound `source-page-contract/v1` evidence carrying exact page title/revision; category probes remain diagnostics.
+- Bounded fresh fetch `.a63-20260929-06` was stopped at 36/111 unique unknown pages after confirming it did not produce admissible applicability facts. Its source-status report records zero writes. No partial page output is promoted or merged into the prior source namespace.

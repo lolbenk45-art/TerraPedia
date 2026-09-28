@@ -24,36 +24,36 @@ test('missing immunity section remains unknown without explicit applicability ev
   });
 });
 
-test('parsed immunity section is publishable fact evidence', () => {
+test('parsed immunity section is classified without asserting publication readiness', () => {
   assert.deepEqual(classifyBuffPageApplicability(record({
     factGroups: { immuneNpcs: { status: 'parsed', sections: [{ title: 'Immune NPCs' }] } },
   })), { status: 'parsed', reason: 'section-parsed', evidence: null });
 });
 
-test('revision-bound item classification yields explicit not-applicable evidence', () => {
+test('revision-bound item category cannot establish immunity applicability', () => {
   const value = record({ revisionId: 954224 });
-  assert.deepEqual(classifyBuffPageApplicability(value, { pageClassification: { pageTitle: 'Obsidian Skin Potion', pageId: 7885, revisionId: 954224, categories: ['Category:Potion items'] } }), { status: 'not_applicable', reason: 'revision-bound-category:item', evidence: { status: 'not_applicable', reason: 'revision-bound-category:item' } });
+  assert.deepEqual(classifyBuffPageApplicability(value, { pageClassification: { pageTitle: 'Obsidian Skin Potion', pageId: 7885, revisionId: 954224, categories: ['Category:Potion items'] } }), { status: 'unknown', reason: 'missing-applicability-evidence', evidence: null });
 });
 
 test('classification drift fails closed', () => {
   assert.throws(() => classifyBuffPageApplicability(record({ revisionId: 954224 }), { pageClassification: { pageTitle: 'Other', pageId: 7885, revisionId: 954224, categories: ['Category:Potion items'] } }), /drift/);
 });
 
-test('explicit not-applicable evidence is distinct from unknown', () => {
-  assert.deepEqual(classifyBuffPageApplicability(record({
-    applicability: { status: 'not_applicable', reason: 'source-page-kind:item' },
-  })), { status: 'not_applicable', reason: 'source-page-kind:item', evidence: { status: 'not_applicable', reason: 'source-page-kind:item' } });
+test('caller not-applicable reason is an unverified claim', () => {
+  assert.deepEqual(classifyBuffPageApplicability(record({ revisionId: 1,
+    applicability: { status: 'not_applicable', evidenceType: 'source-page-contract/v1', reason: 'source-page-kind:item', sourcePageTitle: 'Obsidian Skin Potion', revisionId: 1 },
+  })), { status: 'not_applicable', reason: 'source-page-kind:item', evidence: { status: 'not_applicable', evidenceType: 'source-page-contract/v1', reason: 'source-page-kind:item', sourcePageTitle: 'Obsidian Skin Potion', revisionId: 1 } });
 });
 
 test('malformed applicability evidence fails closed', () => {
-  assert.throws(() => classifyBuffPageApplicability(record({ applicability: { status: 'not_applicable' } })), /reason/i);
+  assert.deepEqual(classifyBuffPageApplicability(record({ applicability: { status: 'not_applicable' } })), { status: 'unknown', reason: 'unverified-applicability-claim', evidence: null });
 });
 
-test('summary counts unknown and not-applicable separately', () => {
+test('summary never counts category or reason claims as established not-applicable', () => {
   const result = summarizeBuffSourceApplicability([
     record(),
     record({ pageTitle: 'On Fire!', factGroups: { immuneNpcs: { status: 'parsed', sections: [{}] } } }),
     record({ applicability: { status: 'not_applicable', reason: 'source-page-kind:item' } }),
   ]);
-  assert.deepEqual(result, { total: 3, parsed: 1, notApplicable: 1, unknown: 1 });
+  assert.deepEqual(result, { total: 3, parsed: 1, notApplicable: 0, unknown: 2 });
 });
