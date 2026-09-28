@@ -34,6 +34,33 @@ test('reportHeartbeat is exposed from wiki item utilities for fetchers', () => {
   assert.equal(typeof reportHeartbeat, 'function');
 });
 
+test('revision-bound page capture parses the exact selected revision instead of mutable latest', async () => {
+  const calls = [];
+  const payload = await fetchWikiPagePayload({ pageTitle: 'Mining Pants', requireRevisionBinding: true,
+    fetchWikiApiJsonImpl: async ({ url }) => {
+      calls.push(url);
+      if (url.searchParams.get('action') === 'query') {
+        return { query: { pages: [{ pageid: 123, title: 'Mining armor', revisions: [{ revid: 456, timestamp: '2026-09-28T00:00:00Z' }] }] } };
+      }
+      return { parse: { pageid: 123, revid: 456, title: 'Mining armor', wikitext: 'old revision text', text: '<p>old</p>' } };
+    },
+  });
+  assert.equal(calls[0].searchParams.get('action'), 'query');
+  assert.equal(calls[1].searchParams.get('oldid'), '456');
+  assert.equal(calls[1].searchParams.has('page'), false);
+  assert.equal(payload.revisionId, 456);
+  assert.equal(payload.revisionTimestamp, '2026-09-28T00:00:00Z');
+  assert.equal(payload.requestedPageTitle, 'Mining Pants');
+});
+
+test('revision-bound page capture rejects a parse result for a different revision', async () => {
+  await assert.rejects(fetchWikiPagePayload({ pageTitle: 'Armor', requireRevisionBinding: true,
+    fetchWikiApiJsonImpl: async ({ url }) => url.searchParams.get('action') === 'query'
+      ? { query: { pages: [{ pageid: 123, title: 'Armor', revisions: [{ revid: 456, timestamp: '2026-09-28T00:00:00Z' }] }] } }
+      : { parse: { pageid: 123, revid: 457, title: 'Armor', wikitext: 'new text', text: '<p>new</p>' } },
+  }), /revision.*(match|drift)/i);
+});
+
 test('immutable JSON writer rejects a symbolic-link ancestor before publication', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-symlink-'));
   const outside = path.join(root, 'outside');

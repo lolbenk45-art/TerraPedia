@@ -255,6 +255,7 @@ export async function fetchWikiModuleContent({
 export async function fetchWikiPagePayload({
   pageTitle,
   apiUrl = DEFAULT_WIKI_API_URL,
+  requireRevisionBinding = false,
   fetchWikiApiJsonImpl = fetchWikiApiJson
 } = {}) {
   if (typeof pageTitle !== 'string' || pageTitle.trim() === '') {
@@ -262,6 +263,26 @@ export async function fetchWikiPagePayload({
   }
 
   const parseUrl = buildWikiPageParseUrl({ pageTitle, apiUrl });
+  let selectedRevision = null;
+  let selectedPage = null;
+  if (requireRevisionBinding) {
+    const metadataUrl = new URL(apiUrl);
+    for (const [key, value] of Object.entries({ action: 'query', titles: pageTitle, prop: 'revisions',
+      rvprop: 'ids|timestamp', rvslots: 'main', redirects: '1', format: 'json', formatversion: '2' })) {
+      metadataUrl.searchParams.set(key, value);
+    }
+    const metadata = await fetchWikiApiJsonImpl({ url: metadataUrl, profile: 'revision', sourceKey: pageTitle });
+    selectedPage = metadata?.query?.pages?.[0];
+    selectedRevision = selectedPage?.revisions?.[0];
+    if (!Number.isSafeInteger(selectedPage?.pageid) || selectedPage.pageid <= 0
+        || !Number.isSafeInteger(selectedRevision?.revid) || selectedRevision.revid <= 0
+        || !Number.isFinite(Date.parse(selectedRevision?.timestamp))) {
+      throw new Error(`Wiki page revision identity missing for ${pageTitle}`);
+    }
+    parseUrl.searchParams.delete('page');
+    parseUrl.searchParams.set('oldid', String(selectedRevision.revid));
+    parseUrl.searchParams.set('prop', 'wikitext|text|sections|revid');
+  }
 
   const parseBody = await fetchWikiApiJsonImpl({
     url: parseUrl,
@@ -273,7 +294,10 @@ export async function fetchWikiPagePayload({
     throw new Error(`Wiki page parse result missing for ${pageTitle}`);
   }
 
-  const revisionTimestamp = await fetchWikiPageRevisionTimestamp({
+  if (selectedRevision && (parsed.revid !== selectedRevision.revid || parsed.pageid !== selectedPage.pageid)) {
+    throw new Error(`Wiki page revision binding mismatch for ${pageTitle}`);
+  }
+  const revisionTimestamp = selectedRevision?.timestamp ?? await fetchWikiPageRevisionTimestamp({
     pageTitle: parsed.title ?? pageTitle,
     apiUrl,
     fetchWikiApiJsonImpl
@@ -285,6 +309,7 @@ export async function fetchWikiPagePayload({
     pageTitle: parsed.title ?? pageTitle,
     pageId: parsed.pageid,
     revisionTimestamp,
+    ...(selectedRevision ? { revisionId: selectedRevision.revid } : {}),
     fetchedAt: new Date().toISOString(),
     wikitext: parsed.wikitext,
     html: parsed.text,
