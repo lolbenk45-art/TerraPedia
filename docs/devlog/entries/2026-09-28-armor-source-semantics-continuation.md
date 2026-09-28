@@ -97,3 +97,6 @@
 - Bounded fresh fetch `.a63-20260929-06` was stopped at 36/111 unique unknown pages after confirming it did not produce admissible applicability facts. Its source-status report records zero writes. No partial page output is promoted or merged into the prior source namespace.
 
 - Added result-path freshness/confinement checks to the Buff runner before loading or starting a transaction; existing result artifacts now fail before any permit consumption or DB connection work. Focused runner tests pass 13/13.
+
+- Fresh read-only runtime checkpoint `2026-09-29` confirms scheduler disabled, attempts/claims `0/0`, healthy reconciler, active fences `0`, unchanged server UUID/H8/epoch. Buff baseline: landing `2` rows (`12435` current generated/unrevisioned), maint/relation/projection `388` active rows each. No new source namespace is in the database.
+- Because the governed landing importer performs schema preparation and historical retirement, it remains out of scope. The current full-chain envelope can execute maint/relation only against an already persisted new landing identity; it cannot safely invent a landing ID or overwrite `12435`. New landing insertion needs a separate bounded landing mutation contract before any packet is generated.
