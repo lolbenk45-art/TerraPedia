@@ -36,3 +36,4 @@ Active focus: complete governed source → landing → maint → relation → pr
 - Previous detailed state, including superseded blockers: [September27 history](archive/2026-09-27-armor-image-current-history.md).
 
 - Fresh `.a63-20260928-04` source completed (revision-bound 230-row page + independent Mining Pants revision 247540). Exact legs identity correction is evidenced, but proposal remains blocked by six qualified Shroomite values (`>15%`/`>20%`); no landing/maint/relation write or decision was consumed.
+- Independent Shroomite armor source `.a63-20260928-06` completed at revision 251936 but only confirms set-level effects, so it cannot resolve the six per-piece qualified values. Armor publication remains blocked; no landing/maint/relation write or decision was consumed.
