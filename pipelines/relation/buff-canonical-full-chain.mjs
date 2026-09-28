@@ -45,11 +45,13 @@ export function buildBuffFullChainExecutionEnvelope({
       table: 'source_dataset_landings',
       rowCount: landings.length,
       sha256: hashCanonical(landings),
+      rows: landings,
     },
     frozenMaintIdentity: {
       table: 'maint_buffs',
       rowCount: maint.length,
       sha256: hashCanonical(maint),
+      rows: maint,
     },
     pageEvidenceCount: evidence.size,
     pageEvidenceSha256: hashCanonical([...evidence.entries()]),

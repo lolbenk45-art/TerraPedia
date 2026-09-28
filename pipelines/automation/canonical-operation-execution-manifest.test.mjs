@@ -83,7 +83,8 @@ function governedL1ManifestOptions(operationId) {
 
 function manifestOptions(operationId) {
   if (operationId === 'canonical-armor-set-projection-incremental'
-      || operationId === 'canonical-armor-secondary-projection') return { resultLabel: 'test-01' };
+      || operationId === 'canonical-armor-secondary-projection'
+      || operationId === 'canonical-buff-full-chain') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-image-cache') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-semantic-repair') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-ingestion') return {
@@ -368,8 +369,8 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 124);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 122);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 125);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 123);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(

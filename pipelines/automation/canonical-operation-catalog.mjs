@@ -48,6 +48,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-projectile-backfill',
   'canonical-projectile-t1-acceptance',
   'canonical-buff-t1-acceptance',
+  'canonical-buff-full-chain',
   'canonical-biome-t1-acceptance',
   'canonical-biome-image-contract-apply',
   'canonical-crawler-v2-scheduler-t1-acceptance',
@@ -245,6 +246,7 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'canonical-buff-t1-acceptance': Object.freeze([
     'pipelines/buff/fixtures/buff-t1.sample.json',
   ]),
+  'canonical-buff-full-chain': Object.freeze([]),
   'canonical-biome-t1-acceptance': Object.freeze([
     'pipelines/biome/fixtures/biome-t1.sample.json',
   ]),
@@ -578,6 +580,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-projectile-backfill': 'pipelines/backfill/backfill-projectile-zh-and-images.mjs',
   'canonical-projectile-t1-acceptance': 'pipelines/automation/run-live-automation-acceptance.mjs',
   'canonical-buff-t1-acceptance': 'pipelines/automation/run-live-automation-acceptance.mjs',
+  'canonical-buff-full-chain': 'pipelines/relation/run-buff-canonical-ingestion.mjs',
   'canonical-biome-t1-acceptance': 'pipelines/automation/run-live-automation-acceptance.mjs',
   'canonical-biome-image-contract-apply': 'pipelines/relation/apply-biome-image-contract.mjs',
   'canonical-crawler-v2-scheduler-t1-acceptance': 'pipelines/monitor/crawler-queue-v2-scheduler-lifecycle.mjs',

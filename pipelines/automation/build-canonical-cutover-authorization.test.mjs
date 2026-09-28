@@ -329,6 +329,7 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-projectile-backfill',
     'canonical-projectile-t1-acceptance',
     'canonical-buff-t1-acceptance',
+    'canonical-buff-full-chain',
     'canonical-biome-t1-acceptance',
     'canonical-biome-image-contract-apply',
     'canonical-crawler-v2-scheduler-t1-acceptance',

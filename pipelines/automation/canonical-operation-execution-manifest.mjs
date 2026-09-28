@@ -87,6 +87,7 @@ const ARMOR_CANONICAL_OPERATION_ID = 'canonical-armor-ingestion';
 const ARMOR_SEMANTIC_REPAIR_OPERATION_ID = 'canonical-armor-semantic-repair';
 const ARMOR_SECONDARY_OPERATION_ID = 'canonical-armor-secondary-projection';
 const ARMOR_IMAGE_CACHE_OPERATION_ID = 'canonical-armor-image-cache';
+const BUFF_FULL_CHAIN_OPERATION_ID = 'canonical-buff-full-chain';
 const TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID = 'canonical-two-item-image-quarantine-repair';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 const AUTHORIZED_RUNNER_CODE_PATH = 'pipelines/automation/run-authorized-canonical-operation.mjs';
@@ -506,6 +507,16 @@ const CODE_PATHS = Object.freeze({
     'pipelines/maint/sync-landing-to-maint.mjs',
     'pipelines/relation/sync-maint-to-relation.mjs',
   ]),
+  [BUFF_FULL_CHAIN_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-buff-canonical-ingestion.mjs',
+    'pipelines/relation/buff-canonical-transaction-executor.mjs',
+    'pipelines/relation/buff-canonical-full-chain.mjs',
+    'pipelines/automation/authorized-operation-context.mjs',
+    'pipelines/automation/build-canonical-cutover-authorization.mjs',
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'pipelines/lib/project-root.mjs',
+  ]),
   'canonical-biome-t1-acceptance': Object.freeze([
     'pipelines/automation/run-live-automation-acceptance.mjs',
     'pipelines/biome/biome-canonical-t1-acceptance.mjs',
@@ -911,6 +922,9 @@ export function buildCanonicalOperationExecutionContract({
   if (operationId === ARMOR_SEMANTIC_REPAIR_OPERATION_ID && !normalizedResultLabel) {
     throw new Error('Armor semantic repair result label is required');
   }
+  if (operationId === BUFF_FULL_CHAIN_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Buff full-chain result label is required');
+  }
   if (operationId === ARMOR_CANONICAL_OPERATION_ID
       && (!armorCanonicalIntentBinding || typeof armorCanonicalIntentBinding !== 'object')) {
     throw new Error('Armor canonical ingestion intent binding is required');
@@ -924,6 +938,7 @@ export function buildCanonicalOperationExecutionContract({
       && operationId !== ARMOR_SEMANTIC_REPAIR_OPERATION_ID
       && operationId !== ARMOR_SECONDARY_OPERATION_ID
       && operationId !== ARMOR_IMAGE_CACHE_OPERATION_ID
+      && operationId !== BUFF_FULL_CHAIN_OPERATION_ID
       && operationId !== 'automation-crawler-v2-scheduler-activation') {
     throw new Error('result label is supported only for an NPC owner operation');
   }
@@ -1583,6 +1598,31 @@ function buildDefinition(
       ownershipKeys: ['relation.projection_item_armor_attributes.armor_members',
         'relation.projection_equipment_effect_attributes.armor_member_item_cells'],
       requiredOperationIds: [], databaseWrites: true, networkAccess: false,
+    },
+    [BUFF_FULL_CHAIN_OPERATION_ID]: {
+      executionClass: 'formal_buff_canonical_full_chain',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--operation-id=${BUFF_FULL_CHAIN_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.envelope.json`],
+      outputPaths: [`reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: [
+        'local.source_dataset_landings.buffs_raw',
+        'maint.maint_buffs',
+        'relation.relation_buffs',
+        'relation.item_buff_relations',
+        'relation.npc_buff_relations',
+        'relation.relation_buff_images',
+        'relation.projection_buffs',
+      ],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+      buffFullChain: {
+        envelopePath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.envelope.json`,
+        resultPath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`,
+      },
     },
     [ARMOR_SEMANTIC_REPAIR_OPERATION_ID]: {
       executionClass: 'formal_armor_semantic_repair',
