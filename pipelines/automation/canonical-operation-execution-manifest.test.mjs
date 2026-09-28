@@ -728,6 +728,14 @@ test('shimmer import manifest passes only the private exact input contract to th
     assert.equal(manifest.databaseWrites, true);
     assert.equal(manifest.networkAccess, false);
     assert.deepEqual(manifest.shimmerImport, fixture.binding);
+    assert.deepEqual(manifest.ownershipKeys, [
+      'local.world_contexts.shimmer_context',
+      'local.entity_source_snapshots.shimmer_source_lineage',
+      'local.shimmer_item_transforms.shimmer_source_page',
+      'local.shimmer_decraft_rules.shimmer_source_page',
+      'local.shimmer_entity_transforms.shimmer_source_page',
+      'local.shimmer_npc_transforms.shimmer_source_page',
+    ]);
     assert.ok(manifest.command.every((token) => !String(token).includes('latest')));
     assert.ok(manifest.command.every((token) => !String(token).startsWith('--raw=')));
     assert.ok(manifest.command.every((token) => !String(token).startsWith('--input=')));
@@ -752,6 +760,7 @@ test('shimmer import manifest passes only the private exact input contract to th
     const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
     for (const expectedPath of [
       'pipelines/import/import-wiki-shimmer-to-db.mjs',
+      'pipelines/automation/shimmer-partition-contract.mjs',
       'pipelines/automation/canonical-shimmer-import-input-contract.mjs',
       'pipelines/automation/authorized-operation-context.mjs',
       'pipelines/automation/build-canonical-cutover-authorization.mjs',

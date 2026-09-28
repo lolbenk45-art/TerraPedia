@@ -90,6 +90,14 @@ const ARMOR_IMAGE_CACHE_OPERATION_ID = 'canonical-armor-image-cache';
 const TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID = 'canonical-two-item-image-quarantine-repair';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 const AUTHORIZED_RUNNER_CODE_PATH = 'pipelines/automation/run-authorized-canonical-operation.mjs';
+const SHIMMER_SIX_SCOPE_OWNERSHIP_KEYS = Object.freeze([
+  'local.world_contexts.shimmer_context',
+  'local.entity_source_snapshots.shimmer_source_lineage',
+  'local.shimmer_item_transforms.shimmer_source_page',
+  'local.shimmer_decraft_rules.shimmer_source_page',
+  'local.shimmer_entity_transforms.shimmer_source_page',
+  'local.shimmer_npc_transforms.shimmer_source_page',
+]);
 const L2_OPERATION_IDS = Object.freeze({
   items: 'automation-items-l2-promotion',
   npcs: 'automation-npcs-l2-promotion',
@@ -540,6 +548,7 @@ const CODE_PATHS = Object.freeze({
   ]),
   'canonical-shimmer-import': Object.freeze([
     'pipelines/import/import-wiki-shimmer-to-db.mjs',
+    'pipelines/automation/shimmer-partition-contract.mjs',
     'pipelines/automation/canonical-shimmer-import-input-contract.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
     'pipelines/transform/shimmer-generation-contract.mjs',
@@ -1991,6 +2000,7 @@ function buildDefinition(
       reportPaths: [],
       progressPaths: [],
       shimmerImport,
+      ownershipKeys: [...SHIMMER_SIX_SCOPE_OWNERSHIP_KEYS],
       databaseWrites: true,
       networkAccess: false,
     },

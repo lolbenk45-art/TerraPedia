@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const GENERATION_ID_PATTERN = /^(?:[a-f0-9]{64}|sha256:[a-f0-9]{64})$/;
 const TRANSFORM_TABLES = Object.freeze([
   'shimmer_item_transforms',
   'shimmer_decraft_rules',
@@ -20,7 +21,7 @@ export const SHIMMER_PARTITION_SCOPES = Object.freeze([
 
 export function buildShimmerPartitionBundle({ scopes, ownerApprovals, fences, generationId, previewSha256 } = {}) {
   const normalizedScopes = assertScopes(scopes);
-  if (!HASH_PATTERN.test(String(generationId ?? '')) || !HASH_PATTERN.test(String(previewSha256 ?? ''))) {
+  if (!GENERATION_ID_PATTERN.test(String(generationId ?? '')) || !HASH_PATTERN.test(String(previewSha256 ?? ''))) {
     throw new Error('Shimmer partition generation and preview identities are required');
   }
   const approvals = [...new Set(ownerApprovals ?? [])].sort();

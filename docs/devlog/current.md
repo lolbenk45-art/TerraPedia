@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-09-28 16:16 CST by Codex
+Last updated: 2026-09-28 17:57 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation`
 Active focus: complete governed source → landing → maint → relation → projection/API ingestion; overall active.
@@ -38,4 +38,5 @@ Active focus: complete governed source → landing → maint → relation → pr
 - Fresh `.a63-20260928-04` source completed (revision-bound 230-row page + independent Mining Pants revision 247540). Exact legs identity correction is evidenced, but proposal remains blocked by six qualified Shroomite values (`>15%`/`>20%`); no landing/maint/relation write or decision was consumed.
 - Independent Shroomite armor source `.a63-20260928-06` completed at revision 251936 but only confirms set-level effects, so it cannot resolve the six per-piece qualified values. Armor publication remains blocked; no landing/maint/relation write or decision was consumed.
 - Buff B1/Shimmer S1 execution contracts are now covered by RED/GREEN tests, while runtime registration remains blocked until their real full-chain importers and policy/fence scopes are wired. A fresh isolated Buff page-immunity collection `b1-a63-20260928-01` is running without database writes.
+- Shimmer's registered import manifest now declares six ownership keys and its importer fails closed before `BEGIN` without a matching fenced six-scope partition bundle; Buff has a bounded transaction protocol/SQL mutation writer with RED/GREEN tests, but no Buff runner/catalog packet is registered yet. Buff collection `b1-a63-20260928-01` remains the sole active source writer (`144/400`, `running`).
 - Shimmer current generation `379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761` has a read-only preview drift across all four transform hashes and 63 snapshots while counts stay `279/248/121/29`; its persisted L2 policy still owns only the four transform tables, so no proposal or apply is authorized.

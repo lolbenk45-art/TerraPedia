@@ -58,3 +58,14 @@ test('Shimmer partition bundle rejects a missing cross-owner fence or approval',
     generationId: HASH, previewSha256: HASH,
   }), /approval|owner/i);
 });
+
+test('Shimmer partition accepts the content-addressed generation id emitted by the generator', () => {
+  const result = buildShimmerPartitionBundle({
+    scopes: scopes(),
+    ownerApprovals: ['shimmer', 'items', 'town_npc_maintenance'],
+    fences: fences(),
+    generationId: 'd'.repeat(64),
+    previewSha256: HASH,
+  });
+  assert.equal(result.generationId, 'd'.repeat(64));
+});
