@@ -11,6 +11,8 @@ import {
   assertBuffLockedRowsMatchEnvelope,
   assertBuffSourceRowsMatchEnvelope,
   assertBuffResultPathAvailable,
+  applyBuffUpstreamMutations,
+  getBuffLandingLockIds,
 } from './run-buff-canonical-ingestion.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
@@ -85,6 +87,35 @@ test('Buff canonical ingestion refuses to apply without an authorized execution 
     resultLabel: 'retry-01',
     env: {},
   }), /authorized|packet|context/i);
+});
+
+test('Buff upstream execution inserts the fresh landing before binding and applying maint', async () => {
+  const calls = [];
+  const envelope = {
+    upstream: {
+      landing: { schemaVersion: 'buff-landing-mutation/v1', landing: { source_key: 'fresh' } },
+      maint: { schemaVersion: 'buff-maint-mutation-plan/v1', landingIdentity: { id: null, sourceKey: 'fresh', contentHash: 'a'.repeat(64) }, inserts: [], updates: [], unchanged: [], preserved: [], deletes: [] },
+    },
+  };
+  const result = await applyBuffUpstreamMutations({
+    envelope,
+    connection: {},
+    applyLanding: async () => { calls.push('landing'); return { landingId: 13001, row: { id: 13001, source_key: 'fresh', content_hash: 'a'.repeat(64) } }; },
+    bindMaint: ({ plan, landingRow }) => ({ ...plan, landingIdentity: { ...plan.landingIdentity, id: landingRow.id } }),
+    applyMaint: async ({ envelope: boundEnvelope }) => { calls.push('maint'); return boundEnvelope.upstream.maint; },
+  });
+  assert.deepEqual(calls, ['landing', 'maint']);
+  assert.equal(result.landingId, 13001);
+  assert.equal(result.maint.landingIdentity.id, 13001);
+});
+
+test('Buff deferred landing envelope does not require a preallocated landing lock ID', () => {
+  assert.deepEqual(getBuffLandingLockIds({
+    frozenLandingIdentity: { rows: [] },
+    upstream: { landing: { schemaVersion: 'buff-landing-mutation/v1' } },
+  }), []);
+  assert.deepEqual(getBuffLandingLockIds({ frozenLandingIdentity: { rows: [{ id: 31 }] } }), [31]);
+  assert.throws(() => getBuffLandingLockIds({ frozenLandingIdentity: { rows: [] } }), /landing.*identity|deferred/i);
 });
 
 for (const extra of [

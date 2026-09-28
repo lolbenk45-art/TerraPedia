@@ -26,6 +26,11 @@ export function buildBuffLandingInsertPlan({ landingRow, sourceEvidenceHash, run
   });
 }
 
+export function assertBuffLandingMutationPlan(plan) {
+  validatePlan(plan);
+  return true;
+}
+
 export async function applyBuffLandingMutation({ connection, plan, transactionContext } = {}) {
   validatePlan(plan);
   if (!transactionContext?.transactionActive || !transactionContext?.fenceHeld) {

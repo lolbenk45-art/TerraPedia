@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import { assertBuffLandingMutationPlan } from '../landing/buff-bounded-landing-mutation.mjs';
+
 const TABLES = Object.freeze([
   'relation_buffs',
   'item_buff_relations',
@@ -17,10 +19,15 @@ export function buildBuffFullChainExecutionEnvelope({
   pageEvidenceByInternalName,
   runtimeManagedImagePolicySha256,
   maintMutation,
+  landingMutation = null,
 } = {}) {
   assertCandidate(candidate);
   assertMaintMutation(maintMutation);
-  const landings = assertLandingRows(landingRows);
+  const landingPlan = landingMutation == null ? null : assertBuffLandingMutationPlan(landingMutation) && landingMutation;
+  const landings = assertLandingRows(landingRows, { allowEmpty: landingPlan != null });
+  if (landingPlan && landings.length > 0) {
+    throw new Error('Buff deferred landing mutation cannot also freeze persisted landing rows');
+  }
   const maint = assertMaintRows(maintRows);
   const evidence = normalizeEvidence(pageEvidenceByInternalName);
   const relationRows = candidate.expectedRows.relation_buffs;
@@ -59,7 +66,7 @@ export function buildBuffFullChainExecutionEnvelope({
     pageEvidenceCount: evidence.size,
     pageEvidenceSha256: hashCanonical([...evidence.entries()]),
     managedImagePolicySha256: candidate.managedImageUrlPrefixesSha256,
-    upstream: { maint: maintMutation },
+    upstream: landingPlan ? { landing: clone(landingPlan), maint: maintMutation } : { maint: maintMutation },
     mutation: candidate,
   });
 }
@@ -113,8 +120,8 @@ function assertCandidate(candidate) {
   }
 }
 
-function assertLandingRows(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) throw new Error('frozen Buff landing rows are required');
+function assertLandingRows(rows, { allowEmpty = false } = {}) {
+  if (!Array.isArray(rows) || !allowEmpty && rows.length === 0) throw new Error('frozen Buff landing rows are required');
   for (const row of rows) {
     if (!Number.isSafeInteger(Number(row?.id)) || Number(row.id) < 1
         || row.dataset_type !== 'buffs_raw' || !CONTENT_HASH_PATTERN.test(String(row.content_hash ?? ''))) {

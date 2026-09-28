@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import { buildBuffMaintMutationPlan } from './buff-maint-mutation-plan.mjs';
+import {
+  bindBuffMaintMutationPlanToLanding,
+  buildBuffMaintMutationPlan,
+} from './buff-maint-mutation-plan.mjs';
 
 function landing(records = [{ id: 24, internalName: 'OnFire', englishName: 'On Fire!', type: 'debuff' }]) {
   const payload = { buffs: records };
@@ -90,4 +93,47 @@ test('Buff maint plan rejects duplicate inactive baseline identity', async () =>
   await assert.rejects(buildBuffMaintMutationPlan({
     landingRow: landing(), currentRows: [row, { ...row, id: 92, deleted: 1 }],
   }), /identity/);
+});
+
+test('Buff maint plan can defer only the generated landing ID', async () => {
+  const deferredLanding = landing();
+  deferredLanding.id = null;
+  const plan = await buildBuffMaintMutationPlan({
+    landingRow: deferredLanding,
+    currentRows: [],
+    allowUnmaterializedLandingId: true,
+  });
+  assert.equal(plan.landingIdentity.id, null);
+  assert.equal(plan.inserts[0].landing_source_id, null);
+});
+
+test('Buff maint plan binds the real landing ID without changing source identity', async () => {
+  const deferredLanding = landing();
+  deferredLanding.id = null;
+  const plan = await buildBuffMaintMutationPlan({
+    landingRow: deferredLanding,
+    currentRows: [],
+    allowUnmaterializedLandingId: true,
+  });
+  const bound = bindBuffMaintMutationPlanToLanding({
+    plan,
+    landingRow: { ...deferredLanding, id: 13001 },
+  });
+  assert.equal(bound.landingIdentity.id, 13001);
+  assert.equal(bound.inserts[0].landing_source_id, 13001);
+  assert.equal(bound.landingIdentity.contentHash, deferredLanding.content_hash);
+});
+
+test('Buff maint landing ID binding rejects source drift', async () => {
+  const deferredLanding = landing();
+  deferredLanding.id = null;
+  const plan = await buildBuffMaintMutationPlan({
+    landingRow: deferredLanding,
+    currentRows: [],
+    allowUnmaterializedLandingId: true,
+  });
+  assert.throws(() => bindBuffMaintMutationPlanToLanding({
+    plan,
+    landingRow: { ...deferredLanding, id: 13001, content_hash: 'f'.repeat(64) },
+  }), /landing|source|hash/i);
 });

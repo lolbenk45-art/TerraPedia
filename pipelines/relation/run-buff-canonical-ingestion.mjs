@@ -17,6 +17,8 @@ import {
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
 import { normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
+import { applyBuffLandingMutation } from '../landing/buff-bounded-landing-mutation.mjs';
+import { bindBuffMaintMutationPlanToLanding } from './buff-maint-mutation-plan.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   applyBuffCanonicalMutation,
@@ -120,7 +122,16 @@ export async function applyBuffCanonicalIngestion({
         authorizedContext: context,
         decisionLedgerPath: path.join(root, 'reports/authorization/canonical/used-decisions.json'),
       }),
-      applyUpstream: async () => applyBuffMaintMutation({ envelope, connection }),
+      applyUpstream: async () => applyBuffUpstreamMutations({
+        envelope,
+        connection,
+        applyLanding: ({ plan }) => applyBuffLandingMutation({
+          connection,
+          plan,
+          transactionContext: { transactionActive: true, fenceHeld: true },
+        }),
+        applyMaint: ({ envelope: boundEnvelope }) => applyBuffMaintMutation({ envelope: boundEnvelope, connection }),
+      }),
       applyMutation: async () => applyBuffCanonicalMutation({ envelope, connection }),
       verifyAfter: async () => verifyOwnedRows(connection, envelope),
     });
@@ -134,6 +145,41 @@ export async function applyBuffCanonicalIngestion({
       // absence of a completed result when a pre-commit guard rejects.
     }
   }
+}
+
+export async function applyBuffUpstreamMutations({
+  envelope,
+  connection,
+  applyLanding,
+  applyMaint,
+  bindMaint = bindBuffMaintMutationPlanToLanding,
+} = {}) {
+  if (!envelope?.upstream?.maint || typeof applyMaint !== 'function') {
+    throw new Error('Buff upstream maint plan and writer are required');
+  }
+  if (!envelope.upstream.landing) {
+    const maint = await applyMaint({ envelope, connection });
+    return { landingId: null, maint };
+  }
+  if (typeof applyLanding !== 'function') throw new Error('Buff upstream landing writer is required');
+  const landing = await applyLanding({
+    connection,
+    plan: envelope.upstream.landing,
+    transactionContext: { transactionActive: true, fenceHeld: true },
+  });
+  if (!Number.isSafeInteger(Number(landing?.landingId)) || Number(landing.landingId) < 1 || !landing.row) {
+    throw new Error('Buff upstream landing writer did not return a real landing identity');
+  }
+  const boundMaint = bindMaint({
+    plan: envelope.upstream.maint,
+    landingRow: { ...envelope.upstream.landing.landing, ...landing.row, id: Number(landing.landingId) },
+  });
+  const boundEnvelope = {
+    ...envelope,
+    upstream: { ...envelope.upstream, maint: boundMaint },
+  };
+  const maint = await applyMaint({ envelope: boundEnvelope, connection });
+  return { landingId: Number(landing.landingId), maint, boundMaint };
 }
 
 
@@ -166,18 +212,33 @@ async function lockRuntime(connection, packet, envelope) {
   if (active.length !== 1 || active[0].latest_run_id !== packet.runId || active[0].fence_token !== packet.fenceToken) {
     throw new Error('Buff canonical ingestion ownership fence is missing, foreign or expired');
   }
-  const landingIds = (envelope.frozenLandingIdentity?.rows ?? []).map((row) => Number(row.id)).filter(Number.isSafeInteger);
+  const landingIds = getBuffLandingLockIds(envelope);
   const maintIds = (envelope.frozenMaintIdentity?.rows ?? []).map((row) => Number(row.id)).filter(Number.isSafeInteger);
-  if (landingIds.length === 0 || maintIds.length === 0) throw new Error('Buff canonical ingestion frozen source identities are missing');
-  const [landingRows] = await connection.query(
-    `SELECT * FROM terria_v1_local.source_dataset_landings WHERE id IN (${landingIds.map(() => '?').join(',')}) FOR UPDATE`,
-    landingIds,
-  );
+  if (maintIds.length === 0) throw new Error('Buff canonical ingestion frozen maint identities are missing');
+  const [landingRows] = landingIds.length > 0
+    ? await connection.query(
+      `SELECT * FROM terria_v1_local.source_dataset_landings WHERE id IN (${landingIds.map(() => '?').join(',')}) FOR UPDATE`,
+      landingIds,
+    )
+    : [[]];
   const [maintRows] = await connection.query(
     `SELECT * FROM terria_v1_maint.maint_buffs WHERE id IN (${maintIds.map(() => '?').join(',')}) FOR UPDATE`,
     maintIds,
   );
   assertBuffSourceRowsMatchEnvelope({ envelope, landingRows, maintRows });
+}
+
+export function getBuffLandingLockIds(envelope) {
+  const rows = envelope?.frozenLandingIdentity?.rows;
+  if (!Array.isArray(rows)) throw new Error('Buff frozen landing identity rows are required');
+  const ids = rows.map((row) => Number(row?.id));
+  if (ids.some((id) => !Number.isSafeInteger(id) || id < 1)) {
+    throw new Error('Buff frozen landing identity contains an invalid id');
+  }
+  if (ids.length === 0 && !envelope?.upstream?.landing) {
+    throw new Error('Buff frozen landing identity is missing and no deferred landing plan exists');
+  }
+  return ids;
 }
 
 async function readOwnedRows(connection) {
