@@ -1,14 +1,15 @@
 # Current Devlog
 
-Last updated: 2026-09-29 11:00 CST by Codex
+Last updated: 2026-09-29 06:57 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation`
-Active focus: complete governed source → landing → maint → relation → projection/API ingestion; overall active.
+Active focus: complete governed source → landing → maint → relation → projection/API ingestion through isolated domain branches; overall active.
 
 ## Open work
 
-- Owner: Codex, serial implementation and current-model spec/quality review; no subagents.
+- Owner: Codex coordinator, serial integration and current-model spec/quality review; domain worktree shells are reserved for disjoint Armor, Buff and Shimmer slices.
 - Worktree: `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`.
+- Branch matrix: [automation domain worktree matrix](entries/2026-09-29-automation-domain-worktree-matrix.md), closed at this checkpoint; coordinator-only updates to this index.
 - Active child: [Armor source semantics](entries/2026-09-28-armor-source-semantics-continuation.md), `active`; same owner/branch/worktree, dependent on parser/source evidence and fresh runtime gates.
 - Parent: [Armor image continuation](entries/2026-09-27-armor-image-cache-continuation.md), `active` for remaining source/full-chain gates.
 - Parent: [Armor secondary projections](entries/2026-09-26-armor-secondary-projection-continuation.md), `active` for remaining full-chain gates.
@@ -19,7 +20,7 @@ Active focus: complete governed source → landing → maint → relation → pr
 
 ## Verified checkpoint and next action
 
-- Local workspace checkpoint: implementation `bf0df600`; evidence/closeout follows in Git. [Workspace checkpoint](entries/2026-09-28-automation-workspace-checkpoint.md) is closed with validation and the retained-artifact inventory. No push requested; overall ingestion remains active.
+- Local workspace checkpoint: implementation `b01033e6`; the prior `bf0df600` reference is historical and no longer the current branch tip. [Workspace checkpoint](entries/2026-09-28-automation-workspace-checkpoint.md) is closed with validation and the retained-artifact inventory. No push requested; overall ingestion remains active.
 - Source parser/capture checkpoint: real 18/19-column headers now determine attribute semantics; raw HTML/wikitext can be frozen with revision IDs and immutable hashes;49/49 Node22 tests pass. Mining Helmet's legs-table link is wrong in the Wiki source itself. Collection `.a63-20260928-02` remains alive in the request gate's403 cooldown until08:16 CST; poll its progress before another crawler or DB writer. Details and next source/proposal gates are in the active child.
 - Resource effects now preserve mana/capacity/movement units and reject qualified numeric cells; independent candidate and relation regressions are 168/168. Revision-bound collection `.a63-20260928-02` failed at 08:16 CST with Wiki HTTP403 and produced no authority; do not promote `.01` or start DB writes until a fresh source succeeds.
 - Read-only baseline at 15:56 CST still matches `.22` projection state (active relation 246/320; projection 223/290) with disabled scheduler, 0/0 live work, healthy reconciler and unchanged H8/epoch/server. Broad relation tests are 1042/1050; eight unrelated modules fail because `mysql2/promise` is unavailable.

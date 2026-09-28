@@ -6,7 +6,7 @@
 
 ## Scope and handoff
 
-- Owner/reviewer: Codex, serial current-model review, no subagents. Branch `feat/automation-scheduler-continuation`, worktree `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`; current clean checkpoint HEAD `6b15d82b`.
+- Owner/reviewer: Codex coordinator, serial current-model review. Branch `feat/automation-scheduler-continuation`, worktree `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`; current clean checkpoint HEAD `b01033e6`. Domain branch shells and ownership are recorded in `2026-09-29-automation-domain-worktree-matrix.md`.
 - Parent: `2026-09-27-armor-image-cache-continuation.md`; standing authority remains in `2026-09-19-automation-scheduler-authorization-list.md`. User requested continuation after the verified workspace checkpoint.
 - Success: resolve source parsing/provenance conflicts with reproducible evidence and tests; publish only newly authorized registered operations with exact DB/public/admin readback, then continue the parent Armor/Buff/Shimmer gates.
 - No local.items writes, DDL, direct SQL/Redis repair, scheduler activation, H8 expansion, historical source overwrite or consumed-decision replay. Image caches `.32/.33` are already completed.
