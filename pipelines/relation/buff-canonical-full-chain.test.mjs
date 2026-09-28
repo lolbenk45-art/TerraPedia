@@ -114,6 +114,8 @@ test('Buff full-chain envelope carries a deferred landing insert plan without in
   assert.equal(result.frozenLandingIdentity.rows.length, 0);
   assert.equal(result.upstream.landing.schemaVersion, 'buff-landing-mutation/v1');
   assert.equal(result.upstream.landing.landing.id, undefined);
+  assert.equal(result.executable, false);
+  assert.equal(result.executionBlocker, 'deferred-lineage-integration-required');
 });
 
 for (const duplicate of [

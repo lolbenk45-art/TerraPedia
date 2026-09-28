@@ -133,6 +133,9 @@ export async function applyBuffMaintMutation({ envelope, connection, database = 
 }
 
 function validateEnvelope(envelope) {
+  if (envelope?.upstream?.landing != null) {
+    throw new Error('Buff deferred landing lineage integration is incomplete');
+  }
   if (!envelope || envelope.schemaVersion !== 'buff-full-chain-execution/v1'
       || envelope.executable !== true || envelope.executionBlocker != null) {
     throw new Error('Buff canonical transaction envelope is not executable');

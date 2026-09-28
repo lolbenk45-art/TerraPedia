@@ -47,8 +47,8 @@ export function buildBuffFullChainExecutionEnvelope({
   return deepFreeze({
     schemaVersion: 'buff-full-chain-execution/v1',
     domainId: 'buffs',
-    executable: true,
-    executionBlocker: null,
+    executable: landingPlan == null,
+    executionBlocker: landingPlan ? 'deferred-lineage-integration-required' : null,
     tables: [...TABLES],
     candidateSha256: hashCanonical(candidate),
     frozenLandingIdentity: {

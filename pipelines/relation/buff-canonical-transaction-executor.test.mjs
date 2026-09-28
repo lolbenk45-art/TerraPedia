@@ -207,3 +207,18 @@ test('Buff maint writer rejects an out-of-scope upstream table before SQL', asyn
   const input = envelope(); input.upstream.maint.table = 'terria_v1_local.source_dataset_landings';
   await assert.rejects(applyBuffMaintMutation({ envelope: input, connection: { async execute() { throw new Error('must not execute'); } } }), /upstream maint plan|maint mutation database/);
 });
+
+// A valid packet cannot complete missing relation/projection ID materialization.
+test('deferred landing fails before BEGIN and permit consumption even with executable=true', async () => {
+  const calls = [];
+  const input = envelope();
+  input.upstream.landing = { schemaVersion: 'buff-landing-mutation/v1' };
+  const record = async () => calls.push('callback');
+  await assert.rejects(executeBuffCanonicalTransaction({
+    envelope: input,
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    connection: connection(calls), lockRuntime: record, readLockedRows: record,
+    consumeDispatchPermit: record, applyUpstream: record, applyMutation: record, verifyAfter: record,
+  }), /deferred.*lineage/i);
+  assert.deepEqual(calls, []);
+});

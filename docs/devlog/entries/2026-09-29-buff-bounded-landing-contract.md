@@ -2,7 +2,7 @@
 
 ## Status
 
-`closed`
+`blocked`
 
 ## Scope and handoff
 
@@ -42,3 +42,28 @@
 - Result: deferred landing ID binding is integrated through landing → maint → relation/projection runner ordering; no runtime publication was attempted.
 - Follow-up owner: coordinator reopens the Buff child after admissible source evidence exists and regenerates the fresh candidate/envelope/packet.
 - Commit SHA: `commit SHA pending in final response`.
+
+## Review correction — workspace closeout
+
+The earlier integrated/completed statements are superseded. Node 26 helper tests
+proved ordering only; they did not prove full-chain runtime readiness. Current-model
+serial review found that the returned landing ID reaches maint but not the frozen
+relation/projection candidate, maint rows are not fully rederived/read back, SQL
+DATETIME readback differs from ISO input, and fence/result recovery and code-bundle
+coverage remain unresolved. Source applicability is therefore not the only blocker.
+
+Two Node 22 RED regressions reproduced executable deferred envelopes and entry into
+the transaction. The builder now labels these envelopes non-executable and the
+transaction rejects every deferred landing path before BEGIN/permit consumption,
+even if a caller changes executable=true. This is containment only. The standalone
+landing writer remains an unregistered prototype; do not call it against a live DB.
+The source key/hash-only binding, incomplete payload readback and caller-provided
+transaction/fence booleans require replacement before that prototype can be used.
+
+Owner: Buff domain developer. Next: typed IDs across all downstream rows, complete
+locked source/candidate rederivation, native date normalization and full after-set,
+real fence acquisition, uncertain-commit journal/recovery and manifest pinning,
+then zero-unknown source evidence and fresh governed runtime tests. Do not mint a
+packet from the current deferred envelope. No runtime write occurred in this review.
+
+Validation: Node v22.23.0 focused landing/maint/envelope/transaction/runner suite 60/60 passed; git diff --check passed. Entry remains blocked for the named runtime gaps.
