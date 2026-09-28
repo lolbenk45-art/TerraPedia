@@ -35,6 +35,32 @@ test('buildArmorAttributeEffectRows keeps class-specific critical cells typed by
   ]);
 });
 
+test('armor cells retain resource units and signed modifiers without double counting summary totals', () => {
+  const rows = buildArmorAttributeEffectRows([{
+    recordKey: 'resources', itemId: 1, slotGroup: 'head',
+    rawCellsJson: JSON.stringify({ maxMana: '+40', manaCost: '−10%', minionSlots: '+1',
+      sentrySlots: '+2', movementSpeed: '12%', meleeDamage: '5%', meleeCritChance: '3%',
+      meleeDamageCritChance: '8%' }),
+  }]);
+  assert.deepEqual(rows.map(row => [row.statKey, row.classScope, row.valueDecimal, row.unit]), [
+    ['damage_bonus', 'melee', 5, 'percent'], ['crit_chance', 'melee', 3, 'percent'],
+    ['mana_max', 'magic', 40, 'count'], ['mana_cost', null, -10, 'percent'],
+    ['minion_capacity', null, 1, 'count'], ['sentry_capacity', null, 2, 'count'],
+    ['move_speed', null, 12, 'percent'],
+  ]);
+  assert.deepEqual(rows.map(row => row.effectIndex), [0, 4, 8, 9, 10, 11, 12]);
+  assert.equal(new Set(rows.map(row => row.recordKey)).size, rows.length);
+});
+
+for (const [cell, value] of [['rangedDamage', '>15%'], ['maxMana', '+40%'],
+  ['movementSpeed', '10% when moving'], ['minionSlots', '+1.5']]) {
+  test(`rejects ambiguous or incorrectly dimensioned armor cell ${cell}=${value}`, () => {
+    assert.throws(() => buildArmorAttributeEffectRows([{
+      recordKey: 'ambiguous', itemId: 1, rawCellsJson: JSON.stringify({ [cell]: value }),
+    }]), /armor.*cell|numeric|unit/i);
+  });
+}
+
 test('buildArmorAttributeRelations reconciles a stale source slot to one exact armor-set part role', () => {
   const rows = buildArmorAttributeRelations({
     maintArmorAttributeRows: [{

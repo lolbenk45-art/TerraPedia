@@ -1136,9 +1136,12 @@ function slotGroupToSlotType(slotGroup) {
   return null;
 }
 
-function percentNumber(value) {
-  const match = String(value ?? '').match(/-?\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
+function armorCellNumber(value, unit, cellKey) {
+  const text = String(value ?? '').trim().replace(/\u2212/g, '-').replace(/\uff05/g, '%');
+  if (!text || text === '—' || text === '-') return null;
+  const pattern = unit === 'percent' ? /^[+-]?\d+(?:\.\d+)?%$/ : /^[+-]?\d+$/;
+  if (!pattern.test(text)) throw new Error(`Armor effect cell ${cellKey} requires an exact ${unit} numeric value`);
+  return Number(text.replace(/%$/, ''));
 }
 
 function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
@@ -1198,15 +1201,20 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
     ['meleeCritChance', 'crit_chance', '近战暴击率', 'melee'],
     ['rangedCritChance', 'crit_chance', '远程暴击率', 'ranged'],
     ['magicCritChance', 'crit_chance', '魔法暴击率', 'magic'],
-    ['classSpecific', 'melee_speed', '近战速度', 'melee']
+    ['classSpecific', 'melee_speed', '近战速度', 'melee'],
+    ['maxMana', 'mana_max', '最大魔力', 'magic', 'count'],
+    ['manaCost', 'mana_cost', '魔力花费', null],
+    ['minionSlots', 'minion_capacity', '仆从容量', null, 'count'],
+    ['sentrySlots', 'sentry_capacity', '哨兵容量', null, 'count'],
+    ['movementSpeed', 'move_speed', '移动速度', null]
   ];
   for (const armorRow of relationArmorAttributeRows) {
     if (!armorRow.itemId || armorRow.reviewStatus === 'unresolved') {
       continue;
     }
     const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
-    effectSpecs.forEach(([cellKey, statKey, statLabelZh, classScope], effectIndex) => {
-      const value = percentNumber(rawCells[cellKey]);
+    effectSpecs.forEach(([cellKey, statKey, statLabelZh, classScope, unit = 'percent'], effectIndex) => {
+      const value = armorCellNumber(rawCells[cellKey], unit, cellKey);
       if (value == null || value === 0) {
         return;
       }
@@ -1239,7 +1247,7 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
         operation: 'add',
         valueDecimal: value,
         valueMaxDecimal: null,
-        unit: 'percent',
+        unit,
         conditionText: null,
         rawText: String(rawCells[cellKey]),
         parseStatus: 'parsed',

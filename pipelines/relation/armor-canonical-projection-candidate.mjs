@@ -298,17 +298,25 @@ const ITEM_EFFECT_SPECS = [
   ['rangedCritChance', 'crit_chance', 'ranged'],
   ['magicCritChance', 'crit_chance', 'magic'],
   ['classSpecific', 'melee_speed', 'melee'],
+  ['maxMana', 'mana_max', 'magic', 'count'],
+  ['manaCost', 'mana_cost', null],
+  ['minionSlots', 'minion_capacity', null, 'count'],
+  ['sentrySlots', 'sentry_capacity', null, 'count'],
+  ['movementSpeed', 'move_speed', null],
 ];
 
-function percentValue(value) {
-  const match = String(value ?? '').match(/-?\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
+function armorCellValue(value, unit, cellKey) {
+  const text = String(value ?? '').trim().replace(/\u2212/g, '-').replace(/\uff05/g, '%');
+  if (!text || text === '—' || text === '-') return null;
+  const pattern = unit === 'percent' ? /^[+-]?\d+(?:\.\d+)?%$/ : /^[+-]?\d+$/;
+  if (!pattern.test(text)) throw new Error(`Armor effect cell ${cellKey} requires an exact ${unit} numeric value`);
+  return Number(text.replace(/%$/, ''));
 }
 
 function expectedItemEffects(attribute) {
   const raw = json(attribute.raw_cells_json, 'object', 'armor attribute cells');
-  return ITEM_EFFECT_SPECS.flatMap(([cellKey, statKey, classScope], effectIndex) => {
-    const value = percentValue(raw[cellKey]);
+  return ITEM_EFFECT_SPECS.flatMap(([cellKey, statKey, classScope, unit = 'percent'], effectIndex) => {
+    const value = armorCellValue(raw[cellKey], unit, cellKey);
     if (value == null || value === 0) return [];
     const itemLabel = attribute.item_name_zh ?? attribute.item_page_title ?? attribute.item_internal_name ?? null;
     const slotType = attribute.slot_group === 'head' ? 'headSlot'
@@ -321,8 +329,10 @@ function expectedItemEffects(attribute) {
       itemInternalName: attribute.item_internal_name, slotType, statKey,
       statLabelZh: ({ meleeDamage: '近战伤害', rangedDamage: '远程伤害', magicDamage: '魔法伤害',
         summonDamage: '召唤伤害', meleeCritChance: '近战暴击率', rangedCritChance: '远程暴击率',
-        magicCritChance: '魔法暴击率', classSpecific: '近战速度' })[cellKey], classScope,
-      operation: 'add', valueDecimal: value, valueMaxDecimal: null, unit: 'percent', conditionText: null,
+        magicCritChance: '魔法暴击率', classSpecific: '近战速度', maxMana: '最大魔力',
+        manaCost: '魔力花费', minionSlots: '仆从容量', sentrySlots: '哨兵容量',
+        movementSpeed: '移动速度' })[cellKey], classScope,
+      operation: 'add', valueDecimal: value, valueMaxDecimal: null, unit, conditionText: null,
       rawText: String(raw[cellKey]), parseStatus: 'parsed',
       sourceMaintTable: attribute.source_maint_table ?? null,
       sourceMaintRecordKey: attribute.source_maint_record_key ?? null,

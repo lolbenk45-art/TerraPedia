@@ -725,3 +725,19 @@ test('multiple active source attributes for one member block instead of choosing
   const result = await build(input);
   assert.ok(result.acceptance.blockers.some(row => row.code === 'armor-attribute-source-ambiguous'));
 });
+
+for (const [cell, value, unit] of [['maxMana', '+40', 'count'], ['manaCost', '-10%', 'percent'],
+  ['minionSlots', '+1', 'count'], ['sentrySlots', '+2', 'count'], ['movementSpeed', '12%', 'percent']]) {
+  test(`independently validates ${cell} resource effect units and missing effects`, async () => {
+    const input = await fixture();
+    const [effect] = addProducerItemEffects(input, { [cell]: value });
+    assert.ok(effect, 'source cell must produce a typed effect');
+    assert.equal(effect.unit, unit);
+    assert.equal((await build(input)).acceptance.status, 'dependencies-satisfied');
+    effect.unit = unit === 'percent' ? 'count' : 'percent';
+    assert.ok((await build(input)).acceptance.blockers.some(row => row.code === 'item-effect-source-stale'));
+    input.dependencyRows.relation_equipment_effect_attributes = input.dependencyRows.relation_equipment_effect_attributes
+      .filter(row => row !== effect);
+    assert.ok((await build(input)).acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
+  });
+}
