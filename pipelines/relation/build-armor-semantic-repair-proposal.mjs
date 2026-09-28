@@ -8,6 +8,7 @@ import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { extractMaintEntitiesFromLandingRow } from '../maint/sync-landing-to-maint.mjs';
 import { buildArmorAttributeRelations, buildArmorAttributeEffectRows } from './sync-maint-to-relation.mjs';
 import { buildArmorEffectKeyRetirementPlan } from './armor-semantic-repair.mjs';
+import { applyArmorSourceIdentityCorrections } from './armor-source-identity.mjs';
 
 export const ARMOR_SEMANTIC_REPAIR_OPERATION_ID = 'canonical-armor-semantic-repair';
 
@@ -25,7 +26,16 @@ export async function buildArmorSemanticRepairProposal({ repoRoot = process.cwd(
   const sourceFile = path.resolve(root, evidence.sourceArtifact.path);
   const sourceBytes = fs.readFileSync(sourceFile);
   if (hashValue(JSON.parse(sourceBytes)) !== evidence.sourceArtifact.contentHash) throw new Error('Armor semantic repair source bytes drifted');
-  const sourcePayload = JSON.parse(sourceBytes);
+  const sourcePayloadRaw = JSON.parse(sourceBytes);
+  if (evidence.schemaVersion !== 'canonical-armor-semantic-repair-source/v2') throw new Error('Armor semantic repair source evidence schema is unsupported');
+  const sourcePayload = {
+    ...sourcePayloadRaw,
+    records: applyArmorSourceIdentityCorrections({
+      records: sourcePayloadRaw.records,
+      corrections: evidence.identityCorrections ?? [],
+    }),
+  };
+  const sourcePayloadBytes = Buffer.from(`${JSON.stringify(sourcePayload, null, 2)}\n`);
   const config = loadLocalStackConfig(root);
   const mysql = await loadMysqlModule({ repoRoot: root, mysqlModule });
   const connection = await mysql.createConnection({ host: config.database.host, port: Number(config.database.port), user: config.database.username, password: config.database.password, database: 'terria_v1_local', timezone: '+08:00' });
@@ -38,7 +48,7 @@ export async function buildArmorSemanticRepairProposal({ repoRoot = process.cwd(
     const [relation] = await connection.query('SELECT * FROM `terria_v1_relation`.`relation_armor_attribute_rows` WHERE deleted = 0 ORDER BY id FOR SHARE');
     const [effects] = await connection.query('SELECT * FROM `terria_v1_relation`.`relation_equipment_effect_attributes` WHERE deleted = 0 ORDER BY id FOR SHARE');
     const payloadHash = hashValue(sourcePayload);
-    const landing = { ...evidence.incomingLanding, payload_json: sourceBytes.toString('utf8'), content_hash: payloadHash.slice(7), full_file_content_hash: hashBytes(sourceBytes).slice(7), full_file_byte_size: sourceBytes.length, fetched_at: sourcePayload.fetchedAt, parsed_at: sourcePayload.generatedAt, id: null };
+    const landing = { ...evidence.incomingLanding, payload_json: sourcePayloadBytes.toString('utf8'), content_hash: payloadHash.slice(7), full_file_content_hash: hashBytes(sourcePayloadBytes).slice(7), full_file_byte_size: sourcePayloadBytes.length, fetched_at: sourcePayload.fetchedAt, parsed_at: sourcePayload.generatedAt, id: null };
     const extracted = await extractMaintEntitiesFromLandingRow(landing);
     const maintRows = extracted.rows.map(mapRow).map((row) => ({ ...row, landing_source_id: null, status: 1, deleted: 0 }));
     const relationRows = buildArmorAttributeRelations({ maintArmorAttributeRows: maintRows, maintItems: items, relationArmorSetItems: parts }).map(mapRow).map((row) => ({ ...row, source_maint_id: null, landing_source_id: null, status: 1, deleted: 0 }));

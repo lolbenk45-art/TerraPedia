@@ -105,6 +105,15 @@ test('parseWikiArmorAttributeRows understands the live wiki 上衣 and 裤装 se
   ]);
 });
 
+test('parseWikiArmorAttributeRows preserves the declared image identity as matching evidence', () => {
+  const html = `<h2>困难模式之前的护腿</h2><table><tr><th></th><th>物品</th><th>防御</th><th>其他奖励</th></tr>
+    <tr><td><img alt="Mining Pants.png" src="https://terraria.wiki.gg/images/Mining_Pants.png?hash" /></td>
+    <td><a title="挖矿头盔">挖矿头盔</a></td><td>1</td><td>+10% 挖矿速度</td></tr></table>`;
+  const [row] = parseWikiArmorAttributeRows({ html });
+  assert.equal(row.imageFileTitle, 'Mining Pants.png');
+  assert.equal(row.imageSourceUrl, 'https://terraria.wiki.gg/images/Mining_Pants.png?hash');
+});
+
 test('fetcher writes monitor-visible progress to an explicit path before network failure', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armor-attributes-'));
   const outputDir = path.join(tempDir, 'generated');
@@ -143,7 +152,7 @@ test('fetcher freezes the raw page and binds parsed output while preserving moni
     + '<tr><td><a title="木头盔">木头盔</a></td><td>1</td><td>+1%</td></tr></table>';
   const mock = path.join(root, 'api.json');
   fs.writeFileSync(mock, JSON.stringify({ __byRequest: {
-    'parse:*:': { parse: { pageid: 123, revid: 456, title: '盔甲属性表', text: html, wikitext: '{{armor table}}' } },
+    'parse:wikitext|text|sections|revid:盔甲属性表': { parse: { pageid: 123, revid: 456, title: '盔甲属性表', text: html, wikitext: '{{armor table}}' } },
     'query:*:盔甲属性表': { query: { pages: [{ pageid: 123, revisions: [{ revid: 456, timestamp: '2026-09-28T00:00:00Z' }] }] } },
   } }));
   const rawPath = path.join(root, 'evidence', 'page.json');
@@ -254,7 +263,11 @@ test('captures a bounded independent identity page with revision binding and net
       await new Promise(resolve => setTimeout(resolve, 150));
       const after = JSON.parse(fs.readFileSync(progressPath));
       heartbeatDuringRequest ||= after.lastHeartbeatAt > before.lastHeartbeatAt;
-      const identity = url.searchParams.get('oldid') === '789';
+      const identity = url.searchParams.get('page') === 'Mining Pants';
+      if (url.searchParams.has('oldid')) {
+        response.end(JSON.stringify({ error: { code: 'oldid-blocked' } }));
+        return;
+      }
       response.end(JSON.stringify({ parse: { pageid: identity ? 124 : 123, revid: identity ? 789 : 456,
         title: identity ? 'Mining armor' : '盔甲属性表',
         text: identity ? '<p>Mining Pants</p>' : expandedArmorTable(), wikitext: identity ? 'independent item evidence' : 'armor table' } }));

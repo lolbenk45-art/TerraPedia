@@ -279,8 +279,10 @@ export async function fetchWikiPagePayload({
         || !Number.isFinite(Date.parse(selectedRevision?.timestamp))) {
       throw new Error(`Wiki page revision identity missing for ${pageTitle}`);
     }
-    parseUrl.searchParams.delete('page');
-    parseUrl.searchParams.set('oldid', String(selectedRevision.revid));
+    // Some Wiki deployments challenge the explicit `oldid` parse endpoint.
+    // Keep the request bound to the selected page and reject any response whose
+    // page/revision identity differs from the metadata read immediately before it.
+    parseUrl.searchParams.set('page', pageTitle);
     parseUrl.searchParams.set('prop', 'wikitext|text|sections|revid');
   }
 

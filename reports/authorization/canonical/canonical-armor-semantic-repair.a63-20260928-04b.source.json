@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "canonical-armor-semantic-repair-source/v2",
+  "sourceArtifact": {
+    "path": ".local/tmp/a63-20260928-04/parsed-v3/wiki-armor-attributes.latest.json",
+    "contentHash": "sha256:a4e8186ea73e0c9e358bbf31e64cfa7b2e8987b2369e4a3a8e1f6a23ac5272c8"
+  },
+  "rawSourceArtifact": {
+    "path": ".local/tmp/a63-20260928-04/raw-page.json",
+    "sha256": "sha256:b4c3b113d69e4a978300996cd9daadd27c19a077a4ee821279ff46d67ce6da3e"
+  },
+  "identitySourceArtifact": {
+    "path": ".local/tmp/a63-20260928-04/mining-pants-page.json",
+    "sha256": "sha256:45476978a01258371b44be055c63bcd90b5f998db072d9852f9261f2eb2a2f2c"
+  },
+  "identityCorrections": [
+    {
+      "match": {
+        "sectionCode": "pre-hardmode",
+        "slotGroup": "legs",
+        "itemPageTitle": "挖矿头盔",
+        "itemHref": "/zh/wiki/%E6%8C%96%E7%9F%BF%E5%A4%B4%E7%9B%94",
+        "itemNameZh": "挖矿头盔",
+        "defenseValue": 1,
+        "imageFileTitle": "Mining Pants.png"
+      },
+      "replacement": {
+        "itemPageTitle": "挖矿裤",
+        "itemHref": "/zh/wiki/%E6%8C%96%E7%9F%BF%E8%A3%A4",
+        "itemNameZh": "挖矿裤"
+      },
+      "evidence": {
+        "artifactPath": ".local/tmp/a63-20260928-04/mining-pants-page.json",
+        "artifactHash": "sha256:45476978a01258371b44be055c63bcd90b5f998db072d9852f9261f2eb2a2f2c",
+        "requestedPageTitle": "Mining Pants",
+        "canonicalPageTitle": "挖矿盔甲",
+        "revisionId": 247540
+      }
+    }
+  ],
+  "incomingLanding": {
+    "dataset_type": "armor_attributes_raw",
+    "provider": "terraria.wiki.gg",
+    "source_kind": "wiki_api_parse",
+    "source_key": "wiki.page.armor_attributes.a63-20260928-04",
+    "source_locator": "https://terraria.wiki.gg/zh/wiki/盔甲属性表",
+    "source_page": "盔甲属性表",
+    "source_revision_timestamp": "2023-10-23T04:15:47Z",
+    "parse_status": "ok",
+    "artifact_role": "source_evidence",
+    "producer_id": "fetch-wiki-armor-attributes",
+    "producer_version": "a63-20260928-04",
+    "producer_run_key": "a63-20260928-04",
+    "notes": "Revision-bound page parse with independently fetched Mining Pants identity evidence; one exact legs-row correction preserves original source fields."
+  }
+}

@@ -117,6 +117,14 @@ function extractPrimaryLink(cellHtml) {
   };
 }
 
+function extractImageIdentity(cellHtml) {
+  const tag = String(cellHtml ?? '').match(/<img\b[^>]*>/i)?.[0] ?? '';
+  if (!tag) return { fileTitle: null, sourceUrl: null };
+  const sourceUrl = getTagAttribute(tag, 'src') || null;
+  const alt = getTagAttribute(tag, 'alt') || null;
+  return { fileTitle: alt || null, sourceUrl };
+}
+
 function normalizeHeaderKey(value) {
   const text = String(value ?? '').replace(/\s+/g, '').toLowerCase();
   if (text === '') return 'image';
@@ -224,6 +232,7 @@ export function parseWikiArmorAttributeRows({
         continue;
       }
       const primaryLink = extractPrimaryLink(itemCell.html);
+      const imageIdentity = extractImageIdentity(cells[tableHeaderKeys.indexOf('image')]?.html);
       const rawCells = Object.fromEntries(tableHeaderKeys.flatMap((key, index) =>
         ['image', 'item', 'defense'].includes(key) ? [] : [[key, cells[index].text]]));
       if (Object.keys(rawCells).length === 0) {
@@ -240,6 +249,8 @@ export function parseWikiArmorAttributeRows({
         itemPageTitle: primaryLink.title || itemNameZh,
         itemHref: primaryLink.href || null,
         itemNameZh,
+        imageFileTitle: imageIdentity.fileTitle,
+        imageSourceUrl: imageIdentity.sourceUrl,
         defenseValue: defenseMatch ? Number(defenseMatch[0]) : null,
         rawCells,
         sourceRevisionTimestamp

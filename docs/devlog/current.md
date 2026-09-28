@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-09-28 08:02 CST by Codex
+Last updated: 2026-09-28 16:16 CST by Codex
 
 Active branch: `feat/automation-scheduler-continuation`
 Active focus: complete governed source → landing → maint → relation → projection/API ingestion; overall active.
@@ -22,6 +22,8 @@ Active focus: complete governed source → landing → maint → relation → pr
 - Local workspace checkpoint: implementation `bf0df600`; evidence/closeout follows in Git. [Workspace checkpoint](entries/2026-09-28-automation-workspace-checkpoint.md) is closed with validation and the retained-artifact inventory. No push requested; overall ingestion remains active.
 - Source parser/capture checkpoint: real 18/19-column headers now determine attribute semantics; raw HTML/wikitext can be frozen with revision IDs and immutable hashes;49/49 Node22 tests pass. Mining Helmet's legs-table link is wrong in the Wiki source itself. Collection `.a63-20260928-02` remains alive in the request gate's403 cooldown until08:16 CST; poll its progress before another crawler or DB writer. Details and next source/proposal gates are in the active child.
 - Resource effects now preserve mana/capacity/movement units and reject qualified numeric cells; independent candidate and relation regressions are 168/168. Revision-bound collection `.a63-20260928-02` failed at 08:16 CST with Wiki HTTP403 and produced no authority; do not promote `.01` or start DB writes until a fresh source succeeds.
+- Read-only baseline at 15:56 CST still matches `.22` projection state (active relation 246/320; projection 223/290) with disabled scheduler, 0/0 live work, healthy reconciler and unchanged H8/epoch/server. Broad relation tests are 1042/1050; eight unrelated modules fail because `mysql2/promise` is unavailable.
+- Wiki `oldid` parses are Cloudflare challenged while page parses expose the same `revid`; revision-bound fetch now verifies selected page/revision identity on page parse, with 49/49 source/progress tests. `.03` remains the only live writer and must finish before retrying under the new code.
 - A6.3 selected subset has recorded committed projection repair `.a63-20260927-22`: 223 active attribute members and 290 active effects, public/admin Ninja parity. Consumed decisions must not be replayed; ten missing-source members remain excluded.
 - Image source `.a63-20260927-23` contains 419 rows (315 distinct file titles), all with individual revisions and original URLs; all cached URLs are null. Existing maint has 175 rows, all revisions missing and one cache missing. Raw source remains immutable.
 - Current candidate code rejected producer `part` images. Two RED tests reproduced it; minimal allowlist fixes now pass maint/relation tests 138/138 while preserving stable IDs/keys.
@@ -32,3 +34,5 @@ Active focus: complete governed source → landing → maint → relation → pr
 ## History
 
 - Previous detailed state, including superseded blockers: [September27 history](archive/2026-09-27-armor-image-current-history.md).
+
+- Fresh `.a63-20260928-04` source completed (revision-bound 230-row page + independent Mining Pants revision 247540). Exact legs identity correction is evidenced, but proposal remains blocked by six qualified Shroomite values (`>15%`/`>20%`); no landing/maint/relation write or decision was consumed.

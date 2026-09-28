@@ -46,8 +46,8 @@ test('revision-bound page capture parses the exact selected revision instead of 
     },
   });
   assert.equal(calls[0].searchParams.get('action'), 'query');
-  assert.equal(calls[1].searchParams.get('oldid'), '456');
-  assert.equal(calls[1].searchParams.has('page'), false);
+  assert.equal(calls[1].searchParams.get('page'), 'Mining Pants');
+  assert.equal(calls[1].searchParams.has('oldid'), false);
   assert.equal(payload.revisionId, 456);
   assert.equal(payload.revisionTimestamp, '2026-09-28T00:00:00Z');
   assert.equal(payload.requestedPageTitle, 'Mining Pants');
