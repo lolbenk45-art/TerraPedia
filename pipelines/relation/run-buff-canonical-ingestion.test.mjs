@@ -18,7 +18,7 @@ function envelopeForLockChecks() {
     schemaVersion: 'buff-full-chain-execution/v1', executable: true, executionBlocker: null,
     candidateSha256: HASH,
     frozenLandingIdentity: { rows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: HASH }] },
-    frozenMaintIdentity: { rows: [{ id: 11, source_id: 24, internal_name: 'OnFire', record_key: 'm1' }] },
+    frozenMaintIdentity: { rows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }] },
     mutation: {
       changes: {
         relation_buffs: { inserts: [], updates: [{ before, after, changedColumns: ['tooltip_zh'] }], unchanged: [], preserved: [] },
@@ -38,12 +38,12 @@ test('Buff canonical ingestion compares locked landing and maint identities', ()
   assert.doesNotThrow(() => assertBuffSourceRowsMatchEnvelope({
     envelope,
     landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: HASH }],
-    maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire', record_key: 'm1' }],
+    maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }],
   }));
   assert.throws(() => assertBuffSourceRowsMatchEnvelope({
     envelope,
     landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: `sha256:${'b'.repeat(64)}` }],
-    maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire', record_key: 'm1' }],
+    maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }],
   }), /landing|drift/i);
 });
 
@@ -59,7 +59,7 @@ test('Buff canonical ingestion compares locked before rows and rejects drift', (
   const envelope = envelopeForLockChecks();
   assert.doesNotThrow(() => assertBuffLockedRowsMatchEnvelope({
     envelope,
-    rows: { relation_buffs: [{ record_key: 'r1', source_id: 24, internal_name: 'OnFire', status: 1, deleted: 0, tooltip_zh: '旧', updated_at: 'different' }] },
+    rows: { relation_buffs: [{ record_key: 'r1', source_id: 24, internal_name: 'OnFire', status: 1, deleted: 0, tooltip_zh: '旧', updated_at: 'old' }] },
   }));
   assert.throws(() => assertBuffLockedRowsMatchEnvelope({
     envelope,
@@ -81,4 +81,59 @@ test('Buff canonical ingestion refuses to apply without an authorized execution 
     resultLabel: 'retry-01',
     env: {},
   }), /authorized|packet|context/i);
+});
+
+for (const extra of [
+  { record_key: 'unreviewed', source_id: 25 },
+  { record_key: 'r1', source_id: 24 },
+]) {
+  test(`Buff locked baseline rejects additional or duplicate rows: ${extra.record_key}`, () => {
+    const envelope = envelopeForLockChecks();
+    const baseline = envelope.mutation.changes.relation_buffs.updates[0].before;
+    assert.throws(() => assertBuffLockedRowsMatchEnvelope({
+      envelope, rows: { relation_buffs: [baseline, extra] },
+    }), /count|duplicate|unexpected/i);
+  });
+}
+
+test('Buff source comparison matches IDs independently of property order', () => {
+  const envelope = envelopeForLockChecks();
+  envelope.frozenMaintIdentity.rows = [
+    { id: 11, source_id: 24, internal_name: 'OnFire' },
+    { id: 12, source_id: 25, internal_name: 'Other' },
+  ];
+  assert.doesNotThrow(() => assertBuffSourceRowsMatchEnvelope({
+    envelope, landingRows: envelope.frozenLandingIdentity.rows,
+    maintRows: [
+      { id: '12', source_id: '25', internal_name: 'Other' },
+      { internal_name: 'OnFire', source_id: '24', id: '11' },
+    ],
+  }));
+});
+
+test('Buff locked baseline rejects timestamp-only drift', () => {
+  const envelope = envelopeForLockChecks();
+  const baseline = envelope.mutation.changes.relation_buffs.updates[0].before;
+  assert.throws(() => assertBuffLockedRowsMatchEnvelope({
+    envelope, rows: { relation_buffs: [{ ...baseline, updated_at: 'changed' }] },
+  }), /drift/);
+});
+
+test('Buff locked comparison normalizes JSON object ordering and decimal representations', () => {
+  const envelope = envelopeForLockChecks();
+  const baseline = envelope.mutation.changes.relation_buffs.updates[0].before;
+  baseline.raw_json = '{"b":2,"a":1}';
+  baseline.source_id = 24;
+  assert.doesNotThrow(() => assertBuffLockedRowsMatchEnvelope({
+    envelope, rows: { relation_buffs: [{ ...baseline, raw_json: { a: 1, b: 2 }, source_id: '24.000' }] },
+  }));
+});
+
+test('Buff locked comparison rejects distinct JSON objects', () => {
+  const envelope = envelopeForLockChecks();
+  const baseline = envelope.mutation.changes.relation_buffs.updates[0].before;
+  baseline.raw_json = { a: 1 };
+  assert.throws(() => assertBuffLockedRowsMatchEnvelope({
+    envelope, rows: { relation_buffs: [{ ...baseline, raw_json: { a: 2 } }] },
+  }), /drift/);
 });

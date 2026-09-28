@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "buff-source-evidence/v1",
+  "operationId": "canonical-buff-full-chain",
+  "runId": "b1-a63-20260928-03",
+  "source": {
+    "provider": "terraria.wiki.gg",
+    "source": "Template:GetBuffInfo",
+    "moduleRevisionTimestamp": "2026-08-22T05:46:54Z",
+    "parsedPath": ".local/tmp/b1-a63-20260928-03/raw/template__getbuffinfo.parsed.latest.json",
+    "parsedSha256": "sha256:9363042f776ba666e7fea83a791cc18b2b74e7d9532f69c88dbcff74b3cca47c",
+    "moduleJsonPath": ".local/tmp/b1-a63-20260928-03/raw/template__getbuffinfo.latest.json",
+    "moduleJsonSha256": "sha256:4cd4ee3eaf9c1ea31a07dd048cd7863d2a688c2937253f37772825682284e69d",
+    "wikitextPath": ".local/tmp/b1-a63-20260928-03/raw/template__getbuffinfo.latest.wikitext",
+    "wikitextSha256": "sha256:a512db8cc60378dcefed3e3f7905480fe6a60cb9e04ef3adf947cd5205d5aa57"
+  },
+  "counts": {
+    "buffs": 400,
+    "uniqueIds": 400,
+    "uniqueInternalNames": 400,
+    "revisionBound": 400,
+    "immunityParsed": 30,
+    "immunitySectionMissing": 370,
+    "unresolvedFacts": 0,
+    "secondaryUnresolved": 0
+  },
+  "status": "source-complete-candidate-blocked",
+  "blockers": [
+    "370 Buff pages have section_missing immunity evidence under the strict full-chain contract; no zero inference permitted",
+    "registered runner still requires a fresh landing/maint/relation candidate and runtime fence before any write"
+  ],
+  "writes": {
+    "landing": 0,
+    "maint": 0,
+    "relation": 0,
+    "projection": 0,
+    "decision": 0
+  },
+  "generatedAt": "2026-09-28T11:41:28.373Z"
+}

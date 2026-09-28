@@ -296,6 +296,11 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     dataEntries = verifiedExecutionManifest.inputPaths.map(inputPath => readConfinedEntry(root, inputPath, {
       label: 'Armor projection proposal', privateFile: true,
     }));
+  } else if (operationId === 'canonical-buff-full-chain') {
+    if (verifiedExecutionManifest == null) throw new Error('Buff full-chain execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Buff full-chain envelope', privateFile: true,
+    }));
   } else if (operationId === 'canonical-armor-semantic-repair') {
     if (verifiedExecutionManifest == null) throw new Error('Armor semantic repair execution manifest is required');
     dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {

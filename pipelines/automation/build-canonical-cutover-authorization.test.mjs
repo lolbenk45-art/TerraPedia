@@ -920,7 +920,8 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
         || operationId === 'canonical-armor-secondary-projection'
         || operationId === 'canonical-armor-image-cache'
         || operationId === 'canonical-armor-semantic-repair'
-        || operationId === 'canonical-armor-ingestion') {
+        || operationId === 'canonical-armor-ingestion'
+        || operationId === 'canonical-buff-full-chain') {
       assert.throws(() => buildCanonicalAuthorizationRequestForOperation({ repoRoot, operationId, generatedAt: GENERATED_AT, expiresAt: EXPIRES_AT }), /manifest/);
       continue;
     }

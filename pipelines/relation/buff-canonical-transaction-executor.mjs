@@ -1,3 +1,5 @@
+import { BUFF_CANDIDATE_COLUMNS, normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
+
 const TABLES = Object.freeze([
   'relation_buffs',
   'item_buff_relations',
@@ -34,7 +36,7 @@ export async function executeBuffCanonicalTransaction({
     begun = true;
     await lockRuntime({ packet, envelope });
     await readLockedRows({ packet, envelope });
-    consumeDispatchPermit({ packet, envelope });
+    await consumeDispatchPermit({ packet, envelope });
     await applyMutation({ packet, envelope });
     await verifyAfter({ packet, envelope });
     await connection.commit();
@@ -55,7 +57,7 @@ export async function applyBuffCanonicalMutation({
   if (!connection || typeof connection.execute !== 'function') {
     throw new TypeError('Buff mutation writer connection is required');
   }
-  if (!/^[a-z][a-z0-9_]*$/.test(database)) throw new Error('Buff mutation database is invalid');
+  if (database !== 'terria_v1_relation') throw new Error('Buff mutation database is invalid');
   const counts = { inserts: 0, updates: 0 };
   for (const table of TABLES) {
     const changes = envelope.mutation.changes[table];
@@ -65,10 +67,7 @@ export async function applyBuffCanonicalMutation({
       const keyColumn = table === 'projection_buffs' ? 'id' : 'record_key';
       const keyValue = after?.[keyColumn] ?? before?.[keyColumn];
       if (keyValue == null) throw new Error(`Buff update identity is missing: ${table}`);
-      const changedColumns = Array.isArray(change.changedColumns) && change.changedColumns.length > 0
-        ? change.changedColumns
-        : Object.keys(after ?? {}).filter((column) => !['id', 'record_key', 'created_at', 'updated_at'].includes(column)
-          && after[column] !== before?.[column]);
+      const changedColumns = change.changedColumns;
       if (changedColumns.length === 0) continue;
       const assignments = changedColumns.map((column) => `${quote(column)} = ?`);
       const values = changedColumns.map((column) => after[column]);
@@ -106,7 +105,7 @@ function validateEnvelope(envelope) {
     throw new Error('Buff canonical transaction envelope is not executable');
   }
   const mutation = envelope.mutation;
-  if (!mutation || mutation.destructiveClear !== false && mutation.deletes?.length > 0) {
+  if (!mutation || mutation.destructiveClear !== false) {
     throw new Error('Buff canonical transaction mutation is invalid');
   }
   if (!Array.isArray(mutation.deletes) || mutation.deletes.length !== 0) {
@@ -117,6 +116,45 @@ function validateEnvelope(envelope) {
       || !Array.isArray(mutation.changes[table]?.unchanged)
       || !Array.isArray(mutation.changes[table]?.preserved))) {
     throw new Error('Buff canonical transaction change scope is incomplete');
+  }
+  if (Object.keys(mutation.changes).some((table) => !TABLES.includes(table))) {
+    throw new Error('Buff canonical transaction change scope contains an unowned table');
+  }
+  for (const table of TABLES) {
+    const changes = mutation.changes[table];
+    const allowed = new Set(BUFF_CANDIDATE_COLUMNS[table].split(' '));
+    const immutable = new Set(['id', 'record_key', 'created_at', 'updated_at',
+      ...({
+        relation_buffs: ['source_id', 'internal_name'],
+        projection_buffs: ['source_id', 'internal_name', 'relation_record_key'],
+        item_buff_relations: ['buff_source_id', 'buff_internal_name', 'item_source_id', 'item_internal_name', 'relation_type'],
+        npc_buff_relations: ['buff_source_id', 'buff_internal_name', 'npc_source_id', 'npc_internal_name', 'relation_type'],
+        relation_buff_images: ['buff_internal_name', 'role', 'source_file_title'],
+      })[table],
+    ]);
+    const validateRow = (row) => {
+      if (!row || typeof row !== 'object' || Array.isArray(row)
+          || Object.keys(row).some((column) => !allowed.has(column) || row[column] === undefined)) {
+        throw new Error(`Buff mutation row has an unowned column or missing value: ${table}`);
+      }
+    };
+    for (const row of changes.inserts) validateRow(row);
+    for (const change of changes.updates) {
+      validateRow(change?.before);
+      validateRow(change?.after);
+      const columns = change.changedColumns;
+      if (!Array.isArray(columns) || columns.length === 0 || new Set(columns).size !== columns.length
+          || columns.some((column) => !allowed.has(column) || immutable.has(column)
+            || !Object.hasOwn(change.after, column))) {
+        throw new Error(`Buff mutation changed columns or identity are invalid: ${table}`);
+      }
+      const actual = [...new Set([...Object.keys(change.before), ...Object.keys(change.after)])]
+        .filter((column) => JSON.stringify(normalizeBuffRowValue(change.before[column], column))
+          !== JSON.stringify(normalizeBuffRowValue(change.after[column], column))).sort();
+      if (JSON.stringify(actual) !== JSON.stringify([...columns].sort())) {
+        throw new Error(`Buff mutation changed columns do not match before/after: ${table}`);
+      }
+    }
   }
 }
 

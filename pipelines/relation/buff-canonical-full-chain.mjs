@@ -94,12 +94,21 @@ function assertLandingRows(rows) {
 
 function assertMaintRows(rows) {
   if (!Array.isArray(rows) || rows.length === 0) throw new Error('frozen Buff maint rows are required');
+  const ids = new Set();
+  const sourceIds = new Set();
+  const internalNames = new Set();
   for (const row of rows) {
-    if (!Number.isSafeInteger(Number(row?.source_id)) || Number(row.source_id) < 1
-        || typeof row.internal_name !== 'string' || !row.internal_name.trim()
-        || typeof row.record_key !== 'string' || !row.record_key.trim()) {
+    if (!Number.isSafeInteger(Number(row?.id)) || Number(row.id) < 1
+        || !Number.isSafeInteger(Number(row?.source_id)) || Number(row.source_id) < 1
+        || typeof row.internal_name !== 'string' || !row.internal_name.trim()) {
       throw new Error('frozen Buff maint identity is invalid');
     }
+    if (ids.has(Number(row.id)) || sourceIds.has(Number(row.source_id)) || internalNames.has(row.internal_name)) {
+      throw new Error('frozen Buff maint identity is duplicated');
+    }
+    ids.add(Number(row.id));
+    sourceIds.add(Number(row.source_id));
+    internalNames.add(row.internal_name);
   }
   return rows.map(clone);
 }

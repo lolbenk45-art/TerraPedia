@@ -16,6 +16,7 @@ import {
   assertRepositoryOrdinaryFile,
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
+import { normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   applyBuffCanonicalMutation,
@@ -168,7 +169,7 @@ async function readOwnedRows(connection) {
   const rows = {};
   for (const table of TABLES) {
     const [result] = await connection.query(
-      `SELECT * FROM ${quote(DATABASE)}.${quote(table)} WHERE deleted = 0 ORDER BY id`,
+      `SELECT * FROM ${quote(DATABASE)}.${quote(table)} ORDER BY id FOR UPDATE`,
     );
     rows[table] = result ?? [];
   }
@@ -178,18 +179,8 @@ async function readOwnedRows(connection) {
 async function verifyOwnedRows(connection, envelope) {
   const current = await readOwnedRows(connection);
   for (const table of TABLES) {
-    const byKey = new Map((current[table] ?? []).map((row) => [String(table === 'projection_buffs' ? row.id : row.record_key), row]));
-    for (const row of envelope.mutation.expectedRows?.[table] ?? []) {
-      const key = String(table === 'projection_buffs' ? row.id : row.record_key);
-      const actual = byKey.get(key);
-      if (!actual) throw new Error(`Buff canonical ingestion readback row is missing: ${table}/${key}`);
-      for (const [column, expected] of Object.entries(row)) {
-        if (['created_at', 'updated_at'].includes(column)) continue;
-        if (String(actual[column] ?? '') !== String(expected ?? '')) {
-          throw new Error(`Buff canonical ingestion readback drifted: ${table}.${column}`);
-        }
-      }
-    }
+    const expected = envelope.mutation.expectedRows?.[table];
+    assertBuffRowSet(expected, current[table], table, { ignoreTimestamps: true });
   }
 }
 
@@ -198,8 +189,16 @@ export function assertBuffLockedRowsMatchEnvelope({ envelope, rows } = {}) {
   if (!changes || !rows || typeof rows !== 'object') throw new Error('Buff locked rederivation input is required');
   for (const table of TABLES) {
     const actualRows = Array.isArray(rows[table]) ? rows[table] : [];
-    const byKey = new Map(actualRows.map((row) => [rowIdentity(table, row), row]));
+    const byKey = indexBuffRows(actualRows, table);
     const tableChanges = changes[table];
+    if (!tableChanges) throw new Error(`Buff locked baseline table is missing: ${table}`);
+    const baseline = [
+      ...(tableChanges.updates ?? []).map((change) => change.before),
+      ...(tableChanges.unchanged ?? []),
+      ...(tableChanges.preserved ?? []),
+    ];
+    indexBuffRows(baseline, table);
+    if (baseline.length !== actualRows.length) throw new Error(`Buff locked baseline row count drifted: ${table}`);
     for (const change of [...(tableChanges.updates ?? [])]) {
       const key = rowIdentity(table, change.before);
       const actual = byKey.get(key);
@@ -231,19 +230,32 @@ export function assertBuffSourceRowsMatchEnvelope({ envelope, landingRows, maint
   return true;
 }
 
-function assertBuffRowSet(expectedRows, actualRows, label) {
-  if (!Array.isArray(actualRows) || actualRows.length !== expectedRows.length) {
+function assertBuffRowSet(expectedRows, actualRows, label, options = {}) {
+  if (!Array.isArray(expectedRows) || !Array.isArray(actualRows) || actualRows.length !== expectedRows.length) {
     throw new Error(`Buff locked ${label} identity row count drifted`);
   }
-  const sortedExpected = [...expectedRows].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
-  const sortedActual = [...actualRows].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
-  for (let index = 0; index < sortedExpected.length; index += 1) {
-    assertComparableRow(sortedExpected[index], sortedActual[index], label, String(index));
+  const expectedByKey = indexBuffRows(expectedRows, label);
+  const actualByKey = indexBuffRows(actualRows, label);
+  for (const [key, expected] of expectedByKey) {
+    const actual = actualByKey.get(key);
+    if (!actual) throw new Error(`Buff locked ${label} identity is missing: ${key}`);
+    assertComparableRow(expected, actual, label, key, options);
   }
+}
+
+function indexBuffRows(rows, table) {
+  const result = new Map();
+  for (const row of rows) {
+    const key = rowIdentity(table, row);
+    if (key === null || result.has(key)) throw new Error(`Buff ${table} identity is missing or duplicated: ${key}`);
+    result.set(key, row);
+  }
+  return result;
 }
 
 function rowIdentity(table, row) {
   if (!row || typeof row !== 'object') return null;
+  if (table === 'landing' || table === 'maint') return row.id == null ? null : `id:${String(row.id)}`;
   if (table === 'projection_buffs') {
     if (row.id != null) return `id:${String(row.id)}`;
     if (row.relation_record_key != null) return `relation:${String(row.relation_record_key)}`;
@@ -253,23 +265,17 @@ function rowIdentity(table, row) {
   return row.record_key == null ? null : `record:${String(row.record_key)}`;
 }
 
-function assertComparableRow(expected, actual, table, key) {
+function assertComparableRow(expected, actual, table, key, { ignoreTimestamps = false } = {}) {
   for (const [column, value] of Object.entries(expected ?? {})) {
-    if (column === 'created_at' || column === 'updated_at') continue;
-    if (!equalBuffValue(actual?.[column], value)) {
+    if (ignoreTimestamps && (column === 'created_at' || column === 'updated_at')) continue;
+    if (!equalBuffValue(actual?.[column], value, column)) {
       throw new Error(`Buff locked rederivation drifted: ${table}.${column}/${key}`);
     }
   }
 }
 
-function equalBuffValue(left, right) {
-  if (left == null || right == null) return left == null && right == null;
-  if (typeof left === 'number' || typeof right === 'number' || /^-?\d+(?:\.\d+)?$/.test(String(left)) && /^-?\d+(?:\.\d+)?$/.test(String(right))) {
-    const leftNumber = Number(left); const rightNumber = Number(right);
-    if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) return leftNumber === rightNumber;
-  }
-  if (left instanceof Date || right instanceof Date) return new Date(left).getTime() === new Date(right).getTime();
-  return String(left) === String(right);
+function equalBuffValue(left, right, column) {
+  return JSON.stringify(normalizeBuffRowValue(left, column)) === JSON.stringify(normalizeBuffRowValue(right, column));
 }
 
 function readPrivateJson(root, relativePath, expectedHash = null) {

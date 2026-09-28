@@ -763,3 +763,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     process.exitCode = 1;
   });
 }
+
+export { CANDIDATE_COLUMNS as BUFF_CANDIDATE_COLUMNS, comparable as normalizeBuffRowValue };
