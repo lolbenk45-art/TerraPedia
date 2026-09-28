@@ -37,3 +37,4 @@ Active focus: complete governed source → landing → maint → relation → pr
 
 - Fresh `.a63-20260928-04` source completed (revision-bound 230-row page + independent Mining Pants revision 247540). Exact legs identity correction is evidenced, but proposal remains blocked by six qualified Shroomite values (`>15%`/`>20%`); no landing/maint/relation write or decision was consumed.
 - Independent Shroomite armor source `.a63-20260928-06` completed at revision 251936 but only confirms set-level effects, so it cannot resolve the six per-piece qualified values. Armor publication remains blocked; no landing/maint/relation write or decision was consumed.
+- Buff B1/Shimmer S1 execution contracts are now covered by RED/GREEN tests, while runtime registration remains blocked until their real full-chain importers and policy/fence scopes are wired. A fresh isolated Buff page-immunity collection `b1-a63-20260928-01` is running without database writes.
