@@ -5,6 +5,14 @@ import { buildBuffFullChainExecutionEnvelope } from './buff-canonical-full-chain
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 
+function maintMutation() {
+  return {
+    schemaVersion: 'buff-maint-mutation-plan/v1', executable: false,
+    executionBlocker: 'locked-upstream-executor-required', table: 'terria_v1_maint.maint_buffs',
+    destructiveClear: false, inserts: [], updates: [], unchanged: [], preserved: [], deletes: [],
+  };
+}
+
 function candidate() {
   return {
     schemaVersion: 'buff-incremental-candidate/v1',
@@ -40,6 +48,7 @@ test('Buff full-chain envelope binds frozen landing, maint, page evidence, and m
     maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }],
     pageEvidenceByInternalName: new Map([['OnFire', { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' }]]),
     runtimeManagedImagePolicySha256: HASH,
+    maintMutation: maintMutation(),
   });
 
   assert.equal(result.schemaVersion, 'buff-full-chain-execution/v1');
@@ -57,6 +66,7 @@ test('Buff full-chain envelope rejects missing page evidence before execution', 
     maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }],
     pageEvidenceByInternalName: new Map(),
     runtimeManagedImagePolicySha256: HASH,
+    maintMutation: maintMutation(),
   }), /page immunity evidence/i);
 });
 
@@ -67,6 +77,7 @@ test('Buff full-chain envelope rejects managed image policy drift', () => {
     maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }],
     pageEvidenceByInternalName: new Map([['OnFire', { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' }]]),
     runtimeManagedImagePolicySha256: `sha256:${'b'.repeat(64)}`,
+    maintMutation: maintMutation(),
   }), /managed image policy/i);
 });
 
@@ -82,6 +93,7 @@ for (const duplicate of [
       maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }, duplicate],
       pageEvidenceByInternalName: { OnFire: { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' } },
       runtimeManagedImagePolicySha256: HASH,
+      maintMutation: maintMutation(),
     }), /duplicate.*maint|maint.*duplicate/i);
   });
 }

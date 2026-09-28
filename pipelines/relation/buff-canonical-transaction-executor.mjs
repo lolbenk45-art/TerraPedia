@@ -9,6 +9,7 @@ const TABLES = Object.freeze([
 ]);
 
 const REQUIRED_PACKET_FIELDS = Object.freeze(['runId', 'fenceToken', 'serverUuid', 'actor']);
+const MAINT_COLUMNS = Object.freeze(('source_id internal_name english_name name_zh source_provider source_page source_revision_timestamp landing_source_id landing_source_key landing_source_page landing_content_hash landing_fetched_at landing_parsed_at module_generated_at terraria_version major_value combat_value defense_value use_time stack_size width height flags_json raw_json status deleted').split(' '));
 
 export async function executeBuffCanonicalTransaction({
   envelope,
@@ -18,6 +19,7 @@ export async function executeBuffCanonicalTransaction({
   readLockedRows,
   consumeDispatchPermit,
   applyMutation,
+  applyUpstream,
   verifyAfter,
 } = {}) {
   validateEnvelope(envelope);
@@ -26,7 +28,7 @@ export async function executeBuffCanonicalTransaction({
       || typeof connection.commit !== 'function' || typeof connection.rollback !== 'function') {
     throw new TypeError('Buff canonical transaction connection is required');
   }
-  for (const [name, callback] of Object.entries({ lockRuntime, readLockedRows, consumeDispatchPermit, applyMutation, verifyAfter })) {
+  for (const [name, callback] of Object.entries({ lockRuntime, readLockedRows, consumeDispatchPermit, applyUpstream, applyMutation, verifyAfter })) {
     if (typeof callback !== 'function') throw new TypeError(`Buff canonical transaction ${name} callback is required`);
   }
 
@@ -37,6 +39,7 @@ export async function executeBuffCanonicalTransaction({
     await lockRuntime({ packet, envelope });
     await readLockedRows({ packet, envelope });
     await consumeDispatchPermit({ packet, envelope });
+    await applyUpstream({ packet, envelope });
     await applyMutation({ packet, envelope });
     await verifyAfter({ packet, envelope });
     await connection.commit();
@@ -99,10 +102,43 @@ export async function applyBuffCanonicalMutation({
   return Object.freeze(counts);
 }
 
+
+export async function applyBuffMaintMutation({ envelope, connection, database = 'terria_v1_maint' } = {}) {
+  validateEnvelope(envelope);
+  if (database !== 'terria_v1_maint') throw new Error('Buff maint mutation database is invalid');
+  if (!connection || typeof connection.execute !== 'function') throw new TypeError('Buff maint connection is required');
+  const plan = envelope.upstream.maint;
+  const counts = { inserts: 0, updates: 0 };
+  const columns = MAINT_COLUMNS;
+  for (const row of plan.inserts) {
+    const values = columns.map(column => row[column]);
+    const [result] = await connection.execute(
+      `INSERT INTO \`terria_v1_maint\`.\`maint_buffs\` (${columns.map(quote).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+      values,
+    );
+    if (Number(result?.affectedRows ?? 0) !== 1) throw new Error('Buff maint insert receipt is invalid');
+    counts.inserts += 1;
+  }
+  for (const change of plan.updates) {
+    const columnsToUpdate = change.changedColumns.filter(column => column !== 'id' && column !== 'source_id');
+    if (columnsToUpdate.length === 0) continue;
+    const [result] = await connection.execute(
+      `UPDATE \`terria_v1_maint\`.\`maint_buffs\` SET ${columnsToUpdate.map(column => `${quote(column)} = ?`).join(', ')} WHERE \`id\` = ?`,
+      [...columnsToUpdate.map(column => change.after[column]), change.before.id],
+    );
+    if (Number(result?.affectedRows ?? 0) !== 1) throw new Error('Buff maint update receipt is invalid');
+    counts.updates += 1;
+  }
+  return Object.freeze(counts);
+}
+
 function validateEnvelope(envelope) {
   if (!envelope || envelope.schemaVersion !== 'buff-full-chain-execution/v1'
       || envelope.executable !== true || envelope.executionBlocker != null) {
     throw new Error('Buff canonical transaction envelope is not executable');
+  }
+  if (!envelope.upstream?.maint || envelope.upstream.maint.table !== 'terria_v1_maint.maint_buffs') {
+    throw new Error('Buff canonical transaction upstream maint plan is required');
   }
   const mutation = envelope.mutation;
   if (!mutation || mutation.destructiveClear !== false) {

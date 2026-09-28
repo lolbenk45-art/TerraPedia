@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   applyBuffCanonicalMutation,
+  applyBuffMaintMutation,
   executeBuffCanonicalTransaction,
 } from './buff-canonical-transaction-executor.mjs';
 
@@ -22,6 +23,7 @@ function envelope() {
     executable: true,
     executionBlocker: null,
     candidateSha256: HASH,
+    upstream: { maint: { schemaVersion: 'buff-maint-mutation-plan/v1', executable: false, executionBlocker: 'locked-upstream-executor-required', table: 'terria_v1_maint.maint_buffs', destructiveClear: false, inserts: [], updates: [], unchanged: [], preserved: [], deletes: [] } },
     mutation: {
       changes: {
         relation_buffs: { inserts: [], updates: [{ before, after, changedColumns: ['tooltip_zh'] }], unchanged: [], preserved: [] },
@@ -56,11 +58,13 @@ test('Buff canonical transaction applies bounded updates only after locked reder
       calls.push('locked');
       return { relation_buffs: [{ record_key: 'b'.repeat(64), source_id: 24, internal_name: 'OnFire', status: 1, deleted: 0 }] };
     },
+    applyUpstream: async () => calls.push('upstream'),
+    applyUpstream: async () => calls.push('upstream'),
     applyMutation: async () => calls.push('apply'),
     verifyAfter: async () => calls.push('verify'),
     consumeDispatchPermit: () => calls.push('consume'),
   });
-  assert.deepEqual(calls, ['begin', 'runtime', 'locked', 'consume', 'apply', 'verify', 'commit']);
+  assert.deepEqual(calls, ['begin', 'runtime', 'locked', 'consume', 'upstream', 'apply', 'verify', 'commit']);
   assert.equal(result.status, 'completed');
 });
 
@@ -75,6 +79,8 @@ test('Buff canonical transaction rolls back when locked rederivation drifts befo
       calls.push('locked');
       throw new Error('locked rederivation drift');
     },
+    applyUpstream: async () => calls.push('upstream'),
+    applyUpstream: async () => calls.push('upstream'),
     applyMutation: async () => calls.push('apply'),
     verifyAfter: async () => calls.push('verify'),
     consumeDispatchPermit: () => calls.push('consume'),
@@ -109,10 +115,12 @@ test('Buff transaction waits for asynchronous permit consumption before mutation
     lockRuntime: async () => {},
     readLockedRows: async () => {},
     consumeDispatchPermit: async () => { await new Promise(setImmediate); calls.push('consumed'); },
+    applyUpstream: async () => calls.push('upstream'),
+    applyUpstream: async () => calls.push('upstream'),
     applyMutation: async () => calls.push('apply'),
     verifyAfter: async () => {},
   });
-  assert.deepEqual(calls, ['begin', 'consumed', 'apply', 'commit']);
+  assert.deepEqual(calls, ['begin', 'consumed', 'upstream', 'apply', 'commit']);
 });
 
 for (const destructiveClear of [true, undefined]) {
@@ -171,7 +179,31 @@ test('Buff transaction rolls back when asynchronous permit consumption rejects',
     connection: connection(calls),
     lockRuntime: async () => {}, readLockedRows: async () => {},
     consumeDispatchPermit: async () => { await new Promise(setImmediate); throw new Error('permit rejected'); },
+    applyUpstream: async () => calls.push('upstream'),
     applyMutation: async () => calls.push('apply'), verifyAfter: async () => calls.push('verify'),
   }), /permit rejected/);
   assert.deepEqual(calls, ['begin', 'rollback']);
+});
+
+
+test('Buff maint writer inserts only the real maint_buffs columns', async () => {
+  const input = envelope();
+  input.upstream.maint.inserts = [{
+    source_id: 24, internal_name: 'OnFire', english_name: 'On Fire!', name_zh: '着火',
+    source_provider: 'terraria.wiki.gg', source_page: 'On Fire!', source_revision_timestamp: '2026-09-23 01:02:03',
+    landing_source_id: 31, landing_source_key: 'buffs.test', landing_source_page: 'Template:GetBuffInfo', landing_content_hash: 'a'.repeat(64),
+    landing_fetched_at: '2026-09-23 01:02:03', landing_parsed_at: '2026-09-23 01:02:03', module_generated_at: null, terraria_version: null,
+    major_value: 1, combat_value: 2, defense_value: null, use_time: null, stack_size: null, width: null, height: null,
+    flags_json: '{}', raw_json: '{}', status: 1, deleted: 0,
+  }];
+  const calls = [];
+  const result = await applyBuffMaintMutation({ envelope: input, connection: { async execute(sql, params) { calls.push({ sql, params }); return [{ affectedRows: 1 }]; } } });
+  assert.deepEqual(result, { inserts: 1, updates: 0 });
+  assert.match(calls[0].sql, /INSERT INTO `terria_v1_maint`\.`maint_buffs`/);
+  assert.doesNotMatch(calls[0].sql, /record_key|scope|table_name/);
+});
+
+test('Buff maint writer rejects an out-of-scope upstream table before SQL', async () => {
+  const input = envelope(); input.upstream.maint.table = 'terria_v1_local.source_dataset_landings';
+  await assert.rejects(applyBuffMaintMutation({ envelope: input, connection: { async execute() { throw new Error('must not execute'); } } }), /upstream maint plan|maint mutation database/);
 });

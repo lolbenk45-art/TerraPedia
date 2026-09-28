@@ -20,6 +20,7 @@ import { normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   applyBuffCanonicalMutation,
+  applyBuffMaintMutation,
   executeBuffCanonicalTransaction,
   BUFF_CANONICAL_TRANSACTION_TABLES,
 } from './buff-canonical-transaction-executor.mjs';
@@ -118,6 +119,7 @@ export async function applyBuffCanonicalIngestion({
         authorizedContext: context,
         decisionLedgerPath: path.join(root, 'reports/authorization/canonical/used-decisions.json'),
       }),
+      applyUpstream: async () => applyBuffMaintMutation({ envelope, connection }),
       applyMutation: async () => applyBuffCanonicalMutation({ envelope, connection }),
       verifyAfter: async () => verifyOwnedRows(connection, envelope),
     });

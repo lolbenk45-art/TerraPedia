@@ -16,8 +16,10 @@ export function buildBuffFullChainExecutionEnvelope({
   maintRows,
   pageEvidenceByInternalName,
   runtimeManagedImagePolicySha256,
+  maintMutation,
 } = {}) {
   assertCandidate(candidate);
+  assertMaintMutation(maintMutation);
   const landings = assertLandingRows(landingRows);
   const maint = assertMaintRows(maintRows);
   const evidence = normalizeEvidence(pageEvidenceByInternalName);
@@ -57,8 +59,38 @@ export function buildBuffFullChainExecutionEnvelope({
     pageEvidenceCount: evidence.size,
     pageEvidenceSha256: hashCanonical([...evidence.entries()]),
     managedImagePolicySha256: candidate.managedImageUrlPrefixesSha256,
+    upstream: { maint: maintMutation },
     mutation: candidate,
   });
+}
+
+function assertMaintMutation(plan) {
+  if (!plan || plan.schemaVersion !== 'buff-maint-mutation-plan/v1'
+      || plan.executable !== false || plan.executionBlocker !== 'locked-upstream-executor-required'
+      || plan.table !== 'terria_v1_maint.maint_buffs' || plan.destructiveClear !== false
+      || !Array.isArray(plan.inserts) || !Array.isArray(plan.updates)
+      || !Array.isArray(plan.unchanged) || !Array.isArray(plan.preserved)
+      || !Array.isArray(plan.deletes) || plan.deletes.length !== 0) {
+    throw new Error('Buff maint mutation plan is required and must be bounded');
+  }
+  const columns = new Set(['source_id', 'internal_name', 'english_name', 'name_zh', 'source_provider',
+    'source_page', 'source_revision_timestamp', 'landing_source_id', 'landing_source_key', 'landing_source_page',
+    'landing_content_hash', 'landing_fetched_at', 'landing_parsed_at', 'module_generated_at', 'terraria_version',
+    'major_value', 'combat_value', 'defense_value', 'use_time', 'stack_size', 'width', 'height', 'flags_json',
+    'raw_json', 'status', 'deleted']);
+  for (const row of plan.inserts) {
+    if (!row || Object.keys(row).some(key => !columns.has(key))
+        || !Number.isSafeInteger(Number(row.source_id)) || typeof row.internal_name !== 'string') {
+      throw new Error('Buff maint mutation insert columns or identity are invalid');
+    }
+  }
+  for (const change of plan.updates) {
+    if (!change?.before || !change?.after || !Array.isArray(change.changedColumns)
+        || change.changedColumns.length === 0 || change.changedColumns.some(column => !columns.has(column)
+          || ['source_id', 'id'].includes(column) || !Object.hasOwn(change.after, column))) {
+      throw new Error('Buff maint mutation update columns or identity are invalid');
+    }
+  }
 }
 
 function assertCandidate(candidate) {

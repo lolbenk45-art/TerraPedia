@@ -30,6 +30,15 @@ test('parsed immunity section is publishable fact evidence', () => {
   })), { status: 'parsed', reason: 'section-parsed', evidence: null });
 });
 
+test('revision-bound item classification yields explicit not-applicable evidence', () => {
+  const value = record({ revisionId: 954224 });
+  assert.deepEqual(classifyBuffPageApplicability(value, { pageClassification: { pageTitle: 'Obsidian Skin Potion', pageId: 7885, revisionId: 954224, categories: ['Category:Potion items'] } }), { status: 'not_applicable', reason: 'revision-bound-category:item', evidence: { status: 'not_applicable', reason: 'revision-bound-category:item' } });
+});
+
+test('classification drift fails closed', () => {
+  assert.throws(() => classifyBuffPageApplicability(record({ revisionId: 954224 }), { pageClassification: { pageTitle: 'Other', pageId: 7885, revisionId: 954224, categories: ['Category:Potion items'] } }), /drift/);
+});
+
 test('explicit not-applicable evidence is distinct from unknown', () => {
   assert.deepEqual(classifyBuffPageApplicability(record({
     applicability: { status: 'not_applicable', reason: 'source-page-kind:item' },
