@@ -1209,6 +1209,40 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldRetainCleanupFailureStandardLockWhenExpiredStartingItemIsReconciled() throws Exception {
+        String queueId = "queue-cleanup-failed-starting";
+        String dispatchId = "dispatch-cleanup-failed-starting";
+        seedStandardStartingQueueItem(queueId, "domain-source-bosses");
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "failed",
+            "processCleanupFailed", true
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        assertEquals("failed", firstQueueItemMirror().get("status"));
+        assertTrue(Files.exists(lockPath));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void shouldKeepStartingItemWhenExpiredLockEvidenceProcessIsAlive() throws Exception {
         Instant processStart = ProcessHandle.current().info().startInstant().orElseThrow();
@@ -4817,6 +4851,40 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldKeepCleanupFailureStandardLockWhenStaleAdmissionChecksForWork() throws Exception {
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "dispatchId", "stale-cleanup-failed",
+            "domain", "items",
+            "actionId", "wiki-items-refresh",
+            "lockedAt", "2026-06-14T00:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "stale-cleanup-failed",
+            "domain", "items",
+            "actionId", "wiki-items-refresh",
+            "status", "failed",
+            "processCleanupFailed", true,
+            "completedAt", "2026-06-14T00:30:00Z"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T03:00:01Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
+
+        assertTrue(result.isAccepted());
+        assertEquals("queued", result.getStatus());
+        assertEquals(true, result.getQueued());
+        assertEquals(0, launcher.launchCount);
+        assertTrue(Files.exists(lockPath));
+    }
+
+    @Test
     void shouldQueueBlockedCooldownWikiMonitorDispatchWhenCooldownIsActiveAndReuseIt() throws Exception {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
             "dispatchId", "recent",
@@ -7080,6 +7148,192 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("2026-06-14T02:00:00Z", state.get("completedAt"));
     }
 
+    @Test
+    void shouldRetainCleanupFailureStandardLockDuringStartupOrphanRecovery() throws Exception {
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "dispatchId", "cleanup-failed-orphan",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "cleanup-failed-orphan",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "failed",
+            "processCleanupFailed", true,
+            "completedAt", "2026-06-14T01:30:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.reconcileActiveDispatchesOnStartup();
+
+        assertTrue(Files.exists(lockPath));
+        Map<String, Object> state = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("failed", state.get("status"));
+        assertEquals(true, state.get("processCleanupFailed"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldRetainCleanupFailureMarkerAndLockWhenOverviewSeesDeadStandardProcess() throws Exception {
+        DeadLockValidationBarrierObjectMapper objectMapper = new DeadLockValidationBarrierObjectMapper();
+        CleanupFailureRaceProcess process = new CleanupFailureRaceProcess();
+        CleanupFailureRaceLauncher launcher = new CleanupFailureRaceLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("bosses", "domain-source-bosses")
+        );
+        CrawlerMonitorDispatchResultDTO successor = service.dispatchWikiMonitorTask(
+            dispatchRequest("items", "wiki-items-refresh")
+        );
+        assertEquals("running", started.getStatus());
+        assertEquals("queued", successor.getStatus());
+        assertEquals(1, launcher.launchCount);
+
+        awaitLatch(process.watcherWaitStarted);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<CrawlerMonitorOverviewDTO> overview = executor.submit(() -> {
+            Thread.currentThread().setName("dead-lock-reconciler");
+            return service.getOverview();
+        });
+        try {
+            objectMapper.awaitLockRead();
+            process.releaseWatcherTimeout.countDown();
+            waitUntil(() -> {
+                try {
+                    Map<String, Object> state = readJsonMap(
+                        repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")
+                    );
+                    return Boolean.TRUE.equals(state.get("processCleanupFailed"));
+                } catch (IOException exception) {
+                    return false;
+                }
+            });
+            waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+                .noneMatch(thread -> ("wiki-monitor-dispatch-" + started.getDispatchId()).equals(thread.getName())));
+
+            objectMapper.releaseLockRead();
+            assertNotNull(overview.get(2, TimeUnit.SECONDS));
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+            Map<String, Object> state = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+            assertEquals(started.getDispatchId(), state.get("dispatchId"));
+            assertEquals("failed", state.get("status"));
+            assertEquals(true, state.get("processCleanupFailed"));
+            assertTrue(Files.exists(lockPath));
+            assertEquals(1, launcher.launchCount);
+
+            Map<String, Object> queueMirror = readJsonMap(
+                repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json")
+            );
+            List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+            Map<String, Object> queuedSuccessor = queueItems.stream()
+                .filter(item -> successor.getQueueId().equals(item.get("queueId")))
+                .findFirst()
+                .orElseThrow();
+            assertEquals("queued", queuedSuccessor.get("status"));
+        } finally {
+            process.releaseWatcherTimeout.countDown();
+            objectMapper.releaseLockRead();
+            executor.shutdownNow();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void shouldRetainCleanupFailureLockWhenDeadItemReconciliationRacesTimeoutCleanup() throws Exception {
+        CleanupFailureRaceProcess process = new CleanupFailureRaceProcess();
+        BlockingCleanupFailureRaceLauncher launcher = new BlockingCleanupFailureRaceLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("bosses", "domain-source-bosses")
+        );
+        assertEquals("running", started.getStatus());
+
+        awaitLatch(process.watcherWaitStarted);
+        process.releaseWatcherTimeout.countDown();
+        awaitLatch(launcher.cleanupDestroyEntered);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<CrawlerMonitorOverviewDTO> overview = executor.submit(service::getOverview);
+        try {
+            waitUntilQueueStatus(started.getQueueId(), "timed_out");
+            launcher.releaseCleanupDestroy.countDown();
+
+            assertNotNull(overview.get(2, TimeUnit.SECONDS));
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+            Map<String, Object> state = readJsonMap(repoRoot.resolve(
+                "reports/crawler-monitor/wiki-monitor-dispatch.latest.json"
+            ));
+            assertEquals(started.getDispatchId(), state.get("dispatchId"));
+            assertEquals("failed", state.get("status"));
+            assertEquals(true, state.get("processCleanupFailed"));
+            assertTrue(Files.exists(lockPath));
+        } finally {
+            process.releaseWatcherTimeout.countDown();
+            launcher.releaseCleanupDestroy.countDown();
+            executor.shutdownNow();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void shouldRetainCleanupFailureLockWhenDeadQueueItemOmitsDispatchId() throws Exception {
+        String queueId = "queue-missing-dispatch-id";
+        String dispatchId = "dispatch-missing-item-id";
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "failed",
+            "processCleanupFailed", true
+        ));
+        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
+        item.setQueueId(queueId);
+        item.setLane("standard");
+        item.setDomain("bosses");
+        item.setActionId("domain-source-bosses");
+        item.setStatus("running");
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC)
+        );
+        Method releaseDeadItemLock = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "releaseLaneLockForDeadItem", Path.class, WikiMonitorQueueItem.class
+        );
+        releaseDeadItemLock.setAccessible(true);
+
+        releaseDeadItemLock.invoke(service, repoRoot, item);
+
+        assertTrue(Files.exists(lockPath));
+    }
+
     private Path createArtifact(Object relativePath) throws IOException {
         assertNotNull(relativePath, "expected dispatch state to carry an artifact path");
         Path resolved = repoRoot.resolve(String.valueOf(relativePath));
@@ -7830,6 +8084,149 @@ class CrawlerMonitorServiceImplTest {
         @Override
         public java.io.InputStream getErrorStream() {
             return java.io.InputStream.nullInputStream();
+        }
+    }
+
+    private static class CleanupFailureRaceProcess extends Process {
+        private final CountDownLatch watcherWaitStarted = new CountDownLatch(1);
+        private final CountDownLatch releaseWatcherTimeout = new CountDownLatch(1);
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            watcherWaitStarted.countDown();
+            releaseWatcherTimeout.await();
+            return 1;
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            watcherWaitStarted.countDown();
+            releaseWatcherTimeout.await();
+            return false;
+        }
+
+        @Override
+        public int exitValue() {
+            return 1;
+        }
+
+        @Override
+        public boolean isAlive() {
+            return false;
+        }
+
+        @Override
+        public long pid() {
+            return -1L;
+        }
+
+        @Override
+        public void destroy() {
+        }
+
+        @Override
+        public java.io.OutputStream getOutputStream() {
+            return java.io.OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public java.io.InputStream getInputStream() {
+            return java.io.InputStream.nullInputStream();
+        }
+
+        @Override
+        public java.io.InputStream getErrorStream() {
+            return java.io.InputStream.nullInputStream();
+        }
+    }
+
+    private static class CleanupFailureRaceLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
+        private final CleanupFailureRaceProcess process;
+        private int launchCount;
+
+        CleanupFailureRaceLauncher(CleanupFailureRaceProcess process) {
+            this.process = process;
+        }
+
+        @Override
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+            launchCount++;
+            return process;
+        }
+
+        @Override
+        public boolean destroy(Process ignored) {
+            return false;
+        }
+    }
+
+    private static class BlockingCleanupFailureRaceLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
+        private final CleanupFailureRaceProcess process;
+        private final CountDownLatch cleanupDestroyEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseCleanupDestroy = new CountDownLatch(1);
+        private final AtomicInteger destroyCalls = new AtomicInteger();
+        private int launchCount;
+
+        BlockingCleanupFailureRaceLauncher(CleanupFailureRaceProcess process) {
+            this.process = process;
+        }
+
+        @Override
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+            launchCount++;
+            return process;
+        }
+
+        @Override
+        public boolean destroy(Process ignored) {
+            if (destroyCalls.incrementAndGet() == 1) {
+                cleanupDestroyEntered.countDown();
+                try {
+                    if (!releaseCleanupDestroy.await(5, TimeUnit.SECONDS)) {
+                        throw new AssertionError("timeout cleanup destroy was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError("timeout cleanup destroy was interrupted", exception);
+                }
+            }
+            return false;
+        }
+    }
+
+    private static class DeadLockValidationBarrierObjectMapper extends ObjectMapper {
+        private final CountDownLatch lockReadEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseLockRead = new CountDownLatch(1);
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public <T> T readValue(java.io.File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            if ("wiki-monitor-dispatch.lock.json".equals(source.getName())
+                && "dead-lock-reconciler".equals(Thread.currentThread().getName())) {
+                lockReadEntered.countDown();
+                try {
+                    if (!releaseLockRead.await(5, TimeUnit.SECONDS)) {
+                        throw new IOException("dead-lock validation was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("dead-lock validation was interrupted", exception);
+                }
+            }
+            return value;
+        }
+
+        void awaitLockRead() {
+            awaitLatch(lockReadEntered);
+        }
+
+        void releaseLockRead() {
+            releaseLockRead.countDown();
         }
     }
 

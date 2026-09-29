@@ -170,6 +170,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> queueStartMetadata = new ConcurrentHashMap<>();
     private final Set<String> cancellingDispatches = ConcurrentHashMap.newKeySet();
+    private final Object standardDispatchLifecycleMonitor = new Object();
+    private final Object standardDispatchCleanupFailureMonitor = new Object();
     private volatile Duration dispatchTimeout = WIKI_MONITOR_DISPATCH_TIMEOUT;
     private static final long OVERVIEW_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(2);
     private volatile CrawlerMonitorOverviewDTO cachedOverview;
@@ -456,7 +458,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 log.info("Recovered running wiki monitor dispatch {} (pid={}) after restart.", dispatchId, pid);
             } else {
                 convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule);
-                log.warn("Released orphaned wiki monitor dispatch lock {} after restart (pid={} not alive).", dispatchId, pid);
+                log.warn("Reconciled orphaned wiki monitor dispatch {} after restart (pid={} not alive).", dispatchId, pid);
             }
         } catch (RuntimeException exception) {
             log.warn("Failed to reconcile active dispatches on startup: {}", exception.getMessage());
@@ -2104,14 +2106,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return;
         }
         Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
-        ReadResult lock = readJsonMap(lockPath);
-        if (!lock.readable() || !item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
-            return;
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            ReadResult lock = readJsonMap(lockPath);
+            if (!lock.readable() || !item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
+                return;
+            }
+            if (isRecordedProcessAlive(lock.payload())) {
+                return;
+            }
+            if (standardDispatchCleanupFailureRequiresLock(lockPath, asString(lock.payload().get("dispatchId")))) {
+                return;
+            }
+            forceDeleteLock(lockPath);
         }
-        if (isRecordedProcessAlive(lock.payload())) {
-            return;
-        }
-        forceDeleteLock(lockPath);
     }
 
     private boolean hasHealthyTrackedActiveQueueProcess(Path repoRoot, WikiMonitorQueueItem item) {
@@ -2135,23 +2142,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void releaseLaneLockForDeadItem(Path repoRoot, WikiMonitorQueueItem item) {
-        if (item == null) {
+        if (item == null || !"standard".equals(item.getLane())) {
             return;
         }
-        Path lockPath = "domain_smoke".equals(item.getLane())
-            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
-            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
         ReadResult lock = readJsonMap(lockPath);
-        if (!lock.readable()) {
+        if (!lock.readable() || isRecordedProcessAlive(lock.payload())) {
             return;
         }
-        if ("domain_smoke".equals(item.getLane())) {
+        if (!deadLockBelongsToQueueItem(lock.payload(), item, true)) {
             return;
         }
-        if (isRecordedProcessAlive(lock.payload())) {
-            return;
-        }
-        if (deadLockBelongsToQueueItem(lock.payload(), item, true)) {
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            if (standardDispatchCleanupFailureRequiresLock(lockPath, asString(lock.payload().get("dispatchId")))) {
+                return;
+            }
             forceDeleteLock(lockPath);
         }
     }
@@ -3623,8 +3628,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void releaseDispatchLock(Path lockPath, String dispatchId) {
+        if (isStandardDispatchLockPath(lockPath)) {
+            synchronized (standardDispatchCleanupFailureMonitor) {
+                releaseDispatchLockIfMatches(lockPath, dispatchId);
+            }
+            return;
+        }
+        releaseDispatchLockIfMatches(lockPath, dispatchId);
+    }
+
+    private void releaseDispatchLockIfMatches(Path lockPath, String dispatchId) {
         ReadResult lock = readJsonMap(lockPath);
         if (lock.readable() && dispatchId.equals(asString(lock.payload().get("dispatchId")))) {
+            if (standardDispatchCleanupFailureRequiresLock(lockPath, dispatchId)) {
+                return;
+            }
             try {
                 Files.deleteIfExists(lockPath);
             } catch (IOException ignored) {
@@ -3632,7 +3650,29 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    private boolean standardDispatchCleanupFailureRequiresLock(Path lockPath, String dispatchId) {
+        if (!isStandardDispatchLockPath(lockPath) || dispatchId == null) {
+            return false;
+        }
+        Path latestDispatchPath = lockPath.resolveSibling(WIKI_MONITOR_DISPATCH_FILE.getFileName());
+        ReadResult latestDispatch = readJsonMap(latestDispatchPath);
+        return latestDispatch.readable()
+            && dispatchId.equals(asString(latestDispatch.payload().get("dispatchId")))
+            && "failed".equals(asString(latestDispatch.payload().get("status")))
+            && Boolean.TRUE.equals(latestDispatch.payload().get("processCleanupFailed"));
+    }
+
     private void releaseStaleDispatchLock(Path lockPath) {
+        if (isStandardDispatchLockPath(lockPath)) {
+            synchronized (standardDispatchCleanupFailureMonitor) {
+                releaseStaleDispatchLockIfEligible(lockPath);
+            }
+            return;
+        }
+        releaseStaleDispatchLockIfEligible(lockPath);
+    }
+
+    private void releaseStaleDispatchLockIfEligible(Path lockPath) {
         ReadResult lock = readJsonMap(lockPath);
         if (!lock.readable()) {
             return;
@@ -3654,6 +3694,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     lockPath, asLong(payload.get("pid")));
                 return;
             }
+            if (standardDispatchCleanupFailureRequiresLock(lockPath, asString(payload.get("dispatchId")))) {
+                return;
+            }
             Files.deleteIfExists(lockPath);
         } catch (RuntimeException | IOException ignored) {
         }
@@ -3661,6 +3704,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private boolean isDomainSmokeLockPath(Path lockPath) {
         return lockPath != null && WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.getFileName().equals(lockPath.getFileName());
+    }
+
+    private boolean isStandardDispatchLockPath(Path lockPath) {
+        return lockPath != null && WIKI_MONITOR_DISPATCH_LOCK_FILE.getFileName().equals(lockPath.getFileName());
     }
 
     private boolean hasRecordedProcessRuntime(Map<String, Object> payload) {
@@ -3898,11 +3945,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             } finally {
                 boolean terminalTimedOut = timedOut;
                 int terminalExitCode = exitCode;
+                boolean terminalMutationRan = false;
                 if (watcherInterrupted) {
                     log.debug("Skipping V1 standard dispatch terminal mutation because watcher {} was interrupted.", dispatchId);
                 } else {
-                    runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
-                        completeWatchedStandardDispatch(
+                    terminalMutationRan = runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
+                        completeWatchedStandardDispatchAndRetire(
                             repoRoot,
                             queueIdOrNull,
                             dispatchId,
@@ -3915,15 +3963,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                         )
                     );
                 }
-                activeDispatchProcesses.remove(dispatchId);
-                cancellingDispatches.remove(dispatchId);
+                if (watcherInterrupted || !terminalMutationRan) {
+                    retireWatchedStandardDispatch(repoRoot, dispatchId);
+                }
             }
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
     }
 
-    private void completeWatchedStandardDispatch(
+    private boolean completeWatchedStandardDispatch(
         Path repoRoot,
         String queueIdOrNull,
         String dispatchId,
@@ -3934,11 +3983,34 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         boolean timedOut,
         int exitCode
     ) {
-        if (timedOut) {
-            processLauncher.destroy(process);
-        }
-        ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        Path statePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
         boolean controlledCancel = cancellingDispatches.contains(dispatchId);
+        if (timedOut) {
+            synchronized (standardDispatchCleanupFailureMonitor) {
+                if (!processLauncher.destroy(process)) {
+                    if (!controlledCancel) {
+                        recordStandardDispatchCleanupFailure(
+                            repoRoot,
+                            queueIdOrNull,
+                            dispatchId,
+                            rule,
+                            paths,
+                            "dispatch timed out after " + timeout.toMinutes()
+                                + " minutes; process tree cleanup failed; lock retained"
+                        );
+                    } else {
+                        log.error("Wiki monitor standard dispatch {} process tree cleanup failed; retaining its lock.", dispatchId);
+                    }
+                    return false;
+                }
+            }
+        }
+        ReadResult durableDispatch = readJsonMap(statePath);
+        if (requiresRetainedDispatchLockAfterCleanupFailure(durableDispatch, dispatchId)) {
+            log.error("Wiki monitor standard dispatch {} process cleanup remains unverified; retaining its lock.", dispatchId);
+            return false;
+        }
+        ReadResult currentDispatch = durableDispatch;
         if (!controlledCancel
             && !(currentDispatch.readable()
                 && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
@@ -3957,17 +4029,133 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
                 Instant.now(clock).toString(), paths, message);
             preserveDispatchMetadata(currentDispatch.payload(), state);
-            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+            writeJsonFile(statePath, state);
             if (queueIdOrNull != null) {
                 queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), message);
                 invalidateCachedOverview();
             }
         }
+        ReadResult durableDispatchBeforeRelease = readJsonMap(statePath);
+        if (requiresRetainedDispatchLockAfterCleanupFailure(durableDispatchBeforeRelease, dispatchId)) {
+            log.error("Wiki monitor standard dispatch {} process cleanup remains unverified; retaining its lock.", dispatchId);
+            return false;
+        }
+        if (controlledCancel
+            && !(durableDispatchBeforeRelease.readable()
+                && dispatchId.equals(asString(durableDispatchBeforeRelease.payload().get("dispatchId")))
+                && isWikiMonitorDispatchTerminalStatus(asString(durableDispatchBeforeRelease.payload().get("status"))))) {
+            log.warn("Wiki monitor standard dispatch {} has a controlled cancellation without a durable terminal state; retaining its lock.", dispatchId);
+            return false;
+        }
         releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
-        if (!controlledCancel) {
-            cancellingDispatches.remove(dispatchId);
+        return !controlledCancel;
+    }
+
+    private void completeWatchedStandardDispatchAndRetire(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        DispatchPaths paths,
+        Process process,
+        Duration timeout,
+        boolean timedOut,
+        int exitCode
+    ) {
+        boolean shouldDrainQueue;
+        synchronized (standardDispatchLifecycleMonitor) {
+            shouldDrainQueue = completeWatchedStandardDispatch(
+                repoRoot,
+                queueIdOrNull,
+                dispatchId,
+                rule,
+                paths,
+                process,
+                timeout,
+                timedOut,
+                exitCode
+            );
+            activeDispatchProcesses.remove(dispatchId);
+            clearStandardDispatchCancellationFenceAfterWatcherExit(repoRoot, dispatchId);
+        }
+        if (shouldDrainQueue) {
             drainWikiMonitorDispatchQueue("standard-terminal");
         }
+    }
+
+    private void retireWatchedStandardDispatch(Path repoRoot, String dispatchId) {
+        synchronized (standardDispatchLifecycleMonitor) {
+            activeDispatchProcesses.remove(dispatchId);
+            clearStandardDispatchCancellationFenceAfterWatcherExit(repoRoot, dispatchId);
+        }
+    }
+
+    private void clearStandardDispatchCancellationFenceAfterWatcherExit(Path repoRoot, String dispatchId) {
+        if (!cancellingDispatches.contains(dispatchId)) {
+            return;
+        }
+        ReadResult durableDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (durableDispatch.readable()
+            && dispatchId.equals(asString(durableDispatch.payload().get("dispatchId")))
+            && isWikiMonitorDispatchTerminalStatus(asString(durableDispatch.payload().get("status")))) {
+            cancellingDispatches.remove(dispatchId);
+        }
+    }
+
+    private void recordStandardDispatchCleanupFailure(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        DispatchPaths paths,
+        String message
+    ) {
+        Path statePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        synchronized (standardDispatchCleanupFailureMonitor) {
+            try {
+                ReadResult durableDispatch = readJsonMap(statePath);
+                if (!durableDispatch.readable()
+                    || !dispatchId.equals(asString(durableDispatch.payload().get("dispatchId")))) {
+                    log.error("Skipping cleanup-failure state for {} because latest dispatch no longer matches.", dispatchId);
+                    return;
+                }
+                if (isWikiMonitorDispatchTerminalStatus(asString(durableDispatch.payload().get("status")))) {
+                    log.error("Wiki monitor standard dispatch {} process tree cleanup failed; retaining its lock.", dispatchId);
+                    return;
+                }
+                Map<String, Object> currentPayload = durableDispatch.payload();
+                LinkedHashMap<String, Object> state = buildDispatchState(
+                    dispatchId,
+                    rule,
+                    "failed",
+                    asString(currentPayload.get("startedAt")),
+                    Instant.now(clock).toString(),
+                    paths,
+                    message
+                );
+                preserveDispatchMetadata(currentPayload, state);
+                state.put("processCleanupFailed", true);
+                writeTerminalFailureSummaryToEmptyLog(repoRoot, paths, dispatchId, rule, "failed", message);
+                writeJsonFile(statePath, state);
+            } catch (RuntimeException exception) {
+                log.error("Failed to persist standard dispatch cleanup failure for {}.", dispatchId, exception);
+            }
+        }
+        if (queueIdOrNull != null) {
+            try {
+                queueRepository.markTerminal(queueIdOrNull, "failed", Instant.now(clock), message);
+                invalidateCachedOverview();
+            } catch (RuntimeException exception) {
+                log.error("Failed to persist queue terminal state after standard dispatch cleanup failure for {}.", dispatchId, exception);
+            }
+        }
+    }
+
+    private boolean requiresRetainedDispatchLockAfterCleanupFailure(ReadResult currentDispatch, String dispatchId) {
+        return currentDispatch.readable()
+            && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
+            && "failed".equals(asString(currentDispatch.payload().get("status")))
+            && asBoolean(currentDispatch.payload().get("processCleanupFailed"));
     }
 
     private void writeTerminalFailureSummaryToEmptyLog(

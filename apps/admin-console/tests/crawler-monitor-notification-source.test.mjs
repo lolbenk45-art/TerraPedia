@@ -86,3 +86,32 @@ test('an empty or malformed overview response does not throw', () => {
   assert.deepEqual(events, [])
   assert.deepEqual(nextState, {})
 })
+
+test('a persisted scheduler alert is surfaced once after a browser restart', () => {
+  const overview = {
+    ...overviewWithDomain({ domain: 'items', label: 'Items', state: { status: 'completed' } }),
+    wikiMonitor: {
+      ...overviewWithDomain({}).wikiMonitor,
+      alerts: [{
+        id: 7,
+        dedupeKey: 'scheduler:source-probe:items',
+        severity: 'CRITICAL',
+        status: 'OPEN',
+        title: 'Items source probe failed',
+        details: 'upstream timeout',
+        domain: 'items',
+        createdAt: '2026-08-31T00:00:00Z',
+      }],
+    },
+  }
+
+  const first = diffCrawlerMonitorEvents({}, overview)
+  assert.equal(first.events.length, 1)
+  assert.equal(first.events[0].id, 'crawler-alert:scheduler:source-probe:items')
+  assert.equal(first.events[0].level, 'danger')
+  assert.equal(first.events[0].detail, 'upstream timeout')
+  assert.equal(first.nextState.__alerts['scheduler:source-probe:items'], true)
+
+  const second = diffCrawlerMonitorEvents(first.nextState, overview)
+  assert.deepEqual(second.events, [])
+})

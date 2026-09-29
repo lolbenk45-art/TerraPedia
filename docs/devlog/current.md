@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-08-29 10:39 CST by Codex
+Last updated: 2026-09-29 16:20 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness` (primary worktree)
 
@@ -148,6 +148,8 @@ Active branch: `feat/supplementary-domains-readiness` (primary worktree)
   refresh, replay, scheduler control write, or business-table write was run.
 
 ## Recently Closed
+
+- **Crawler monitor lifecycle and persisted alert notifications**; owner: Codex; status: closed; branch: `feat/supplementary-domains-readiness`; entry: `entries/2026-09-29-crawler-monitor-lifecycle-notification-fix.md`; backend `213/213`, admin notification source `7/7`, and `git diff --check` pass; commit SHA pending in final response.
 
 - **Item source local NPC admission / Item 来源本地 NPC 入库闭环**；owner: Codex；status: closed for the Item lane；branch: `feat/supplementary-domains-readiness`；parent: `entries/2026-08-23-session-handoff-remaining-closure.md` remains blocked only for independent non-Item lanes；attempt: `74fdfa622c308da96af9245facba0fb51752de4609894b5571b9843f25e37da4`；proposal `sha256:d35afe4b0ac1cc3a4eb4daf29fddbde0c1bfcc08fc2c0022ca41bafc9b9e9fe5`；scope `sha256:63cbd03487b7e7a898d5f2b92036e5b7d7ed145aa1ccce845d75781f92fdcdb4`；result: `112` physical changes, independent layer readback `8/8/22/22/21/1/21` plus `9/9` reconciliation, post-admission partition `28 accepted / 1295 duplicate / 283 quarantine / 748 blocked / 0 unclassified`, API and local smoke pass；final evidence and bilingual plan review: `reports/runtime/local-data-chain-closure/20260825/item-source-local-npc-admission/final-0925/`；no staging or commit performed.
 
