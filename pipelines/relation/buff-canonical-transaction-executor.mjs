@@ -1,4 +1,5 @@
 import { BUFF_CANDIDATE_COLUMNS, normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
+import { assertBuffManifestPin } from './buff-canonical-governance-contract.mjs';
 
 const TABLES = Object.freeze([
   'relation_buffs',
@@ -24,6 +25,7 @@ export async function executeBuffCanonicalTransaction({
 } = {}) {
   validateEnvelope(envelope);
   validatePacket(packet);
+  assertBuffManifestPin({ packet, envelope });
   if (!connection || typeof connection.beginTransaction !== 'function'
       || typeof connection.commit !== 'function' || typeof connection.rollback !== 'function') {
     throw new TypeError('Buff canonical transaction connection is required');

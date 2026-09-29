@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { assertBuffLandingMutationPlan } from '../landing/buff-bounded-landing-mutation.mjs';
+import { assertBuffManifestPin } from './buff-canonical-governance-contract.mjs';
 
 const TABLES = Object.freeze([
   'relation_buffs',
@@ -20,7 +21,11 @@ export function buildBuffFullChainExecutionEnvelope({
   runtimeManagedImagePolicySha256,
   maintMutation,
   landingMutation = null,
+  executionManifestHash,
 } = {}) {
+  if (typeof executionManifestHash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(executionManifestHash)) {
+    throw new Error('Buff execution manifest hash is required');
+  }
   assertCandidate(candidate);
   assertMaintMutation(maintMutation);
   const landingPlan = landingMutation == null ? null : assertBuffLandingMutationPlan(landingMutation) && landingMutation;
@@ -46,6 +51,7 @@ export function buildBuffFullChainExecutionEnvelope({
   }
   return deepFreeze({
     schemaVersion: 'buff-full-chain-execution/v1',
+    executionManifestHash,
     domainId: 'buffs',
     executable: landingPlan == null,
     executionBlocker: landingPlan ? 'deferred-lineage-integration-required' : null,

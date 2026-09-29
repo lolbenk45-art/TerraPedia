@@ -20,6 +20,7 @@ function envelope() {
   const after = { ...before, tooltip_zh: '灼热' };
   return {
     schemaVersion: 'buff-full-chain-execution/v1',
+    executionManifestHash: HASH,
     executable: true,
     executionBlocker: null,
     candidateSha256: HASH,
@@ -51,7 +52,7 @@ test('Buff canonical transaction applies bounded updates only after locked reder
   const calls = [];
   const result = await executeBuffCanonicalTransaction({
     envelope: envelope(),
-    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
     connection: connection(calls),
     lockRuntime: async () => calls.push('runtime'),
     readLockedRows: async () => {
@@ -68,11 +69,28 @@ test('Buff canonical transaction applies bounded updates only after locked reder
   assert.equal(result.status, 'completed');
 });
 
+test('Buff transaction rejects a missing or drifted manifest pin before BEGIN and permit consumption', async () => {
+  for (const manifestHash of [undefined, `sha256:${'c'.repeat(64)}`]) {
+    const calls = [];
+    const input = envelope();
+    input.executionManifestHash = manifestHash;
+    await assert.rejects(executeBuffCanonicalTransaction({
+      envelope: input,
+      packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
+      connection: connection(calls),
+      lockRuntime: async () => calls.push('runtime'), readLockedRows: async () => calls.push('locked'),
+      consumeDispatchPermit: async () => calls.push('permit'), applyUpstream: async () => {},
+      applyMutation: async () => {}, verifyAfter: async () => {},
+    }), /manifest/i);
+    assert.deepEqual(calls, []);
+  }
+});
+
 test('Buff canonical transaction rolls back when locked rederivation drifts before permit consumption', async () => {
   const calls = [];
   await assert.rejects(executeBuffCanonicalTransaction({
     envelope: envelope(),
-    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
     connection: connection(calls),
     lockRuntime: async () => calls.push('runtime'),
     readLockedRows: async () => {
@@ -110,7 +128,7 @@ test('Buff transaction waits for asynchronous permit consumption before mutation
   const calls = [];
   await executeBuffCanonicalTransaction({
     envelope: envelope(),
-    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
     connection: connection(calls),
     lockRuntime: async () => {},
     readLockedRows: async () => {},
@@ -128,7 +146,7 @@ test('Buff transaction passes upstream bound envelope to mutation and after-set 
   const boundEnvelope = { ...envelope(), marker: 'landing-13001-bound' };
   await executeBuffCanonicalTransaction({
     envelope: envelope(),
-    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
     connection: connection(calls),
     lockRuntime: async () => {},
     readLockedRows: async () => {},
@@ -192,7 +210,7 @@ test('Buff transaction rolls back when asynchronous permit consumption rejects',
   const calls = [];
   await assert.rejects(executeBuffCanonicalTransaction({
     envelope: envelope(),
-    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
     connection: connection(calls),
     lockRuntime: async () => {}, readLockedRows: async () => {},
     consumeDispatchPermit: async () => { await new Promise(setImmediate); throw new Error('permit rejected'); },
