@@ -318,6 +318,10 @@ function expectedItemEffects(attribute) {
   return ITEM_EFFECT_SPECS.flatMap(([cellKey, statKey, classScope, unit = 'percent'], effectIndex) => {
     const value = armorCellValue(raw[cellKey], unit, cellKey);
     if (value == null || value === 0) return [];
+    // Independently reject source scopes that the additive cell contract cannot express.
+    if (cellKey === 'rangedDamage' && /额外(?:弓|枪|其他远程)伤害/.test(String(raw.otherBonus ?? ''))) {
+      throw new Error('Armor effect cell rangedDamage has unresolved specialized damage semantics');
+    }
     const itemLabel = attribute.item_name_zh ?? attribute.item_page_title ?? attribute.item_internal_name ?? null;
     const slotType = attribute.slot_group === 'head' ? 'headSlot'
       : attribute.slot_group === 'body' ? 'bodySlot'

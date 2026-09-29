@@ -1160,24 +1160,42 @@ const ARMOR_ATTRIBUTE_EFFECT_SPECS = Object.freeze([
   ['movementSpeed', 'move_speed', '移动速度', null]
 ]);
 
+function hasSpecializedArmorDamage(rawCells, cellKey, value) {
+  // These source notes describe scoped multiplicative bonuses, not generic addends.
+  return cellKey === 'rangedDamage' && value != null && value !== 0
+    && /额外(?:弓|枪|其他远程)伤害/.test(String(rawCells.otherBonus ?? ''));
+}
+
+const ARMOR_ATTRIBUTE_DIAGNOSTIC_SPECS = [
+  ...ARMOR_ATTRIBUTE_EFFECT_SPECS.map(([cellKey, , , , unit = 'percent']) => [cellKey, unit, 'effect']),
+  ...['meleeDamageCritChance', 'rangedDamageCritChance', 'magicDamageCritChance']
+    .map(cellKey => [cellKey, 'percent', 'summary']),
+];
+
 export function collectArmorAttributeCellDiagnostics(relationArmorAttributeRows = []) {
   const diagnostics = [];
   for (const armorRow of relationArmorAttributeRows) {
     const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
-    for (const [cellKey, , , , unit = 'percent'] of ARMOR_ATTRIBUTE_EFFECT_SPECS) {
+    for (const [cellKey, unit, cellRole] of ARMOR_ATTRIBUTE_DIAGNOSTIC_SPECS) {
       const rawValue = rawCells[cellKey];
       if (rawValue == null || rawValue === '' || rawValue === '—' || rawValue === '-') continue;
+      const identity = {
+        recordKey: armorRow.recordKey ?? null,
+        itemId: armorRow.itemId == null ? null : Number(armorRow.itemId),
+        itemNameZh: armorRow.itemNameZh ?? armorRow.itemPageTitle ?? null,
+        cellKey,
+        rawValue: String(rawValue),
+        unit,
+        ...(cellRole === 'summary' ? { cellRole } : {}),
+      };
       try {
-        armorCellNumber(rawValue, unit, cellKey);
+        const value = armorCellNumber(rawValue, unit, cellKey);
+        if (hasSpecializedArmorDamage(rawCells, cellKey, value)) {
+          diagnostics.push({ ...identity, reason: 'specialized-damage-semantics-unresolved',
+            sourceContext: String(rawCells.otherBonus) });
+        }
       } catch {
-        diagnostics.push({
-          recordKey: armorRow.recordKey ?? null,
-          itemId: armorRow.itemId == null ? null : Number(armorRow.itemId),
-          itemNameZh: armorRow.itemNameZh ?? armorRow.itemPageTitle ?? null,
-          cellKey,
-          rawValue: String(rawValue),
-          unit
-        });
+        diagnostics.push(identity);
       }
     }
   }
@@ -1242,6 +1260,9 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
       const value = armorCellNumber(rawCells[cellKey], unit, cellKey);
       if (value == null || value === 0) {
         return;
+      }
+      if (hasSpecializedArmorDamage(rawCells, cellKey, value)) {
+        throw new Error('Armor effect cell rangedDamage has unresolved specialized damage semantics');
       }
       rows.push({
         recordKey: createRecordKey([

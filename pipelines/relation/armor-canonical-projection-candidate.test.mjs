@@ -116,6 +116,18 @@ async function fixture({ existing = true } = {}) {
   return input;
 }
 
+for (const otherBonus of ['额外弓伤害', '额外枪伤害', '额外其他远程伤害']) {
+  test(`independent rederivation rejects parity-matching generic damage with ${otherBonus}`, async () => {
+    const input = await fixture();
+    addProducerItemEffects(input, { rangedDamage: '12%' });
+    assert.deepEqual((await build(input)).acceptance.blockers, []);
+    const attribute = input.dependencyRows.relation_armor_attribute_rows[0];
+    attribute.raw_cells_json = JSON.stringify({ rangedDamage: '12%', otherBonus });
+    input.consumerRows.projection_item_armor_attributes[0].raw_cells_json = attribute.raw_cells_json;
+    await assert.rejects(build(input), /specialized damage semantics/);
+  });
+}
+
 test('composes the reviewed relation builder and preserves actual projection IDs in read-only dependencies', async () => {
   assert.equal(typeof build, 'function', 'the pure projection candidate builder is required');
   const input = await fixture();

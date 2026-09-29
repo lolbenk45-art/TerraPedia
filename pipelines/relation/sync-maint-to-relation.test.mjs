@@ -53,6 +53,51 @@ test('buildArmorAttributeEffectRows keeps class-specific critical cells typed by
   ]);
 });
 
+for (const otherBonus of ['额外弓伤害', '额外枪伤害', '额外其他远程伤害']) {
+  for (const rangedDamage of ['12%', '15%']) {
+    test(`rejects exact ${rangedDamage} with unresolved specialized note ${otherBonus}`, () => {
+      assert.throws(() => buildArmorAttributeEffectRows([{
+        recordKey: 'specialized', itemId: 1546,
+        rawCellsJson: JSON.stringify({ rangedDamage, otherBonus }),
+      }]), /specialized damage semantics/);
+    });
+  }
+}
+
+test('diagnostics distinguish qualified summary cells from effect cells', () => {
+  const diagnostics = collectArmorAttributeCellDiagnostics([
+    ['额外弓伤害', 1546], ['额外枪伤害', 1547], ['额外其他远程伤害', 1548],
+  ].map(([otherBonus, itemId]) => ({ itemId, recordKey: String(itemId),
+    rawCellsJson: JSON.stringify({ rangedDamage: '>15%', rangedDamageCritChance: '>20%', otherBonus }),
+  })));
+  assert.equal(diagnostics.length, 6);
+  assert.deepEqual(diagnostics.map(row => [row.itemId, row.cellKey, row.rawValue, row.cellRole ?? 'effect']), [
+    [1546, 'rangedDamage', '>15%', 'effect'], [1546, 'rangedDamageCritChance', '>20%', 'summary'],
+    [1547, 'rangedDamage', '>15%', 'effect'], [1547, 'rangedDamageCritChance', '>20%', 'summary'],
+    [1548, 'rangedDamage', '>15%', 'effect'], [1548, 'rangedDamageCritChance', '>20%', 'summary'],
+  ]);
+});
+
+test('diagnostics preserve the scope note when an exact value still has unresolved semantics', () => {
+  const diagnostics = collectArmorAttributeCellDiagnostics([{
+    recordKey: 'specialized', itemId: 1546, itemNameZh: '蘑菇矿头饰',
+    rawCellsJson: JSON.stringify({ rangedDamage: '12%', otherBonus: '额外弓伤害' }),
+  }]);
+  assert.deepEqual(diagnostics, [{
+    recordKey: 'specialized', itemId: 1546, itemNameZh: '蘑菇矿头饰',
+    cellKey: 'rangedDamage', rawValue: '12%', unit: 'percent',
+    reason: 'specialized-damage-semantics-unresolved', sourceContext: '额外弓伤害',
+  }]);
+});
+
+test('ordinary damage with an unrelated note is accepted and summaries never create effects', () => {
+  const rows = buildArmorAttributeEffectRows([{
+    recordKey: 'ordinary', itemId: 1549,
+    rawCellsJson: JSON.stringify({ rangedDamage: '13%', rangedDamageCritChance: '>20%', otherBonus: '移动时有残影' }),
+  }]);
+  assert.deepEqual(rows.map(row => [row.statKey, row.valueDecimal, row.operation]), [['damage_bonus', 13, 'add']]);
+});
+
 test('armor cells retain resource units and signed modifiers without double counting summary totals', () => {
   const rows = buildArmorAttributeEffectRows([{
     recordKey: 'resources', itemId: 1, slotGroup: 'head',
