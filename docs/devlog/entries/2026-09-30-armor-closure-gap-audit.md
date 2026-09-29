@@ -68,4 +68,22 @@ Evidence and read-only reports:
 
 The executable order is frozen in
 `docs/superpowers/plans/2026-09-30-armor-closure-repair-order.md`. No production
-fix, crawler, permit, DML, restart or scheduler activation occurred in this audit.
+fix, crawler, permit, DML, restart or scheduler activation occurred during the
+read-only audit portion above; the Phase 1 parser/evidence fix is recorded below.
+
+## Phase 1 implementation checkpoint
+
+- Added the pure `pipelines/fetch/armor-set-module-parser.mjs` module and moved
+  the fetch parser to it. Initialize body tokenization now starts after the
+  function declaration, preserving the first `Create`/`Add` statement.
+- `buildArmorSetSourceEvidence` now reparses raw module bytes and compares complete
+  records (sets, counts, IDs, primary part, text key and benefit) against parsed
+  and standardized artifacts. The obsolete Shroomite placeholder was removed.
+- TDD evidence: the new parser test first failed with `ERR_MODULE_NOT_FOUND`; the
+  source-evidence drift test first failed with a missing expected exception. Both
+  pass after the minimal implementation.
+- Validation: 14 focused Node tests pass across parser, source evidence, fetch and
+  definition-source suites; direct read-only rederivation of rev964993 returns
+  64 records and 243 nonzero item IDs. `git diff --check` passes.
+- Scope remains code/docs only. No crawler was run, no database or permit was
+  touched, and Phase 2 member/set baseline reconstruction is still open.

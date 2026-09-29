@@ -28,8 +28,8 @@ The work is closed only when all of the following are true for the frozen target
 `pipelines/fetch/fetch-wiki-armorsetbonuses.test.mjs`,
 `pipelines/fetch/armor-set-source-evidence.test.mjs`.
 
-- [ ] Add a fixture whose first Initialize statement is Shroomite and assert the parser returns all 64 records, including all three variants and five unique IDs.
-- [ ] Add a source-evidence test that changes `sets`, `setCount`, `uniqueItemIds` or `primaryPart` between raw rederivation and standardized output and assert rejection.
+- [x] Add a fixture whose first Initialize statement is Shroomite and assert the parser returns all 64 records, including all three variants and five unique IDs.
+- [x] Add a source-evidence test that changes `sets`, `setCount`, `uniqueItemIds` or `primaryPart` between raw rederivation and standardized output and assert rejection.
 - [ ] Record the frozen revision tuple and the explicit 243-ID module denominator plus separately governed single-piece/module-external scope. Do not use the current 233-member count as the denominator.
 - [ ] Run `node --test pipelines/fetch/fetch-wiki-armorsetbonuses.test.mjs pipelines/fetch/armor-set-source-evidence.test.mjs`; expected result is RED before implementation because the current parser and evidence helper accept the bad cases.
 
@@ -38,10 +38,10 @@ The work is closed only when all of the following are true for the frozen target
 **Files:** `pipelines/fetch/fetch-wiki-armorsetbonuses.mjs`,
 `pipelines/fetch/armor-set-source-evidence.mjs`, their tests, and the source manifest builder used by the fetch runner.
 
-- [ ] Make Initialize extraction tokenize the function body independently of the declaration so the first `Create`/`Add` statement cannot be swallowed.
-- [ ] Reparse raw module bytes inside `buildArmorSetSourceEvidence`, compare complete normalized records (ordered sets, IDs, counts, primary part, text key and benefit), and bind the raw content hash and revision to that exact result.
-- [ ] Change the placeholder map entry for `蘑菇矿盔甲` to reflect the actual module definition; retain explicit placeholder reasoning only for genuinely non-module display sets.
-- [ ] Run the Phase 0 tests plus the complete fetch/source evidence suites. No database write is allowed in this phase.
+- [x] Make Initialize extraction tokenize the function body independently of the declaration so the first `Create`/`Add` statement cannot be swallowed.
+- [x] Reparse raw module bytes inside `buildArmorSetSourceEvidence`, compare complete normalized records (ordered sets, IDs, counts, primary part, text key and benefit), and bind the raw content hash and revision to that exact result.
+- [x] Remove the obsolete `蘑菇矿盔甲` placeholder; retain explicit placeholder reasoning only for genuinely non-module display sets.
+- [x] Run the Phase 0 tests plus the fetch/source evidence suites. No database write was used in this phase.
 
 ## Phase 2 — rebuild canonical member and set baseline
 

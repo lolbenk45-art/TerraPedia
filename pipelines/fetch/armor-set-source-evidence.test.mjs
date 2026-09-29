@@ -8,7 +8,7 @@ const rawPayload = {
   pageTitle: 'Module:ArmorSetBonuses',
   revisionId: 987654,
   sourceRevisionTimestamp: '2026-05-21T00:00:00Z',
-  moduleContent: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'
+  moduleContent: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Add(ArmorSetBonuses.Benefits.Wood, "ArmorSetBonus.Wood", 727, 728, 729);\nend'
 };
 const records = [{
   benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
@@ -66,5 +66,17 @@ test('buildArmorSetSourceEvidence rejects missing or malformed textKey mappings'
   assert.throws(
     () => buildArmorSetSourceEvidence(inputs({ parsedPayload: { ...inputs().parsedPayload, armorSets: [{ ...records[0], textKey: '' }] } })),
     /textKey/i
+  );
+});
+
+test('buildArmorSetSourceEvidence rejects complete set composition drift', () => {
+  const value = inputs();
+  value.standardizedPayload = {
+    ...value.standardizedPayload,
+    records: [{ ...records[0], sets: [[1546, 1549, 1550]], uniqueItemIds: [1546, 1549, 1550] }]
+  };
+  assert.throws(
+    () => buildArmorSetSourceEvidence(value),
+    /records|composition|drift/i
   );
 });
