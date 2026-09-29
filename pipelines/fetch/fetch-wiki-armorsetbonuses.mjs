@@ -130,6 +130,7 @@ try {
   const report = {
     generatedAt: fetchedAt,
     moduleUrl: moduleUrl.toString(),
+    revisionId: revision?.revid ?? null,
     revisionTimestamp: revision?.timestamp ?? null,
     sharedRawDir,
     totalRecords: records.length,

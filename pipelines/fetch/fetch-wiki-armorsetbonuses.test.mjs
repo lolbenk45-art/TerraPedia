@@ -75,6 +75,21 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(record.localPath, path.resolve(rawPath).replaceAll('\\', '/'));
   assert.equal(record.revisionTimestamp, '2026-05-21T00:00:00Z');
   assert.equal(record.contentHash, createContentHash('ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'));
+
+  const rawPayload = JSON.parse(fs.readFileSync(rawPath, 'utf8'));
+  assert.equal(rawPayload.revisionId, 987654);
+  const parsedPayload = JSON.parse(fs.readFileSync(
+    path.join(sharedDataRoot, 'raw', 'wiki', 'module__armorsetbonuses.parsed.latest.json'),
+    'utf8',
+  ));
+  assert.equal(parsedPayload.sourceRevisionId, 987654);
+  const standardizedPayload = JSON.parse(fs.readFileSync(
+    path.join(worktreeRoot, 'data', 'standardized', 'armor_sets.standardized.json'),
+    'utf8',
+  ));
+  assert.equal(standardizedPayload.upstreamMeta.sourceRevisionId, 987654);
+  const report = JSON.parse(fs.readFileSync(path.resolve(progress.reportPath), 'utf8'));
+  assert.equal(report.revisionId, 987654);
 });
 
 test('armorsetbonuses parser preserves the six-argument primary-part overload', () => {
