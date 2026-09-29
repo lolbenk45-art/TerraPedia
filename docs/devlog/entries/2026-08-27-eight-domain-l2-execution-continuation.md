@@ -524,3 +524,35 @@
   absolute-path assertion, although the implementation and reviewer matrix
   cover it. No integration fixture reads the real current-generation pointer;
   this is follow-up coverage only and does not reopen the contract blocker.
+
+### Session handoff checkpoint: 2026-09-29 19:41 CST
+
+- Git facts observed in the primary worktree: repository
+  `/home/lolben/TerraPedia`, branch `feat/supplementary-domains-readiness`,
+  `HEAD=f9f8e11c`, upstream `origin/feat/supplementary-domains-readiness`,
+  ahead by `23`, with zero staged, unstaged, or untracked paths. `git diff
+  --check` passes.
+- The repository currently has `39` registered worktrees. The coordinator and
+  automation-domain lanes are clean and ready for a new session:
+  `automation-scheduler-continuation` (`b4aab27a`),
+  `automation-domain-armor` (`d823ca31`),
+  `automation-domain-buff` (`564bfdfa`), and
+  `automation-domain-shimmer` (`c498476d`). The coordinator remains the only
+  worktree for serial devlog, runtime, authorization, database, Redis, and
+  scheduler operations.
+- Six historical worktrees retain their previously recorded dirty state
+  (total `863` changed/untracked paths): crawler-auto-ingestion-readiness
+  `626`, crawler-queue-v2-runtime `7`, scheduler-permanent-enablement `45`,
+  automation-ingestion-continuation `183`, close-structure-compat-window `1`,
+  and main-merge-20260816 `1`. These paths are preserved verbatim and are not
+  part of this handoff's cleanup.
+- Runtime facts are recorded from the latest current devlog entry but were not
+  re-probed during this Git-only handoff: MySQL UUID
+  `b4ae6728-4f72-11f1-bcc9-00155d37eadf`, Flyway `V60`, Redis `6380`, V2
+  control `enabled=true`/`changed-only`, zero live attempts/claims, healthy
+  reconciler, and all eight scheduler-readiness rows `blocked`. A new session
+  must re-run runtime preflight before any operation.
+- Next safe action remains the separately scoped historical-evidence
+  disposition/repair for Items, Projectiles, and Shimmer. Do not generate an
+  L2 proposal, consume a new authorization identity, change scheduler state,
+  or perform crawler/import/database writes before that gate is resolved.
