@@ -650,5 +650,55 @@
       },
       "removedSets": []
     }
+  },
+  "liveCanonicalRelationDryRun": {
+    "at": "2026-09-29T18:25:21.973Z",
+    "databaseWrites": false,
+    "result": {
+      "summary": {
+        "inserts": 299,
+        "updates": 238,
+        "unchanged": 440,
+        "preserved": 30
+      },
+      "removedIdentities": {
+        "relation_armor_sets": [],
+        "relation_armor_set_items": [
+          "[\"ArmorSetBonus.AdamantiteCaster\",0,1,400]",
+          "[\"ArmorSetBonus.AdamantiteCaster\",0,2,403]",
+          "[\"ArmorSetBonus.AdamantiteMelee\",0,1,401]",
+          "[\"ArmorSetBonus.AdamantiteMelee\",0,2,403]",
+          "[\"ArmorSetBonus.AdamantiteRanged\",0,1,402]",
+          "[\"ArmorSetBonus.AdamantiteRanged\",0,2,403]",
+          "[\"ArmorSetBonus.BeetleDamage\",0,1,2199]",
+          "[\"ArmorSetBonus.BeetleDamage\",0,2,2200]",
+          "[\"ArmorSetBonus.BeetleDefense\",0,1,2199]",
+          "[\"ArmorSetBonus.BeetleDefense\",0,2,2201]",
+          "[\"ArmorSetBonus.ChlorophyteMelee\",0,1,1001]",
+          "[\"ArmorSetBonus.ChlorophyteMelee\",0,2,1004]",
+          "[\"ArmorSetBonus.ChlorophyteSummon\",0,1,5524]",
+          "[\"ArmorSetBonus.ChlorophyteSummon\",0,2,1004]",
+          "[\"ArmorSetBonus.CobaltCaster\",0,1,371]",
+          "[\"ArmorSetBonus.CobaltCaster\",0,2,374]",
+          "[\"ArmorSetBonus.CobaltMelee\",0,1,372]",
+          "[\"ArmorSetBonus.CobaltMelee\",0,2,374]",
+          "[\"ArmorSetBonus.CobaltRanged\",0,1,373]",
+          "[\"ArmorSetBonus.CobaltRanged\",0,2,374]",
+          "[\"ArmorSetBonus.MythrilCaster\",0,1,376]",
+          "[\"ArmorSetBonus.MythrilCaster\",0,2,379]",
+          "[\"ArmorSetBonus.MythrilMelee\",0,1,377]",
+          "[\"ArmorSetBonus.MythrilMelee\",0,2,379]",
+          "[\"ArmorSetBonus.MythrilRanged\",0,1,378]",
+          "[\"ArmorSetBonus.MythrilRanged\",0,2,379]",
+          "[\"ArmorSetBonus.SpectreDamage\",0,1,2189]",
+          "[\"ArmorSetBonus.SpectreDamage\",0,2,1504]",
+          "[\"ArmorSetBonus.SpectreHealing\",0,1,1503]",
+          "[\"ArmorSetBonus.SpectreHealing\",0,2,1504]"
+        ],
+        "relation_armor_set_images": []
+      },
+      "unresolvedGeneratedIds": 299,
+      "unresolvedDependencies": 245
+    }
   }
 }

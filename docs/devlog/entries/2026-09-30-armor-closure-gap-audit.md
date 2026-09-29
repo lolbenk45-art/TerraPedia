@@ -108,3 +108,9 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
   artifact in a read-only candidate produced a transition of 2 inserts/1 demotion
   and a maint dry-run of 1 set insert + 63 updates and 244 image inserts + 175
   updates. Artifact: `.local/tmp/armor-phase2-canonical-source-dryrun-20260930-01.json`.
+- A second ID-independent relation dry-run using the same incoming source graph and
+  live maint/relation baselines produced 299 relation inserts, 238 updates, 440
+  unchanged rows and 30 preserved child rows for explicit removal review. It has
+  299 unresolved generated IDs and 245 unresolved maint dependencies by design;
+  these are not execution authority. Artifact:
+  `.local/tmp/armor-phase2-canonical-relation-dryrun-20260930-01.json`.
