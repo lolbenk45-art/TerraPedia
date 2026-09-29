@@ -26,6 +26,7 @@ import {
   executeBuffCanonicalTransaction,
   BUFF_CANONICAL_TRANSACTION_TABLES,
 } from './buff-canonical-transaction-executor.mjs';
+import { assertBuffFenceReadback } from './buff-canonical-governance-contract.mjs';
 
 export const BUFF_CANONICAL_OPERATION_ID = 'canonical-buff-full-chain';
 const repoRoot = getProjectRoot();
@@ -108,6 +109,8 @@ export async function applyBuffCanonicalIngestion({
     fenceToken: bindingPacket.fenceToken ?? context.fenceToken,
     serverUuid: fingerprint.serverUuid,
     actor: bindingPacket.actor ?? context.actor ?? 'canonical-buff-full-chain',
+    packetHash: context.packetHash,
+    executionManifestHash: context.executionManifestHash,
   };
   let committed = false;
   try {
@@ -295,22 +298,16 @@ export function assertBuffResultPathAvailable({ repoRoot: root, resultPath } = {
 
 async function lockRuntime(connection, packet, envelope) {
   const [servers] = await connection.query('SELECT @@server_uuid AS serverUuid, @@port AS serverPort');
-  if (servers?.length !== 1 || String(servers[0].serverUuid) !== packet.serverUuid) {
-    throw new Error('Buff canonical ingestion server identity drifted');
-  }
+  if (servers?.length !== 1) throw new Error('Buff canonical ingestion server identity readback is missing');
   const [owners] = await connection.query(
     'SELECT username, status FROM terria_v1_local.crawler_automation_owner WHERE singleton_key = 1 FOR UPDATE',
   );
-  if (owners?.length !== 1 || owners[0].status !== 'ACTIVE' || owners[0].username !== packet.actor) {
-    throw new Error('Buff canonical ingestion owner is not active or actor drifted');
-  }
   const [fences] = await connection.query(
     'SELECT latest_run_id, fence_token, (expires_at > CURRENT_TIMESTAMP) AS active FROM terria_v1_local.crawler_automation_write_fence FOR UPDATE',
   );
   const active = (fences ?? []).filter((row) => Number(row.active) === 1);
-  if (active.length !== 1 || active[0].latest_run_id !== packet.runId || active[0].fence_token !== packet.fenceToken) {
-    throw new Error('Buff canonical ingestion ownership fence is missing, foreign or expired');
-  }
+  if (active.length !== 1) throw new Error('Buff canonical ingestion ownership fence readback is missing or duplicated');
+  assertBuffFenceReadback({ packet, server: servers[0], owner: owners?.[0], fence: active[0] });
   const landingIds = getBuffLandingLockIds(envelope);
   const maintIds = (envelope.frozenMaintIdentity?.rows ?? []).map((row) => Number(row.id)).filter(Number.isSafeInteger);
   if (maintIds.length === 0) throw new Error('Buff canonical ingestion frozen maint identities are missing');

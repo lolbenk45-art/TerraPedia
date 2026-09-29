@@ -38,3 +38,13 @@ No runtime write was attempted.
 ## Commit
 
 `2a86f143` (`fix(buff): propagate deferred landing identity`)
+
+## Governance contract checkpoint
+
+Added a Buff-local, pure governance contract for exact fence/owner/server
+readback, execution-manifest pin equality, locked rederivation hash equality,
+and immutable recovery-journal record construction. The runner now delegates
+its existing `FOR UPDATE` fence readback checks to the exact fence contract.
+These helpers do not write a journal or activate execution; durable journal
+persistence, packet/envelope manifest wiring, and full locked rederivation
+remain runtime gates for the coordinator.
