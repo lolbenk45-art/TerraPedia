@@ -1144,6 +1144,46 @@ function armorCellNumber(value, unit, cellKey) {
   return Number(text.replace(/%$/, ''));
 }
 
+const ARMOR_ATTRIBUTE_EFFECT_SPECS = Object.freeze([
+  ['meleeDamage', 'damage_bonus', '近战伤害', 'melee'],
+  ['rangedDamage', 'damage_bonus', '远程伤害', 'ranged'],
+  ['magicDamage', 'damage_bonus', '魔法伤害', 'magic'],
+  ['summonDamage', 'damage_bonus', '召唤伤害', 'summon'],
+  ['meleeCritChance', 'crit_chance', '近战暴击率', 'melee'],
+  ['rangedCritChance', 'crit_chance', '远程暴击率', 'ranged'],
+  ['magicCritChance', 'crit_chance', '魔法暴击率', 'magic'],
+  ['classSpecific', 'melee_speed', '近战速度', 'melee'],
+  ['maxMana', 'mana_max', '最大魔力', 'magic', 'count'],
+  ['manaCost', 'mana_cost', '魔力花费', null],
+  ['minionSlots', 'minion_capacity', '仆从容量', null, 'count'],
+  ['sentrySlots', 'sentry_capacity', '哨兵容量', null, 'count'],
+  ['movementSpeed', 'move_speed', '移动速度', null]
+]);
+
+export function collectArmorAttributeCellDiagnostics(relationArmorAttributeRows = []) {
+  const diagnostics = [];
+  for (const armorRow of relationArmorAttributeRows) {
+    const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
+    for (const [cellKey, , , , unit = 'percent'] of ARMOR_ATTRIBUTE_EFFECT_SPECS) {
+      const rawValue = rawCells[cellKey];
+      if (rawValue == null || rawValue === '' || rawValue === '—' || rawValue === '-') continue;
+      try {
+        armorCellNumber(rawValue, unit, cellKey);
+      } catch {
+        diagnostics.push({
+          recordKey: armorRow.recordKey ?? null,
+          itemId: armorRow.itemId == null ? null : Number(armorRow.itemId),
+          itemNameZh: armorRow.itemNameZh ?? armorRow.itemPageTitle ?? null,
+          cellKey,
+          rawValue: String(rawValue),
+          unit
+        });
+      }
+    }
+  }
+  return diagnostics;
+}
+
 function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
   const equivalentLookup = buildEquivalentArmorAttributeLookup(maintItems);
   if (!equivalentLookup.size) return rows;
@@ -1193,27 +1233,12 @@ function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
 
 export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
   const rows = [];
-  const effectSpecs = [
-    ['meleeDamage', 'damage_bonus', '近战伤害', 'melee'],
-    ['rangedDamage', 'damage_bonus', '远程伤害', 'ranged'],
-    ['magicDamage', 'damage_bonus', '魔法伤害', 'magic'],
-    ['summonDamage', 'damage_bonus', '召唤伤害', 'summon'],
-    ['meleeCritChance', 'crit_chance', '近战暴击率', 'melee'],
-    ['rangedCritChance', 'crit_chance', '远程暴击率', 'ranged'],
-    ['magicCritChance', 'crit_chance', '魔法暴击率', 'magic'],
-    ['classSpecific', 'melee_speed', '近战速度', 'melee'],
-    ['maxMana', 'mana_max', '最大魔力', 'magic', 'count'],
-    ['manaCost', 'mana_cost', '魔力花费', null],
-    ['minionSlots', 'minion_capacity', '仆从容量', null, 'count'],
-    ['sentrySlots', 'sentry_capacity', '哨兵容量', null, 'count'],
-    ['movementSpeed', 'move_speed', '移动速度', null]
-  ];
   for (const armorRow of relationArmorAttributeRows) {
     if (!armorRow.itemId || armorRow.reviewStatus === 'unresolved') {
       continue;
     }
     const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
-    effectSpecs.forEach(([cellKey, statKey, statLabelZh, classScope, unit = 'percent'], effectIndex) => {
+    ARMOR_ATTRIBUTE_EFFECT_SPECS.forEach(([cellKey, statKey, statLabelZh, classScope, unit = 'percent'], effectIndex) => {
       const value = armorCellNumber(rawCells[cellKey], unit, cellKey);
       if (value == null || value === 0) {
         return;

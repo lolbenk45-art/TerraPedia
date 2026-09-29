@@ -6,6 +6,7 @@ import path from 'node:path';
 
 import {
   buildCanonicalItemGroupRelationProjection,
+  collectArmorAttributeCellDiagnostics,
   buildArmorAttributeEffectRows,
   buildArmorAttributeRelations,
   parseArgs,
@@ -13,6 +14,23 @@ import {
   rewriteArmorSetRelatedItemImages,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
+
+test('collectArmorAttributeCellDiagnostics preserves every qualified source cell for review', () => {
+  const diagnostics = collectArmorAttributeCellDiagnostics([
+    {
+      recordKey: 'shroomite-head-1', itemId: 3456, itemNameZh: '蘑菇矿头盔',
+      rawCellsJson: JSON.stringify({ rangedDamage: '>15%', rangedCritChance: '5%' })
+    },
+    {
+      recordKey: 'shroomite-head-2', itemId: 3457, itemNameZh: '蘑菇矿面具',
+      rawCellsJson: JSON.stringify({ rangedDamage: '>20%' })
+    }
+  ]);
+  assert.deepEqual(diagnostics, [
+    { recordKey: 'shroomite-head-1', itemId: 3456, itemNameZh: '蘑菇矿头盔', cellKey: 'rangedDamage', rawValue: '>15%', unit: 'percent' },
+    { recordKey: 'shroomite-head-2', itemId: 3457, itemNameZh: '蘑菇矿面具', cellKey: 'rangedDamage', rawValue: '>20%', unit: 'percent' }
+  ]);
+});
 
 test('buildArmorAttributeEffectRows keeps class-specific critical cells typed by class', () => {
   const rows = buildArmorAttributeEffectRows([{
