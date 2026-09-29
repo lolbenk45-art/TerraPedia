@@ -11,6 +11,7 @@ import {
   readL2PolicyCeilingArtifact,
   writeL2PolicyCeilingArtifact,
 } from './l2-policy-ceiling-artifact.mjs';
+import { SHIMMER_PARTITION_SCOPES } from './shimmer-partition-contract.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -235,6 +236,8 @@ test('builds ceilings for every multi-table governed domain using canonical scop
       { databaseRole: 'local', table: 'audio_asset_links', fieldGroup: 'all_columns' },
     ],
     shimmer: [
+      { databaseRole: 'local', table: 'world_contexts', fieldGroup: 'shimmer_context', logicalPredicateHash: SHIMMER_PARTITION_SCOPES.find((scope) => scope.table === 'world_contexts').logicalPredicateHash },
+      { databaseRole: 'local', table: 'entity_source_snapshots', fieldGroup: 'shimmer_source_lineage', logicalPredicateHash: SHIMMER_PARTITION_SCOPES.find((scope) => scope.table === 'entity_source_snapshots').logicalPredicateHash },
       { databaseRole: 'local', table: 'shimmer_item_transforms', fieldGroup: 'all_columns' },
       { databaseRole: 'local', table: 'shimmer_decraft_rules', fieldGroup: 'all_columns' },
       { databaseRole: 'local', table: 'shimmer_entity_transforms', fieldGroup: 'all_columns' },
@@ -251,6 +254,39 @@ test('builds ceilings for every multi-table governed domain using canonical scop
       ceiling: { ...ceiling(), ownedTables },
       generatedAt: '2026-08-26T05:00:00.000Z',
     }), domainId);
+  }
+});
+
+test('Shimmer L2 ceiling binds both cross-owner policy and fence scopes', () => {
+  const shimmerRows = [{ domainId: 'shimmer', policyVersion: 1, policyHash: HASH_A }];
+  const ownedTables = SHIMMER_PARTITION_SCOPES.map((scope) => ({
+    databaseRole: scope.databaseRole,
+    table: scope.table,
+    fieldGroup: scope.table === 'world_contexts' ? 'shimmer_context'
+      : scope.table === 'entity_source_snapshots' ? 'shimmer_source_lineage' : 'all_columns',
+    ...(scope.logicalPredicateHash ? { logicalPredicateHash: scope.logicalPredicateHash } : {}),
+  }));
+  const artifact = buildL2PolicyCeilingArtifact({
+    domainId: 'shimmer',
+    currentPolicy: { domainId: 'shimmer', policyVersion: 1, policyHash: HASH_A, level: 'L1', operationalState: 'ACTIVE' },
+    currentPolicyRows: shimmerRows,
+    targetPolicyVersion: 2,
+    ceiling: { ...ceiling(), ownedTables },
+    generatedAt: '2026-08-26T05:00:00.000Z',
+  });
+  assert.deepEqual(artifact.targetPolicy.policyJson.ownedTables, ownedTables
+    .toSorted((left, right) => `${left.table}:${left.fieldGroup}`.localeCompare(`${right.table}:${right.fieldGroup}`)));
+  for (const table of ['world_contexts', 'entity_source_snapshots']) {
+    assert.throws(() => buildL2PolicyCeilingArtifact({
+      domainId: 'shimmer',
+      currentPolicy: { domainId: 'shimmer', policyVersion: 1, policyHash: HASH_A, level: 'L1', operationalState: 'ACTIVE' },
+      currentPolicyRows: shimmerRows,
+      targetPolicyVersion: 2,
+      ceiling: { ...ceiling(), ownedTables: ownedTables.map((entry) => entry.table === table
+        ? (({ logicalPredicateHash, ...withoutHash }) => withoutHash)(entry)
+        : entry) },
+      generatedAt: '2026-08-26T05:00:00.000Z',
+    }), /logical predicate hash/i, table);
   }
 });
 
