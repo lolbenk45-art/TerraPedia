@@ -42,3 +42,13 @@
 - `commit SHA pending in final response`; keep Armor branch/worktree for full-chain dispatch/executor integration. No push or cleanup.
 - Coordinator current.md is untouched. Prior source-adapter marker is fulfilled by76452cc0; older historical ready/pending markers remain coordinator reconciliation work.
 - This bounded entry is closed; the parent Armor ingestion objective remains active. No new permission is requested for the already authorized implementation work.
+
+## Closeout correction
+
+The final staged check caught a trailing blank line in the newly added shared
+fixture; the initial unstaged check did not include that untracked file. The
+implementation checkpoint78e87df2 was already created when that output was
+reviewed. A separate formatting/closeout commit removes the blank line and reruns
+the staged check; no history rewrite or behavior change. The242-test result
+remains the behavioral validation; final whitespace success applies after this
+correction.

@@ -44,4 +44,3 @@ export function change(source, mutate) {
   source.bytes = Buffer.from(JSON.stringify(raw));
   source.expected.sha256 = hash(source.bytes);
 }
-
