@@ -74,6 +74,7 @@ try {
     moduleTitle: 'Module:ArmorSetBonuses',
     pageId: page?.pageid ?? null,
     pageTitle: page?.title ?? 'Module:ArmorSetBonuses',
+    revisionId: revision?.revid ?? null,
     sourceRevisionTimestamp: revision?.timestamp ?? null
   };
   rawPayload.revisionTimestamp = rawPayload.sourceRevisionTimestamp;
@@ -83,6 +84,7 @@ try {
     source: 'terraria.wiki.gg:Module:ArmorSetBonuses',
     sourceApi: rawPayload.apiUrl,
     sourcePageTitle: rawPayload.pageTitle,
+    sourceRevisionId: rawPayload.revisionId,
     sourceRevisionTimestamp: rawPayload.revisionTimestamp,
     terrariaVersion: null,
     totalArmorSets: records.length
@@ -99,6 +101,7 @@ try {
       source: 'terraria.wiki.gg:Module:ArmorSetBonuses',
       sourceApi: 'https://terraria.wiki.gg/api.php',
       sourcePageTitle: 'Module:ArmorSetBonuses',
+      sourceRevisionId: revision?.revid ?? null,
       sourceRevisionTimestamp: revision?.timestamp ?? null
     }
   };
@@ -111,6 +114,7 @@ try {
   writeJson(rawOutputPath, {
     fetchedAt,
     pageTitle: page?.title ?? null,
+    revisionId: revision?.revid ?? null,
     revisionTimestamp: revision?.timestamp ?? null,
     content
   });

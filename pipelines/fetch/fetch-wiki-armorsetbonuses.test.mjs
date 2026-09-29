@@ -71,6 +71,7 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(record.sourceKind, 'module');
   assert.equal(record.pageTitle, 'Module:ArmorSetBonuses');
   assert.equal(record.requestedPageTitle, 'Module:ArmorSetBonuses');
+  assert.equal(record.revisionId, 987654);
   assert.equal(record.localPath, path.resolve(rawPath).replaceAll('\\', '/'));
   assert.equal(record.revisionTimestamp, '2026-05-21T00:00:00Z');
   assert.equal(record.contentHash, createContentHash('ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'));
@@ -192,6 +193,7 @@ function writeArmorSetBonusesMock(tempDir) {
         title: 'Module:ArmorSetBonuses',
         revisions: [{
           content: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend',
+          revid: 987654,
           timestamp: '2026-05-21T00:00:00Z',
           slots: {
             main: {
