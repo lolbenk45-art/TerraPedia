@@ -74,7 +74,7 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(record.revisionId, 987654);
   assert.equal(record.localPath, path.resolve(rawPath).replaceAll('\\', '/'));
   assert.equal(record.revisionTimestamp, '2026-05-21T00:00:00Z');
-  assert.equal(record.contentHash, createContentHash('ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'));
+  assert.equal(record.contentHash, createContentHash('ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nArmorSetBonuses.Add(ArmorSetBonuses.Benefits.Wood, "ArmorSetBonus.Wood", 727, 728, 729);\nend'));
 
   const rawPayload = JSON.parse(fs.readFileSync(rawPath, 'utf8'));
   assert.equal(rawPayload.revisionId, 987654);
@@ -90,6 +90,12 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(standardizedPayload.upstreamMeta.sourceRevisionId, 987654);
   const report = JSON.parse(fs.readFileSync(path.resolve(progress.reportPath), 'utf8'));
   assert.equal(report.revisionId, 987654);
+  assert.equal(report.sourceEvidence.schemaVersion, 'armor-set-source-evidence/v1');
+  assert.equal(report.sourceEvidence.source.revisionId, 987654);
+  assert.deepEqual(report.sourceEvidence.mappings, [{
+    benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
+    textKey: 'ArmorSetBonus.Wood'
+  }]);
 });
 
 test('armorsetbonuses parser preserves the six-argument primary-part overload', () => {
@@ -101,8 +107,9 @@ test('armorsetbonuses parser preserves the six-argument primary-part overload', 
   fs.writeFileSync(mockApiPath, JSON.stringify({ query: { pages: [{
     pageid: 778,
     title: 'Module:ArmorSetBonuses',
-    revisions: [{
-      timestamp: '2026-05-22T00:00:00Z',
+      revisions: [{
+        revid: 987655,
+        timestamp: '2026-05-22T00:00:00Z',
       content: 'ArmorSetBonuses.Add(ArmorSetBonuses.Benefits.BeetleDamage, "ArmorSetBonus.BeetleDamage", ArmorSetBonus.PartType.Body, 2199, 2200, 2202);',
     }],
   }] } }), 'utf8');
@@ -207,12 +214,12 @@ function writeArmorSetBonusesMock(tempDir) {
         pageid: 777,
         title: 'Module:ArmorSetBonuses',
         revisions: [{
-          content: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend',
+          content: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nArmorSetBonuses.Add(ArmorSetBonuses.Benefits.Wood, "ArmorSetBonus.Wood", 727, 728, 729);\nend',
           revid: 987654,
           timestamp: '2026-05-21T00:00:00Z',
           slots: {
             main: {
-              content: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nend'
+              content: 'ArmorSetBonuses.Initialize = function()\nArmorSetBonuses.Wood = true;\nArmorSetBonuses.Add(ArmorSetBonuses.Benefits.Wood, "ArmorSetBonus.Wood", 727, 728, 729);\nend'
             }
           }
         }]

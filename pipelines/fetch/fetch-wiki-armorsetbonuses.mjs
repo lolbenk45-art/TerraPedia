@@ -11,6 +11,7 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { buildArmorSetSourceEvidence } from './armor-set-source-evidence.mjs';
 import { advanceWikiIngestionManifestForSource } from '../lib/wiki-sync-manifest.mjs';
 import {
   buildActionProgressPayload,
@@ -106,6 +107,22 @@ try {
     }
   };
 
+  const report = {
+    generatedAt: fetchedAt,
+    moduleUrl: moduleUrl.toString(),
+    revisionId: revision?.revid ?? null,
+    revisionTimestamp: revision?.timestamp ?? null,
+    sharedRawDir,
+    totalRecords: records.length,
+    samples: records.slice(0, 5)
+  };
+  report.sourceEvidence = buildArmorSetSourceEvidence({
+    rawPayload,
+    parsedPayload,
+    standardizedPayload: standardized,
+    report
+  });
+
   ensureDir(path.dirname(standardizedPath));
   ensureDir(path.dirname(rawOutputPath));
   ensureDir(path.dirname(reportPath));
@@ -127,15 +144,6 @@ try {
     writeJson(path.join(sharedRawDir, `module__armorsetbonuses.parsed.${timestamp}.json`), parsedPayload);
   }
 
-  const report = {
-    generatedAt: fetchedAt,
-    moduleUrl: moduleUrl.toString(),
-    revisionId: revision?.revid ?? null,
-    revisionTimestamp: revision?.timestamp ?? null,
-    sharedRawDir,
-    totalRecords: records.length,
-    samples: records.slice(0, 5)
-  };
   writeJson(reportPath, report);
   if (manifestPath) {
     advanceWikiIngestionManifestForSource({
