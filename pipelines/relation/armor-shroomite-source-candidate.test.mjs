@@ -1,0 +1,159 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import {
+  buildArmorShroomiteSourceCandidate as build,
+  assertArmorShroomiteSourceCandidate as verify,
+} from './armor-shroomite-source-candidate.mjs';
+import { validateArmorSemanticRepairProposal } from './run-armor-semantic-repair.mjs';
+
+const scopes = [
+  '[[bows]], [[repeaters]], [[arrows]], and [[Stake]]s',
+  '[[guns]], [[bullets]], and [[Candy Corn]]',
+  'specialist ranged weapons (non-consumable ranged weapons that are not bows or guns) and their ammunition',
+];
+const conditions = [
+  'bows, repeaters, arrows, and Stakes',
+  'guns, bullets, and Candy Corn',
+  scopes[2],
+];
+const names = ['Headgear', 'Mask', 'Helmet'];
+const note = "The ×1.12 damage boost to the specific ammunition type is applied ''after'' applying damage increases from the rest of the armor set, [[accessories]], and [[buffs]].";
+const attribution = 'As a result, Shroomite headpieces provide a larger damage bonus than their [[tooltips]] would suggest.';
+const history = '{{history|Desktop 1.4.5.0|\n** Each piece of Shroomite headgear now applies its damage bonus to ammo as well as weapons.\n** Each piece of Shroomite headgear damage bonus has been reduced from 15% to 12%.}}';
+const hash = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+
+function artifact(pageTitle, pageId, revisionId, wikitext) {
+  const metadata = { pageTitle, pageId, revisionId, revisionTimestamp: '2026-09-02T13:55:25Z' };
+  const bytes = Buffer.from(JSON.stringify({ ...metadata, apiUrl: 'https://terraria.wiki.gg/api.php', wikitext }));
+  return { bytes, expected: { ...metadata, sha256: hash(bytes) } };
+}
+
+function fixture() {
+  const pageText = `The full set grants the following effects while equipped:\n<tabber>\n${names.map((name, i) => `|-|With ${name}=\n* +13% [[ranged damage]]\n* ×1.12<ref name="multiplicative-increase"/> damage of ${scopes[i]}`).join('\n')}\n</tabber>\n* +25% ranged [[critical strike chance]]\n* +20% [[ammo conservation]]\n* +12% [[movement speed]]\n*** +50% ranged damage\n== Set ==\n== Notes ==\n* ${note} ${attribution}\n* Specialist weapon scope.{{source code ref|v=1.4.5.8|method=Terraria.Player.GetWeaponDamage}}\n== Tips ==\n== History ==\n${history}\n== References ==`;
+  const items = Object.fromEntries(names.map((name, i) => [1546 + i, {
+    internalName: `Shroomite${name}`, name: `Shroomite ${name}`, headSlot: 103 + i,
+  }]));
+  items[1549] = { internalName: 'ShroomiteBreastplate', name: 'Shroomite Breastplate', bodySlot: 67 };
+  items[1550] = { internalName: 'ShroomiteLeggings', name: 'Shroomite Leggings', legSlot: 56 };
+  return {
+    targetGameVersion: '1.4.5.8',
+    page: artifact('Shroomite armor', 4771, 1027106, pageText),
+    iteminfo: artifact('Module:Iteminfo/data', 18021, 1023241, `["data"] = [==[${JSON.stringify(items)}]==]`),
+    armorSets: artifact('Module:ArmorSetBonuses', 72704, 964993,
+      'ArmorSetBonuses.Create(ArmorSetBonuses.Benefits.Shroomite, "ArmorSetBonus.Shroomite"):Set(1548, 1549, 1550):Set(1546, 1549, 1550):Set(1547, 1549, 1550)\n:Add();'),
+  };
+}
+
+function change(source, mutate) {
+  const raw = JSON.parse(source.bytes);
+  mutate(raw);
+  source.bytes = Buffer.from(JSON.stringify(raw));
+  source.expected.sha256 = hash(source.bytes);
+}
+
+test('derives three current item multipliers with full source binding and no equipped totals', () => {
+  const source = fixture();
+  const before = structuredClone(source);
+  const candidate = build(source);
+  assert.equal(candidate.schemaVersion, 'armor-shroomite-item-source-candidate/v1');
+  assert.equal(candidate.executable, false);
+  assert.equal(candidate.databaseWrites, false);
+  assert.equal(candidate.targetGameVersion, '1.4.5.8');
+  assert.deepEqual(candidate.effects.map(row => [row.ownerId, row.ownerKind, row.ownerKey, row.statKey,
+    row.operation, row.valueDecimal, row.unit, row.conditionText]), names.map((name, i) => [
+    1546 + i, 'item', `Shroomite${name}`, 'damage_bonus', 'multiply', 1.12, 'multiplier', conditions[i],
+  ]));
+  assert.equal(candidate.effects.length, 3);
+  assert.deepEqual(candidate.acceptance.blockers.map(row => row.code), [
+    'item-source-upstream-lineage-unbound', 'complete-item-and-set-coverage-unverified',
+  ]);
+  for (const row of candidate.effects) {
+    assert.equal(row.sourceMaintId, null);
+    assert.equal(row.landingSourceId, null);
+    assert.equal(row.ownerRecordKey, null);
+    assert.equal(row.sourceLocale, 'en');
+    assert.equal(row.applyScope, 'item_bonus');
+    assert.equal(row.sourceKind, 'armor_item_page');
+    const evidence = JSON.parse(row.rawJson);
+    assert.equal(evidence.targetGameVersion, '1.4.5.8');
+    assert.equal(evidence.changedIn, '1.4.5.0');
+    assert.equal(evidence.sources.page.revisionId, 1027106);
+    assert.equal(evidence.sources.page.sha256, source.page.expected.sha256);
+    assert.equal(evidence.quotes.multiplication, note);
+    assert.equal(evidence.quotes.history, history);
+    assert.match(row.rawText, /^\* ×1\.12/);
+    assert.equal(JSON.parse(source.page.bytes).wikitext.split('\n')[row.sourceLineIndex], row.rawText);
+  }
+  assert.deepEqual(source, { ...before, page: { ...before.page, bytes: Buffer.from(before.page.bytes) },
+    iteminfo: { ...before.iteminfo, bytes: Buffer.from(before.iteminfo.bytes) },
+    armorSets: { ...before.armorSets, bytes: Buffer.from(before.armorSets.bytes) } });
+  assert.equal(verify({ candidate, source }), true);
+});
+
+test('source binding property order cannot change candidate identities', () => {
+  const source = fixture(); const expected = build(source);
+  for (const key of ['page', 'iteminfo', 'armorSets']) {
+    source[key].expected = Object.fromEntries(Object.entries(source[key].expected).reverse());
+  }
+  assert.deepEqual(build(source), expected);
+});
+
+test('the existing projection model retains each item multiplier and weapon condition', () => {
+  const candidate = build(fixture());
+  assert.deepEqual(candidate.projectionEffects.map(row => [row.ownerId, row.operation, row.valueDecimal, row.unit, row.conditionText]),
+    [1546, 1547, 1548].map((id, i) => [id, 'multiply', 1.12, 'multiplier', conditions[i]]));
+  assert.ok(candidate.projectionEffects.every(row => !Object.hasOwn(row, 'id')));
+});
+
+for (const [label, mutate, pattern] of [
+  ['changed bytes', s => { s.page.bytes = Buffer.concat([s.page.bytes, Buffer.from(' ')]); }, /hash/],
+  ['revision mismatch', s => { s.page.expected.revisionId++; }, /revisionId/],
+  ['timestamp mismatch', s => { s.page.expected.revisionTimestamp = '2023-10-23T04:15:47Z'; }, /revisionTimestamp/],
+  ['page mismatch', s => { s.page.expected.pageId++; }, /pageId/],
+  ['wrong source title', s => { change(s.page, r => { r.pageTitle = 'Armor'; }); s.page.expected.pageTitle = 'Armor'; }, /pageTitle/],
+  ['wrong provider', s => change(s.page, r => { r.apiUrl = 'https://example.test/api.php'; }), /provider/],
+  ['old game version', s => { s.targetGameVersion = '1.4.4.9'; }, /version/i],
+  ['future game version', s => { s.targetGameVersion = '1.4.5.9'; }, /version/i],
+  ['missing condition', s => change(s.page, r => { r.wikitext = r.wikitext.replace(scopes[0], ''); }), /scope|variant/],
+  ['changed condition', s => change(s.page, r => { r.wikitext = r.wikitext.replace(scopes[0], 'all ranged weapons'); }), /scope|variant/],
+  ['missing multiplication', s => change(s.page, r => { r.wikitext = r.wikitext.replace(note, ''); }), /multiplication/],
+  ['commented multiplication', s => change(s.page, r => { r.wikitext = r.wikitext.replace(note, `<!-- ${note} -->`); }), /multiplication/],
+  ['missing attribution', s => change(s.page, r => { r.wikitext = r.wikitext.replace(attribution, ''); }), /attribution/],
+  ['missing history', s => change(s.page, r => { r.wikitext = r.wikitext.replace(history, ''); }), /history/],
+  ['missing version reference', s => change(s.page, r => { r.wikitext = r.wikitext.replace('v=1.4.5.8', 'v=1.4.4.9'); }), /version/],
+  ['wrong magnitude', s => change(s.page, r => { r.wikitext = r.wikitext.replace('* ×1.12', '* ×1.15'); }), /scope|variant/],
+  ['wrong item owner', s => change(s.iteminfo, r => { r.wikitext = r.wikitext.replace('"ShroomiteHeadgear"', '"WoodHelmet"'); }), /identity/],
+  ['wrong item slot', s => change(s.iteminfo, r => { r.wikitext = r.wikitext.replace('"headSlot":103', '"bodySlot":103'); }), /identity/],
+  ['missing set variant', s => change(s.armorSets, r => { r.wikitext = r.wikitext.replace(':Set(1546, 1549, 1550)', ''); }), /variant/],
+  ['wrong set membership', s => change(s.armorSets, r => { r.wikitext = r.wikitext.replace(':Set(1546, 1549, 1550)', ':Set(1546, 1549, 1)'); }), /variant/],
+  ['duplicate set variant', s => change(s.armorSets, r => { r.wikitext = r.wikitext.replace(':Set(1546, 1549, 1550)', ':Set(1548, 1549, 1550)'); }), /variant/],
+  ['commented set statement', s => change(s.armorSets, r => { r.wikitext = `--[=[\n${r.wikitext}\n]=]`; }), /variant/],
+  ['line-commented set statement', s => change(s.armorSets, r => { r.wikitext = `--${r.wikitext}`; }), /variant/],
+  ['duplicate source section', s => change(s.page, r => { r.wikitext += '\n== Notes ==\n' + note; }), /section/],
+  ['caller override authority', s => { s.effects = [{ operation: 'add', valueDecimal: 12 }]; }, /input/],
+]) {
+  test(`rejects ${label} before producing a candidate`, () => {
+    const source = fixture(); mutate(source);
+    assert.throws(() => build(source), pattern);
+  });
+}
+
+for (const [label, mutate] of [
+  ['owner', c => { c.effects[0].ownerId = 1; }],
+  ['condition', c => { c.effects[0].conditionText = null; }],
+  ['magnitude', c => { c.effects[0].valueDecimal = 15; }],
+  ['operation', c => { c.effects[0].operation = 'add'; }],
+  ['projection', c => { c.projectionEffects[0].conditionText = 'all'; }],
+  ['game version', c => { c.targetGameVersion = '1.4.4.9'; }],
+  ['claimed authority', c => { c.executable = true; c.acceptance.blockers = []; }],
+]) {
+  test(`candidate rederivation rejects modified ${label}`, () => {
+    const source = fixture(); const candidate = build(source); mutate(candidate);
+    assert.throws(() => verify({ candidate, source }), /candidate.*drift/);
+  });
+}
+
+test('the legacy attribute-table writer does not accept the new item-source candidate', () => {
+  assert.throws(() => validateArmorSemanticRepairProposal(build(fixture())), /identity/);
+});

@@ -72,3 +72,15 @@ Files: `docs/devlog/entries/2026-09-29-armor-specialized-damage-semantics.md`, t
 4. **Consumer and automation acceptance:** compare DB to authenticated admin/public item and armor-set APIs, including1546/1547/1548/411. Verify specialized conditions and multipliers reach consumers, no duplicate equipped totals, no stale generic15% row, and all required members are covered. Validate the automatic ingestion/retry/idempotency path separately; scheduler/H8 activation stays with the coordinator. A unit-test checkpoint is not full ingestion acceptance.
 
 If an adapter or candidate exposes another gap, add a reproducing case and repair the affected milestone before publication. Preserve the user's Armor closure objective.
+
+## Versioned adapter checkpoint
+
+The standalone item-source adapter is implemented and has produced three real
+source-bound multiplier candidates. See
+`docs/audits/2026-09-29-armor-versioned-source-adapter.md` and
+`docs/devlog/entries/2026-09-29-armor-versioned-item-source-adapter.md`.
+Milestone1's adapter is complete; admission into persisted landing/maint and
+milestones2–4 remain open. The existing single-table repair proposal cannot
+truthfully own these item-page facts, so upstream ownership must be established
+before wiring them into a writable proposal. Do not disguise that missing
+contract as an override of the2023 source cells.
