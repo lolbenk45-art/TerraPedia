@@ -1,0 +1,71 @@
+# Armor closure gap audit before further implementation
+
+## Status
+
+`active`
+
+## User steering and scope
+
+- User explicitly requested finding the issues first, then filling the gaps,
+  to avoid repeated rework. Pause further production implementation and audit
+  the full source -> storage -> publication -> API/UI -> automatic recovery
+  chain before revising the execution plan.
+- Armor owner, `feat/automation-domain-armor`, starting HEAD `da0f516a`, clean
+  isolated worktree. Parent `2026-09-28-armor-source-semantics-continuation.md`.
+  Coordinator owns current.md and scheduler/H8; do not edit or activate them.
+- Allowed scope for this task: read-only code/source/database checks, local
+  diagnostic reproductions, durable findings and a dependency-ordered plan.
+  No production fixes, source crawling, business DML, permit consumption,
+  service restart or historical worktree cleanup.
+- Audit must distinguish confirmed defects, explicit existing guards, missing
+  contracts and unverified runtime risks. Test totals and hypothetical source
+  IDs cannot substitute for complete Armor acceptance.
+
+## Checks
+
+1. Enumerate source versions, fact owners and full member coverage.
+2. Trace all write scopes and the effect of admitting typed sources upstream.
+3. Check each API query, DTO and UI consumer for source-kind/condition/value
+   preservation and correct conditional/additive/multiplicative aggregation.
+4. Trace the scheduler's actual operation, source fingerprint and acknowledgement
+   path, and interrupted-commit/retry recovery for the new source operation.
+5. Reproduce the concrete failures without patching them, obtain a fresh narrow
+   read-only DB inventory, then freeze required contracts, exit criteria and
+   regression cases before the next production edit.
+
+## Findings recorded
+
+- F01: the parser drops the first Initialize statement. ArmorSetBonuses rev964993
+  rederivation is 64 textKeys/243 nonzero item IDs, while the current parser emits
+  63/238; the dropped record is Shroomite and its five IDs.
+- F02: 15 stored set combinations are old zero-head/zero-leg forms. The fixed source
+  supplies the missing legs for Cobalt, Mythril, Adamantite, Beetle, Spectre and
+  Chlorophyte variants. The current 233-member count is not a complete denominator.
+- F03: source evidence checks text keys and benefit names but accepts a synthetic
+  raw/standardized set composition drift. Complete set arrays and IDs must be bound.
+- F04: source versions span 2023/1.4.5.3/1.4.5.7/1.4.5.8; only three Shroomite
+  conditional multipliers are currently authoritative. Old generic 15% rows,
+  qualified cells, Mining identity and set-owned stealth remain unresolved.
+- F05: source-only writes and typed dry-run dispatch have no complete downstream
+  owner. General apply intentionally rejects typed rows; this guard must remain until
+  a publication/recovery executor exists.
+- F06: admin SQL filters only `armor_attribute_cell`; public item effect SQL/DTO drops
+  `condition_text`. Fresh public effects for 1546/1547/1548/411 are HTTP 200 with no
+  rows, consistent with the DB snapshot.
+- F07: original public composable diagnostics lose conditions and add multiplier
+  values, reproducing `1.12 + 1.20 = 2.3200000000000003` instead of operation-aware
+  semantics. This is synthetic offline execution, not browser evidence.
+- F08: scheduler dispatch remains the old `automation-armor-sets-l1` module-only path;
+  registration of the source operation is not automatic integration.
+- F09: PREPARED/COMMIT_UNKNOWN/COMMITTED_READBACK_REQUIRED states exist without an
+  operation-specific recovery/reconciliation entrypoint.
+
+Evidence and read-only reports:
+
+- `docs/audits/2026-09-30-armor-closure-gap-audit.md`
+- `docs/audits/2026-09-30-armor-closure-gap-evidence.json`
+- `.local/tmp/armor-closure-gap-{db,membership,membership-db,sets-diff,source-binding,ui,public-effects}-20260930-01.*`
+
+The executable order is frozen in
+`docs/superpowers/plans/2026-09-30-armor-closure-repair-order.md`. No production
+fix, crawler, permit, DML, restart or scheduler activation occurred in this audit.

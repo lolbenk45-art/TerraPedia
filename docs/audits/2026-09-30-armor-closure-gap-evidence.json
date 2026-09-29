@@ -1,0 +1,564 @@
+{
+  "schemaVersion": "armor-closure-gap-audit/v1",
+  "codeHead": "da0f516a",
+  "databaseWrites": false,
+  "scope": "read-only audit; historical snapshot, no execution authority",
+  "artifacts": [
+    {
+      "path": ".local/tmp/armor-closure-gap-db-20260930-01.json",
+      "sha256": "c640601b03424c73946af5e1164c0a149a4ebf19ff21b91d2e816dca49750a16",
+      "at": "2026-09-29T17:08:04.878Z"
+    },
+    {
+      "path": ".local/tmp/armor-closure-gap-membership-20260930-01.json",
+      "sha256": "0e147825661efaf7dc671f79821d3c514ce0d23112f98a965c39fc4a887dcb72",
+      "at": "2026-09-29T17:16:29.575Z"
+    },
+    {
+      "path": ".local/tmp/armor-closure-gap-membership-db-20260930-01.json",
+      "sha256": "a17037eae64d77aaea8a78d84febeb3ffbc652c99ee73822bb7e6f4e898788ff",
+      "at": "2026-09-29T17:17:51.465Z"
+    },
+    {
+      "path": ".local/tmp/armor-closure-gap-sets-diff-20260930-01.json",
+      "sha256": "aca1f606c3a8fa0e66b8170fc1c7989a0402ce5528a0678b8f4f7f4da3ecda07",
+      "at": "2026-09-29T17:18:22.596Z"
+    },
+    {
+      "path": ".local/tmp/armor-closure-gap-source-binding-20260930-01.json",
+      "sha256": "a0861973d0bb37b30ee617484536972027f4871f291989cfdd8127a86855f684",
+      "at": "2026-09-29T17:20:16.640Z"
+    },
+    {
+      "path": ".local/tmp/armor-closure-gap-ui-20260930-01.json",
+      "sha256": "aaab2eec42f61cff7356ce1e2c1ebf99c7ac567dc993af72290dbc439e3211d0",
+      "at": "2026-09-29T17:09:30.652Z"
+    },
+    {
+      "path": ".local/tmp/armor-closure-gap-public-effects-20260930-01.json",
+      "sha256": "b3f0113d4322026dbd77b4ce4429b9ce151071067cf145b859d902450b16c82c",
+      "at": "2026-09-29T17:10:16.839Z"
+    }
+  ],
+  "inventory": {
+    "sourceRevision": 964993,
+    "moduleScopedExpectedMembers": 243,
+    "currentMembers": 233,
+    "currentProjectedAttributeMembers": 223,
+    "missingMembership": [
+      375,
+      380,
+      404,
+      1505,
+      1546,
+      1547,
+      1548,
+      1549,
+      1550,
+      2202
+    ],
+    "missingAttributeProjection": [
+      375,
+      380,
+      404,
+      411,
+      954,
+      955,
+      1505,
+      1546,
+      1547,
+      1548,
+      1549,
+      1550,
+      2202,
+      5524,
+      5588,
+      5589,
+      5590,
+      5591,
+      5592,
+      5593
+    ],
+    "missingRelationAttributes": [
+      411,
+      954,
+      955,
+      5524,
+      5588,
+      5589,
+      5590,
+      5591,
+      5592,
+      5593
+    ],
+    "attributeItemsOutsideModule": [
+      37,
+      205,
+      268,
+      867,
+      879,
+      1135,
+      1136,
+      2277,
+      3109,
+      3770,
+      5001,
+      5068
+    ],
+    "observedUnionItemCount": 255,
+    "unionIsTargetVersionComplete": false
+  },
+  "parser": {
+    "at": "2026-09-29T17:16:29.575Z",
+    "databaseWrites": false,
+    "crawlerExecuted": false,
+    "method": "VM evaluates only pure parser function declarations; comparison input omits Initialize declaration, source bytes unchanged on disk",
+    "parserFile": "pipelines/fetch/fetch-wiki-armorsetbonuses.mjs",
+    "parserSha256": "2e5adaaba677afb81e07a83ecc64750031fa9afb5a1bd052661657a165088487",
+    "sourceRevision": 964993,
+    "actualRecordCount": 63,
+    "bodyOnlyRecordCount": 64,
+    "actualUniqueItems": 238,
+    "bodyOnlyUniqueItems": 243,
+    "missingRecords": [
+      {
+        "benefitExpression": "ArmorSetBonuses.Benefits.Shroomite",
+        "primaryPart": null,
+        "setCount": 3,
+        "sets": [
+          [
+            1548,
+            1549,
+            1550
+          ],
+          [
+            1546,
+            1549,
+            1550
+          ],
+          [
+            1547,
+            1549,
+            1550
+          ]
+        ],
+        "textKey": "ArmorSetBonus.Shroomite",
+        "uniqueItemIds": [
+          1548,
+          1549,
+          1550,
+          1546,
+          1547
+        ]
+      }
+    ],
+    "missingItems": [
+      1548,
+      1549,
+      1550,
+      1546,
+      1547
+    ],
+    "actualVersusDatabase": {
+      "onlyParser": [
+        2202,
+        1505,
+        375,
+        380,
+        404
+      ],
+      "onlyDatabase": []
+    },
+    "dbCurrentUniqueMembers": 233
+  },
+  "setDrift": {
+    "at": "2026-09-29T17:18:22.596Z",
+    "databaseWrites": false,
+    "sourceRevision": 964993,
+    "expectedTextKeys": 64,
+    "dbTextKeys": 63,
+    "missingKeys": [
+      "ArmorSetBonus.Shroomite"
+    ],
+    "extraKeys": [],
+    "changedSets": [
+      {
+        "textKey": "ArmorSetBonus.BeetleDamage",
+        "before": [
+          [
+            0,
+            2199,
+            2200
+          ]
+        ],
+        "expected": [
+          [
+            2199,
+            2200,
+            2202
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.BeetleDefense",
+        "before": [
+          [
+            0,
+            2199,
+            2201
+          ]
+        ],
+        "expected": [
+          [
+            2199,
+            2201,
+            2202
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.SpectreHealing",
+        "before": [
+          [
+            0,
+            1503,
+            1504
+          ]
+        ],
+        "expected": [
+          [
+            1503,
+            1504,
+            1505
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.SpectreDamage",
+        "before": [
+          [
+            0,
+            2189,
+            1504
+          ]
+        ],
+        "expected": [
+          [
+            2189,
+            1504,
+            1505
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.ChlorophyteMelee",
+        "before": [
+          [
+            0,
+            1001,
+            1004
+          ]
+        ],
+        "expected": [
+          [
+            1001,
+            1004,
+            1005
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.ChlorophyteSummon",
+        "before": [
+          [
+            0,
+            5524,
+            1004
+          ]
+        ],
+        "expected": [
+          [
+            5524,
+            1004,
+            1005
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.CobaltCaster",
+        "before": [
+          [
+            0,
+            371,
+            374
+          ]
+        ],
+        "expected": [
+          [
+            371,
+            374,
+            375
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.CobaltMelee",
+        "before": [
+          [
+            0,
+            372,
+            374
+          ]
+        ],
+        "expected": [
+          [
+            372,
+            374,
+            375
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.CobaltRanged",
+        "before": [
+          [
+            0,
+            373,
+            374
+          ]
+        ],
+        "expected": [
+          [
+            373,
+            374,
+            375
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.MythrilCaster",
+        "before": [
+          [
+            0,
+            376,
+            379
+          ]
+        ],
+        "expected": [
+          [
+            376,
+            379,
+            380
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.MythrilMelee",
+        "before": [
+          [
+            0,
+            377,
+            379
+          ]
+        ],
+        "expected": [
+          [
+            377,
+            379,
+            380
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.MythrilRanged",
+        "before": [
+          [
+            0,
+            378,
+            379
+          ]
+        ],
+        "expected": [
+          [
+            378,
+            379,
+            380
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.AdamantiteCaster",
+        "before": [
+          [
+            0,
+            400,
+            403
+          ]
+        ],
+        "expected": [
+          [
+            400,
+            403,
+            404
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.AdamantiteMelee",
+        "before": [
+          [
+            0,
+            401,
+            403
+          ]
+        ],
+        "expected": [
+          [
+            401,
+            403,
+            404
+          ]
+        ]
+      },
+      {
+        "textKey": "ArmorSetBonus.AdamantiteRanged",
+        "before": [
+          [
+            0,
+            402,
+            403
+          ]
+        ],
+        "expected": [
+          [
+            402,
+            403,
+            404
+          ]
+        ]
+      }
+    ]
+  },
+  "sourceBinding": {
+    "at": "2026-09-29T17:20:16.640Z",
+    "databaseWrites": false,
+    "kind": "synthetic-source-evidence-drift",
+    "rawAndParsedSets": [
+      [
+        727,
+        728,
+        729
+      ]
+    ],
+    "standardizedSets": [
+      [
+        1546,
+        1549,
+        1550
+      ]
+    ],
+    "driftAccepted": true,
+    "evidence": {
+      "schemaVersion": "armor-set-source-evidence/v1",
+      "source": {
+        "pageTitle": "Module:ArmorSetBonuses",
+        "revisionId": 987654,
+        "revisionTimestamp": "2026-05-21T00:00:00Z",
+        "contentHash": "sha256:69ca2cf507aec3169dbacc0552a0d45f808af0c2d6fb1719faa54775372c12fd"
+      },
+      "mappings": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood"
+        }
+      ]
+    }
+  },
+  "publicEffects": {
+    "at": "2026-09-29T17:10:16.839Z",
+    "readOnly": true,
+    "results": [
+      {
+        "path": "1546/equipment-effects",
+        "httpStatus": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "操作成功",
+          "statusCode": 200
+        }
+      },
+      {
+        "path": "1547/equipment-effects",
+        "httpStatus": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "操作成功",
+          "statusCode": 200
+        }
+      },
+      {
+        "path": "1548/equipment-effects",
+        "httpStatus": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "操作成功",
+          "statusCode": 200
+        }
+      },
+      {
+        "path": "411/armor-attributes",
+        "httpStatus": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "操作成功",
+          "statusCode": 200
+        }
+      }
+    ]
+  },
+  "uiDiagnostic": {
+    "kind": "diagnostic-original-code-with-synthetic-effects",
+    "summary": [
+      "×1.12 伤害",
+      "×1.2 伤害"
+    ],
+    "totalEntries": [
+      {
+        "key": "damage_bonus:multiplier:伤害",
+        "statKey": "damage_bonus",
+        "label": "伤害",
+        "value": "×2.3200000000000003",
+        "rawValue": 2.3200000000000003
+      }
+    ],
+    "statGroups": [
+      {
+        "key": "attribute",
+        "label": "属性加成",
+        "tone": "is-attribute",
+        "entries": [
+          {
+            "key": "×112伤害-0",
+            "type": "attribute",
+            "value": "+1.12",
+            "label": "伤害",
+            "text": "伤害",
+            "description": ""
+          },
+          {
+            "key": "×12伤害-1",
+            "type": "attribute",
+            "value": "+1.2",
+            "label": "伤害",
+            "text": "伤害",
+            "description": ""
+          }
+        ]
+      }
+    ]
+  }
+}
