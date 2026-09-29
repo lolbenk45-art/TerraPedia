@@ -100,6 +100,9 @@ function validateImages(payload, moduleKeys, prefixes) {
     }
     if (!safeManagedImage(row.cachedUrl, prefixes)) throw new Error('Armor image lacks managed cache evidence');
   }
+  if (payload.totalArmorSets !== moduleKeys.size) {
+    throw new Error(`Armor image evidence set denominator ${payload.totalArmorSets} does not match module set count ${moduleKeys.size}`);
+  }
 }
 
 function safeManagedImage(value, prefixes) {

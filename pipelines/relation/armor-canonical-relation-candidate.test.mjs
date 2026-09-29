@@ -23,7 +23,7 @@ function fixture() {
       setCount: 1, sets: [[1, 2, 3]], uniqueItemIds: [1, 2, 3] }],
   };
   const images = {
-    sourcePageTitle: 'Armor set pages', fetchedAt: at, totalArmorSetImages: 1, warnings: [],
+    sourcePageTitle: 'Armor set pages', fetchedAt: at, totalArmorSets: 1, totalArmorSetImages: 1, warnings: [],
     armorSetImages: [{ textKey: 'ArmorSetBonus.Wood', pageTitle: 'Wood armor', imageRole: 'male',
       sourceFileTitle: 'Wood_armor.png', originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
       cachedUrl: `${prefix}Wood_armor.png`, sourceRevisionTimestamp: revision,

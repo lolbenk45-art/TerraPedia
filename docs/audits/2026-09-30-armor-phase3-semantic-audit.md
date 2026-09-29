@@ -62,3 +62,31 @@ numeric facts.
 
 See `docs/superpowers/plans/2026-09-30-armor-closure-repair-order.md` Phase 3
 and later phases for the dependent execution order.
+
+## Canonical image denominator guard — 2026-09-30 continuation
+
+The maint candidate previously checked that every image row belonged to a module
+text key, but it did not bind the image payload's `totalArmorSets` denominator to
+the module payload's set count. A 64-set module paired with a 63-set image
+payload could therefore reach a proposal with one set's images missing. The
+candidate now rejects that graph before extraction with an explicit denominator
+mismatch error. This preserves the existing source-image removal behavior: a
+missing individual image remains a retained historical row/removal-review case;
+only a producer-level set denominator mismatch is rejected as incomplete source
+evidence.
+
+The canonical maint, relation, projection and full-chain fixtures now carry the
+producer denominator, and the second-module fixture supplies matching image
+evidence. A worktree-sensitive fallback resolver assertion in the Armor audit
+suite now uses the repository-root helper, so it validates the actual worktree
+contract rather than a retired shared-root path.
+
+Validation for this continuation:
+
+- `node --test pipelines/maint/armor-canonical-maint-candidate.test.mjs pipelines/relation/armor-canonical-relation-candidate.test.mjs pipelines/relation/armor-canonical-projection-candidate.test.mjs pipelines/relation/armor-canonical-full-chain-intent.test.mjs`: 256/256.
+- All Armor-labelled pipeline tests under `pipelines/`: 726/726.
+- `git diff --check`: passed.
+
+This remains a proposal-stage guard. The 64-set/243-member canonical landing,
+typed set-effect owner, downstream API/UI publication, and automatic recovery
+chain are still unresolved; no database or image mutation was performed.

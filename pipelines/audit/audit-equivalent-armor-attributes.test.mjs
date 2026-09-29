@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   auditEquivalentArmorAttributeRows,
   loadMysqlModule,
   parseArgs
 } from './audit-equivalent-armor-attributes.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 test('auditEquivalentArmorAttributeRows flags missing target rows and effect mismatches', () => {
   const result = auditEquivalentArmorAttributeRows({

@@ -120,3 +120,45 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
   `.local/tmp/armor-phase2-landing-maint-intent-dryrun-20260930-01.json`; this is
   still non-executable because generated IDs, relation publication and typed
   effects are unresolved.
+
+## Canonical image denominator guard continuation — 2026-09-30
+
+### Status
+
+`active`
+
+### Direction / decisions
+
+- The audit exposed one proposal-level acceptance gap: image rows were checked
+  against known module keys, but the image producer denominator was not bound to
+  the module set denominator. A 64-set module with a 63-set image payload could
+  therefore enter a candidate and lose one set's images.
+- Added a fail-closed `totalArmorSets` equality check in
+  `pipelines/maint/armor-canonical-maint-candidate.mjs`. Individual source-image
+  removal remains historical retention/removal review; this guard rejects only
+  producer-level denominator drift.
+- Updated canonical maint/relation/projection fixtures and the multi-set fixture
+  to carry matching image denominators. Updated the Armor audit resolver test to
+  use the repository-root helper so worktree paths are tested correctly.
+- The closure plan now makes this denominator check an explicit Phase 2 gate.
+
+### Validation
+
+- Focused canonical maint/relation/projection/full-chain suite: `256/256`.
+- All Armor-labelled pipeline tests: `726/726`.
+- `git diff --check`: passed.
+- No crawler, landing/import, image upload, database, Redis, scheduler or service
+  mutation was performed.
+
+### Residual risk and follow-up
+
+- The canonical 64-set/243-member landing is still not in the database; live
+  legacy landing rows remain unusable as source evidence.
+- Shroomite qualified cells, Mining Helmet/Pants identity, typed set-effect
+  downstream ownership, API/UI semantics and automatic recovery remain open.
+- Re-read this entry and the closure plan before preparing any fresh landing
+  transition or executable packet.
+
+### Commits
+
+- Pending; keep this entry active until the remaining Armor closure gates clear.

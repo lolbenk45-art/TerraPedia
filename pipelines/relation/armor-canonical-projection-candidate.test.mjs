@@ -31,7 +31,7 @@ function sourceFixture() {
       primaryPart: null, setCount: 1, sets: [[1, 2, 3]], uniqueItemIds: [1, 2, 3] }],
   };
   const images = {
-    sourcePageTitle: 'Armor set pages', fetchedAt: at, totalArmorSetImages: 1, warnings: [],
+    sourcePageTitle: 'Armor set pages', fetchedAt: at, totalArmorSets: 1, totalArmorSetImages: 1, warnings: [],
     armorSetImages: [{ textKey: 'ArmorSetBonus.Wood', pageTitle: 'Wood armor', imageRole: 'male',
       sourceFileTitle: 'Wood_armor.png', originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
       cachedUrl: `${prefix}Wood_armor.png`, sourceRevisionTimestamp: revision,
@@ -444,6 +444,12 @@ test('a second canonical module entity is derived without a historical hard-code
   changePayload(input, 0, payload => {
     payload.armorSets.push({ ...payload.armorSets[0], textKey: 'ArmorSetBonus.Second' });
     payload.totalArmorSets = 2;
+  });
+  changePayload(input, 1, payload => {
+    payload.armorSetImages.push({ ...payload.armorSetImages[0], textKey: 'ArmorSetBonus.Second',
+      pageTitle: 'Second armor', sourceFileTitle: 'Second_armor.png' });
+    payload.totalArmorSets = 2;
+    payload.totalArmorSetImages = payload.armorSetImages.length;
   });
   const result = await build(input);
   assert.equal(result.summary.inserts, 1);

@@ -16,7 +16,7 @@ function fixture() {
       setCount: 1, sets: [[1, 2, 3]], uniqueItemIds: [1, 2, 3] }],
   };
   const images = {
-    sourcePageTitle: 'Armor set pages', fetchedAt: at, totalArmorSetImages: 1, warnings: [],
+    sourcePageTitle: 'Armor set pages', fetchedAt: at, totalArmorSets: 1, totalArmorSetImages: 1, warnings: [],
     armorSetImages: [{ textKey: 'ArmorSetBonus.Wood', pageTitle: 'Wood armor', imageRole: 'male',
       sourceFileTitle: 'Wood_armor.png', originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
       cachedUrl: `${prefix}Wood_armor.png`, sourceRevisionTimestamp: revision,
@@ -83,6 +83,16 @@ test('accepts a namespaced canonical module landing while preserving the exact s
   const result = await buildArmorCanonicalMaintCandidate({ ...input, allowUnmaterializedLandingIds: true });
   assert.equal(result.summary.inserts, 2);
   assert.equal(result.changes.maint_armor_sets.inserts[0].landing_source_key, input.landingRows[0].source_key);
+});
+
+test('rejects an image landing that omits one module set key', async () => {
+  const input = fixture();
+  changePayload(input, 0, payload => {
+    payload.armorSets.push({ ...payload.armorSets[0], textKey: 'ArmorSetBonus.Shroomite',
+      sets: [[1548, 1549, 1550]], uniqueItemIds: [1548, 1549, 1550] });
+    payload.totalArmorSets = payload.armorSets.length;
+  });
+  await assert.rejects(buildArmorCanonicalMaintCandidate(input), /image.*coverage|missing.*image|image.*set/i);
 });
 
 test('changed module content preserves existing maint IDs and record keys, retaining unmatched rows', async () => {
