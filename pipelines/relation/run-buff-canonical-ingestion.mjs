@@ -31,6 +31,10 @@ export const BUFF_CANONICAL_OPERATION_ID = 'canonical-buff-full-chain';
 const repoRoot = getProjectRoot();
 const DATABASE = 'terria_v1_relation';
 const TABLES = [...BUFF_CANONICAL_TRANSACTION_TABLES];
+const LANDING_TRACE_COLUMNS = Object.freeze([
+  'landing_source_id', 'landing_source_key', 'landing_source_page',
+  'landing_content_hash', 'source_provider', 'source_page', 'source_revision_timestamp',
+]);
 
 export function parseBuffCanonicalIngestionArgs(argv = []) {
   const args = {};
@@ -111,10 +115,10 @@ export async function applyBuffCanonicalIngestion({
       envelope,
       packet,
       connection,
-      lockRuntime: async () => lockRuntime(connection, packet, envelope),
-      readLockedRows: async () => {
+      lockRuntime: async ({ envelope: executionEnvelope }) => lockRuntime(connection, packet, executionEnvelope),
+      readLockedRows: async ({ envelope: executionEnvelope }) => {
         const rows = await readOwnedRows(connection);
-        assertBuffLockedRowsMatchEnvelope({ envelope, rows });
+        assertBuffLockedRowsMatchEnvelope({ envelope: executionEnvelope, rows });
         return rows;
       },
       consumeDispatchPermit: () => consumePermit({
@@ -122,8 +126,8 @@ export async function applyBuffCanonicalIngestion({
         authorizedContext: context,
         decisionLedgerPath: path.join(root, 'reports/authorization/canonical/used-decisions.json'),
       }),
-      applyUpstream: async () => applyBuffUpstreamMutations({
-        envelope,
+      applyUpstream: async ({ envelope: executionEnvelope }) => applyBuffUpstreamMutations({
+        envelope: executionEnvelope,
         connection,
         applyLanding: ({ plan }) => applyBuffLandingMutation({
           connection,
@@ -132,15 +136,15 @@ export async function applyBuffCanonicalIngestion({
         }),
         applyMaint: ({ envelope: boundEnvelope }) => applyBuffMaintMutation({ envelope: boundEnvelope, connection }),
       }),
-      applyMutation: async () => applyBuffCanonicalMutation({ envelope, connection }),
-      verifyAfter: async () => {
-        await verifyOwnedRows(connection, envelope);
+      applyMutation: async ({ envelope: executionEnvelope }) => applyBuffCanonicalMutation({ envelope: executionEnvelope, connection }),
+      verifyAfter: async ({ envelope: executionEnvelope }) => {
+        await verifyOwnedRows(connection, executionEnvelope);
         const [maintRows] = await connection.query(
           'SELECT * FROM terria_v1_maint.maint_buffs ORDER BY id FOR UPDATE',
         );
-        assertBuffMaintAfterSet({ envelope, rows: maintRows ?? [] });
-        const landingRows = await readAfterLandingRows(connection, envelope);
-        assertBuffLandingAfterSet({ envelope, rows: landingRows });
+        assertBuffMaintAfterSet({ envelope: executionEnvelope, rows: maintRows ?? [] });
+        const landingRows = await readAfterLandingRows(connection, executionEnvelope);
+        assertBuffLandingAfterSet({ envelope: executionEnvelope, rows: landingRows });
       },
     });
     committed = result.status === 'completed';
@@ -182,12 +186,99 @@ export async function applyBuffUpstreamMutations({
     plan: envelope.upstream.maint,
     landingRow: { ...envelope.upstream.landing.landing, ...landing.row, id: Number(landing.landingId) },
   });
-  const boundEnvelope = {
-    ...envelope,
-    upstream: { ...envelope.upstream, maint: boundMaint },
-  };
+  const boundEnvelope = bindBuffCandidateToLanding({
+    envelope: {
+      ...envelope,
+      upstream: { ...envelope.upstream, maint: boundMaint },
+    },
+    landingRow: { ...envelope.upstream.landing.landing, ...landing.row, id: Number(landing.landingId) },
+  });
   const maint = await applyMaint({ envelope: boundEnvelope, connection });
-  return { landingId: Number(landing.landingId), maint, boundMaint };
+  return { landingId: Number(landing.landingId), maint, boundMaint, envelope: boundEnvelope };
+}
+
+/**
+ * Materialize the inserted landing identity on all downstream relation rows.
+ * Projection rows have no landing trace column and remain linked by relation_record_key.
+ */
+export function bindBuffCandidateToLanding({ envelope, landingRow } = {}) {
+  if (!envelope?.mutation?.changes) return envelope;
+  const landingId = Number(landingRow?.id);
+  if (!Number.isSafeInteger(landingId) || landingId < 1) {
+    throw new Error('Buff candidate landing identity is invalid');
+  }
+  const trace = {
+    landing_source_id: landingId,
+    landing_source_key: landingRow.source_key,
+    landing_source_page: landingRow.source_page,
+    landing_content_hash: landingRow.content_hash,
+    source_provider: landingRow.provider,
+    source_page: landingRow.source_page,
+    source_revision_timestamp: landingRow.source_revision_timestamp,
+  };
+  for (const field of LANDING_TRACE_COLUMNS) {
+    if (trace[field] == null || trace[field] === '') throw new Error(`Buff candidate landing trace is incomplete: ${field}`);
+  }
+  if (!envelope?.mutation?.changes || !envelope.mutation.expectedRows) {
+    throw new Error('Buff candidate mutation is required for landing binding');
+  }
+  const changes = {};
+  const expectedRows = {};
+  for (const table of TABLES) {
+    const source = envelope.mutation.changes[table];
+    if (!source) throw new Error(`Buff candidate change scope is missing: ${table}`);
+    if (table === 'projection_buffs') {
+      changes[table] = cloneCandidateValue(source);
+      expectedRows[table] = cloneCandidateValue(envelope.mutation.expectedRows[table] ?? []);
+      continue;
+    }
+    const inserts = (source.inserts ?? []).map((row) => bindBuffTraceRow(row, trace));
+    const updates = (source.updates ?? []).map((change) => {
+      const after = bindBuffTraceRow(change.after, trace);
+      return { ...change, after, changedColumns: mergeChangedColumns(change.before, after, change.changedColumns) };
+    });
+    const unchanged = [];
+    for (const row of source.unchanged ?? []) {
+      const after = bindBuffTraceRow(row, trace);
+      const changedColumns = mergeChangedColumns(row, after, []);
+      if (changedColumns.length > 0) updates.push({ before: row, after, changedColumns });
+      else unchanged.push(after);
+    }
+    changes[table] = {
+      ...cloneCandidateValue(source),
+      inserts,
+      updates,
+      unchanged,
+      preserved: cloneCandidateValue(source.preserved ?? []),
+    };
+    expectedRows[table] = [
+      ...inserts,
+      ...updates.map((change) => change.after),
+      ...unchanged,
+      ...cloneCandidateValue(source.preserved ?? []),
+    ];
+  }
+  return {
+    ...envelope,
+    mutation: { ...envelope.mutation, changes, expectedRows },
+  };
+}
+
+function bindBuffTraceRow(row, trace) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('Buff candidate row is invalid');
+  return { ...row, ...trace };
+}
+
+function mergeChangedColumns(before, after, existing) {
+  const changed = new Set(existing ?? []);
+  for (const field of LANDING_TRACE_COLUMNS) {
+    if (JSON.stringify(before?.[field] ?? null) !== JSON.stringify(after?.[field] ?? null)) changed.add(field);
+  }
+  return [...changed];
+}
+
+function cloneCandidateValue(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
 

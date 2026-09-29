@@ -12,6 +12,7 @@ import {
   assertBuffSourceRowsMatchEnvelope,
   assertBuffResultPathAvailable,
   applyBuffUpstreamMutations,
+  bindBuffCandidateToLanding,
   getBuffLandingLockIds,
   assertBuffMaintAfterSet,
   assertBuffLandingAfterSet,
@@ -109,6 +110,49 @@ test('Buff upstream execution inserts the fresh landing before binding and apply
   assert.deepEqual(calls, ['landing', 'maint']);
   assert.equal(result.landingId, 13001);
   assert.equal(result.maint.landingIdentity.id, 13001);
+});
+
+test('Buff deferred landing binding propagates the real ID through relation and secondary candidates', () => {
+  const envelope = {
+    mutation: {
+      changes: {
+        relation_buffs: {
+          inserts: [],
+          updates: [{ before: { record_key: 'a'.repeat(64), source_id: 24, internal_name: 'OnFire', landing_source_id: 17 }, after: { record_key: 'a'.repeat(64), source_id: 24, internal_name: 'OnFire', landing_source_id: 17 }, changedColumns: ['landing_source_id'] }],
+          unchanged: [], preserved: [],
+        },
+        item_buff_relations: {
+          inserts: [{ record_key: 'b'.repeat(64), buff_source_id: 24, buff_internal_name: 'OnFire', landing_source_id: null }],
+          updates: [], unchanged: [], preserved: [],
+        },
+        npc_buff_relations: { inserts: [], updates: [], unchanged: [], preserved: [] },
+        relation_buff_images: { inserts: [], updates: [], unchanged: [], preserved: [] },
+        projection_buffs: {
+          inserts: [{ id: 24, relation_record_key: 'a'.repeat(64), source_id: 24, internal_name: 'OnFire' }],
+          updates: [], unchanged: [], preserved: [],
+        },
+      },
+      expectedRows: {
+        relation_buffs: [{ record_key: 'a'.repeat(64), source_id: 24, internal_name: 'OnFire', landing_source_id: 17 }],
+        item_buff_relations: [{ record_key: 'b'.repeat(64), buff_source_id: 24, buff_internal_name: 'OnFire', landing_source_id: null }],
+        npc_buff_relations: [], relation_buff_images: [],
+        projection_buffs: [{ id: 24, relation_record_key: 'a'.repeat(64), source_id: 24, internal_name: 'OnFire' }],
+      },
+    },
+  };
+  const bound = bindBuffCandidateToLanding({
+    envelope,
+    landingRow: {
+      id: 13001, source_key: 'canonical.buff-page-immunity.run-01', content_hash: 'a'.repeat(64),
+      source_page: 'Template:GetBuffInfo', provider: 'terraria.wiki.gg',
+      source_revision_timestamp: '2026-09-23 01:02:03',
+    },
+  });
+  assert.equal(bound.mutation.changes.relation_buffs.updates[0].after.landing_source_id, 13001);
+  assert.equal(bound.mutation.changes.item_buff_relations.inserts[0].landing_source_id, 13001);
+  assert.equal(bound.mutation.expectedRows.relation_buffs[0].landing_source_id, 13001);
+  assert.equal(bound.mutation.expectedRows.item_buff_relations[0].landing_source_id, 13001);
+  assert.equal(bound.mutation.expectedRows.projection_buffs[0].relation_record_key, 'a'.repeat(64));
 });
 
 test('Buff deferred landing envelope does not require a preallocated landing lock ID', () => {

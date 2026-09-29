@@ -39,9 +39,10 @@ export async function executeBuffCanonicalTransaction({
     await lockRuntime({ packet, envelope });
     await readLockedRows({ packet, envelope });
     await consumeDispatchPermit({ packet, envelope });
-    await applyUpstream({ packet, envelope });
-    await applyMutation({ packet, envelope });
-    await verifyAfter({ packet, envelope });
+    const upstreamResult = await applyUpstream({ packet, envelope });
+    const executionEnvelope = upstreamResult?.envelope ?? envelope;
+    await applyMutation({ packet, envelope: executionEnvelope, upstreamResult });
+    await verifyAfter({ packet, envelope: executionEnvelope, upstreamResult });
     await connection.commit();
     return Object.freeze({ status: 'completed' });
   } catch (error) {

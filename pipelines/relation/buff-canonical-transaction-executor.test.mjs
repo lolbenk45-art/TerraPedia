@@ -123,6 +123,23 @@ test('Buff transaction waits for asynchronous permit consumption before mutation
   assert.deepEqual(calls, ['begin', 'consumed', 'upstream', 'apply', 'commit']);
 });
 
+test('Buff transaction passes upstream bound envelope to mutation and after-set callbacks', async () => {
+  const calls = [];
+  const boundEnvelope = { ...envelope(), marker: 'landing-13001-bound' };
+  await executeBuffCanonicalTransaction({
+    envelope: envelope(),
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex' },
+    connection: connection(calls),
+    lockRuntime: async () => {},
+    readLockedRows: async () => {},
+    consumeDispatchPermit: async () => {},
+    applyUpstream: async () => ({ envelope: boundEnvelope }),
+    applyMutation: async ({ envelope: received }) => calls.push(['apply', received.marker]),
+    verifyAfter: async ({ envelope: received }) => calls.push(['verify', received.marker]),
+  });
+  assert.deepEqual(calls, ['begin', ['apply', 'landing-13001-bound'], ['verify', 'landing-13001-bound'], 'commit']);
+});
+
 for (const destructiveClear of [true, undefined]) {
   test(`Buff writer rejects destructiveClear=${destructiveClear} before SQL`, async () => {
     const input = envelope();
