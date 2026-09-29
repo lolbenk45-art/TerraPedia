@@ -152,6 +152,24 @@ COMMIT_UNKNOWN/COMMITTED_READBACK_REQUIRED；runner 要求新路径且 CLI 为 a
 必须覆盖 PREPARED 后被杀、permit 消费不确定、commit 回执丢失、result 写失败、
 完整/部分/冲突读回，禁止盲重试或复用旧许可。
 
+### F10 · 严重：live landing 不是 canonical source evidence，无法生成修复 proposal
+
+2026-09-30 CST 对真实 loopback DB 做了 `START TRANSACTION READ ONLY` dry-run，服务端
+UUID 为 `b4ae6728-4f72-11f1-bcc9-00155d37eadf`，没有 DML。当前两个 Armor landing
+分别是：
+
+- `armor_sets_raw` id=1，`artifact_role=legacy_compat`、`parse_status=ok`、
+  `source_revision_timestamp=NULL`，source page 还是旧大小写 `Module:Armorsetbonuses`；
+- `armor_set_images_raw` id=12437，`artifact_role=legacy_compat`、`parse_status=partial`、
+  `source_revision_timestamp=NULL`。
+
+把这两个 live landing 和 63 条 maint set/175 条 maint image 交给现有
+`buildArmorCanonicalMaintCandidate`，在任何行差异计算前即失败：
+`Armor landing must retain immutable source_evidence history`。
+因此当前不能从 live baseline 生成可信的 64-set/243-member 修复 proposal；必须先
+完成 revision-bound canonical landing（包括 images），再重新读取 maint/relation
+基线。旧 landing 只能作为兼容历史，不能被升级标记冒充 source evidence。
+
 ## 本轮未建立的证据
 
 - 没有 1.4.5.8 全 Armor 权威清单，243/255 只能作固定样本下界；所有排除项须具名。
@@ -163,7 +181,7 @@ COMMIT_UNKNOWN/COMMITTED_READBACK_REQUIRED；runner 要求新路径且 CLI 为 a
 
 ## 复核处置
 
-本模型串行复核；F01–F09 都由 Armor owner 按新计划具名承接，F08 的共享调度/策略修改由
+本模型串行复核；F01–F10 都由 Armor owner 按新计划具名承接，F08 的共享调度/策略修改由
 coordinator 接收契约后负责。生产缺陷保持 open，文档交付不代表解决它们。
 旧专项计划的历史完成记录保留，新计划替代其“下一步执行顺序”。
 新增问题必须先更新问题矩阵和依赖、重审相关验收，再实施，避免边补边改变完成口径。

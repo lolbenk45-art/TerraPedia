@@ -87,3 +87,17 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
   64 records and 243 nonzero item IDs. `git diff --check` passes.
 - Scope remains code/docs only. No crawler was run, no database or permit was
   touched, and Phase 2 member/set baseline reconstruction is still open.
+
+## Phase 2 preflight finding
+
+- A live `START TRANSACTION READ ONLY` candidate rehearsal against server UUID
+  `b4ae6728-4f72-11f1-bcc9-00155d37eadf` could not produce a trusted proposal.
+  The current module landing is id=1 with `artifact_role=legacy_compat`, no source
+  revision and old page casing; the image landing is id=12437 with
+  `artifact_role=legacy_compat`, `parse_status=partial` and no source revision.
+  `buildArmorCanonicalMaintCandidate` correctly fails before diffing with
+  `Armor landing must retain immutable source_evidence history`.
+- This is F10 in the audit. Phase 2 now starts with fresh revision-bound canonical
+  landings for both datasets; old compatibility rows must not be relabeled or used
+  to authorize member/set repair. Diagnostic output is
+  `.local/tmp/armor-phase2-live-maint-dryrun-20260930-01.json`.

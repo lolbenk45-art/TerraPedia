@@ -560,5 +560,43 @@
         ]
       }
     ]
-  }
+  },
+  "liveMaintDryRun": {
+    "at": "2026-09-29T17:59:47.601Z",
+    "databaseWrites": false,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "landingCount": 2,
+    "landingSources": [
+      {
+        "id": 12437,
+        "dataset": "armor_set_images_raw",
+        "sourceKey": "wiki.armor_set_images",
+        "hash": "e123c94d2056bedbaf9b05e05e0cb35bf470b574b91b1783b19a046befdc3968",
+        "payloadBytes": 211603
+      },
+      {
+        "id": 1,
+        "dataset": "armor_sets_raw",
+        "sourceKey": "wiki.module.armorsetbonuses",
+        "hash": "46d1f3107a392aaccf8decc48fbd2a2772032a7e02d61db08718239965290b0a",
+        "payloadBytes": 13746
+      }
+    ],
+    "maintCounts": {
+      "sets": 63,
+      "images": 175
+    },
+    "candidateError": {
+      "name": "Error",
+      "message": "Armor landing must retain immutable source_evidence history"
+    }
+  },
+  "findings": [
+    {
+      "id": "F10",
+      "severity": "critical",
+      "code": "live-landing-not-canonical-source-evidence",
+      "message": "Canonical maint candidate rejects current live legacy_compat/partial landings before diffing; fresh revision-bound source evidence required."
+    }
+  ]
 }
