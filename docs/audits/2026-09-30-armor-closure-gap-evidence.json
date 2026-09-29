@@ -700,5 +700,21 @@
       "unresolvedGeneratedIds": 299,
       "unresolvedDependencies": 245
     }
+  },
+  "liveLandingMaintIntentDryRun": {
+    "at": "2026-09-29T18:28:12.221Z",
+    "databaseWrites": false,
+    "intent": {
+      "insertPlans": 247,
+      "demotions": 1,
+      "sourceSnapshotSha256": "sha256:7b6f43a1ad5257b54694c2d31ca3b5aefb4cc0e9fc7b2bf5cbb2bb7a3bc5a2d1",
+      "baselineSha256": "sha256:15a078915df5d3f13d0a204c36664fa553b50e34aee74256a4650059c2204873",
+      "summary": {
+        "inserts": 245,
+        "updates": 238,
+        "unchanged": 0,
+        "preserved": 0
+      }
+    }
   }
 }

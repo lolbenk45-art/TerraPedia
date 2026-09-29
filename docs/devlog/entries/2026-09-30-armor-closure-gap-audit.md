@@ -114,3 +114,9 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
   299 unresolved generated IDs and 245 unresolved maint dependencies by design;
   these are not execution authority. Artifact:
   `.local/tmp/armor-phase2-canonical-relation-dryrun-20260930-01.json`.
+- The existing landing/maint intent builder also accepts this graph in read-only
+  mode: 247 insert plans, one legacy image-marker demotion, and the same 245
+  upstream inserts/238 maint updates. Intent hashes are recorded in
+  `.local/tmp/armor-phase2-landing-maint-intent-dryrun-20260930-01.json`; this is
+  still non-executable because generated IDs, relation publication and typed
+  effects are unresolved.
