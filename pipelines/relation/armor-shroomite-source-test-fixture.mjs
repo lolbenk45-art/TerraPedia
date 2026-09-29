@@ -34,7 +34,7 @@ export function fixture() {
     page: artifact('Shroomite armor', 4771, 1027106, pageText),
     iteminfo: artifact('Module:Iteminfo/data', 18021, 1023241, `["data"] = [==[${JSON.stringify(items)}]==]`),
     armorSets: artifact('Module:ArmorSetBonuses', 72704, 964993,
-      'ArmorSetBonuses.Create(ArmorSetBonuses.Benefits.Shroomite, "ArmorSetBonus.Shroomite"):Set(1548, 1549, 1550):Set(1546, 1549, 1550):Set(1547, 1549, 1550)\n:Add();'),
+      'ArmorSetBonuses.Benefits.Shroomite = function (player)\n\t--[[\n\tplayer.shroomiteStealth = true;\n\t]]\nend\n\nArmorSetBonuses.Create(ArmorSetBonuses.Benefits.Shroomite, "ArmorSetBonus.Shroomite"):Set(1548, 1549, 1550):Set(1546, 1549, 1550):Set(1547, 1549, 1550)\n:Add();'),
   };
 }
 

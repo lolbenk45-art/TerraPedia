@@ -12,6 +12,9 @@ const MULTIPLICATION = "The ×1.12 damage boost to the specific ammunition type 
 const ATTRIBUTION = 'As a result, Shroomite headpieces provide a larger damage bonus than their [[tooltips]] would suggest.';
 const HISTORY = '{{history|Desktop 1.4.5.0|\n** Each piece of Shroomite headgear now applies its damage bonus to ammo as well as weapons.\n** Each piece of Shroomite headgear damage bonus has been reduced from 15% to 12%.}}';
 const VERSION_REFERENCE = '{{source code ref|v=1.4.5.8|method=Terraria.Player.GetWeaponDamage}}';
+const FROZEN_SOURCE_REVISIONS = Object.freeze({ page: 1027106, iteminfo: 1023241, armorSets: 964993 });
+const SHROOMITE_SET_KEY = 'ArmorSetBonus.Shroomite';
+const SHROOMITE_STEALTH_CONDITION = 'when the full Shroomite set is equipped';
 const hash = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
 function exactKeys(object, keys, label) {
@@ -98,6 +101,20 @@ function validateVariants(text) {
   return original.slice(start, end + 1);
 }
 
+function validateStealth(text) {
+  const match = text.match(/ArmorSetBonuses\.Benefits\.Shroomite\s*=\s*function\s*\(player\)\s*\n\s*--\[\[\s*\n\s*(player\.shroomiteStealth\s*=\s*true;)\s*\n\s*\]\]\s*\nend/);
+  if (!match) throw new Error('Armor Shroomite set-owned stealth evidence is missing or invalid');
+  return match[1];
+}
+
+function validateFrozenRevisions(bindings) {
+  for (const [key, revisionId] of Object.entries(FROZEN_SOURCE_REVISIONS)) {
+    if (bindings[key]?.revisionId !== revisionId) {
+      throw new Error(`Armor Shroomite source revision tuple is not frozen-compatible for ${key}`);
+    }
+  }
+}
+
 /** Derive current item-source facts only; this is not an executable ingestion proposal. */
 export function buildArmorShroomiteSourceCandidate(input) {
   exactKeys(input, ['page', 'iteminfo', 'armorSets', 'targetGameVersion'], 'candidate');
@@ -105,8 +122,10 @@ export function buildArmorShroomiteSourceCandidate(input) {
   const page = readSource(input.page, 'Shroomite armor', 'item-damage-semantics');
   const iteminfo = readSource(input.iteminfo, 'Module:Iteminfo/data', 'identity-only');
   const armorSets = readSource(input.armorSets, 'Module:ArmorSetBonuses', 'membership-only');
+  validateFrozenRevisions({ page: page.binding, iteminfo: iteminfo.binding, armorSets: armorSets.binding });
   validateIdentities(iteminfo.raw.wikitext);
   const membership = validateVariants(armorSets.raw.wikitext);
+  const stealthLine = validateStealth(armorSets.raw.wikitext);
   // Preserve offsets while excluding invisible comments from semantic evidence.
   const wikitext = page.raw.wikitext.replace(/<!--[\s\S]*?-->/g, comment => comment.replace(/[^\n]/g, ' '));
   const notes = section(wikitext, 'Notes', 'Tips');
@@ -119,6 +138,11 @@ export function buildArmorShroomiteSourceCandidate(input) {
   if (equippedEnd <= equippedStart) throw new Error('Armor Shroomite equipped section order is invalid');
   const equipped = wikitext.slice(equippedStart, equippedEnd);
   const sources = { page: page.binding, iteminfo: iteminfo.binding, armorSets: armorSets.binding };
+  const sourceVersionManifest = {
+    schemaVersion: 'armor-source-version-manifest/v1',
+    targetGameVersion: input.targetGameVersion,
+    sourceRevisions: { ...FROZEN_SOURCE_REVISIONS },
+  };
   const effects = HEADS.map(head => {
     const header = `|-|With ${head.name}=\n`;
     const start = once(equipped, header, 'head variant') + header.length;
@@ -129,7 +153,8 @@ export function buildArmorShroomiteSourceCandidate(input) {
     const lines = block.split('\n').filter(line => line.includes('damage of'));
     const quote = `* ×1.12<ref name="multiplicative-increase"/> damage of ${head.scope}`;
     if (lines.length !== 1 || lines[0] !== quote) throw new Error('Armor Shroomite head variant damage scope/magnitude is unsupported');
-    const rawJson = JSON.stringify({ targetGameVersion: input.targetGameVersion, changedIn: '1.4.5.0', sources,
+    const rawJson = JSON.stringify({ targetGameVersion: input.targetGameVersion, sourceVersionManifest,
+      changedIn: '1.4.5.0', sources,
       quotes: { damage: quote, multiplication: MULTIPLICATION, attribution: ATTRIBUTION, history: HISTORY,
         versionReference: VERSION_REFERENCE, membership },
       itemIdentity: { itemId: head.id, internalName: `Shroomite${head.name}`, slotType: 'headSlot' } });
@@ -148,9 +173,25 @@ export function buildArmorShroomiteSourceCandidate(input) {
       rawJson, status: 1, deleted: 0,
     };
   });
+  const setEffectEvidence = JSON.stringify({ targetGameVersion: input.targetGameVersion, sourceVersionManifest,
+    sources, membership, stealthLine });
+  const setEffects = [{
+    recordKey: hash(Buffer.from(setEffectEvidence)).slice(7), ownerKind: 'armor_set', ownerRecordKey: null,
+    ownerId: null, ownerKey: SHROOMITE_SET_KEY, sourceKind: 'armor_set_module', sourceLocale: 'en',
+    sourceLineIndex: armorSets.raw.wikitext.slice(0, armorSets.raw.wikitext.indexOf(stealthLine)).split('\n').length - 1,
+    sourceLine: stealthLine, effectIndex: 0, applyScope: 'set_bonus', variantLabel: null,
+    itemInternalName: null, slotType: null, statKey: 'stealth_enabled', statLabelZh: '潜行',
+    classScope: null, operation: 'set_flag', valueDecimal: null, valueMaxDecimal: null, unit: 'boolean',
+    conditionText: SHROOMITE_STEALTH_CONDITION, rawText: stealthLine, parseStatus: 'parsed',
+    sourceMaintTable: null, sourceMaintRecordKey: null, sourceMaintId: null, landingSourceId: null,
+    landingSourceKey: null, landingContentHash: null, sourceProvider: 'terraria.wiki.gg',
+    sourcePage: armorSets.raw.pageTitle, sourceRevisionTimestamp: armorSets.raw.revisionTimestamp,
+    confidence: 1, reviewStatus: 'unresolved', reason: 'versioned_set_source_candidate_requires_upstream_lineage',
+    rawJson: setEffectEvidence, status: 1, deleted: 0,
+  }];
   return {
     schemaVersion: 'armor-shroomite-item-source-candidate/v1', executable: false, databaseWrites: false,
-    targetGameVersion: input.targetGameVersion, sources, effects,
+    targetGameVersion: input.targetGameVersion, sourceVersionManifest, sources, effects, setEffects,
     projectionEffects: buildProjectionPayload({ relationEquipmentEffectAttributes: effects }).projectionEquipmentEffectAttributes
       .map(({ id, ...row }) => row)
       .sort((left, right) => left.ownerId - right.ownerId),

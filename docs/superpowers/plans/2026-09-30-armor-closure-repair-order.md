@@ -67,6 +67,14 @@ The work is closed only when all of the following are true for the frozen target
 - [ ] Resolve Mining Helmet/Pants identity and every non-Shroomite missing item fact under the same manifest. Require defense, slot, attribute and source lineage checks.
 - [ ] Add negative tests for mixed revisions, missing conditions, old generic 15% rows, duplicate set effects and stale qualified cells. The candidate must remain blocked when any required fact is unresolved.
 
+**2026-09-30 checkpoint:** the reviewed Shroomite candidate now freezes the
+`1027106/1023241/964993` source tuple, requires set-owned stealth evidence, and
+rejects historical generic `15%` rows. Focused source/dispatch and combined
+Armor regressions are green. This is a partial Phase 3 guard only; the full
+same-version attribute/image manifest, Mining identity, duplicate set-effect
+checks, and downstream set-effect owner are still required before this phase
+can be marked complete. Evidence: `docs/audits/2026-09-30-armor-phase3-semantic-audit.md`.
+
 ## Phase 4 — publish typed effects through an owned downstream operation
 
 **Files:** `pipelines/relation/sync-maint-to-relation.mjs`,

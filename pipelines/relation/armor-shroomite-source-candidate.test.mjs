@@ -55,6 +55,31 @@ test('source binding property order cannot change candidate identities', () => {
   assert.deepEqual(build(source), expected);
 });
 
+test('rejects a mixed source revision tuple even when each artifact is internally bound', () => {
+  const source = fixture();
+  change(source.iteminfo, raw => { raw.revisionId = 1023242; });
+  source.iteminfo.expected.revisionId = 1023242;
+  assert.throws(() => build(source), /revision.*tuple|frozen|compatible/i);
+});
+
+test('requires Shroomite stealth evidence to remain set-owned', () => {
+  const source = fixture();
+  change(source.armorSets, raw => {
+    raw.wikitext = raw.wikitext.replace('player.shroomiteStealth = true;', 'player.shroomiteStealth = false;');
+  });
+  assert.throws(() => build(source), /stealth|set-owned/i);
+});
+
+test('publishes Shroomite stealth as one set-owned flag instead of an item effect', () => {
+  const candidate = build(fixture());
+  assert.deepEqual(candidate.setEffects.map(row => [row.ownerKind, row.ownerKey, row.statKey,
+    row.operation, row.unit, row.conditionText]), [[
+    'armor_set', 'ArmorSetBonus.Shroomite', 'stealth_enabled', 'set_flag', 'boolean',
+    'when the full Shroomite set is equipped'
+  ]]);
+  assert.equal(candidate.effects.some(row => row.statKey === 'stealth_enabled'), false);
+});
+
 test('the existing projection model retains each item multiplier and weapon condition', () => {
   const candidate = build(fixture());
   assert.deepEqual(candidate.projectionEffects.map(row => [row.ownerId, row.operation, row.valueDecimal, row.unit, row.conditionText]),
@@ -85,7 +110,9 @@ for (const [label, mutate, pattern] of [
   ['wrong set membership', s => change(s.armorSets, r => { r.wikitext = r.wikitext.replace(':Set(1546, 1549, 1550)', ':Set(1546, 1549, 1)'); }), /variant/],
   ['duplicate set variant', s => change(s.armorSets, r => { r.wikitext = r.wikitext.replace(':Set(1546, 1549, 1550)', ':Set(1548, 1549, 1550)'); }), /variant/],
   ['commented set statement', s => change(s.armorSets, r => { r.wikitext = `--[=[\n${r.wikitext}\n]=]`; }), /variant/],
-  ['line-commented set statement', s => change(s.armorSets, r => { r.wikitext = `--${r.wikitext}`; }), /variant/],
+  ['line-commented set statement', s => change(s.armorSets, r => {
+    r.wikitext = r.wikitext.replace('ArmorSetBonuses.Create', '--ArmorSetBonuses.Create');
+  }), /variant/],
   ['duplicate source section', s => change(s.page, r => { r.wikitext += '\n== Notes ==\n' + note; }), /section/],
   ['caller override authority', s => { s.effects = [{ operation: 'add', valueDecimal: 12 }]; }, /input/],
 ]) {

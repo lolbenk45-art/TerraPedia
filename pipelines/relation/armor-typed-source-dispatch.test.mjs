@@ -47,6 +47,13 @@ test('typed dispatch does not suppress the unresolved old specialized table cell
   assert.throws(() => dispatch(input), /exact percent/);
 });
 
+test('typed dispatch rejects an old generic Shroomite 15 percent row', () => {
+  const input = fixture();
+  input.maintArmorAttributeRows.push({ id: 70, record_key: 'a'.repeat(64), item_page_title: 'Shroomite Headgear',
+    slot_group: 'head', raw_cells_json: '{"rangedDamage":"15%"}', raw_json: '{}' });
+  assert.throws(() => dispatch(input), /historical|legacy|Shroomite|specialized damage/i);
+});
+
 for (const apply of [false, true]) {
   test(`general sync integrates typed dry-run evidence and prevents ungoverned publication; apply=${apply}`, async () => {
     const input = fixture(); let executions = 0; let reports = 0;

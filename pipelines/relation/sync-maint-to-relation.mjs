@@ -1167,6 +1167,15 @@ function hasSpecializedArmorDamage(rawCells, cellKey, value) {
     && /额外(?:弓|枪|其他远程)伤害/.test(String(rawCells.otherBonus ?? ''));
 }
 
+function hasLegacyShroomiteGenericDamage(armorRow, rawCells, cellKey, rawValue) {
+  if (cellKey !== 'rangedDamage') return false;
+  const identity = [armorRow.itemInternalName, armorRow.itemPageTitle, armorRow.itemNameZh]
+    .filter(Boolean).join(' ');
+  return /Shroomite(?:Headgear|Mask|Helmet)|Shroomite/i.test(identity)
+    && /^\s*15(?:\.0+)?%\s*$/.test(String(rawValue ?? ''))
+    && rawCells.otherBonus == null;
+}
+
 const ARMOR_ATTRIBUTE_DIAGNOSTIC_SPECS = [
   ...ARMOR_ATTRIBUTE_EFFECT_SPECS.map(([cellKey, , , , unit = 'percent']) => [cellKey, unit, 'effect']),
   ...['meleeDamageCritChance', 'rangedDamageCritChance', 'magicDamageCritChance']
@@ -1258,6 +1267,9 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
     }
     const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
     ARMOR_ATTRIBUTE_EFFECT_SPECS.forEach(([cellKey, statKey, statLabelZh, classScope, unit = 'percent'], effectIndex) => {
+      if (hasLegacyShroomiteGenericDamage(armorRow, rawCells, cellKey, rawCells[cellKey])) {
+        throw new Error('Armor legacy Shroomite generic 15% damage row is not current source authority');
+      }
       const value = armorCellNumber(rawCells[cellKey], unit, cellKey);
       if (value == null || value === 0) {
         return;
