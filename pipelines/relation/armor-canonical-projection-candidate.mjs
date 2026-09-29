@@ -11,6 +11,7 @@ import {
 } from './managed-image-url-policy.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
 import { ARMOR_SET_PROJECTION_COLUMNS } from './armor-set-projection-restoration.mjs';
+import { readArmorItemEffectMaintSources } from '../maint/armor-item-effect-source-reader.mjs';
 
 const TABLE = 'projection_armor_sets';
 const RELATION_TABLES = ['relation_armor_sets', 'relation_armor_set_items', 'relation_armor_set_images'];
@@ -352,7 +353,7 @@ function expectedItemEffects(attribute) {
   });
 }
 
-function checkItemEffects(sources, dependencies, block) {
+function checkItemEffects(sources, dependencies, block, typedSources = []) {
   const members = new Map();
   for (const row of sources.relation_armor_set_items.filter(active)) {
     const previous = members.get(row.item_source_id) ?? { itemInternalName: row.item_internal_name, partRoles: new Set() };
@@ -364,6 +365,27 @@ function checkItemEffects(sources, dependencies, block) {
   const sourceRows = dependencies.relation_equipment_effect_attributes.filter(active);
   const accepted = [];
   const expectedKeys = new Set();
+  const typedKeys = new Set();
+  // Independently assemble expectations from validated raw sources and maint IDs.
+  // Do not consume the dispatch producer's effects or its projection output.
+  for (const group of typedSources) for (const fact of group.sourceCandidate.effects) {
+    const maint = group.maintRows.find(row => JSON.parse(row.raw_json).effect.ownerId === fact.ownerId);
+    const member = members.get(fact.ownerId);
+    if (!member || member.itemInternalName !== fact.itemInternalName
+        || member.partRoles.size !== 1 || !member.partRoles.has('head')) {
+      block('typed-item-effect-owner-mismatch', { itemSourceId: fact.ownerId });
+      continue;
+    }
+    const expected = snake({ ...fact, ownerRecordKey: maint.record_key,
+      sourceMaintTable: 'maint_armor_attribute_rows', sourceMaintRecordKey: maint.record_key, sourceMaintId: maint.id,
+      landingSourceId: group.landing.id, landingSourceKey: group.landing.source_key,
+      landingContentHash: group.landing.content_hash, reviewStatus: 'accepted', reason: 'derived_from_versioned_item_source' });
+    typedKeys.add(expected.record_key);
+    const matches = sourceRows.filter(row => row.record_key === expected.record_key);
+    if (matches.length !== 1 || !equalFields(expected, matches[0])) {
+      block('typed-item-effect-source-stale', { itemSourceId: fact.ownerId, recordKey: expected.record_key });
+    } else accepted.push(matches[0]);
+  }
   for (const [itemSourceId, member] of members) {
     const { itemInternalName, partRoles } = member;
     const matching = activeAttributes.filter(row => row.item_id === itemSourceId && row.item_internal_name === itemInternalName);
@@ -407,6 +429,7 @@ function checkItemEffects(sources, dependencies, block) {
   }
   for (const row of sourceRows) {
     if (row.owner_kind !== 'item' || !members.has(Number(row.owner_id))) continue;
+    if (typedKeys.has(row.record_key)) continue;
     const matches = [...expectedKeys].some(key => key.startsWith(`${row.owner_record_key}:`)
       && Number(key.slice(key.lastIndexOf(':') + 1)) === row.effect_index);
     if (!matches) block('item-effect-evidence-unresolved', { recordKey: row.record_key });
@@ -501,7 +524,9 @@ function withoutStorageIdentity(row) {
 // Pure composition only. Dependency expectations are read contracts, never
 // writes, an executable packet, runtime policy authority or allocated DB IDs.
 async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIndependent = false } = {}) {
-  exactKeys(input, ['relationInput', 'currentRows', 'dependencyRows', 'consumerRows', 'managedImageUrlPrefixes'], 'projection candidate');
+  const hasTypedSources = Object.hasOwn(input, 'itemEffectSources');
+  exactKeys(input, ['relationInput', 'currentRows', 'dependencyRows', 'consumerRows', 'managedImageUrlPrefixes',
+    ...(hasTypedSources ? ['itemEffectSources'] : [])], 'projection candidate');
   requireJson(input);
   const snapshot = canonical(structuredClone(input), false);
   exactKeys(snapshot.currentRows, [TABLE], 'projection baseline');
@@ -529,8 +554,14 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
   const sources = Object.fromEntries(RELATION_TABLES.map(table => [table, sourcePresent(relationCandidate, table)]));
   const blockers = [];
   const block = (code, details = {}) => blockers.push({ code, ...details });
+  let typedSources = [];
+  if (hasTypedSources) {
+    exactKeys(snapshot.itemEffectSources, ['maintLandings', 'maintArmorAttributeRows'], 'typed item source snapshots');
+    typedSources = readArmorItemEffectMaintSources({ ...snapshot.itemEffectSources, maintItems: snapshot.relationInput.maintItems });
+    if (typedSources.length) block('complete-item-and-set-coverage-unverified');
+  }
   const acceptedEffects = [...checkSourceEffects(sources, snapshot.dependencyRows, block),
-    ...checkItemEffects(sources, snapshot.dependencyRows, block)];
+    ...checkItemEffects(sources, snapshot.dependencyRows, block, typedSources)];
   const payload = buildProjectionPayload({
     ...Object.fromEntries(Object.entries({ ...sources, ...snapshot.dependencyRows, relation_equipment_effect_attributes: acceptedEffects })
       .map(([table, rows]) => [camelName(table), rows.filter(active).map(camel)])),
@@ -600,6 +631,7 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
     acceptance: { status: blockers.length ? 'blocked' : 'dependencies-satisfied', runtimeVerified: false, blockers },
     inputSnapshots: snapshot, inputSha256: hash(snapshot), baselineSha256: hash(snapshot.currentRows),
     dependencySnapshotSha256: hash(snapshot.dependencyRows), consumerSnapshotSha256: hash(snapshot.consumerRows),
+    ...(hasTypedSources ? { itemEffectSourceSnapshotSha256: hash(snapshot.itemEffectSources) } : {}),
     managedImageUrlPrefixes: prefixes, managedImagePolicySha256: hash(snapshot.managedImageUrlPrefixes),
   };
   return freeze({ ...result, candidateSha256: hash(result) });

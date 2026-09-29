@@ -213,3 +213,12 @@ test('secondary rejects incomplete or unknown target columns before deriving upd
     await assert.rejects(build(input), /columns/);
   }
 });
+
+test('existing secondary publication stays closed to typed item sources', async () => {
+  const { persistedItemSourceFixture } = await import('../maint/armor-item-effect-test-fixture.mjs');
+  const typed = persistedItemSourceFixture(); const input = await fixture();
+  input.sourceRows.maint_armor_attribute_rows.push(...typed.maintArmorAttributeRows);
+  input.sourceRows.maint_landings.push(...typed.maintLandings);
+  input.sourceRows.maint_items.push(...typed.maintItems);
+  await assert.rejects(build(input), /dedicated source contract/);
+});

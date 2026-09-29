@@ -32,6 +32,7 @@ import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
 import { buildArmorSetRelations } from './armor-set-processor.mjs';
 import { buildEquivalentArmorAttributeLookup } from './equivalent-armor-attribute-rules.mjs';
+import { isArmorItemEffectMaintRow, readArmorItemEffectMaintSources } from '../maint/armor-item-effect-source-reader.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import {
@@ -1318,8 +1319,7 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
 
 export function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [], relationArmorSetItems = [] } = {}) {
   for (const row of maintArmorAttributeRows) {
-    if (String(row.landing_source_key ?? '').startsWith('wiki.armor.item-effects.')
-        || parseJsonArrayOrObject(row.raw_json, {})?.schemaVersion === 'armor-item-effect-maint/v1') {
+    if (isArmorItemEffectMaintRow(row)) {
       throw new Error('Armor item-effect source requires its dedicated source contract');
     }
   }
@@ -1373,6 +1373,33 @@ export function buildArmorAttributeRelations({ maintArmorAttributeRows = [], mai
     };
   });
   return deriveEquivalentArmorAttributeRows(rows, maintItems);
+}
+
+/** Typed sources are item effects, never substitutes for complete table-derived attributes. */
+export function buildArmorAttributeDispatch({
+  maintArmorAttributeRows = [], maintItems = [], relationArmorSetItems = [], maintLandings = [],
+} = {}) {
+  const typed = maintArmorAttributeRows.filter(isArmorItemEffectMaintRow);
+  const groups = readArmorItemEffectMaintSources({ maintArmorAttributeRows: typed, maintItems, maintLandings });
+  const relationArmorAttributeRows = buildArmorAttributeRelations({
+    maintArmorAttributeRows: maintArmorAttributeRows.filter(row => !isArmorItemEffectMaintRow(row)),
+    maintItems, relationArmorSetItems,
+  });
+  const typedEffects = groups.flatMap(group => group.sourceCandidate.effects.map((effect, i) => {
+    const maint = group.maintRows[i];
+    return { ...effect, ownerRecordKey: maint.record_key, sourceMaintTable: 'maint_armor_attribute_rows',
+      sourceMaintRecordKey: maint.record_key, sourceMaintId: maint.id,
+      landingSourceId: group.landing.id, landingSourceKey: group.landing.source_key,
+      landingContentHash: group.landing.content_hash, reviewStatus: 'accepted', reason: 'derived_from_versioned_item_source' };
+  }));
+  return { relationArmorAttributeRows,
+    relationEquipmentEffectAttributes: [...buildArmorAttributeEffectRows(relationArmorAttributeRows), ...typedEffects],
+    typedSourceCount: typed.length,
+    acceptance: { status: typed.length ? 'blocked' : 'not-applicable', blockers: typed.length ? [
+      { code: 'registered-typed-effect-downstream-publication-required' },
+      { code: 'complete-item-and-set-coverage-unverified' },
+    ] : [] },
+  };
 }
 
 export async function runSync(options, dependencies = {}) {
@@ -1487,6 +1514,15 @@ export async function runSync(options, dependencies = {}) {
   validateReviewedNonNpcSourceExclusions(reviewedNonNpcSourceExclusions);
   validateReviewedSourceOnlyItemExclusions(reviewedSourceOnlyItemExclusions);
 
+  const typedArmorRows = maintArmorAttributeRows.filter(isArmorItemEffectMaintRow);
+  if (typedArmorRows.length && options.apply) throw new Error('Armor typed effects require governed downstream publication');
+  const typedLandingIds = [...new Set(typedArmorRows.map(row => row.landing_source_id))];
+  if (typedLandingIds.some(id => !Number.isSafeInteger(id) || id <= 0)) throw new Error('Armor typed landing ID is invalid');
+  const maintItemEffectLandings = typedLandingIds.length ? await queryMaint(
+    "SELECT * FROM source_dataset_landings WHERE provider = 'terraria.wiki.gg' AND dataset_type = 'armor_item_effects_raw' "
+      + `AND id IN (${typedLandingIds.join(',')}) ORDER BY id`,
+  ) : [];
+
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const armorSetDefinitionMap = readArmorSetDefinitionMap();
   const npcCrawlerInputs = buildNpcCrawlerFactRelationInputs({
@@ -1568,11 +1604,13 @@ export async function runSync(options, dependencies = {}) {
   });
 
   const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
-  results.relationArmorAttributeRows = buildArmorAttributeRelations({
+  const armorAttributes = buildArmorAttributeDispatch({
     maintArmorAttributeRows,
     maintItems,
+    maintLandings: maintItemEffectLandings,
     relationArmorSetItems: results.relationArmorSetItems
   });
+  results.relationArmorAttributeRows = armorAttributes.relationArmorAttributeRows;
   results.relationItems = baseEntities.relationItems;
   results.relationNpcs = baseEntities.relationNpcs;
   results.relationProjectiles = baseEntities.relationProjectiles;
@@ -1586,7 +1624,7 @@ export async function runSync(options, dependencies = {}) {
   results.itemRecipeGroupExpansions = recipeExpansions.groupExpansions;
   results.relationEquipmentEffectAttributes = [
     ...buildArmorSetEquipmentEffectAttributes(results.relationArmorSets),
-    ...buildArmorAttributeEffectRows(results.relationArmorAttributeRows)
+    ...armorAttributes.relationEquipmentEffectAttributes
   ];
   const projection = buildProjectionPayload({
     relationItems: results.relationItems,
@@ -1650,6 +1688,7 @@ export async function runSync(options, dependencies = {}) {
   const summary = {
     generatedAt: new Date().toISOString(),
     apply: options.apply,
+    armorItemEffectSourceAcceptance: armorAttributes.acceptance,
     maintArmorSetImages: maintArmorSetImages.length,
     relationArmorSetImages: results.relationArmorSetImages.length,
     projectionArmorSets: results.projectionArmorSets.length,

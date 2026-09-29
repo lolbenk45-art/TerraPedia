@@ -110,3 +110,18 @@ projection validation, then finish compatible-version item/set coverage and
 Mining identity repair. Only after those admission gates should fresh packets
 publish the source and downstream facts serially. Milestones2–4 remain open;
 the four concrete next gates are listed in the execution-contract audit.
+
+## Typed-source dispatch checkpoint
+
+Dry-run maint-to-relation dispatch and independent projection expectations now
+recognize typed item sources, rederive their original evidence and preserve
+all three specialized conditions.590/590 affected tests pass. The real-source
+offline simulation uses explicitly hypothetical source IDs plus current item
+identity readback; it is not proof of persisted effects. See
+`docs/audits/2026-09-30-armor-typed-source-dispatch.md` and
+`docs/devlog/entries/2026-09-30-armor-typed-source-dispatch.md`.
+
+The complete-version-coverage blocker remains mandatory, and existing general
+sync/secondary publication still reject typed sources. Next resolve the
+complete per-item/set evidence and Mining identity, then register the exact
+downstream publication/retirement contract. Milestones2–4 remain open.

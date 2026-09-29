@@ -130,6 +130,15 @@ grants no execution authority. This source-only operation does not publish
 relation/projection rows or establish complete item/set coverage; typed-source
 dispatch and consumer/automation acceptance remain separate admission gates.
 
+Armor dry-run dispatch distinguishes typed item-page effects from complete
+table-derived attribute rows. It rederives typed facts from maint landing
+bytes and verifies maint/item identities before producing relation/projection
+expectations. The independent projection candidate hashes optional typed
+source snapshots and reconstructs their expectations separately. Both retain
+the complete-version-coverage blocker. General sync apply still rejects typed
+sources, and the existing secondary-projection operation's ownership is not
+widened by this read-only dispatch.
+
 Canonical item-group runtime reads use the published formal
 `terria_v1_local` projection backed by maint and relation lineage. The admin
 item-group, admin recipe-group, and recipe-tree consumers have no production

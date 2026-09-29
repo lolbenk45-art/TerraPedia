@@ -5,12 +5,13 @@ import { buildArmorCanonicalMaintCandidate } from '../maint/armor-canonical-main
 import { buildArmorCanonicalRelationCandidate } from './armor-canonical-relation-candidate.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
-import { buildArmorAttributeEffectRows } from './sync-maint-to-relation.mjs';
+import { buildArmorAttributeDispatch, buildArmorAttributeEffectRows } from './sync-maint-to-relation.mjs';
 import {
   buildArmorCanonicalProjectionCandidate as build,
   buildArmorCanonicalProjectionIdIndependentCandidate,
 } from './armor-canonical-projection-candidate.mjs';
 import { buildArmorCanonicalIntent, materializeArmorCanonicalIntent } from './armor-canonical-intent.mjs';
+import { persistedItemSourceFixture } from '../maint/armor-item-effect-test-fixture.mjs';
 const prefix = 'https://media.example.test/terrapedia-images/items/';
 const at = '2026-09-24T01:00:00.000Z';
 const revision = '2026-09-23T23:00:00.000Z';
@@ -72,8 +73,7 @@ function changePayload(input, index, mutate) {
   landing.content_hash = digest(payload);
 }
 
-async function fixture({ existing = true } = {}) {
-  const input = sourceFixture();
+async function fixture({ existing = true, input = sourceFixture() } = {}) {
   if (existing) {
     const maint = await buildArmorCanonicalMaintCandidate(input.relationInput.maintInput);
     input.relationInput.maintInput.currentRows = structuredClone(maint.expectedRows);
@@ -109,7 +109,7 @@ async function fixture({ existing = true } = {}) {
   if (existing) input.currentRows.projection_armor_sets = projected.projectionArmorSets.map(row => ({ ...snake(row), id: 900 }));
   input.consumerRows.items = input.relationInput.maintItems.map(row => ({ id: row.source_id, internal_name: row.internal_name, defense: 2, status: 1, deleted: 0 }));
   input.consumerRows.item_images = input.dependencyRows.relation_item_images.map((row, index) => ({
-    id: row.id, item_id: index + 1, cached_url: row.cached_url, is_primary: 1, sort_order: 0, status: 1, deleted: 0,
+    id: row.id, item_id: input.relationInput.maintItems[index].source_id, cached_url: row.cached_url, is_primary: 1, sort_order: 0, status: 1, deleted: 0,
   }));
   input.consumerRows.projection_item_armor_attributes = projected.projectionItemArmorAttributes.map(snake);
   input.consumerRows.projection_equipment_effect_attributes = projected.projectionEquipmentEffectAttributes.map(row => ({ ...snake(row), owner_id: 900 }));
@@ -753,3 +753,71 @@ for (const [cell, value, unit] of [['maxMana', '+40', 'count'], ['manaCost', '-1
     assert.ok((await build(input)).acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
   });
 }
+
+async function typedSourceProjectionFixture() {
+  const typed = persistedItemSourceFixture();
+  const input = sourceFixture();
+  changePayload(input, 0, payload => {
+    const set = payload.armorSets[0];
+    set.textKey = 'ArmorSetBonus.Shroomite';
+    set.sets = [[1546,1549,1550], [1547,1549,1550], [1548,1549,1550]];
+    set.uniqueItemIds = [1546,1547,1548,1549,1550]; set.setCount = 3;
+  });
+  changePayload(input, 1, payload => { payload.armorSetImages[0].textKey = 'ArmorSetBonus.Shroomite'; });
+  const base = input.relationInput.maintItems[0];
+  input.relationInput.maintItems = typed.maintItems.map(row => ({ ...base, ...row }));
+  for (const [source_id, internal_name, slot] of [[1549, 'ShroomiteBreastplate', 'bodySlot'], [1550, 'ShroomiteLeggings', 'legSlot']]) {
+    input.relationInput.maintItems.push({ ...base, id: source_id + 1000, source_id, internal_name,
+      raw_json: JSON.stringify({ [slot]: 1 }), english_name: internal_name });
+  }
+  const complete = await fixture({ input });
+  complete.itemEffectSources = { maintLandings: typed.maintLandings, maintArmorAttributeRows: typed.maintArmorAttributeRows };
+  const effects = buildArmorAttributeDispatch(typed).relationEquipmentEffectAttributes;
+  complete.dependencyRows.relation_equipment_effect_attributes.push(...effects.map((row, i) => ({ ...snake(row), id: 3000 + i })));
+  complete.consumerRows.projection_equipment_effect_attributes.push(...buildProjectionPayload({ relationEquipmentEffectAttributes: effects })
+    .projectionEquipmentEffectAttributes.map((row, i) => ({ ...snake(row), id: 3000 + i })));
+  return complete;
+}
+
+test('independent projection derives typed item effects from hashed upstream evidence without claiming full version coverage', async () => {
+  const input = await typedSourceProjectionFixture();
+  const candidate = await build(input);
+  assert.deepEqual(candidate.acceptance.blockers, [{ code: 'complete-item-and-set-coverage-unverified' }]);
+  const effects = candidate.dependencyExpectations.projection_equipment_effect_attributes.filter(row => row.source_kind === 'armor_item_page');
+  assert.equal(effects.length, 3);
+  assert.ok(effects.every(row => row.condition_text && row.operation === 'multiply' && row.value_decimal === 1.12));
+  assert.throws(() => buildArmorCanonicalIntent({ candidate, insertPlans: [], writeTimestamp: at }), /unresolved non-generated blockers/);
+  assert.ok(candidate.inputSnapshots.itemEffectSources);
+  assert.match(candidate.itemEffectSourceSnapshotSha256, /^sha256:[a-f0-9]{64}$/);
+});
+
+for (const [label, mutate] of [
+  ['condition removed', row => { row.condition_text = null; }],
+  ['wrong additive operation', row => { row.operation = 'add'; }],
+  ['wrong multiplier', row => { row.value_decimal = 1.15; }],
+  ['wrong owner', row => { row.owner_id = 1547; }],
+]) {
+  test(`independent projection rejects parity-matching typed ${label}`, async () => {
+    const input = await typedSourceProjectionFixture();
+    mutate(input.dependencyRows.relation_equipment_effect_attributes.find(row => row.source_kind === 'armor_item_page'));
+    mutate(input.consumerRows.projection_equipment_effect_attributes.find(row => row.source_kind === 'armor_item_page'));
+    const result = await build(input);
+    assert.ok(result.acceptance.blockers.some(row => row.code === 'typed-item-effect-source-stale'));
+  });
+}
+
+test('independent projection refuses typed effects without their upstream snapshots', async () => {
+  const input = await typedSourceProjectionFixture(); delete input.itemEffectSources;
+  const result = await build(input);
+  assert.ok(result.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
+});
+
+test('independent projection rederives typed source semantics instead of trusting mutually matching maint/relation/consumer facts', async () => {
+  const input = await typedSourceProjectionFixture();
+  const maint = input.itemEffectSources.maintArmorAttributeRows[0];
+  const raw = JSON.parse(maint.raw_json); raw.effect.valueDecimal = 1.15; maint.raw_json = JSON.stringify(raw);
+  for (const rows of [input.dependencyRows.relation_equipment_effect_attributes, input.consumerRows.projection_equipment_effect_attributes]) {
+    rows.find(row => row.source_kind === 'armor_item_page').value_decimal = 1.15;
+  }
+  await assert.rejects(build(input), /immutable maint drift/);
+});
