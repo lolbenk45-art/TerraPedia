@@ -120,6 +120,16 @@ rows and existing IDs; it does not own upstream attribute/effect facts, local
 items or new set effects. Historical lineage equality and DB/API parity alone
 do not establish source semantic correctness or automatic ingestion acceptance.
 
+The separate `canonical-armor-item-effect-source` operation binds a versioned
+Shroomite proposal to append-only `armor_item_effects_raw` landing copies in
+local/maint and three typed maint attribute-source rows. It requires a fresh
+exact packet, one-use dispatch permit, locked rederivation, runtime writer
+fences and immutable PREPARED/result evidence. Landing reads bind both provider
+and content-derived source key using the existing index. Read-only preparation
+grants no execution authority. This source-only operation does not publish
+relation/projection rows or establish complete item/set coverage; typed-source
+dispatch and consumer/automation acceptance remain separate admission gates.
+
 Canonical item-group runtime reads use the published formal
 `terria_v1_local` projection backed by maint and relation lineage. The admin
 item-group, admin recipe-group, and recipe-tree consumers have no production

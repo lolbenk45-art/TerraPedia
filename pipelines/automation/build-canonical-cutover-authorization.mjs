@@ -291,6 +291,7 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     dataEntries = readHistoricalDispositionDataEntries(root, verifiedExecutionManifest);
   } else if (operationId === 'canonical-armor-set-projection-incremental'
       || operationId === 'canonical-armor-secondary-projection'
+      || operationId === 'canonical-armor-item-effect-source'
       || operationId === 'canonical-armor-image-cache') {
     if (verifiedExecutionManifest == null) throw new Error('Armor projection execution manifest is required');
     dataEntries = verifiedExecutionManifest.inputPaths.map(inputPath => readConfinedEntry(root, inputPath, {

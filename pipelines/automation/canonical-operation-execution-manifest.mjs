@@ -86,6 +86,7 @@ const ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID = 'canonical-armor-set-proje
 const ARMOR_CANONICAL_OPERATION_ID = 'canonical-armor-ingestion';
 const ARMOR_SEMANTIC_REPAIR_OPERATION_ID = 'canonical-armor-semantic-repair';
 const ARMOR_SECONDARY_OPERATION_ID = 'canonical-armor-secondary-projection';
+const ARMOR_ITEM_SOURCE_OPERATION_ID = 'canonical-armor-item-effect-source';
 const ARMOR_IMAGE_CACHE_OPERATION_ID = 'canonical-armor-image-cache';
 const BUFF_FULL_CHAIN_OPERATION_ID = 'canonical-buff-full-chain';
 const TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID = 'canonical-two-item-image-quarantine-repair';
@@ -315,6 +316,10 @@ const CODE_PATHS = Object.freeze({
   ]),
   [ARMOR_IMAGE_CACHE_OPERATION_ID]: Object.freeze([
     'pipelines/workflow/run-armor-image-cache.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+  ]),
+  [ARMOR_ITEM_SOURCE_OPERATION_ID]: Object.freeze([
+    'pipelines/maint/run-armor-item-effect-source.mjs',
     ...AUTHORIZED_CONTEXT_CODE_PATHS,
   ]),
   [ARMOR_SECONDARY_OPERATION_ID]: Object.freeze([
@@ -913,6 +918,9 @@ export function buildCanonicalOperationExecutionContract({
   if (operationId === ARMOR_IMAGE_CACHE_OPERATION_ID && !normalizedResultLabel) {
     throw new Error('Armor cache result label is required');
   }
+  if (operationId === ARMOR_ITEM_SOURCE_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Armor item-source result label is required');
+  }
   if (operationId === ARMOR_SECONDARY_OPERATION_ID && !normalizedResultLabel) {
     throw new Error('Armor secondary result label is required');
   }
@@ -936,6 +944,7 @@ export function buildCanonicalOperationExecutionContract({
       && operationId !== ARMOR_SET_PROJECTION_INCREMENTAL_OPERATION_ID
       && operationId !== ARMOR_CANONICAL_OPERATION_ID
       && operationId !== ARMOR_SEMANTIC_REPAIR_OPERATION_ID
+      && operationId !== ARMOR_ITEM_SOURCE_OPERATION_ID
       && operationId !== ARMOR_SECONDARY_OPERATION_ID
       && operationId !== ARMOR_IMAGE_CACHE_OPERATION_ID
       && operationId !== BUFF_FULL_CHAIN_OPERATION_ID
@@ -1586,6 +1595,18 @@ function buildDefinition(
         'data/generated/armor-image-cache-progress.latest.json'],
       ownershipKeys: ['managed_objects.armor_source_images'], requiredOperationIds: [],
       databaseWrites: false, networkAccess: true,
+    },
+    [ARMOR_ITEM_SOURCE_OPERATION_ID]: {
+      executionClass: 'formal_armor_item_effect_source',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_ITEM_SOURCE_OPERATION_ID],
+        `--operation-id=${ARMOR_ITEM_SOURCE_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${ARMOR_ITEM_SOURCE_OPERATION_ID}.${resultLabel}.proposal.json`],
+      outputPaths: [`reports/authorization/canonical/${ARMOR_ITEM_SOURCE_OPERATION_ID}.${resultLabel}.prepared.json`,
+        `reports/authorization/canonical/${ARMOR_ITEM_SOURCE_OPERATION_ID}.${resultLabel}.result.json`],
+      reportPaths: [], progressPaths: [],
+      ownershipKeys: ['local.source_dataset_landings.armor_item_effects_raw',
+        'maint.source_dataset_landings.armor_item_effects_raw', 'maint.maint_armor_attribute_rows.item_effect_sources'],
+      requiredOperationIds: [], databaseWrites: true, networkAccess: false,
     },
     [ARMOR_SECONDARY_OPERATION_ID]: {
       executionClass: 'formal_armor_secondary_projection',

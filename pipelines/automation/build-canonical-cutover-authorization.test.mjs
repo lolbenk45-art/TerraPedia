@@ -311,6 +311,7 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-armor-ingestion',
     'canonical-armor-semantic-repair',
     'canonical-armor-secondary-projection',
+    'canonical-armor-item-effect-source',
     'canonical-armor-image-cache',
     'canonical-two-item-image-quarantine-repair',
     'canonical-item-base-entity-restoration',
@@ -917,6 +918,7 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
 
   for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
     if (operationId === 'canonical-armor-set-projection-incremental'
+        || operationId === 'canonical-armor-item-effect-source'
         || operationId === 'canonical-armor-secondary-projection'
         || operationId === 'canonical-armor-image-cache'
         || operationId === 'canonical-armor-semantic-repair'

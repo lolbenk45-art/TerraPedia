@@ -30,6 +30,7 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'canonical-armor-ingestion',
   'canonical-armor-semantic-repair',
   'canonical-armor-secondary-projection',
+  'canonical-armor-item-effect-source',
   'canonical-armor-image-cache',
   'canonical-two-item-image-quarantine-repair',
   'canonical-item-base-entity-restoration',
@@ -202,6 +203,7 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'canonical-armor-ingestion': Object.freeze([]),
   'canonical-armor-semantic-repair': Object.freeze([]),
   'canonical-armor-secondary-projection': Object.freeze([]),
+  'canonical-armor-item-effect-source': Object.freeze([]),
   'canonical-armor-image-cache': Object.freeze([]),
   'canonical-two-item-image-quarantine-repair': Object.freeze([
     'reports/authorization/canonical/canonical-two-item-image-quarantine-repair.input.json',
@@ -562,6 +564,7 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'canonical-armor-ingestion': 'pipelines/relation/run-armor-canonical-ingestion.mjs',
   'canonical-armor-semantic-repair': 'pipelines/relation/run-armor-semantic-repair.mjs',
   'canonical-armor-secondary-projection': 'pipelines/relation/run-armor-secondary-projection.mjs',
+  'canonical-armor-item-effect-source': 'pipelines/maint/run-armor-item-effect-source.mjs',
   'canonical-armor-image-cache': 'pipelines/workflow/run-armor-image-cache.mjs',
   'canonical-two-item-image-quarantine-repair': 'pipelines/relation/two-item-image-quarantine-repair.mjs',
   'canonical-item-base-entity-restoration': 'pipelines/relation/apply-item-canonical-base-entity-restoration.mjs',

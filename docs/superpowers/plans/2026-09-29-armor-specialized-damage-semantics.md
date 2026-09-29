@@ -94,3 +94,19 @@ See `docs/audits/2026-09-29-armor-item-effect-upstream-contract.md` and
 This advances the upstream candidate contract only: the real baseline, registered
 executor/dispatch, full coverage, packet, publication and consumer/automation
 acceptance are still required. The offline empty baseline is hypothetical.
+
+## Registered source transaction checkpoint
+
+The separate source-only runner and registered authorization contract are now
+implemented; actual read-only preparation confirms a0/0/0 namespace baseline
+and1/1/3 planned landing/maint inserts.450/450 affected tests pass. See
+`docs/audits/2026-09-30-armor-item-source-execution-contract.md` and
+`docs/devlog/entries/2026-09-30-armor-item-source-transaction.md` for the exact
+artifact hashes, query-plan repair and validation scope. No live source write,
+packet/permit, relation publication or consumer acceptance occurred.
+
+Next, Armor must add reviewed typed-source dispatch and independent relation/
+projection validation, then finish compatible-version item/set coverage and
+Mining identity repair. Only after those admission gates should fresh packets
+publish the source and downstream facts serially. Milestones2–4 remain open;
+the four concrete next gates are listed in the execution-contract audit.
