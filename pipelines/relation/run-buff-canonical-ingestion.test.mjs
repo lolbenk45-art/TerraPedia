@@ -13,6 +13,8 @@ import {
   assertBuffResultPathAvailable,
   applyBuffUpstreamMutations,
   getBuffLandingLockIds,
+  assertBuffMaintAfterSet,
+  assertBuffLandingAfterSet,
 } from './run-buff-canonical-ingestion.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
@@ -116,6 +118,43 @@ test('Buff deferred landing envelope does not require a preallocated landing loc
   }), []);
   assert.deepEqual(getBuffLandingLockIds({ frozenLandingIdentity: { rows: [{ id: 31 }] } }), [31]);
   assert.throws(() => getBuffLandingLockIds({ frozenLandingIdentity: { rows: [] } }), /landing.*identity|deferred/i);
+});
+
+test('Buff after-set verification covers every bound maint row by source identity', () => {
+  const envelope = {
+    upstream: {
+      maint: {
+        inserts: [{ source_id: 24, internal_name: 'OnFire', landing_source_id: 31, status: 1, deleted: 0 }],
+        updates: [{ before: { id: 11, source_id: 25 }, after: { id: 11, source_id: 25, internal_name: 'Other', landing_source_id: 31, status: 1, deleted: 0 } }],
+        unchanged: [{ id: 12, source_id: 26, internal_name: 'Frozen', landing_source_id: 31, status: 1, deleted: 0 }],
+        preserved: [],
+      },
+    },
+  };
+  assert.doesNotThrow(() => assertBuffMaintAfterSet({
+    envelope,
+    rows: [
+      { id: 101, source_id: 24, internal_name: 'OnFire', landing_source_id: 31, status: 1, deleted: 0 },
+      { id: 11, source_id: 25, internal_name: 'Other', landing_source_id: 31, status: 1, deleted: 0 },
+      { id: 12, source_id: 26, internal_name: 'Frozen', landing_source_id: 31, status: 1, deleted: 0 },
+    ],
+  }));
+  assert.throws(() => assertBuffMaintAfterSet({
+    envelope,
+    rows: [{ id: 101, source_id: 24, internal_name: 'OnFire', landing_source_id: 99, status: 1, deleted: 0 }],
+  }), /maint.*after|source_id|row count|drift/i);
+});
+
+test('Buff after-set verification binds a deferred landing result without accepting a foreign source', () => {
+  const envelope = { upstream: { landing: { landing: { source_key: 'canonical.buff-page-immunity.run-01', content_hash: 'a'.repeat(64), dataset_type: 'buffs_raw', is_current: 1 } } } };
+  assert.doesNotThrow(() => assertBuffLandingAfterSet({
+    envelope,
+    rows: [{ id: 31, source_key: 'canonical.buff-page-immunity.run-01', content_hash: 'a'.repeat(64), dataset_type: 'buffs_raw', is_current: 1 }],
+  }));
+  assert.throws(() => assertBuffLandingAfterSet({
+    envelope,
+    rows: [{ id: 31, source_key: 'canonical.buff-page-immunity.other', content_hash: 'a'.repeat(64), dataset_type: 'buffs_raw', is_current: 1 }],
+  }), /landing.*after|source|drift/i);
 });
 
 for (const extra of [

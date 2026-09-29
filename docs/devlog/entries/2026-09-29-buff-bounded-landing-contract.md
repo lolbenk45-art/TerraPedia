@@ -67,3 +67,13 @@ then zero-unknown source evidence and fresh governed runtime tests. Do not mint 
 packet from the current deferred envelope. No runtime write occurred in this review.
 
 Validation: Node v22.23.0 focused landing/maint/envelope/transaction/runner suite 60/60 passed; git diff --check passed. Entry remains blocked for the named runtime gaps.
+
+## 2026-09-29 after-set verification checkpoint
+
+- Added RED/GREEN after-set contracts in `run-buff-canonical-ingestion.mjs`: every maint row is compared by stable `source_id` after insert/update/preserve planning, and the landing result is read back by exact persisted ID or deferred source key/content hash. The registered runner now verifies relation/projection, maint and landing after-sets before commit.
+- Validation: Buff landing/maint/full-chain/transaction/runner/sync suite `148/148`; `node --check pipelines/relation/run-buff-canonical-ingestion.mjs`; `git diff --check` all pass. No database, Redis, permit, packet or scheduler write occurred.
+- This closes only the missing after-set readback guard. Typed deferred landing ID propagation through relation/projection rederivation, fence/result recovery and admissible source applicability remain blocked; the deferred envelope still fails closed before `BEGIN`.
+
+See git for code-level diff details.
+
+- Commit: `commit SHA pending in final response`

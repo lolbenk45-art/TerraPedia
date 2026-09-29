@@ -133,7 +133,15 @@ export async function applyBuffCanonicalIngestion({
         applyMaint: ({ envelope: boundEnvelope }) => applyBuffMaintMutation({ envelope: boundEnvelope, connection }),
       }),
       applyMutation: async () => applyBuffCanonicalMutation({ envelope, connection }),
-      verifyAfter: async () => verifyOwnedRows(connection, envelope),
+      verifyAfter: async () => {
+        await verifyOwnedRows(connection, envelope);
+        const [maintRows] = await connection.query(
+          'SELECT * FROM terria_v1_maint.maint_buffs ORDER BY id FOR UPDATE',
+        );
+        assertBuffMaintAfterSet({ envelope, rows: maintRows ?? [] });
+        const landingRows = await readAfterLandingRows(connection, envelope);
+        assertBuffLandingAfterSet({ envelope, rows: landingRows });
+      },
     });
     committed = result.status === 'completed';
     writePrivateJson(root, paths.resultPath, { operationId: BUFF_CANONICAL_OPERATION_ID, status: result.status, packet });
@@ -304,6 +312,70 @@ export function assertBuffSourceRowsMatchEnvelope({ envelope, landingRows, maint
   assertBuffRowSet(expectedLanding, landingRows, 'landing');
   assertBuffRowSet(expectedMaint, maintRows, 'maint');
   return true;
+}
+
+export function assertBuffMaintAfterSet({ envelope, rows } = {}) {
+  const plan = envelope?.upstream?.maint;
+  if (!plan || !Array.isArray(rows)) throw new Error('Buff maint after-set rows are required');
+  const expected = [
+    ...(plan.inserts ?? []),
+    ...(plan.updates ?? []).map((change) => change.after),
+    ...(plan.unchanged ?? []),
+    ...(plan.preserved ?? []),
+  ];
+  const expectedBySource = new Map();
+  const actualBySource = new Map();
+  for (const row of expected) {
+    const key = row?.source_id == null ? null : String(row.source_id);
+    if (key == null || expectedBySource.has(key)) throw new Error(`Buff maint after-set expected source identity is missing or duplicated: ${key}`);
+    expectedBySource.set(key, row);
+  }
+  for (const row of rows) {
+    const key = row?.source_id == null ? null : String(row.source_id);
+    if (key == null || actualBySource.has(key)) throw new Error(`Buff maint after-set actual source identity is missing or duplicated: ${key}`);
+    actualBySource.set(key, row);
+  }
+  if (expectedBySource.size !== actualBySource.size) throw new Error('Buff maint after-set row count drifted');
+  for (const [key, expectedRow] of expectedBySource) {
+    const actual = actualBySource.get(key);
+    if (!actual) throw new Error(`Buff maint after-set row is missing: ${key}`);
+    assertComparableRow(expectedRow, actual, 'maint-after-set', key, { ignoreTimestamps: true });
+  }
+  return true;
+}
+
+export function assertBuffLandingAfterSet({ envelope, rows } = {}) {
+  if (!Array.isArray(rows)) throw new Error('Buff landing after-set rows are required');
+  const deferred = envelope?.upstream?.landing?.landing;
+  if (deferred) {
+    if (rows.length !== 1) throw new Error('Buff landing after-set row count drifted');
+    const actual = rows[0];
+    for (const [column, value] of Object.entries(deferred)) {
+      if (column === 'id') continue;
+      if (!equalBuffValue(actual?.[column], value, column)) throw new Error(`Buff landing after-set drifted: ${column}`);
+    }
+    return true;
+  }
+  assertBuffRowSet(envelope?.frozenLandingIdentity?.rows, rows, 'landing', { ignoreTimestamps: true });
+  return true;
+}
+
+async function readAfterLandingRows(connection, envelope) {
+  const deferred = envelope?.upstream?.landing?.landing;
+  if (deferred) {
+    const [rows] = await connection.query(
+      'SELECT * FROM terria_v1_local.source_dataset_landings WHERE source_key = ? FOR UPDATE',
+      [deferred.source_key],
+    );
+    return rows ?? [];
+  }
+  const ids = (envelope?.frozenLandingIdentity?.rows ?? []).map((row) => Number(row.id));
+  if (ids.length === 0) return [];
+  const [rows] = await connection.query(
+    `SELECT * FROM terria_v1_local.source_dataset_landings WHERE id IN (${ids.map(() => '?').join(',')}) FOR UPDATE`,
+    ids,
+  );
+  return rows ?? [];
 }
 
 function assertBuffRowSet(expectedRows, actualRows, label, options = {}) {
