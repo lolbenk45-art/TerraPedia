@@ -27,6 +27,8 @@ import {
   BUFF_CANONICAL_TRANSACTION_TABLES,
 } from './buff-canonical-transaction-executor.mjs';
 import { assertBuffFenceReadback } from './buff-canonical-governance-contract.mjs';
+import { createBuffRecoveryJournalAdapter } from './buff-canonical-recovery-journal-adapter.mjs';
+import { createBuffRecoveryJournalStore } from './buff-canonical-recovery-journal-store.mjs';
 
 export const BUFF_CANONICAL_OPERATION_ID = 'canonical-buff-full-chain';
 const repoRoot = getProjectRoot();
@@ -62,6 +64,7 @@ export function buildBuffCanonicalIngestionPaths(resultLabel) {
   return {
     envelopePath: `${prefix}.envelope.json`,
     resultPath: `${prefix}.result.json`,
+    journalPath: `${prefix}.journal.json`,
   };
 }
 
@@ -78,10 +81,12 @@ export async function applyBuffCanonicalIngestion({
   const root = path.resolve(suppliedRepoRoot);
   const paths = buildBuffCanonicalIngestionPaths(resultLabel);
   assertBuffResultPathAvailable({ repoRoot: root, resultPath: paths.resultPath });
+  assertBuffJournalPathAvailable({ repoRoot: root, journalPath: paths.journalPath });
   const context = loadContext({ repoRoot: root, operationId: BUFF_CANONICAL_OPERATION_ID, env });
   assertAuthorizedOperationDataBundle({ repoRoot: root, authorizedContext: context });
   const binding = context.executionManifest?.buffFullChain;
-  if (!binding || binding.envelopePath !== paths.envelopePath || binding.resultPath !== paths.resultPath) {
+  if (!binding || binding.envelopePath !== paths.envelopePath || binding.resultPath !== paths.resultPath
+      || binding.journalPath !== paths.journalPath) {
     throw new Error('Buff canonical ingestion packet path binding drifted');
   }
   const envelopeBinding = (context.dataBundleEntries ?? []).find((entry) => entry.path === paths.envelopePath);
@@ -112,12 +117,19 @@ export async function applyBuffCanonicalIngestion({
     packetHash: context.packetHash,
     executionManifestHash: context.executionManifestHash,
   };
+  const journalStore = createBuffRecoveryJournalStore({ repoRoot: root, relativePath: paths.journalPath });
+  const journal = createBuffRecoveryJournalAdapter({
+    store: journalStore,
+    packet,
+    envelopeSha256: envelopeBinding.contentHash,
+  });
   let committed = false;
   try {
     const result = await executeBuffCanonicalTransaction({
       envelope,
       packet,
       connection,
+      journal,
       lockRuntime: async ({ envelope: executionEnvelope }) => lockRuntime(connection, packet, executionEnvelope),
       readLockedRows: async ({ envelope: executionEnvelope }) => {
         const rows = await readOwnedRows(connection);
@@ -293,6 +305,17 @@ export function assertBuffResultPathAvailable({ repoRoot: root, resultPath } = {
     createParent: true,
   });
   if (fs.existsSync(target)) throw new Error('Buff canonical ingestion result already exists; retry requires a new result label');
+  return target;
+}
+
+export function assertBuffJournalPathAvailable({ repoRoot: root, journalPath } = {}) {
+  const target = assertRepositoryPathConfinement({
+    repoRoot: path.resolve(root),
+    filePath: path.resolve(root, journalPath),
+    label: 'Buff canonical ingestion journal',
+    createParent: true,
+  });
+  if (fs.existsSync(target)) throw new Error('Buff canonical ingestion journal already exists; retry requires a new result label');
   return target;
 }
 

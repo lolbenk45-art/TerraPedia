@@ -1604,7 +1604,10 @@ function buildDefinition(
       command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
         `--operation-id=${BUFF_FULL_CHAIN_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
       inputPaths: [`reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.envelope.json`],
-      outputPaths: [`reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`],
+      outputPaths: [
+        `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.journal.json`,
+      ],
       reportPaths: [],
       progressPaths: [],
       ownershipKeys: [
@@ -1622,6 +1625,7 @@ function buildDefinition(
       buffFullChain: {
         envelopePath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.envelope.json`,
         resultPath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`,
+        journalPath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.journal.json`,
       },
     },
     [ARMOR_SEMANTIC_REPAIR_OPERATION_ID]: {

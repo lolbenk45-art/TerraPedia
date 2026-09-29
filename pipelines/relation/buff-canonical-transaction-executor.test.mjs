@@ -69,6 +69,25 @@ test('Buff canonical transaction applies bounded updates only after locked reder
   assert.equal(result.status, 'completed');
 });
 
+test('Buff canonical transaction persists recovery phases around commit', async () => {
+  const calls = [];
+  await executeBuffCanonicalTransaction({
+    envelope: envelope(),
+    packet: { runId: 'run-1', fenceToken: 'fence-1', serverUuid: 'server-1', actor: 'codex', executionManifestHash: HASH },
+    connection: connection(calls),
+    journal: {
+      prepared: async () => calls.push('journal:prepared'),
+      rolledBack: async () => calls.push('journal:rolled-back'),
+      commitUnknown: async () => calls.push('journal:commit-unknown'),
+      committed: async () => calls.push('journal:committed'),
+    },
+    lockRuntime: async () => calls.push('runtime'), readLockedRows: async () => calls.push('locked'),
+    consumeDispatchPermit: async () => calls.push('permit'), applyUpstream: async () => calls.push('upstream'),
+    applyMutation: async () => calls.push('apply'), verifyAfter: async () => calls.push('verify'),
+  });
+  assert.deepEqual(calls, ['begin', 'runtime', 'locked', 'journal:prepared', 'permit', 'upstream', 'apply', 'verify', 'commit', 'journal:committed']);
+});
+
 test('Buff transaction rejects a missing or drifted manifest pin before BEGIN and permit consumption', async () => {
   for (const manifestHash of [undefined, `sha256:${'c'.repeat(64)}`]) {
     const calls = [];

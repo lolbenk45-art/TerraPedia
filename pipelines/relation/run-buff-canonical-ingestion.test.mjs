@@ -80,6 +80,7 @@ test('Buff canonical ingestion binds a normalized result label to private envelo
   assert.deepEqual(buildBuffCanonicalIngestionPaths('retry-01'), {
     envelopePath: 'reports/authorization/canonical/canonical-buff-full-chain.retry-01.envelope.json',
     resultPath: 'reports/authorization/canonical/canonical-buff-full-chain.retry-01.result.json',
+    journalPath: 'reports/authorization/canonical/canonical-buff-full-chain.retry-01.journal.json',
   });
   assert.throws(() => buildBuffCanonicalIngestionPaths('../escape'), /label/i);
 });

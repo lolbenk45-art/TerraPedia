@@ -22,6 +22,7 @@ export async function executeBuffCanonicalTransaction({
   applyMutation,
   applyUpstream,
   verifyAfter,
+  journal = null,
 } = {}) {
   validateEnvelope(envelope);
   validatePacket(packet);
@@ -33,22 +34,39 @@ export async function executeBuffCanonicalTransaction({
   for (const [name, callback] of Object.entries({ lockRuntime, readLockedRows, consumeDispatchPermit, applyUpstream, applyMutation, verifyAfter })) {
     if (typeof callback !== 'function') throw new TypeError(`Buff canonical transaction ${name} callback is required`);
   }
+  if (journal != null) {
+    for (const name of ['prepared', 'rolledBack', 'commitUnknown', 'committed']) {
+      if (typeof journal[name] !== 'function') throw new TypeError(`Buff canonical transaction journal ${name} callback is required`);
+    }
+  }
 
   let begun = false;
+  let commitAttempted = false;
   try {
     await connection.beginTransaction();
     begun = true;
     await lockRuntime({ packet, envelope });
     await readLockedRows({ packet, envelope });
+    if (journal) await journal.prepared({ packet, envelope });
     await consumeDispatchPermit({ packet, envelope });
     const upstreamResult = await applyUpstream({ packet, envelope });
     const executionEnvelope = upstreamResult?.envelope ?? envelope;
     await applyMutation({ packet, envelope: executionEnvelope, upstreamResult });
     await verifyAfter({ packet, envelope: executionEnvelope, upstreamResult });
-    await connection.commit();
+    commitAttempted = true;
+    try {
+      await connection.commit();
+    } catch (commitError) {
+      if (journal) await journal.commitUnknown({ packet, envelope });
+      throw commitError;
+    }
+    if (journal) await journal.committed({ packet, envelope });
     return Object.freeze({ status: 'completed' });
   } catch (error) {
-    if (begun) await connection.rollback();
+    if (begun && !commitAttempted) {
+      await connection.rollback();
+      if (journal) await journal.rolledBack({ packet, envelope, error });
+    }
     throw error;
   }
 }

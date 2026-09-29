@@ -48,3 +48,10 @@ its existing `FOR UPDATE` fence readback checks to the exact fence contract.
 These helpers do not write a journal or activate execution; durable journal
 persistence, packet/envelope manifest wiring, and full locked rederivation
 remain runtime gates for the coordinator.
+
+## Recovery journal checkpoint — 2026-09-29
+
+- Added a private, hash-chained Buff recovery journal store and adapter. The governed runner now reserves a result label together with a journal path, binds both paths through the execution manifest, persists `PREPARED` before permit consumption, records `ROLLED_BACK` on pre-commit failure, records `COMMIT_UNKNOWN` without issuing a blind rollback when commit acknowledgement is lost, and records `COMMITTED` after a successful commit.
+- The transaction executor accepts the optional journal callbacks while retaining fail-closed behavior when no journal is supplied. Journal writes are atomic, private, repository-confined, no-overwrite artifacts.
+- Validation: the combined Buff landing/full-chain/transaction/recovery/runner plus manifest/authorization suite passes `197/197`; Node syntax checks and `git diff --check` pass. No database, Redis, permit, packet, scheduler, crawler, or import write was executed.
+- Source applicability remains blocked: latest retained classification has `139` unknown facts and the diagnostic retry promoted none to `not_applicable`; no fresh packet or runtime Buff write is authorized.
