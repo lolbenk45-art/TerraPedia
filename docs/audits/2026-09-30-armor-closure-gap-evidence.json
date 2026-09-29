@@ -596,7 +596,59 @@
       "id": "F10",
       "severity": "critical",
       "code": "live-landing-not-canonical-source-evidence",
-      "message": "Canonical maint candidate rejects current live legacy_compat/partial landings before diffing; fresh revision-bound source evidence required."
+      "message": "Canonical maint candidate rejects current live legacy_compat/partial landings before diffing; create fresh revision-bound source evidence landings required."
+    },
+    {
+      "id": "F11",
+      "severity": "critical",
+      "code": "image-cache-result-not-landed",
+      "message": "Completed .a63-20260927-33 cache result has 419 verified cached rows but is not yet bound into a canonical image landing; do not repeat uploads."
     }
-  ]
+  ],
+  "liveCanonicalSourceDryRun": {
+    "at": "2026-09-29T18:16:32.112Z",
+    "databaseWrites": false,
+    "transition": {
+      "summary": {
+        "demotions": 1,
+        "inserts": 2,
+        "unchanged": 0,
+        "preserved": 2
+      },
+      "demotionKeys": [
+        "armor_set_images_raw\u0000terraria.wiki.gg\u0000wiki.armor_set_images\u0000armor set pages"
+      ],
+      "insertKeys": [
+        [
+          "armor_sets_raw",
+          "wiki.module.armorsetbonuses.canonical.a64-20260930",
+          "Module:ArmorSetBonuses"
+        ],
+        [
+          "armor_set_images_raw",
+          "wiki.armor_set_images",
+          "Armor set pages"
+        ]
+      ]
+    },
+    "candidate": {
+      "summary": {
+        "inserts": 245,
+        "updates": 238,
+        "unchanged": 0,
+        "preserved": 0
+      },
+      "sets": {
+        "inserts": 1,
+        "updates": 63,
+        "preserved": 0
+      },
+      "images": {
+        "inserts": 244,
+        "updates": 175,
+        "preserved": 0
+      },
+      "removedSets": []
+    }
+  }
 }

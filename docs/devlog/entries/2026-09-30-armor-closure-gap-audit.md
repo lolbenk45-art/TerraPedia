@@ -101,3 +101,10 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
   landings for both datasets; old compatibility rows must not be relabeled or used
   to authorize member/set repair. Diagnostic output is
   `.local/tmp/armor-phase2-live-maint-dryrun-20260930-01.json`.
+- Follow-up review found that the required image bytes are already available: the
+  `.a63-20260927-33` cache result contains 419 cached rows with per-file revisions
+  and verified readbacks. F11 is therefore a landing-lineage gap, not permission to
+  repeat image uploads. Combining that result with the corrected rev964993 module
+  artifact in a read-only candidate produced a transition of 2 inserts/1 demotion
+  and a maint dry-run of 1 set insert + 63 updates and 244 image inserts + 175
+  updates. Artifact: `.local/tmp/armor-phase2-canonical-source-dryrun-20260930-01.json`.

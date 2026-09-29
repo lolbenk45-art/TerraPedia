@@ -49,7 +49,7 @@ The work is closed only when all of the following are true for the frozen target
 `pipelines/relation/armor-canonical-relation-candidate.mjs`,
 `pipelines/generate/armor-set-definition-source.mjs`, corresponding tests and a new coverage manifest fixture.
 
-- [ ] First obtain revision-bound `source_evidence` landings for both module and image datasets. The current live rows are `legacy_compat` (module parse `ok` without a revision; images `partial` without a revision), and `buildArmorCanonicalMaintCandidate` must reject them before any diff is trusted. Never relabel those rows in place.
+- [ ] First create revision-bound `source_evidence` landings for both module and image datasets. The current live rows are `legacy_compat` (module parse `ok` without a revision; images `partial` without a revision), and `buildArmorCanonicalMaintCandidate` must reject them before any diff is trusted. Reuse the completed `.a63-20260927-33` image-cache result; do not repeat uploads or relabel old rows in place.
 - [ ] Re-derive all 64 source records and correct the 15 stored combinations with the source's nonzero head/body/legs IDs; preserve stable identities where the record key remains unchanged and retire only superseded rows.
 - [ ] Insert the ten missing module members (five Shroomite pieces and five affected legs after deduplication) into the candidate model only after maint item identity, slot and active status checks pass.
 - [ ] Reconcile the ten current relation-attribute omissions and the two MiningHelmet rows (item 88) as named source decisions. Reject duplicate active attribute owners until one revision-bound row is selected.

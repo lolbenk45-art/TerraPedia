@@ -170,6 +170,19 @@ UUID 为 `b4ae6728-4f72-11f1-bcc9-00155d37eadf`，没有 DML。当前两个 Armo
 完成 revision-bound canonical landing（包括 images），再重新读取 maint/relation
 基线。旧 landing 只能作为兼容历史，不能被升级标记冒充 source evidence。
 
+### F11 · 严重：图片 cache 结果没有绑定进 canonical landing
+
+历史 source-evidence proposal `.a63-20260927-23` 确实记录过 419 条缺 cache 的
+阻断，但后续 `.a63-20260927-33` 已完成 315/315 文件上传和 MinIO 字节读回，结果
+payload 的 419 条记录都有 `cachedUrl` 和逐文件 revision。不能重复执行这次缓存操作，
+也不能把旧 `.23` proposal 当作当前证据。
+
+真正剩下的是把 `.33` 的完整结果 payload 作为新的 `armor_set_images_raw` canonical
+source-evidence landing，并以 transition 保留旧 `legacy_compat` 行。当前 maint 仍只有
+175 条、全部缺 source revision，且有 1 条缺 cache；因此没有这次 landing transition
+之前的可信图片 baseline。`armor-canonical-maint-candidate` 的 managed-path 校验
+必须继续保留，不能用空 cache 或 Wiki URL 绕过。
+
 ## 本轮未建立的证据
 
 - 没有 1.4.5.8 全 Armor 权威清单，243/255 只能作固定样本下界；所有排除项须具名。
