@@ -29,6 +29,10 @@ import {
   loadTargetFingerprint,
   loadVerifiedShimmerImportBundle,
 } from '../import/import-wiki-shimmer-to-db.mjs';
+import {
+  buildShimmerPartitionBundle,
+  SHIMMER_PARTITION_SCOPES,
+} from './shimmer-partition-contract.mjs';
 
 export const GOVERNED_L1_DOMAIN_ORDER = Object.freeze([
   'items',
@@ -110,12 +114,12 @@ const DOMAIN_CONFIG = Object.freeze({
   }),
   shimmer: Object.freeze({
     operationId: 'automation-shimmer-first-l1',
-    ownedTables: Object.freeze([
-      { databaseRole: 'local', table: 'shimmer_item_transforms' },
-      { databaseRole: 'local', table: 'shimmer_decraft_rules' },
-      { databaseRole: 'local', table: 'shimmer_entity_transforms' },
-      { databaseRole: 'local', table: 'shimmer_npc_transforms' },
-    ]),
+    ownedTables: Object.freeze(SHIMMER_PARTITION_SCOPES.map((scope) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      fieldGroup: scope.fieldGroup,
+      logicalPredicateHash: scope.logicalPredicateHash,
+    }))),
     sourceKind: 'page_and_langlinks',
     sourceFile: null,
     fetchScript: 'pipelines/pipeline/run-wiki-shimmer-extraction-pipeline.mjs',
@@ -231,6 +235,7 @@ export async function runGovernedL1Operation({
   authorizationReference,
   decisionIdentity,
   fullReconciliation = false,
+  shimmerOwnerApprovals = null,
   mysqlModule = null,
   runSourceImpl = runSource,
 } = {}) {
@@ -287,6 +292,9 @@ export async function runGovernedL1Operation({
       connection,
       repoRoot: root,
       bundle: { domainId: config.domainId, ownedTables: config.ownedTables },
+      currentContext: current,
+      runId: paths.runId,
+      ownerApprovals: shimmerOwnerApprovals,
     });
     const reconciliationInput = fullReconciliation
       ? {
@@ -373,6 +381,11 @@ export async function buildImportPlan({
   loadCurrentScopeImpl = loadCurrentShimmerScope,
   loadTargetFingerprintImpl = loadTargetFingerprint,
   buildShimmerPreviewImpl = buildShimmerImportPreview,
+  acquireShimmerPartitionFencesImpl = acquireShimmerPartitionFences,
+  loadShimmerPartitionFencesImpl = null,
+  currentContext = null,
+  runId = null,
+  ownerApprovals = null,
 } = {}) {
   if (domainId === 'audio') return { summary: { assets: sourcePayload.assets?.length ?? 0 } };
   if (domainId === 'bosses') return { summary: { records: sourcePayload.records?.length ?? 0 } };
@@ -389,6 +402,10 @@ export async function buildImportPlan({
       bundleManifestPath: pointer.manifestPath,
       repoRoot: repoRoot ?? bundle?.repoRoot ?? getProjectRoot(),
     });
+    const baselineGenerations = currentContext?.baseline?.generations;
+    if (!isCompleteShimmerBaseline(baselineGenerations)) {
+      throw new Error('Shimmer import plan requires the current six-scope baseline generations');
+    }
     const existing = await loadCurrentScopeImpl(connection, shimmerBundle);
     const target = await loadTargetFingerprintImpl(connection, {
       host: connection.config?.host ?? '127.0.0.1',
@@ -396,12 +413,26 @@ export async function buildImportPlan({
       database: connection.config?.database ?? 'terria_v1_local',
     });
     const preview = buildShimmerPreviewImpl({ bundle: shimmerBundle, existing, target });
+    assertShimmerOwnerApprovals(ownerApprovals);
+    const fences = await (acquireShimmerPartitionFencesImpl ?? loadShimmerPartitionFencesImpl)(connection, {
+      environmentId: currentContext?.baseline?.environmentId ?? 'local',
+      runId,
+      generations: baselineGenerations,
+    });
+    const shimmerPartition = buildShimmerPartitionBundle({
+      scopes: SHIMMER_PARTITION_SCOPES,
+      ownerApprovals,
+      fences,
+      generationId: pointer.generationId,
+      previewSha256: preview.previewSha256,
+    });
     return {
       previewSha256: preview.previewSha256,
       targetFingerprintSha256: preview.targetFingerprintSha256,
       summary: preview.tables,
       manifestPath: pointer.manifestPath,
       generationId: pointer.generationId,
+      shimmerPartition,
     };
   }
   const records = sourcePayload?.datasets?.[domainId]?.records;
@@ -414,6 +445,104 @@ export async function buildImportPlan({
     sourceKind: getGovernedL1DomainConfig(domainId).sourceKind,
     sourceResult: sourceResult.sourceMode ?? 'local',
   };
+}
+
+export async function loadShimmerPartitionFences(connection, {
+  environmentId = 'local',
+  runId,
+  generations,
+} = {}) {
+  if (!connection || typeof connection.query !== 'function') {
+    throw new TypeError('Shimmer partition fence loader requires a database connection');
+  }
+  const normalizedRunId = requireText(runId, 'Shimmer partition fence runId');
+  if (!Array.isArray(generations)) throw new Error('Shimmer partition fence generations are required');
+  const fences = [];
+  for (const scope of SHIMMER_PARTITION_SCOPES) {
+    const generation = generations.find((row) => (
+      row?.databaseRole === scope.databaseRole && row?.table === scope.table
+    ));
+    if (!Number.isSafeInteger(Number(generation?.generation)) || Number(generation.generation) < 0) {
+      throw new Error(`Shimmer partition baseline generation is missing: ${scope.table}`);
+    }
+    const [rows] = await connection.query(
+      'SELECT latest_run_id AS latestRunId, fence_token AS fenceToken, before_generation AS beforeGeneration'
+      + ' FROM crawler_automation_write_fence'
+      + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ?'
+      + ' AND field_group = ? AND logical_predicate_hash = ?'
+      + ' AND expires_at > CURRENT_TIMESTAMP',
+      [environmentId, scope.databaseRole, scope.table, scope.fieldGroup, scope.logicalPredicateHash],
+    );
+    const row = rows?.[0];
+    if (!row || rows.length !== 1 || row.latestRunId !== normalizedRunId
+        || typeof row.fenceToken !== 'string' || !row.fenceToken.trim()
+        || Number(row.beforeGeneration) !== Number(generation.generation)) {
+      throw new Error(`Shimmer partition fence is missing or not owned by the run: ${scope.table}`);
+    }
+    fences.push({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      logicalPredicateHash: scope.logicalPredicateHash,
+      generation: Number(row.beforeGeneration),
+      fenceToken: row.fenceToken,
+    });
+  }
+  return fences;
+}
+
+export async function acquireShimmerPartitionFences(connection, {
+  environmentId = 'local',
+  runId,
+  generations,
+} = {}) {
+  if (!connection || typeof connection.query !== 'function') {
+    throw new TypeError('Shimmer partition fence acquisition requires a database connection');
+  }
+  const normalizedRunId = requireText(runId, 'Shimmer partition fence runId');
+  if (!isCompleteShimmerBaseline(generations)) {
+    throw new Error('Shimmer partition fence acquisition requires all six baseline generations');
+  }
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  for (const scope of SHIMMER_PARTITION_SCOPES) {
+    const generation = generations.find((row) => (
+      row.databaseRole === scope.databaseRole && row.table === scope.table
+    ));
+    const fenceToken = `fence:${sha256Bytes(Buffer.from(
+      `${normalizedRunId}:${scope.table}:${randomBytes(16).toString('hex')}`,
+      'utf8',
+    )).slice(7)}`;
+    await connection.query(
+      'INSERT INTO crawler_automation_write_fence'
+      + ' (environment_id, database_role, physical_table, field_group, logical_predicate_hash,'
+      + ' latest_run_id, fence_token, before_generation, expires_at, version)'
+      + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
+      + ' ON DUPLICATE KEY UPDATE latest_run_id = IF(expires_at < CURRENT_TIMESTAMP, VALUES(latest_run_id), latest_run_id),'
+      + ' fence_token = IF(expires_at < CURRENT_TIMESTAMP, VALUES(fence_token), fence_token),'
+      + ' before_generation = IF(expires_at < CURRENT_TIMESTAMP, VALUES(before_generation), before_generation),'
+      + ' expires_at = IF(expires_at < CURRENT_TIMESTAMP, VALUES(expires_at), expires_at),'
+      + ' version = IF(expires_at < CURRENT_TIMESTAMP, 0, version + 1)',
+      [environmentId, scope.databaseRole, scope.table, scope.fieldGroup, scope.logicalPredicateHash,
+        normalizedRunId, fenceToken, generation.generation, expiresAt],
+    );
+  }
+  return loadShimmerPartitionFences(connection, { environmentId, runId: normalizedRunId, generations });
+}
+
+function assertShimmerOwnerApprovals(value) {
+  const approvals = new Set(Array.isArray(value) ? value : []);
+  for (const capability of ['items', 'shimmer', 'town_npc_maintenance']) {
+    if (!approvals.has(capability)) throw new Error(`Shimmer owner approval is missing: ${capability}`);
+  }
+}
+
+function isCompleteShimmerBaseline(generations) {
+  return Array.isArray(generations) && generations.length === SHIMMER_PARTITION_SCOPES.length
+    && SHIMMER_PARTITION_SCOPES.every((scope) => {
+      const row = generations.find((entry) => (
+        entry?.databaseRole === scope.databaseRole && entry?.table === scope.table
+      ));
+      return Number.isSafeInteger(Number(row?.generation)) && Number(row.generation) >= 0;
+    });
 }
 
 function loadSourcePayload({ domainId, repoRoot }) {

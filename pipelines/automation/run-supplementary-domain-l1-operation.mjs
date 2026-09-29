@@ -1244,6 +1244,16 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       }
       for (const generation of bundle.baseline.generations) {
         const fenceScope = resolveFenceScope(generation);
+        const partitionFence = bundle.domainId === 'shimmer'
+          ? bundle.importPlan?.shimmerPartition?.fences?.find((fence) => (
+            fence.databaseRole === generation.databaseRole
+            && fence.table === generation.table
+            && fence.logicalPredicateHash === fenceScope.logicalPredicateHash
+          ))
+          : null;
+        if (bundle.domainId === 'shimmer' && !partitionFence) {
+          throw new Error(`Shimmer partition fence is missing before persistence: ${generation.table}`);
+        }
         await connection.query(
           'INSERT INTO crawler_automation_write_fence'
           + ' (environment_id, database_role, physical_table, field_group, logical_predicate_hash,'
@@ -1254,7 +1264,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
           + ' committed_generation = NULL, commit_marker = NULL, expires_at = VALUES(expires_at),'
           + ' version = version + 1',
           [environmentId, generation.databaseRole, generation.table, fenceScope.fieldGroup, fenceScope.logicalPredicateHash,
-            bundle.runId, hashJson({ runId: bundle.runId, ...fenceScope }),
+            bundle.runId, partitionFence?.fenceToken ?? hashJson({ runId: bundle.runId, ...fenceScope }),
             generation.generation, expiresAt],
         );
       }
