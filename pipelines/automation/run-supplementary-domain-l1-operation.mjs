@@ -20,6 +20,10 @@ import {
   loadTargetFingerprint,
   loadVerifiedShimmerImportBundle,
 } from '../import/import-wiki-shimmer-to-db.mjs';
+import {
+  buildShimmerPartitionBundle,
+  SHIMMER_PARTITION_SCOPES,
+} from './shimmer-partition-contract.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import {
   assertRepositoryOrdinaryFile,
@@ -1981,7 +1985,7 @@ function toWritableRecoveryError(value) {
   return new Error(message, { cause: value });
 }
 
-function assertShimmerImporterWriteScope(bundle) {
+export function assertShimmerImporterWriteScope(bundle, { generationId = null, previewSha256 = null } = {}) {
   if (bundle?.domainId !== 'shimmer') return;
   // The importer also upserts shared context and source lineage. A four-table
   // transform scope cannot fence, reconcile, or compensate those writes.
@@ -1996,7 +2000,28 @@ function assertShimmerImporterWriteScope(bundle) {
   const ownedTables = Array.isArray(bundle.ownedTables) ? bundle.ownedTables : [];
   const hasAllImporterTables = writeTables.every((table) => ownedTables.some((scope) => scope?.table === table));
   if (hasAllImporterTables) {
-    throw new Error('Shimmer importer cross-owner partition contract requires a registered partition executor before apply');
+    let partition;
+    try {
+      partition = buildShimmerPartitionBundle(bundle.importPlan?.shimmerPartition);
+    } catch (error) {
+      throw new Error('Shimmer importer cross-owner partition contract is required', { cause: error });
+    }
+    const expectedOwnedTables = SHIMMER_PARTITION_SCOPES.map((scope) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      fieldGroup: scope.fieldGroup,
+      logicalPredicateHash: scope.logicalPredicateHash,
+    }));
+    if (JSON.stringify(ownedTables) !== JSON.stringify(expectedOwnedTables)) {
+      throw new Error('Shimmer importer cross-owner partition contract does not match ownedTables');
+    }
+    if (generationId != null && partition.generationId !== generationId) {
+      throw new Error('Shimmer importer partition generation does not match frozen source');
+    }
+    if (previewSha256 != null && partition.previewSha256 !== previewSha256) {
+      throw new Error('Shimmer importer partition preview does not match frozen preview');
+    }
+    return partition;
   }
   const uncovered = writeTables.filter((table) => !ownedTables.some((scope) => (
     scope?.databaseRole === 'local'
@@ -2116,6 +2141,10 @@ export async function applyFrozenDomainImport({ connection, bundle, repoRoot }, 
     database: connection.config?.database ?? 'terria_v1_local',
   });
   const preview = buildShimmerImportPreview({ bundle: shimmerBundle, existing, target });
+  assertShimmerImporterWriteScope(bundle, {
+    generationId: shimmerBundle.generationId,
+    previewSha256: preview.previewSha256,
+  });
   if (bundle.importPlan.previewSha256 !== preview.previewSha256) {
     throw new Error('frozen shimmer preview drifted before apply');
   }
