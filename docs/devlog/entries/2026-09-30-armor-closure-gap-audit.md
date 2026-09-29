@@ -162,3 +162,11 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
 ### Commits
 
 - Pending; keep this entry active until the remaining Armor closure gates clear.
+
+## `.a63-20260927-33` image completeness recheck — 2026-09-30
+
+- Reparsed the revision-bound module artifact from `.local/tmp/a63-20260929-armor-source-02/module-armorsetbonuses.json`: revision `964993`, 64 set keys and 243 positive member IDs.
+- Rechecked the retained `.a63-20260927-33` result: `COMPLETED`, 315 uploaded files, 419 rows, `totalArmorSets=63`, 63 image set keys. The only missing key is `ArmorSetBonus.Shroomite`.
+- The result is therefore valid retained cache evidence for 63 sets, but cannot be promoted as the complete canonical image landing. The new denominator gate rejects it before extraction.
+- Plan repaired: build a fresh revision-bound image source bundle covering all 64 module keys, reusing verified bytes where possible and avoiding another upload of already covered files.
+- No crawler, image upload, landing/import, database, Redis, scheduler or service mutation occurred.

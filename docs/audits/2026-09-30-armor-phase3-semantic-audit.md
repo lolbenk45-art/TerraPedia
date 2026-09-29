@@ -90,3 +90,21 @@ Validation for this continuation:
 This remains a proposal-stage guard. The 64-set/243-member canonical landing,
 typed set-effect owner, downstream API/UI publication, and automatic recovery
 chain are still unresolved; no database or image mutation was performed.
+
+## `.a63-20260927-33` completeness check — 2026-09-30 continuation
+
+The retained image-cache result is internally valid (`COMPLETED`, 315 uploaded
+files and 419 cached rows, payload SHA
+`sha256:238600dd11bc2f94681c12f198b6bcd1ce1bcb52c31475148170d81911a04015`),
+but it is not a complete canonical image source for the corrected module:
+
+- module revision `964993` reparses to 64 set keys and 243 positive member IDs;
+- the image payload declares `totalArmorSets = 63`, contains 63 set keys and
+  419 rows;
+- the sole missing key is `ArmorSetBonus.Shroomite`.
+
+The new maint denominator guard rejects this bundle before extraction. The
+verified 63-set cache bytes remain reusable evidence, but a fresh revision-bound
+image source bundle must add Shroomite coverage and then revalidate the full
+64-key denominator. No image upload or database write is authorized by this
+finding.
