@@ -169,4 +169,5 @@ read-only audit portion above; the Phase 1 parser/evidence fix is recorded below
 - Rechecked the retained `.a63-20260927-33` result: `COMPLETED`, 315 uploaded files, 419 rows, `totalArmorSets=63`, 63 image set keys. The only missing key is `ArmorSetBonus.Shroomite`.
 - The result is therefore valid retained cache evidence for 63 sets, but cannot be promoted as the complete canonical image landing. The new denominator gate rejects it before extraction.
 - Plan repaired: build a fresh revision-bound image source bundle covering all 64 module keys, reusing verified bytes where possible and avoiding another upload of already covered files.
+- Checked two apparent local substitutes and rejected them: generated `WikiArmorSet.Shroomite armor` rows use an older revision/namespace, while item-image lineage contains single-piece icons rather than set-page images.
 - No crawler, image upload, landing/import, database, Redis, scheduler or service mutation occurred.

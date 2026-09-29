@@ -108,3 +108,16 @@ verified 63-set cache bytes remain reusable evidence, but a fresh revision-bound
 image source bundle must add Shroomite coverage and then revalidate the full
 64-key denominator. No image upload or database write is authorized by this
 finding.
+
+Two local artifacts were checked as possible substitutes and rejected:
+
+- `data/generated/wiki-armor-sets.latest.json` contains two Shroomite image rows,
+  but its source revision is `2026-04-04`, its identity is `WikiArmorSet.Shroomite
+  armor`, and the merge helper emits that legacy namespace. It cannot satisfy the
+  `ArmorSetBonus.Shroomite` module-key and revision-bound image contract.
+- Historical item-image lineage bundles contain Shroomite single-piece icon
+  evidence. Those rows are item-owned icons, not set-page male/female/part image
+  evidence, so they cannot be promoted into `armor_set_images_raw`.
+
+The only valid next source step remains a fresh 64-key image collection with the
+existing verified cache bytes reused where their source identity matches.
