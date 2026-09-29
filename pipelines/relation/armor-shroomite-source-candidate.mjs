@@ -102,9 +102,9 @@ function validateVariants(text) {
 }
 
 function validateStealth(text) {
-  const match = text.match(/ArmorSetBonuses\.Benefits\.Shroomite\s*=\s*function\s*\(player\)\s*\n\s*--\[\[\s*\n\s*(player\.shroomiteStealth\s*=\s*true;)\s*\n\s*\]\]\s*\nend/);
-  if (!match) throw new Error('Armor Shroomite set-owned stealth evidence is missing or invalid');
-  return match[1];
+  const matches = [...text.matchAll(/ArmorSetBonuses\.Benefits\.Shroomite\s*=\s*function\s*\(player\)\s*\n\s*--\[\[\s*\n\s*(player\.shroomiteStealth\s*=\s*true;)\s*\n\s*\]\]\s*\nend/g)];
+  if (matches.length !== 1) throw new Error('Armor Shroomite set-owned stealth evidence is missing, invalid or duplicate');
+  return matches[0][1];
 }
 
 function validateFrozenRevisions(bindings) {

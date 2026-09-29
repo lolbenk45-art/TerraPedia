@@ -31,6 +31,9 @@ tuple. The candidate now rejects that state before producing effects.
 3. A historical generic Shroomite `rangedDamage=15%` maint row could be parsed as
    a current additive item effect when its specialized note was absent. The
    relation producer now rejects that row as non-authoritative.
+4. A duplicate Shroomite stealth function could be hidden behind a first-match
+   parser. The source candidate now requires exactly one set-owned stealth
+   definition.
 
 The existing exact parser behavior already rejects qualified `>15%` and `>20%`
 cells; those values remain diagnostics/blockers and are never converted to
@@ -40,8 +43,8 @@ numeric facts.
 
 - RED tests reproduced mixed-revision acceptance, missing stealth evidence, and
   generic historical 15% acceptance before the repairs.
-- Focused source and typed-dispatch tests pass `45/45`.
-- Combined Armor upstream/maint/relation/projection regression passes `364/364`.
+- Focused source and typed-dispatch tests pass `46/46`.
+- Combined Armor upstream/maint/relation/projection regression passes `365/365`.
 - The preserved real source artifacts rederive to three item multipliers and one
   set-owned stealth flag, with the same frozen revision IDs.
 - `node --check` passes for both modified production modules and

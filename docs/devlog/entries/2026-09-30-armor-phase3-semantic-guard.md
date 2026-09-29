@@ -21,6 +21,8 @@
 - Required the exact module stealth evidence and represented it as one
   unresolved set-owned `set_flag`; item-owned effects remain the three scoped
   `×1.12` multipliers.
+- Rejected duplicate Shroomite stealth definitions instead of accepting the
+  first match.
 - Rejected historical generic Shroomite `rangedDamage=15%` rows before relation
   effect generation. Qualified `>15%`/`>20%` cells remain rejected/diagnostic.
 - See git for code-level diff details. Durable audit:
@@ -29,8 +31,8 @@
 ## Validation
 
 - RED reproduced all three repaired acceptance gaps before implementation.
-- Focused source/typed dispatch tests: `45/45` passed.
-- Combined Armor upstream/maint/relation/projection regression: `364/364`
+- Focused source/typed dispatch tests: `46/46` passed.
+- Combined Armor upstream/maint/relation/projection regression: `365/365`
   passed.
 - Real preserved source artifact rederivation: `3` item effects, `1` set-owned
   stealth effect, frozen revisions `1027106/1023241/964993`.

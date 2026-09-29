@@ -68,8 +68,8 @@ The work is closed only when all of the following are true for the frozen target
 - [ ] Add negative tests for mixed revisions, missing conditions, old generic 15% rows, duplicate set effects and stale qualified cells. The candidate must remain blocked when any required fact is unresolved.
 
 **2026-09-30 checkpoint:** the reviewed Shroomite candidate now freezes the
-`1027106/1023241/964993` source tuple, requires set-owned stealth evidence, and
-rejects historical generic `15%` rows. Focused source/dispatch and combined
+`1027106/1023241/964993` source tuple, requires exactly one set-owned stealth
+definition, and rejects historical generic `15%` rows. Focused source/dispatch and combined
 Armor regressions are green. This is a partial Phase 3 guard only; the full
 same-version attribute/image manifest, Mining identity, duplicate set-effect
 checks, and downstream set-effect owner are still required before this phase

@@ -70,6 +70,14 @@ test('requires Shroomite stealth evidence to remain set-owned', () => {
   assert.throws(() => build(source), /stealth|set-owned/i);
 });
 
+test('rejects duplicate Shroomite set-owned stealth definitions', () => {
+  const source = fixture();
+  change(source.armorSets, raw => {
+    raw.wikitext += '\n' + raw.wikitext.slice(0, raw.wikitext.indexOf('ArmorSetBonuses.Create'));
+  });
+  assert.throws(() => build(source), /duplicate|stealth|set-owned/i);
+});
+
 test('publishes Shroomite stealth as one set-owned flag instead of an item effect', () => {
   const candidate = build(fixture());
   assert.deepEqual(candidate.setEffects.map(row => [row.ownerKind, row.ownerKey, row.statKey,
