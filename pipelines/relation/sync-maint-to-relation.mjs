@@ -1317,6 +1317,12 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
 }
 
 export function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [], relationArmorSetItems = [] } = {}) {
+  for (const row of maintArmorAttributeRows) {
+    if (String(row.landing_source_key ?? '').startsWith('wiki.armor.item-effects.')
+        || parseJsonArrayOrObject(row.raw_json, {})?.schemaVersion === 'armor-item-effect-maint/v1') {
+      throw new Error('Armor item-effect source requires its dedicated source contract');
+    }
+  }
   const itemIndex = buildArmorAttributeItemIndex(maintItems);
   const exactPartRoles = new Map();
   for (const part of relationArmorSetItems) {

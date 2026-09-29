@@ -98,6 +98,11 @@ test('ordinary damage with an unrelated note is accepted and summaries never cre
   assert.deepEqual(rows.map(row => [row.statKey, row.valueDecimal, row.operation]), [['damage_bonus', 13, 'add']]);
 });
 
+test('legacy attribute conversion retains support for null raw JSON', () => {
+  const rows = buildArmorAttributeRelations({ maintArmorAttributeRows: [{ record_key: 'old', raw_json: 'null' }] });
+  assert.equal(rows.length, 1);
+});
+
 test('armor cells retain resource units and signed modifiers without double counting summary totals', () => {
   const rows = buildArmorAttributeEffectRows([{
     recordKey: 'resources', itemId: 1, slotGroup: 'head',
@@ -2131,3 +2136,12 @@ test('runSync dry-run tolerates empty managed image prefixes without relation wr
   assert.equal(result.apply, false);
   assert.equal(result.results.projectionItems[0].image, null);
 });
+
+for (const row of [
+  { landing_source_key: 'wiki.armor.item-effects.shroomite.' + 'a'.repeat(64), raw_json: '{}' },
+  { raw_json: JSON.stringify({ schemaVersion: 'armor-item-effect-maint/v1' }) },
+]) {
+  test('legacy attribute conversion rejects partial typed item-effect sources', () => {
+    assert.throws(() => buildArmorAttributeRelations({ maintArmorAttributeRows: [row] }), /item.effect.*source.*contract/i);
+  });
+}

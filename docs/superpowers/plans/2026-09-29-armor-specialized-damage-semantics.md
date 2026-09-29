@@ -84,3 +84,13 @@ milestones2–4 remain open. The existing single-table repair proposal cannot
 truthfully own these item-page facts, so upstream ownership must be established
 before wiring them into a writable proposal. Do not disguise that missing
 contract as an override of the2023 source cells.
+
+## Upstream candidate checkpoint
+
+The no-DDL proposal now has separate local/maint landing copies and three typed
+maint rows, with exact readback binding and explicit legacy-conversion rejection.
+See `docs/audits/2026-09-29-armor-item-effect-upstream-contract.md` and
+`docs/devlog/entries/2026-09-29-armor-item-effect-upstream-contract.md`.
+This advances the upstream candidate contract only: the real baseline, registered
+executor/dispatch, full coverage, packet, publication and consumer/automation
+acceptance are still required. The offline empty baseline is hypothetical.
