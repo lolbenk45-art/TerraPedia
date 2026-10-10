@@ -4,11 +4,23 @@ import path from 'node:path';
 
 export const DATABASE_ROLES = Object.freeze(['maint', 'relation', 'local']);
 export const TEST_PROFILES = Object.freeze(['unit', 't0', 't1', 't2-readonly']);
+// DB14 is owned by Armor, DB15 by user-auth E2E, and DB16 by Buff V2.
+export const AUTOMATION_REDIS_LOGICAL_DB_MIN = 1;
+export const AUTOMATION_REDIS_LOGICAL_DB_MAX = 13;
 export const FORMAL_DATABASES = Object.freeze({
   local: 'terria_v1_local',
   maint: 'terria_v1_maint',
   relation: 'terria_v1_relation'
 });
+
+export function assertAutomationRedisLogicalDb(value, label = 'Redis logical DB') {
+  if (!Number.isInteger(value)
+      || value < AUTOMATION_REDIS_LOGICAL_DB_MIN
+      || value > AUTOMATION_REDIS_LOGICAL_DB_MAX) {
+    throw new Error(`${label} must be an integer from ${AUTOMATION_REDIS_LOGICAL_DB_MIN} through ${AUTOMATION_REDIS_LOGICAL_DB_MAX}`);
+  }
+  return value;
+}
 
 const MYSQL_IDENTIFIER_LIMIT = 64;
 const DURABLE_RUN_KEY_REGISTRY = Symbol('durableRunKeyRegistry');
@@ -272,9 +284,8 @@ export function assertDatabasePurpose(trustedManifest, observedIdentity, expecte
     || observedRedis.port <= 0 || observedRedis.port > 65535) {
     throw new Error('redis port fingerprint mismatch');
   }
-  if (!Number.isInteger(observedRedis.logicalDb) || observedRedis.logicalDb < 1) {
-    throw new Error('redis logical database identity is invalid');
-  }
+  assertAutomationRedisLogicalDb(expectedRedis.logicalDb, 'trusted Redis logical DB');
+  assertAutomationRedisLogicalDb(observedRedis.logicalDb, 'Redis logical DB');
   if (expectedRedis.epoch !== `epoch-${runKey}` || observedRedis.epoch !== expectedRedis.epoch) {
     throw new Error('redis epoch mismatch');
   }

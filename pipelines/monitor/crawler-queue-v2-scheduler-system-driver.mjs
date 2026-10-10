@@ -10,6 +10,7 @@ import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { readRecordedResponse } from './recorded-http-fixture-source.mjs';
 import { seedRecordedRecipeDependencies } from './recorded-recipe-dependency-seed.mjs';
 import { RECIPE_SOURCE_PROVIDER } from '../recipe/recipe-formal-contract.mjs';
+import { runBuffCanonicalT1Acceptance } from '../buff/buff-canonical-t1-acceptance.mjs';
 
 function requireText(value, label) {
   const text = String(value ?? '').trim();
@@ -26,7 +27,7 @@ export function buildLoopbackApiBase(value) {
   return `${raw}/api`;
 }
 
-export function buildBackendEnvironment({ repoRoot, markerRoot, backendPort, databases, mysql, redis, namespace, runId, itemMode = false, readonlyMysql, itemLimit = 3 } = {}) {
+export function buildBackendEnvironment({ repoRoot, markerRoot, backendPort, databases, mysql, redis, namespace, runId, itemMode = false, buffMode = false, fixtureMode = false, readonlyMysql, itemLimit = 3 } = {}) {
   const root = path.resolve(requireText(repoRoot, 'repo root'));
   const fixtureRoot = path.resolve(requireText(markerRoot, 'marker root'));
   const database = requireText(databases?.local, 'derived local database');
@@ -36,7 +37,7 @@ export function buildBackendEnvironment({ repoRoot, markerRoot, backendPort, dat
   if (mysql?.host !== '127.0.0.1' || !Number.isInteger(Number(mysql?.port)) || !String(mysql?.username ?? '').trim() || !String(mysql?.password ?? '')) {
     throw new Error('backend MySQL identity is invalid');
   }
-  if (redis?.host !== '127.0.0.1' || !Number.isInteger(Number(redis?.port)) || !Number.isInteger(Number(redis?.logicalDb)) || Number(redis.logicalDb) < 1 || Number(redis.logicalDb) > 14) {
+  if (redis?.host !== '127.0.0.1' || !Number.isInteger(Number(redis?.port)) || !Number.isInteger(Number(redis?.logicalDb)) || Number(redis.logicalDb) < 1 || Number(redis.logicalDb) > 16) {
     throw new Error('backend Redis identity is invalid');
   }
   if (!/^terrapedia:crawler:wiki-monitor:v2:test:[^:]+:$/.test(String(namespace ?? ''))) throw new Error('backend fixture namespace is invalid');
@@ -72,21 +73,24 @@ export function buildBackendEnvironment({ repoRoot, markerRoot, backendPort, dat
     TERRAPEDIA_DB_MAINT: requireText(databases?.maint ?? database.replace(/_local$/, '_maint'), 'derived maint database'),
     TERRAPEDIA_DB_RELATION: requireText(databases?.relation ?? database.replace(/_local$/, '_relation'), 'derived relation database'),
     TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ENABLED: 'true',
+    ...(fixtureMode ? { TERRARIA_CRAWLER_QUEUE_V2_FIXTURE_ENABLED: 'true' } : {}),
     TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE: namespace,
     TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE: `${namespace}legacy:`,
     TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ROOT: fixtureRoot,
     TERRAPEDIA_CRAWLER_QUEUE_V2_REPO_ROOT: root,
-    TERRAPEDIA_RECORDED_RECIPE: 'true',
-    TERRAPEDIA_RECORDED_RECIPE_REPO_ROOT: root,
-    TERRAPEDIA_RECORDED_RECIPE_MARKER_ROOT: fixtureRoot,
-    TERRAPEDIA_RECORDED_RECIPE_DB: database,
-    TERRAPEDIA_RECORDED_RECIPE_MYSQL_HOST: mysql.host,
-    TERRAPEDIA_RECORDED_RECIPE_MYSQL_PORT: String(mysql.port),
-    TERRAPEDIA_RECORDED_RECIPE_MYSQL_USER: mysql.username,
-    TERRAPEDIA_RECORDED_RECIPE_MYSQL_PASSWORD: mysql.password,
     TERRAPEDIA_CRAWLER_RUN_ID: requireText(runId, 'run ID'),
     TERRAPEDIA_NETWORK_ACCESS: 'false',
     TERRAPEDIA_RECORDED_ITEM: 'false',
+    ...(!itemMode && !buffMode ? {
+      TERRAPEDIA_RECORDED_RECIPE: 'true',
+      TERRAPEDIA_RECORDED_RECIPE_REPO_ROOT: root,
+      TERRAPEDIA_RECORDED_RECIPE_MARKER_ROOT: fixtureRoot,
+      TERRAPEDIA_RECORDED_RECIPE_DB: database,
+      TERRAPEDIA_RECORDED_RECIPE_MYSQL_HOST: mysql.host,
+      TERRAPEDIA_RECORDED_RECIPE_MYSQL_PORT: String(mysql.port),
+      TERRAPEDIA_RECORDED_RECIPE_MYSQL_USER: mysql.username,
+      TERRAPEDIA_RECORDED_RECIPE_MYSQL_PASSWORD: mysql.password,
+    } : {}),
     ...item,
   });
 }
@@ -251,6 +255,13 @@ async function waitUntil(predicate, { timeoutMs = 30000, intervalMs = 250, label
   throw new Error(`timed out waiting for ${label}`);
 }
 
+function timeoutUntil(deadline, fallbackMs) {
+  if (deadline == null) return fallbackMs;
+  const timestamp = Date.parse(String(deadline));
+  if (!Number.isFinite(timestamp)) throw new Error('fixture window deadline is invalid');
+  return Math.max(1, Math.min(fallbackMs, timestamp - Date.now()));
+}
+
 async function readItemDatabaseCounts({ mysql, username, password, databases, internalNames, recordKeys } = {}) {
   const names = (Array.isArray(internalNames) ? internalNames : []).map((name) => String(name).trim()).filter(Boolean);
   const keys = (Array.isArray(recordKeys) ? recordKeys : []).map((key) => String(key).trim()).filter(Boolean);
@@ -286,8 +297,8 @@ export function validateSystemDriverOptions({
   const normalizedRunId = requireText(runId, 'run ID');
   if (!/^[a-z0-9][a-z0-9._-]{2,127}$/.test(normalizedRunId)) throw new Error('system driver run ID is invalid');
   const logicalDb = Number(redisDb);
-  if (!Number.isInteger(logicalDb) || logicalDb < 1 || logicalDb > 14) {
-    throw new Error('system driver Redis DB must be 1..14');
+  if (!Number.isInteger(logicalDb) || logicalDb < 1 || logicalDb > 16) {
+    throw new Error('system driver Redis DB must be 1..16');
   }
   const rootPath = path.resolve(requireText(markerRoot, 'marker root'));
   if (!rootPath.startsWith(`${path.resolve('/tmp')}${path.sep}`)) {
@@ -457,6 +468,9 @@ export async function createSystemDriver(options = {}) {
   if (!Number.isInteger(backendPort) || backendPort < 1 || backendPort > 65535) throw new Error('system driver backend port is invalid');
   const runtime = options.runtime ?? {};
   const itemMode = String(options.itemMode ?? options['item-mode'] ?? '').toLowerCase() === 'true';
+  const buffMode = String(options.buffMode ?? options['buff-mode'] ?? '').toLowerCase() === 'true';
+  const fixtureMode = String(options.fixtureMode ?? options['fixture-mode'] ?? '').toLowerCase() === 'true';
+  if (itemMode && buffMode) throw new Error('system driver cannot combine item mode and Buff mode');
   const loggerState = { logger: null };
   const state = {
     context,
@@ -481,8 +495,11 @@ export async function createSystemDriver(options = {}) {
     recipeIngestion: null,
     recipeDbReadback: null,
     itemMode,
+    buffMode,
+    fixtureMode,
     itemIngestion: null,
     itemDbReadback: null,
+    buffAcceptance: null,
     backendStopped: false,
   };
 
@@ -553,6 +570,7 @@ export async function createSystemDriver(options = {}) {
         accountNames: identity.accounts,
         accountPasswords: passwords,
       });
+      state.resources = { adapter, mysql, redis, passwords, databases: identity.databases };
       const manifest = await provisionAutomationDatabases({
         profile: 't1',
         runId: context.runId,
@@ -570,11 +588,11 @@ export async function createSystemDriver(options = {}) {
           environmentId: `crawler-v2-scheduler:${context.runId}`,
         },
       });
-      state.resources = { manifest, adapter, mysql, redis, passwords, databases: manifest.databases };
+      state.resources = { ...state.resources, manifest, databases: manifest.databases };
     }
-    if (!itemMode && typeof runtime.seedRecordedRecipeDependencies === 'function') {
+    if (!itemMode && !buffMode && typeof runtime.seedRecordedRecipeDependencies === 'function') {
       state.recipeDependencySeed = await runtime.seedRecordedRecipeDependencies(resourceContext);
-    } else if (!itemMode && state.resources?.adapter) {
+    } else if (!itemMode && !buffMode && state.resources?.adapter) {
       const recordedResponse = readRecordedResponse({
         repoRoot: context.repoRoot,
         sourcePath: 'data/generated/wiki-zh-recipe-pages.latest.json',
@@ -612,6 +630,8 @@ export async function createSystemDriver(options = {}) {
       namespace,
       runId: context.runId,
       itemMode,
+      buffMode,
+      fixtureMode,
       readonlyMysql: state.resources?.passwords?.readonly
         ? { username: identity.accounts.readonly, password: state.resources.passwords.readonly }
         : null,
@@ -670,7 +690,7 @@ export async function createSystemDriver(options = {}) {
       });
     }
     state.prepared = true;
-    return Object.freeze({ runId: context.runId, namespace, redisDb: context.redisDb, epoch: state.resources?.epoch ?? `epoch-${identity.runKey}`, fenceToken: state.resources?.fenceToken ?? `fence-${identity.runKey}`, domain: 'crawler_queue_v2_fixture', actionId: 'crawler-queue-v2-fixture', operationId: itemMode ? 'canonical-crawler-v2-items-t1-acceptance' : 'canonical-crawler-v2-scheduler-t1-acceptance' });
+    return Object.freeze({ runId: context.runId, namespace, redisDb: context.redisDb, epoch: state.resources?.epoch ?? `epoch-${identity.runKey}`, fenceToken: state.resources?.fenceToken ?? `fence-${identity.runKey}`, domain: 'crawler_queue_v2_fixture', actionId: 'crawler-queue-v2-fixture', operationId: buffMode ? 'canonical-buff-manual-automation-test-window' : itemMode ? 'canonical-crawler-v2-items-t1-acceptance' : 'canonical-crawler-v2-scheduler-t1-acceptance' });
   }
 
   const callRuntime = (name, fallback) => async (...args) => {
@@ -693,19 +713,35 @@ export async function createSystemDriver(options = {}) {
         ? await state.api.getAutomation()
         : await requestJson(`${state.apiBase}/admin/crawler-monitor/v2/automation`, { token: state.adminToken });
       if (settings.enabled) throw new Error('scheduler automation was already enabled');
-      const payload = { enabled: true, mode: 'changed-only', sweepIntervalMinutes: 1 };
+      const payload = {
+        enabled: true,
+        mode: fixtureMode ? 'fixture-changed-only' : 'changed-only',
+        sweepIntervalMinutes: 1,
+        ...(fixtureMode ? { canaryActionId: 'crawler-queue-v2-fixture' } : {}),
+      };
       return state.api?.updateAutomation
         ? state.api.updateAutomation(payload)
         : requestJson(`${state.apiBase}/admin/crawler-monitor/v2/automation`, { method: 'PUT', token: state.adminToken, body: payload });
     }),
-    waitForScheduledTick: callRuntime('waitForScheduledTick', async () => waitUntil(async () => {
+    disableAutomation: callRuntime('disableAutomation', async ({ mode = fixtureMode ? 'fixture-changed-only' : 'changed-only', canaryActionId = fixtureMode ? 'crawler-queue-v2-fixture' : undefined } = {}) => {
+      const payload = {
+        enabled: false,
+        mode,
+        sweepIntervalMinutes: 1,
+        ...(canaryActionId ? { canaryActionId } : {}),
+      };
+      return state.api?.updateAutomation
+        ? state.api.updateAutomation(payload)
+        : requestJson(`${state.apiBase}/admin/crawler-monitor/v2/automation`, { method: 'PUT', token: state.adminToken, body: payload });
+    }),
+    waitForScheduledTick: callRuntime('waitForScheduledTick', async ({ deadline } = {}) => waitUntil(async () => {
       const overview = await requestJson(`${state.apiBase}/admin/crawler-monitor/overview`, { token: state.adminToken }).catch(() => null);
       const sweep = overview?.wikiMonitor?.lastSweep ?? overview?.v2Automation?.lastSweep;
       if (!sweep?.detected?.some((entry) => entry.actionId === 'crawler-queue-v2-fixture')) return null;
       const dispatched = sweep.dispatched?.find((entry) => entry.actionId === 'crawler-queue-v2-fixture');
       state.attemptId = dispatched?.attemptId ?? state.attemptId;
       return { observed: true, manualSweepCalls: 0, dispatches: countSweepDispatches(sweep), sweep };
-    }, { timeoutMs: Number(options.tickTimeoutMs ?? 90000), label: 'scheduled fixture tick' })),
+    }, { timeoutMs: timeoutUntil(deadline, Number(options.tickTimeoutMs ?? 90000)), label: 'scheduled fixture tick' })),
     observeLeaseRenewals: callRuntime('observeLeaseRenewals', async () => {
       const leaseKey = `${state.namespace}domain:crawler_queue_v2_fixture:lease`;
       const leaseTtlSamples = [];
@@ -759,7 +795,7 @@ export async function createSystemDriver(options = {}) {
       if (!isLeaseLossReapedStatus(status)) throw new Error('lease-loss did not converge to a reaped terminal state');
       return { childReaped: true, nextReadyClaimed: false, attemptId: attempt.attemptId, reasonCode: result.reasonCode ?? 'LEASE_RENEW_FAILED' };
     }),
-    waitForProgress: callRuntime('waitForProgress', async () => waitUntil(async () => {
+    waitForProgress: callRuntime('waitForProgress', async ({ deadline } = {}) => waitUntil(async () => {
       const overview = await requestJson(`${state.apiBase}/admin/crawler-monitor/overview`, { token: state.adminToken }).catch(() => null);
       const attempt = [...(overview?.attemptHistory ?? []), ...(overview?.liveQueue ?? [])].find((entry) => !state.attemptId || entry.attemptId === state.attemptId);
       const progressPath = attempt?.artifacts?.progressPath ?? attempt?.progressPath;
@@ -784,6 +820,24 @@ export async function createSystemDriver(options = {}) {
           internalNames: state.itemIngestion.internalNames,
           recordKeys: state.itemIngestion.recordKeys,
         });
+      } else if (state.buffMode) {
+        const targetMysql = state.resources?.passwords?.provisioner
+          ? { username: identity.accounts.provisioner, password: state.resources.passwords.provisioner }
+          : { username: state.resourceContext.mysql.username, password: state.resourceContext.mysql.password };
+        state.buffAcceptance = await runBuffCanonicalT1Acceptance({
+          profile: 't1',
+          runId: context.runId,
+          repoRoot: context.repoRoot,
+          databases: identity.databases,
+          mysql: {
+            host: state.resourceContext.mysql.host,
+            port: state.resourceContext.mysql.port,
+            username: targetMysql.username,
+            password: targetMysql.password,
+            readonlyUsername: state.resources?.passwords?.readonly ? identity.accounts.readonly : targetMysql.username,
+            readonlyPassword: state.resources?.passwords?.readonly ?? targetMysql.password,
+          },
+        });
       } else {
         state.recipeIngestion = payload.recordedRecipeIngestion;
         if (!state.recipeIngestion) throw new Error('recorded Recipe terminal progress is missing ingestion evidence');
@@ -802,10 +856,11 @@ export async function createSystemDriver(options = {}) {
         actionId: payload.actionId,
         itemIngestion: state.itemIngestion,
         itemDbReadback: state.itemDbReadback,
+        buffAcceptance: state.buffAcceptance,
         recipeIngestion: state.recipeIngestion,
         recipeDbReadback: state.recipeDbReadback,
       };
-    }, { timeoutMs: Number(options.progressTimeoutMs ?? 90000), label: 'fixture terminal progress' })),
+    }, { timeoutMs: timeoutUntil(deadline, Number(options.progressTimeoutMs ?? 90000)), label: 'fixture terminal progress' })),
     cleanup: async ({ retainDiagnostics = false, failureMessage } = {}) => {
       const cleanupErrors = [];
       const attemptCleanup = async (operation) => {
@@ -826,7 +881,11 @@ export async function createSystemDriver(options = {}) {
       if (state.resources?.adapter && state.resources?.manifest) {
         for (const database of Object.values(state.resources.manifest.databases).reverse()) await attemptCleanup(() => state.resources.adapter.dropDatabase({ name: database.name, role: database.role, runKey: identity.runKey, ifExists: true }));
         if (state.resources.manifest.redis?.reservationToken) await attemptCleanup(() => state.resources.adapter.releaseRedisLogicalDb({ ...state.resources.manifest.redis, runKey: identity.runKey, ifMissing: true }));
-        if (typeof state.resources.adapter.cleanupAccounts === 'function') await attemptCleanup(() => state.resources.adapter.cleanupAccounts());
+      }
+      if (state.resources?.adapter && typeof state.resources.adapter.cleanupAccounts === 'function') {
+        await attemptCleanup(() => state.resources.adapter.cleanupAccounts());
+      }
+      if (state.resources?.adapter && state.resources?.manifest) {
         if (typeof state.resources.adapter.verifyCleanup === 'function') {
           await attemptCleanup(() => state.resources.adapter.verifyCleanup({ databases: Object.fromEntries(Object.entries(state.resources.manifest.databases).map(([role, value]) => [role, value.name])), logicalDb: context.redisDb }));
         }
@@ -847,6 +906,7 @@ export async function createSystemDriver(options = {}) {
       ports: state.backendStopped ? 0 : (state.backend && state.backend.exitCode === null ? 1 : 0),
       databases: state.cleaned ? 0 : 1,
       ...(state.itemMode ? { itemDbReadback: state.itemDbReadback ?? { itemRows: 0, maintRows: 0, relationRows: 0, unresolvedIdentities: 1 } } : {}),
+      ...(state.buffMode ? { buffAcceptance: state.buffAcceptance ?? { status: 'missing' } } : {}),
       ...(!state.itemMode ? { recipeDbReadback: state.recipeDbReadback ?? { recipeRows: 0, ingredientRows: 0, stationRows: 0 } } : {}),
     })),
   };

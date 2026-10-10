@@ -85,6 +85,8 @@ run_step "Data workflow acceptance tests" . node --test \
 run_step "Crawler automation contract tests" . node --test \
   pipelines/automation/automation-database-contract.test.mjs \
   pipelines/automation/automation-test-profile.test.mjs \
+  pipelines/automation/buff-automation-test-window.test.mjs \
+  platform/local/run-buff-automation-test-window.test.mjs \
   pipelines/automation/table-ownership-matrix.test.mjs \
   pipelines/automation/frozen-apply-bundle.test.mjs \
   pipelines/automation/policy-set-hash.test.mjs \
