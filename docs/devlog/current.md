@@ -8,7 +8,7 @@ Active focus: Armor and Buff automation code is integrated. Production automatic
 ## Automation domain merge checkpoint - 2026-10-11 20:24
 
 - Armor integration commit: `67536d30` (`chore(automation): integrate Armor domain lane`); focused Node `1140/1140`, Maven `742/742`, Admin typecheck, and Admin unit `417/417` passed after conflict resolution.
-- Buff changes are now staged in this merge and retain its runtime/API repair, source replay, isolated T1, and scheduler read-only contracts. The Buff production gate remains `changed=false` with disabled control and zero live work; automatic DB ingestion is still the only unfinished acceptance boundary.
+- Buff integration commit: `4e8ebbb3` (`chore(automation): integrate Buff domain lane`); it retains the runtime/API repair, source replay, isolated T1, and scheduler read-only contracts. Focused validation after merge is Buff Node `541/542` (the only failure is the pre-existing backfill test's missing `mysql2/promise` dependency), local automation/contracts `90/90`, and backend Maven `507/507`. The Buff production gate remains `changed=false` with disabled control and zero live work; automatic DB ingestion is still the only unfinished acceptance boundary.
 
 ## Buff runtime startup/API repair - 2026-10-11 19:15 CST
 
