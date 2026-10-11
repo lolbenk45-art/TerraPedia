@@ -8,4 +8,6 @@ public class CrawlerQueueV2CutoverRequestDTO {
     private String resetId;
     private String confirmation;
     private String gitSha;
+    private String mutationReservationAt;
+    private String firstLiveMutationAt;
 }

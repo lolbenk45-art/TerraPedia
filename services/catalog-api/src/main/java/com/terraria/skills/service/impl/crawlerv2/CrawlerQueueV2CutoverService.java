@@ -16,6 +16,7 @@ public final class CrawlerQueueV2CutoverService {
     public static final String CUTOVER_CONFIRMATION = "CUTOVER_CRAWLER_QUEUE_V2";
     public static final String ROLLBACK_CONFIRMATION = "ROLLBACK_CRAWLER_QUEUE_V2";
     public static final String RESET_CONFIRMATION = "RESET_CRAWLER_QUEUE_V2_EPOCH";
+    public static final String FIRST_MUTATION_RECOVERY_CONFIRMATION = "RECOVER_CRAWLER_QUEUE_V2_FIRST_MUTATION";
 
     private final CrawlerQueueV2Properties properties;
     private final CrawlerQueueV2Repository repository;
@@ -259,6 +260,56 @@ public final class CrawlerQueueV2CutoverService {
         }
     }
 
+    public CrawlerQueueV2CutoverResultDTO recoverFirstLiveMutation(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        requireCutoverEnabled();
+        requireFirstMutationRecovery(request);
+        String requestedBy = requireOperator(operator);
+        Instant reservationAt = parseInstant(request.getMutationReservationAt(), "mutationReservationAt");
+        Instant firstLiveMutationAt = parseInstant(request.getFirstLiveMutationAt(), "firstLiveMutationAt");
+        if (firstLiveMutationAt.isBefore(reservationAt)) {
+            throw new CrawlerQueueV2Exception(HttpStatus.CONFLICT, CrawlerQueueV2ReasonCode.STATE_STORE_RESET,
+                "首次 mutation confirmation 不能早于 reservation", null);
+        }
+        synchronized (operationLock) {
+            CrawlerQueueEngineRouter.CutoverState durable = router.readDurableState();
+            if (durable == null || durable.mode() == CrawlerQueueEngineMode.V1
+                || blank(durable.cutoverId()) || !Objects.equals(durable.cutoverId(), request.getCutoverId())
+                || blank(durable.stateStoreEpoch())
+                || durable.mutationReservationAt() != null || durable.firstLiveMutationAt() != null) {
+                throw stateStoreReset("缺少可恢复的、未确认首次 mutation durable marker");
+            }
+            CrawlerQueueV2Repository.EngineState observed = repository.readEngineState();
+            if (observed == null
+                || observed.mode() != CrawlerQueueEngineMode.V2
+                || !Objects.equals(durable.cutoverId(), observed.activeCutoverId())
+                || !Objects.equals(durable.stateStoreEpoch(), observed.stateStoreEpoch())
+                || !Objects.equals(firstLiveMutationAt.toString(), observed.firstLiveMutationAt())) {
+                throw stateStoreReset("Redis 首次 mutation 证据与 durable V2 identity 不一致");
+            }
+            CrawlerQueueEngineRouter.CutoverState recovered = router.recoverFirstLiveMutation(
+                reservationAt,
+                firstLiveMutationAt
+            );
+            return result(
+                request.getCutoverId(),
+                request.getResetId(),
+                recovered.mode(),
+                recovered.stateStoreEpoch(),
+                null,
+                0,
+                0,
+                0,
+                false,
+                false,
+                recovered.firstLiveMutationAt(),
+                null
+            );
+        }
+    }
+
     public static void requireCutoverConfirmation(CrawlerQueueV2CutoverRequestDTO request) {
         if (request == null || !CUTOVER_CONFIRMATION.equals(request.getConfirmation())
             || blank(request.getCutoverId()) || blank(request.getGitSha())) {
@@ -416,6 +467,24 @@ public final class CrawlerQueueV2CutoverService {
             || blank(request.getCutoverId()) || blank(request.getResetId())) {
             throw new CrawlerQueueV2Exception(HttpStatus.FORBIDDEN, CrawlerQueueV2ReasonCode.CUTOVER_NOT_ENABLED,
                 "必须提供明确的 V2 epoch reset 确认、cutoverId 和 resetId", null);
+        }
+    }
+
+    private void requireFirstMutationRecovery(CrawlerQueueV2CutoverRequestDTO request) {
+        if (request == null || !FIRST_MUTATION_RECOVERY_CONFIRMATION.equals(request.getConfirmation())
+            || blank(request.getCutoverId()) || blank(request.getResetId())
+            || blank(request.getMutationReservationAt()) || blank(request.getFirstLiveMutationAt())) {
+            throw new CrawlerQueueV2Exception(HttpStatus.FORBIDDEN, CrawlerQueueV2ReasonCode.CUTOVER_NOT_ENABLED,
+                "必须提供首次 mutation recovery 确认、cutoverId、recoveryId 和完整时间对", null);
+        }
+    }
+
+    private Instant parseInstant(String raw, String field) {
+        try {
+            return Instant.parse(raw);
+        } catch (RuntimeException exception) {
+            throw new CrawlerQueueV2Exception(HttpStatus.BAD_REQUEST, CrawlerQueueV2ReasonCode.CUTOVER_NOT_ENABLED,
+                field + " 必须是 ISO-8601 时间", exception);
         }
     }
 

@@ -17,6 +17,8 @@ import {
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
 import { normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
+import { applyBuffLandingMutation } from '../landing/buff-bounded-landing-mutation.mjs';
+import { bindBuffMaintMutationPlanToLanding } from './buff-maint-mutation-plan.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   applyBuffCanonicalMutation,
@@ -24,11 +26,18 @@ import {
   executeBuffCanonicalTransaction,
   BUFF_CANONICAL_TRANSACTION_TABLES,
 } from './buff-canonical-transaction-executor.mjs';
+import { assertBuffFenceReadback } from './buff-canonical-governance-contract.mjs';
+import { createBuffRecoveryJournalAdapter } from './buff-canonical-recovery-journal-adapter.mjs';
+import { createBuffRecoveryJournalStore } from './buff-canonical-recovery-journal-store.mjs';
 
 export const BUFF_CANONICAL_OPERATION_ID = 'canonical-buff-full-chain';
 const repoRoot = getProjectRoot();
 const DATABASE = 'terria_v1_relation';
 const TABLES = [...BUFF_CANONICAL_TRANSACTION_TABLES];
+const LANDING_TRACE_COLUMNS = Object.freeze([
+  'landing_source_id', 'landing_source_key',
+  'landing_content_hash', 'source_provider', 'source_page', 'source_revision_timestamp',
+]);
 
 export function parseBuffCanonicalIngestionArgs(argv = []) {
   const args = {};
@@ -55,6 +64,7 @@ export function buildBuffCanonicalIngestionPaths(resultLabel) {
   return {
     envelopePath: `${prefix}.envelope.json`,
     resultPath: `${prefix}.result.json`,
+    journalPath: `${prefix}.journal.json`,
   };
 }
 
@@ -71,10 +81,12 @@ export async function applyBuffCanonicalIngestion({
   const root = path.resolve(suppliedRepoRoot);
   const paths = buildBuffCanonicalIngestionPaths(resultLabel);
   assertBuffResultPathAvailable({ repoRoot: root, resultPath: paths.resultPath });
+  assertBuffJournalPathAvailable({ repoRoot: root, journalPath: paths.journalPath });
   const context = loadContext({ repoRoot: root, operationId: BUFF_CANONICAL_OPERATION_ID, env });
   assertAuthorizedOperationDataBundle({ repoRoot: root, authorizedContext: context });
   const binding = context.executionManifest?.buffFullChain;
-  if (!binding || binding.envelopePath !== paths.envelopePath || binding.resultPath !== paths.resultPath) {
+  if (!binding || binding.envelopePath !== paths.envelopePath || binding.resultPath !== paths.resultPath
+      || binding.journalPath !== paths.journalPath) {
     throw new Error('Buff canonical ingestion packet path binding drifted');
   }
   const envelopeBinding = (context.dataBundleEntries ?? []).find((entry) => entry.path === paths.envelopePath);
@@ -96,23 +108,24 @@ export async function applyBuffCanonicalIngestion({
     database: 'terria_v1_local',
     dateStrings: true,
   });
-  const bindingPacket = binding.packet ?? {};
-  const packet = {
-    runId: bindingPacket.runId ?? context.runId,
-    fenceToken: bindingPacket.fenceToken ?? context.fenceToken,
-    serverUuid: fingerprint.serverUuid,
-    actor: bindingPacket.actor ?? context.actor ?? 'canonical-buff-full-chain',
-  };
+  const packet = buildBuffCanonicalPacket({ context, fingerprint });
+  const journalStore = createBuffRecoveryJournalStore({ repoRoot: root, relativePath: paths.journalPath });
+  const journal = createBuffRecoveryJournalAdapter({
+    store: journalStore,
+    packet,
+    envelopeSha256: envelopeBinding.contentHash,
+  });
   let committed = false;
   try {
     const result = await executeBuffCanonicalTransaction({
       envelope,
       packet,
       connection,
-      lockRuntime: async () => lockRuntime(connection, packet, envelope),
-      readLockedRows: async () => {
+      journal,
+      lockRuntime: async ({ envelope: executionEnvelope }) => lockRuntime(connection, packet, executionEnvelope),
+      readLockedRows: async ({ envelope: executionEnvelope }) => {
         const rows = await readOwnedRows(connection);
-        assertBuffLockedRowsMatchEnvelope({ envelope, rows });
+        assertBuffLockedRowsMatchEnvelope({ envelope: executionEnvelope, rows });
         return rows;
       },
       consumeDispatchPermit: () => consumePermit({
@@ -120,9 +133,26 @@ export async function applyBuffCanonicalIngestion({
         authorizedContext: context,
         decisionLedgerPath: path.join(root, 'reports/authorization/canonical/used-decisions.json'),
       }),
-      applyUpstream: async () => applyBuffMaintMutation({ envelope, connection }),
-      applyMutation: async () => applyBuffCanonicalMutation({ envelope, connection }),
-      verifyAfter: async () => verifyOwnedRows(connection, envelope),
+      applyUpstream: async ({ envelope: executionEnvelope }) => applyBuffUpstreamMutations({
+        envelope: executionEnvelope,
+        connection,
+        applyLanding: ({ plan }) => applyBuffLandingMutation({
+          connection,
+          plan,
+          transactionContext: { transactionActive: true, fenceHeld: true },
+        }),
+        applyMaint: ({ envelope: boundEnvelope }) => applyBuffMaintMutation({ envelope: boundEnvelope, connection }),
+      }),
+      applyMutation: async ({ envelope: executionEnvelope }) => applyBuffCanonicalMutation({ envelope: executionEnvelope, connection }),
+      verifyAfter: async ({ envelope: executionEnvelope }) => {
+        await verifyOwnedRows(connection, executionEnvelope);
+        const [maintRows] = await connection.query(
+          'SELECT * FROM terria_v1_maint.maint_buffs ORDER BY id FOR UPDATE',
+        );
+        assertBuffMaintAfterSet({ envelope: executionEnvelope, rows: maintRows ?? [] });
+        const landingRows = await readAfterLandingRows(connection, executionEnvelope);
+        assertBuffLandingAfterSet({ envelope: executionEnvelope, rows: landingRows });
+      },
     });
     committed = result.status === 'completed';
     writePrivateJson(root, paths.resultPath, { operationId: BUFF_CANONICAL_OPERATION_ID, status: result.status, packet });
@@ -134,6 +164,148 @@ export async function applyBuffCanonicalIngestion({
       // absence of a completed result when a pre-commit guard rejects.
     }
   }
+}
+
+export function buildBuffCanonicalPacket({ context, fingerprint } = {}) {
+  const binding = context?.executionManifest?.buffFullChain;
+  if (!binding || binding.schemaVersion !== 'buff-full-chain-operation-binding/v1'
+      || binding.operationId !== BUFF_CANONICAL_OPERATION_ID
+      || typeof binding.runId !== 'string' || !binding.runId.trim()
+      || typeof binding.fenceToken !== 'string' || !binding.fenceToken.trim()) {
+    throw new Error('Buff canonical manifest runId/fenceToken binding is required');
+  }
+  if (typeof fingerprint?.serverUuid !== 'string' || !fingerprint.serverUuid.trim()) {
+    throw new Error('Buff canonical server fingerprint is required');
+  }
+  return {
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+    serverUuid: fingerprint.serverUuid,
+    actor: binding.actor ?? context?.actor ?? 'canonical-buff-full-chain',
+    packetHash: context?.packetHash,
+    executionManifestHash: context?.executionManifestHash,
+  };
+}
+
+export async function applyBuffUpstreamMutations({
+  envelope,
+  connection,
+  applyLanding,
+  applyMaint,
+  bindMaint = bindBuffMaintMutationPlanToLanding,
+} = {}) {
+  if (!envelope?.upstream?.maint || typeof applyMaint !== 'function') {
+    throw new Error('Buff upstream maint plan and writer are required');
+  }
+  if (!envelope.upstream.landing) {
+    const maint = await applyMaint({ envelope, connection });
+    return { landingId: null, maint };
+  }
+  if (typeof applyLanding !== 'function') throw new Error('Buff upstream landing writer is required');
+  const landing = await applyLanding({
+    connection,
+    plan: envelope.upstream.landing,
+    transactionContext: { transactionActive: true, fenceHeld: true },
+  });
+  if (!Number.isSafeInteger(Number(landing?.landingId)) || Number(landing.landingId) < 1 || !landing.row) {
+    throw new Error('Buff upstream landing writer did not return a real landing identity');
+  }
+  const boundMaint = bindMaint({
+    plan: envelope.upstream.maint,
+    landingRow: { ...envelope.upstream.landing.landing, ...landing.row, id: Number(landing.landingId) },
+  });
+  const boundEnvelope = bindBuffCandidateToLanding({
+    envelope: {
+      ...envelope,
+      upstream: { ...envelope.upstream, maint: boundMaint },
+    },
+    landingRow: { ...envelope.upstream.landing.landing, ...landing.row, id: Number(landing.landingId) },
+  });
+  const maint = await applyMaint({ envelope: boundEnvelope, connection });
+  return { landingId: Number(landing.landingId), maint, boundMaint, envelope: boundEnvelope };
+}
+
+/**
+ * Materialize the inserted landing identity on all downstream relation rows.
+ * Projection rows have no landing trace column and remain linked by relation_record_key.
+ */
+export function bindBuffCandidateToLanding({ envelope, landingRow } = {}) {
+  if (!envelope?.mutation?.changes) return envelope;
+  const landingId = Number(landingRow?.id);
+  if (!Number.isSafeInteger(landingId) || landingId < 1) {
+    throw new Error('Buff candidate landing identity is invalid');
+  }
+  const trace = {
+    landing_source_id: landingId,
+    landing_source_key: landingRow.source_key,
+    landing_content_hash: landingRow.content_hash,
+    source_provider: landingRow.provider,
+    source_page: landingRow.source_page,
+    source_revision_timestamp: landingRow.source_revision_timestamp,
+  };
+  for (const field of LANDING_TRACE_COLUMNS) {
+    if (trace[field] == null || trace[field] === '') throw new Error(`Buff candidate landing trace is incomplete: ${field}`);
+  }
+  if (!envelope?.mutation?.changes || !envelope.mutation.expectedRows) {
+    throw new Error('Buff candidate mutation is required for landing binding');
+  }
+  const changes = {};
+  const expectedRows = {};
+  for (const table of TABLES) {
+    const source = envelope.mutation.changes[table];
+    if (!source) throw new Error(`Buff candidate change scope is missing: ${table}`);
+    if (table === 'projection_buffs') {
+      changes[table] = cloneCandidateValue(source);
+      expectedRows[table] = cloneCandidateValue(envelope.mutation.expectedRows[table] ?? []);
+      continue;
+    }
+    const inserts = (source.inserts ?? []).map((row) => bindBuffTraceRow(row, trace));
+    const updates = (source.updates ?? []).map((change) => {
+      const after = bindBuffTraceRow(change.after, trace);
+      return { ...change, after, changedColumns: mergeChangedColumns(change.before, after, change.changedColumns) };
+    });
+    const unchanged = [];
+    for (const row of source.unchanged ?? []) {
+      const after = bindBuffTraceRow(row, trace);
+      const changedColumns = mergeChangedColumns(row, after, []);
+      if (changedColumns.length > 0) updates.push({ before: row, after, changedColumns });
+      else unchanged.push(after);
+    }
+    changes[table] = {
+      ...cloneCandidateValue(source),
+      inserts,
+      updates,
+      unchanged,
+      preserved: cloneCandidateValue(source.preserved ?? []),
+    };
+    expectedRows[table] = [
+      ...inserts,
+      ...updates.map((change) => change.after),
+      ...unchanged,
+      ...cloneCandidateValue(source.preserved ?? []),
+    ];
+  }
+  return {
+    ...envelope,
+    mutation: { ...envelope.mutation, changes, expectedRows },
+  };
+}
+
+function bindBuffTraceRow(row, trace) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('Buff candidate row is invalid');
+  return { ...row, ...trace };
+}
+
+function mergeChangedColumns(before, after, existing) {
+  const changed = new Set(existing ?? []);
+  for (const field of LANDING_TRACE_COLUMNS) {
+    if (JSON.stringify(before?.[field] ?? null) !== JSON.stringify(after?.[field] ?? null)) changed.add(field);
+  }
+  return [...changed];
+}
+
+function cloneCandidateValue(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
 
@@ -148,36 +320,56 @@ export function assertBuffResultPathAvailable({ repoRoot: root, resultPath } = {
   return target;
 }
 
+export function assertBuffJournalPathAvailable({ repoRoot: root, journalPath } = {}) {
+  const target = assertRepositoryPathConfinement({
+    repoRoot: path.resolve(root),
+    filePath: path.resolve(root, journalPath),
+    label: 'Buff canonical ingestion journal',
+    createParent: true,
+  });
+  if (fs.existsSync(target)) throw new Error('Buff canonical ingestion journal already exists; retry requires a new result label');
+  return target;
+}
+
 async function lockRuntime(connection, packet, envelope) {
   const [servers] = await connection.query('SELECT @@server_uuid AS serverUuid, @@port AS serverPort');
-  if (servers?.length !== 1 || String(servers[0].serverUuid) !== packet.serverUuid) {
-    throw new Error('Buff canonical ingestion server identity drifted');
-  }
+  if (servers?.length !== 1) throw new Error('Buff canonical ingestion server identity readback is missing');
   const [owners] = await connection.query(
     'SELECT username, status FROM terria_v1_local.crawler_automation_owner WHERE singleton_key = 1 FOR UPDATE',
   );
-  if (owners?.length !== 1 || owners[0].status !== 'ACTIVE' || owners[0].username !== packet.actor) {
-    throw new Error('Buff canonical ingestion owner is not active or actor drifted');
-  }
   const [fences] = await connection.query(
     'SELECT latest_run_id, fence_token, (expires_at > CURRENT_TIMESTAMP) AS active FROM terria_v1_local.crawler_automation_write_fence FOR UPDATE',
   );
   const active = (fences ?? []).filter((row) => Number(row.active) === 1);
-  if (active.length !== 1 || active[0].latest_run_id !== packet.runId || active[0].fence_token !== packet.fenceToken) {
-    throw new Error('Buff canonical ingestion ownership fence is missing, foreign or expired');
-  }
-  const landingIds = (envelope.frozenLandingIdentity?.rows ?? []).map((row) => Number(row.id)).filter(Number.isSafeInteger);
+  if (active.length !== 1) throw new Error('Buff canonical ingestion ownership fence readback is missing or duplicated');
+  assertBuffFenceReadback({ packet, server: servers[0], owner: owners?.[0], fence: active[0] });
+  const landingIds = getBuffLandingLockIds(envelope);
   const maintIds = (envelope.frozenMaintIdentity?.rows ?? []).map((row) => Number(row.id)).filter(Number.isSafeInteger);
-  if (landingIds.length === 0 || maintIds.length === 0) throw new Error('Buff canonical ingestion frozen source identities are missing');
-  const [landingRows] = await connection.query(
-    `SELECT * FROM terria_v1_local.source_dataset_landings WHERE id IN (${landingIds.map(() => '?').join(',')}) FOR UPDATE`,
-    landingIds,
-  );
+  if (maintIds.length === 0) throw new Error('Buff canonical ingestion frozen maint identities are missing');
+  const [landingRows] = landingIds.length > 0
+    ? await connection.query(
+      `SELECT * FROM terria_v1_local.source_dataset_landings WHERE id IN (${landingIds.map(() => '?').join(',')}) FOR UPDATE`,
+      landingIds,
+    )
+    : [[]];
   const [maintRows] = await connection.query(
     `SELECT * FROM terria_v1_maint.maint_buffs WHERE id IN (${maintIds.map(() => '?').join(',')}) FOR UPDATE`,
     maintIds,
   );
   assertBuffSourceRowsMatchEnvelope({ envelope, landingRows, maintRows });
+}
+
+export function getBuffLandingLockIds(envelope) {
+  const rows = envelope?.frozenLandingIdentity?.rows;
+  if (!Array.isArray(rows)) throw new Error('Buff frozen landing identity rows are required');
+  const ids = rows.map((row) => Number(row?.id));
+  if (ids.some((id) => !Number.isSafeInteger(id) || id < 1)) {
+    throw new Error('Buff frozen landing identity contains an invalid id');
+  }
+  if (ids.length === 0 && !envelope?.upstream?.landing) {
+    throw new Error('Buff frozen landing identity is missing and no deferred landing plan exists');
+  }
+  return ids;
 }
 
 async function readOwnedRows(connection) {
@@ -245,6 +437,73 @@ export function assertBuffSourceRowsMatchEnvelope({ envelope, landingRows, maint
   return true;
 }
 
+export function assertBuffMaintAfterSet({ envelope, rows } = {}) {
+  const plan = envelope?.upstream?.maint;
+  if (!plan || !Array.isArray(rows)) throw new Error('Buff maint after-set rows are required');
+  const expected = [
+    ...(plan.inserts ?? []),
+    ...(plan.updates ?? []).map((change) => change.after),
+    ...(plan.unchanged ?? []),
+    ...(plan.preserved ?? []),
+  ];
+  const expectedBySource = new Map();
+  const actualBySource = new Map();
+  for (const row of expected) {
+    const key = row?.source_id == null ? null : String(row.source_id);
+    if (key == null || expectedBySource.has(key)) throw new Error(`Buff maint after-set expected source identity is missing or duplicated: ${key}`);
+    expectedBySource.set(key, row);
+  }
+  for (const row of rows) {
+    const key = row?.source_id == null ? null : String(row.source_id);
+    if (key == null || actualBySource.has(key)) throw new Error(`Buff maint after-set actual source identity is missing or duplicated: ${key}`);
+    actualBySource.set(key, row);
+  }
+  if (expectedBySource.size !== actualBySource.size) throw new Error('Buff maint after-set row count drifted');
+  for (const [key, expectedRow] of expectedBySource) {
+    const actual = actualBySource.get(key);
+    if (!actual) throw new Error(`Buff maint after-set row is missing: ${key}`);
+    assertComparableRow(expectedRow, actual, 'maint-after-set', key, { ignoreTimestamps: true });
+  }
+  return true;
+}
+
+export function assertBuffLandingAfterSet({ envelope, rows } = {}) {
+  if (!Array.isArray(rows)) throw new Error('Buff landing after-set rows are required');
+  const deferred = envelope?.upstream?.landing?.landing;
+  if (deferred) {
+    if (rows.length !== 1) throw new Error('Buff landing after-set row count drifted');
+    const actual = rows[0];
+    for (const [column, value] of Object.entries(deferred)) {
+      if (column === 'id') continue;
+      const equal = isMysqlDateTimeColumn(column)
+        ? toMysqlDateTimeComparable(actual?.[column]) === toMysqlDateTimeComparable(value)
+        : equalBuffValue(actual?.[column], value, column);
+      if (!equal) throw new Error(`Buff landing after-set drifted: ${column}`);
+    }
+    return true;
+  }
+  assertBuffRowSet(envelope?.frozenLandingIdentity?.rows, rows, 'landing', { ignoreTimestamps: true });
+  return true;
+}
+
+async function readAfterLandingRows(connection, envelope) {
+  const deferred = envelope?.upstream?.landing?.landing;
+  if (deferred) {
+    const [rows] = await connection.query(
+      'SELECT * FROM terria_v1_local.source_dataset_landings WHERE source_key = ? FOR UPDATE',
+      [deferred.source_key],
+    );
+    return rows ?? [];
+  }
+  const ids = (envelope?.frozenLandingIdentity?.rows ?? []).map((row) => Number(row.id));
+  if (ids.length === 0) return [];
+  const [rows] = await connection.query(
+    `SELECT * FROM terria_v1_local.source_dataset_landings WHERE id IN (${ids.map(() => '?').join(',')}) FOR UPDATE`,
+    ids,
+  );
+  return rows ?? [];
+}
+
 function assertBuffRowSet(expectedRows, actualRows, label, options = {}) {
   if (!Array.isArray(expectedRows) || !Array.isArray(actualRows) || actualRows.length !== expectedRows.length) {
     throw new Error(`Buff locked ${label} identity row count drifted`);
@@ -283,10 +542,35 @@ function rowIdentity(table, row) {
 function assertComparableRow(expected, actual, table, key, { ignoreTimestamps = false } = {}) {
   for (const [column, value] of Object.entries(expected ?? {})) {
     if (ignoreTimestamps && (column === 'created_at' || column === 'updated_at')) continue;
+    if (isMysqlDateTimeColumn(column)) {
+      if (toMysqlDateTimeComparable(actual?.[column]) !== toMysqlDateTimeComparable(value)) {
+        throw new Error(`Buff locked rederivation drifted: ${table}.${column}/${key}`);
+      }
+      continue;
+    }
     if (!equalBuffValue(actual?.[column], value, column)) {
       throw new Error(`Buff locked rederivation drifted: ${table}.${column}/${key}`);
     }
   }
+}
+
+function isMysqlDateTimeColumn(column) {
+  return column === 'source_revision_timestamp'
+    || column === 'fetched_at'
+    || column === 'parsed_at'
+    || column === 'landing_fetched_at'
+    || column === 'landing_parsed_at'
+    || column === 'module_generated_at';
+}
+
+function toMysqlDateTimeComparable(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)) {
+    return value.slice(0, 19);
+  }
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (!Number.isFinite(date.getTime())) return value;
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 function equalBuffValue(left, right, column) {

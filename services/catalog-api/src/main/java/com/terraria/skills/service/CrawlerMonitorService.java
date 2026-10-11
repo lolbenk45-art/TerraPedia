@@ -61,6 +61,11 @@ public interface CrawlerMonitorService {
         String operator
     );
 
+    CrawlerQueueV2CutoverResultDTO recoverCrawlerQueueV2FirstMutation(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    );
+
     CrawlerAttemptLogDetailDTO getAttemptLog(String attemptId, long offset, int maxBytes);
 
     SseEmitter subscribeEvents(String after);

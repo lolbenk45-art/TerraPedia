@@ -49,10 +49,10 @@
       "username": "admin",
       "password": "admin",
       "displayName": "Admin",
-      "tokenSecret": "set-a-local-admin-token-secret"
+      "tokenSecret": "set-a-local-admin-token-secret-32chars"
     },
     "user": {
-      "tokenSecret": "set-a-local-user-token-secret"
+      "tokenSecret": "set-a-local-user-token-secret-32chars"
     }
   },
   "minio": {

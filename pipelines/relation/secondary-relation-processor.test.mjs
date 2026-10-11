@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { createRecordKey } from './relation-trace.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 
 test('buildSecondaryRelations promotes matched item and npc projectile facts', () => {
@@ -171,6 +172,54 @@ test('buildSecondaryRelations requires buff facts to resolve against maint item 
   assert.deepEqual(
     actual.npcBuffRelations.map((relation) => [relation.npcInternalName, relation.npcSourceId]),
     [['Clinger', 214]]
+  );
+});
+
+test('buildSecondaryRelations deduplicates identical inflicting npc facts but preserves different durations', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      {
+        source_id: 39,
+        internal_name: 'CursedInferno',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { npcId: 214, internalName: 'Clinger', buffTime: 60 },
+            { npcId: 214, internalName: 'Clinger', buffTime: 60 },
+            { npcId: 214, internalName: 'Clinger', buffTime: 120 }
+          ]
+        })
+      }
+    ],
+    maintNpcRows: [
+      { source_id: 214, internal_name: 'Clinger', english_name: 'Clinger', raw_json: '{}' }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => [relation.npcInternalName, relation.buffInternalName, relation.durationTicks]),
+    [
+      ['Clinger', 'CursedInferno', 60],
+      ['Clinger', 'CursedInferno', 120]
+    ]
+  );
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => relation.recordKey),
+    [
+      createRecordKey({
+        type: 'npc_buff_relation',
+        buffSourceId: 39,
+        npcInternalName: 'Clinger',
+        npcSourceId: 214,
+        sortOrder: 0
+      }),
+      createRecordKey({
+        type: 'npc_buff_relation',
+        buffSourceId: 39,
+        npcInternalName: 'Clinger',
+        npcSourceId: 214,
+        sortOrder: 2
+      })
+    ]
   );
 });
 

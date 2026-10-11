@@ -22,7 +22,7 @@ export function buildSchedulerLifecycleIdentity({ runId, namespace, redisDb, epo
   if (!/^terrapedia:crawler:wiki-monitor:v2:test:[^:]+:$/.test(namespace)) {
     throw new Error('scheduler lifecycle namespace must be marker-owned test namespace');
   }
-  if (!Number.isInteger(Number(redisDb)) || Number(redisDb) < 1 || Number(redisDb) > 15) {
+  if (!Number.isInteger(Number(redisDb)) || Number(redisDb) < 1 || Number(redisDb) > 16) {
     throw new Error('scheduler lifecycle Redis DB must be an isolated logical DB');
   }
   return Object.freeze({ runId: String(runId), namespace, redisDb: Number(redisDb), epoch: String(epoch), fenceToken: String(fenceToken), domain: DOMAIN, actionId: ACTION_ID });

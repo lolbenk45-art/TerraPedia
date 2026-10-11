@@ -77,6 +77,7 @@ function normalizeInfoboxBuffName(value) {
   }
 
   return text
+    .replace(/\s*\/\s*\d+(?:\.\d+)?(?:\s*[–-]\s*\d+(?:\.\d+)?)?%?\s*$/u, '')
     .replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, '$1')
     .replace(/\[\[([^\]]+)\]\]/g, '$1')
     .replace(/''+/g, '')
@@ -184,6 +185,12 @@ function splitTopLevelTemplateArgs(value) {
   let linkDepth = 0;
 
   for (let index = 0; index < text.length; index += 1) {
+    if (text.startsWith('<!--', index)) {
+      const commentEnd = text.indexOf('-->', index + 4);
+      if (commentEnd < 0) break;
+      index = commentEnd + 2;
+      continue;
+    }
     const pair = text.slice(index, index + 2);
     if (pair === '{{') {
       templateDepth += 1;
@@ -250,6 +257,15 @@ function parseInfoboxBlockFields(blockText, { closed = true } = {}) {
   const fields = {};
   let currentKey;
 
+  const firstLine = lines[0]?.trim();
+  if (firstLine?.startsWith('|')) {
+    const firstLineFields = parseTemplateArgsToFields(firstLine.slice(1));
+    Object.assign(fields, firstLineFields);
+    const firstLineKeys = Object.keys(firstLineFields);
+    currentKey = firstLineKeys.at(-1);
+    lines.shift();
+  }
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) {
@@ -257,14 +273,17 @@ function parseInfoboxBlockFields(blockText, { closed = true } = {}) {
     }
 
     if (trimmed.startsWith('|')) {
-      const fieldMatch = /^\|\s*([^=]+?)\s*=\s*(.*)$/.exec(trimmed);
-      if (!fieldMatch) {
-        currentKey = undefined;
-        continue;
+      let nextKey;
+      for (const part of splitTopLevelTemplateArgs(trimmed.slice(1))) {
+        const fieldMatch = /^\s*([^=]+?)\s*=\s*([\s\S]*)$/.exec(part);
+        if (!fieldMatch) {
+          continue;
+        }
+        const key = fieldMatch[1].toLowerCase().replace(/[\s_]+/g, '');
+        fields[key] = fieldMatch[2].trim();
+        nextKey = key;
       }
-      const key = fieldMatch[1].toLowerCase().replace(/[\s_]+/g, '');
-      fields[key] = fieldMatch[2].trim();
-      currentKey = key;
+      currentKey = nextKey;
       continue;
     }
 
@@ -342,6 +361,15 @@ export function extractNpcSourceInfoboxes(revisionText) {
   return parseAllInfoboxFields(revisionText)
     .map((infobox) => buildInfoboxSource(infobox.fields))
     .filter((source) => source.autoId || source.image || source.name);
+}
+
+export function extractNpcInfoboxFieldSets(revisionText) {
+  return parseAllInfoboxFields(revisionText).map((infobox) => ({
+    closed: infobox.closed,
+    fields: { ...infobox.fields },
+    fieldNames: Object.keys(infobox.fields).sort(),
+    source: buildInfoboxSource(infobox.fields),
+  }));
 }
 
 function inferInfoboxNameFromImage(value) {

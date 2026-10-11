@@ -15,6 +15,9 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { verifyBuffIteminfoCapture, verifyBuffIteminfoSemanticCapture } from './buff-iteminfo-evidence.mjs';
+import { verifyBuffNpcinfoCapture, verifyBuffNpcinfoExpandedCapture } from './buff-npcinfo-evidence.mjs';
+import { composeBuffImmunitySourceEvidence } from './buff-immunity-source-composition.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
 import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import { advanceWikiIngestionManifestForSource } from '../lib/wiki-sync-manifest.mjs';
@@ -279,8 +282,51 @@ export function buildBuffRecords({
   localizedByLang,
   langs,
   relations,
-  pageFacts = new Map()
+  pageFacts = new Map(),
+  iteminfoCapture = null,
+  iteminfoSemanticCapture = null,
+  npcinfoCapture = null,
+  npcPageInflictionEvidenceByBuffId = new Map(),
+  npcPageInflictionCompleteEvidence = null
 }) {
+  const iteminfoEvidence = iteminfoCapture == null ? null : verifyBuffIteminfoCapture(iteminfoCapture);
+  const iteminfoSemanticEvidence = iteminfoSemanticCapture == null ? null
+    : verifyBuffIteminfoSemanticCapture(iteminfoSemanticCapture);
+  const npcinfoEvidence = npcinfoCapture == null ? null
+    : npcinfoCapture.semanticCapture
+      ? verifyBuffNpcinfoExpandedCapture(npcinfoCapture)
+      : verifyBuffNpcinfoCapture(npcinfoCapture);
+  const iteminfoAssertionsByBuffId = new Map();
+  if (iteminfoEvidence || iteminfoSemanticEvidence) {
+    const selectedEvidence = iteminfoSemanticEvidence ?? iteminfoEvidence;
+    const scope = new Map(selectedEvidence.scope.map(row => [row.id, row.internalName]));
+    const seen = new Set();
+    for (const buff of baseBuffs) {
+      if (seen.has(buff.id) || scope.get(buff.id) !== buff.internalName) throw new Error('Iteminfo selected Buff identity drifted');
+      seen.add(buff.id);
+    }
+    for (const { buffId, buffInternalName, ...item } of selectedEvidence.assertions) {
+      const rows = iteminfoAssertionsByBuffId.get(buffId) ?? [];
+      rows.push({ ...item, source: 'iteminfo-module', sourceKind: 'item', sourceField: `[${item.itemId}].buffType`,
+        sourceRevisionId: iteminfoEvidence?.source.revisionId ?? iteminfoSemanticEvidence.source.pages
+          .find(page => page.pageTitle === 'Module:Iteminfo/data')?.revisionId,
+        sourceRawSha256: iteminfoEvidence?.source.rawSha256
+          ?? iteminfoSemanticEvidence.source.pages.find(page => page.pageTitle === 'Module:Iteminfo/data')?.rawSha256 });
+      iteminfoAssertionsByBuffId.set(buffId, rows);
+    }
+  }
+  if (npcinfoEvidence) {
+    const scope = new Map(npcinfoEvidence.scope.map(row => [row.id, row.internalName]));
+    const seen = new Set();
+    for (const buff of baseBuffs) {
+      if (seen.has(buff.id) || scope.get(buff.id) !== buff.internalName) throw new Error('Npcinfo selected Buff identity drifted');
+      seen.add(buff.id);
+    }
+  }
+  const completeNpcPageInflictionEvidence = normalizeCompleteNpcPageInflictionEvidence({
+    evidence: npcPageInflictionCompleteEvidence,
+    baseBuffs,
+  });
   return baseBuffs.map((buff) => {
     const localized = {};
     for (const lang of langs) {
@@ -294,31 +340,293 @@ export function buildBuffRecords({
 
     const pageFact = pageFacts.get(buff.id);
     const pageEvidence = pageFact ?? relations.pageEvidenceByBuffId?.get(buff.id) ?? null;
-    const sourceItems = pageEvidence?.sourceItems ?? relations.sourceItemsByBuffId.get(buff.id) ?? [];
+    const pageSourceItems = Array.isArray(pageEvidence?.sourceItems) ? pageEvidence.sourceItems : [];
+    const iteminfoRows = iteminfoAssertionsByBuffId.get(buff.id) ?? [];
+    const completeIteminfoScope = iteminfoSemanticEvidence?.completeness === 'complete-exhaustive-item-scope';
+    const sourceItems = completeIteminfoScope
+      ? iteminfoRows
+      : pageSourceItems.length > 0 ? pageSourceItems
+        : iteminfoRows.length > 0 ? iteminfoRows
+          : relations.sourceItemsByBuffId.get(buff.id) ?? [];
+    const sourceItemsSource = completeIteminfoScope ? 'iteminfo-revision-bound'
+      : pageSourceItems.length > 0 ? 'buff-page-causes'
+        : iteminfoRows.length > 0 ? 'iteminfo-revision-bound'
+          : sourceItems.length > 0 ? 'iteminfo-module' : null;
+    let sourceEvidence = pageEvidence?.sourceEvidence ?? null;
+    const sourceGroup = sourceEvidence?.factGroups?.sourceItems;
+    if (sourceEvidence && (sourceGroup?.status !== 'parsed' || pageSourceItems.length === 0) && !completeIteminfoScope) {
+      // Preserve module candidates, but never label them with the page's
+      // revision or interpret missing page evidence as an authoritative empty set.
+      const unresolvedFacts = [...(sourceEvidence.unresolvedFacts ?? [])];
+      if (!unresolvedFacts.some(fact => fact.group === 'sourceItems')) {
+        unresolvedFacts.push({ group: 'sourceItems',
+          status: sourceGroup?.status === 'parsed' ? 'no_rows' : sourceGroup?.status ?? 'unverified',
+          sections: sourceGroup?.sections ?? [] });
+      }
+      sourceEvidence = { ...sourceEvidence, parseStatus: 'parse_incomplete', unresolvedFacts };
+    }
+    if (completeIteminfoScope) {
+      const unresolvedFacts = (sourceEvidence?.unresolvedFacts ?? [])
+        .filter(fact => fact?.group !== 'sourceItems');
+      sourceEvidence = { ...(sourceEvidence ?? {}),
+        parseStatus: unresolvedFacts.length === 0 ? 'parsed' : sourceEvidence?.parseStatus ?? 'parse_incomplete',
+        factGroups: { ...(sourceEvidence?.factGroups ?? {}),
+          sourceItems: { status: 'parsed', count: sourceItems.length, sections: ['Module:Iteminfo/data'] } },
+        unresolvedFacts };
+    }
+    if (iteminfoRows.length > 0 || completeIteminfoScope) {
+      sourceEvidence = { ...(sourceEvidence ?? {}),
+        sourceItemEvidence: { ...(iteminfoEvidence?.source ?? iteminfoSemanticEvidence.source),
+          ...(iteminfoSemanticEvidence ? { semantic: iteminfoSemanticEvidence.semantic } : {}),
+          buffId: buff.id, buffInternalName: buff.internalName,
+          completeness: iteminfoSemanticEvidence?.completeness ?? iteminfoEvidence.completeness } };
+    }
+    const inflictionEvidence = completeNpcPageInflictionEvidence
+      ? {
+        completeness: completeNpcPageInflictionEvidence.completeness,
+        source: completeNpcPageInflictionEvidence.source,
+        facts: completeNpcPageInflictionEvidence.factsByBuffId[String(buff.id)] ?? [],
+      }
+      : lookupNpcPageInflictionEvidence(npcPageInflictionEvidenceByBuffId, buff.id);
+    const directionalEvidence = npcinfoEvidence || inflictionEvidence
+      ? composeBuffImmunitySourceEvidence({
+        buffId: buff.id,
+        buffInternalName: buff.internalName,
+        pageEvidence,
+        npcinfoEvidence,
+        inflictionEvidence,
+      })
+      : null;
+    if (directionalEvidence) {
+      sourceEvidence = { ...(sourceEvidence ?? {}) };
+      if (npcinfoEvidence) {
+        sourceEvidence.immuneNpcPositiveEvidence = directionalEvidence;
+      }
+      if (inflictionEvidence) {
+        sourceEvidence.inflictingNpcPositiveEvidence = directionalEvidence.inflictingNpcPositiveEvidence;
+      }
+    }
+    const pageInflictingNpcs = Array.isArray(pageEvidence?.inflictingNpcs) ? pageEvidence.inflictingNpcs : [];
+    const positiveInflictingNpcs = directionalEvidence?.inflictingNpcPositiveEvidence?.facts
+      ?.map((fact) => mapNpcPageInflictionToBuffRow(fact, directionalEvidence.inflictingNpcPositiveEvidence.source)) ?? [];
+    const inflictingNpcs = completeNpcPageInflictionEvidence
+      ? positiveInflictingNpcs
+      : mergeInflictingNpcRows(pageInflictingNpcs, positiveInflictingNpcs);
+    if (!completeNpcPageInflictionEvidence && positiveInflictingNpcs.length > 0
+        && sourceEvidence?.factGroups?.inflictingNpcs?.status === 'parsed') {
+      const group = sourceEvidence.factGroups.inflictingNpcs;
+      sourceEvidence = { ...sourceEvidence,
+        factGroups: { ...sourceEvidence.factGroups,
+          inflictingNpcs: { ...group, count: inflictingNpcs.length } } };
+    }
+    if (completeNpcPageInflictionEvidence) {
+      const unresolvedFacts = (sourceEvidence?.unresolvedFacts ?? [])
+        .filter(fact => fact?.group !== 'inflictingNpcs');
+      sourceEvidence = { ...(sourceEvidence ?? {}),
+        parseStatus: unresolvedFacts.length === 0 ? 'parsed' : sourceEvidence?.parseStatus ?? 'parse_incomplete',
+        factGroups: { ...(sourceEvidence?.factGroups ?? {}),
+          inflictingNpcs: { status: 'parsed', count: inflictingNpcs.length, sections: ['NPC page infobox debuffs'] } },
+        unresolvedFacts };
+    }
     const fallbackCount = relations.immuneNpcCountByBuffId.get(buff.id) ?? 0;
-    const immuneNpcCount = pageFact?.immuneNpcCount ?? fallbackCount;
-    const immuneNpcSample = pageFact?.immuneNpcSample ?? relations.immuneNpcSampleByBuffId.get(buff.id) ?? [];
-    const immuneNpcSource = pageFact?.immuneNpcSource
-      ?? relations.immuneNpcSourceByBuffId.get(buff.id)
-      ?? (fallbackCount > 0 ? 'npcinfo-module' : null);
-    const immuneNpcSampleSemantics = pageFact?.immuneNpcSampleSemantics
-      ?? relations.immuneNpcSampleSemanticsByBuffId.get(buff.id)
-      ?? (fallbackCount > 0 ? 'first up to 10 npcinfo module rows with this buffImmune id; immuneNpcCount is the full npcinfo-module match count' : null);
+    const pageImmunityComplete = pageEvidence?.sourceEvidence?.parseStatus === 'parsed'
+      && pageEvidence?.sourceEvidence?.factGroups?.immuneNpcs?.status === 'parsed'
+      && Array.isArray(pageEvidence.immuneNpcs)
+      && pageEvidence.sourceEvidence.unresolvedFacts?.every((fact) => fact?.group !== 'immuneNpcs');
+    const expandedImmuneNpcs = !pageImmunityComplete && npcinfoEvidence?.completeness === 'complete-expanded-npc-scope'
+      ? (npcinfoEvidence.assertionsByBuffId?.[String(buff.id)] ?? []).map((assertion) => ({
+        npcId: assertion.npcId,
+        internalName: assertion.npcInternalName,
+        name: assertion.npcName ?? null,
+        pageTitle: assertion.npcName ?? assertion.npcInternalName,
+        source: 'npcinfo-module-expanded',
+        sourceRevisionId: npcinfoEvidence.source.revisionId,
+      }))
+      : null;
+    const canonicalImmuneNpcs = pageImmunityComplete
+      ? pageEvidence.immuneNpcs
+      : expandedImmuneNpcs ?? pageEvidence?.immuneNpcs ?? [];
+    const immuneNpcCount = pageImmunityComplete
+      ? pageEvidence.immuneNpcCount
+      : expandedImmuneNpcs ? expandedImmuneNpcs.length : pageFact?.immuneNpcCount ?? fallbackCount;
+    const immuneNpcSample = pageImmunityComplete
+      ? pageEvidence.immuneNpcSample
+      : expandedImmuneNpcs ? expandedImmuneNpcs.slice(0, 10) : pageFact?.immuneNpcSample ?? relations.immuneNpcSampleByBuffId.get(buff.id) ?? [];
+    const immuneNpcSource = pageImmunityComplete
+      ? pageEvidence.immuneNpcSource
+      : expandedImmuneNpcs ? 'npcinfo-module-expanded' : pageFact?.immuneNpcSource
+        ?? relations.immuneNpcSourceByBuffId.get(buff.id)
+        ?? (fallbackCount > 0 ? 'npcinfo-module' : null);
+    const immuneNpcSampleSemantics = pageImmunityComplete
+      ? pageEvidence.immuneNpcSampleSemantics
+      : expandedImmuneNpcs ? 'complete expanded Npcinfo module scope' : pageFact?.immuneNpcSampleSemantics
+        ?? relations.immuneNpcSampleSemanticsByBuffId.get(buff.id)
+        ?? (fallbackCount > 0 ? 'first up to 10 npcinfo module rows with this buffImmune id; immuneNpcCount is the full npcinfo-module match count' : null);
 
     return {
       ...buff,
       localized,
       sourceItemCount: sourceItems.length,
       sourceItems,
-      inflictingNpcs: pageEvidence?.inflictingNpcs ?? [],
-      immuneNpcs: pageEvidence?.immuneNpcs ?? [],
-      sourceEvidence: pageEvidence?.sourceEvidence ?? null,
+      sourceItemsSource,
+      inflictingNpcs,
+      immuneNpcs: canonicalImmuneNpcs,
+      sourceEvidence,
       immuneNpcCount,
       immuneNpcSample,
       immuneNpcSource,
       immuneNpcSampleSemantics
     };
   });
+}
+
+function normalizeCompleteNpcPageInflictionEvidence({ evidence, baseBuffs } = {}) {
+  if (evidence == null) return null;
+  if (evidence.completeness !== 'complete-exhaustive-npc-page-scope'
+      || !evidence.source || !Array.isArray(evidence.facts)
+      || !evidence.factsByBuffId || typeof evidence.factsByBuffId !== 'object') {
+    throw new Error('complete NPC page infliction evidence is invalid');
+  }
+  const sourceDescriptors = normalizeCompleteNpcPageSourceDescriptors(evidence.source);
+  const scopeIds = new Set(baseBuffs.map(buff => buff?.id));
+  const forwardByIdentity = new Map();
+  for (const fact of evidence.facts) {
+    if (fact?.relationType !== 'inflicts' || !Number.isSafeInteger(fact.npcSourceId) || fact.npcSourceId === 0
+        || !scopeIds.has(fact.buffId)) throw new Error('complete NPC page infliction fact identity is invalid');
+    const sourceKey = npcInflictionSourceKey({
+      pageTitle: fact.sourcePage,
+      pageId: fact.sourcePageId,
+      revisionId: fact.sourceRevisionId,
+      revisionTimestamp: fact.sourceRevisionTimestamp,
+      rawSha256: fact.sourceRawSha256,
+    });
+    if (!sourceDescriptors.has(sourceKey)) {
+      throw new Error('complete NPC page infliction fact provenance is not bound to a source descriptor');
+    }
+    const key = `${fact.npcSourceId}:${fact.buffId}`;
+    if (forwardByIdentity.has(key)) throw new Error('duplicate complete NPC page infliction fact');
+    forwardByIdentity.set(key, fact);
+  }
+  const reverseByIdentity = new Map();
+  const expectedKeys = new Set(baseBuffs.map(buff => String(buff.id)));
+  for (const [buffKey, facts] of Object.entries(evidence.factsByBuffId)) {
+    if (!expectedKeys.has(buffKey) || !Array.isArray(facts)) {
+      throw new Error('complete NPC page infliction reverse map drifted');
+    }
+    for (const fact of facts) {
+      if (fact?.relationType !== 'inflicts' || fact.buffId !== Number(buffKey)
+          || !Number.isSafeInteger(fact.npcSourceId) || fact.npcSourceId === 0) {
+        throw new Error('complete NPC page infliction reverse map drifted');
+      }
+      const key = `${fact.npcSourceId}:${fact.buffId}`;
+      const forward = forwardByIdentity.get(key);
+      if (reverseByIdentity.has(key) || !forward || !sameNpcInflictionFact(forward, fact)) {
+        throw new Error('complete NPC page infliction reverse map drifted');
+      }
+      reverseByIdentity.set(key, fact);
+    }
+  }
+  if (reverseByIdentity.size !== forwardByIdentity.size
+      || [...forwardByIdentity.keys()].some(key => !reverseByIdentity.has(key))) {
+    throw new Error('complete NPC page infliction reverse map drifted');
+  }
+  for (const buff of baseBuffs) {
+    const facts = evidence.factsByBuffId[String(buff.id)];
+    if (!Array.isArray(facts) || facts.some(fact => fact?.buffId !== buff.id)) {
+      throw new Error('complete NPC page infliction reverse map drifted');
+    }
+  }
+  return evidence;
+}
+
+function normalizeCompleteNpcPageSourceDescriptors(source) {
+  if (source.provider !== 'terraria.wiki.gg'
+      || !Array.isArray(source.factSources) || source.factSources.length === 0) {
+    throw new Error('complete NPC page infliction source descriptors are missing');
+  }
+  const descriptors = new Set();
+  for (const descriptor of source.factSources) {
+    const key = npcInflictionSourceKey(descriptor);
+    if (!key || descriptors.has(key)) {
+      throw new Error('complete NPC page infliction source descriptor is invalid');
+    }
+    descriptors.add(key);
+  }
+  return descriptors;
+}
+
+function npcInflictionSourceKey(source = {}) {
+  const pageTitle = String(source.pageTitle ?? '').trim();
+  const pageId = Number(source.pageId);
+  const revisionId = Number(source.revisionId);
+  const revisionTimestamp = String(source.revisionTimestamp ?? '').trim();
+  const rawSha256 = String(source.rawSha256 ?? source.sourceRawSha256 ?? '').trim();
+  if (!pageTitle || !Number.isSafeInteger(pageId) || pageId <= 0
+      || !Number.isSafeInteger(revisionId) || revisionId <= 0
+      || !revisionTimestamp || !Number.isFinite(Date.parse(revisionTimestamp))
+      || !/^sha256:[a-f0-9]{64}$/.test(rawSha256)) return '';
+  return `${pageTitle}\u0000${pageId}\u0000${revisionId}\u0000${revisionTimestamp}\u0000${rawSha256}`;
+}
+
+const NPC_INFLICTION_FACT_FIELDS = Object.freeze([
+  'relationType', 'npcSourceId', 'npcInternalName', 'npcName',
+  'buffId', 'buffInternalName', 'buffName', 'durationText', 'chanceText',
+  'sourceField', 'sourcePage', 'sourcePageId', 'sourceRevisionId',
+  'sourceRevisionTimestamp', 'sourceRawSha256',
+]);
+
+function sameNpcInflictionFact(left, right) {
+  return NPC_INFLICTION_FACT_FIELDS.every((field) => (left?.[field] ?? null) === (right?.[field] ?? null));
+}
+
+function lookupNpcPageInflictionEvidence(source, buffId) {
+  if (source == null) return null;
+  if (source instanceof Map) return source.get(buffId) ?? null;
+  if (typeof source === 'object' && !Array.isArray(source)) return source[String(buffId)] ?? null;
+  throw new Error('NPC page infliction evidence map is invalid');
+}
+
+function mapNpcPageInflictionToBuffRow(fact, source) {
+  return {
+    npcId: fact.npcSourceId,
+    internalName: fact.npcInternalName,
+    name: fact.npcName ?? null,
+    pageTitle: fact.npcName ?? fact.npcInternalName,
+    buffId: fact.buffId,
+    buffInternalName: fact.buffInternalName,
+    relationType: 'inflicts',
+    durationText: fact.durationText ?? null,
+    source: 'npc-page-infliction',
+    sourcePage: fact.sourcePage ?? source?.pageTitle ?? null,
+    sourcePageId: fact.sourcePageId ?? source?.pageId ?? null,
+    sourceRevisionId: fact.sourceRevisionId ?? source?.revisionId ?? null,
+  };
+}
+
+function mergeInflictingNpcRows(pageRows, positiveRows) {
+  const rows = [...pageRows];
+  for (const row of positiveRows) {
+    const rowIdentities = inflictingNpcIdentities(row);
+    const existingIndex = rows.findIndex(existing => inflictingNpcIdentities(existing)
+      .some(identity => rowIdentities.includes(identity)));
+    if (existingIndex >= 0) {
+      rows[existingIndex] = { ...rows[existingIndex], ...row };
+    } else {
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+function inflictingNpcIdentities(row) {
+  const identities = [];
+  const sourceId = Number(row?.npcId ?? row?.npcSourceId ?? row?.sourceId);
+  if (Number.isSafeInteger(sourceId) && sourceId !== 0) identities.push(`id:${sourceId}`);
+  const internalName = String(row?.internalName ?? row?.npcInternalName ?? '').trim().toLowerCase();
+  if (internalName) identities.push(`internal:${internalName}`);
+  const displayName = String(row?.pageTitle ?? row?.name ?? '').trim().toLowerCase();
+  if (identities.length === 0 && displayName) identities.push(`name:${displayName}`);
+  return identities;
 }
 
 export function buildBuffPageImmunityResumeContext({
@@ -663,7 +971,7 @@ function parseLanguages(value) {
   )];
 }
 
-function parseBaseBuffDatabase(templateContent) {
+export function parseBaseBuffDatabase(templateContent) {
   const countMatch = templateContent.match(/\|__buff:count\|(\d+)<!--/);
   const expectedCount = Number(countMatch?.[1] ?? 0);
   const buffById = new Map();

@@ -46,7 +46,7 @@ test('live system driver loader accepts only a module that exports createSystemD
   );
 });
 
-test('system driver accepts only an isolated marker root and Redis DB 1..14', () => {
+test('system driver accepts only an isolated marker root and Redis DB 1..16', () => {
   const valid = validateSystemDriverOptions({
     repoRoot: '/worktree',
     configPath: '/worktree/platform/local/config/local-stack.config.json',
@@ -55,7 +55,8 @@ test('system driver accepts only an isolated marker root and Redis DB 1..14', ()
     markerRoot: '/tmp/terrapedia-crawler-v2-run-05',
   });
   assert.equal(valid.redisDb, 14);
-  assert.throws(() => validateSystemDriverOptions({ ...valid, redisDb: '15' }), /Redis DB.*1..14/i);
+  assert.equal(validateSystemDriverOptions({ ...valid, redisDb: '16' }).redisDb, 16);
+  assert.throws(() => validateSystemDriverOptions({ ...valid, redisDb: '17' }), /Redis DB.*1..16/i);
   assert.throws(() => validateSystemDriverOptions({ ...valid, markerRoot: '/home/shared' }), /marker root/i);
 });
 
@@ -481,6 +482,50 @@ test('system driver exposes real lifecycle phases and delegates owned runtime ad
     assert.equal((await driver.independentReadback()).files, 0);
     assert.deepEqual(calls.map(([name]) => name), ['provision', 'seed-recipe-dependencies', 'start-backend', 'enable-api', 'cleanup']);
   } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('Buff fixture mode does not require the unrelated recorded Recipe source', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'crawler-v2-buff-driver-'));
+  const repoRoot = path.join(root, 'repo');
+  const configPath = path.join(repoRoot, 'platform/local/config/local-stack.config.json');
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.copyFileSync(path.resolve(import.meta.dirname, '../../platform/local/config/local-stack.config.example.json'), configPath);
+  const calls = [];
+  const driver = await createSystemDriver({
+    repoRoot,
+    configPath,
+    runId: 'buff-fixture-driver-test-01',
+    redisDb: 13,
+    markerRoot: path.join(root, 'marker'),
+    buffMode: true,
+    fixtureMode: true,
+    runtime: {
+      provision: async () => ({ epoch: 'epoch-buff-test', fenceToken: 'fence-buff-test' }),
+      seedRecordedRecipeDependencies: async () => { throw new Error('Recipe seed must not run in Buff mode'); },
+      startBackend: async ({ env }) => { calls.push(['start-backend', env]); return { pid: 12 }; },
+      api: {
+        getAutomation: async () => ({ enabled: false, mode: 'fixture-changed-only' }),
+        updateAutomation: async (payload) => { calls.push(payload); return payload; },
+      },
+      cleanup: async () => { calls.push('cleanup'); },
+      independentReadback: async () => ({ files: 0 }),
+    },
+  });
+  try {
+    const identity = await driver.prepare();
+    assert.equal(identity.operationId, 'canonical-buff-manual-automation-test-window');
+    assert.equal(calls.find(([name]) => name === 'start-backend')[1].TERRAPEDIA_RECORDED_RECIPE, undefined);
+    assert.deepEqual(await driver.enableAutomation(), {
+      enabled: true,
+      mode: 'fixture-changed-only',
+      sweepIntervalMinutes: 1,
+      canaryActionId: 'crawler-queue-v2-fixture',
+    });
+    assert.equal(calls.includes('seed-recipe-dependencies'), false);
+  } finally {
+    await driver.cleanup();
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

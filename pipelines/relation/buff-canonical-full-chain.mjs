@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 
+import { assertBuffLandingMutationPlan } from '../landing/buff-bounded-landing-mutation.mjs';
+import { assertBuffManifestPin } from './buff-canonical-governance-contract.mjs';
+
 const TABLES = Object.freeze([
   'relation_buffs',
   'item_buff_relations',
@@ -17,10 +20,20 @@ export function buildBuffFullChainExecutionEnvelope({
   pageEvidenceByInternalName,
   runtimeManagedImagePolicySha256,
   maintMutation,
+  landingMutation = null,
+  executionManifestHash,
+  allowDeferredLandingExecution = false,
 } = {}) {
+  if (typeof executionManifestHash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(executionManifestHash)) {
+    throw new Error('Buff execution manifest hash is required');
+  }
   assertCandidate(candidate);
   assertMaintMutation(maintMutation);
-  const landings = assertLandingRows(landingRows);
+  const landingPlan = landingMutation == null ? null : assertBuffLandingMutationPlan(landingMutation) && landingMutation;
+  const landings = assertLandingRows(landingRows, { allowEmpty: landingPlan != null });
+  if (landingPlan && landings.length > 0) {
+    throw new Error('Buff deferred landing mutation cannot also freeze persisted landing rows');
+  }
   const maint = assertMaintRows(maintRows);
   const evidence = normalizeEvidence(pageEvidenceByInternalName);
   const relationRows = candidate.expectedRows.relation_buffs;
@@ -28,20 +41,30 @@ export function buildBuffFullChainExecutionEnvelope({
   if (new Set(names).size !== names.length || names.length === 0) {
     throw new Error('Buff full-chain candidate must contain unique relation identities');
   }
-  for (const name of names) {
+  const changedNames = [
+    ...(candidate.changes?.relation_buffs?.inserts ?? []),
+    ...(candidate.changes?.relation_buffs?.updates ?? []).map((change) => change?.after),
+  ].map((row) => String(row?.internal_name ?? '').trim()).filter(Boolean);
+  const evidenceNames = landingPlan && changedNames.length > 0 ? [...new Set(changedNames)] : names;
+  const maintForEvidence = landingPlan
+    ? [...maint, ...(maintMutation.inserts ?? [])]
+    : maint;
+  for (const name of evidenceNames) {
     if (!evidence.has(name)) throw new Error(`Buff page immunity evidence is missing for ${name}`);
-    const matches = maint.filter((row) => row.internal_name === name);
+    const matches = maintForEvidence.filter((row) => row.internal_name === name);
     if (matches.length !== 1) throw new Error(`frozen maint identity is missing for ${name}`);
   }
-  if (evidence.size !== names.length) throw new Error('Buff page immunity evidence contains unrelated identities');
+  if (evidence.size !== evidenceNames.length) throw new Error('Buff page immunity evidence contains unrelated identities');
   if (runtimeManagedImagePolicySha256 !== candidate.managedImageUrlPrefixesSha256) {
     throw new Error('Buff managed image policy drifted between proposal and executor');
   }
   return deepFreeze({
     schemaVersion: 'buff-full-chain-execution/v1',
+    executionManifestHash,
     domainId: 'buffs',
-    executable: true,
-    executionBlocker: null,
+    executable: landingPlan == null || allowDeferredLandingExecution === true,
+    executionBlocker: landingPlan && allowDeferredLandingExecution !== true
+      ? 'deferred-lineage-integration-required' : null,
     tables: [...TABLES],
     candidateSha256: hashCanonical(candidate),
     frozenLandingIdentity: {
@@ -59,7 +82,7 @@ export function buildBuffFullChainExecutionEnvelope({
     pageEvidenceCount: evidence.size,
     pageEvidenceSha256: hashCanonical([...evidence.entries()]),
     managedImagePolicySha256: candidate.managedImageUrlPrefixesSha256,
-    upstream: { maint: maintMutation },
+    upstream: landingPlan ? { landing: clone(landingPlan), maint: maintMutation } : { maint: maintMutation },
     mutation: candidate,
   });
 }
@@ -108,13 +131,40 @@ function assertCandidate(candidate) {
   if (!candidate.expectedRows || !Array.isArray(candidate.expectedRows.relation_buffs)) {
     throw new Error('Buff full-chain candidate relation projection is missing');
   }
+  const relationRows = [
+    ...candidate.expectedRows.relation_buffs,
+    ...(candidate.changes?.relation_buffs?.inserts ?? []),
+    ...(candidate.changes?.relation_buffs?.unchanged ?? []),
+    ...(candidate.changes?.relation_buffs?.preserved ?? []),
+    ...(candidate.changes?.relation_buffs?.updates ?? []).map((change) => change?.after),
+  ];
+  for (const row of relationRows) {
+    const sourceEvidence = parseJsonValue(row?.source_evidence_json);
+    const disposition = sourceEvidence?.partialFactDisposition;
+    if (disposition?.schemaVersion === 'buff-partial-fact-disposition/v1'
+        || disposition?.executionBlocker === 'partial-fact-contract-review-required') {
+      throw new Error('Buff full-chain candidate contains a partial-fact contract and is not executable');
+    }
+  }
   if (!HASH_PATTERN.test(String(candidate.managedImageUrlPrefixesSha256 ?? ''))) {
     throw new Error('Buff managed image policy hash is missing');
   }
 }
 
-function assertLandingRows(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) throw new Error('frozen Buff landing rows are required');
+function parseJsonValue(value) {
+  if (value == null) return null;
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function assertLandingRows(rows, { allowEmpty = false } = {}) {
+  if (!Array.isArray(rows) || !allowEmpty && rows.length === 0) throw new Error('frozen Buff landing rows are required');
   for (const row of rows) {
     if (!Number.isSafeInteger(Number(row?.id)) || Number(row.id) < 1
         || row.dataset_type !== 'buffs_raw' || !CONTENT_HASH_PATTERN.test(String(row.content_hash ?? ''))) {

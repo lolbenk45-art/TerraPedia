@@ -346,6 +346,37 @@ public class CrawlerAttemptArtifactStore {
         }
     }
 
+    /** Writes an atomically replaced progress snapshot after validating its attempt identity. */
+    public synchronized void writeProgress(CrawlerAttemptProgressPayload payload) {
+        Objects.requireNonNull(payload, "payload");
+        requireText(payload.queueId(), "progress.queueId");
+        requireText(payload.attemptId(), "progress.attemptId");
+        requireText(payload.stateStoreEpoch(), "progress.stateStoreEpoch");
+        requireText(payload.actionId(), "progress.actionId");
+        requireText(payload.status(), "progress.status");
+        if (payload.fenceToken() == null || payload.fenceToken() < 1L) {
+            throw new IllegalArgumentException("progress.fenceToken 必须为正数");
+        }
+        if (payload.progressSequence() == null || payload.progressSequence() < 1L) {
+            throw new IllegalArgumentException("progress.progressSequence 必须为正数");
+        }
+
+        CrawlerAttemptManifest manifest = requireManifest(payload.attemptId());
+        if (!Objects.equals(manifest.queueId(), payload.queueId())
+            || !Objects.equals(manifest.stateStoreEpoch(), payload.stateStoreEpoch())
+            || !Objects.equals(manifest.actionId(), payload.actionId())
+            || (manifest.fenceToken() != null && !Objects.equals(manifest.fenceToken(), payload.fenceToken()))) {
+            throw new SecurityException("attempt progress identity 与 manifest 不一致");
+        }
+        Path directory = requireAttemptDirectory(payload.attemptId());
+        Path progressPath = requireInsideAttempt(directory, manifest.progressPath());
+        Path expectedPath = directory.resolve(PROGRESS_FILE).toAbsolutePath().normalize();
+        if (!progressPath.equals(expectedPath)) {
+            throw new SecurityException("attempt progress path role mismatch");
+        }
+        writeJsonAt(progressPath, payload, "写入 attempt progress");
+    }
+
     public synchronized void writeOperationPlan(
         String attemptId,
         CrawlerOperationPlanSnapshot plan

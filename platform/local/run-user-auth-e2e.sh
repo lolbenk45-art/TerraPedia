@@ -102,7 +102,7 @@ mysql_host="${TERRAPEDIA_E2E_MYSQL_HOST:-127.0.0.1}"
 mysql_port="${TERRAPEDIA_E2E_MYSQL_PORT:-13306}"
 redis_host="${TERRAPEDIA_E2E_REDIS_HOST:-127.0.0.1}"
 redis_port="${TERRAPEDIA_E2E_REDIS_PORT:-6380}"
-redis_database="${TERRAPEDIA_E2E_REDIS_DATABASE:-15}"
+redis_database="${TERRAPEDIA_E2E_REDIS_DATABASE:-17}"
 backend_port="${TERRAPEDIA_E2E_BACKEND_PORT:-}"
 frontend_port="${TERRAPEDIA_E2E_FRONTEND_PORT:-}"
 chromium_executable="${TERRAPEDIA_E2E_CHROMIUM_EXECUTABLE:-}"
@@ -114,7 +114,7 @@ require_loopback_host "$mysql_host" 'TERRAPEDIA_E2E_MYSQL_HOST'
 require_loopback_host "$redis_host" 'TERRAPEDIA_E2E_REDIS_HOST'
 require_port "$mysql_port" 'TERRAPEDIA_E2E_MYSQL_PORT'
 require_port "$redis_port" 'TERRAPEDIA_E2E_REDIS_PORT'
-[[ "$redis_database" == '15' ]] || die 'TERRAPEDIA_E2E_REDIS_DATABASE must be exactly 15'
+[[ "$redis_database" == '17' ]] || die 'TERRAPEDIA_E2E_REDIS_DATABASE must be exactly 17'
 [[ -n "$backend_port" ]] || die 'TERRAPEDIA_E2E_BACKEND_PORT is required'
 [[ -n "$frontend_port" ]] || die 'TERRAPEDIA_E2E_FRONTEND_PORT is required'
 require_port "$backend_port" 'TERRAPEDIA_E2E_BACKEND_PORT'
@@ -436,7 +436,7 @@ write_summary() {
   "mode": "$mode",
   "runId": "$run_id",
   "database": "$database_name",
-  "redisDatabase": 15,
+  "redisDatabase": 17,
   "outcome": "$outcome",
   "exitStatus": $exit_status,
   "cleanupStatus": "$cleanup_status"

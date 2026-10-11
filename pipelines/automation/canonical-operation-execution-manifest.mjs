@@ -14,7 +14,10 @@ import {
   readCanonicalShimmerImportInputContract,
   shimmerImportBindingFromInputContract,
 } from './canonical-shimmer-import-input-contract.mjs';
-import { canonicalServerFingerprint } from './automation-database-contract.mjs';
+import {
+  assertAutomationRedisLogicalDb,
+  canonicalServerFingerprint,
+} from './automation-database-contract.mjs';
 import {
   NPC_APPLY_OWNER_PHASES,
   NPC_ITEM_RELATION_LINEAGE_REPAIR_OPERATION,
@@ -104,6 +107,10 @@ const ARMOR_TYPED_EFFECT_REQUIRED_GATE_IDS = Object.freeze([
 ]);
 const ARMOR_IMAGE_CACHE_OPERATION_ID = 'canonical-armor-image-cache';
 const BUFF_FULL_CHAIN_OPERATION_ID = 'canonical-buff-full-chain';
+const BUFF_ADDITIVE_RELATION_OPERATION_ID = 'canonical-buff-additive-relation-apply';
+const BUFF_NPC_SECONDARY_OPERATION_ID = 'canonical-buff-npc-secondary-apply';
+const BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID = 'canonical-buff-npc-infliction-dedup';
+const BUFF_ITEM_MAINT_INSERT_OPERATION_ID = 'canonical-buff-item-maint-insert';
 const TWO_ITEM_IMAGE_QUARANTINE_REPAIR_OPERATION_ID = 'canonical-two-item-image-quarantine-repair';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
 const AUTHORIZED_RUNNER_CODE_PATH = 'pipelines/automation/run-authorized-canonical-operation.mjs';
@@ -621,6 +628,52 @@ const CODE_PATHS = Object.freeze({
     'pipelines/lib/private-repository-path.mjs',
     'pipelines/lib/project-root.mjs',
   ]),
+  [BUFF_ADDITIVE_RELATION_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-buff-additive-relation-apply.mjs',
+    'pipelines/relation/buff-additive-relation-apply.mjs',
+    'pipelines/relation/buff-canonical-governance-contract.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal-adapter.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal-store.mjs',
+    'pipelines/relation/relation-trace.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'pipelines/lib/project-root.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [BUFF_NPC_SECONDARY_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-buff-npc-secondary-apply.mjs',
+    'pipelines/relation/buff-npc-secondary-apply.mjs',
+    'pipelines/relation/buff-canonical-governance-contract.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal-adapter.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal-store.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/project-root.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID]: Object.freeze([
+    'pipelines/relation/run-buff-npc-infliction-dedup.mjs',
+    'pipelines/relation/buff-npc-infliction-dedup.mjs',
+    'pipelines/relation/buff-canonical-governance-contract.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal-adapter.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal-store.mjs',
+    'pipelines/relation/buff-canonical-recovery-journal.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    'pipelines/lib/mysql-module.mjs',
+    'pipelines/lib/private-repository-path.mjs',
+    'pipelines/lib/project-root.mjs',
+    'scripts/lib/local-runtime-config.mjs',
+  ]),
+  [BUFF_ITEM_MAINT_INSERT_OPERATION_ID]: Object.freeze([
+    'pipelines/maint/run-buff-item-maint-insert.mjs',
+    'pipelines/maint/buff-item-maint-insert-contract.mjs',
+    'pipelines/maint/buff-item-maint-insert-executor.mjs',
+    ...AUTHORIZED_CONTEXT_CODE_PATHS,
+    AUTHORIZED_RUNNER_CODE_PATH,
+  ]),
   'canonical-biome-t1-acceptance': Object.freeze([
     'pipelines/automation/run-live-automation-acceptance.mjs',
     'pipelines/biome/biome-canonical-t1-acceptance.mjs',
@@ -918,6 +971,11 @@ export function buildCanonicalOperationExecutionManifest({
   armorTypedEffectOwnerDecisionPath = null,
   armorMissingAttributeExecutionReady = false,
   armorMissingAttributeOwnerDecisionPath = null,
+  buffAdditiveRelationBinding = null,
+  buffNpcSecondaryBinding = null,
+  buffNpcInflictionDedupBinding = null,
+  buffFullChainBinding = null,
+  buffItemMaintInsertBinding = null,
 } = {}) {
   const root = path.resolve(repoRoot);
   const contract = buildCanonicalOperationExecutionContract({
@@ -954,6 +1012,11 @@ export function buildCanonicalOperationExecutionManifest({
     armorTypedEffectOwnerDecisionPath,
     armorMissingAttributeExecutionReady,
     armorMissingAttributeOwnerDecisionPath,
+    buffAdditiveRelationBinding,
+    buffNpcSecondaryBinding,
+    buffNpcInflictionDedupBinding,
+    buffFullChainBinding,
+    buffItemMaintInsertBinding,
   });
   const codePaths = expandRepositoryCodePaths(root, operationCodePaths(operationId));
   if (operationId === 'canonical-item-image-projection-apply') {
@@ -1006,6 +1069,11 @@ export function buildCanonicalOperationExecutionContract({
   armorTypedEffectOwnerDecisionPath = null,
   armorMissingAttributeExecutionReady = false,
   armorMissingAttributeOwnerDecisionPath = null,
+  buffAdditiveRelationBinding = null,
+  buffNpcSecondaryBinding = null,
+  buffNpcInflictionDedupBinding = null,
+  buffFullChainBinding = null,
+  buffItemMaintInsertBinding = null,
 } = {}) {
   if (!CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId)) {
     throw new Error(`unsupported operationId: ${operationId ?? ''}`);
@@ -1068,6 +1136,31 @@ export function buildCanonicalOperationExecutionContract({
   if (operationId === BUFF_FULL_CHAIN_OPERATION_ID && !normalizedResultLabel) {
     throw new Error('Buff full-chain result label is required');
   }
+  if (operationId === BUFF_FULL_CHAIN_OPERATION_ID) {
+    normalizeBuffFullChainBinding({ binding: buffFullChainBinding, resultLabel: normalizedResultLabel });
+  }
+  if (operationId === BUFF_ADDITIVE_RELATION_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Buff additive relation result label is required');
+  }
+  if (operationId === BUFF_ADDITIVE_RELATION_OPERATION_ID) {
+    assertBuffAdditiveRelationBinding({ binding: buffAdditiveRelationBinding, resultLabel: normalizedResultLabel });
+  }
+  if (operationId === BUFF_NPC_SECONDARY_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Buff NPC secondary result label is required');
+  }
+  if (operationId === BUFF_NPC_SECONDARY_OPERATION_ID) {
+    assertBuffNpcSecondaryBinding({ binding: buffNpcSecondaryBinding, resultLabel: normalizedResultLabel });
+  }
+  if (operationId === BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID && !normalizedResultLabel) {
+    throw new Error('Buff NPC infliction dedup result label is required');
+  }
+  if (operationId === BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID) {
+    assertBuffNpcInflictionDedupBinding({ binding: buffNpcInflictionDedupBinding, resultLabel: normalizedResultLabel });
+  }
+  if (operationId === BUFF_ITEM_MAINT_INSERT_OPERATION_ID) {
+    if (!normalizedResultLabel) throw new Error('Item maint result label is required');
+    normalizeBuffItemMaintInsertBinding(buffItemMaintInsertBinding);
+  }
   if (operationId === ARMOR_CANONICAL_OPERATION_ID
       && (!armorCanonicalIntentBinding || typeof armorCanonicalIntentBinding !== 'object')) {
     throw new Error('Armor canonical ingestion intent binding is required');
@@ -1091,6 +1184,10 @@ export function buildCanonicalOperationExecutionContract({
       && operationId !== ARMOR_SECONDARY_OPERATION_ID
       && operationId !== ARMOR_IMAGE_CACHE_OPERATION_ID
       && operationId !== BUFF_FULL_CHAIN_OPERATION_ID
+      && operationId !== BUFF_ADDITIVE_RELATION_OPERATION_ID
+      && operationId !== BUFF_NPC_SECONDARY_OPERATION_ID
+      && operationId !== BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID
+      && operationId !== BUFF_ITEM_MAINT_INSERT_OPERATION_ID
       && operationId !== 'automation-crawler-v2-scheduler-activation') {
     throw new Error('result label is supported only for an NPC owner operation');
   }
@@ -1139,6 +1236,11 @@ export function buildCanonicalOperationExecutionContract({
     armorTypedEffectOwnerDecisionPath,
     armorMissingAttributeExecutionReady,
     armorMissingAttributeOwnerDecisionPath,
+    buffAdditiveRelationBinding,
+    buffNpcSecondaryBinding,
+    buffNpcInflictionDedupBinding,
+    buffFullChainBinding,
+    buffItemMaintInsertBinding,
   );
   return {
     schemaVersion: 1,
@@ -1203,6 +1305,11 @@ export function assertCanonicalOperationExecutionManifestContract({
     armorTypedEffectOwnerDecisionPath: manifest?.typedEffectPublication?.ownerDecisionPath ?? null,
     armorMissingAttributeExecutionReady: manifest?.missingAttributeSource?.executionReady === true,
     armorMissingAttributeOwnerDecisionPath: manifest?.missingAttributeSource?.ownerDecisionPath ?? null,
+    buffAdditiveRelationBinding: manifest?.buffAdditiveRelation ?? null,
+    buffNpcSecondaryBinding: manifest?.buffNpcSecondary ?? null,
+    buffNpcInflictionDedupBinding: manifest?.buffNpcInflictionDedup ?? null,
+    buffFullChainBinding: manifest?.buffFullChain ?? null,
+    buffItemMaintInsertBinding: manifest?.buffItemMaintInsert ?? null,
   });
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)
       && expected.isolatedAcceptance?.configSha256 !== npcT1Acceptance?.configSha256) {
@@ -1542,6 +1649,11 @@ function buildDefinition(
   armorTypedEffectOwnerDecisionPath,
   armorMissingAttributeExecutionReady,
   armorMissingAttributeOwnerDecisionPath,
+  buffAdditiveRelationBinding,
+  buffNpcSecondaryBinding,
+  buffNpcInflictionDedupBinding,
+  buffFullChainBinding,
+  buffItemMaintInsertBinding,
 ) {
   const definitions = {
     'canonical-biome-image-contract-apply': {
@@ -1935,7 +2047,10 @@ function buildDefinition(
       command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
         `--operation-id=${BUFF_FULL_CHAIN_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
       inputPaths: [`reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.envelope.json`],
-      outputPaths: [`reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`],
+      outputPaths: [
+        `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.journal.json`,
+      ],
       reportPaths: [],
       progressPaths: [],
       ownershipKeys: [
@@ -1953,8 +2068,120 @@ function buildDefinition(
       buffFullChain: {
         envelopePath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.envelope.json`,
         resultPath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.result.json`,
+        journalPath: `reports/authorization/canonical/${BUFF_FULL_CHAIN_OPERATION_ID}.${resultLabel}.journal.json`,
+        ...(operationId === BUFF_FULL_CHAIN_OPERATION_ID
+          ? normalizeBuffFullChainBinding({ binding: buffFullChainBinding, resultLabel })
+          : {}),
       },
     },
+    [BUFF_ITEM_MAINT_INSERT_OPERATION_ID]: {
+      executionClass: 'formal_buff_item_maint_insert',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--operation-id=${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.proposal.json`,
+        '.local/tmp/b1-a63-20260929-08/raw/template__getbuffinfo.parsed.latest.json',
+        '.local/tmp/buff-iteminfo-semantic-capture-20261001-v2/capture.json',
+        ...[1, 2, 3].map(index => `.local/tmp/buff-iteminfo-semantic-capture-20261001-v2/page-00${index}.json`),
+      ],
+      outputPaths: [
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.journal.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.journal.prepared.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.journal.materialized.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.journal.committed.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.journal.fence-hold.prepared.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.journal.fence-hold.committed.json`,
+        `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.readback.json`,
+      ], reportPaths: [], progressPaths: [], requiredOperationIds: [],
+      ownershipKeys: ['local.source_dataset_landings.items_raw.buff_item_dependency_insert',
+        'maint.maint_items.buff_item_dependency_insert'], databaseWrites: true, networkAccess: false,
+      ...(operationId === BUFF_ITEM_MAINT_INSERT_OPERATION_ID ? {
+        buffItemMaintInsert: { ...normalizeBuffItemMaintInsertBinding(buffItemMaintInsertBinding),
+          proposalPath: `reports/authorization/canonical/${BUFF_ITEM_MAINT_INSERT_OPERATION_ID}.${resultLabel}.proposal.json` },
+      } : {}),
+    },
+    [BUFF_ADDITIVE_RELATION_OPERATION_ID]: {
+      executionClass: 'formal_buff_additive_relation_apply',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--operation-id=${BUFF_ADDITIVE_RELATION_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${BUFF_ADDITIVE_RELATION_OPERATION_ID}.${resultLabel}.proposal.json`],
+      outputPaths: [
+        `reports/authorization/canonical/${BUFF_ADDITIVE_RELATION_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${BUFF_ADDITIVE_RELATION_OPERATION_ID}.${resultLabel}.journal.json`,
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: [
+        'relation.relation_buffs.inflicting_npcs_json',
+        'relation.relation_buffs.source_evidence_json',
+        'relation.npc_buff_relations.inflicts',
+        'relation.projection_buffs.inflicting_npcs_json',
+        'relation.projection_buffs.source_evidence_json',
+      ],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+      ...(operationId === BUFF_ADDITIVE_RELATION_OPERATION_ID ? {
+        buffAdditiveRelation: {
+          ...normalizeBuffAdditiveRelationBinding({ binding: buffAdditiveRelationBinding, resultLabel }),
+          proposalPath: `reports/authorization/canonical/${BUFF_ADDITIVE_RELATION_OPERATION_ID}.${resultLabel}.proposal.json`,
+          resultPath: `reports/authorization/canonical/${BUFF_ADDITIVE_RELATION_OPERATION_ID}.${resultLabel}.result.json`,
+          journalPath: `reports/authorization/canonical/${BUFF_ADDITIVE_RELATION_OPERATION_ID}.${resultLabel}.journal.json`,
+        },
+      } : {}),
+    },
+    [BUFF_NPC_SECONDARY_OPERATION_ID]: {
+      executionClass: 'formal_buff_npc_secondary_apply',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--operation-id=${BUFF_NPC_SECONDARY_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [`reports/authorization/canonical/${BUFF_NPC_SECONDARY_OPERATION_ID}.${resultLabel}.proposal.json`],
+      outputPaths: [
+        `reports/authorization/canonical/${BUFF_NPC_SECONDARY_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${BUFF_NPC_SECONDARY_OPERATION_ID}.${resultLabel}.journal.json`,
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: ['relation.npc_buff_relations.immune'],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+      ...(operationId === BUFF_NPC_SECONDARY_OPERATION_ID ? {
+        buffNpcSecondary: {
+          ...normalizeBuffNpcSecondaryBinding({ binding: buffNpcSecondaryBinding, resultLabel }),
+          proposalPath: `reports/authorization/canonical/${BUFF_NPC_SECONDARY_OPERATION_ID}.${resultLabel}.proposal.json`,
+          resultPath: `reports/authorization/canonical/${BUFF_NPC_SECONDARY_OPERATION_ID}.${resultLabel}.result.json`,
+          journalPath: `reports/authorization/canonical/${BUFF_NPC_SECONDARY_OPERATION_ID}.${resultLabel}.journal.json`,
+        },
+      } : {}),
+    },
+    ...(operationId === BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID ? { [BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID]: {
+      executionClass: 'formal_buff_npc_infliction_dedup',
+      command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+        `--operation-id=${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}`, `--result-label=${resultLabel}`, '--apply=true'],
+      inputPaths: [
+        `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.proposal.json`,
+        ...CANONICAL_OPERATION_DATA_PATHS[BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID],
+      ],
+      outputPaths: [
+        `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.result.json`,
+        `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.journal.json`,
+        `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.readback.json`,
+      ],
+      reportPaths: [],
+      progressPaths: [],
+      ownershipKeys: ['relation.npc_buff_relations.inflicts.status_deleted'],
+      requiredOperationIds: [],
+      databaseWrites: true,
+      networkAccess: false,
+      buffNpcInflictionDedup: {
+        ...normalizeBuffNpcInflictionDedupBinding({ binding: buffNpcInflictionDedupBinding, resultLabel }),
+        proposalPath: `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.proposal.json`,
+        resultPath: `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.result.json`,
+        journalPath: `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.journal.json`,
+        readbackPath: `reports/authorization/canonical/${BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID}.${resultLabel}.readback.json`,
+      },
+    } } : {}),
     [ARMOR_SEMANTIC_REPAIR_OPERATION_ID]: {
       executionClass: 'formal_armor_semantic_repair',
       command: ['node', CANONICAL_OPERATION_ENTRYPOINTS[ARMOR_SEMANTIC_REPAIR_OPERATION_ID],
@@ -3255,9 +3482,7 @@ function buildNpcT1AcceptanceIdentity({ configPath, redisLogicalDb, runId } = {}
     throw new Error('NPC T1 config must be a private ordinary file');
   }
   const normalizedRedisDb = Number(redisLogicalDb);
-  if (!Number.isInteger(normalizedRedisDb) || normalizedRedisDb < 1 || normalizedRedisDb > 14) {
-    throw new Error('NPC T1 Redis DB must be an integer from 1 through 14');
-  }
+  assertAutomationRedisLogicalDb(normalizedRedisDb, 'NPC T1 Redis DB');
   const normalizedRunId = requireText(runId, 'NPC T1 runId');
   if (!/^npc-t1-[a-z0-9-]{3,80}$/.test(normalizedRunId)) {
     throw new Error('NPC T1 runId must use the bounded npc-t1 identity');
@@ -3852,6 +4077,131 @@ function normalizeResultLabel(value) {
   return text;
 }
 
+function assertBuffAdditiveRelationBinding({ binding, resultLabel }) {
+  normalizeBuffAdditiveRelationBinding({ binding, resultLabel });
+  return true;
+}
+
+function normalizeBuffFullChainBinding({ binding, resultLabel }) {
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    throw new Error('Buff full-chain runtime binding is required');
+  }
+  const normalized = {
+    schemaVersion: binding.schemaVersion,
+    operationId: binding.operationId,
+    resultLabel: binding.resultLabel,
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+  };
+  if (normalized.schemaVersion !== 'buff-full-chain-operation-binding/v1'
+      || normalized.operationId !== BUFF_FULL_CHAIN_OPERATION_ID
+      || normalized.resultLabel !== resultLabel
+      || typeof normalized.runId !== 'string'
+      || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.runId)
+      || typeof normalized.fenceToken !== 'string'
+      || !/^fence:[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.fenceToken)) {
+    throw new Error('Buff full-chain runtime binding is invalid');
+  }
+  return normalized;
+}
+
+function normalizeBuffAdditiveRelationBinding({ binding, resultLabel }) {
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    throw new Error('Buff additive relation runtime binding is required');
+  }
+  const normalized = {
+    schemaVersion: binding.schemaVersion,
+    operationId: binding.operationId,
+    resultLabel: binding.resultLabel,
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+  };
+  if (normalized.schemaVersion !== 'buff-additive-relation-operation-binding/v1'
+      || normalized.operationId !== BUFF_ADDITIVE_RELATION_OPERATION_ID
+      || normalized.resultLabel !== resultLabel
+      || typeof normalized.runId !== 'string'
+      || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.runId)
+      || typeof normalized.fenceToken !== 'string'
+      || !/^fence:[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.fenceToken)) {
+    throw new Error('Buff additive relation runtime binding is invalid');
+  }
+  return normalized;
+}
+
+function assertBuffNpcSecondaryBinding({ binding, resultLabel }) {
+  normalizeBuffNpcSecondaryBinding({ binding, resultLabel });
+  return true;
+}
+
+function assertBuffNpcInflictionDedupBinding({ binding, resultLabel }) {
+  normalizeBuffNpcInflictionDedupBinding({ binding, resultLabel });
+  return true;
+}
+
+function normalizeBuffNpcSecondaryBinding({ binding, resultLabel }) {
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    throw new Error('Buff NPC secondary runtime binding is required');
+  }
+  const normalized = {
+    schemaVersion: binding.schemaVersion,
+    operationId: binding.operationId,
+    resultLabel: binding.resultLabel,
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+  };
+  if (normalized.schemaVersion !== 'buff-npc-secondary-operation-binding/v1'
+      || normalized.operationId !== BUFF_NPC_SECONDARY_OPERATION_ID
+      || normalized.resultLabel !== resultLabel
+      || typeof normalized.runId !== 'string'
+      || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.runId)
+      || typeof normalized.fenceToken !== 'string'
+      || !/^fence:[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.fenceToken)) {
+    throw new Error('Buff NPC secondary runtime binding is invalid');
+  }
+  return normalized;
+}
+
+function normalizeBuffNpcInflictionDedupBinding({ binding, resultLabel }) {
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    throw new Error('Buff NPC infliction dedup runtime binding is required');
+  }
+  const normalized = {
+    schemaVersion: binding.schemaVersion,
+    operationId: binding.operationId,
+    resultLabel: binding.resultLabel,
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+  };
+  if (normalized.schemaVersion !== 'buff-npc-infliction-dedup-operation-binding/v1'
+      || normalized.operationId !== BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID
+      || normalized.resultLabel !== resultLabel
+      || typeof normalized.runId !== 'string'
+      || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.runId)
+      || typeof normalized.fenceToken !== 'string'
+      || !/^fence:[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(normalized.fenceToken)) {
+    throw new Error('Buff NPC infliction dedup runtime binding is invalid');
+  }
+  return normalized;
+}
+
+function normalizeBuffItemMaintInsertBinding(binding) {
+  if (!binding || binding.schemaVersion !== 'buff-item-maint-operation-binding/v1'
+      || typeof binding.runId !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(binding.runId)
+      || !/^sha256:[a-f0-9]{64}$/.test(binding.contractHash ?? '')) {
+    throw new Error('Item maint runtime binding is invalid');
+  }
+  if (JSON.stringify(binding.sourceIds) !== JSON.stringify([6148, 6149, 6155, 6161, 6164, 6173])) {
+    throw new Error('Item maint source ID scope drifted');
+  }
+  if (!/^fence:[A-Za-z0-9_.:-]+$/.test(binding.fenceTokens?.landing ?? '')
+      || !/^fence:[A-Za-z0-9_.:-]+$/.test(binding.fenceTokens?.maint ?? '')
+      || binding.fenceTokens.landing === binding.fenceTokens.maint) {
+    throw new Error('Item maint requires distinct landing/maint fence tokens');
+  }
+  return { schemaVersion: binding.schemaVersion, runId: binding.runId, contractHash: binding.contractHash,
+    sourceIds: [...binding.sourceIds], fenceTokens: { ...binding.fenceTokens } };
+}
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (value && typeof value === 'object') {
@@ -3901,6 +4251,42 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       l1RunRoot: args['l1-run-root'] ?? null,
       databaseEvidenceRoot: args['database-evidence-root'] ?? null,
       historicalSourceHashDispositionPaths: args['historical-source-hash-disposition'] ?? null,
+      buffAdditiveRelationBinding: args['operation-id'] === BUFF_ADDITIVE_RELATION_OPERATION_ID
+        ? {
+          schemaVersion: 'buff-additive-relation-operation-binding/v1',
+          operationId: args['operation-id'],
+          resultLabel: args['result-label'] ?? null,
+          runId: args['buff-run-id'],
+          fenceToken: args['buff-fence-token'],
+        }
+        : null,
+      buffNpcSecondaryBinding: args['operation-id'] === BUFF_NPC_SECONDARY_OPERATION_ID
+        ? {
+          schemaVersion: 'buff-npc-secondary-operation-binding/v1',
+          operationId: args['operation-id'],
+          resultLabel: args['result-label'] ?? null,
+          runId: args['buff-run-id'],
+          fenceToken: args['buff-fence-token'],
+        }
+        : null,
+      buffNpcInflictionDedupBinding: args['operation-id'] === BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID
+        ? {
+          schemaVersion: 'buff-npc-infliction-dedup-operation-binding/v1',
+          operationId: args['operation-id'],
+          resultLabel: args['result-label'] ?? null,
+          runId: args['buff-run-id'],
+          fenceToken: args['buff-fence-token'],
+        }
+        : null,
+      buffFullChainBinding: args['operation-id'] === BUFF_FULL_CHAIN_OPERATION_ID
+        ? {
+          schemaVersion: 'buff-full-chain-operation-binding/v1',
+          operationId: args['operation-id'],
+          resultLabel: args['result-label'] ?? null,
+          runId: args['buff-run-id'],
+          fenceToken: args['buff-fence-token'],
+        }
+        : null,
       outputPath: args.output,
     });
     process.stdout.write(`${JSON.stringify({

@@ -1331,8 +1331,17 @@ class RedisCrawlerQueueV2RepositoryTest {
         assertTrue(source.contains("'set', 'zset', 'zset', 'zset', 'zset', 'stream', 'string'"));
         assertTrue(source.contains("if currentCutover and currentCutover ~= ARGV[1] then"));
         assertTrue(source.contains("code = 'CUTOVER_ID_MISMATCH'"));
-        assertTrue(source.contains("if currentFirstLiveMutationAt and (ARGV[5] == '' or currentFirstLiveMutationAt ~= ARGV[5]) then"));
+        assertTrue(source.contains("if currentFirstLiveMutationAt and ARGV[5] ~= '' and currentFirstLiveMutationAt ~= ARGV[5] then"));
         assertTrue(source.contains("if not currentFirstLiveMutationAt and ARGV[5] ~= '' then"));
+    }
+
+    @Test
+    void initializeResetEpochLuaMustDropUnboundRedisFirstMutationEvidenceDuringForwardReset() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/initialize-reset-epoch.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("redis.call('DEL', KEYS[4], KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10])"));
+        assertTrue(source.contains("currentFirstLiveMutationAt = nil"));
     }
 
     @Test

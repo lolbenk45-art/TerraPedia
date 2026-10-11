@@ -10,8 +10,8 @@ const COLUMNS = Object.freeze(('source_id internal_name english_name name_zh sou
 
 // Pure planning only: the caller must bind the landing ID to a persisted or
 // transaction-reserved row and rederive from locked snapshots before applying.
-export async function buildBuffMaintMutationPlan({ landingRow, currentRows } = {}) {
-  validateLanding(landingRow);
+export async function buildBuffMaintMutationPlan({ landingRow, currentRows, allowUnmaterializedLandingId = false } = {}) {
+  validateLanding(landingRow, { allowUnmaterializedLandingId });
   if (!Array.isArray(currentRows)) throw new Error('Buff maint complete baseline is required');
   const baseline = currentRows.map(row => structuredClone(row));
   const current = indexIdentities(baseline, true);
@@ -52,7 +52,8 @@ export async function buildBuffMaintMutationPlan({ landingRow, currentRows } = {
     executable: false,
     executionBlocker: 'locked-upstream-executor-required',
     landingIdentity: {
-      id: Number(landingRow.id), sourceKey: landingRow.source_key, contentHash: landingRow.content_hash,
+      id: landingRow.id == null ? null : Number(landingRow.id),
+      sourceKey: landingRow.source_key, contentHash: landingRow.content_hash,
     },
     baseline,
     inserts, updates, unchanged,
@@ -61,8 +62,50 @@ export async function buildBuffMaintMutationPlan({ landingRow, currentRows } = {
   };
 }
 
-function validateLanding(row) {
-  if (!row || !positiveId(row.id) || row.dataset_type !== 'buffs_raw'
+export function bindBuffMaintMutationPlanToLanding({ plan, landingRow } = {}) {
+  if (!plan || plan.schemaVersion !== 'buff-maint-mutation-plan/v1'
+      || plan.landingIdentity?.id !== null) {
+    throw new Error('Buff maint plan must defer exactly one landing ID');
+  }
+  validateLanding(landingRow);
+  if (plan.landingIdentity.sourceKey !== landingRow.source_key
+      || plan.landingIdentity.contentHash !== landingRow.content_hash) {
+    throw new Error('Buff maint landing source identity or hash drifted');
+  }
+  const landingId = Number(landingRow.id);
+  const bindRow = row => ({ ...row, landing_source_id: landingId });
+  const updates = [...plan.updates];
+  const unchanged = [];
+  for (const row of plan.unchanged) {
+    if (Number(row.landing_source_id) === landingId) {
+      unchanged.push(row);
+    } else {
+      updates.push({
+        before: row,
+        after: bindRow(row),
+        changedColumns: ['landing_source_id'],
+      });
+    }
+  }
+  return {
+    ...plan,
+    landingIdentity: { ...plan.landingIdentity, id: landingId },
+    inserts: plan.inserts.map(bindRow),
+    updates: updates.map(change => {
+      const after = bindRow(change.after);
+      const changedColumns = new Set(change.changedColumns);
+      if (JSON.stringify(change.before.landing_source_id) !== JSON.stringify(after.landing_source_id)) {
+        changedColumns.add('landing_source_id');
+      }
+      return { ...change, after, changedColumns: [...changedColumns] };
+    }),
+    unchanged,
+  };
+}
+
+function validateLanding(row, { allowUnmaterializedLandingId = false } = {}) {
+  const validId = allowUnmaterializedLandingId ? row?.id == null || positiveId(row?.id) : positiveId(row?.id);
+  if (!row || !validId || row.dataset_type !== 'buffs_raw'
       || row.provider !== 'terraria.wiki.gg' || row.parse_status !== 'ok' || Number(row.is_current) !== 1
       || !row.source_key || !row.source_page || !/^[a-f0-9]{64}$/.test(row.content_hash ?? '')) {
     throw new Error('Buff maint landing identity is invalid');

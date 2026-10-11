@@ -619,6 +619,7 @@ class CrawlerAttemptArtifactStoreTest {
         assertSynchronized("prepare", String.class, String.class, String.class,
             String.class, String.class, Instant.class);
         assertSynchronized("writeManifest", CrawlerAttemptManifest.class);
+        assertSynchronized("writeProgress", CrawlerAttemptProgressPayload.class);
         assertSynchronized("cleanupArtifacts", String.class, CrawlerQueueV2Status.class,
             String.class, Instant.class);
         assertSynchronized("expireArtifacts", String.class, Instant.class);

@@ -746,7 +746,60 @@ public class CrawlerAttemptSupervisor {
         );
         processes.remove(stalled.attemptId());
         writeManifest(failed, null);
+        writeLeaseFailureProgress(failed);
         return failed;
+    }
+
+    private void writeLeaseFailureProgress(CrawlerQueueV2Attempt failed) {
+        CrawlerAttemptProgressPayload existing = null;
+        try {
+            existing = artifactStore.readProgress(failed.attemptId()).orElse(null);
+        } catch (RuntimeException ignored) {
+            // A corrupt or partially written worker snapshot is replaced by the terminal fallback.
+        }
+        long existingSequence = existing == null || existing.progressSequence() == null
+            ? 0L
+            : existing.progressSequence();
+        long sequence = Math.max(failed.progressSequence(), existingSequence) + 1L;
+        Instant generatedAt = clock.instant();
+        String childStatusPath = existing != null && existing.childStatusPath() != null
+            && !existing.childStatusPath().isBlank()
+            ? existing.childStatusPath()
+            : failed.artifacts().progressPath();
+        String message = failed.workerMessage() == null || failed.workerMessage().isBlank()
+            ? failed.reasonCode() == null ? "crawler attempt failed" : failed.reasonCode().name()
+            : failed.workerMessage();
+        CrawlerAttemptProgressPayload terminal = new CrawlerAttemptProgressPayload(
+            failed.queueId(),
+            failed.attemptId(),
+            failed.fenceToken(),
+            failed.stateStoreEpoch(),
+            failed.stateVersion(),
+            sequence,
+            failed.actionId(),
+            "failed",
+            "failed",
+            message,
+            existing != null && existing.current() != null ? existing.current() : failed.current(),
+            existing != null && existing.total() != null ? existing.total() : failed.total(),
+            generatedAt,
+            generatedAt,
+            childStatusPath,
+            existing != null && existing.outputPath() != null
+                ? existing.outputPath() : failed.artifacts().outputPath(),
+            existing != null && existing.reportPath() != null
+                ? existing.reportPath() : failed.artifacts().reportPath(),
+            existing == null ? null : existing.plannedCount(),
+            existing == null ? null : existing.actualCount(),
+            existing == null ? null : existing.skippedCount(),
+            existing == null || existing.failedCount() == null
+                ? 1L : Math.max(1L, existing.failedCount()),
+            existing == null ? null : existing.estimatedRequests(),
+            existing == null ? null : existing.estimatedRecords(),
+            existing == null ? null : existing.resultKind(),
+            existing == null ? null : existing.resumeOutcome()
+        );
+        artifactStore.writeProgress(terminal);
     }
 
     private void quarantineDomains(CrawlerQueueV2Attempt attempt, CrawlerQueueV2ReasonCode reasonCode) {

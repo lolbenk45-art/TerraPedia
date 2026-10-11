@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-10-04
+2026-10-07
 
 ## Armor domain child update (2026-10-04)
 
@@ -16,10 +16,79 @@ is to resolve the Shroomite owner and complete its source/lineage gates before
 publishing the remaining rows; this child update does not change coordinator-
 owned scheduler/H8 state.
 
-## Canonical ingestion continuation (2026-09-26 checkpoint)
+## Buff continuation checkpoint (2026-10-07)
 
-The following project-level snapshot predates the Armor child update above;
-its dated status and evidence are retained as a checkpoint.
+The authorized Buff zero-baseline/full-chain publication and all approved NPC
+secondary immune applies are complete. A fresh read-only transaction verifies
+active `maint_buffs/relation_buffs/projection_buffs=400/400/400`, NPC-Buff
+relations `1708` (`1559 immune`, `149 inflicts`), Item-Buff relations `14`, and
+zero active write fences. Buff IDs `389-400` are present in all three primary
+layers. Item pair `(1340,395)` remains absent under its approved deferred
+semantic-conflict disposition.
+
+The read-only source-contract review found five repeated inflicts identity
+pairs (149 rows, 144 distinct NPC/Buff/type keys). Four exceed the current maint
+fact lists; the Poisoned/Queen Bee pair is repeated in its current list. All
+five duplicate pairs have legacy `terrapedia.generated/buffs.standardized`
+lineage without a Wiki revision, and public Buff assembly exposes relation
+rows without identity deduplication. No cleanup is authorized or performed;
+source disposition and a separate governed repair are required. Audit:
+`docs/audits/2026-10-07-buff-runtime-state-after-npc-applies.md`.
+
+Buff fetch/relation/authorization tests pass `403/403`, and
+`git diff --check` passes. No crawler, scheduler, API runtime, or business-table
+write was run in this checkpoint. The older 2026-10-06 continuation below is
+historical detail.
+
+## Buff continuation checkpoint (2026-10-06, historical detail)
+
+Authorized Task 18 execution completed under decision
+`buff-item-maint-20261006-admin-01` and run
+`buff-items-20261006-task18-exec-v1`. It inserted the non-current landing
+`12546` and six `maint_items` rows `6162/6163/6164/6165/6166/6167` for source
+IDs `6148/6149/6155/6161/6164/6173`. Independent readback passed; current
+counts are `maint_items=6152`, `items_raw landings=2`, and active
+fences/attempts/reservations `0/0/0`. Scheduler remains disabled. No local Item,
+Buff relation/projection, Redis business, or scheduler write occurred.
+
+Resumed the supplied Codex session in `feat/automation-domain-buff` at
+`0a23fab3`. The Item maint dependency contract is now validated against the
+frozen revision-bound Iteminfo source and fresh read-only MySQL snapshots:
+six exact active maint matches, six missing maint identities, and one Buff-page
+spelling drift at Item `1340`. Six complete maint previews use the canonical
+game IDs, preserve raw source fields, and leave generated landing/maint IDs
+null. The latest artifact is
+`.local/tmp/buff-item-maint-readiness-20261006-v3.json`;
+durable findings: `docs/audits/2026-10-06-buff-item-maint-readiness.md`.
+
+New tests are `11/11`; related regression is `99 pass / 1 existing skip /
+0 fail`. Fresh authenticated preflight confirms disabled scheduler, live
+attempts/claims `0/0`, healthy reconciler, unchanged H8/epoch. No business-table
+write or crawler/control operation occurred. Remaining Buff ingestion is
+blocked by the explicit `1340` spelling disposition,
+NPC immunity secondary identity, and Buff zero-baseline/full-chain gates.
+The parent task remains active. Older cross-domain sections below are recorded
+history and were not revalidated by this Buff-only continuation.
+
+Task 18 has a registered and executed `canonical-buff-item-maint-insert` runner
+and manifest for exactly the six missing Item identities. Read-only review repaired
+packet expiry races and added non-expiring recovery holds for both ownership
+fences; confirmed rollback releases only after terminal journal evidence, while
+unknown outcomes remain blocked for explicit reconciliation. Focused maint/core/
+runner validation is `33/33`; current governance/manifest/authorization
+validation is `113/113`, with Item-operation registration `3/3`. The earlier draft remained read-only; fresh authorized execution
+completed as recorded above.
+
+The post-publication read-only rederivation for Buff IDs `389-400` now resolves
+all six newly inserted Item maint identities. Candidate
+`.local/tmp/buff-insert-only-candidate-20261006-v2.json` remains blocked and
+non-executable: it proposes 12 maint, 12 relation Buff, 12 projection Buff,
+and 14 Item-Buff inserts, with zero NPC-Buff inserts. The only Item-side issue
+left is the explicit source spelling drift at Item `1340`; NPC source-ID gaps,
+zero-baseline/full-chain authorization, and fresh operation readback remain
+open. Durable audit: `docs/audits/2026-10-06-buff-insert-candidate-refresh.md`.
+
+## Canonical ingestion continuation (2026-09-26, current)
 
 已按新增 A6 两表授权完成一次真实受控发布：224条属性+290条效果，覆盖223/233个
 Armor成员；数据库全量 after-set、前后台 Ninja 样本字段一致，上游来源未改动。

@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { FORMAL_DATABASES } from './automation-database-contract.mjs';
+import {
+  assertAutomationRedisLogicalDb,
+  AUTOMATION_REDIS_LOGICAL_DB_MAX,
+  FORMAL_DATABASES,
+} from './automation-database-contract.mjs';
 import { TABLE_OWNERSHIP_MATRIX } from './table-ownership-matrix.mjs';
 import { buildMaintSchemaSql } from '../maint/maint-schema.mjs';
 import { buildProjectionSchemaStatements } from '../relation/projection-schema.mjs';
@@ -137,6 +141,59 @@ export function requiresBootstrapMigrationSession(sql) {
     throw new Error('global MySQL configuration changes are forbidden in automation acceptance');
   }
   return /\bCREATE\s+(?:DEFINER\s*=\s*[^\s]+\s+)?TRIGGER\b/i.test(statement);
+}
+
+/**
+ * The mysql CLI treats every semicolon as a statement boundary unless its
+ * client-side delimiter is changed. Migration files are consumed by Flyway in
+ * production, but the isolated acceptance adapter feeds them to the CLI, so
+ * compound trigger bodies need an equivalent delimiter wrapper.
+ */
+export function rewriteMysqlCliCompoundTriggerDelimiters(sql) {
+  const source = String(sql ?? '');
+  const lines = source.split(/\r?\n/);
+  if (!/\bCREATE\s+(?:DEFINER\s*=\s*[^\s]+\s+)?TRIGGER\b/i.test(source)
+      || !lines.some((line) => /^\s*BEGIN\s*$/i.test(line))) {
+    return source;
+  }
+  if (/^\s*DELIMITER\b/im.test(source)) {
+    throw new Error('compound trigger migration already contains a mysql CLI delimiter directive');
+  }
+
+  const output = [];
+  let transformed = false;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^\s*CREATE\s+(?:DEFINER\s*=\s*[^\s]+\s+)?TRIGGER\b/i.test(line)) {
+      let beginIndex = -1;
+      for (let candidate = index + 1; candidate < lines.length; candidate += 1) {
+        if (/^\s*(?:CREATE|DROP|ALTER)\s+\w+/i.test(lines[candidate])) break;
+        if (/^\s*BEGIN\s*$/i.test(lines[candidate])) {
+          beginIndex = candidate;
+          break;
+        }
+      }
+      if (beginIndex >= 0) {
+        let endIndex = -1;
+        for (let candidate = beginIndex + 1; candidate < lines.length; candidate += 1) {
+          if (/^\s*END;\s*$/i.test(lines[candidate])) {
+            endIndex = candidate;
+            break;
+          }
+        }
+        if (endIndex < 0) throw new Error('compound trigger migration is missing its terminal END statement');
+        output.push('DELIMITER $$');
+        output.push(...lines.slice(index, endIndex));
+        output.push(lines[endIndex].replace(/;\s*$/, () => '$$'));
+        output.push('DELIMITER ;');
+        index = endIndex;
+        transformed = true;
+        continue;
+      }
+    }
+    output.push(line);
+  }
+  return transformed ? output.join('\n') : source;
 }
 
 export function buildBoundedSnapshotPlan({ maxRowsPerTable = 2 } = {}) {
@@ -303,9 +360,7 @@ function createRedisCommandClient({ host, port, password = '', execute = default
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('automation Redis port is invalid');
   return Object.freeze({
     async command(logicalDb, ...commandArgs) {
-      if (!Number.isInteger(logicalDb) || logicalDb < 1 || logicalDb > 14) {
-        throw new Error('automation Redis logical DB must be between 1 and 14');
-      }
+      assertAutomationRedisLogicalDb(logicalDb, 'automation Redis logical DB');
       const args = ['--raw', '-h', host, '-p', String(port), '-n', String(logicalDb), ...commandArgs.map(String)];
       const env = password ? { REDISCLI_AUTH: String(password) } : {};
       const result = await execute({ command: 'redis-cli', args, stdin: '', env });
@@ -431,7 +486,9 @@ export async function createLiveAutomationAdapter({
     },
     async allocateRedisLogicalDb({ runKey }) {
       const reservationToken = randomBytes(24).toString('hex');
-      const candidates = redis.logicalDb ? [redis.logicalDb] : Array.from({ length: 14 }, (_, index) => 14 - index);
+      const candidates = redis.logicalDb != null
+        ? [assertAutomationRedisLogicalDb(redis.logicalDb, 'automation Redis logical DB')]
+        : Array.from({ length: AUTOMATION_REDIS_LOGICAL_DB_MAX }, (_, index) => AUTOMATION_REDIS_LOGICAL_DB_MAX - index);
       for (const logicalDb of candidates) {
         if (await redisClient.command(logicalDb, 'DBSIZE') !== '0') continue;
         const result = await redisClient.command(logicalDb, 'SET', 'terrapedia:automation:reservation',
@@ -480,7 +537,8 @@ export async function createLiveAutomationAdapter({
         const maintName = name.replace(/_local$/, '_maint');
         for (const sql of localMigrationSql(root, maintName, name)) {
           const client = requiresBootstrapMigrationSession(sql) ? bootstrap : provisioner;
-          await client.query(sql, name);
+          const cliSql = client === bootstrap ? rewriteMysqlCliCompoundTriggerDelimiters(sql) : sql;
+          await client.query(cliSql, name);
         }
       } else {
         throw new Error(`unknown migration role: ${role}`);

@@ -315,6 +315,56 @@ public class CrawlerQueueEngineRouter {
         });
     }
 
+    /**
+     * Explicitly adopts matching Redis first-mutation evidence after a durable
+     * marker was lost or moved to a new owner root. This method never writes
+     * Redis and refuses to replace any existing irreversible marker fields.
+     */
+    public CutoverState recoverFirstLiveMutation(Instant reservationAt, Instant committedAt) {
+        if (reservationAt == null || committedAt == null || committedAt.isBefore(reservationAt)) {
+            throw new IllegalArgumentException("首次 mutation recovery 时间对无效");
+        }
+        return locked(current -> {
+            requireDurableV2OrMaintenance(current);
+            if (current.mutationReservationAt() != null || current.firstLiveMutationAt() != null) {
+                throw new CrawlerQueueV2Exception(
+                    HttpStatus.CONFLICT,
+                    CrawlerQueueV2ReasonCode.CUTOVER_ROLLBACK_FORBIDDEN,
+                    "已有 durable 首次 mutation 证据，禁止覆盖",
+                    null
+                );
+            }
+            CrawlerQueueV2Repository.EngineState redis;
+            try {
+                redis = repository.readEngineState();
+            } catch (RuntimeException exception) {
+                remember(CrawlerQueueEngineMode.MAINTENANCE, CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE);
+                throw unavailable(exception);
+            }
+            if (!sameV2Identity(current, redis) || !committedAt.equals(redisFirstMutation(redis))) {
+                remember(CrawlerQueueEngineMode.MAINTENANCE, CrawlerQueueV2ReasonCode.STATE_STORE_RESET);
+                throw new CrawlerQueueV2Exception(
+                    HttpStatus.CONFLICT,
+                    CrawlerQueueV2ReasonCode.STATE_STORE_RESET,
+                    "Redis 首次 mutation 证据与 durable cutover identity 不一致",
+                    null
+                );
+            }
+            CutoverState recovered = new CutoverState(
+                current.contractVersion(),
+                CrawlerQueueEngineMode.V2,
+                current.cutoverId(),
+                current.stateStoreEpoch(),
+                clock.instant(),
+                reservationAt,
+                committedAt
+            );
+            writeStateAtomically(recovered);
+            remember(CrawlerQueueEngineMode.V2, null);
+            return recovered;
+        });
+    }
+
     public CutoverState completeStateStoreReset(String newEpoch, Instant redisFirstLiveMutationAt) {
         if (isBlank(newEpoch)) {
             throw new IllegalArgumentException("新 V2 epoch 不能为空");
@@ -433,7 +483,7 @@ public class CrawlerQueueEngineRouter {
             return remember(CrawlerQueueEngineMode.V2, null);
         }
         if (redisFirst != null) {
-            return remember(CrawlerQueueEngineMode.MAINTENANCE, CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN);
+            return remember(CrawlerQueueEngineMode.MAINTENANCE, CrawlerQueueV2ReasonCode.STATE_STORE_RESET);
         }
         return remember(CrawlerQueueEngineMode.V2, null);
     }

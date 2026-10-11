@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { parseBuffPageEvidence } from '../fetch/buff-immunity-page-parser.mjs';
+import { buildBuffPartialFactPlan } from './buff-source-applicability.mjs';
 
 import {
   buildBuffRelationSyncPayload,
@@ -350,6 +351,7 @@ const IMAGE_PREFIX = 'https://media.example.test/terrapedia-images/buffs/';
 
 function candidateFixture({ extraImages = [], rawFields = {} } = {}) {
   const evidence = parseBuffPageEvidence({
+    wikitext: '== Immune NPCs ==\n{{immunities|24}}',
     buffId: 24,
     buffName: 'On Fire!',
     pageTitle: 'On Fire!',
@@ -428,11 +430,397 @@ function addBoundInflictingNpc(input) {
   return relation;
 }
 
+function partialCandidateFixture() {
+  const input = candidateFixture();
+  const baselineRelation = structuredClone(input.payload.relationBuffs[0]);
+  const baselineProjection = structuredClone(input.payload.projectionBuffs[0]);
+  const baselineImmune = JSON.parse(baselineRelation.immuneNpcsJson);
+  const baselineSample = JSON.parse(baselineRelation.immuneNpcSampleJson);
+  const item = { itemId: 101, internalName: 'MagicItem' };
+  const partialRecord = {
+    id: 24,
+    internalName: 'OnFire',
+    englishName: 'On Fire!',
+    sourceItemCount: 1,
+    sourceItems: [item],
+    inflictingNpcs: [],
+    sourceEvidence: {
+      ...JSON.parse(baselineRelation.rawJson).sourceEvidence,
+      factGroups: {
+        sourceItems: { status: 'parsed', count: 1, sections: ['From item'] },
+        inflictingNpcs: { status: 'section_missing', count: 0, sections: [] },
+        immuneNpcs: { status: 'section_missing', count: 0, sections: [] },
+      },
+      unresolvedFacts: [],
+    },
+  };
+  const landing = structuredClone(input.landingRows[0]);
+  const landingPayload = { records: [partialRecord] };
+  landing.payload_json = JSON.stringify(landingPayload);
+  landing.content_hash = createHash('sha256').update(JSON.stringify(landingPayload)).digest('hex');
+  const maintRow = {
+    ...input.payload.relationBuffs[0],
+    rawJson: JSON.stringify(partialRecord),
+    sourceItemCount: 1,
+    sourceItemsJson: JSON.stringify(partialRecord.sourceItems),
+    inflictingNpcsJson: JSON.stringify(partialRecord.inflictingNpcs),
+    immuneNpcsJson: null,
+    immuneNpcCount: null,
+    immuneNpcSampleJson: null,
+    landingSourceId: landing.id,
+    landingSourceKey: landing.source_key,
+    landingContentHash: landing.content_hash,
+    sourceProvider: landing.provider,
+    sourcePage: landing.source_page,
+    sourceRevisionTimestamp: landing.source_revision_timestamp,
+  };
+  const partialPayload = {
+    ...input.payload,
+    relationBuffs: [maintRow],
+    projectionBuffs: [{ ...input.payload.projectionBuffs[0], immuneNpcsJson: null, immuneNpcCount: null, immuneNpcSampleJson: null }],
+    npcBuffRelations: [],
+  };
+  const baseline = {
+    ...input.currentRows,
+    relation_buffs: [{ ...baselineRelation, rawJson: JSON.stringify(JSON.parse(baselineRelation.rawJson)) }],
+    projection_buffs: [baselineProjection],
+    npc_buff_relations: [{
+      recordKey: 'd'.repeat(64),
+      buffSourceId: 24,
+      buffInternalName: 'OnFire',
+      npcSourceId: 900,
+      npcInternalName: 'UnknownNpc',
+      relationType: 'immune',
+      sourceMaintTable: 'maint_npcs',
+      sourceMaintRecordKey: 'e'.repeat(64),
+      landingSourceId: landing.id,
+      landingSourceKey: landing.source_key,
+      landingContentHash: landing.content_hash,
+      sourceProvider: landing.provider,
+      sourcePage: landing.source_page,
+      sourceRevisionTimestamp: landing.source_revision_timestamp,
+      status: 1,
+      deleted: 0,
+    }],
+  };
+  const plan = buildBuffPartialFactPlan({
+    record: partialRecord,
+    baseline: {
+      inflictingNpcs: [],
+      immuneNpcs: baselineImmune,
+      immuneNpcCount: baselineRelation.immuneNpcCount,
+      immuneNpcSample: baselineSample,
+    },
+  });
+  return {
+    ...input,
+    payload: partialPayload,
+    currentRows: baseline,
+    landingRows: [landing],
+    pageEvidenceByInternalName: new Map(),
+    partialFactPlansByInternalName: new Map([['OnFire', plan]]),
+  };
+}
+
+test('Buff partial candidate preserves unknown immunity and omitted secondary rows while recording disposition', () => {
+  const input = partialCandidateFixture();
+  const plan = buildBuffIncrementalMutationPlan(input);
+  const relation = plan.expectedRows.relation_buffs[0];
+  const projection = plan.expectedRows.projection_buffs[0];
+  assert.deepEqual(JSON.parse(relation.raw_json).sourceItems, [{ itemId: 101, internalName: 'MagicItem' }]);
+  assert.deepEqual(JSON.parse(relation.immune_npcs_json), JSON.parse(input.currentRows.relation_buffs[0].immuneNpcsJson));
+  assert.equal(relation.immune_npc_count, input.currentRows.relation_buffs[0].immuneNpcCount);
+  assert.deepEqual(JSON.parse(relation.immune_npc_sample_json), input.partialFactPlansByInternalName.get('OnFire').baseline.immuneNpcSample);
+  assert.deepEqual(JSON.parse(projection.immune_npcs_json), JSON.parse(relation.immune_npcs_json));
+  assert.equal(plan.changes.npc_buff_relations.preserved.length, 1);
+  assert.equal(JSON.parse(relation.source_evidence_json).partialFactDisposition.status, 'partial');
+});
+
+test('Buff partial candidate rejects source or baseline drift', () => {
+  const input = partialCandidateFixture();
+  input.partialFactPlansByInternalName.get('OnFire').source.revisionId += 1;
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /partial.*revision|source.*binding|drift/i);
+  const missing = partialCandidateFixture();
+  missing.currentRows.relation_buffs[0].immune_npcs_json = null;
+  assert.throws(() => buildBuffIncrementalMutationPlan(missing), /baseline|immune/i);
+});
+
+test('Buff partial candidate preserves the inflicting baseline and adds revision-bound positive facts', () => {
+  const input = partialCandidateFixture();
+  const baselineNpc = { npcId: 900, internalName: 'BaselineNpc', name: 'Baseline NPC' };
+  const positiveNpc = {
+    npcId: 113,
+    internalName: 'WallofFlesh',
+    name: 'Wall of Flesh',
+    relationType: 'inflicts',
+    buffId: 24,
+    buffInternalName: 'OnFire',
+    sourcePage: 'Wall of Flesh',
+    sourcePageId: 10220,
+    sourceRevisionId: 1032375,
+    sourceRevisionTimestamp: '2026-09-30T00:00:00Z',
+  };
+  const positiveFact = {
+    relationType: 'inflicts',
+    npcSourceId: positiveNpc.npcId,
+    npcInternalName: positiveNpc.internalName,
+    npcName: positiveNpc.name,
+    buffId: 24,
+    buffInternalName: 'OnFire',
+    buffName: 'On Fire!',
+    durationText: 'permanent',
+    sourcePage: 'Wall of Flesh',
+    sourcePageId: 10220,
+    sourceRevisionId: 1032375,
+    sourceRevisionTimestamp: '2026-09-30T00:00:00Z',
+  };
+
+  const baselineRelation = input.currentRows.relation_buffs[0];
+  const baselineRaw = JSON.parse(baselineRelation.rawJson);
+  baselineRaw.inflictingNpcs = [baselineNpc, positiveNpc];
+  baselineRelation.rawJson = JSON.stringify(baselineRaw);
+  baselineRelation.inflictingNpcsJson = JSON.stringify([baselineNpc, positiveNpc]);
+  input.currentRows.npc_buff_relations.push({
+    recordKey: 'f'.repeat(64),
+    buffSourceId: 24,
+    buffInternalName: 'OnFire',
+    npcSourceId: baselineNpc.npcId,
+    npcInternalName: baselineNpc.internalName,
+    npcName: baselineNpc.name,
+    relationType: 'inflicts',
+    sourceMaintTable: 'maint_buffs',
+    sourceMaintRecordKey: baselineRelation.recordKey,
+    landingSourceId: baselineRelation.landingSourceId,
+    landingSourceKey: baselineRelation.landingSourceKey,
+    landingContentHash: baselineRelation.landingContentHash,
+    sourceProvider: baselineRelation.sourceProvider,
+    sourcePage: baselineRelation.sourcePage,
+    sourceRevisionTimestamp: baselineRelation.sourceRevisionTimestamp,
+    status: 1,
+    deleted: 0,
+  });
+
+  const partialRelation = input.payload.relationBuffs[0];
+  const partialRecord = JSON.parse(partialRelation.rawJson);
+  partialRecord.inflictingNpcs = [positiveNpc];
+  partialRecord.sourceEvidence.inflictingNpcPositiveEvidence = {
+    status: 'positive-infliction-facts-only',
+    facts: [positiveFact],
+    source: {
+      provider: 'terraria.wiki.gg', pageTitle: 'Wall of Flesh', pageId: 10220,
+      revisionId: 1032375, revisionTimestamp: '2026-09-30T00:00:00Z',
+    },
+  };
+  partialRelation.rawJson = JSON.stringify(partialRecord);
+  partialRelation.inflictingNpcsJson = JSON.stringify([positiveNpc]);
+  input.payload.projectionBuffs[0].inflictingNpcsJson = JSON.stringify([positiveNpc]);
+
+  const landing = input.landingRows[0];
+  const landingPayload = { records: [partialRecord] };
+  landing.payload_json = JSON.stringify(landingPayload);
+  landing.content_hash = createHash('sha256').update(JSON.stringify(landingPayload)).digest('hex');
+  partialRelation.landingContentHash = landing.content_hash;
+
+  const plan = buildBuffPartialFactPlan({
+    record: partialRecord,
+    baseline: {
+      sourceItems: [],
+      inflictingNpcs: [baselineNpc, positiveNpc],
+      immuneNpcs: JSON.parse(baselineRelation.immuneNpcsJson),
+      immuneNpcCount: baselineRelation.immuneNpcCount,
+      immuneNpcSample: JSON.parse(baselineRelation.immuneNpcSampleJson),
+    },
+  });
+  input.partialFactPlansByInternalName = new Map([['OnFire', plan]]);
+  input.payload.npcBuffRelations = [{
+    recordKey: 'c'.repeat(64),
+    buffSourceId: 24,
+    buffInternalName: 'OnFire',
+    npcSourceId: positiveNpc.npcId,
+    npcInternalName: positiveNpc.internalName,
+    npcName: positiveNpc.name,
+    relationType: 'inflicts',
+    sourceMaintTable: 'maint_buffs',
+    sourceMaintRecordKey: partialRelation.recordKey,
+    landingSourceId: partialRelation.landingSourceId,
+    landingSourceKey: partialRelation.landingSourceKey,
+    landingContentHash: partialRelation.landingContentHash,
+    sourceProvider: partialRelation.sourceProvider,
+    sourcePage: partialRelation.sourcePage,
+    sourceRevisionTimestamp: partialRelation.sourceRevisionTimestamp,
+  }];
+
+  const candidate = buildBuffIncrementalMutationPlan(input);
+  const expectedRelation = candidate.expectedRows.relation_buffs[0];
+  const expectedProjection = candidate.expectedRows.projection_buffs[0];
+  const merged = JSON.parse(expectedRelation.inflicting_npcs_json);
+
+  assert.deepEqual(merged.map((row) => row.internalName), ['BaselineNpc', 'WallofFlesh']);
+  assert.deepEqual(JSON.parse(expectedProjection.inflicting_npcs_json).map((row) => row.internalName), [
+    'BaselineNpc', 'WallofFlesh',
+  ]);
+  assert.equal(candidate.executable, false);
+  assert.equal(candidate.changes.npc_buff_relations.inserts.length, 1);
+  assert.equal(candidate.changes.npc_buff_relations.preserved.length, 2);
+});
+
+test('Buff partial candidate rejects conflicting stable NPC identities', () => {
+  const input = partialCandidateFixture();
+  const baselineNpc = { npcId: 900, internalName: 'BaselineNpc', name: 'Baseline NPC' };
+  const positiveNpc = {
+    npcId: 900,
+    internalName: 'RenamedNpc',
+    name: 'Renamed NPC',
+    relationType: 'inflicts',
+    buffId: 24,
+    buffInternalName: 'OnFire',
+    sourcePage: 'Wall of Flesh',
+    sourcePageId: 10220,
+    sourceRevisionId: 1032375,
+    sourceRevisionTimestamp: '2026-09-30T00:00:00Z',
+  };
+  const positiveFact = {
+    relationType: 'inflicts',
+    npcSourceId: positiveNpc.npcId,
+    npcInternalName: positiveNpc.internalName,
+    npcName: positiveNpc.name,
+    buffId: 24,
+    buffInternalName: 'OnFire',
+    buffName: 'On Fire!',
+    sourcePage: 'Wall of Flesh',
+    sourcePageId: 10220,
+    sourceRevisionId: 1032375,
+    sourceRevisionTimestamp: '2026-09-30T00:00:00Z',
+  };
+  const baselineRelation = input.currentRows.relation_buffs[0];
+  const baselineRaw = JSON.parse(baselineRelation.rawJson);
+  baselineRaw.inflictingNpcs = [baselineNpc];
+  baselineRelation.rawJson = JSON.stringify(baselineRaw);
+  baselineRelation.inflictingNpcsJson = JSON.stringify([baselineNpc]);
+  const partialRelation = input.payload.relationBuffs[0];
+  const partialRecord = JSON.parse(partialRelation.rawJson);
+  partialRecord.inflictingNpcs = [positiveNpc];
+  partialRecord.sourceEvidence.inflictingNpcPositiveEvidence = {
+    status: 'positive-infliction-facts-only',
+    facts: [positiveFact],
+    source: {
+      provider: 'terraria.wiki.gg', pageTitle: 'Wall of Flesh', pageId: 10220,
+      revisionId: 1032375, revisionTimestamp: '2026-09-30T00:00:00Z',
+    },
+  };
+  partialRelation.rawJson = JSON.stringify(partialRecord);
+  partialRelation.inflictingNpcsJson = JSON.stringify([positiveNpc]);
+  const landing = input.landingRows[0];
+  const landingPayload = { records: [partialRecord] };
+  landing.payload_json = JSON.stringify(landingPayload);
+  landing.content_hash = createHash('sha256').update(landing.payload_json).digest('hex');
+  partialRelation.landingContentHash = landing.content_hash;
+  const plan = buildBuffPartialFactPlan({
+    record: partialRecord,
+    baseline: {
+      sourceItems: [], inflictingNpcs: [baselineNpc],
+      immuneNpcs: JSON.parse(baselineRelation.immuneNpcsJson),
+      immuneNpcCount: baselineRelation.immuneNpcCount,
+      immuneNpcSample: JSON.parse(baselineRelation.immuneNpcSampleJson),
+    },
+  });
+  input.partialFactPlansByInternalName = new Map([['OnFire', plan]]);
+  input.payload.npcBuffRelations = [];
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /conflicting.*identity|identity.*conflict/i);
+});
+
+test('Buff partial candidate rejects additive NPC facts without reverse relation rows', () => {
+  const input = partialCandidateFixture();
+  const positiveNpc = {
+    npcId: 113,
+    internalName: 'WallofFlesh',
+    name: 'Wall of Flesh',
+    relationType: 'inflicts',
+    buffId: 24,
+    buffInternalName: 'OnFire',
+    sourcePage: 'Wall of Flesh',
+    sourcePageId: 10220,
+    sourceRevisionId: 1032375,
+    sourceRevisionTimestamp: '2026-09-30T00:00:00Z',
+  };
+  const partialRelation = input.payload.relationBuffs[0];
+  const partialRecord = JSON.parse(partialRelation.rawJson);
+  partialRecord.inflictingNpcs = [positiveNpc];
+  partialRecord.sourceEvidence.inflictingNpcPositiveEvidence = {
+    status: 'positive-infliction-facts-only',
+    facts: [{
+      relationType: 'inflicts', npcSourceId: 113, npcInternalName: 'WallofFlesh', npcName: 'Wall of Flesh',
+      buffId: 24, buffInternalName: 'OnFire', sourcePage: 'Wall of Flesh', sourcePageId: 10220,
+      sourceRevisionId: 1032375, sourceRevisionTimestamp: '2026-09-30T00:00:00Z',
+    }],
+    source: {
+      provider: 'terraria.wiki.gg', pageTitle: 'Wall of Flesh', pageId: 10220,
+      revisionId: 1032375, revisionTimestamp: '2026-09-30T00:00:00Z',
+    },
+  };
+  partialRelation.rawJson = JSON.stringify(partialRecord);
+  partialRelation.inflictingNpcsJson = JSON.stringify([positiveNpc]);
+  const landing = input.landingRows[0];
+  const landingPayload = { records: [partialRecord] };
+  landing.payload_json = JSON.stringify(landingPayload);
+  landing.content_hash = createHash('sha256').update(landing.payload_json).digest('hex');
+  partialRelation.landingContentHash = landing.content_hash;
+  const baselineRelation = input.currentRows.relation_buffs[0];
+  const plan = buildBuffPartialFactPlan({
+    record: partialRecord,
+    baseline: {
+      sourceItems: [], inflictingNpcs: [],
+      immuneNpcs: JSON.parse(baselineRelation.immuneNpcsJson),
+      immuneNpcCount: baselineRelation.immuneNpcCount,
+      immuneNpcSample: JSON.parse(baselineRelation.immuneNpcSampleJson),
+    },
+  });
+  input.partialFactPlansByInternalName = new Map([['OnFire', plan]]);
+  input.payload.npcBuffRelations = [];
+  assert.throws(() => buildBuffIncrementalMutationPlan(input), /additive.*relation|reverse.*coverage/i);
+});
+
 test('normalizes the real page producer revision identity without top-level fallback', () => {
   const evidence = candidateFixture().pageEvidenceByInternalName.get('OnFire');
   const result = normalizeBuffPageEvidence({ evidence });
   assert.equal(result.revisionId, 12345);
   assert.equal(result.revisionTimestamp, '2026-09-23T01:02:03Z');
+});
+
+test('normalizer rejects explicitly unresolved target binding despite parsed metadata', () => {
+  for (const status of ['unverified', 'mismatch', 'ambiguous']) {
+    const evidence = candidateFixture().pageEvidenceByInternalName.get('OnFire');
+    evidence.sourceEvidence.immunityTargetBinding = { status, targets: [] };
+    assert.throws(() => normalizeBuffPageEvidence({ evidence }), /target binding/);
+  }
+});
+
+test('normalizer accepts a target-mismatched page when a complete alternate binds the immunity group', () => {
+  const evidence = candidateFixture().pageEvidenceByInternalName.get('OnFire');
+  evidence.sourceEvidence.parseStatus = 'parse_incomplete';
+  evidence.sourceEvidence.factGroups.immuneNpcs = { status: 'target_mismatch', count: 0, sections: ['Immune NPCs'] };
+  evidence.sourceEvidence.unresolvedFacts = [{ group: 'immuneNpcs', status: 'target_mismatch', sections: ['Immune NPCs'] }];
+  evidence.sourceEvidence.immuneNpcPositiveEvidence = {
+    immuneNpcPositiveEvidence: {
+      status: 'complete-npc-scope',
+      assertions: [{ npcId: 1, npcInternalName: 'BlueSlime', npcName: 'Blue Slime' }],
+    },
+  };
+  evidence.immuneNpcs = [{ npcId: 1, internalName: 'BlueSlime', name: 'Blue Slime', pageTitle: 'Blue Slime' }];
+  evidence.immuneNpcCount = 1;
+  evidence.immuneNpcSample = [...evidence.immuneNpcs];
+  const result = normalizeBuffPageEvidence({ evidence });
+  assert.equal(result.hasImmuneSection, false);
+  assert.deepEqual(result.immuneNpcs.map(row => row.internalName), ['BlueSlime']);
+});
+
+test('unverified binding without an immunity section remains a missing-section failure', () => {
+  const evidence = candidateFixture().pageEvidenceByInternalName.get('OnFire');
+  evidence.sourceEvidence.factGroups.immuneNpcs = { status: 'section_missing', sections: [] };
+  evidence.sourceEvidence.parseStatus = 'parse_incomplete';
+  evidence.sourceEvidence.unresolvedFacts = [{ group: 'immuneNpcs', status: 'section_missing', sections: [] }];
+  evidence.sourceEvidence.immunityTargetBinding = { status: 'unverified', targets: [] };
+  assert.throws(() => normalizeBuffPageEvidence({ evidence }), /incomplete/);
 });
 
 test('Buff payload maps database image columns before projecting the cached image', () => {

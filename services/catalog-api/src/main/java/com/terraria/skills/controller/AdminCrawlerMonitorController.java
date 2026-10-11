@@ -131,6 +131,16 @@ public class AdminCrawlerMonitorController {
         return ApiResponse.success(crawlerMonitorService.recoverCrawlerQueueV2Epoch(payload, claims.getUsername()));
     }
 
+    @PostMapping("/cutover/recover-first-mutation")
+    @Operation(summary = "Explicitly recover a confirmed V2 first mutation marker")
+    public ApiResponse<CrawlerQueueV2CutoverResultDTO> recoverFirstMutation(
+        HttpServletRequest request,
+        @RequestBody CrawlerQueueV2CutoverRequestDTO payload
+    ) {
+        AdminTokenClaims claims = requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.recoverCrawlerQueueV2FirstMutation(payload, claims.getUsername()));
+    }
+
     @GetMapping("/attempts/{attemptId}/log")
     @Operation(summary = "Read a V2 crawler attempt log incrementally")
     public ApiResponse<CrawlerAttemptLogDetailDTO> attemptLog(

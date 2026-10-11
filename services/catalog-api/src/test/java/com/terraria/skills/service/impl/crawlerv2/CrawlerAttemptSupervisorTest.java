@@ -1374,6 +1374,58 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void failedLeaseRenewalMustPersistTerminalFailedProgressAfterTheProcessStops() throws Exception {
+        CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        launcher.exitAfterGracefulWait = true;
+        CrawlerAttemptArtifactStore realArtifactStore = new CrawlerAttemptArtifactStore(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            new CrawlerQueueV2Properties()
+        );
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = realArtifactStore.prepare(
+            running.stateStoreEpoch(),
+            running.queueId(),
+            running.attemptId(),
+            running.domain(),
+            running.actionId(),
+            NOW
+        );
+        CrawlerAttemptProgressPayload runningProgress = progress(
+            running.queueId(),
+            running.attemptId(),
+            running.fenceToken(),
+            running.stateStoreEpoch(),
+            12L,
+            "running",
+            NOW.minusSeconds(1)
+        );
+        objectMapper.writeValue(repoRoot.resolve(prepared.progressPath()).toFile(), runningProgress);
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            running,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            v2Router().router(),
+            realArtifactStore
+        );
+
+        CrawlerQueueV2Attempt result = supervisor.handleLeaseRenewalFailure(running);
+
+        CrawlerAttemptProgressPayload terminal = realArtifactStore.readProgress(running.attemptId()).orElseThrow();
+        assertEquals(CrawlerQueueV2Status.FAILED, result.status());
+        assertEquals("failed", terminal.status());
+        assertEquals(running.queueId(), terminal.queueId());
+        assertEquals(running.attemptId(), terminal.attemptId());
+        assertEquals(running.fenceToken(), terminal.fenceToken());
+        assertEquals(running.stateStoreEpoch(), terminal.stateStoreEpoch());
+        assertTrue(terminal.progressSequence() > runningProgress.progressSequence());
+        assertEquals("domain lease renewal failed", terminal.message());
+    }
+
+    @Test
     void failedLeaseRenewalQuarantinesEveryCoveredDomainWhenTerminationIsUnconfirmed() {
         CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
         FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
@@ -2438,6 +2490,45 @@ class CrawlerAttemptSupervisorTest {
         CrawlerQueueV2Properties properties
     ) {
         return supervisor(launcher, initialAttempt, actionRegistry, properties, v2Router().router());
+    }
+
+    private CrawlerAttemptSupervisor supervisor(
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerQueueV2Attempt initialAttempt,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerQueueV2Properties properties,
+        CrawlerQueueEngineRouter router,
+        CrawlerAttemptArtifactStore artifacts
+    ) {
+        AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
+        when(repository.requireEpoch()).thenReturn("epoch-1");
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue(initialAttempt)));
+        when(repository.findAttempt("attempt-1")).thenAnswer(ignored -> Optional.ofNullable(current.get()));
+        when(repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V2,
+            "epoch-1",
+            "cutover-1",
+            NOW.minusSeconds(60).toString()
+        ));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.mutate(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.MutationCommand command = invocation.getArgument(0);
+            CrawlerQueueV2Attempt updated = apply(current.get(), command);
+            current.set(updated);
+            return new CrawlerQueueV2Repository.MutationResult(updated, "1-0");
+        });
+        latestAttempt = current;
+        return new CrawlerAttemptSupervisor(
+            repository,
+            artifacts,
+            actionRegistry,
+            launcher,
+            new CrawlerAttemptStateMachine(properties),
+            properties,
+            repoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            router
+        );
     }
 
     private CrawlerAttemptSupervisor supervisor(

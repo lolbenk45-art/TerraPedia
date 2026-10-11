@@ -13,6 +13,7 @@ import {
   createMysqlCommandClient,
   defaultExecute,
   requiresBootstrapMigrationSession,
+  rewriteMysqlCliCompoundTriggerDelimiters,
   rewriteFrozenCreateTable,
   rewriteSchemaForIsolatedDatabase,
   validateTemporaryAccountGrants
@@ -113,6 +114,26 @@ test('only trigger DDL requires the isolated bootstrap migration session', () =>
   assert.throws(() => requiresBootstrapMigrationSession('SET GLOBAL log_bin_trust_function_creators=1'), /global/i);
 });
 
+test('mysql CLI migrations wrap compound trigger bodies with a client delimiter', () => {
+  const sql = [
+    'ALTER TABLE sample ADD COLUMN marker INT;',
+    'CREATE TRIGGER sample_guard',
+    'BEFORE INSERT ON sample FOR EACH ROW',
+    'BEGIN',
+    '  IF NEW.marker < 0 THEN',
+    "    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'marker must be positive';",
+    '  END IF;',
+    'END;',
+    'CREATE TABLE after_trigger (id INT);',
+  ].join('\n');
+  const rewritten = rewriteMysqlCliCompoundTriggerDelimiters(sql);
+  assert.match(rewritten, /DELIMITER \$\$/);
+  assert.match(rewritten, /END\$\$/);
+  assert.match(rewritten, /DELIMITER ;/);
+  assert.match(rewritten, /CREATE TABLE after_trigger/);
+  assert.equal(rewriteMysqlCliCompoundTriggerDelimiters('CREATE TRIGGER simple BEFORE UPDATE ON t FOR EACH ROW SET @x=1;'), 'CREATE TRIGGER simple BEFORE UPDATE ON t FOR EACH ROW SET @x=1;');
+});
+
 test('mysql command client passes SQL on stdin and keeps credentials out of argv', async () => {
   const calls = [];
   const client = createMysqlCommandClient({
@@ -158,6 +179,59 @@ test('isolated databases are created by bootstrap before provisioner-scoped migr
     '--user', 'bootstrap'
   ]);
   await adapter.cleanupAccounts();
+});
+
+test('default Redis allocation excludes DB14 reserved for Armor', async (t) => {
+  const calls = [];
+  let reservationValue = '';
+  const adapter = await createLiveAutomationAdapter({
+    repoRoot: process.cwd(),
+    mysql: { host: '127.0.0.1', port: 13306, username: 'bootstrap', password: 'bootstrap-secret' },
+    redis: { host: '127.0.0.1', port: 16380, password: 'redis-secret' },
+    environmentId: 'test',
+    accountNames: { provisioner: 'automation_prov_test', readonly: 'automation_ro_test' },
+    accountPasswords: { provisioner: 'provisioner-secret', readonly: 'readonly-secret' },
+    execute: async (input) => {
+      calls.push(input);
+      if (input.args.includes('DBSIZE')) return { stdout: '0', stderr: '', exitCode: 0 };
+      if (input.args.includes('SET')) {
+        reservationValue = input.args.at(-1);
+        return { stdout: 'OK', stderr: '', exitCode: 0 };
+      }
+      if (input.args.includes('GET')) return { stdout: reservationValue, stderr: '', exitCode: 0 };
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+  });
+  t.after(() => adapter.cleanupAccounts());
+
+  const allocation = await adapter.allocateRedisLogicalDb({ runKey: 'test_0123456789abcdef' });
+  assert.equal(allocation.logicalDb, 13);
+  assert.equal(calls.some(({ args }) => args.includes('14')), false);
+});
+
+test('explicit DB14 allocation is rejected before any Redis command', async (t) => {
+  const calls = [];
+  const adapter = await createLiveAutomationAdapter({
+    repoRoot: process.cwd(),
+    mysql: { host: '127.0.0.1', port: 13306, username: 'bootstrap', password: 'bootstrap-secret' },
+    redis: { host: '127.0.0.1', port: 16380, password: 'redis-secret', logicalDb: 14 },
+    environmentId: 'test',
+    accountNames: { provisioner: 'automation_prov_test', readonly: 'automation_ro_test' },
+    accountPasswords: { provisioner: 'provisioner-secret', readonly: 'readonly-secret' },
+    execute: async (input) => {
+      calls.push(input);
+      if (input.args.includes('DBSIZE')) return { stdout: '0', stderr: '', exitCode: 0 };
+      if (input.args.includes('SET')) return { stdout: 'OK', stderr: '', exitCode: 0 };
+      return { stdout: '0', stderr: '', exitCode: 0 };
+    }
+  });
+  t.after(() => adapter.cleanupAccounts());
+
+  await assert.rejects(
+    () => adapter.allocateRedisLogicalDb({ runKey: 'test_0123456789abcdef' }),
+    /Redis logical DB.*1 through 13/i,
+  );
+  assert.equal(calls.length, 0);
 });
 
 test('command execution preserves child stderr when a large stdin hits EPIPE', async () => {

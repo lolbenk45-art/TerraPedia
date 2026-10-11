@@ -274,6 +274,9 @@ function extractBuffsMaintRows(landingRow, payload) {
     flagsJson: JSON.stringify({
       buffType: normalizeText(record.type),
     }),
+  })).map((row) => ({
+    ...row,
+    landingSourceId: landingRow.id == null ? null : row.landingSourceId,
   }));
 }
 

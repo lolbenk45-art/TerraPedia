@@ -380,6 +380,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return requireQueueV2CutoverService().recoverStateStoreReset(request, operator);
     }
 
+    @Override
+    public CrawlerQueueV2CutoverResultDTO recoverCrawlerQueueV2FirstMutation(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        return requireQueueV2CutoverService().recoverFirstLiveMutation(request, operator);
+    }
+
     private CrawlerQueueV2CutoverService requireQueueV2CutoverService() {
         if (queueV2CutoverService == null) {
             throw new CrawlerQueueV2Exception(
@@ -6576,11 +6584,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         settings.setConfigPresent(config.readable());
         if (config.readable()) {
             settings.setEnabled(asBoolean(config.payload().get("enabled")));
-            settings.setMode("changed-only");
+            String configuredMode = asString(config.payload().get("mode"));
+            if ("fixture-changed-only".equals(configuredMode) && fixtureScheduledAutomationEnabled) {
+                settings.setMode(configuredMode);
+            } else {
+                if ("fixture-changed-only".equals(configuredMode)) {
+                    settings.setEnabled(false);
+                }
+                settings.setMode("changed-only");
+            }
             settings.setSweepIntervalMinutes(Math.max(1, asInt(config.payload().get("sweepIntervalMinutes"), 60)));
-            settings.setCanaryActionId(normalizeV2AutomationCanaryActionId(
-                asString(config.payload().get("canaryActionId"))
-            ));
+            String configuredCanaryActionId = asString(config.payload().get("canaryActionId"));
+            settings.setCanaryActionId(
+                "fixture-changed-only".equals(configuredMode) && !fixtureScheduledAutomationEnabled
+                    ? null
+                    : normalizeV2AutomationCanaryActionId(configuredCanaryActionId)
+            );
         }
         settings.setLastSweep(readV2AutomationLastSweep(repoRoot));
         return settings;
@@ -6589,7 +6608,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private CrawlerV2AutomationDTO normalizeV2AutomationSettings(CrawlerV2AutomationDTO input) {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(input != null && input.isEnabled());
-        settings.setMode("changed-only");
+        String requestedMode = AdminTextUtils.trimToNull(input == null ? null : input.getMode());
+        if ("fixture-changed-only".equals(requestedMode)) {
+            if (!fixtureScheduledAutomationEnabled) {
+                throw new IllegalArgumentException("fixture scheduler mode is available only in the fixture-enabled test profile");
+            }
+            settings.setMode(requestedMode);
+        } else {
+            settings.setMode("changed-only");
+        }
         settings.setSweepIntervalMinutes(Math.max(1, input == null ? 60 : input.getSweepIntervalMinutes()));
         settings.setCanaryActionId(normalizeV2AutomationCanaryActionId(
             input == null ? null : input.getCanaryActionId()
@@ -6601,6 +6628,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String actionId = AdminTextUtils.trimToNull(value);
         if (actionId == null) {
             return null;
+        }
+        if (fixtureScheduledAutomationEnabled && "crawler-queue-v2-fixture".equals(actionId)) {
+            return actionId;
         }
         boolean registered = WIKI_MONITOR_RULES.stream().anyMatch(rule ->
             rule.wikiDomain()

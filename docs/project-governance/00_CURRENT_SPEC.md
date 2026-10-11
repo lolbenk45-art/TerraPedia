@@ -51,6 +51,26 @@ Historical docs do not override current spec or workflow.
   `~/.local/share/terrapedia/redis/redis-<port>` by default; each worktree uses
   its allocated logical database, and startup refuses a reachable Redis whose
   configured persistence directory does not match.
+- The governed local automatic-ingestion split reserves Redis `6380/DB14` for
+  the Armor worktree/runtime (`18104`) and Redis `6380/DB15` for the Buff
+  worktree/runtime (`18105`). Buff must use DB15 and must never launch against
+  DB14 or DB16; DB16 is retained historical state only. Both runtimes use the
+  fixed V2 namespace but keep separate epochs and state-store evidence.
+  Scheduler control remains disabled until each domain's fresh authorization
+  and natural-tick gates pass.
+- When a real Wiki fingerprint has not changed, Buff automation may be tested
+  only through the bounded fixture window
+  `bash ./platform/local/run-buff-automation-test-window.sh --fixture-profile=t1 --window-minutes=5`.
+  The window uses run-derived T1 schemas and Redis logical DB13, enables the
+  fixture-only `fixture-changed-only` mode long enough for a real `@Scheduled`
+  tick, runs the isolated Buff T1 chain, and disables the test scheduler before
+  cleanup. It must never write formal databases or Buff DB15, and it cannot
+  establish production authorization or unattended-ingestion completion.
+- A fresh current-Wiki Buff source replay is a separate bounded acceptance lane:
+  `bash ./platform/local/run-buff-current-source-replay.sh --redis-db=18`.
+  It fetches the revision-bound Buff modules/pages and runs the T1 chain only
+  against run-derived databases and Redis logical DB18. The wrapper accepts no
+  other Redis DB; DB14, DB15, DB16, and DB17 remain reserved or historical.
 - Isolated user-auth browser smoke: `bash ./platform/local/run-user-auth-e2e.sh --smoke`
 - Isolated user-auth browser regression: `bash ./platform/local/run-user-auth-e2e.sh --regression`
 - Backend focused tests: run Maven from `services/catalog-api/`
@@ -110,6 +130,22 @@ blocked until real enforced partitions for `world_contexts` and
 `entity_source_snapshots` join its four transform scopes. These contracts do not
 widen H8 or authorize runtime writes by themselves; see devlog for current
 scope approval, review and runtime validation state.
+
+The separate `canonical-buff-item-maint-insert` operation is registered for
+the six Item game IDs `6148/6149/6155/6161/6164/6173` required by the Buff
+dependency chain. It binds frozen Iteminfo capture bytes, inserts one
+non-current source-evidence landing and six missing `maint_items` identities,
+and requires two exclusive fences, locked rederivation, real insert receipts,
+immutable recovery evidence, and independent committed readback before fence
+release. It does not write local Item rows or Buff relation/projection rows.
+The exact scope was approved by the user on 2026-10-06 and executed under
+decision `buff-item-maint-20261006-admin-01`, run
+`buff-items-20261006-task18-exec-v1`. The committed result inserted landing
+`12546` with `is_current=0` and six active `maint_items` identities
+`6162/6163/6164/6165/6166/6167`; independent readback and fence release passed.
+This operation does not write local Item rows or Buff relation/projection rows;
+the remaining `1340`, NPC secondary identity, and Buff zero-baseline/full-chain
+gates remain independent.
 
 The separate `canonical-armor-secondary-projection` operation publishes existing
 Armor-member attributes and item-owned `armor_attribute_cell` effects into the
@@ -180,7 +216,7 @@ side effect.
 
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
-DB `15`, and exposes verification codes only through the E2E profile's
+DB `17`, and exposes verification codes only through the E2E profile's
 run-secret mailbox. Full local and CI quality gates require its smoke suite;
 `--skip-front` also omits that dependent evidence and reports the limitation.
 The runner requires E2E-scoped consent, credentials, service ports, runner

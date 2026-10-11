@@ -92,7 +92,47 @@ function manifestOptions(operationId) {
       || operationId === 'canonical-armor-source-effect-publication'
       || operationId === 'canonical-armor-secondary-projection'
       || operationId === 'canonical-armor-typed-effect-publication'
-      || operationId === 'canonical-buff-full-chain') return { resultLabel: 'test-01' };
+      || operationId === 'canonical-buff-full-chain'
+      || operationId === 'canonical-buff-additive-relation-apply'
+      || operationId === 'canonical-buff-npc-secondary-apply'
+      || operationId === 'canonical-buff-npc-infliction-dedup') return {
+    resultLabel: 'test-01',
+    buffFullChainBinding: operationId === 'canonical-buff-full-chain' ? {
+      schemaVersion: 'buff-full-chain-operation-binding/v1',
+      operationId,
+      resultLabel: 'test-01',
+      runId: 'buff-full-chain-test-01',
+      fenceToken: 'fence:test-full-chain-01',
+    } : null,
+    buffAdditiveRelationBinding: {
+      schemaVersion: 'buff-additive-relation-operation-binding/v1',
+      operationId: 'canonical-buff-additive-relation-apply',
+      resultLabel: 'test-01',
+      runId: 'buff-additive-relation-test-01',
+      fenceToken: 'fence:test-01',
+    },
+    buffNpcSecondaryBinding: operationId === 'canonical-buff-npc-secondary-apply' ? {
+      schemaVersion: 'buff-npc-secondary-operation-binding/v1',
+      operationId,
+      resultLabel: 'test-01',
+      runId: 'buff-npc-secondary-test-01',
+      fenceToken: 'fence:test-npc-secondary-01',
+    } : null,
+    buffNpcInflictionDedupBinding: operationId === 'canonical-buff-npc-infliction-dedup' ? {
+      schemaVersion: 'buff-npc-infliction-dedup-operation-binding/v1',
+      operationId,
+      resultLabel: 'test-01',
+      runId: 'buff-infliction-dedup-test-01',
+      fenceToken: 'fence:test-infliction-dedup-01',
+    } : null,
+  };
+  if (operationId === 'canonical-buff-item-maint-insert') return {
+    resultLabel: 'test-01', buffItemMaintInsertBinding: {
+      schemaVersion: 'buff-item-maint-operation-binding/v1', runId: 'buff-items-test-01',
+      contractHash: `sha256:${'a'.repeat(64)}`, sourceIds: [6148, 6149, 6155, 6161, 6164, 6173],
+      fenceTokens: { landing: 'fence:test-landing', maint: 'fence:test-maint' },
+    },
+  };
   if (operationId === 'canonical-armor-image-cache') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-semantic-repair') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-historical-tuple-repair') return { resultLabel: 'test-01' };
@@ -145,6 +185,32 @@ function manifestOptions(operationId) {
   }
   return operationId === 'canonical-image-sync' ? { ...IMAGE_SYNC_OPTIONS } : {};
 }
+
+test('Buff full-chain manifest freezes the run and write-fence identity', () => {
+  const operationId = 'canonical-buff-full-chain';
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    resultLabel: 'test-01',
+    buffFullChainBinding: {
+      schemaVersion: 'buff-full-chain-operation-binding/v1',
+      operationId,
+      resultLabel: 'test-01',
+      runId: 'buff-full-chain-test-01',
+      fenceToken: 'fence:test-full-chain-01',
+    },
+  });
+  assert.deepEqual(manifest.buffFullChain, {
+    schemaVersion: 'buff-full-chain-operation-binding/v1',
+    operationId,
+    resultLabel: 'test-01',
+    envelopePath: 'reports/authorization/canonical/canonical-buff-full-chain.test-01.envelope.json',
+    resultPath: 'reports/authorization/canonical/canonical-buff-full-chain.test-01.result.json',
+    journalPath: 'reports/authorization/canonical/canonical-buff-full-chain.test-01.journal.json',
+    runId: 'buff-full-chain-test-01',
+    fenceToken: 'fence:test-full-chain-01',
+  });
+});
 
 test('base-domain policy bootstrap and promotion operations are governed entrypoints', () => {
   for (const domainId of ['items', 'projectiles']) {
@@ -320,6 +386,57 @@ test('NPC Buff relation recovery is one Buff-owned exact governed operation', ()
   ]);
 });
 
+test('Buff additive relation repair is a separate bounded governed operation', () => {
+  const operationId = 'canonical-buff-additive-relation-apply';
+  assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
+  assert.equal(
+    CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+    'pipelines/relation/run-buff-additive-relation-apply.mjs',
+  );
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[operationId], []);
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    resultLabel: 'test-01',
+    buffAdditiveRelationBinding: {
+      schemaVersion: 'buff-additive-relation-operation-binding/v1',
+      operationId,
+      resultLabel: 'test-01',
+      runId: 'buff-additive-relation-test-01',
+      fenceToken: 'fence:test-01',
+    },
+  });
+  assert.equal(manifest.databaseWrites, true);
+  assert.equal(manifest.networkAccess, false);
+  assert.deepEqual(manifest.ownershipKeys, [
+    'relation.relation_buffs.inflicting_npcs_json',
+    'relation.relation_buffs.source_evidence_json',
+    'relation.npc_buff_relations.inflicts',
+    'relation.projection_buffs.inflicting_npcs_json',
+    'relation.projection_buffs.source_evidence_json',
+  ]);
+  assert.deepEqual(manifest.command, [
+    'node',
+    'pipelines/relation/run-buff-additive-relation-apply.mjs',
+    '--operation-id=canonical-buff-additive-relation-apply',
+    '--result-label=test-01',
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/canonical-buff-additive-relation-apply.test-01.proposal.json',
+  ]);
+  assert.deepEqual(manifest.buffAdditiveRelation, {
+    schemaVersion: 'buff-additive-relation-operation-binding/v1',
+    operationId,
+    resultLabel: 'test-01',
+    proposalPath: 'reports/authorization/canonical/canonical-buff-additive-relation-apply.test-01.proposal.json',
+    resultPath: 'reports/authorization/canonical/canonical-buff-additive-relation-apply.test-01.result.json',
+    journalPath: 'reports/authorization/canonical/canonical-buff-additive-relation-apply.test-01.journal.json',
+    runId: 'buff-additive-relation-test-01',
+    fenceToken: 'fence:test-01',
+  });
+});
+
 test('image-origin and Armor restoration lanes are separate governed operations', () => {
   const cases = [
     {
@@ -378,8 +495,8 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 134);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 132);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 138);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 136);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(
@@ -968,6 +1085,18 @@ test('NPC T1 manifest freezes the private config identity and isolated-resource 
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, true);
   assert.equal(manifest.networkAccess, false);
+});
+
+test('Buff and NPC T1 manifests reject DB14 reserved for the Armor runtime', () => {
+  for (const operationId of ['canonical-buff-t1-acceptance', 'canonical-npc-t1-acceptance']) {
+    assert.throws(() => buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId,
+      artifactDate: '2026-07-30',
+      ...manifestOptions(operationId),
+      npcT1RedisDb: 14,
+    }), /NPC T1 Redis DB.*1 through 13/i);
+  }
 });
 
 test('recipe T1 manifest freezes a bounded offline fixture', () => {

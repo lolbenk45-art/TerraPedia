@@ -8,6 +8,7 @@ import {
   DATABASE_ROLES,
   TEST_PROFILES,
   FORMAL_DATABASES,
+  assertAutomationRedisLogicalDb,
   openDurableRunKeyRegistry,
   normalizeRunKey,
   buildAutomationDatabaseNames,
@@ -25,6 +26,14 @@ function createRegistry(t) {
 test('database roles and test profiles are closed enums', () => {
   assert.deepEqual(DATABASE_ROLES, ['maint', 'relation', 'local']);
   assert.deepEqual(TEST_PROFILES, ['unit', 't0', 't1', 't2-readonly']);
+});
+
+test('isolated automation Redis DBs allow the explicit Buff replay DB18 and exclude reserved DB14 through DB17', () => {
+  assert.equal(assertAutomationRedisLogicalDb(13), 13);
+  assert.equal(assertAutomationRedisLogicalDb(18), 18);
+  for (const value of [14, 15, 16, 17, '13']) {
+    assert.throws(() => assertAutomationRedisLogicalDb(value), /1 through 13|18/i);
+  }
 });
 
 test('normalizeRunKey creates a maximum-20-character slug plus lowercase sha256 suffix', (t) => {
@@ -114,6 +123,11 @@ test('wrong profile, purpose, credential, server, or redis identity fails closed
   ]) {
     assert.throws(() => assertDatabasePurpose(trusted, mutate(observed), 't0', names.runKey), new RegExp(path, 'i'));
   }
+  assert.throws(() => assertDatabasePurpose(
+    { ...trusted, redis: { ...trusted.redis, logicalDb: 14 } },
+    { ...observed, redis: { ...observed.redis, logicalDb: 14 } },
+    't0', names.runKey,
+  ), /Redis logical DB.*1 through 13|18/i);
 });
 
 test('missing expected database or redis fingerprints fail closed', (t) => {

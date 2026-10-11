@@ -148,6 +148,41 @@ class CrawlerQueueEngineRouterTest {
     }
 
     @Test
+    void treatsRedisFirstMutationWithoutDurableReservationAsStateStoreReset() {
+        CrawlerQueueEngineRouter router = router();
+        router.writeState(state(CrawlerQueueEngineMode.V2, "cutover-1", "epoch-1", null, null));
+        when(repository.readEngineState()).thenReturn(engine(
+            CrawlerQueueEngineMode.V2,
+            "epoch-1",
+            "cutover-1",
+            NOW.plusSeconds(2).toString()
+        ));
+
+        assertEquals(CrawlerQueueEngineMode.MAINTENANCE, router.mode());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, router.lastReasonCode());
+    }
+
+    @Test
+    void adoptsExplicitMatchingFirstMutationEvidenceWhenMarkerHasNoIrreversiblePair() {
+        CrawlerQueueEngineRouter router = router();
+        router.writeState(state(CrawlerQueueEngineMode.V2, "cutover-1", "epoch-1", null, null));
+        Instant reservation = NOW.plusSeconds(1);
+        Instant committed = NOW.plusSeconds(2);
+        when(repository.readEngineState()).thenReturn(engine(
+            CrawlerQueueEngineMode.V2,
+            "epoch-1",
+            "cutover-1",
+            committed.toString()
+        ));
+
+        CrawlerQueueEngineRouter.CutoverState recovered = router.recoverFirstLiveMutation(reservation, committed);
+
+        assertEquals(CrawlerQueueEngineMode.V2, recovered.mode());
+        assertEquals(reservation, recovered.mutationReservationAt());
+        assertEquals(committed, recovered.firstLiveMutationAt());
+    }
+
+    @Test
     void writesReservationWithAtomicReplacementBeforeAnyRedisCall() throws Exception {
         CrawlerQueueEngineRouter router = router();
         router.writeState(state(CrawlerQueueEngineMode.V2, "cutover-1", "epoch-1", null, null));

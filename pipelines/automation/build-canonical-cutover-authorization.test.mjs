@@ -339,6 +339,10 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-projectile-t1-acceptance',
     'canonical-buff-t1-acceptance',
     'canonical-buff-full-chain',
+    'canonical-buff-additive-relation-apply',
+    'canonical-buff-npc-secondary-apply',
+    'canonical-buff-npc-infliction-dedup',
+    'canonical-buff-item-maint-insert',
     'canonical-biome-t1-acceptance',
     'canonical-biome-image-contract-apply',
     'canonical-crawler-v2-scheduler-t1-acceptance',
@@ -939,7 +943,11 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
         || operationId === 'canonical-armor-semantic-repair'
         || operationId === 'canonical-armor-historical-tuple-repair'
         || operationId === 'canonical-armor-ingestion'
-        || operationId === 'canonical-buff-full-chain') {
+        || operationId === 'canonical-buff-full-chain'
+        || operationId === 'canonical-buff-additive-relation-apply'
+        || operationId === 'canonical-buff-npc-secondary-apply'
+        || operationId === 'canonical-buff-npc-infliction-dedup'
+        || operationId === 'canonical-buff-item-maint-insert') {
       assert.throws(() => buildCanonicalAuthorizationRequestForOperation({ repoRoot, operationId, generatedAt: GENERATED_AT, expiresAt: EXPIRES_AT }), /manifest/);
       continue;
     }

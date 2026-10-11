@@ -780,7 +780,7 @@ test('records ownership after an exclusive derived database create, keeps child 
   assert.ok(dropIndex > markerIndex, 'cleanup must happen after ownership marker creation');
   assert.match(calls[createIndex], new RegExp(`CREATE DATABASE .*${derivedDatabase}`));
   assert.match(calls[dropIndex], new RegExp(`DROP DATABASE .*${derivedDatabase}`));
-  assert.equal(calls.some((line) => line.startsWith('redis-cli\t') && !line.includes('\t-n\t15\t')), false);
+  assert.equal(calls.some((line) => line.startsWith('redis-cli\t') && !line.includes('\t-n\t17\t')), false);
   assert.deepEqual(
     walkFiles(path.join(sandbox.root, 'reports', 'e2e', runId))
       .map((filePath) => path.relative(path.join(sandbox.root, 'reports', 'e2e', runId), filePath)),
@@ -1083,7 +1083,7 @@ test('stops a surviving child listener when the recorded group leader has exited
   assert.ok(finalFlush > firstCleanupStop, 'data cleanup must follow safe process-group shutdown');
 });
 
-test('signal cleanup retains the lock until it has cleaned only the owned derived database and Redis DB 15', () => {
+test('signal cleanup retains the lock until it has cleaned only the owned derived database and Redis DB 17', () => {
   const sandbox = makeSandbox();
   const result = runRunner(sandbox, { FAKE_SIGNAL_DURING_SUITE: '1' });
   const calls = invocations(sandbox);
@@ -1099,6 +1099,6 @@ test('signal cleanup retains the lock until it has cleaned only the owned derive
   assert.ok(lockReleaseIndex > dropIndex, 'flock must remain held until database cleanup finishes');
   assert.ok(cleanupFlushIndexes.some((index) => index < lockReleaseIndex), 'cleanup must flush Redis before lock release');
   assert.equal(calls.some((line) => line.includes('DROP DATABASE') && !line.includes(derivedDatabase)), false);
-  assert.equal(calls.some((line) => line.startsWith('redis-cli\t') && !line.includes('\t-n\t15\t')), false);
+  assert.equal(calls.some((line) => line.startsWith('redis-cli\t') && !line.includes('\t-n\t17\t')), false);
   assertPrivateValuesAreAbsent(sandbox, result);
 });

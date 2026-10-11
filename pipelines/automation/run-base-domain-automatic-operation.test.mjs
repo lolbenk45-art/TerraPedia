@@ -242,6 +242,14 @@ test('base automatic source commands defer manifest acknowledgement to the outer
   assert.equal(buildBaseDomainSourceCommand('armor_sets', '/tmp/armor-progress.json').some((arg) => arg.startsWith('--manifest-path=')), false);
 });
 
+test('base automatic Buff source resumes a valid page checkpoint after a failed natural tick', () => {
+  assert.deepEqual(buildBaseDomainSourceCommand('buffs', '/tmp/buffs-progress.json'), [
+    'pipelines/fetch/fetch-wiki-buffs.mjs',
+    '--progress-path=/tmp/buffs-progress.json',
+    '--resume-mode=auto',
+  ]);
+});
+
 test('base automatic acknowledgement resolves the scheduler canonical manifest inside the worktree', () => {
   assert.equal(typeof baseOperationModule.resolveBaseDomainManifestPath, 'function');
   assert.equal(

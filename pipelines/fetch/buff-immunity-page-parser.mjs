@@ -23,6 +23,10 @@ export function parseBuffPageEvidence({
   const enemySections = findSections(sectionIndex, ENEMY_SOURCE_SECTION_NAMES);
   const environmentSections = findSections(sectionIndex, ENVIRONMENT_SOURCE_SECTION_NAMES);
   const immuneSection = firstSection(sectionIndex, IMMUNE_NPC_SECTION_NAMES);
+  const templateBinding = bindImmunityTemplateTarget({ wikitext, buffId, buffName, pageTitle: canonicalPageTitle ?? pageTitle });
+  const immunityTargetBinding = bindRenderedImmunityTarget({ templateBinding, html: immuneSection?.html, buffName });
+  const targetRejected = ['mismatch', 'ambiguous'].includes(immunityTargetBinding.status)
+    || (immunityTargetBinding.status === 'unverified' && Boolean(buffId || buffName) && Boolean(immuneSection));
   const playerSourceItems = parseBuffCauseEntriesFromSections(playerSections, { sourceKind: 'player' });
   const itemSourceItems = parseBuffCauseEntriesFromSections(itemSections, { sourceKind: 'item' });
   const environmentSourceItems = parseBuffCauseEntriesFromSections(environmentSections, { sourceKind: 'environment' });
@@ -32,7 +36,8 @@ export function parseBuffPageEvidence({
     ...environmentSourceItems
   ];
   const inflictingNpcs = parseBuffCauseEntriesFromSections(enemySections, { sourceKind: 'enemy' });
-  const immuneNpcs = extractImmuneNpcEntries(immuneSection?.html ?? extractImmuneNpcSectionHtml(html));
+  const rawImmuneNpcs = targetRejected ? [] : extractImmuneNpcEntries(immuneSection?.html ?? extractImmuneNpcSectionHtml(html));
+  const immuneNpcs = dedupeImmuneNpcEntries(rawImmuneNpcs);
   const immuneNpcSample = immuneNpcs.slice(0, Math.max(0, sampleLimit));
   const factGroups = {
     sourceItems: factGroupStatus({
@@ -48,8 +53,11 @@ export function parseBuffPageEvidence({
       rows: immuneNpcs
     })
   };
+  if (targetRejected) {
+    factGroups.immuneNpcs.status = `target_${immunityTargetBinding.status}`;
+  }
   const unresolvedFacts = Object.entries(factGroups)
-    .filter(([, status]) => status.status === 'no_rows')
+    .filter(([, status]) => ['no_rows', 'target_mismatch', 'target_ambiguous', 'target_unverified'].includes(status.status))
     .map(([group, status]) => ({
       group,
       status: status.status,
@@ -65,10 +73,11 @@ export function parseBuffPageEvidence({
     inflictingNpcs,
     immuneNpcs,
     immuneNpcCount: immuneNpcs.length,
+    immuneNpcRawCount: rawImmuneNpcs.length,
     immuneNpcSample,
     immuneNpcSource: immuneNpcs.length > 0 ? 'buff-page-immunities' : null,
     immuneNpcSampleSemantics: immuneNpcs.length > 0
-      ? `first ${immuneNpcSample.length} entries from the rendered buff page immunities list; immuneNpcCount is the full rendered list size`
+      ? `first ${immuneNpcSample.length} unique page identities from the rendered buff page immunities list; immuneNpcCount is the unique rendered identity count`
       : null,
     sourceEvidence: {
       provider: 'terraria.wiki.gg',
@@ -88,9 +97,65 @@ export function parseBuffPageEvidence({
       ].filter(Boolean),
       parseStatus,
       factGroups,
+      immunityTargetBinding,
       unresolvedFacts
     }
   };
+}
+
+function dedupeImmuneNpcEntries(entries) {
+  const seen = new Set();
+  return entries.filter((entry) => {
+    const identity = String(entry?.pageTitle ?? entry?.internalName ?? '').trim();
+    if (!identity || seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
+
+function bindRenderedImmunityTarget({ templateBinding, html, buffName }) {
+  if (!buffName || !['matched', 'unverified'].includes(templateBinding.status)) return templateBinding;
+  const targets = [];
+  for (const match of String(html ?? '').matchAll(/<div\b[^>]*\bclass\s*=\s*(["'])[^"']*\bheading\b[^"']*\1[^>]*>([\s\S]*?)<\/div>/gi)) {
+    const label = normalizeWhitespace(decodeHtmlEntities(stripHtml(match[2])));
+    const target = /^Enemies immune to (.+)$/i.exec(label)?.[1];
+    if (target) targets.push(target);
+  }
+  if (!targets.length) return templateBinding;
+  if (targets.length !== 1) return { status: 'ambiguous', targets };
+  if (templateBinding.status === 'matched' && templateBinding.displayName
+      && normalizeWhitespace(targets[0]) === normalizeWhitespace(templateBinding.displayName)) {
+    return templateBinding;
+  }
+  const matched = normalizeWhitespace(targets[0]).toLowerCase() === normalizeWhitespace(buffName).toLowerCase();
+  return { status: matched ? 'matched' : 'mismatch', targets };
+}
+
+function bindImmunityTemplateTarget({ wikitext, buffId, buffName, pageTitle }) {
+  const text = String(wikitext ?? '').replace(/<!--[\s\S]*?-->/g, '');
+  const headings = [...text.matchAll(/^(={2,6})\s*(.*?)\s*\1\s*$/gm)];
+  const normalize = value => String(value ?? '').replaceAll('_', ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  const heading = headings.find(match => IMMUNE_NPC_SECTION_NAMES.some(name => normalize(name) === normalize(match[2])));
+  if (!heading) return { status: 'unverified', targets: [] };
+  const next = headings.find(match => match.index > heading.index && match[1].length <= heading[1].length);
+  let section = text.slice(heading.index + heading[0].length, next?.index ?? text.length);
+  // This literal magic word is determined by the captured canonical main page;
+  // arbitrary nested templates still require separate expansion evidence.
+  if (typeof pageTitle === 'string' && !pageTitle.includes(':')) {
+    section = section.replace(/\{\{PAGENAME\}\}/g, () => pageTitle);
+  }
+  const invocations = [...section.matchAll(/\{\{\s*(?:Template:)?immunities\s*\|/gi)];
+  const targets = [...section.matchAll(/\{\{\s*(?:Template:)?immunities\s*\|\s*(?:1\s*=\s*)?([^|{}]+?)(?=\||\}\})/gi)]
+    .map(match => match[1].trim());
+  if (!invocations.length) return { status: 'unverified', targets: [] };
+  // A merged rendered list cannot safely be split between multiple invocations.
+  if (invocations.length !== 1 || targets.length !== 1 || (!buffName && !buffId)) {
+    return { status: 'ambiguous', targets };
+  }
+  const matched = normalize(targets[0]) === normalize(buffName)
+    || (/^[1-9]\d*$/.test(targets[0]) && Number(targets[0]) === Number(buffId));
+  const displayName = /\{\{\s*(?:Template:)?immunities\s*\|[^{}]*?\|\s*name\s*=\s*([^|{}]+?)(?=\||\}\})/i.exec(section)?.[1]?.trim();
+  return { status: matched ? 'matched' : 'mismatch', targets, ...(displayName ? { displayName } : {}) };
 }
 
 function factGroupStatus({ sections = [], rows = [] } = {}) {

@@ -7229,8 +7229,12 @@ class CrawlerMonitorServiceImplTest {
         fixtureEnabled.set(service, true);
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
+        settings.setMode("fixture-changed-only");
         settings.setSweepIntervalMinutes(60);
-        service.updateV2AutomationSettings(settings);
+        settings.setCanaryActionId("crawler-queue-v2-fixture");
+        CrawlerV2AutomationDTO normalized = service.updateV2AutomationSettings(settings);
+        assertEquals("fixture-changed-only", normalized.getMode());
+        assertEquals("crawler-queue-v2-fixture", normalized.getCanaryActionId());
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 

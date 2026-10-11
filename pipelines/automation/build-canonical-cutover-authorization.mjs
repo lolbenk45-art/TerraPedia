@@ -321,6 +321,26 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
     dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
       label: 'Buff full-chain envelope', privateFile: true,
     }));
+  } else if (operationId === 'canonical-buff-additive-relation-apply') {
+    if (verifiedExecutionManifest == null) throw new Error('Buff additive relation execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Buff additive relation proposal', privateFile: true,
+    }));
+  } else if (operationId === 'canonical-buff-npc-secondary-apply') {
+    if (verifiedExecutionManifest == null) throw new Error('Buff NPC secondary execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Buff NPC secondary proposal', privateFile: true,
+    }));
+  } else if (operationId === 'canonical-buff-npc-infliction-dedup') {
+    if (verifiedExecutionManifest == null) throw new Error('Buff NPC infliction dedup execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Buff NPC infliction dedup source/proposal', privateFile: true,
+    }));
+  } else if (operationId === 'canonical-buff-item-maint-insert') {
+    if (verifiedExecutionManifest == null) throw new Error('Item dependency execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Item dependency source/proposal', privateFile: true,
+    }));
   } else if (operationId === 'canonical-armor-semantic-repair') {
     if (verifiedExecutionManifest == null) throw new Error('Armor semantic repair execution manifest is required');
     dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
