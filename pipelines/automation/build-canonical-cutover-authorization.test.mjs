@@ -310,8 +310,16 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-armor-set-projection-incremental',
     'canonical-armor-ingestion',
     'canonical-armor-semantic-repair',
+    'canonical-armor-historical-tuple-repair',
     'canonical-armor-secondary-projection',
     'canonical-armor-item-effect-source',
+    'canonical-armor-item-lineage-refresh',
+    'canonical-armor-shroomite-relation-item-refresh',
+    'canonical-armor-relation-item-normalization',
+    'canonical-armor-source-effect-publication',
+    'canonical-armor-missing-attribute-source',
+    'canonical-armor-attribute-relation-publication',
+    'canonical-armor-typed-effect-publication',
     'canonical-armor-image-cache',
     'canonical-two-item-image-quarantine-repair',
     'canonical-item-base-entity-restoration',
@@ -918,10 +926,18 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
 
   for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
     if (operationId === 'canonical-armor-set-projection-incremental'
-        || operationId === 'canonical-armor-item-effect-source'
+      || operationId === 'canonical-armor-item-effect-source'
+        || operationId === 'canonical-armor-item-lineage-refresh'
+        || operationId === 'canonical-armor-shroomite-relation-item-refresh'
+        || operationId === 'canonical-armor-relation-item-normalization'
+        || operationId === 'canonical-armor-source-effect-publication'
+        || operationId === 'canonical-armor-missing-attribute-source'
+        || operationId === 'canonical-armor-attribute-relation-publication'
         || operationId === 'canonical-armor-secondary-projection'
         || operationId === 'canonical-armor-image-cache'
+        || operationId === 'canonical-armor-typed-effect-publication'
         || operationId === 'canonical-armor-semantic-repair'
+        || operationId === 'canonical-armor-historical-tuple-repair'
         || operationId === 'canonical-armor-ingestion'
         || operationId === 'canonical-buff-full-chain') {
       assert.throws(() => buildCanonicalAuthorizationRequestForOperation({ repoRoot, operationId, generatedAt: GENERATED_AT, expiresAt: EXPIRES_AT }), /manifest/);

@@ -35,10 +35,12 @@ function fixture() {
     fetched_at: at, parsed_at: at, payload_json: JSON.stringify(payload), content_hash: hash(payload),
     artifact_role: 'source_evidence', parse_status: 'ok', is_current: 1,
   });
+  const landingRows = [landing(31, 'armor_sets_raw', 'wiki.module.armorsetbonuses', armor),
+    landing(32, 'armor_set_images_raw', 'wiki.armor_set_images', images)];
   return {
+    landingCurrentRows: structuredClone(landingRows),
     maintInput: {
-      landingRows: [landing(31, 'armor_sets_raw', 'wiki.module.armorsetbonuses', armor),
-        landing(32, 'armor_set_images_raw', 'wiki.armor_set_images', images)],
+      landingRows,
       currentRows: { maint_armor_sets: [], maint_armor_set_images: [] }, managedImageUrlPrefixes: [prefix],
     },
     maintItems: ['WoodHelmet', 'WoodBreastplate', 'WoodGreaves'].map((internalName, index) => ({
@@ -214,7 +216,7 @@ test('SQL JSON, Date and boolean representations do not manufacture relation cha
   for (const rows of Object.values(input.currentRows)) for (const row of rows) for (const key of Object.keys(row)) {
     if (key.endsWith('_json') && row[key] != null) row[key] = JSON.parse(row[key]);
     if (key.endsWith('_timestamp') && row[key] != null) row[key] = new Date(row[key]);
-    if (key === 'is_primary') row[key] = Number(row[key]);
+    if (key === 'is_primary') row[key] = String(Number(row[key]));
     if (key === 'confidence') row[key] = Number(row[key]).toFixed(4);
   }
   const result = await build(input);

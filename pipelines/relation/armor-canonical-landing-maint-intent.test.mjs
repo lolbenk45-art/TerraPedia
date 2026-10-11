@@ -111,6 +111,33 @@ test('keeps retired landing history in the baseline while enforcing one current 
   assert.doesNotThrow(() => buildArmorCanonicalLandingMaintIntent(input));
 });
 
+test('sorts image baselines with the same codepoint identity order as relation rederivation', () => {
+  const input = intentInput();
+  input.maintBaselineRows.maint_armor_set_images = [
+    {
+      id: 171,
+      record_key: '1'.repeat(64),
+      text_key: 'ArmorSetBonus.Forbidden',
+      image_role: 'male',
+      source_file_title: 'Forbidden_armor_(Safeman).gif',
+    },
+    {
+      id: 172,
+      record_key: '2'.repeat(64),
+      text_key: 'ArmorSetBonus.Forbidden',
+      image_role: 'male',
+      source_file_title: 'Forbidden_armor.png',
+    },
+  ];
+
+  const result = buildArmorCanonicalLandingMaintIntent(input);
+
+  assert.deepEqual(
+    result.snapshots.maintBaselineRows.maint_armor_set_images.map(row => row.source_file_title),
+    ['Forbidden_armor.png', 'Forbidden_armor_(Safeman).gif'],
+  );
+});
+
 test('materializes exact landing and maint receipts without guessing allocator order', () => {
   const intent = buildArmorCanonicalLandingMaintIntent(intentInput());
   const result = materializeArmorCanonicalLandingMaintIntent({ intent, receipts: receipts() });

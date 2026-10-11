@@ -25,8 +25,14 @@ function recoveryIntent(expected) {
   throw new Error(`Armor recovery composite intent is required for ${landing}/${relation}`);
 }
 
+function expectedInsertPlanCount(expected) {
+  return (expected?.landingMaintIntent?.insertPlans?.length ?? 0)
+    + (expected?.relationIntent?.insertPlans?.length ?? 0);
+}
+
 export function createArmorCanonicalRecoveryJournalAdapter({
-  store, packet, expected, materialize, clock = () => new Date().toISOString(),
+  store, packet, expected, materialize,
+  clock = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
 } = {}) {
   plain(store, 'Armor recovery journal store');
   for (const method of ['create', 'read', 'advance']) if (typeof store[method] !== 'function') throw new Error(`Armor recovery journal store ${method} is required`);
@@ -75,6 +81,10 @@ export function createArmorCanonicalRecoveryJournalAdapter({
       if (state.materialized) throw new Error('Armor recovery materialization was duplicated');
       const materialized = await materialize({ expected, receipts, verifiedIdMap });
       plain(materialized, 'Armor recovery materialized intent');
+      if (expectedInsertPlanCount(expected) > 0
+          && Object.keys(materialized.verifiedIdMap ?? {}).length === 0) {
+        throw new Error('Armor recovery materialized insert plans require verified IDs');
+      }
       if (materialized.intentSha256 !== frozenIntent.intentSha256) throw new Error('Armor recovery materialized intent hash drifted');
       const materializedJournal = materializeArmorCanonicalRecoveryJournal({ journal: state.journal, materialized });
       await store.advance({ previousJournalSha256: state.journal.journalSha256, journal: materializedJournal });

@@ -60,6 +60,7 @@ public class AdminArmorSetController {
     private static final String PROJECTION_ITEMS_TABLE = "projection_items";
     private static final String PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE = "projection_item_armor_attributes";
     private static final String PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE = "projection_equipment_effect_attributes";
+    private static final String ARMOR_EFFECT_SOURCE_KINDS = "('armor_attribute_cell','armor_item_page')";
     private static final Map<String, String> ARMOR_SET_IMAGE_ALIASES = Map.of(
         "ArmorSetBonus.HallowedSummoner", "ArmorSetBonus.Hallowed"
     );
@@ -875,7 +876,7 @@ public class AdminArmorSetController {
             ? "0 AS effect_count"
             : "(SELECT COUNT(*) FROM " + effectTable + " e "
                 + "WHERE e.deleted = 0 AND e.owner_kind = 'item' "
-                + "AND e.source_kind = 'armor_attribute_cell' AND e.owner_id = a.item_id) AS effect_count";
+                + "AND e.source_kind IN " + ARMOR_EFFECT_SOURCE_KINDS + " AND e.owner_id = a.item_id) AS effect_count";
         try {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 "SELECT a.id, a.item_id, a.item_internal_name, a.item_name_zh, a.item_page_title, a.item_href, "
@@ -914,9 +915,11 @@ public class AdminArmorSetController {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 "SELECT id, owner_id, item_internal_name, owner_kind, owner_key, source_kind, source_line, "
                     + "source_line_index, effect_index, apply_scope, slot_type, stat_key, stat_label_zh, "
-                    + "class_scope, operation, value_decimal, value_max_decimal, unit, condition_text, raw_text, parse_status "
+                    + "class_scope, operation, value_decimal, value_max_decimal, unit, condition_text, raw_text, parse_status, "
+                    + "source_maint_table, source_maint_record_key, source_maint_id, landing_source_id, landing_source_key, "
+                    + "landing_content_hash, source_provider, source_page, source_revision_timestamp "
                     + "FROM " + table + " "
-                    + "WHERE deleted = 0 AND owner_kind = 'item' AND source_kind = 'armor_attribute_cell' "
+                    + "WHERE deleted = 0 AND owner_kind = 'item' AND source_kind IN " + ARMOR_EFFECT_SOURCE_KINDS + " "
                     + "AND owner_id IN (" + placeholders + ") "
                     + "ORDER BY owner_id ASC, effect_index ASC, id ASC",
                 itemIds.toArray()
@@ -1010,6 +1013,15 @@ public class AdminArmorSetController {
         payload.put("conditionText", AdminTextUtils.trimToNull(row.get("condition_text")));
         payload.put("rawText", AdminTextUtils.trimToNull(row.get("raw_text")));
         payload.put("parseStatus", AdminTextUtils.trimToNull(row.get("parse_status")));
+        payload.put("sourceMaintTable", AdminTextUtils.trimToNull(row.get("source_maint_table")));
+        payload.put("sourceMaintRecordKey", AdminTextUtils.trimToNull(row.get("source_maint_record_key")));
+        payload.put("sourceMaintId", toLong(row.get("source_maint_id")));
+        payload.put("landingSourceId", toLong(row.get("landing_source_id")));
+        payload.put("landingSourceKey", AdminTextUtils.trimToNull(row.get("landing_source_key")));
+        payload.put("landingContentHash", AdminTextUtils.trimToNull(row.get("landing_content_hash")));
+        payload.put("sourceProvider", AdminTextUtils.trimToNull(row.get("source_provider")));
+        payload.put("sourcePage", AdminTextUtils.trimToNull(row.get("source_page")));
+        payload.put("sourceRevisionTimestamp", timestampText(row.get("source_revision_timestamp")));
         return payload;
     }
 

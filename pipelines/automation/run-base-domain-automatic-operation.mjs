@@ -544,7 +544,7 @@ async function acknowledgeBaseDomainSourceIfLive({
   });
 }
 
-async function acknowledgeBaseDomainSourceWithFreshActivation({
+export async function acknowledgeBaseDomainSourceWithFreshActivation({
   connection,
   initialActivation,
   startTime,
@@ -896,7 +896,7 @@ function baseAutomaticArtifactDirectoryError(error) {
   return error;
 }
 
-async function loadFreshActivation(connection) {
+export async function loadFreshActivation(connection) {
   const [rows] = await connection.query(
     'SELECT decision_identity AS decisionIdentity, packet_hash AS packetHash,'
     + ' policy_set_hash AS policySetHash, actor, reason, authorization_reference AS authorizationReference,'
@@ -909,7 +909,7 @@ async function loadFreshActivation(connection) {
   return rows?.[0] ?? null;
 }
 
-async function loadFreshActivationForMutation({
+export async function loadFreshActivationForMutation({
   connection,
   initialActivation,
   startTime,
@@ -927,7 +927,7 @@ async function loadFreshActivationForMutation({
   return { activation, executionTime };
 }
 
-function assertActivationUnchanged(initial, latest) {
+export function assertActivationUnchanged(initial, latest) {
   if (!latest) {
     throw new Error('scheduler activation expired or was revoked before automatic mutation');
   }
@@ -947,7 +947,7 @@ function assertActivationUnchanged(initial, latest) {
   }
 }
 
-function assertActivationValidAt(activation, executionTime) {
+export function assertActivationValidAt(activation, executionTime) {
   const authorizedAt = requireTimestamp(activation?.authorizedAt, 'authorization start');
   const expiresAt = requireTimestamp(activation?.expiresAt, 'authorization expiry');
   const effectiveTime = requireTimestamp(executionTime, 'current execution time');
@@ -1026,7 +1026,7 @@ function actionId(domain) {
   return ({ items: 'wiki-items-refresh', npcs: 'wiki-npcs-refresh', projectiles: 'wiki-projectiles-refresh', buffs: 'buff-page-immunity-refresh', armor_sets: 'domain-source-armor-sets' })[domain];
 }
 
-function connectionOptions(env) {
+export function connectionOptions(env) {
   const port = Number(requireText(env.TERRAPEDIA_DB_PORT, 'TERRAPEDIA_DB_PORT'));
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('invalid TERRAPEDIA_DB_PORT');
   if (env.TERRAPEDIA_DB_NAME !== 'terria_v1_local') throw new Error('TERRAPEDIA_DB_NAME must be terria_v1_local');

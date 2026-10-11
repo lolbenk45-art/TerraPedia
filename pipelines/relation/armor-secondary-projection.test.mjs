@@ -26,6 +26,151 @@ test('secondary proposal binds source relation IDs, never generic array position
   await validate(proposal);
 });
 
+test('secondary proposal projects parsed accepted set-owned effects with their relation owner id', async () => {
+  const input = await fixture();
+  input.sourceRows.relation_equipment_effect_attributes.push({
+    ...input.sourceRows.relation_equipment_effect_attributes[0],
+    id: 1907,
+    record_key: key('Ninja:set-effect'),
+    owner_kind: 'armor_set',
+    owner_record_key: key('Ninja'),
+    owner_id: 8,
+    owner_key: 'ArmorSetBonus.Ninja',
+    source_kind: 'benefit_zh',
+    source_locale: 'zh',
+    source_line: '+9 防御',
+    source_line_index: 0,
+    effect_index: 0,
+    apply_scope: 'set_bonus',
+    variant_label: null,
+    item_internal_name: null,
+    slot_type: null,
+    stat_key: 'defense',
+    stat_label_zh: '防御',
+    class_scope: null,
+    operation: 'add',
+    value_decimal: 9,
+    value_max_decimal: null,
+    unit: 'points',
+    condition_text: null,
+    raw_text: '+9 防御',
+    parse_status: 'parsed',
+    source_maint_table: null,
+    source_maint_record_key: null,
+    source_maint_id: null,
+    landing_source_id: null,
+    landing_source_key: null,
+    landing_content_hash: null,
+    source_provider: 'terraria.wiki.gg',
+    source_page: '忍者盔甲',
+    source_revision_timestamp: at,
+    confidence: 1,
+    reason: 'test',
+    review_status: 'accepted',
+    raw_json: '{}',
+    status: 1,
+    deleted: 0,
+  });
+  const proposal = await build(input);
+  assert.equal(proposal.changedRowCount, 3);
+  const setInsert = proposal.inserts[tables[1]].find(row => row.owner_kind === 'armor_set');
+  assert.equal(setInsert.id, 1907);
+  assert.equal(setInsert.owner_id, 8);
+  assert.equal(setInsert.relation_record_key, key('Ninja:set-effect'));
+  await validate(proposal);
+});
+
+test('secondary proposal projects accepted item-page typed effects independently from attribute-cell effects', async () => {
+  const input = await fixture();
+  input.sourceRows.relation_equipment_effect_attributes.push({
+    ...input.sourceRows.relation_equipment_effect_attributes[0],
+    id: 1908,
+    record_key: key('Ninja:item-page-effect'),
+    owner_record_key: key('Ninja:item-page-source'),
+    source_kind: 'armor_item_page',
+    source_line: '远程武器伤害 +12%',
+    source_line_index: 0,
+    effect_index: 0,
+    apply_scope: 'item_bonus',
+    stat_key: 'damage_bonus',
+    stat_label_zh: '远程伤害',
+    class_scope: 'ranged',
+    operation: 'add',
+    value_decimal: 12,
+    unit: 'percent',
+    condition_text: '远程武器',
+    raw_text: '远程武器伤害 +12%',
+    source_maint_table: 'maint_armor_attribute_rows',
+    source_maint_record_key: key('Ninja:item-page-maint'),
+    source_maint_id: 34,
+    landing_source_id: 12448,
+    landing_source_key: 'wiki.page.armor_attributes',
+    landing_content_hash: key('Ninja:item-page-landing'),
+    source_provider: 'terraria.wiki.gg',
+    source_page: 'Ninja Hood',
+    source_revision_timestamp: at,
+    review_status: 'accepted',
+    parse_status: 'parsed',
+  });
+  const proposal = await build(input);
+  assert.equal(proposal.changedRowCount, 3);
+  const typed = proposal.inserts[tables[1]].find(row => row.source_kind === 'armor_item_page');
+  assert.equal(typed.id, 1908);
+  assert.equal(typed.owner_id, 256);
+  assert.equal(typed.value_decimal, 12);
+  await validate(proposal);
+});
+
+test('secondary proposal accepts the revision-bound missing-owner Armor landing key', async () => {
+  const input = await fixture();
+  const sourceKey = `wiki.page.armor.attributes.missing-owners.${'a'.repeat(64)}`;
+  input.sourceRows.maint_landings[0].source_key = sourceKey;
+  input.sourceRows.maint_armor_attribute_rows[0].landing_source_key = sourceKey;
+  input.sourceRows.relation_armor_attribute_rows[0].landing_source_key = sourceKey;
+  input.sourceRows.relation_equipment_effect_attributes[0].landing_source_key = sourceKey;
+
+  await build(input);
+});
+
+test('secondary proposal validates revision-bound nested Armor source records', async () => {
+  const input = await fixture();
+  const evidenceHash = `sha256:${'b'.repeat(64)}`;
+  const sourceKey = `wiki.page.armor.attributes.missing-owners.${'c'.repeat(64)}`;
+  const record = {
+    effectLines: ['+3% mining speed'],
+    identity: {
+      defenseValue: 2,
+      internalName: 'NinjaHood',
+      itemName: 'Ninja Hood',
+      itemSourceId: 256,
+      slotGroup: 'head',
+    },
+    itemScopedFacts: [],
+    itemScopedSourceLines: [],
+    setOwnedFacts: [],
+    sourceStatus: 'revision-bound',
+  };
+  const maint = input.sourceRows.maint_armor_attribute_rows[0];
+  maint.raw_json = JSON.stringify({ record, schemaVersion: 'armor-missing-attribute-maint-candidate/v1', sourceEvidenceHash: evidenceHash });
+  maint.landing_source_key = sourceKey;
+  input.sourceRows.maint_landings[0] = {
+    ...input.sourceRows.maint_landings[0],
+    source_key: sourceKey,
+    content_hash: key({ schemaVersion: 'armor-missing-attribute-source-evidence/v1', evidenceSha256: evidenceHash, records: [record] }),
+    payload_json: JSON.stringify({ schemaVersion: 'armor-missing-attribute-source-evidence/v1', evidenceSha256: evidenceHash, records: [record] }),
+  };
+  maint.landing_content_hash = input.sourceRows.maint_landings[0].content_hash;
+  const [attribute] = buildArmorAttributeRelations({
+    maintArmorAttributeRows: [maint],
+    maintItems: input.sourceRows.maint_items,
+    relationArmorSetItems: input.sourceRows.relation_armor_set_items,
+  });
+  input.sourceRows.relation_armor_attribute_rows = [{ ...snake(attribute), id: 734, status: 1, deleted: 0 }];
+  input.sourceRows.relation_equipment_effect_attributes = [];
+
+  await build(input);
+});
+
 test('secondary proposal preserves unrelated rows and existing IDs, and becomes a no-op', async () => {
   const input = await fixture();
   const first = await build(input);
@@ -174,6 +319,69 @@ test('zero-effect members remain valid only with source-proven zero cells', asyn
   assert.deepEqual(proposal.afterRows[tables[1]], []);
 });
 
+test('partial secondary proposal quarantines missing relation effects and preserves verified rows', async () => {
+  const input = await fixture();
+  const landing = input.sourceRows.maint_landings[0];
+  const payload = JSON.parse(landing.payload_json);
+  payload.records[0].rawCells = { meleeCritChance: '3%', sentrySlots: '1' };
+  landing.payload_json = JSON.stringify(payload);
+  landing.content_hash = key(payload);
+  const { rows } = await extractMaintEntitiesFromLandingRow(landing);
+  const maint = { ...snake(rows[0]), id: 34, status: 1, deleted: 0 };
+  input.sourceRows.maint_landings = [landing];
+  input.sourceRows.maint_armor_attribute_rows = [maint];
+  const [attribute] = buildArmorAttributeRelations({
+    maintArmorAttributeRows: [maint],
+    maintItems: input.sourceRows.maint_items,
+  });
+  input.sourceRows.relation_armor_attribute_rows = [{ ...snake(attribute), id: 734, status: 1, deleted: 0 }];
+  const [effect] = buildArmorAttributeEffectRows([attribute]);
+  input.sourceRows.relation_equipment_effect_attributes = [{ ...snake(effect), id: 906, status: 1, deleted: 0 }];
+
+  const proposal = await build({
+    ...input,
+    selectedMemberIds: [256],
+    allowPartialApply: true,
+    unresolvedRowsMustRemainUntouched: true,
+  });
+  assert.equal(proposal.changedRowCount, 2);
+  assert.equal(proposal.quarantine.length, 1);
+  assert.equal(proposal.quarantine[0].reason, 'source-effect-missing');
+  assert.equal(proposal.afterRows[tables[1]].length, 1);
+  await validate(proposal);
+});
+
+test('secondary proposal accepts an explicitly scoped relation owner without a set tuple', async () => {
+  const input = await fixture();
+  input.sourceRows.relation_armor_sets[0].sets_json = '[[0,0,0]]';
+  input.sourceRows.relation_armor_set_items = [];
+  const proposal = await build({ ...input, selectedMemberIds: [256] });
+  assert.equal(proposal.selectedMemberIds[0], 256);
+  assert.equal(proposal.changedRowCount, 2);
+  await validate(proposal);
+});
+
+test('partial secondary proposal quarantines qualified source cells while applying exact cells', async () => {
+  const input = await fixture();
+  const landing = input.sourceRows.maint_landings[0];
+  const payload = JSON.parse(landing.payload_json);
+  payload.records[0].rawCells = { meleeCritChance: '3%', rangedDamage: '>15%', otherBonus: '额外弓伤害' };
+  landing.payload_json = JSON.stringify(payload);
+  landing.content_hash = key(payload);
+  const { rows } = await extractMaintEntitiesFromLandingRow(landing);
+  const maint = { ...snake(rows[0]), id: 34, status: 1, deleted: 0 };
+  input.sourceRows.maint_armor_attribute_rows = [maint];
+  const [attribute] = buildArmorAttributeRelations({ maintArmorAttributeRows: [maint], maintItems: input.sourceRows.maint_items });
+  input.sourceRows.relation_armor_attribute_rows = [{ ...snake(attribute), id: 734, status: 1, deleted: 0 }];
+  const [safeEffect] = buildArmorAttributeEffectRows([{ ...attribute, rawCellsJson: JSON.stringify({ meleeCritChance: '3%' }) }]);
+  input.sourceRows.relation_equipment_effect_attributes = [{ ...snake(safeEffect), id: 906, status: 1, deleted: 0 }];
+  const proposal = await build({ ...input, selectedMemberIds: [256], allowPartialApply: true, unresolvedRowsMustRemainUntouched: true });
+  assert.equal(proposal.changedRowCount, 2);
+  assert.ok(proposal.quarantine.some(row => row.reason === 'source-effect-parse-unresolved'));
+  assert.equal(proposal.inserts[tables[1]].length, 1);
+  await validate(proposal);
+});
+
 test('secondary validator rederives fields and rejects a rehashed forged after-set', async () => {
   const proposal = await build(await fixture());
   proposal.afterRows[tables[1]][0].value_decimal = 999;
@@ -214,11 +422,12 @@ test('secondary rejects incomplete or unknown target columns before deriving upd
   }
 });
 
-test('existing secondary publication stays closed to typed item sources', async () => {
+test('secondary publication leaves typed sources outside the selected member scope untouched', async () => {
   const { persistedItemSourceFixture } = await import('../maint/armor-item-effect-test-fixture.mjs');
   const typed = persistedItemSourceFixture(); const input = await fixture();
   input.sourceRows.maint_armor_attribute_rows.push(...typed.maintArmorAttributeRows);
   input.sourceRows.maint_landings.push(...typed.maintLandings);
   input.sourceRows.maint_items.push(...typed.maintItems);
-  await assert.rejects(build(input), /dedicated source contract/);
+  const proposal = await build(input);
+  assert.equal(proposal.changedRowCount, 2);
 });

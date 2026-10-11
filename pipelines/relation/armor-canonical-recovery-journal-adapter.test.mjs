@@ -19,6 +19,14 @@ function expected() {
   };
 }
 
+function updateOnlyExpected() {
+  return {
+    ...expected(),
+    landingMaintIntent: { ...expected().landingMaintIntent, insertPlans: [] },
+    relationIntent: { ...expected().relationIntent, insertPlans: [] },
+  };
+}
+
 const packet = {
   runId: 'run-1', decisionIdentity: 'decision-1', packetHash: HASH('c'),
   serverUuid: '11111111-1111-1111-1111-111111111111',
@@ -59,6 +67,25 @@ test('recovery adapter persists PREPARED then COMMITTED with exact materializati
   assert.equal(journal.state, 'COMMITTED');
   assert.equal(journal.history.length, 2);
   assert.equal(journal.concreteAfterSha256, HASH('d'));
+});
+
+test('recovery adapter commits update-only materialization with no allocated IDs', async () => {
+  const repoRoot = tempRoot();
+  const store = createArmorCanonicalRecoveryJournalStore({ repoRoot, relativePath: 'reports/journal.json' });
+  const { createArmorCanonicalRecoveryJournalAdapter } = await import('./armor-canonical-recovery-journal-adapter.mjs');
+  const adapter = createArmorCanonicalRecoveryJournalAdapter({
+    store,
+    packet,
+    expected: updateOnlyExpected(),
+    materialize: async () => ({ intentSha256: HASH('composite'), concreteAfterSha256: HASH('d'), verifiedIdMap: {} }),
+    clock: () => '2026-09-25T00:00:01Z',
+  });
+  await adapter.prepared({ packet, expected: updateOnlyExpected() });
+  await adapter.materialized({ receipts: [], verifiedIdMap: {} });
+  await adapter.committed({});
+  const journal = await store.read();
+  assert.equal(journal.state, 'COMMITTED');
+  assert.deepEqual(journal.verifiedIdMap, {});
 });
 
 test('recovery adapter persists PREPARED before materialization failure and allows confirmed rollback', async () => {

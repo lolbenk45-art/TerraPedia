@@ -115,7 +115,7 @@ function requireMaterialized(materialized) {
   return {
     intentSha256: materialized.intentSha256,
     concreteAfterSha256: materialized.concreteAfterSha256,
-    verifiedIdMap: normalizeIdMap(materialized.verifiedIdMap, 'materialized verified ID map'),
+    verifiedIdMap: normalizeIdMap(materialized.verifiedIdMap, 'materialized verified ID map', { allowEmpty: true }),
   };
 }
 
@@ -255,7 +255,7 @@ export function validateArmorCanonicalRecoveryJournal(journal) {
     requirePendingMaterialization(journal, { requirePrepared: false });
   } else {
     hashValue(journal.concreteAfterSha256, 'Armor recovery concrete after hash');
-    normalizeIdMap(journal.verifiedIdMap, 'Armor recovery verified ID map');
+    normalizeIdMap(journal.verifiedIdMap, 'Armor recovery verified ID map', { allowEmpty: true });
   }
   validateEvidence(journal.evidence);
   if (!Array.isArray(journal.history) || journal.history.length === 0) throw new Error('Armor recovery journal history is required');

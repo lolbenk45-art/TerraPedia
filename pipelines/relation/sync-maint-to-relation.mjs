@@ -1051,19 +1051,22 @@ function buildArmorSetEquipmentEffectAttributes(relationArmorSets = []) {
     if (!benefitZh) {
       continue;
     }
+    const effectSource = raw.effectTextSource && typeof raw.effectTextSource === 'object'
+      ? raw.effectTextSource : null;
     const parsedRows = parseEquipmentEffectLines({
       owner: {
         ownerKind: 'armor_set',
         ownerRecordKey: armorSet.recordKey ?? null,
         ownerId: armorSet.id ?? null,
         ownerKey: armorSet.textKey ?? null,
-        sourceProvider: armorSet.sourceProvider ?? null,
-        sourcePage: armorSet.sourcePage ?? null,
-        sourceRevisionTimestamp: armorSet.sourceRevisionTimestamp ?? null
+        sourceProvider: effectSource?.provider ?? armorSet.sourceProvider ?? null,
+        sourcePage: effectSource?.pageTitle ?? armorSet.sourcePage ?? null,
+        sourceRevisionTimestamp: effectSource?.revisionTimestamp ?? armorSet.sourceRevisionTimestamp ?? null
       },
       text: benefitZh,
-      sourceKind: 'benefit_zh'
-    });
+      sourceKind: 'benefit_zh',
+      sourceLocale: effectSource?.locale ?? 'zh'
+    }).filter((row) => !isItemScopedArmorMultiplier(row));
     for (const row of parsedRows) {
       rows.push({
         recordKey: createRecordKey([
@@ -1090,6 +1093,13 @@ function buildArmorSetEquipmentEffectAttributes(relationArmorSets = []) {
     }
   }
   return rows;
+}
+
+function isItemScopedArmorMultiplier(row) {
+  return row?.ownerKind === 'armor_set'
+    && row.statKey === 'damage_bonus'
+    && row.operation === 'multiply'
+    && /弓|连弩|箭|枪|子弹|玉米糖|特定远程武器|非消耗品远程武器/.test(row.conditionText ?? '');
 }
 
 function normalizeLookupText(value) {
@@ -1259,7 +1269,8 @@ function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
   return [...rows, ...derivedRows];
 }
 
-export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
+export function buildArmorAttributeEffectRows(relationArmorAttributeRows = [], { unresolvedMode = 'error' } = {}) {
+  if (!['error', 'skip'].includes(unresolvedMode)) throw new Error('Armor attribute unresolved mode is invalid');
   const rows = [];
   for (const armorRow of relationArmorAttributeRows) {
     if (!armorRow.itemId || armorRow.reviewStatus === 'unresolved') {
@@ -1270,11 +1281,18 @@ export function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
       if (hasLegacyShroomiteGenericDamage(armorRow, rawCells, cellKey, rawCells[cellKey])) {
         throw new Error('Armor legacy Shroomite generic 15% damage row is not current source authority');
       }
-      const value = armorCellNumber(rawCells[cellKey], unit, cellKey);
+      let value;
+      try {
+        value = armorCellNumber(rawCells[cellKey], unit, cellKey);
+      } catch (error) {
+        if (unresolvedMode === 'skip') return;
+        throw error;
+      }
       if (value == null || value === 0) {
         return;
       }
       if (hasSpecializedArmorDamage(rawCells, cellKey, value)) {
+        if (unresolvedMode === 'skip') return;
         throw new Error('Armor effect cell rangedDamage has unresolved specialized damage semantics');
       }
       rows.push({

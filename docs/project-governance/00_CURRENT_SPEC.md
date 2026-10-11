@@ -130,6 +130,14 @@ grants no execution authority. This source-only operation does not publish
 relation/projection rows or establish complete item/set coverage; typed-source
 dispatch and consumer/automation acceptance remain separate admission gates.
 
+The separate `canonical-armor-missing-attribute-source` operation owns only the
+revision-bound missing-owner Armor attribute landing and maint rows. It binds a
+result-label-specific proposal, owner decision, one-use dispatch permit,
+locked rederivation and immutable PREPARED/result evidence; it does not publish
+relation/projection rows or clear the complete-coverage, typed set-effect or
+recovery gates. Its preparation path is read-only and its runner fails closed
+until the pre-apply owner decision is independently resolved.
+
 Armor dry-run dispatch distinguishes typed item-page effects from complete
 table-derived attribute rows. It rederives typed facts from maint landing
 bytes and verifies maint/item identities before producing relation/projection

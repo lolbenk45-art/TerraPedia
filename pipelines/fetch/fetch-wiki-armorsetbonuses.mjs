@@ -50,7 +50,8 @@ const moduleUrl = new URL('https://terraria.wiki.gg/api.php');
 moduleUrl.searchParams.set('action', 'query');
 moduleUrl.searchParams.set('titles', 'Module:ArmorSetBonuses');
 moduleUrl.searchParams.set('prop', 'revisions');
-moduleUrl.searchParams.set('rvprop', 'content|timestamp');
+moduleUrl.searchParams.set('rvprop', 'content|timestamp|ids');
+moduleUrl.searchParams.set('rvslots', 'main');
 moduleUrl.searchParams.set('formatversion', '2');
 moduleUrl.searchParams.set('format', 'json');
 
@@ -96,7 +97,7 @@ try {
     generatedAt: fetchedAt,
     records,
     schemaVersion: '1.0.0',
-    sourceFile: 'terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content',
+    sourceFile: 'terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content|timestamp|ids',
     totalRecords: records.length,
     upstreamMeta: {
       fetchedAt,

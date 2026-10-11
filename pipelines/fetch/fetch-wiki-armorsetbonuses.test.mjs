@@ -16,6 +16,11 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'fetch-wiki-armorsetbonuses.mjs');
 
+test('armorsetbonuses source request includes revision ids required by source evidence', () => {
+  const source = fs.readFileSync(scriptPath, 'utf8');
+  assert.match(source, /searchParams\.set\(['"]rvprop['"], ['"]content\|timestamp\|ids['"]\)/);
+  assert.match(source, /searchParams\.set\(['"]rvslots['"], ['"]main['"]\)/);
+});
 
 test('armorsetbonuses fetch writes progress and finalizes ingestion manifest after successful output writes', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-'));

@@ -43,11 +43,13 @@ function sourceFixture() {
     fetched_at: at, parsed_at: at, payload_json: JSON.stringify(payload), content_hash: digest(payload),
     artifact_role: 'source_evidence', parse_status: 'ok', is_current: 1,
   });
+  const landingRows = [landing(31, 'armor_sets_raw', 'wiki.module.armorsetbonuses', armor),
+    landing(32, 'armor_set_images_raw', 'wiki.armor_set_images', images)];
   return {
     relationInput: {
+      landingCurrentRows: structuredClone(landingRows),
       maintInput: {
-        landingRows: [landing(31, 'armor_sets_raw', 'wiki.module.armorsetbonuses', armor),
-          landing(32, 'armor_set_images_raw', 'wiki.armor_set_images', images)],
+        landingRows,
         currentRows: { maint_armor_sets: [], maint_armor_set_images: [] }, managedImageUrlPrefixes: [prefix],
       },
       maintItems: ['WoodHelmet', 'WoodBreastplate', 'WoodGreaves'].map((name, index) => ({
@@ -71,6 +73,9 @@ function changePayload(input, index, mutate) {
   mutate(payload);
   landing.payload_json = JSON.stringify(payload);
   landing.content_hash = digest(payload);
+  const baseline = input.relationInput.landingCurrentRows[index];
+  baseline.content_hash = landing.content_hash;
+  baseline.source_page = landing.source_page;
 }
 
 async function fixture({ existing = true, input = sourceFixture() } = {}) {
@@ -146,6 +151,24 @@ test('composes the reviewed relation builder and preserves actual projection IDs
     input.consumerRows.projection_equipment_effect_attributes.map(({ id, created_at, updated_at, ...row }) => row));
 });
 
+test('applies the explicit armor_attribute_zero defense authority to null source fields', async () => {
+  const input = await fixture();
+  input.relationInput.maintItems[0].defense_value = null;
+  input.dependencyRows.relation_items[0].defense_value = null;
+  input.relationInput.maintItems[0].raw_json = JSON.stringify({ headSlot: 1 });
+  input.dependencyRows.relation_items[0].raw_json = JSON.stringify({ headSlot: 1 });
+  input.consumerRows.items[0].defense = 0;
+
+  const blocked = await build(input);
+  assert.ok(blocked.acceptance.blockers.some(row => (
+    row.code === 'defense-source-unresolved' || row.code === 'local-defense-stale'
+  )));
+
+  const authorized = await build({ ...input, defenseAuthority: 'armor_attribute_zero' });
+  assert.equal(authorized.acceptance.blockers.some(row => row.code === 'defense-source-unresolved'), false);
+  assert.equal(authorized.acceptance.blockers.some(row => row.code === 'local-defense-stale'), false);
+});
+
 test('binds a typed intent to the real projection candidate hash graph and existing relation ID', async () => {
   const input = await fixture();
   input.currentRows.projection_armor_sets = [];
@@ -191,6 +214,18 @@ test('explicit ID-independent projection mode preserves unresolved landing and m
   assert.equal(result.relationCandidate.inputSnapshots.maintInput.allowUnmaterializedLandingIds, true);
   assert.equal(result.relationCandidate.expectedRows.relation_armor_sets[0].source_maint_id, null);
   assert.ok(result.relationCandidate.unresolvedDependencies.some(row => row.column === 'source_maint_id'));
+});
+
+test('blocks relation rows whose landing ID resolves to a different content hash', async () => {
+  const input = await fixture();
+  input.relationInput.landingCurrentRows[0].content_hash = 'f'.repeat(64);
+  input.relationInput.maintInput.allowUnmaterializedLandingIds = true;
+
+  const result = await buildArmorCanonicalProjectionIdIndependentCandidate(input);
+
+  assert.equal(result.acceptance.status, 'blocked');
+  assert.ok(result.acceptance.blockers.some(row => row.code === 'relation-landing-lineage-mismatch'
+    && row.mismatch === 'content_hash'));
 });
 
 test('new projection over an existing relation uses that actual relation ID', async () => {
@@ -319,6 +354,17 @@ for (const [label, mutate, code] of [
     assert.deepEqual(input, exact);
   });
 }
+
+test('reports stale relation item lineage as a structured blocker without throwing', async () => {
+  const input = await fixture();
+  input.dependencyRows.relation_items[0].landing_source_id = 999;
+
+  const result = await build(input);
+
+  assert.equal(result.acceptance.status, 'blocked');
+  assert.ok(result.acceptance.blockers.some((row) => row.code === 'relation-item-lineage-stale'
+    && row.itemSourceId === 1 && row.column === 'landing_source_id'), JSON.stringify(result.acceptance.blockers));
+});
 
 test('a missing derived part image retains the existing image and reports the missing dependency', async () => {
   const input = await fixture();
@@ -469,6 +515,64 @@ test('matching but unparsed source effect text remains an unresolved semantic de
   }).map((row, index) => ({ ...snake(row), id: index + 40, record_key: key(`effect:${index}`) }));
   const result = await build(input);
   assert.ok(result.acceptance.blockers.some(row => row.code === 'source-effect-parse-unresolved'));
+});
+
+test('partial authority quarantines unresolved source effects without adding them to the accepted set', async () => {
+  const input = await fixture();
+  changePayload(input, 0, payload => { payload.armorSets[0].effectText = 'Unrecognized effect expression'; });
+  input.dependencyRows.relation_equipment_effect_attributes = [];
+  const result = await build({
+    ...input,
+    unresolvedSourceEffects: 'quarantine',
+    allowPartialApply: true,
+    unresolvedRowsMustRemainUntouched: true,
+  });
+  assert.equal(result.acceptance.blockers.some(row => row.code === 'source-effect-parse-unresolved'), false);
+  assert.equal(result.acceptance.blockers.some(row => row.code === 'source-effect-missing'), false);
+  assert.ok(result.quarantinedSourceEffects.some(row => row.code === 'source-effect-parse-unresolved'));
+  assert.ok(result.quarantinedSourceEffects.some(row => row.code === 'source-effect-missing'));
+  assert.equal(result.dependencyExpectations.projection_equipment_effect_attributes.length, 0);
+});
+
+test('partial authority quarantines stale typed item effects and leaves them out of expectations', async () => {
+  const input = await typedSourceProjectionFixture();
+  const typedEffect = input.dependencyRows.relation_equipment_effect_attributes
+    .find(row => row.source_kind === 'armor_item_page' && row.owner_id === 1546);
+  input.dependencyRows.relation_equipment_effect_attributes = input.dependencyRows.relation_equipment_effect_attributes
+    .filter(row => row !== typedEffect);
+  input.consumerRows.projection_equipment_effect_attributes = input.consumerRows.projection_equipment_effect_attributes
+    .filter(row => row.relation_record_key !== typedEffect.record_key);
+  const result = await build({
+    ...input,
+    unresolvedSourceEffects: 'quarantine',
+    allowPartialApply: true,
+    unresolvedRowsMustRemainUntouched: true,
+  });
+  assert.equal(result.acceptance.blockers.some(row => row.code === 'typed-item-effect-source-stale'), false);
+  assert.ok(result.quarantinedSourceEffects.some(row => row.code === 'typed-item-effect-source-stale'
+    && row.itemSourceId === 1546));
+  assert.equal(result.dependencyExpectations.projection_equipment_effect_attributes
+    .some(row => row.owner_id === 1546 && row.source_kind === 'armor_item_page'), false);
+});
+
+test('partial authority quarantines item effect evidence gaps without accepting or projecting them', async () => {
+  const input = await fixture();
+  const [effect] = addProducerItemEffects(input, { meleeDamage: '5%' });
+  input.dependencyRows.relation_equipment_effect_attributes = input.dependencyRows.relation_equipment_effect_attributes
+    .filter(row => row !== effect);
+  input.consumerRows.projection_equipment_effect_attributes = input.consumerRows.projection_equipment_effect_attributes
+    .filter(row => row.relation_record_key !== effect.record_key);
+  const result = await build({
+    ...input,
+    unresolvedSourceEffects: 'quarantine',
+    allowPartialApply: true,
+    unresolvedRowsMustRemainUntouched: true,
+  });
+  assert.equal(result.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'), false);
+  assert.ok(result.quarantinedSourceEffects.some(row => row.code === 'item-effect-evidence-unresolved'
+    && row.itemSourceId === 1));
+  assert.equal(result.dependencyExpectations.projection_equipment_effect_attributes
+    .some(row => row.relation_record_key === effect.record_key), false);
 });
 
 test('optional item-owner effects are frozen separately and cannot be adopted as armor-owner effects', async () => {
@@ -797,6 +901,30 @@ test('independent projection derives typed item effects from hashed upstream evi
   assert.match(candidate.itemEffectSourceSnapshotSha256, /^sha256:[a-f0-9]{64}$/);
 });
 
+test('typed source semantics supersede legacy qualified attribute cells for the same owner', async () => {
+  const input = await typedSourceProjectionFixture();
+  const attribute = input.dependencyRows.relation_armor_attribute_rows.find(row => row.item_id === 1546);
+  attribute.raw_cells_json = JSON.stringify({ rangedDamage: '>15%', otherBonus: '额外弓伤害' });
+  const projected = input.consumerRows.projection_item_armor_attributes.find(row => row.item_id === 1546);
+  projected.raw_cells_json = attribute.raw_cells_json;
+  const typedEffect = input.dependencyRows.relation_equipment_effect_attributes.find(row => row.source_kind === 'armor_item_page' && row.owner_id === 1546);
+  const legacyKey = key('legacy-qualified-ranged-damage');
+  input.dependencyRows.relation_equipment_effect_attributes.push({ ...typedEffect,
+    id: 9100, record_key: legacyKey, source_kind: 'armor_attribute_cell', owner_record_key: attribute.record_key,
+    source_line: 'ShroomiteHeadgear rangedDamage: >15%', source_line_index: 0, effect_index: 0,
+    operation: 'add', value_decimal: 15, condition_text: null,
+  });
+  input.consumerRows.projection_equipment_effect_attributes.push({ ...input.consumerRows.projection_equipment_effect_attributes.find(row => row.source_kind === 'armor_item_page' && row.owner_id === 1546),
+    id: 9100, relation_record_key: legacyKey, source_kind: 'armor_attribute_cell', owner_record_key: attribute.record_key,
+    source_line: 'ShroomiteHeadgear rangedDamage: >15%', source_line_index: 0, effect_index: 0,
+    operation: 'add', value_decimal: 15, condition_text: null,
+  });
+  const candidate = await build(input);
+  assert.ok(candidate.acceptance.blockers.some(row => row.code === 'complete-item-and-set-coverage-unverified'));
+  assert.equal(candidate.acceptance.blockers.some(row => row.code === 'item-effect-source-stale'), false);
+  assert.equal(candidate.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'), false);
+});
+
 for (const [label, mutate] of [
   ['condition removed', row => { row.condition_text = null; }],
   ['wrong additive operation', row => { row.operation = 'add'; }],
@@ -816,6 +944,63 @@ test('independent projection refuses typed effects without their upstream snapsh
   const input = await typedSourceProjectionFixture(); delete input.itemEffectSources;
   const result = await build(input);
   assert.ok(result.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'));
+});
+
+test('independent projection rederives nested item-scoped source facts from relation attribute evidence', async () => {
+  const input = await fixture();
+  const attribute = input.dependencyRows.relation_armor_attribute_rows[0];
+  const facts = [
+    ['summonDamage', 'percent', 16],
+    ['minionSlots', 'points', 1],
+    ['miningSpeed', 'percent', 20],
+    ['fishingPower', 'points', 5],
+  ].map(([statKey, unit, valueDecimal], index) => ({ statKey, operation: 'add', unit, valueDecimal,
+    sourceLine: `Wood Helmet: ${statKey}`,
+    effectLine: `Wood Helmet: ${statKey}`,
+    index }));
+  const record = {
+    identity: { itemSourceId: attribute.item_id, internalName: attribute.item_internal_name, itemName: 'Wood Helmet' },
+    itemScopedFacts: facts.map(({ statKey, operation, unit, valueDecimal }) => ({ statKey, operation, unit, valueDecimal })),
+    itemScopedSourceLines: facts.map(fact => fact.sourceLine),
+    effectLines: facts.map(fact => fact.effectLine),
+  };
+  attribute.source_maint_record_key = attribute.record_key;
+  attribute.source_maint_id = attribute.id;
+  attribute.slot_group = 'head';
+  attribute.raw_cells_json = JSON.stringify({ itemScopedFacts: record.itemScopedFacts });
+  attribute.raw_json = JSON.stringify({ record });
+  input.consumerRows.projection_item_armor_attributes[0].raw_cells_json = attribute.raw_cells_json;
+  for (const fact of facts) {
+    const effect = {
+      id: 500 + fact.index, record_key: key(`nested-effect:${fact.index}`), owner_kind: 'item',
+      owner_record_key: attribute.record_key, owner_id: attribute.item_id, owner_key: attribute.item_internal_name,
+      source_kind: 'armor_attribute_cell', source_locale: 'en', source_line_index: fact.index,
+      source_line: fact.sourceLine, effect_index: fact.index, apply_scope: 'item_bonus',
+      variant_label: 'Wood Helmet', item_internal_name: attribute.item_internal_name, slot_type: 'headSlot',
+      stat_key: ({ summonDamage: 'summon_damage', minionSlots: 'minion_slots', miningSpeed: 'mining_speed', fishingPower: 'fishing_power' })[fact.statKey],
+      stat_label_zh: null, class_scope: null, operation: fact.operation, value_decimal: fact.valueDecimal,
+      value_max_decimal: null, unit: fact.unit, condition_text: null, raw_text: fact.sourceLine,
+      parse_status: 'parsed', source_maint_table: 'maint_armor_attribute_rows',
+      source_maint_record_key: attribute.record_key, source_maint_id: attribute.id,
+      landing_source_id: null, landing_source_key: null, landing_content_hash: null,
+      source_provider: attribute.source_provider, source_page: attribute.source_page,
+      source_revision_timestamp: attribute.source_revision_timestamp, confidence: 1,
+      review_status: 'accepted', reason: 'derived_from_revision_bound_armor_source_evidence',
+      raw_json: JSON.stringify({ schemaVersion: 'armor-missing-attribute-item-effect/v1', evidenceHash: null,
+        fact: { statKey: fact.statKey, operation: fact.operation, unit: fact.unit, valueDecimal: fact.valueDecimal } }),
+      status: 1, deleted: 0,
+    };
+    input.dependencyRows.relation_equipment_effect_attributes.push(effect);
+    input.consumerRows.projection_equipment_effect_attributes.push({ ...effect, id: 1000 + fact.index,
+      relation_record_key: effect.record_key, owner_id: attribute.item_id });
+  }
+  const result = await build(input);
+  assert.equal(result.acceptance.blockers.some(row => row.code === 'item-effect-evidence-unresolved'), false,
+    JSON.stringify(result.acceptance.blockers));
+  assert.equal(result.acceptance.blockers.some(row => row.code === 'effect-projection-foreign'), false,
+    JSON.stringify(result.acceptance.blockers));
+  assert.equal(result.dependencyExpectations.projection_equipment_effect_attributes
+    .filter(row => row.owner_id === attribute.item_id).length, facts.length);
 });
 
 test('independent projection rederives typed source semantics instead of trusting mutually matching maint/relation/consumer facts', async () => {

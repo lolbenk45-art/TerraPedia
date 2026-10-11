@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import fs from 'node:fs';
 
 import {
   CANONICAL_CUTOVER_OPERATION_IDS,
@@ -67,4 +68,23 @@ test('Armor full-chain ingestion is a governed catalog operation with an exact l
   assert.equal(manifest.networkAccess, false);
   assert.deepEqual(manifest.armorCanonicalIntent, intentBinding);
   assert.doesNotThrow(() => assertCanonicalOperationExecutionManifestContract({ repoRoot, operationId, manifest }));
+});
+
+test('Armor scheduler bridge names the composite adapter and pins its runtime contract', () => {
+  const registrySource = fs.readFileSync(
+    path.join(repoRoot, 'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java'),
+    'utf8',
+  );
+  assert.match(registrySource, /pipelines\/automation\/run-armor-automatic-operation\.mjs/);
+  assert.match(registrySource, /canonical-armor-ingestion/);
+  assert.doesNotMatch(
+    registrySource,
+    /domain-source-armor-sets[\s\S]{0,1500}pipelines\/automation\/run-base-domain-automatic-operation\.mjs/,
+  );
+  for (const requiredPath of [
+    'pipelines/automation/run-armor-automatic-operation.mjs',
+    'pipelines/automation/armor-automatic-dispatch-binding.mjs',
+  ]) {
+    assert.ok(fs.existsSync(path.join(repoRoot, requiredPath)), `${requiredPath} must be present in the scheduler bundle`);
+  }
 });

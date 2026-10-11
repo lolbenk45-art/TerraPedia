@@ -2,9 +2,24 @@
 
 ## Date
 
-2026-09-26
+2026-10-04
 
-## Canonical ingestion continuation (2026-09-26, current)
+## Armor domain child update (2026-10-04)
+
+Historical tuple repair `20261004-05` is committed and independently read back:
+15 existing set groups now match source across maint/relation/projection, with
+63/63 public set detail APIs matching. The current frozen-source delta is 485
+matched, 9 missing, and 0 extra; all nine missing tuples belong to Shroomite,
+which still has no canonical maint owner. Typed set-effect publication/recovery
+and the 64-set image cache request (`AWAITING_OWNER`) remain open. Next priority
+is to resolve the Shroomite owner and complete its source/lineage gates before
+publishing the remaining rows; this child update does not change coordinator-
+owned scheduler/H8 state.
+
+## Canonical ingestion continuation (2026-09-26 checkpoint)
+
+The following project-level snapshot predates the Armor child update above;
+its dated status and evidence are retained as a checkpoint.
 
 已按新增 A6 两表授权完成一次真实受控发布：224条属性+290条效果，覆盖223/233个
 Armor成员；数据库全量 after-set、前后台 Ninja 样本字段一致，上游来源未改动。

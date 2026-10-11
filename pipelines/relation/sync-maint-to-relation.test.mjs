@@ -1105,7 +1105,17 @@ test('runSync dry-run parses armor set benefit text into equipment effect attrib
             raw_json: JSON.stringify({
               pageTitle: 'Ninja armor',
               nameZh: '忍者盔甲',
-              effectText: '+9% 暴击率\n套装奖励：+20% 移动速度'
+              effectText: '+9% 暴击率\n套装奖励：+20% 移动速度',
+              effectTextSource: {
+                provider: 'terraria.wiki.gg',
+                locale: 'zh',
+                kind: 'set_page',
+                pageTitle: '忍者盔甲',
+                revisionId: 12345,
+                revisionTimestamp: '2026-05-23T00:00:00Z',
+                contentHash: `sha256:${'a'.repeat(64)}`,
+                effectTextHash: `sha256:${'b'.repeat(64)}`
+              }
             }),
             source_provider: 'terraria.wiki.gg',
             source_page: 'Armor',
@@ -1140,6 +1150,9 @@ test('runSync dry-run parses armor set benefit text into equipment effect attrib
     ['crit_chance', 'move_speed']
   );
   assert.equal(result.results.relationEquipmentEffectAttributes[1].applyScope, 'set_bonus');
+  assert.equal(result.results.relationEquipmentEffectAttributes[0].sourcePage, '忍者盔甲');
+  assert.equal(result.results.relationEquipmentEffectAttributes[0].sourceRevisionTimestamp, '2026-05-23T00:00:00Z');
+  assert.equal(result.results.relationEquipmentEffectAttributes[0].sourceLocale, 'zh');
   assert.equal(result.results.projectionEquipmentEffectAttributes.length, 2);
   assert.equal(
     result.results.projectionEquipmentEffectAttributes[0].ownerId,

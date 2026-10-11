@@ -11,6 +11,7 @@ import {
 } from './managed-image-url-policy.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
 import { ARMOR_SET_PROJECTION_COLUMNS } from './armor-set-projection-restoration.mjs';
+import { inspectArmorCanonicalLandingLineage } from './armor-canonical-landing-lineage.mjs';
 import { readArmorItemEffectMaintSources } from '../maint/armor-item-effect-source-reader.mjs';
 
 const TABLE = 'projection_armor_sets';
@@ -176,15 +177,23 @@ function validateItemJoins(snapshot) {
   const bySource = uniqueIndex(items, 'source_id', 'relation item source', positiveId);
   uniqueIndex(items, 'internal_name', 'relation item name');
   const maint = new Map(snapshot.relationInput.maintItems.map(row => [row.source_id, row]));
+  // Relation-item lineage is a separate repair boundary; keep the candidate
+  // diagnostic while preserving hard failures for owner identity conflicts.
+  const staleLineage = [];
   for (const item of items.filter(active)) {
     const source = maint.get(item.source_id);
     if (!source || !active(source) || item.internal_name !== source.internal_name) throw new Error('Armor relation item join identity is missing or conflicting');
     if (item.source_maint_table !== 'maint_items' || item.source_maint_id !== source.id) throw new Error('Armor relation item lineage join is stale or foreign');
     for (const column of ['source_provider', 'landing_source_id', 'landing_source_key', 'landing_content_hash']) {
-      if (item[column] !== source[column]) throw new Error('Armor relation item lineage join is stale or foreign');
+      if (item[column] !== source[column]) staleLineage.push({
+        itemSourceId: item.source_id,
+        column,
+        expected: source[column] ?? null,
+        actual: item[column] ?? null,
+      });
     }
   }
-  return bySource;
+  return { bySource, staleLineage };
 }
 
 function sourcePresent(candidate, table) {
@@ -250,9 +259,18 @@ function preserveImages(before, after, prefixes, block) {
   if (preserved) after.related_items_json = JSON.stringify(newParts);
 }
 
-function checkSourceEffects(sources, dependencies, block) {
+function checkSourceEffects(sources, dependencies, block, {
+  unresolvedSourceEffects = null,
+  allowPartialApply = false,
+  unresolvedRowsMustRemainUntouched = false,
+} = {}) {
+  const quarantineUnresolved = unresolvedSourceEffects === 'quarantine'
+    && allowPartialApply === true
+    && unresolvedRowsMustRemainUntouched === true;
   const owners = new Map(sources.relation_armor_sets.map(row => [row.record_key, row]));
   const accepted = [];
+  const quarantined = [];
+  const quarantine = (code, details) => quarantined.push({ code, ...details });
   const sourceRows = dependencies.relation_equipment_effect_attributes.filter(active);
   for (const row of sourceRows) {
     if (row.owner_kind !== 'armor_set') continue;
@@ -263,31 +281,63 @@ function checkSourceEffects(sources, dependencies, block) {
   }
   for (const owner of owners.values()) {
     const raw = json(owner.raw_json, 'object', 'canonical armor effect source');
+    const effectSource = raw.effectTextSource && typeof raw.effectTextSource === 'object'
+      ? raw.effectTextSource : null;
     const rows = sourceRows.filter(row => row.owner_kind === 'armor_set' && row.owner_record_key === owner.record_key
       && row.owner_key === owner.text_key && (row.owner_id ?? null) === (owner.id ?? null));
     // The actual effect producer only parses raw.effectText. A Module expression
     // is not interchangeable with that page/translation evidence.
     if (!text(raw.effectText)) {
-      block('source-effect-evidence-unresolved', { textKey: owner.text_key });
+      if (quarantineUnresolved) quarantine('source-effect-evidence-unresolved', { textKey: owner.text_key });
+      else block('source-effect-evidence-unresolved', { textKey: owner.text_key });
       continue;
     }
     const parsed = parseEquipmentEffectLines({ owner: {
       ownerKind: 'armor_set', ownerRecordKey: owner.record_key, ownerId: owner.id ?? null, ownerKey: owner.text_key,
-      sourceProvider: owner.source_provider, sourcePage: owner.source_page, sourceRevisionTimestamp: owner.source_revision_timestamp,
-    }, text: raw.effectText, sourceKind: 'benefit_zh' }).map(snake);
+      sourceProvider: effectSource?.provider ?? owner.source_provider,
+      sourcePage: effectSource?.pageTitle ?? owner.source_page,
+      sourceRevisionTimestamp: effectSource?.revisionTimestamp ?? owner.source_revision_timestamp,
+    }, text: raw.effectText, sourceKind: 'benefit_zh', sourceLocale: effectSource?.locale ?? 'zh' })
+      .filter((row) => !isItemScopedArmorMultiplier(row)).map(snake);
     const used = new Set();
     for (const expectation of parsed) {
-      if (expectation.parse_status !== 'parsed') block('source-effect-parse-unresolved', { textKey: owner.text_key, sourceLineIndex: expectation.source_line_index });
       const matches = rows.filter(row => row.source_kind === expectation.source_kind
         && row.source_line_index === expectation.source_line_index && row.effect_index === expectation.effect_index);
-      if (!matches.length) block('source-effect-missing', { textKey: owner.text_key, sourceLineIndex: expectation.source_line_index, effectIndex: expectation.effect_index });
+      if (expectation.parse_status === 'non_effect') {
+        if (matches.length) block('source-effect-stale', { textKey: owner.text_key, recordKey: matches[0].record_key });
+        for (const row of matches) used.add(row.record_key);
+        continue;
+      }
+      if (expectation.parse_status !== 'parsed') {
+        if (quarantineUnresolved) quarantine('source-effect-parse-unresolved', {
+          textKey: owner.text_key, sourceLineIndex: expectation.source_line_index,
+        });
+        else block('source-effect-parse-unresolved', { textKey: owner.text_key, sourceLineIndex: expectation.source_line_index });
+      }
+      if (!matches.length) {
+        if (quarantineUnresolved) quarantine('source-effect-missing', {
+          textKey: owner.text_key, sourceLineIndex: expectation.source_line_index,
+          effectIndex: expectation.effect_index,
+        });
+        else block('source-effect-missing', { textKey: owner.text_key, sourceLineIndex: expectation.source_line_index, effectIndex: expectation.effect_index });
+      }
+      else if (expectation.parse_status !== 'parsed' && quarantineUnresolved) {
+        // Preserve unresolved rows without treating them as accepted semantics.
+      }
       else if (matches.length !== 1 || !equalFields(expectation, matches[0])) block('source-effect-stale', { textKey: owner.text_key, recordKey: matches[0].record_key });
       else accepted.push(matches[0]);
       for (const row of matches) used.add(row.record_key);
     }
     for (const row of rows) if (!used.has(row.record_key)) block('source-effect-stale', { textKey: owner.text_key, recordKey: row.record_key });
   }
-  return accepted;
+  return { accepted, quarantined };
+}
+
+function isItemScopedArmorMultiplier(row) {
+  return row?.ownerKind === 'armor_set'
+    && row.statKey === 'damage_bonus'
+    && row.operation === 'multiply'
+    && /弓|连弩|箭|枪|子弹|玉米糖|特定远程武器|非消耗品远程武器/.test(row.conditionText ?? '');
 }
 
 const ITEM_EFFECT_SPECS = [
@@ -306,6 +356,13 @@ const ITEM_EFFECT_SPECS = [
   ['movementSpeed', 'move_speed', null],
 ];
 
+const NESTED_ITEM_EFFECT_STAT_KEYS = Object.freeze({
+  summonDamage: 'summon_damage',
+  minionSlots: 'minion_slots',
+  miningSpeed: 'mining_speed',
+  fishingPower: 'fishing_power',
+});
+
 function armorCellValue(value, unit, cellKey) {
   const text = String(value ?? '').trim().replace(/\u2212/g, '-').replace(/\uff05/g, '%');
   if (!text || text === '—' || text === '-') return null;
@@ -314,9 +371,62 @@ function armorCellValue(value, unit, cellKey) {
   return Number(text.replace(/%$/, ''));
 }
 
-function expectedItemEffects(attribute) {
+function nestedItemEffects(attribute) {
+  if (attribute.raw_json == null) return null;
+  const raw = json(attribute.raw_json, 'object', 'nested armor attribute source');
+  const record = raw.record;
+  if (record?.identity?.itemSourceId == null) return null;
+  if (Number(record.identity.itemSourceId) !== Number(attribute.item_id)
+      || record.identity.internalName !== attribute.item_internal_name) {
+    throw new Error('Armor nested item effect source identity is conflicting');
+  }
+  const facts = Array.isArray(record.itemScopedFacts) ? record.itemScopedFacts : null;
+  const sourceLines = Array.isArray(record.itemScopedSourceLines) ? record.itemScopedSourceLines : [];
+  const effectLines = Array.isArray(record.effectLines) ? record.effectLines : [];
+  if (!facts || facts.some(fact => !NESTED_ITEM_EFFECT_STAT_KEYS[fact?.statKey]
+      || !['add', 'multiply'].includes(fact.operation)
+      || !['percent', 'points'].includes(fact.unit)
+      || typeof fact.valueDecimal !== 'number' || !Number.isFinite(fact.valueDecimal))) {
+    throw new Error('Armor nested item effect facts are malformed');
+  }
+  const slotType = attribute.slot_group === 'head' ? 'headSlot'
+    : attribute.slot_group === 'body' ? 'bodySlot'
+      : attribute.slot_group === 'legs' ? 'legSlot' : null;
+  const identity = record.identity;
+  return facts.map((fact, effectIndex) => {
+    const sourceLine = sourceLines[effectIndex] ?? sourceLines[0] ?? null;
+    const sourceLineIndex = sourceLine == null ? null : effectLines.indexOf(sourceLine);
+    if (sourceLine != null && sourceLineIndex < 0) throw new Error('Armor nested item effect source line is missing');
+    const factPayload = {
+      statKey: fact.statKey, operation: fact.operation, unit: fact.unit, valueDecimal: fact.valueDecimal,
+    };
+    return {
+      ownerKind: 'item', ownerRecordKey: attribute.record_key, ownerId: Number(attribute.item_id),
+      ownerKey: attribute.item_internal_name, sourceKind: 'armor_attribute_cell', sourceLocale: 'en',
+      sourceLineIndex, sourceLine, effectIndex, applyScope: 'item_bonus', variantLabel: identity.itemName ?? null,
+      itemInternalName: attribute.item_internal_name, slotType,
+      statKey: NESTED_ITEM_EFFECT_STAT_KEYS[fact.statKey], statLabelZh: null, classScope: null,
+      operation: fact.operation, valueDecimal: fact.valueDecimal, valueMaxDecimal: null, unit: fact.unit,
+      conditionText: null, rawText: sourceLine, parseStatus: 'parsed',
+      sourceMaintTable: attribute.source_maint_table ?? 'maint_armor_attribute_rows',
+      sourceMaintRecordKey: attribute.source_maint_record_key ?? attribute.record_key,
+      sourceMaintId: attribute.source_maint_id ?? null, landingSourceId: attribute.landing_source_id ?? null,
+      landingSourceKey: attribute.landing_source_key ?? null, landingContentHash: attribute.landing_content_hash ?? null,
+      sourceProvider: attribute.source_provider ?? null, sourcePage: attribute.source_page ?? null,
+      sourceRevisionTimestamp: attribute.source_revision_timestamp ?? null, confidence: 1,
+      reviewStatus: 'accepted', reason: 'derived_from_revision_bound_armor_source_evidence',
+      rawJson: JSON.stringify({ schemaVersion: 'armor-missing-attribute-item-effect/v1',
+        evidenceHash: raw.sourceEvidenceHash ?? null, fact: factPayload }),
+    };
+  });
+}
+
+function expectedItemEffects(attribute, { skipRangedDamage = false } = {}) {
+  const nested = nestedItemEffects(attribute);
+  if (nested) return nested;
   const raw = json(attribute.raw_cells_json, 'object', 'armor attribute cells');
   return ITEM_EFFECT_SPECS.flatMap(([cellKey, statKey, classScope, unit = 'percent'], effectIndex) => {
+    if (skipRangedDamage && cellKey === 'rangedDamage') return [];
     const value = armorCellValue(raw[cellKey], unit, cellKey);
     if (value == null || value === 0) return [];
     // Independently reject source scopes that the additive cell contract cannot express.
@@ -353,7 +463,20 @@ function expectedItemEffects(attribute) {
   });
 }
 
-function checkItemEffects(sources, dependencies, block, typedSources = []) {
+function supersededTypedLegacyEffect(row, typedOwnerIds) {
+  return row?.owner_kind === 'item' && typedOwnerIds.has(Number(row.owner_id))
+    && row?.source_kind === 'armor_attribute_cell'
+    && /(?:^|\s)rangedDamage\s*:/.test(String(row.source_line ?? ''));
+}
+
+function checkItemEffects(sources, dependencies, block, typedSources = [], {
+  unresolvedSourceEffects = null,
+  allowPartialApply = false,
+  unresolvedRowsMustRemainUntouched = false,
+} = {}) {
+  const quarantineUnresolved = unresolvedSourceEffects === 'quarantine'
+    && allowPartialApply === true
+    && unresolvedRowsMustRemainUntouched === true;
   const members = new Map();
   for (const row of sources.relation_armor_set_items.filter(active)) {
     const previous = members.get(row.item_source_id) ?? { itemInternalName: row.item_internal_name, partRoles: new Set() };
@@ -364,8 +487,14 @@ function checkItemEffects(sources, dependencies, block, typedSources = []) {
   const activeAttributes = attributes.filter(active);
   const sourceRows = dependencies.relation_equipment_effect_attributes.filter(active);
   const accepted = [];
+  const quarantined = [];
+  const unresolved = (code, details) => {
+    if (quarantineUnresolved) quarantined.push({ code, ...details });
+    else block(code, details);
+  };
   const expectedKeys = new Set();
   const typedKeys = new Set();
+  const typedOwnerIds = new Set();
   // Independently assemble expectations from validated raw sources and maint IDs.
   // Do not consume the dispatch producer's effects or its projection output.
   for (const group of typedSources) for (const fact of group.sourceCandidate.effects) {
@@ -376,6 +505,7 @@ function checkItemEffects(sources, dependencies, block, typedSources = []) {
       block('typed-item-effect-owner-mismatch', { itemSourceId: fact.ownerId });
       continue;
     }
+    typedOwnerIds.add(fact.ownerId);
     const expected = snake({ ...fact, ownerRecordKey: maint.record_key,
       sourceMaintTable: 'maint_armor_attribute_rows', sourceMaintRecordKey: maint.record_key, sourceMaintId: maint.id,
       landingSourceId: group.landing.id, landingSourceKey: group.landing.source_key,
@@ -383,7 +513,7 @@ function checkItemEffects(sources, dependencies, block, typedSources = []) {
     typedKeys.add(expected.record_key);
     const matches = sourceRows.filter(row => row.record_key === expected.record_key);
     if (matches.length !== 1 || !equalFields(expected, matches[0])) {
-      block('typed-item-effect-source-stale', { itemSourceId: fact.ownerId, recordKey: expected.record_key });
+      unresolved('typed-item-effect-source-stale', { itemSourceId: fact.ownerId, recordKey: expected.record_key });
     } else accepted.push(matches[0]);
   }
   for (const [itemSourceId, member] of members) {
@@ -406,10 +536,10 @@ function checkItemEffects(sources, dependencies, block, typedSources = []) {
         block('armor-attribute-source-unresolved', { itemSourceId, recordKey: attribute.record_key });
       }
       if (attribute.raw_cells_json == null) {
-        block('item-effect-evidence-unresolved', { itemSourceId, recordKey: attribute.record_key });
+      unresolved('item-effect-evidence-unresolved', { itemSourceId, recordKey: attribute.record_key });
         continue;
       }
-      const expected = expectedItemEffects(attribute);
+      const expected = expectedItemEffects(attribute, { skipRangedDamage: typedOwnerIds.has(itemSourceId) });
       for (const expectation of expected) {
         const expectedFields = snake(expectation);
         const matches = sourceRows.filter(row => row.owner_kind === 'item' && row.owner_record_key === attribute.record_key
@@ -418,9 +548,9 @@ function checkItemEffects(sources, dependencies, block, typedSources = []) {
         const key = `${attribute.record_key}:${expectation.effectIndex}`;
         expectedKeys.add(key);
         if (matches.length !== 1 || !active(matches[0])) {
-          block('item-effect-evidence-unresolved', { itemSourceId, recordKey: matches[0]?.record_key ?? attribute.record_key, effectIndex: expectation.effectIndex });
+          unresolved('item-effect-evidence-unresolved', { itemSourceId, recordKey: matches[0]?.record_key ?? attribute.record_key, effectIndex: expectation.effectIndex });
         } else if (!equalFields(expectedFields, matches[0])) {
-          block('item-effect-source-stale', { itemSourceId, recordKey: matches[0].record_key });
+          unresolved('item-effect-source-stale', { itemSourceId, recordKey: matches[0].record_key });
         } else {
           accepted.push(matches[0]);
         }
@@ -429,15 +559,16 @@ function checkItemEffects(sources, dependencies, block, typedSources = []) {
   }
   for (const row of sourceRows) {
     if (row.owner_kind !== 'item' || !members.has(Number(row.owner_id))) continue;
+    if (supersededTypedLegacyEffect(row, typedOwnerIds)) continue;
     if (typedKeys.has(row.record_key)) continue;
     const matches = [...expectedKeys].some(key => key.startsWith(`${row.owner_record_key}:`)
       && Number(key.slice(key.lastIndexOf(':') + 1)) === row.effect_index);
-    if (!matches) block('item-effect-evidence-unresolved', { recordKey: row.record_key });
+    if (!matches) unresolved('item-effect-evidence-unresolved', { recordKey: row.record_key });
   }
-  return accepted;
+  return { accepted, typedOwnerIds, quarantined };
 }
 
-function auditDependencies(snapshot, sources, payload, projections, expectations, prefixes, block) {
+function auditDependencies(snapshot, sources, payload, projections, expectations, prefixes, block, typedOwnerIds = new Set(), defenseAuthority = null) {
   const maint = new Map(snapshot.relationInput.maintItems.map(row => [row.source_id, row]));
   const relationItems = new Map(snapshot.dependencyRows.relation_items.filter(active).map(row => [row.source_id, row]));
   const requiredIds = new Set(sources.relation_armor_set_items.map(row => row.item_source_id));
@@ -466,7 +597,11 @@ function auditDependencies(snapshot, sources, payload, projections, expectations
     const local = locals.get(sourceId);
     if (local && local.internal_name !== source.internal_name) block('local-item-identity-mismatch', { itemSourceId: sourceId });
     const fallback = snapshot.consumerRows.projection_item_armor_attributes.filter(row => row.deleted === 0 && row.item_id === sourceId && row.defense_value != null).sort((a, b) => a.id - b.id)[0];
-    const expectedDefense = expectedItems.get(sourceId)?.defense;
+    const rawExpectedDefense = expectedItems.get(sourceId)?.defense;
+    const expectedDefense = defenseAuthority === 'armor_attribute_zero'
+      && (rawExpectedDefense == null || comparable(rawExpectedDefense, 'defense') === 0)
+      ? 0
+      : rawExpectedDefense;
     if (expectedDefense == null) block('defense-source-unresolved', { itemSourceId: sourceId });
     if (local?.defense == null) block(fallback ? 'defense-fallback-only' : 'defense-missing', { itemSourceId: sourceId });
     else if (comparable(local.defense, 'defense') !== expectedDefense) block('local-defense-stale', { itemSourceId: sourceId });
@@ -495,6 +630,7 @@ function auditDependencies(snapshot, sources, payload, projections, expectations
       else if (!equalFields(expected, actual)) block(`${code}-stale`, { recordKey: expected.relation_record_key });
     }
     for (const actual of rows) {
+      if (supersededTypedLegacyEffect(actual, typedOwnerIds)) continue;
       // Armor admin attributes/item effects and set defense fallback read
       // nondeleted rows even when inactive. Fully retired rows are excluded.
       if (actual.deleted !== 0) continue;
@@ -507,6 +643,7 @@ function auditDependencies(snapshot, sources, payload, projections, expectations
   }
   for (const row of [...snapshot.dependencyRows.relation_equipment_effect_attributes.filter(active),
     ...snapshot.consumerRows.projection_equipment_effect_attributes.filter(row => row.deleted === 0)]) {
+    if (supersededTypedLegacyEffect(row, typedOwnerIds)) continue;
     if (row.owner_kind === 'item' && requiredIds.has(row.owner_id)) {
       const rowKey = row.relation_record_key ?? row.record_key;
       const expected = expectations.projection_equipment_effect_attributes.some(effect => effect.owner_kind === 'item'
@@ -526,9 +663,24 @@ function withoutStorageIdentity(row) {
 async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIndependent = false } = {}) {
   const hasTypedSources = Object.hasOwn(input, 'itemEffectSources');
   exactKeys(input, ['relationInput', 'currentRows', 'dependencyRows', 'consumerRows', 'managedImageUrlPrefixes',
-    ...(hasTypedSources ? ['itemEffectSources'] : [])], 'projection candidate');
+    ...(hasTypedSources ? ['itemEffectSources'] : []),
+    ...(Object.hasOwn(input, 'defenseAuthority') ? ['defenseAuthority'] : []),
+    ...(Object.hasOwn(input, 'unresolvedSourceEffects') ? ['unresolvedSourceEffects'] : []),
+    ...(Object.hasOwn(input, 'allowPartialApply') ? ['allowPartialApply'] : []),
+    ...(Object.hasOwn(input, 'unresolvedRowsMustRemainUntouched') ? ['unresolvedRowsMustRemainUntouched'] : [])], 'projection candidate');
   requireJson(input);
   const snapshot = canonical(structuredClone(input), false);
+  if (snapshot.defenseAuthority != null && snapshot.defenseAuthority !== 'armor_attribute_zero') {
+    throw new Error('Armor defense authority is invalid');
+  }
+  const partialPolicyFields = [snapshot.unresolvedSourceEffects, snapshot.allowPartialApply,
+    snapshot.unresolvedRowsMustRemainUntouched];
+  if (partialPolicyFields.some(value => value !== undefined)
+      && (snapshot.unresolvedSourceEffects !== 'quarantine'
+        || snapshot.allowPartialApply !== true
+        || snapshot.unresolvedRowsMustRemainUntouched !== true)) {
+    throw new Error('Armor unresolved source-effect partial policy is incomplete');
+  }
   exactKeys(snapshot.currentRows, [TABLE], 'projection baseline');
   exactKeys(snapshot.dependencyRows, DEPENDENCY_TABLES, 'derivation dependencies');
   exactKeys(snapshot.consumerRows, CONSUMER_TABLES, 'consumer dependencies');
@@ -545,7 +697,7 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
   for (const [table, rows] of Object.entries({ ...snapshot.relationInput.currentRows, ...snapshot.relationInput.maintInput.currentRows, maint_items: snapshot.relationInput.maintItems })) {
     validateRows(rows, table, prefixes);
   }
-  validateItemJoins(snapshot);
+  const itemJoinValidation = validateItemJoins(snapshot);
   const maintItems = new Map(snapshot.relationInput.maintItems.map(row => [row.source_id, row]));
   // The current projection can contain the previously published slot-role
   // interpretation. Validate its identity and IDs while allowing the new
@@ -554,14 +706,28 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
   const sources = Object.fromEntries(RELATION_TABLES.map(table => [table, sourcePresent(relationCandidate, table)]));
   const blockers = [];
   const block = (code, details = {}) => blockers.push({ code, ...details });
+  for (const issue of itemJoinValidation.staleLineage) block('relation-item-lineage-stale', issue);
+  for (const issue of inspectArmorCanonicalLandingLineage({
+    relationCandidate,
+    landingCurrentRows: snapshot.relationInput.landingCurrentRows,
+  })) block('relation-landing-lineage-mismatch', issue);
   let typedSources = [];
   if (hasTypedSources) {
     exactKeys(snapshot.itemEffectSources, ['maintLandings', 'maintArmorAttributeRows'], 'typed item source snapshots');
     typedSources = readArmorItemEffectMaintSources({ ...snapshot.itemEffectSources, maintItems: snapshot.relationInput.maintItems });
-    if (typedSources.length) block('complete-item-and-set-coverage-unverified');
+    if (typedSources.length) {
+      if (snapshot.unresolvedSourceEffects === 'quarantine'
+          && snapshot.allowPartialApply === true
+          && snapshot.unresolvedRowsMustRemainUntouched === true) {
+        // The typed item rows are independently frozen and may be applied in a
+        // bounded partial run while missing set/member coverage remains outside
+        // the accepted source-effect set.
+      } else block('complete-item-and-set-coverage-unverified');
+    }
   }
-  const acceptedEffects = [...checkSourceEffects(sources, snapshot.dependencyRows, block),
-    ...checkItemEffects(sources, snapshot.dependencyRows, block, typedSources)];
+  const itemEffects = checkItemEffects(sources, snapshot.dependencyRows, block, typedSources, snapshot);
+  const sourceEffects = checkSourceEffects(sources, snapshot.dependencyRows, block, snapshot);
+  const acceptedEffects = [...sourceEffects.accepted, ...itemEffects.accepted];
   const payload = buildProjectionPayload({
     ...Object.fromEntries(Object.entries({ ...sources, ...snapshot.dependencyRows, relation_equipment_effect_attributes: acceptedEffects })
       .map(([table, rows]) => [camelName(table), rows.filter(active).map(camel)])),
@@ -611,7 +777,8 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
       .map(row => withoutStorageIdentity({ ...row,
         owner_id: row.owner_kind === 'armor_set' ? owners.get(row.owner_key) ?? null : row.owner_id })),
   };
-  auditDependencies(snapshot, sources, payload, expectedRows, dependencyExpectations, prefixes, block);
+  auditDependencies(snapshot, sources, payload, expectedRows, dependencyExpectations, prefixes, block,
+    itemEffects.typedOwnerIds, snapshot.defenseAuthority ?? null);
   for (const row of dependencyExpectations.projection_equipment_effect_attributes) if (!positiveId(row.owner_id)) {
     unresolvedDependencies.push({ table: 'projection_equipment_effect_attributes', recordKey: row.relation_record_key,
       column: 'owner_id', referencedTable: TABLE, textKey: row.owner_key });
@@ -628,6 +795,12 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
     summary: Object.fromEntries(Object.entries(changes).map(([name, rows]) => [name, rows.length])),
     deletes: [], removedIdentities, requiresRemovalReview, unresolvedGeneratedIds, unresolvedDependencies,
     relationCandidate, dependencyExpectations,
+    partialPolicy: {
+      unresolvedSourceEffects: snapshot.unresolvedSourceEffects ?? null,
+      allowPartialApply: snapshot.allowPartialApply ?? false,
+      unresolvedRowsMustRemainUntouched: snapshot.unresolvedRowsMustRemainUntouched ?? false,
+    },
+    quarantinedSourceEffects: [...sourceEffects.quarantined, ...itemEffects.quarantined],
     acceptance: { status: blockers.length ? 'blocked' : 'dependencies-satisfied', runtimeVerified: false, blockers },
     inputSnapshots: snapshot, inputSha256: hash(snapshot), baselineSha256: hash(snapshot.currentRows),
     dependencySnapshotSha256: hash(snapshot.dependencyRows), consumerSnapshotSha256: hash(snapshot.consumerRows),

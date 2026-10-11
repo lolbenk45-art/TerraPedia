@@ -64,7 +64,50 @@ function imageBytes(encoded, metadata, transfer) {
   return bytes;
 }
 
-export function buildArmorImageCacheProposal({ sourcePayload, downloads, managedImageUrlPrefixes, generatedAt } = {}) {
+function sourceRowIdentity(row) {
+  const copy = structuredClone(row);
+  copy.cachedUrl = null;
+  return hash(copy);
+}
+
+function assertRetainedEvidence({ source, files, retained, evidence, prefixes } = {}) {
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence) || !evidence.result) {
+    throw new Error('Armor retained cache history evidence is required');
+  }
+  const result = evidence.result;
+  if (result.operationId !== ARMOR_IMAGE_CACHE_OPERATION_ID || result.status !== 'COMPLETED'
+      || result.databaseWrites !== false || !Array.isArray(result.uploaded)
+      || !Array.isArray(result.payload?.armorSetImages)
+      || hash(result.payload) !== result.payloadSha256) throw new Error('Armor retained cache history result is invalid');
+  const oldRows = new Map(result.payload.armorSetImages.map(row => [JSON.stringify([row.textKey, row.imageRole, row.sourceFileTitle]), row]));
+  const retainedFiles = new Set(retained.keys());
+  const currentRows = source.armorSetImages.filter(row => retainedFiles.has(title(row.sourceFileTitle)));
+  if (currentRows.length !== result.payload.armorSetImages.length) throw new Error('Armor retained cache history source coverage drift');
+  for (const row of currentRows) {
+    const key = JSON.stringify([row.textKey, row.imageRole, row.sourceFileTitle]);
+    const prior = oldRows.get(key);
+    if (!prior || sourceRowIdentity(prior) !== sourceRowIdentity(row)) throw new Error('Armor retained cache history source drift');
+  }
+  const uploaded = new Map();
+  for (const receipt of result.uploaded) {
+    const key = title(receipt?.sourceFileTitle);
+    if (!files.has(key) || uploaded.has(key) || receipt.verified !== true
+        || !safeManaged(receipt.cachedUrl, prefixes)) {
+      throw new Error('Armor retained cache history receipt is invalid');
+    }
+    uploaded.set(key, receipt);
+  }
+  if (uploaded.size !== retained.size) throw new Error('Armor retained cache history receipt coverage drift');
+  for (const [key, receipt] of retained) {
+    const prior = uploaded.get(key);
+    if (!prior || prior.cachedUrl !== receipt.cachedUrl || prior.sha256 !== receipt.sha256) {
+      throw new Error('Armor retained cache history receipt drift');
+    }
+  }
+  return true;
+}
+
+export function buildArmorImageCacheProposal({ sourcePayload, downloads, retainedReceipts = [], retainedEvidence = null, managedImageUrlPrefixes, generatedAt } = {}) {
   const generated = time(generatedAt, 'generation');
   const source = structuredClone(sourcePayload);
   if (source?.source !== 'terraria.wiki.gg:armor-set-pages:imageinfo' || source.sourcePageTitle !== 'Armor set pages'
@@ -94,11 +137,23 @@ export function buildArmorImageCacheProposal({ sourcePayload, downloads, managed
     if (files.has(fileKey) && hash(files.get(fileKey).metadata) !== hash(metadata)) throw new Error('Armor shared source file metadata conflict');
     files.set(fileKey, { sourceFileTitle: row.sourceFileTitle, metadata });
   }
-  if (!Array.isArray(downloads) || downloads.length !== files.size) throw new Error('Armor downloads must cover exact source files');
+  if (!Array.isArray(retainedReceipts)) throw new Error('Armor retained cache receipts are invalid');
+  const retained = new Map();
+  for (const receipt of retainedReceipts) {
+    const key = title(receipt?.sourceFileTitle);
+    if (!files.has(key) || retained.has(key) || !safeManaged(receipt?.cachedUrl, prefixes)
+        || receipt?.verified !== true || typeof receipt?.sha256 !== 'string'
+        || !/^sha256:[0-9a-f]{64}$/.test(receipt.sha256)) throw new Error('Armor retained cache receipt is invalid');
+    retained.set(key, { sourceFileTitle: files.get(key).sourceFileTitle, cachedUrl: receipt.cachedUrl,
+      sha256: receipt.sha256, verified: true });
+  }
+  if (retained.size) assertRetainedEvidence({ source, files, retained, evidence: retainedEvidence, prefixes });
+  else if (retainedEvidence != null) throw new Error('Armor retained cache history is unbound');
+  if (!Array.isArray(downloads) || downloads.length !== files.size - retained.size) throw new Error('Armor downloads must cover exact source files');
   const seen = new Set(); let totalBytes = 0;
   const assets = downloads.map(download => {
     const key = title(download.sourceFileTitle); const sourceFile = files.get(key);
-    if (!sourceFile || seen.has(key)) throw new Error('Armor unbound or duplicate source download');
+    if (!sourceFile || retained.has(key) || seen.has(key)) throw new Error('Armor unbound or duplicate source download');
     seen.add(key);
     const before = info(download.before); const after = info(download.after);
     if (hash(before) !== hash(sourceFile.metadata) || hash(before) !== hash(after)) throw new Error('Armor source revision drift during download');
@@ -106,16 +161,20 @@ export function buildArmorImageCacheProposal({ sourcePayload, downloads, managed
     return { sourceFileTitle: sourceFile.sourceFileTitle, before, after, bytesBase64: download.bytesBase64, ...(download.transfer ? { transfer: structuredClone(download.transfer) } : {}), sha256: digest(bytes) };
   }).sort((a, b) => a.sourceFileTitle.localeCompare(b.sourceFileTitle));
   if (totalBytes > 64 * 1024 * 1024) throw new Error('Armor image bytes exceed bounded batch');
-  const proposal = { schemaVersion: 'armor-image-cache-proposal/v1', operationId: ARMOR_IMAGE_CACHE_OPERATION_ID,
+  const proposal = { schemaVersion: retained.size ? 'armor-image-cache-proposal/v2' : 'armor-image-cache-proposal/v1', operationId: ARMOR_IMAGE_CACHE_OPERATION_ID,
     generatedAt, databaseWrites: false, sourcePayload: source, sourceSha256: hash(source),
-    managedImageUrlPrefixes: prefixes, assets, totalBytes };
+    managedImageUrlPrefixes: prefixes, ...(retained.size ? {
+      retainedReceipts: [...retained.values()].sort((a, b) => a.sourceFileTitle.localeCompare(b.sourceFileTitle)),
+      retainedEvidence: structuredClone(retainedEvidence)
+    } : {}),
+    assets, totalBytes };
   return { ...proposal, proposalSha256: hash(proposal) };
 }
 
 export function validateArmorImageCacheProposal(proposal) {
   const { proposalSha256, ...body } = proposal ?? {};
   if (hash(body) !== proposalSha256) throw new Error('Armor cache proposal hash drift');
-  const rebuilt = buildArmorImageCacheProposal({ ...proposal, downloads: proposal.assets });
+  const rebuilt = buildArmorImageCacheProposal({ ...proposal, downloads: proposal.assets, retainedReceipts: proposal.retainedReceipts ?? [] });
   if (hash(rebuilt) !== hash(proposal)) throw new Error('Armor cache proposal derivation drift');
   return true;
 }
@@ -139,10 +198,14 @@ export async function executeArmorImageCache({ proposal, persistPrepared, consum
   }
   const uploaded = []; const attemptedFiles = [];
   const resumed = new Map();
+  for (const receipt of frozen.retainedReceipts ?? []) {
+    resumed.set(title(receipt.sourceFileTitle), structuredClone(receipt));
+  }
   for (const receipt of resumeVerified) {
     if (!receipt || typeof receipt.sourceFileTitle !== 'string' || resumed.has(title(receipt.sourceFileTitle))
         || !safeManaged(receipt.cachedUrl, frozen.managedImageUrlPrefixes)
         || typeof receipt.sha256 !== 'string' || receipt.verified !== true) throw new Error('Armor resume receipt is invalid');
+    if (resumed.has(title(receipt.sourceFileTitle))) throw new Error('Armor resume receipt duplicates retained cache');
     resumed.set(title(receipt.sourceFileTitle), structuredClone(receipt));
   }
   const base = { operationId: ARMOR_IMAGE_CACHE_OPERATION_ID, proposalSha256: frozen.proposalSha256, databaseWrites: false };
@@ -150,6 +213,13 @@ export async function executeArmorImageCache({ proposal, persistPrepared, consum
   let resultPublished = false;
   try {
     await consumePermit();
+    for (const receipt of frozen.retainedReceipts ?? []) {
+      attemptedFiles.push(receipt.sourceFileTitle);
+      await persistUploadEvent({ phase: 'RESUME_INTENT', ...receipt });
+      const bytes = await readManaged(receipt.cachedUrl);
+      if (!Buffer.isBuffer(bytes) || digest(bytes) !== receipt.sha256) throw new Error('Armor retained cache readback bytes mismatch');
+      await persistUploadEvent({ phase: 'RESUME_VERIFIED', ...receipt, verified: true });
+    }
     for (const asset of frozen.assets) {
       const prior = resumed.get(title(asset.sourceFileTitle));
       if (prior) {
@@ -175,10 +245,11 @@ export async function executeArmorImageCache({ proposal, persistPrepared, consum
       await persistUploadEvent({ phase: 'CACHE_VERIFIED', ...receipt });
     }
     if (uploaded.length !== frozen.assets.length) throw new Error('Armor cache resume coverage is incomplete');
-    const byFile = new Map(uploaded.map(row => [title(row.sourceFileTitle), row.cachedUrl]));
+    const byFile = new Map([...resumed.values(), ...uploaded].map(row => [title(row.sourceFileTitle), row.cachedUrl]));
     const payload = structuredClone(frozen.sourcePayload);
     for (const row of payload.armorSetImages) row.cachedUrl = byFile.get(title(row.sourceFileTitle));
-    const result = { ...base, status: 'COMPLETED', attemptedFiles, uploaded, payload, payloadSha256: hash(payload) };
+    const retained = [...(frozen.retainedReceipts ?? [])];
+    const result = { ...base, status: 'COMPLETED', attemptedFiles, ...(retained.length ? { retained } : {}), uploaded, payload, payloadSha256: hash(payload) };
     // A publication failure must never overwrite a successfully created result.
     resultPublished = true;
     await persistResult(result);
@@ -254,14 +325,22 @@ export function assertArmorImageCacheResult({ proposal, result } = {}) {
   validateArmorImageCacheProposal(proposal);
   if (result?.operationId !== ARMOR_IMAGE_CACHE_OPERATION_ID || result.status !== 'COMPLETED' || result.databaseWrites !== false
       || result.proposalSha256 !== proposal.proposalSha256) throw new Error('Armor cache terminal result must be bound and COMPLETED');
+  const expectedAttemptedFiles = [...(proposal.retainedReceipts ?? []), ...proposal.assets].map(asset => asset.sourceFileTitle);
   if (!Array.isArray(result.uploaded) || result.uploaded.length !== proposal.assets.length
-      || hash(result.attemptedFiles) !== hash(proposal.assets.map(asset => asset.sourceFileTitle))) throw new Error('Armor cache receipt coverage is incomplete');
+      || hash(result.attemptedFiles) !== hash(expectedAttemptedFiles)) throw new Error('Armor cache receipt coverage is incomplete');
   const byFile = new Map();
   for (const [index, receipt] of result.uploaded.entries()) {
     const asset = proposal.assets[index];
     if (receipt.sourceFileTitle !== asset.sourceFileTitle || receipt.sha256 !== asset.sha256 || receipt.verified !== true
         || !safeManaged(receipt.cachedUrl, proposal.managedImageUrlPrefixes)) throw new Error('Armor cache verified receipt drift');
     byFile.set(title(asset.sourceFileTitle), receipt.cachedUrl);
+  }
+  const retained = proposal.retainedReceipts ?? [];
+  if ((result.retained ?? []).length !== retained.length) throw new Error('Armor cache retained receipt coverage is incomplete');
+  for (const receipt of retained) {
+    const matching = result.retained.find(row => title(row.sourceFileTitle) === title(receipt.sourceFileTitle));
+    if (!matching || hash(matching) !== hash(receipt)) throw new Error('Armor cache retained receipt drift');
+    byFile.set(title(receipt.sourceFileTitle), receipt.cachedUrl);
   }
   const payload = structuredClone(proposal.sourcePayload);
   for (const row of payload.armorSetImages) row.cachedUrl = byFile.get(title(row.sourceFileTitle));

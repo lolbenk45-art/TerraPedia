@@ -1,14 +1,19 @@
 # Current Devlog
 
-Last updated: 2026-09-29 06:57 CST by Codex
+Last updated: 2026-10-11 16:52 CST by Codex
 
-Active branch: `feat/automation-scheduler-continuation`
-Active focus: complete governed source → landing → maint → relation → projection/API ingestion through isolated domain branches; overall active.
+Active branch: `feat/automation-domain-armor`
+Active focus: Armor scheduler durable-state recovery and disabled control configuration are confirmed on 18104/DB14. The real Armor T1 isolated acceptance now passes against run-derived local/maint/relation schemas with DB13 cleanup verified. Buff is managed separately on 18105/DB15. The next production Armor gate remains a real source change and a fresh exact binding/authorization scope.
 
 ## Open work
 
-- Owner: Codex coordinator, serial integration and current-model spec/quality review; domain worktree shells are reserved for disjoint Armor, Buff and Shimmer slices.
-- Worktree: `/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation`.
+- Owner: Armor automation-ingestion group is the handoff target; receiving individual/acceptance is not yet recorded. Coordinator retains scheduler/H8 ownership and serial integration.
+- Worktree: `/home/lolben/TerraPedia/.worktrees/automation-domain-armor`.
+- Active Armor entry: [Armor closure gap audit](entries/2026-09-30-armor-closure-gap-audit.md), `active`; typed publication `continuation-20261008-07` and secondary projection `typed-projection-20261008-01` each committed 3 Shroomite rows for owners `1546`-`1548`. Independent DB/API readback verifies 6/6 effects; candidate `.29` has `0` blockers and 304 quarantined source effects. The Armor scheduler action is connected to the governed full-chain runner and focused-tested; runtime canary remains gated by a real changed Armor source and fresh exact binding/authorization.
+- Armor branch: `feat/automation-domain-armor`; candidate `.local/tmp/armor-canonical-full-chain-candidate-20261008-29.json` is `dependencies-satisfied`, full-chain hash `sha256:87edc0a9c95d444a708a69c5704e06b4e685dc9e34d1025975b0474128c47523`, runtime `0/0/0`. Quarantined source rows remain untouched; fresh read-only grouping is `.local/tmp/armor-quarantine-classification-20261010-r5.json` (152 parse-unresolved and 152 missing, owner unassigned); any later write requires a fresh exact scope and request hash.
+- Handoff next action: Armor is running on `127.0.0.1:18104` with Redis DB14 and scheduler disabled. Fresh gate evidence `.local/tmp/armor-automatic-ingestion-gate-20261010-r7.json` records the correct shared-manifest r11 probe, candidate `.29`, 304 quarantine classification, disabled control, zero live work, healthy reconciler, and an empty binding directory. Buff is managed separately on `18105/DB15`; its two-sample evidence is `.worktrees/automation-domain-buff/.local/tmp/buff-db15-managed-restart-preflight-20261010T061042174Z.json`. Armor blockers remain `armor_source_changed_false` and `fresh_automatic_armor_binding_missing`; no source, database, Redis, authorization, or quarantine write was performed.
+- T1 isolated acceptance: `.local/tmp/armor-t1-isolated-arm_662831e582e94bf0.json` is `passed`. The run committed only to run-derived schemas, with journal `PREPARED -> MATERIALIZED -> COMMITTED`; landing inserts were `1 + 1`, maint sets/images `64/431`, relation sets/items/images `64/494/431`, projection sets `64`, and quarantine hash was unchanged. Cleanup verified `3` schemas, `1` temporary account, `2` Redis keys, DB13 size `0`, and no cleanup errors. The isolated executor now preserves default-generated timestamp columns and applies V56 landing schema to derived maint before copying.
+- Plan: [Armor automatic ingestion dispatch binding](../superpowers/plans/2026-10-08-armor-automatic-ingestion-dispatch-binding.md), active; offline binding, adapter, registry, manifest, and V2 attempt transport are implemented and focused-tested. The fresh single-action runtime gate remains scheduler-coordinator owned.
 - Branch matrix: [automation domain worktree matrix](entries/2026-09-29-automation-domain-worktree-matrix.md), closed at this checkpoint; coordinator-only updates to this index.
 - Active child: [Armor source semantics](entries/2026-09-28-armor-source-semantics-continuation.md), `active`; same owner/branch/worktree, dependent on parser/source evidence and fresh runtime gates.
 - Parent: [Armor image continuation](entries/2026-09-27-armor-image-cache-continuation.md), `active` for remaining source/full-chain gates.
@@ -16,7 +21,17 @@ Active focus: complete governed source → landing → maint → relation → pr
 - Ancestors: [Armor frozen candidate](entries/2026-09-24-armor-frozen-candidate-continuation.md), [canonical ownership](entries/2026-09-24-canonical-ownership-execution.md), [plan repair](entries/2026-09-22-automation-ingestion-plan-repair.md), [scheduler activation](entries/2026-08-31-automation-scheduler-activation-handoff.md); all retain the same owner, branch/worktree and active dependencies.
 - Authority: [standing register](entries/2026-09-19-automation-scheduler-authorization-list.md); approved scoped implementation/registration and fresh serial execution, subject to technical gates.
 - Plan: `docs/superpowers/plans/2026-08-31-automation-ingestion-scheduler-activation.md` (A2–A6, B1, S1, then M/D/S acceptance).
-- Contract handoff: H8 `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`, V2 epoch `epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346`, Redis DB14.
+- Contract handoff: scheduler-plan H8 `sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0`; latest all-policy preflight hash `sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f` (verified against returned rows); current V2 epoch `epoch-29a8486b-b3df-45a7-a496-28286e5da91b`, Redis DB14. H8 and all-policy preflight hashes have different scopes. The older `epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346` value is historical and no longer authoritative.
+
+## Armor dispatch binding offline checkpoint - 2026-10-08
+
+- `armor-automatic-dispatch-binding/v1` and the Armor scheduler adapter are now covered by 15 focused Node tests; the registry/manifest bridge is covered by 2 registration tests and scheduler runtime drift checks.
+- V2 scheduler-owned Armor attempts now require an exact private binding path/hash, persist it in the immutable plan, and expose only those two values to the child. Manual dispatches cannot inherit the binding. Focused Maven coverage is `440/440` across the registry, monitor, queue, and supervisor suites.
+- The scheduler timing gap is repaired: when the Armor canary has a healthy changed source snapshot and a matching unconsumed binding, the sweep reuses that exact snapshot instead of rerunning the probe and changing `sourceRunIdentity`; a missing, stale, or malformed binding still falls back to the normal probe and fails closed. Binding `attemptId` is transported into the immutable queue attempt. The new regression coverage keeps the focused Maven suites green at `440/440`.
+- The dual-root child contract is explicit: `TERRAPEDIA_CRAWLER_COMMAND_ROOT` selects Armor entrypoints while durable `WORKTREE_ROOT` continues to own state, progress, binding, and artifacts. This closes the deployed coordinator-root versus Armor-code-root path mismatch.
+- The read-only quarantine classification remains 304 rows (152 parse-unresolved, 152 missing). Read-only DB counts observed 1 Armor landing, 64 maint sets, and 64 relation sets. No scheduler, source, DB, Redis, API, authorization, commit, or push action occurred in this checkpoint.
+- The manifest drift issue is repaired in the test expectation for the existing `armor-source-effect-owner-decision.mjs` static import; the complete fresh Node suite is now `96/96` and Armor runtime bundle assertions pass. See the active Armor entry for exact paths and residual risks.
+- Fresh 10:53 CST rerun is green for Armor (`96/96` Node, `438/438` Maven, syntax, candidate `.29`, and diff checks). Read-only SQL/API checks are recorded with source landings `2`, active maint/relation `64/64`, and public/admin Armor HTTP `200`. The scheduler runtime gate remains coordinator-owned because the readable service is the Buff worktree and does not contain the Armor adapter.
 
 ## Verified checkpoint and next action
 

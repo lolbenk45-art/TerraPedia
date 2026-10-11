@@ -6,7 +6,9 @@ const TABLES = ['maint_armor_sets', 'maint_armor_set_images'];
 const DATASETS = ['armor_sets_raw', 'armor_set_images_raw'];
 const SOURCE_KEYS = ['wiki.module.armorsetbonuses', 'wiki.armor_set_images'];
 const CANONICAL_MODULE_SOURCE_KEY = /^wiki\.module\.armorsetbonuses\.canonical\.[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const sha256 = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const textSha256 = (value) => `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`;
 const text = (value) => typeof value === 'string' && value.trim() !== '' && value === value.trim();
 const positiveId = (value) => Number.isSafeInteger(value) && value > 0;
 
@@ -69,6 +71,7 @@ function validateModule(payload, landing) {
   if (storageTime(revision, 'module revision') !== storageTime(landing.source_revision_timestamp, 'landing revision')
       || revision > requireTime(payload.fetchedAt, 'module fetched')) throw new Error('Armor module revision binding mismatch');
   const keys = new Set();
+  const evidenceHashes = new Set();
   for (const record of payload.armorSets) {
     if (!text(record.textKey) || keys.has(record.textKey)) throw new Error('Armor module text identity is missing or duplicate');
     keys.add(record.textKey);
@@ -80,7 +83,29 @@ function validateModule(payload, landing) {
     if (!Array.isArray(record.uniqueItemIds) || JSON.stringify([...record.uniqueItemIds].sort((a, b) => a - b)) !== JSON.stringify(ids)) {
       throw new Error('Armor module unique item identities disagree with parts');
     }
+    const hasEffectText = text(record.effectText);
+    const source = record.effectTextSource;
+    const hasEvidenceMarker = record.effectTextEvidenceHash != null;
+    if (hasEvidenceMarker) {
+      if (!SHA256.test(record.effectTextEvidenceHash)) throw new Error('Armor effect text evidence hash is invalid');
+      evidenceHashes.add(record.effectTextEvidenceHash);
+      if (!hasEffectText || !source || typeof source !== 'object' || Array.isArray(source)) {
+        throw new Error('Armor enriched effect text evidence is incomplete');
+      }
+    }
+    if (source != null || hasEffectText && hasEvidenceMarker) {
+      if (!source || typeof source !== 'object' || Array.isArray(source)
+          || source.provider !== 'terraria.wiki.gg' || source.locale !== 'zh'
+          || !['set_page', 'armor_overview'].includes(source.kind)
+          || !text(source.pageTitle) || !positiveId(source.revisionId)
+          || !SHA256.test(source.contentHash) || !SHA256.test(source.effectTextHash)
+          || source.effectTextHash !== textSha256(record.effectText)) {
+        throw new Error('Armor effect text source lineage is invalid');
+      }
+      requireTime(source.revisionTimestamp, 'effect text source revision');
+    }
   }
+  if (evidenceHashes.size > 1) throw new Error('Armor effect text evidence hash drifted across module owners');
   return keys;
 }
 
@@ -118,7 +143,7 @@ function safeManagedImage(value, prefixes) {
 function comparable(value, column) {
   if (column.endsWith('_json') && typeof value === 'string') return canonical(JSON.parse(value));
   if (value != null && (column.endsWith('_timestamp') || column.endsWith('_at'))) return requireTime(value, column);
-  if (column === 'is_primary' && [true, false, 0, 1].includes(value)) return Number(value);
+  if (column === 'is_primary' && [true, false, 0, 1, '0', '1'].includes(value)) return Number(value);
   return canonical(value);
 }
 
@@ -137,7 +162,18 @@ function identity(row, table) {
   return JSON.stringify([row.text_key, row.image_role, row.source_file_title]);
 }
 
-function diffRows(current, proposed, table) {
+function maintDataset(table) {
+  return table === 'maint_armor_sets' ? 'armor_sets_raw' : 'armor_set_images_raw';
+}
+
+function maintLandingIdentity(table, row) {
+  const dataset = maintDataset(table);
+  const values = [dataset, row.source_provider, row.landing_source_key, row.landing_source_page];
+  if (values.some(value => !text(value))) throw new Error('Armor maint landing identity is missing');
+  return values.join('|');
+}
+
+function diffRows(current, proposed, table, materializedLandingIdentities = new Set()) {
   const byIdentity = new Map();
   const ids = new Set();
   const recordKeys = new Set();
@@ -159,6 +195,15 @@ function diffRows(current, proposed, table) {
     const before = byIdentity.get(key);
     if (before && (before.status !== 1 || before.deleted !== 0)) throw new Error('Armor maint candidate cannot reactivate an inactive identity');
     const candidate = { ...row, record_key: before?.record_key ?? sha256([table, key]), status: 1, deleted: 0 };
+    if (before && candidate.landing_source_id == null) {
+      const sameLanding = candidate.landing_source_key === before.landing_source_key
+        && candidate.landing_content_hash === before.landing_content_hash;
+      const materialized = materializedLandingIdentities.has(maintLandingIdentity(table, candidate));
+      if (!sameLanding && before.landing_source_id != null && !materialized) {
+        throw new Error(`Armor ${table} update cannot clear landing source ID without a materialized landing`);
+      }
+      if (sameLanding) candidate.landing_source_id = before.landing_source_id ?? null;
+    }
     if (!before) {
       if (recordKeys.has(candidate.record_key)) throw new Error('Armor maint candidate record key collides with another identity');
       recordKeys.add(candidate.record_key);
@@ -185,6 +230,7 @@ function diffRows(current, proposed, table) {
 // locked DB reads, runtime media policy, a fresh packet and exact owner fences.
 export async function buildArmorCanonicalMaintCandidate({
   landingRows, currentRows, managedImageUrlPrefixes, allowUnmaterializedLandingIds = false,
+  materializedLandingIdentities = [],
 } = {}) {
   if (!Array.isArray(landingRows) || landingRows.length !== 2) throw new Error('Armor requires both landing snapshots');
   if (!currentRows || Object.keys(currentRows).length !== 2 || TABLES.some(table => !Array.isArray(currentRows[table]))) {
@@ -205,10 +251,11 @@ export async function buildArmorCanonicalMaintCandidate({
   const changes = {};
   const expectedRows = {};
   const summary = { inserts: 0, updates: 0, unchanged: 0, preserved: 0 };
+  const materialized = new Set(materializedLandingIdentities);
   for (const [index, table] of TABLES.entries()) {
     const extracted = await extractMaintEntitiesFromLandingRow(snapshots[index]);
     if (extracted.rows.some(row => row.tableName !== table)) throw new Error('Armor extractor escaped its table scope');
-    const delta = diffRows(baseline[table], extracted.rows.map(dbRow), table);
+    const delta = diffRows(baseline[table], extracted.rows.map(dbRow), table, materialized);
     changes[table] = delta.changes;
     expectedRows[table] = delta.expectedRows;
     for (const field of Object.keys(summary)) summary[field] += delta.changes[field].length;

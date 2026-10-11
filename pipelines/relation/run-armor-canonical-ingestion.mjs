@@ -121,7 +121,16 @@ export async function applyArmorCanonicalIngestion({
     relativePath: paths.intentPath,
     expectedHash: binding.intentFileSha256,
   });
-  assertArmorCanonicalPacketBinding({ authorizedContext: context, binding, intent });
+  // The run/fence values are carried by the operation-specific manifest
+  // binding and copied into the transaction packet below. Validate the
+  // binding against that same effective context before opening MySQL.
+  const boundContext = {
+    ...context,
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+    fenceCommit: binding.fenceCommit,
+  };
+  assertArmorCanonicalPacketBinding({ authorizedContext: boundContext, binding, intent });
   const effectiveDeriveLocked = typeof deriveLocked === 'function'
     ? deriveLocked
     : createArmorCanonicalLockedRederivation({ expected: intent, repoRoot: root });
@@ -215,5 +224,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   }
   applyArmorCanonicalIngestion({ resultLabel: args['result-label'], intentPath: args.intent })
     .then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
-    .catch(error => { process.stderr.write(`${error.message}; requiresReadbackReconciliation=${error.requiresReadbackReconciliation === true}\n`); process.exitCode = 1; });
+    .catch(error => {
+      const detail = error.expectedFullChainSha256
+        ? ` expected=${error.expectedFullChainSha256} actual=${error.rederivedFullChainSha256}`
+        : '';
+      process.stderr.write(`${error.message}${detail}; requiresReadbackReconciliation=${error.requiresReadbackReconciliation === true}\n`);
+      process.exitCode = 1;
+    });
 }

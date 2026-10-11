@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -109,6 +112,47 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void armorSchedulerStartPropagatesOnlyValidatedBindingReference() throws Exception {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64), "2026-07-11T13:00:00Z", "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Attempt attempt = withSourceIdentity(
+            withAction(startingAttempt(142L, 2L), "armor_sets", "domain-source-armor-sets"), identity
+        );
+        Path binding = repoRoot.resolve("reports/authorization/canonical/automatic-armor/")
+            .resolve("a".repeat(64) + ".binding.json");
+        Files.createDirectories(binding.getParent());
+        byte[] bytes = "{\"schemaVersion\":\"armor-automatic-dispatch-binding/v1\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        Files.write(binding, bytes);
+        try {
+            Files.setPosixFilePermissions(binding, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        } catch (UnsupportedOperationException ignored) {
+            Assumptions.abort("POSIX permissions are required for binding fixture");
+        }
+        String hash = "sha256:" + java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(new CrawlerQueueV2Queue(
+            2, "epoch-1", "queue-1", "standard", "armor_sets", List.of("armor_sets"),
+            "domain-source-armor-sets", "standard:domain-source-armor-sets:" + identity.sourceFingerprint() + ":fresh",
+            NOW, "v2-automation", "attempt-1", List.of("attempt-1"), null, "scheduler"
+        )));
+        when(artifactStore.readManifest("attempt-1")).thenReturn(Optional.of(manifest(attempt, null)));
+        when(artifactStore.readOperationPlan("attempt-1")).thenReturn(Optional.of(new CrawlerOperationPlanSnapshot(
+            "canonical-armor-ingestion", attempt.actionId(), "armor", "direct_crawl", true,
+            "Module:ArmorSetBonuses", "canonical", "write", 1L, 1L, false, false, null,
+            "summary", NOW, identity, repoRoot.relativize(binding).toString(), hash
+        )));
+
+        supervisor.start(attempt);
+
+        Map<String, String> environment = launcher.lastLaunchSpec().environment();
+        assertEquals(repoRoot.relativize(binding).toString(), environment.get("TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_PATH"));
+        assertEquals(hash, environment.get("TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_SHA256"));
+        assertFalse(environment.containsKey("TERRAPEDIA_AUTHORIZED_PACKET_PATH"));
+    }
+
+    @Test
     void resolvesTheNodeEntrypointFromTheCommandRootWithoutMovingDurableAttemptState() throws Exception {
         Path commandRoot = repoRoot.resolveSibling("scheduler-command-root");
         Path commandScript = commandRoot.resolve(
@@ -134,6 +178,7 @@ class CrawlerAttemptSupervisorTest {
         CrawlerAttemptProcessLauncher.LaunchSpec spec = launcher.lastLaunchSpec();
         assertEquals(repoRoot.toAbsolutePath().normalize(), spec.directory());
         assertEquals(repoRoot.toString(), spec.environment().get("WORKTREE_ROOT"));
+        assertEquals(commandRoot.toString(), spec.environment().get("TERRAPEDIA_CRAWLER_COMMAND_ROOT"));
         assertEquals(commandScript.toString(), spec.command().get(1));
         assertTrue(spec.command().contains("--progress-path=" + attempt.artifacts().progressPath()));
     }

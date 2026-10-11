@@ -241,3 +241,84 @@ test('resume verifies retained cache objects and uploads only uncovered assets',
   assert.equal(events.filter(event => event.phase === 'RESUME_VERIFIED').length, 1);
   assert.equal(result.uploaded.length, proposal.assets.length);
 });
+
+test('builds a complete source proposal while reusing verified historical receipts without source bytes', async () => {
+  const input = fixture();
+  const one = input.sourcePayload.armorSetImages[0];
+  const retainedSha = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const retained = {
+    sourceFileTitle: one.sourceFileTitle,
+    cachedUrl: '/terrapedia-images/items/retained.png',
+    sha256: retainedSha,
+    verified: true
+  };
+  const priorProposal = cache.buildArmorImageCacheProposal(input);
+  const priorResult = await cache.executeArmorImageCache({ proposal: priorProposal,
+    persistPrepared: async () => {}, consumePermit: async () => {},
+    upload: async () => retained.cachedUrl, readManaged: async () => bytes, persistResult: async () => {} });
+  const proposal = cache.buildArmorImageCacheProposal({
+    sourcePayload: input.sourcePayload,
+    downloads: [],
+    retainedReceipts: [retained],
+    retainedEvidence: { proposal: priorProposal, result: priorResult },
+    managedImageUrlPrefixes: [prefix],
+    generatedAt: at
+  });
+  assert.equal(proposal.schemaVersion, 'armor-image-cache-proposal/v2');
+  assert.equal(proposal.sourcePayload.armorSetImages.length, 2);
+  assert.equal(proposal.assets.length, 0);
+  assert.deepEqual(proposal.retainedReceipts, [retained]);
+  assert.equal(cache.validateArmorImageCacheProposal(proposal), true);
+  let uploads = 0;
+  const result = await cache.executeArmorImageCache({
+    proposal,
+    persistPrepared: async () => {},
+    consumePermit: async () => {},
+    upload: async () => { uploads += 1; },
+    readManaged: async () => bytes,
+    persistResult: async () => {}
+  });
+  assert.equal(uploads, 0);
+  assert.equal(result.retained.length, 1);
+  assert.equal(result.payload.armorSetImages[0].cachedUrl, retained.cachedUrl);
+  assert.equal(result.payload.armorSetImages[1].cachedUrl, retained.cachedUrl);
+  assert.equal(cache.assertArmorImageCacheResult({ proposal, result }), true);
+});
+
+async function reuseFixture() {
+  const input = fixture();
+  const proposal = cache.buildArmorImageCacheProposal(input);
+  const result = await cache.executeArmorImageCache({ proposal,
+    persistPrepared: async () => {}, consumePermit: async () => {},
+    upload: async () => `${prefix}retained.png`, readManaged: async () => bytes, persistResult: async () => {} });
+  return { ...input, downloads: [], retainedReceipts: result.uploaded, retainedEvidence: { proposal, result } };
+}
+
+for (const [name, mutate] of [
+  ['missing history', x => { delete x.retainedEvidence; }],
+  ['failed history', x => { x.retainedEvidence.result.status = 'FAILED'; }],
+  ['altered historical receipt', x => {
+    x.retainedEvidence.result = structuredClone(x.retainedEvidence.result);
+    x.retainedEvidence.result.uploaded[0].sha256 = `sha256:${'b'.repeat(64)}`;
+  }],
+  ['altered historical payload', x => { x.retainedEvidence.result.payload.armorSetImages[0].cachedUrl = `${prefix}wrong.png`; }],
+  ['receipt URL drift', x => { x.retainedReceipts = structuredClone(x.retainedReceipts); x.retainedReceipts[0].cachedUrl = `${prefix}wrong.png`; }],
+  ['changed source revision', x => { for (const row of x.sourcePayload.armorSetImages) {
+    row.sourceRevisionTimestamp = '2023-01-01T00:00:00Z'; row.raw.imageInfo.revisionTimestamp = row.sourceRevisionTimestamp;
+  } }],
+]) test(`retained cache refuses ${name}`, async () => {
+  const input = await reuseFixture(); mutate(input);
+  assert.throws(() => cache.buildArmorImageCacheProposal(input), /history|historical|retained|drift|COMPLETED/);
+});
+
+test('retained readback corruption prevents any new upload', async () => {
+  const input = await reuseFixture();
+  const proposal = cache.buildArmorImageCacheProposal(input);
+  let evidence; let uploads = 0;
+  await assert.rejects(cache.executeArmorImageCache({ proposal,
+    persistPrepared: async () => {}, consumePermit: async () => {},
+    upload: async () => { uploads++; }, readManaged: async () => Buffer.from('corrupt'),
+    persistResult: async value => { evidence = value; } }), /retained cache readback/);
+  assert.equal(uploads, 0);
+  assert.equal(evidence.status, 'FAILED');
+});

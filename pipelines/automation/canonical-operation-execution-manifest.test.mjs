@@ -84,10 +84,18 @@ function governedL1ManifestOptions(operationId) {
 function manifestOptions(operationId) {
   if (operationId === 'canonical-armor-set-projection-incremental'
       || operationId === 'canonical-armor-item-effect-source'
+      || operationId === 'canonical-armor-item-lineage-refresh'
+      || operationId === 'canonical-armor-shroomite-relation-item-refresh'
+      || operationId === 'canonical-armor-relation-item-normalization'
+      || operationId === 'canonical-armor-missing-attribute-source'
+      || operationId === 'canonical-armor-attribute-relation-publication'
+      || operationId === 'canonical-armor-source-effect-publication'
       || operationId === 'canonical-armor-secondary-projection'
+      || operationId === 'canonical-armor-typed-effect-publication'
       || operationId === 'canonical-buff-full-chain') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-image-cache') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-semantic-repair') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-historical-tuple-repair') return { resultLabel: 'test-01' };
   if (operationId === 'canonical-armor-ingestion') return {
     resultLabel: 'test-01',
     armorCanonicalIntentBinding: buildArmorCanonicalIntentArtifactBinding({
@@ -370,8 +378,8 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 126);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 124);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 134);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 132);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(
@@ -1629,6 +1637,8 @@ test('scheduler activation manifest consumes explicit preflight and T1 paths wit
 
 const SCHEDULER_RUNTIME_REQUIRED_PATHS = [
   'pipelines/automation/run-base-domain-automatic-operation.mjs',
+  'pipelines/automation/run-armor-automatic-operation.mjs',
+  'pipelines/automation/armor-automatic-dispatch-binding.mjs',
   'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
   'pipelines/automation/automatic-execution-artifacts.mjs',
   'pipelines/automation/run-supplementary-domain-l1-operation.mjs',
@@ -1660,6 +1670,8 @@ for (const operationId of ['canonical-crawler-v2-scheduler-activation', 'automat
   for (const targetPath of [
     'pipelines/automation/automatic-execution-artifacts.mjs',
     'pipelines/automation/run-base-domain-automatic-operation.mjs',
+    'pipelines/automation/run-armor-automatic-operation.mjs',
+    'pipelines/automation/armor-automatic-dispatch-binding.mjs',
     'pipelines/import/import-independent-entities-to-db.mjs',
     'pipelines/fetch/fetch-wiki-projectileinfo.mjs',
   ]) {
@@ -1894,6 +1906,7 @@ test('item image projection manifest binds one decision-derived attempt root', (
       'pipelines/maint/maint-schema.mjs',
       'pipelines/npc-canonical/npc-apply-ownership-preparation.mjs',
       'pipelines/relation/apply-item-image-projection.mjs',
+      'pipelines/relation/armor-source-effect-owner-decision.mjs',
       'pipelines/relation/build-item-image-projection-proposal.mjs',
       'pipelines/relation/item-image-lineage-db.mjs',
       'pipelines/relation/item-image-origin-repair-evidence-adapter.mjs',

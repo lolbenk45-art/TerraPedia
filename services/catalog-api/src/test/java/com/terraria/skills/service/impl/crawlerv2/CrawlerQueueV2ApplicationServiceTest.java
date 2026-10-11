@@ -608,6 +608,73 @@ class CrawlerQueueV2ApplicationServiceTest {
     }
 
     @Test
+    void schedulerOwnedArmorEnqueueCarriesImmutableBindingPathAndHashIntoPlan() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "e".repeat(64),
+            "2026-07-13T01:00:00Z",
+            "sha256:" + "f".repeat(64)
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(), command.attempt().attemptId(), 1L, null, NOW.minusSeconds(1)
+            );
+        });
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-armor"), "manifest.json", "progress.json", "run.log"
+            )
+        );
+
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "armor_sets", "domain-source-armor-sets", "standard", "fresh", "v2-automation", null,
+            identity, "reports/authorization/canonical/automatic-armor/" + "e".repeat(64) + ".binding.json",
+            "sha256:" + "1".repeat(64), "attempt-armor-plan"
+        ));
+
+        verify(artifactStore).writeOperationPlan(any(), argThat(plan ->
+            identity.equals(plan.sourceDispatchIdentity())
+                && plan.automaticBindingPath().endsWith("e".repeat(64) + ".binding.json")
+                && ("sha256:" + "1".repeat(64)).equals(plan.automaticBindingSha256())
+        ));
+    }
+
+    @Test
+    void schedulerOwnedArmorEnqueueUsesTheBindingAttemptIdentity() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "e".repeat(64),
+            "2026-07-13T01:00:00Z",
+            "sha256:" + "f".repeat(64)
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            assertEquals("attempt-bound-armor", command.attempt().attemptId());
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(), command.attempt().attemptId(), 1L, null, NOW.minusSeconds(1)
+            );
+        });
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-bound-armor"), "manifest.json", "progress.json", "run.log"
+            )
+        );
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "armor_sets", "domain-source-armor-sets", "standard", "fresh", "v2-automation", null,
+                identity, "reports/authorization/canonical/automatic-armor/" + "e".repeat(64) + ".binding.json",
+                "sha256:" + "1".repeat(64), "attempt-bound-armor"
+            )
+        );
+
+        assertEquals("attempt-bound-armor", result.attemptId());
+    }
+
+    @Test
     void schedulerOwnedEnqueueRejectsMissingIdentityBeforeRedisMutation() {
         assertThrows(IllegalArgumentException.class, () -> service.enqueue(
             new CrawlerQueueV2ApplicationService.EnqueueCommand(
@@ -632,6 +699,20 @@ class CrawlerQueueV2ApplicationServiceTest {
         ));
 
         assertTrue(exception.getMessage().contains("scheduler-owned"));
+        verifyNoInteractions(router, repository);
+    }
+
+    @Test
+    void manualEnqueueRejectsAutomaticBindingBeforeRouterMutation() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "armor_sets", "domain-source-armor-sets", "standard", "fresh", "admin", null,
+                null, "reports/authorization/canonical/automatic-armor/binding.json",
+                "sha256:" + "1".repeat(64)
+            )
+        ));
+
+        assertTrue(exception.getMessage().contains("manual"));
         verifyNoInteractions(router, repository);
     }
 

@@ -14,7 +14,8 @@ import { ARMOR_SECONDARY_PROJECTION_OPERATION_ID as OPERATION_ID,
 import { readArmorSecondarySnapshot, executeArmorSecondaryProjectionTransaction } from './armor-secondary-projection-db.mjs';
 
 const OWNERSHIP = ['relation.projection_item_armor_attributes.armor_members',
-  'relation.projection_equipment_effect_attributes.armor_member_item_cells'];
+  'relation.projection_equipment_effect_attributes.armor_member_item_cells',
+  'relation.projection_equipment_effect_attributes.armor_set_effects'];
 
 export function buildArmorSecondaryPaths(resultLabel) {
   if (typeof resultLabel !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(resultLabel)) throw new Error('Armor secondary result label is required and must be normalized');
@@ -34,7 +35,8 @@ function requireFresh(root, relativePath) {
   throw new Error('Armor secondary artifact already exists; use a fresh label');
 }
 
-export async function prepareArmorSecondaryProjection({ repoRoot = process.cwd(), resultLabel, selectedMemberIds, mysqlModule } = {}) {
+export async function prepareArmorSecondaryProjection({ repoRoot = process.cwd(), resultLabel, selectedMemberIds,
+  allowPartialApply = false, unresolvedRowsMustRemainUntouched = false, mysqlModule } = {}) {
   if (!Array.isArray(selectedMemberIds) || !selectedMemberIds.length) throw new Error('Armor secondary preparation requires an explicit member scope');
   const root = path.resolve(repoRoot); const paths = buildArmorSecondaryPaths(resultLabel);
   for (const relativePath of Object.values(paths)) requireFresh(root, relativePath);
@@ -47,6 +49,7 @@ export async function prepareArmorSecondaryProjection({ repoRoot = process.cwd()
     if (servers.length !== 1 || Number(servers[0].timezoneOffsetMinutes) !== 480) throw new Error('Armor secondary source timezone drift');
     const snapshot = await readArmorSecondarySnapshot({ connection });
     proposal = await buildArmorSecondaryProjectionProposal({ ...snapshot, selectedMemberIds,
+      allowPartialApply, unresolvedRowsMustRemainUntouched,
       serverUuid: servers[0].serverUuid, generatedAt: new Date().toISOString() });
   } finally { try { await connection.rollback(); } finally { await connection.end(); } }
   writeJsonNoOverwrite(targetPath(root, paths.proposalPath), proposal);
@@ -111,7 +114,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     const options = {};
     for (const token of process.argv.slice(2)) {
-      const match = /^--(operation-id|result-label|apply|prepare|members)=(.+)$/.exec(token);
+      const match = /^--(operation-id|result-label|apply|prepare|members|allow-partial-apply|unresolved-rows-must-remain-untouched)=(.+)$/.exec(token);
       if (!match || Object.hasOwn(options, match[1])) throw new Error('Armor secondary CLI argument is invalid or duplicate');
       options[match[1]] = match[2];
     }
@@ -119,9 +122,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         || Object.hasOwn(options, 'apply') && options.apply !== 'true'
         || Object.hasOwn(options, 'prepare') && options.prepare !== 'true'
         || options.apply === 'true' && Object.hasOwn(options, 'members')) throw new Error('Armor secondary CLI requires one exact operation/action with no apply-time member override');
+    const allowPartialApply = options['allow-partial-apply'] === 'true';
+    const unresolvedRowsMustRemainUntouched = options['unresolved-rows-must-remain-untouched'] === 'true';
+    if (allowPartialApply !== unresolvedRowsMustRemainUntouched) throw new Error('Armor secondary partial mode requires both policy flags');
     const result = options.apply === 'true'
       ? await applyArmorSecondaryProjection({ resultLabel: options['result-label'] })
-      : await prepareArmorSecondaryProjection({ resultLabel: options['result-label'], selectedMemberIds: String(options.members ?? '').split(',').map(Number) });
+      : await prepareArmorSecondaryProjection({ resultLabel: options['result-label'], selectedMemberIds: String(options.members ?? '').split(',').map(Number),
+        allowPartialApply, unresolvedRowsMustRemainUntouched });
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
     process.stderr.write(`${error.message}; requiresReadbackReconciliation=${error.requiresReadbackReconciliation === true}\n`);

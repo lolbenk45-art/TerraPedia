@@ -179,17 +179,37 @@ function dbRow(row) {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`), value]));
 }
 
+function resolveLandingId(row, incomingRows, currentRows) {
+  const datasetType = row.source_maint_table === 'maint_armor_sets' ? 'armor_sets_raw'
+    : row.source_maint_table === 'maint_armor_set_images' ? 'armor_set_images_raw' : null;
+  if (!datasetType || !text(row.source_provider) || !text(row.landing_source_key) || !recordKey(row.landing_content_hash)) return null;
+  const matches = [...incomingRows, ...currentRows]
+    .filter(landing => landing?.dataset_type === datasetType && landing.provider === row.source_provider
+      && landing.source_key === row.landing_source_key && landing.content_hash === row.landing_content_hash
+      && positiveId(landing.id));
+  const ids = [...new Set(matches.map(landing => landing.id))];
+  return ids.length === 1 ? ids[0] : null;
+}
+
+function landingIdentity(row) {
+  const datasetType = row.source_maint_table === 'maint_armor_sets' ? 'armor_sets_raw'
+    : row.source_maint_table === 'maint_armor_set_images' ? 'armor_set_images_raw' : null;
+  if (!datasetType || !text(row.source_provider) || !text(row.landing_source_key)) return null;
+  return [datasetType, row.source_provider, row.landing_source_key,
+    text(row.landing_source_page) ? row.landing_source_page : null].filter(value => value != null).join('|');
+}
+
 function comparable(value, column) {
   if (column.endsWith('_json') && typeof value === 'string') return canonical(JSON.parse(value));
   if (value != null && /_(?:timestamp|at)$/.test(column)) {
     return utcTime(value, `relation ${column}`);
   }
-  if (column === 'is_primary' && [true, false, 0, 1].includes(value)) return Number(value);
+  if (column === 'is_primary' && [true, false, 0, 1, '0', '1'].includes(value)) return Number(value);
   if (column === 'confidence' && (typeof value === 'number' || typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value))) return Number(value);
   return canonical(value);
 }
 
-function reconcile(table, rows, baseline) {
+function reconcile(table, rows, baseline, materializedLandingIdentities = new Set()) {
   const expected = new Map(baseline);
   const keys = new Set([...baseline.values()].map(row => row.record_key));
   const seen = new Set();
@@ -201,6 +221,14 @@ function reconcile(table, rows, baseline) {
     const before = baseline.get(key);
     if (before && !active(before)) throw new Error('Armor relation candidate cannot reactivate an inactive identity');
     const candidate = { ...row, record_key: before?.record_key ?? digest([table, key]), status: 1, deleted: 0 };
+    if (before && candidate.landing_source_id == null) {
+      const sameLanding = candidate.landing_source_key === before.landing_source_key
+        && candidate.landing_content_hash === before.landing_content_hash;
+      if (!sameLanding && before.landing_source_id != null && !materializedLandingIdentities.has(landingIdentity(candidate))) {
+        throw new Error('Armor relation update cannot clear landing source ID without a materialized landing');
+      }
+      if (sameLanding) candidate.landing_source_id = before.landing_source_id ?? null;
+    }
     if (!before) {
       if (keys.has(candidate.record_key)) throw new Error('Armor relation candidate record key collides with another identity');
       keys.add(candidate.record_key);
@@ -227,7 +255,7 @@ function reconcile(table, rows, baseline) {
 // resolve generated maint/relation IDs and bind its runtime media policy itself.
 // Caller hashes, candidate objects and execution booleans are never authority.
 async function buildArmorCanonicalRelationCandidateInternal(input = {}, { idIndependent = false } = {}) {
-  exactKeys(input, ['maintInput', 'maintItems', 'currentRows'], 'relation candidate');
+  exactKeys(input, ['maintInput', 'maintItems', 'currentRows', 'landingCurrentRows'], 'relation candidate');
   // Producer payload hashes bind JSON insertion order. Normalize Dates without
   // sorting detached inputs; only the separate candidate hashes canonicalize.
   const snapshot = canonical(structuredClone(input), false);
@@ -239,6 +267,7 @@ async function buildArmorCanonicalRelationCandidateInternal(input = {}, { idInde
   }
   exactKeys(snapshot.currentRows, TABLES, 'relation baseline');
   exactKeys(snapshot.maintInput.currentRows, MAINT_TABLES, 'maint baseline');
+  if (!Array.isArray(snapshot.landingCurrentRows)) throw new Error('Armor frozen landing baseline rows are required');
   const items = itemIndex(snapshot.maintItems);
   const baselines = validateBaseline(snapshot.currentRows, items);
   for (const table of TABLES) snapshot.currentRows[table].sort((left, right) => compare(identity(left, table), identity(right, table)));
@@ -251,8 +280,19 @@ async function buildArmorCanonicalRelationCandidateInternal(input = {}, { idInde
   }
   freeze(snapshot);
   const maint = await buildArmorCanonicalMaintCandidate(idIndependent
-    ? { ...snapshot.maintInput, allowUnmaterializedLandingIds: true }
-    : snapshot.maintInput);
+    ? {
+      ...snapshot.maintInput,
+      allowUnmaterializedLandingIds: true,
+      materializedLandingIdentities: snapshot.maintInput.landingRows.map((row) => [
+        row.dataset_type, row.provider, row.source_key, row.source_page,
+      ].join('|')),
+    }
+    : {
+      ...snapshot.maintInput,
+      materializedLandingIdentities: snapshot.maintInput.landingRows.map((row) => [
+        row.dataset_type, row.provider, row.source_key, row.source_page,
+      ].join('|')),
+    });
   const armorRows = sourcePresentRows(maint, MAINT_TABLES[0]);
   const imageRows = sourcePresentRows(maint, MAINT_TABLES[1]);
   for (const row of imageRows) {
@@ -281,15 +321,26 @@ async function buildArmorCanonicalRelationCandidateInternal(input = {}, { idInde
   const expectedRows = {};
   const parentKeys = new Map();
   const summary = { inserts: 0, updates: 0, unchanged: 0, preserved: 0 };
+  const incomingLandingRows = snapshot.maintInput.landingRows;
+  const currentLandingRows = snapshot.landingCurrentRows;
+  const materializedLandingIdentities = new Set([
+    ...incomingLandingRows.map((row) => [row.dataset_type, row.provider, row.source_key, row.source_page].join('|')),
+    ...incomingLandingRows.map((row) => [row.dataset_type, row.provider, row.source_key].join('|')),
+  ]);
   for (const [index, field] of ['relationArmorSets', 'relationArmorSetItems', 'relationArmorSetImages'].entries()) {
     const table = TABLES[index];
-    const rows = derived[field].map(dbRow);
+    const rows = derived[field].map(dbRow).map(row => {
+      if (Object.hasOwn(row, 'landing_source_id')) {
+        row.landing_source_id = resolveLandingId(row, incomingLandingRows, currentLandingRows);
+      }
+      return row;
+    });
     for (const row of rows) if (index > 0) {
       const key = parentKeys.get(row.text_key);
       if (!key) throw new Error('Armor derived child has an unresolved parent');
       row.armor_set_record_key = key;
     }
-    const result = reconcile(table, rows, baselines[table]);
+    const result = reconcile(table, rows, baselines[table], materializedLandingIdentities);
     changes[table] = result.changes;
     expectedRows[table] = result.expectedRows;
     if (index === 0) for (const row of result.expectedRows) parentKeys.set(row.text_key, row.record_key);

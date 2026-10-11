@@ -345,7 +345,15 @@ function validateIntentShape(intent) {
 export function buildArmorCanonicalIntent({ candidate, insertPlans, writeTimestamp, upstreamReferenceDeclarations = [] } = {}) {
   validateCandidate(candidate);
   utcSecond(writeTimestamp, 'Armor intent writeTimestamp');
-  if (!Array.isArray(insertPlans) || insertPlans.length === 0) throw new Error('Armor insert plans are required');
+  if (!Array.isArray(insertPlans)) throw new Error('Armor insert plans are required');
+  // A fresh candidate may contain only verified updates (or no changes) after
+  // an earlier apply.  Keep that envelope hashable and executable by the
+  // existing update path, while still rejecting a plan list that silently
+  // drops candidate inserts.
+  const candidateInserts = candidateInsertRows(candidate);
+  if (insertPlans.length === 0 && candidateInserts.size > 0) {
+    throw new Error('Armor insert plans are required for frozen candidate inserts');
+  }
   const normalizedPlans = insertPlans.map(validateInsertPlan);
   if (!Array.isArray(upstreamReferenceDeclarations)) throw new Error('Armor upstream reference declarations are required');
   const upstreamReferences = new Set(upstreamReferenceDeclarations.map(reference => {

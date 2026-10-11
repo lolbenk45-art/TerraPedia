@@ -148,6 +148,18 @@ class CrawlerQueueV2CutoverServiceTest {
     }
 
     @Test
+    void shouldUseCompletedCutoverEpochWhenTheDurableMarkerIsMissing() {
+        when(properties.isCutoverAllowed()).thenReturn(true);
+        when(repository.beginCutover(any())).thenReturn(CrawlerQueueV2Repository.BeginCutoverResult.alreadyCompleted("cutover-1"));
+        when(repository.readCutover("cutover-1")).thenReturn(Optional.of(completedRecordWithEpoch("epoch-record")));
+
+        CrawlerQueueV2CutoverResultDTO result = service.cutover(request("cutover-1"), "admin");
+
+        assertEquals("epoch-record", result.getStateStoreEpoch());
+        assertEquals("epoch-record", router.readDurableState().stateStoreEpoch());
+    }
+
+    @Test
     void shouldAllowRollbackOnlyBeforeAllMutationTimestampsRemainAbsent() {
         when(properties.isCutoverAllowed()).thenReturn(true);
         when(repository.readEngineState())
@@ -315,8 +327,12 @@ class CrawlerQueueV2CutoverServiceTest {
     }
 
     private static CrawlerQueueV2Repository.CutoverRecord completedRecord() {
+        return completedRecordWithEpoch("epoch-new");
+    }
+
+    private static CrawlerQueueV2Repository.CutoverRecord completedRecordWithEpoch(String epoch) {
         return new CrawlerQueueV2Repository.CutoverRecord(
-            "cutover-1", "completed", "epoch-new",
+            "cutover-1", "completed", epoch,
             "reports/crawler-monitor/v2/cutovers/cutover-1/cutover-manifest.json", "manifest-sha256", NOW, "admin"
         );
     }

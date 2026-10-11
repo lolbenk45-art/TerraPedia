@@ -6764,7 +6764,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldStartFreshAutomationWhenCompletedAttemptHasAnOlderSourceFingerprint() throws Exception {
+    void shouldSkipFreshArmorAutomationWhenCompletedAttemptHasAnOlderSourceFingerprintWithoutBinding() throws Exception {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
@@ -6813,13 +6813,89 @@ class CrawlerMonitorServiceImplTest {
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
-        assertEquals("attempt-armor-new", sweep.getDispatched().get(0).get("attemptId"));
-        assertEquals(
-            testSourceFingerprint("new-armor-hash"),
-            sweep.getDispatched().get(0).get("sourceFingerprint")
-        );
-        verify(v2Service).enqueue(any());
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "domain-source-armor-sets".equals(item.get("actionId"))
+                && "automatic_operation_binding_required".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).enqueue(any());
         verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void armorBindingReusesTheBoundSourceSnapshotWithoutRerunningTheProbe() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-armor", "attempt-bound-armor", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        String checkedAt = "2026-07-13T00:59:00Z";
+        List<Map<String, Object>> sources = new ArrayList<>();
+        for (String sourceKey : AUTO_ELIGIBLE_SOURCE_KEYS) {
+            Map<String, Object> source = new java.util.LinkedHashMap<>(sourceEntry(sourceKey, checkedAt));
+            if ("wiki.module.armorsetbonuses".equals(sourceKey)) {
+                source.put("changed", true);
+                source.put("previousValue", testContentHash("previous-armor"));
+            }
+            sources.add(source);
+        }
+        Map<String, Object> state = sourceState(checkedAt, true, sources);
+        Path statePath = repoRoot.resolve("data/generated/source-update-monitor.latest.json");
+        writeJson(statePath, state);
+        String sourceFingerprint = testSourceFingerprint("wiki.module.armorsetbonuses");
+        String sourceContentIdentity = testSourceFingerprint(new ObjectMapper().writeValueAsString(readJson(statePath)));
+        Path bindingPath = repoRoot.resolve(
+            "reports/authorization/canonical/automatic-armor/" + sourceFingerprint.substring("sha256:".length()) + ".binding.json"
+        );
+        Map<String, Object> binding = new java.util.LinkedHashMap<>();
+        binding.put("schemaVersion", "armor-automatic-dispatch-binding/v1");
+        binding.put("actionId", "domain-source-armor-sets");
+        binding.put("operationId", "canonical-armor-ingestion");
+        binding.put("attemptId", "attempt-bound-armor");
+        binding.put("sourceDispatchIdentity", Map.of(
+            "sourceFingerprint", sourceFingerprint,
+            "sourceRunIdentity", checkedAt,
+            "sourceContentIdentity", sourceContentIdentity
+        ));
+        binding.put("expiresAt", "2026-07-13T01:30:00Z");
+        binding.put("activation", Map.of("expiresAt", "2026-07-13T01:30:00Z"));
+        binding.put("consumedAt", null);
+        writeJson(bindingPath, binding);
+        Files.setPosixFilePermissions(bindingPath, Set.of(
+            PosixFilePermission.OWNER_READ,
+            PosixFilePermission.OWNER_WRITE
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of("checkedAt", "2026-07-13T01:00:00Z", "sources", List.of()),
+            false
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("domain-source-armor-sets");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals(0, launcher.launchCount);
+        assertEquals("attempt-bound-armor", sweep.getDispatched().get(0).get("attemptId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals(checkedAt, command.getValue().sourceDispatchIdentity().sourceRunIdentity());
+        assertEquals("attempt-bound-armor", command.getValue().requestedAttemptId());
     }
 
     @Test

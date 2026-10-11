@@ -9,6 +9,7 @@ const HASH = /^[a-f0-9]{64}$/i;
 const SCHEMA = 'armor-source-evidence-transition/v1';
 
 function canonical(value) {
+  if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
   return value;

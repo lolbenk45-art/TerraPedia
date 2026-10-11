@@ -1063,7 +1063,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 request.getResumeMode(),
                 requireOperator(requestedBy, "requestedBy"),
                 request.getLegacyQueueId(),
-                sourceDispatchIdentity
+                sourceDispatchIdentity,
+                request.getAutomaticBindingPath(),
+                request.getAutomaticBindingSha256(),
+                request.getAutomaticBindingAttemptId()
             )
         );
         invalidateCachedOverview();
@@ -5934,10 +5937,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Map<String, Object>> sourceByKey = Map.of();
         ValidatedSourceUpdateState validatedSourceState = null;
         if (!fixtureScheduledAutomationEnabled) {
-            SourceUpdateCheckResult sourceUpdateCheck = sourceUpdateCheckForDispatch(
-                repoRoot,
-                runSourceUpdateMonitorCheck(repoRoot)
-            );
+            SourceUpdateCheckResult sourceUpdateCheck = armorBoundSourceUpdateCheck(repoRoot, settings);
+            if (sourceUpdateCheck == null) {
+                sourceUpdateCheck = sourceUpdateCheckForDispatch(
+                    repoRoot,
+                    runSourceUpdateMonitorCheck(repoRoot)
+                );
+            }
             if (!sourceUpdateCheck.success()) {
                 sweep.setStatus("error");
                 LinkedHashMap<String, Object> skipped = new LinkedHashMap<>();
@@ -6057,6 +6063,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 request.setDomain(rules.get(0).domain());
                 request.setActionId(entry.getKey());
                 request.setResumeMode("fresh");
+                if ("domain-source-armor-sets".equals(entry.getKey())) {
+                    ArmorBindingReference binding = resolveArmorAutomaticBinding(repoRoot, sourceDispatchIdentity);
+                    if (binding == null) {
+                        return new V2AutomationDispatchOutcome(null, "automatic_operation_binding_required");
+                    }
+                    request.setAutomaticBindingPath(binding.path());
+                    request.setAutomaticBindingSha256(binding.sha256());
+                    request.setAutomaticBindingAttemptId(binding.attemptId());
+                }
                 return new V2AutomationDispatchOutcome(
                     dispatchV2WikiMonitorTask(request, "v2-automation", rules.get(0), sourceDispatchIdentity),
                     null
@@ -6409,6 +6424,64 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             skipped.put("sourceFingerprint", sourceFingerprint);
         }
         return skipped;
+    }
+
+    private ArmorBindingReference resolveArmorAutomaticBinding(
+        Path repoRoot,
+        SourceDispatchIdentity identity
+    ) {
+        if (identity == null || !SourceDispatchIdentity.isValidHash(identity.sourceFingerprint())) {
+            return null;
+        }
+        String hex = identity.sourceFingerprint().substring("sha256:".length());
+        Path root = repoRoot.resolve("reports/authorization/canonical/automatic-armor").normalize();
+        Path path = root.resolve(hex + ".binding.json").normalize();
+        try {
+            if (!path.startsWith(root)
+                || Files.isSymbolicLink(path)
+                || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)
+                || !isPrivateRegularFile(path)) {
+                return null;
+            }
+            JsonNode binding = objectMapper.readTree(Files.readString(path));
+            if (binding == null
+                || !"armor-automatic-dispatch-binding/v1".equals(binding.path("schemaVersion").asText(null))
+                || !"domain-source-armor-sets".equals(binding.path("actionId").asText(null))
+                || !"canonical-armor-ingestion".equals(binding.path("operationId").asText(null))
+                || !binding.path("attemptId").asText("").matches("^attempt-[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
+                || !identity.sourceFingerprint().equals(
+                binding.path("sourceDispatchIdentity").path("sourceFingerprint").asText(null))
+                || !identity.sourceRunIdentity().equals(
+                binding.path("sourceDispatchIdentity").path("sourceRunIdentity").asText(null))
+                || !identity.sourceContentIdentity().equals(
+                binding.path("sourceDispatchIdentity").path("sourceContentIdentity").asText(null))
+                || (!binding.path("consumedAt").isMissingNode()
+                    && !binding.path("consumedAt").isNull())
+                || binding.path("expiresAt").isMissingNode()
+                || !Instant.now(clock).isBefore(Instant.parse(binding.path("expiresAt").asText()))
+                || binding.path("activation").path("expiresAt").isMissingNode()
+                || !Instant.now(clock).isBefore(Instant.parse(binding.path("activation").path("expiresAt").asText()))) {
+                return null;
+            }
+            byte[] bytes = Files.readAllBytes(path);
+            return new ArmorBindingReference(
+                repoRoot.relativize(path).toString().replace(File.separatorChar, '/'),
+                "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)),
+                binding.path("attemptId").asText(null)
+            );
+        } catch (IOException | NoSuchAlgorithmException | RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private boolean isPrivateRegularFile(Path path) {
+        try {
+            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS);
+            return permissions.stream().noneMatch(permission -> permission.name().startsWith("GROUP_")
+                || permission.name().startsWith("OTHERS_"));
+        } catch (IOException | UnsupportedOperationException exception) {
+            return false;
+        }
     }
 
     private boolean sameV2AutomationSourceFingerprint(String current, String previous) {
@@ -7419,6 +7492,52 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             List.of("all")
         );
         return failure.withAlertDelivery(recordSourceProbeAlerts(repoRoot, failure));
+    }
+
+    /**
+     * Keep an already-authorized Armor snapshot stable for the dispatch tick.
+     * A fresh source probe assigns a new checkedAt on every run, which would
+     * invalidate an immutable binding prepared for the current source state.
+     * Other canary actions retain the normal probe path below.
+     */
+    private SourceUpdateCheckResult armorBoundSourceUpdateCheck(
+        Path repoRoot,
+        CrawlerV2AutomationDTO settings
+    ) {
+        if (settings == null || !"domain-source-armor-sets".equals(settings.getCanaryActionId())) {
+            return null;
+        }
+        ReadResult state = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+        ValidatedSourceUpdateState validated = validatedSourceUpdateState(state, null);
+        if (validated == null) {
+            return null;
+        }
+        CrawlerMonitorActionDefinition armorRule = WIKI_MONITOR_RULES.stream()
+            .filter(rule -> "domain-source-armor-sets".equals(rule.actionId()))
+            .findFirst()
+            .orElse(null);
+        if (armorRule == null) {
+            return null;
+        }
+        Map<String, Object> source = validated.sourcesByKey().get(armorRule.sourceKey());
+        if (!asBoolean(source == null ? null : source.get("changed"))) {
+            return null;
+        }
+        SourceDispatchIdentity identity = sourceDispatchIdentityFor(
+            List.of(armorRule),
+            validated.sourcesByKey(),
+            validated
+        );
+        if (identity == null || resolveArmorAutomaticBinding(repoRoot, identity) == null) {
+            return null;
+        }
+        return new SourceUpdateCheckResult(
+            true,
+            "reused immutable Armor binding source snapshot",
+            List.of(),
+            validated,
+            AutomationAlertDeliveryResult.persisted()
+        );
     }
 
     private boolean validatedSourceUpdateStateIdentityMatches(ValidatedSourceUpdateState state) {
@@ -9972,6 +10091,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             );
         }
     }
+
+    private record ArmorBindingReference(String path, String sha256, String attemptId) {}
 
     private record V2AutomationRecoveryDecision(
         CrawlerQueueV2OverviewDTO.AttemptDTO retryAttempt,

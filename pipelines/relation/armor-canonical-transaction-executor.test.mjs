@@ -207,7 +207,7 @@ test('Armor executor materializes a projection primary key from its exact relati
   });
   const projectionInsert = connection.calls.find(call => call.op === 'query' && call.sql.includes('projection_armor_sets') && call.sql.startsWith('INSERT'));
   assert.ok(projectionInsert);
-  assert.deepEqual(projectionInsert.params, ["r".repeat(64), "ArmorSetBonus.Test", 1, 0, 702, "2026-09-25T00:00:00Z", "2026-09-25T00:00:00Z"]);
+  assert.deepEqual(projectionInsert.params, ["r".repeat(64), "ArmorSetBonus.Test", 1, 0, 702, "2026-09-25 08:00:00", "2026-09-25 08:00:00"]);
 });
 
 test('Armor executor persists PREPARED before DML and commits through the filesystem journal adapter', async () => {

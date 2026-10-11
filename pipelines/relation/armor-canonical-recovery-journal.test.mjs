@@ -66,6 +66,12 @@ test('builds a hashed immutable PREPARED journal bound to packet, intent, IDs, a
   assert.ok(Object.isFrozen(result.verifiedIdMap));
 });
 
+test('permits an update-only materialization with an empty verified ID map', () => {
+  const result = journal({ materialized: materialized({ verifiedIdMap: {} }) });
+  assert.deepEqual(result.verifiedIdMap, {});
+  validateArmorCanonicalRecoveryJournal(result);
+});
+
 test('rejects missing or conflicting bindings before a journal can be prepared', () => {
   assert.throws(() => journal({ packetHash: 'not-a-hash' }), /packet/i);
   assert.throws(() => journal({ materialized: materialized({ intentSha256: HASH_B }) }), /intent/i);

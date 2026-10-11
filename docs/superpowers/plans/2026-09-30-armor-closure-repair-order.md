@@ -51,11 +51,47 @@ The work is closed only when all of the following are true for the frozen target
 
 - [ ] First create revision-bound `source_evidence` landings for both module and image datasets. The current live rows are `legacy_compat` (module parse `ok` without a revision; images `partial` without a revision), and `buildArmorCanonicalMaintCandidate` must reject them before any diff is trusted. Retain `.a63-20260927-33`'s verified 315-file/419-row cache evidence for the 63 covered sets, but do not promote it as complete: its producer denominator is 63 and it omits `ArmorSetBonus.Shroomite`. A fresh revision-bound image source bundle must cover all 64 module keys and may reuse already verified bytes without repeating uploads.
 - [ ] Before extraction, bind the image payload `totalArmorSets` denominator to the module set-key count. Reject producer-level denominator drift while preserving individual source-image removal as historical retention/removal review. Fixture coverage must include a module set added without matching image evidence and a matching multi-set image payload.
-- [ ] Re-derive all 64 source records and correct the 15 stored combinations with the source's nonzero head/body/legs IDs; preserve stable identities where the record key remains unchanged and retire only superseded rows.
-- [ ] Insert the ten missing module members (five Shroomite pieces and five affected legs after deduplication) into the candidate model only after maint item identity, slot and active status checks pass.
-- [ ] Reconcile the ten current relation-attribute omissions and the two MiningHelmet rows (item 88) as named source decisions. Reject duplicate active attribute owners until one revision-bound row is selected.
-- [ ] Add a report that lists every expected member, current member, current attribute, current effect and projection status; a zero missing set is required for the frozen denominator.
+- [x] Re-derive all 64 source records and correct the 15 stored combinations with the source's nonzero head/body/legs IDs; preserve stable identities where the record key remains unchanged and retire only superseded rows. Attempt `20261004-05` committed 45 inserts/30 retirements; all 15 parent and projection snapshots now match source. Readback: `reports/runtime/armor-review-20261001/armor-tuple-repair-readback-20261004.json`.
+- [ ] Add the five still-missing Shroomite item identities (`1546`-`1550`) only after a canonical maint owner and exact item lineage are established. The five formerly missing historical legs now exist; the remaining nine source tuples all belong to Shroomite.
+- [ ] Reconcile remaining source-to-relation attribute omissions and full projection coverage. Mining IDs `88`, `410`, and `411` have since been repaired and API-read back; the whole 243-member attribute denominator remains unverified.
+- [x] Apply and read back the Mining identity/owner decision from the 2026-10-01 audit. Canonical values are Helmet `88` defense `2`, Shirt `410` defense `1` with `+10%` mining speed, and Pants `411` / `MiningPants` / `legs` / defense `1`; the source-table Shirt value `2` remains historical evidence. Fresh API GETs returned one matching row each. See `docs/devlog/entries/2026-09-30-armor-closure-gap-audit.md`.
+- [x] Add a report that lists every expected member, current member, current attribute, current effect and projection status. The report is `.local/tmp/armor-member-coverage-20261001-01.json`; it records the nonzero missing set and therefore does not clear the zero-missing acceptance gate.
+- [x] Re-run the read-only tuple inventory with `maint_armor_sets.record_key` as
+  the relation owner key. The frozen revision has 494 nonzero source tuples
+  versus 470 active relation tuples: 440 matched, 54 missing, and 30 extra;
+  Shroomite is absent and 17 historical zero-head/zero-leg groups require
+  explicit review. Evidence: `.local/tmp/armor-source-relation-tuple-delta-20260930-01.json`.
+- [x] Generate a separate no-write Mining attribute candidate using the
+  independent identity correction contract. The candidate binds corrected
+  `Mining Pants.png` to item 411 and reports duplicate item-88 owners, item-410
+  defense drift, relation semantic drift, and missing item-411 lineage without
+  producing change plans. Evidence:
+  `.local/tmp/armor-mining-attribute-candidate-20261001-01.json`.
+- [x] Produce a read-only canonical review for all 17 historical zero-head/
+  zero-leg groups and the nine Shroomite missing tuples. It classifies only
+  Wizard/MagicHat as source-declared zero-leg groups and leaves the other 15
+  groups blocked for owner review. Evidence:
+  `.local/tmp/armor-zero-slot-canonical-review-20261001-01.json`.
 - [ ] Run candidate, locked-rederivation and projection tests with fixtures containing variants, retired rows, duplicate attributes and missing legs. Produce a read-only proposal before any apply packet.
+
+**2026-10-04 historical tuple repair checkpoint:** the governed attempt
+`20261004-05` is `COMMITTED` on server UUID
+`b4ae6728-4f72-11f1-bcc9-00155d37eadf`. Independent read-only rederivation
+maps the 494 positive source tuples at revision `964993` to 485 active relation
+tuples: 485 match, nine Shroomite tuples are missing, and zero are extra. All
+63 existing maint/relation owners and projections match; 63/63 public set detail
+GETs return the source tuple composition. This closes only the 15 historical
+misalignment groups. Shroomite owner creation, complete attribute/effect
+coverage, typed-effect publication, images and automatic recovery remain open.
+
+**Phase 2 image-source checkpoint (2026-09-30):** the fresh source-only bundle
+now covers the corrected 64-set denominator and 431 image rows. Its cache
+proposal reuses 315 verified historical file receipts and carries source bytes
+only for the 12 new Shroomite files. The proposal is `armor-image-cache-proposal/v2`
+and remains private/`AWAITING_OWNER`; this does not satisfy the revision-bound
+landing or authorize an upload. Continue with the complete module/image landing
+candidate only after the 243-member, Mining identity and typed-effect blockers
+are resolved.
 
 ## Phase 3 — complete versioned item and set semantics
 
@@ -82,10 +118,43 @@ can be marked complete. Evidence: `docs/audits/2026-09-30-armor-phase3-semantic-
 `pipelines/relation/armor-canonical-transaction-executor.mjs`,
 `pipelines/relation/run-armor-set-projection-incremental.mjs`, a new typed-effect publication executor and tests, plus the registered operation manifest.
 
+**2026-10-01 contract checkpoint:** `pipelines/relation/armor-typed-effect-publication.mjs`
+and its `6/6` focused tests now define the relation typed-effect ownership boundary
+and no-write candidate shape. The isolated
+`pipelines/relation/armor-typed-effect-publication-db.mjs` executor now provides
+locked rederivation, prepared/permit ordering, typed insert/update/retire,
+generic preservation and post-commit readback tests (`2/2`). The operation is
+now registered in the canonical catalog/manifest with a fail-closed runner and
+manifest/proposal identity and execution-gate regression coverage (`4/4`), but it remains
+fake-connection tested only; real permit/recovery integration and projection
+readback remain open.
+This checkpoint does not authorize an apply packet.
+
+**Execution-order correction (2026-10-04):** the typed-effect owner decision is
+an input to pre-apply authorization, so it may cover source completeness,
+canonical ownership, semantic review and recovery ownership only. Requiring
+typed rows to pass projection/API readback before the publication transaction
+would make the write prerequisite depend on state that only exists after that
+transaction. Keep formal operation authorization and permit consumption as
+independent write gates; record relation, projection and API verification as
+post-commit acceptance evidence. The executor must remain non-runnable while
+any pre-apply owner/source gate is unresolved.
+
 - [ ] Define ownership for typed maint rows, relation item effects, secondary relation/projection effects and retirement of superseded `armor_attribute_cell` rows. Keep general sync's fail-closed guard until the new executor is the only authorized path.
 - [ ] Add locked rederivation from landing bytes and maint IDs, exact stable record keys, insert/readback/retirement sets, and a single transaction boundary for the downstream tables it owns.
 - [ ] Extend projection candidate and independent validator to require complete coverage and typed lineage; preserve the `complete-item-and-set-coverage-unverified` blocker until Phase 2/3 reports clear it.
 - [ ] Test fresh apply, exact replay, partial replay, stale source, owner mismatch, generated-ID drift, rollback and uncertain commit. Do not consume an old proposal or permit.
+
+**2026-10-06 contract continuation:** source-effect ownership is now represented
+by a no-write, classification-hash-bound decision contract, and typed recovery
+ownership is bound to the exact reconciliation artifact with permit replay
+disabled. A separate post-commit projection/API acceptance contract checks
+condition, operation, values and lineage. The typed publication executor now
+requires that contract's adapter before `BEGIN`, persists verified acceptance
+after commit, and carries blocked acceptance through read-only reconciliation;
+post-commit failures remain `COMMITTED_READBACK_REQUIRED` without rollback.
+These contracts do not create an execution-ready proposal and remain
+prerequisites for real owner evidence and full-chain runtime readback.
 
 ## Phase 5 — backend API contract
 
@@ -97,6 +166,14 @@ can be marked complete. Evidence: `docs/audits/2026-09-30-armor-phase3-semantic-
 - [ ] Select, map and serialize `condition_text`, operation, unit, decimal bounds, variant label and raw text consistently for item effects. Keep set-owned effect mapping separate.
 - [ ] Add controller/service tests proving `armor_item_page` rows appear in counts, item details and armor-set aggregate piece effects while stale generic rows are retired.
 - [ ] Run focused Maven tests for all changed service/controllers, then use authenticated admin and public API readback against the real local database.
+
+**2026-10-01 contract checkpoint:** public item equipment effects now select and
+map typed bounds, operation, variant, condition and full maint/landing/source
+lineage. Admin Armor attribute and set readers accept the governed source-kind
+set `armor_attribute_cell` plus `armor_item_page` and expose the same lineage
+fields. Focused service/controller tests are green. Real authenticated API
+readback and projection evidence remain pending because the source/cache,
+Shroomite owner, Mining identity and typed-publication gates are still blocked.
 
 ## Phase 6 — public UI semantics and runtime checks
 

@@ -35,7 +35,7 @@ test('secondary authorization requires a manifest and binds exact private propos
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
-test('secondary operation owns only the two member partitions and binds its exact proposal and durable results', () => {
+test('secondary operation owns member and verified set-effect projection partitions', () => {
   assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[operationId], 'pipelines/relation/run-armor-secondary-projection.mjs');
   assert.throws(() => buildCanonicalOperationExecutionManifest({ repoRoot, operationId }), /label/i);
@@ -46,7 +46,8 @@ test('secondary operation owns only the two member partitions and binds its exac
   assert.deepEqual(manifest.outputPaths, [`reports/authorization/canonical/${operationId}.retry-01.prepared.json`,
     `reports/authorization/canonical/${operationId}.retry-01.result.json`]);
   assert.deepEqual(manifest.ownershipKeys, ['relation.projection_item_armor_attributes.armor_members',
-    'relation.projection_equipment_effect_attributes.armor_member_item_cells']);
+    'relation.projection_equipment_effect_attributes.armor_member_item_cells',
+    'relation.projection_equipment_effect_attributes.armor_set_effects']);
   assert.equal(manifest.databaseWrites, true);
   assert.equal(manifest.networkAccess, false);
   assertCanonicalOperationExecutionManifestContract({ repoRoot, operationId, manifest });

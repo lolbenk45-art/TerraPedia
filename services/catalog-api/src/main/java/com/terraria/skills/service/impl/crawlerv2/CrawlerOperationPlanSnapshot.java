@@ -18,7 +18,9 @@ public record CrawlerOperationPlanSnapshot(
     String resumeStatePath,
     String confirmationLevel,
     Instant capturedAt,
-    SourceDispatchIdentity sourceDispatchIdentity
+    SourceDispatchIdentity sourceDispatchIdentity,
+    String automaticBindingPath,
+    String automaticBindingSha256
 ) {
     /** Compatibility constructor for manually created operation plans. */
     public CrawlerOperationPlanSnapshot(
@@ -41,7 +43,33 @@ public record CrawlerOperationPlanSnapshot(
         this(
             operationId, actionId, labelZh, mode, networkAccess, sourceLocator, fileWriteSummary,
             databaseAccess, estimatedRequests, estimatedRecords, pauseSupported, resumeSupported,
-            resumeStatePath, confirmationLevel, capturedAt, null
+            resumeStatePath, confirmationLevel, capturedAt, null, null, null
+        );
+    }
+
+    /** Compatibility constructor for plans that already carry source identity only. */
+    public CrawlerOperationPlanSnapshot(
+        String operationId,
+        String actionId,
+        String labelZh,
+        String mode,
+        boolean networkAccess,
+        String sourceLocator,
+        String fileWriteSummary,
+        String databaseAccess,
+        Long estimatedRequests,
+        Long estimatedRecords,
+        boolean pauseSupported,
+        boolean resumeSupported,
+        String resumeStatePath,
+        String confirmationLevel,
+        Instant capturedAt,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
+        this(
+            operationId, actionId, labelZh, mode, networkAccess, sourceLocator, fileWriteSummary,
+            databaseAccess, estimatedRequests, estimatedRecords, pauseSupported, resumeSupported,
+            resumeStatePath, confirmationLevel, capturedAt, sourceDispatchIdentity, null, null
         );
     }
 }

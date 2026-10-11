@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -1186,6 +1189,7 @@ public class CrawlerAttemptSupervisor {
     private Map<String, String> launchEnvironment(CrawlerQueueV2Attempt attempt) {
         Map<String, String> environment = new LinkedHashMap<>();
         environment.put("WORKTREE_ROOT", worktreeRoot.toString());
+        environment.put("TERRAPEDIA_CRAWLER_COMMAND_ROOT", commandRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", attempt.actionId());
         environment.put("TERRAPEDIA_CRAWLER_QUEUE_ID", attempt.queueId());
         environment.put("TERRAPEDIA_CRAWLER_ATTEMPT_ID", attempt.attemptId());
@@ -1210,6 +1214,17 @@ public class CrawlerAttemptSupervisor {
                 "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH",
                 worktreeRoot.resolve("data/generated/source-update-monitor.latest.json").toString()
             );
+            if ("domain-source-armor-sets".equals(attempt.actionId())) {
+                CrawlerOperationPlanSnapshot plan = artifactStore.readOperationPlan(attempt.attemptId())
+                    .orElseThrow(() -> new SecurityException("Armor scheduler attempt 缺少 immutable operation plan"));
+                if (!"canonical-armor-ingestion".equals(plan.operationId())
+                    || plan.automaticBindingPath() == null
+                    || plan.automaticBindingSha256() == null) {
+                    throw new SecurityException("Armor scheduler attempt 缺少 automatic binding");
+                }
+                environment.put("TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_PATH", plan.automaticBindingPath());
+                environment.put("TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_SHA256", plan.automaticBindingSha256());
+            }
         }
         return environment;
     }
@@ -1606,7 +1621,12 @@ public class CrawlerAttemptSupervisor {
                     "scheduler-owned attempt 缺少 immutable operation plan：" + attempt.attemptId()
                 ));
             if (!Objects.equals(plan.actionId(), attempt.actionId())
-                || !Objects.equals(plan.sourceDispatchIdentity(), identity)) {
+                || !Objects.equals(plan.sourceDispatchIdentity(), identity)
+                || ("domain-source-armor-sets".equals(attempt.actionId())
+                    && (!"canonical-armor-ingestion".equals(plan.operationId())
+                        || plan.automaticBindingPath() == null
+                        || plan.automaticBindingSha256() == null
+                        || !isSafeArmorBinding(plan.automaticBindingPath(), plan.automaticBindingSha256())))) {
                 throw new SecurityException("scheduler-owned operation plan source identity 不一致");
             }
         }
@@ -1642,6 +1662,33 @@ public class CrawlerAttemptSupervisor {
             .map(CrawlerQueueV2Queue::isSchedulerOwned)
             .filter(Boolean::booleanValue)
             .isPresent();
+    }
+
+    private boolean isSafeArmorBinding(String storedPath, String expectedHash) {
+        try {
+            Path root = worktreeRoot.toAbsolutePath().normalize()
+                .resolve("reports/authorization/canonical/automatic-armor").normalize();
+            Path path = Path.of(storedPath);
+            Path resolved = path.isAbsolute() ? path.toAbsolutePath().normalize() : worktreeRoot.resolve(path).toAbsolutePath().normalize();
+            if (!resolved.startsWith(root) || Files.isSymbolicLink(resolved)
+                || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)
+                || !expectedHash.matches("sha256:[0-9a-f]{64}")) {
+                return false;
+            }
+            Path realRoot = root.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            Path realParent = resolved.getParent().toRealPath();
+            if (!realParent.startsWith(realRoot)) return false;
+            if (Files.getPosixFilePermissions(resolved, LinkOption.NOFOLLOW_LINKS).stream()
+                .anyMatch(permission -> permission.name().startsWith("GROUP_")
+                    || permission.name().startsWith("OTHERS_"))) {
+                return false;
+            }
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(resolved));
+            String actual = "sha256:" + java.util.HexFormat.of().formatHex(digest);
+            return Objects.equals(actual, expectedHash);
+        } catch (IOException | NoSuchAlgorithmException | RuntimeException exception) {
+            return false;
+        }
     }
 
     private void requireAttempt(CrawlerQueueV2Attempt attempt) {

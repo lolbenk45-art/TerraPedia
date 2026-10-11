@@ -19,6 +19,13 @@ const STAT_LABELS_ZH = {
   knockback: '击退',
   dash_enabled: '猛冲',
   immunity: '免疫',
+  ammo_conservation: '弹药节约',
+  aggro: '仇恨',
+  damage_reduction: '伤害减免',
+  health_regen: '生命再生',
+  mana_regen: '魔力再生',
+  enemy_spawn_rate: '敌怪生成速度',
+  enemy_max_count: '最大敌怪数量',
   special_effect: '特殊效果'
 };
 
@@ -74,10 +81,29 @@ function stripKnownPrefix(line) {
 }
 
 function splitEffectParts(body) {
-  return normalizeText(body)
-    .split(/[、,，；;]/)
-    .map((part) => normalizeText(part))
-    .filter(Boolean);
+  const normalized = normalizeText(body);
+  const parts = [];
+  let start = 0;
+  let depth = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    const character = normalized[index];
+    if (character === '(' || character === '（' || character === '[') {
+      depth += 1;
+      continue;
+    }
+    if (character === ')' || character === '）' || character === ']') {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth === 0 && /[、,，；;]/.test(character)) {
+      const part = normalizeText(normalized.slice(start, index));
+      if (part) parts.push(part);
+      start = index + 1;
+    }
+  }
+  const finalPart = normalizeText(normalized.slice(start));
+  if (finalPart) parts.push(finalPart);
+  return parts;
 }
 
 function classScopeFor(text) {
@@ -110,11 +136,59 @@ function buildParsed(statKey, part, overrides = {}) {
 }
 
 function parseNumericPart(part) {
+  const qualifiedNumericMatch = part.match(/^\(([^()]*)\)\s*([+-]?\d+(?:\.\d+)?%?)\s*(.+)$/);
+  if (qualifiedNumericMatch) {
+    const parsed = parseNumericPart(`${qualifiedNumericMatch[2]} ${qualifiedNumericMatch[3]}`);
+    return parsed ? { ...parsed, conditionText: qualifiedNumericMatch[1].trim() } : null;
+  }
+  const minionCapacityMatch = part.match(/^([+-]?\d+(?:\.\d+)?)\s*(?:仆从位|仆从栏位|仆从容量)$/);
+  if (minionCapacityMatch) {
+    return buildParsed('minion_capacity', part, { valueDecimal: numeric(minionCapacityMatch[1]), unit: 'count', classScope: null });
+  }
+  const sentryCapacityMatch = part.match(/^([+-]?\d+(?:\.\d+)?)\s*(?:哨兵栏|哨兵容量|额外哨兵容量)(?:（总计[^）]+）)?$/);
+  if (sentryCapacityMatch) {
+    return buildParsed('sentry_capacity', part, { valueDecimal: numeric(sentryCapacityMatch[1]), unit: 'count', classScope: null });
+  }
+  const aggroMatch = part.match(/^([+-]?\d+(?:\.\d+)?)\s*仇恨(?:（总计[^）]+）)?$/);
+  if (aggroMatch) {
+    return buildParsed('aggro', part, { valueDecimal: numeric(aggroMatch[1]), unit: 'count', classScope: null });
+  }
+  const healthRegenMatch = part.match(/^(?:提高)?生命再生速度（每秒\s*(?:大约\s*)?([+-]?\d+(?:\.\d+)?)/);
+  if (healthRegenMatch) {
+    return buildParsed('health_regen', part, { valueDecimal: numeric(healthRegenMatch[1]), unit: 'count', classScope: null });
+  }
+  const providedHealthRegenMatch = part.match(/^提供\s*([+-]?\d+(?:\.\d+)?)\s*生命(?:\/秒|每秒)/);
+  if (providedHealthRegenMatch) {
+    return buildParsed('health_regen', part, { valueDecimal: numeric(providedHealthRegenMatch[1]), unit: 'count', classScope: null });
+  }
+  const inlineHealthRegenMatch = part.match(/^([+-]?\d+(?:\.\d+)?)\s*生命\/秒(?:的)?生命再生$/);
+  if (inlineHealthRegenMatch) {
+    return buildParsed('health_regen', part, { valueDecimal: numeric(inlineHealthRegenMatch[1]), unit: 'count', classScope: null });
+  }
+  const manaRegenMatch = part.match(/^(?:提高)?魔力再生速度（每秒\s*(?:大约\s*)?([+-]?\d+(?:\.\d+)?)/);
+  if (manaRegenMatch) {
+    return buildParsed('mana_regen', part, { valueDecimal: numeric(manaRegenMatch[1]), unit: 'count', classScope: 'magic' });
+  }
+  const damageReductionMatch = part.match(/^每级提供\s*([+-]?\d+(?:\.\d+)?)%\s*伤害减免/);
+  if (damageReductionMatch) {
+    return buildParsed('damage_reduction', part, { valueDecimal: numeric(damageReductionMatch[1]), unit: 'percent', classScope: null, conditionText: '每级' });
+  }
+  const maxDamageReductionMatch = part.match(/^最高\s*([+-]?\d+(?:\.\d+)?)%\s*伤害减免/);
+  if (maxDamageReductionMatch) {
+    return buildParsed('damage_reduction', part, { valueDecimal: numeric(maxDamageReductionMatch[1]), unit: 'percent', classScope: null, conditionText: '最高' });
+  }
+  const providedDamageReductionMatch = part.match(/提供\s*([+-]?\d+(?:\.\d+)?)%\s*(?:的)?(?:基础)?伤害减免/);
+  if (providedDamageReductionMatch) {
+    return buildParsed('damage_reduction', part, { valueDecimal: numeric(providedDamageReductionMatch[1]), unit: 'percent', classScope: null });
+  }
   const percentMatch = part.match(/^([+-]?\d+(?:\.\d+)?)%\s*(.+)$/);
   if (percentMatch) {
     const value = numeric(percentMatch[1]);
     const label = percentMatch[2];
-    if (/的几率不消耗弹药|不消耗弹药/.test(label)) {
+    if (/伤害减免/.test(label)) {
+      return buildParsed('damage_reduction', part, { valueDecimal: value, unit: 'percent', classScope: null });
+    }
+    if (/的几率不消耗弹药|不消耗弹药|弹药节约|减少弹药消耗/.test(label)) {
       return buildParsed('ammo_conservation', part, { valueDecimal: value, unit: 'percent', classScope: null });
     }
     if (/挖矿速度/.test(label)) {
@@ -122,6 +196,9 @@ function parseNumericPart(part) {
     }
     if (/移动速度/.test(label)) {
       return buildParsed('move_speed', part, { valueDecimal: value, unit: 'percent', classScope: null });
+    }
+    if (/击退/.test(label)) {
+      return buildParsed('knockback', part, { valueDecimal: value, unit: 'percent', classScope: classScopeFor(label) });
     }
     if (/近战速度/.test(label)) {
       return buildParsed('melee_speed', part, { valueDecimal: value, unit: 'percent', classScope: 'melee' });
@@ -143,6 +220,12 @@ function parseNumericPart(part) {
     }
     if (/魔力花费|魔力消耗/.test(label)) {
       return buildParsed('mana_cost', part, { valueDecimal: value, unit: 'percent', classScope: null });
+    }
+    if (/敌怪生成速度/.test(label)) {
+      return buildParsed('enemy_spawn_rate', part, { valueDecimal: value, unit: 'percent', classScope: null });
+    }
+    if (/最大敌怪数量/.test(label)) {
+      return buildParsed('enemy_max_count', part, { valueDecimal: value, unit: 'percent', classScope: null });
     }
     if (/加速度|减速度/.test(label)) {
       return buildParsed('acceleration', part, { valueDecimal: value, unit: 'percent', classScope: null });
@@ -186,8 +269,37 @@ function parseNumericPart(part) {
   return null;
 }
 
+function parseWholeEffectPart(part) {
+  const multiplierMatch = part.match(/^(.+?)的伤害\s*[×x]\s*([0-9]+(?:\.\d+)?)(?:\[[^\]]+\])?$/i);
+  if (multiplierMatch) {
+    return buildParsed('damage_bonus', part, {
+      operation: 'multiply', valueDecimal: numeric(multiplierMatch[2]), unit: 'multiplier',
+      classScope: 'ranged', conditionText: multiplierMatch[1]
+    });
+  }
+  const movementMultiplierMatch = part.match(/(?:额外施加\s*)?([0-9]+(?:\.\d+)?)\s*倍的移动速度倍率/);
+  if (movementMultiplierMatch) {
+    return buildParsed('max_move_speed_multiplier', part, {
+      operation: 'multiply', valueDecimal: numeric(movementMultiplierMatch[1]), unit: 'multiplier', classScope: null
+    });
+  }
+  const damageIncreaseMatch = part.match(/^伤害提高\s*([+-]?\d+(?:\.\d+)?)%/);
+  if (damageIncreaseMatch) {
+    return buildParsed('damage_bonus', part, {
+      valueDecimal: numeric(damageIncreaseMatch[1]), unit: 'percent', classScope: 'all'
+    });
+  }
+  const increasedCritMatch = part.match(/^魔法暴击率增加\s*([+-]?\d+(?:\.\d+)?)%/);
+  if (increasedCritMatch) {
+    return buildParsed('crit_chance', part, {
+      valueDecimal: numeric(increasedCritMatch[1]), unit: 'percent', classScope: 'magic'
+    });
+  }
+  return null;
+}
+
 function parseFlagPart(part) {
-  if (/允许猛冲|可猛冲|启用猛冲/.test(part)) {
+  if (/允许猛冲|可猛冲|启用猛冲|能够猛冲|激活一次特殊猛冲/.test(part)) {
     return buildParsed('dash_enabled', part, {
       operation: 'set_flag',
       valueDecimal: null,
@@ -206,8 +318,41 @@ function parseFlagPart(part) {
   return null;
 }
 
+function parseAccelerationMovementEffects(part) {
+  const match = part.match(/^([+-]?\d+(?:\.\d+)?)%\s*加速度与减速度(?:和)?\s*[×x]\s*([0-9]+(?:\.\d+)?)\s*最大移动速度$/i);
+  if (!match) return null;
+  return [
+    buildParsed('acceleration', part, { valueDecimal: numeric(match[1]), unit: 'percent', classScope: null }),
+    buildParsed('max_move_speed_multiplier', part, {
+      valueDecimal: numeric(match[2]), unit: 'multiplier', classScope: null, operation: 'multiply',
+    }),
+  ];
+}
+
+function parseFixedCriticalChance(part) {
+  const match = part.match(/(?:具有|有)\s*(?:\d+\/\d+\s*)?(?:\(([+-]?\d+(?:\.\d+)?)%\)|([+-]?\d+(?:\.\d+)?)%)\s*的固定暴击率/);
+  if (!match) return null;
+  return buildParsed('crit_chance', part, {
+    valueDecimal: numeric(match[1] ?? match[2]), unit: 'percent', classScope: 'all',
+  });
+}
+
 function parseEffectPart(part) {
-  return parseNumericPart(part) ?? parseFlagPart(part);
+  return parseWholeEffectPart(part) ?? parseFixedCriticalChance(part) ?? parseNumericPart(part) ?? parseFlagPart(part);
+}
+
+function parseTieredMeleeEffects(part) {
+  const match = part.match(/^(每级|最高)\s*(?:提供\s*)?([+-]?\d+(?:\.\d+)?)%\s*(近战伤害|近战速度)(?:和|及)(近战伤害|近战速度)$/);
+  if (!match) return null;
+  const valueDecimal = numeric(match[2]);
+  const conditionText = match[1];
+  const statKeys = [match[3], match[4]].map(label => label === '近战伤害' ? 'damage_bonus' : 'melee_speed');
+  return statKeys.map(statKey => buildParsed(statKey, part, {
+    valueDecimal,
+    unit: 'percent',
+    classScope: 'melee',
+    conditionText,
+  }));
 }
 
 function buildUnparsed(part) {
@@ -222,6 +367,27 @@ function buildUnparsed(part) {
     conditionText: null,
     parseStatus: 'unparsed',
     confidence: 0.3
+  };
+}
+
+function isNonEffectLabel(line) {
+  const normalized = normalizeText(line).replace(/^\([^)]*\)\s*/, '');
+  return normalized === ''
+    || /^(?:套装奖励|套装效果|物品|给予增益|增益描述|伤害星云|生命星云|魔力星云|套装奖励：)$/.test(normalized);
+}
+
+function buildNonEffectLabel(part) {
+  return {
+    statKey: 'special_effect',
+    statLabelZh: STAT_LABELS_ZH.special_effect,
+    classScope: null,
+    operation: null,
+    valueDecimal: null,
+    valueMaxDecimal: null,
+    unit: null,
+    conditionText: null,
+    parseStatus: 'non_effect',
+    confidence: 1,
   };
 }
 
@@ -260,7 +426,46 @@ export function parseEquipmentEffectLines({
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const sourceLine = lines[lineIndex];
     const prefix = stripKnownPrefix(sourceLine);
+    if (isNonEffectLabel(sourceLine)) {
+      rows.push({
+        ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: sourceLine, prefix, effectIndex: 0 }),
+        ...buildNonEffectLabel(sourceLine),
+      });
+      continue;
+    }
+    const whole = parseWholeEffectPart(prefix.body);
+    if (whole) {
+      rows.push({
+        ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: prefix.body, prefix, effectIndex: 0 }),
+        ...whole
+      });
+      continue;
+    }
     const parts = splitEffectParts(prefix.body);
+    const accelerationMovement = parts.length === 1 ? parseAccelerationMovementEffects(parts[0]) : null;
+    if (accelerationMovement) {
+      accelerationMovement.forEach((parsed, effectIndex) => rows.push({
+        ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: prefix.body, prefix, effectIndex }),
+        ...parsed,
+      }));
+      continue;
+    }
+    const directCompound = parts.length === 1 ? parseTieredMeleeEffects(parts[0]) : null;
+    if (directCompound) {
+      directCompound.forEach((parsed, effectIndex) => rows.push({
+        ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: prefix.body, prefix, effectIndex }),
+        ...parsed,
+      }));
+      continue;
+    }
+    const direct = parts.length === 1 ? parseEffectPart(parts[0]) : null;
+    if (direct) {
+      rows.push({
+        ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: prefix.body, prefix, effectIndex: 0 }),
+        ...direct
+      });
+      continue;
+    }
     if (parts.length === 0) {
       rows.push({
         ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: sourceLine, prefix, effectIndex: 0 }),
@@ -268,12 +473,22 @@ export function parseEquipmentEffectLines({
       });
       continue;
     }
-    for (let effectIndex = 0; effectIndex < parts.length; effectIndex += 1) {
-      const part = parts[effectIndex];
-      rows.push({
-        ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: part, prefix, effectIndex }),
-        ...(parseEffectPart(part) ?? buildUnparsed(part))
-      });
+    let nextEffectIndex = 0;
+    for (const part of parts) {
+      const compound = parseTieredMeleeEffects(part);
+      if (compound) {
+        compound.forEach((parsed, offset) => rows.push({
+          ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: part, prefix, effectIndex: nextEffectIndex + offset }),
+          ...parsed,
+        }));
+        nextEffectIndex += compound.length;
+      } else {
+        rows.push({
+          ...buildBaseRow({ owner, sourceKind, sourceLocale, sourceLineIndex: lineIndex, sourceLine, rawText: part, prefix, effectIndex: nextEffectIndex }),
+          ...(parseEffectPart(part) ?? buildUnparsed(part))
+        });
+        nextEffectIndex += 1;
+      }
     }
   }
   return rows;

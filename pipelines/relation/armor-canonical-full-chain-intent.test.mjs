@@ -37,8 +37,8 @@ function imageLanding() {
   return landing({ dataset_type: 'armor_set_images_raw', source_key: 'wiki.armor_set_images', source_page: 'Armor set pages' });
 }
 
-function landingMaintIntent() {
-  const current = [landing({ id: 10, artifact_role: 'legacy_compat', content_hash: 'd'.repeat(64) })];
+function landingMaintIntent({ currentLanding = {} } = {}) {
+  const current = [landing({ id: 10, artifact_role: 'legacy_compat', content_hash: 'd'.repeat(64), ...currentLanding })];
   const transition = buildArmorSourceEvidenceTransition({ currentRows: current, incomingRows: [landing(), imageLanding()] });
   const maintCandidate = {
     schemaVersion: 'armor-canonical-maint-candidate/v1', executable: false,
@@ -66,8 +66,9 @@ function landingMaintIntent() {
   });
 }
 
-function projectionCandidate(landingMaint) {
+function projectionCandidate(landingMaint, { includeLandingSourcePage = true } = {}) {
   const relationInput = {
+    landingCurrentRows: structuredClone(landingMaint.snapshots.landingCurrentRows),
     maintInput: {
       landingRows: [landing(), imageLanding()], currentRows: { maint_armor_sets: [], maint_armor_set_images: [] },
       managedImageUrlPrefixes: [PREFIX], allowUnmaterializedLandingIds: true,
@@ -80,6 +81,7 @@ function projectionCandidate(landingMaint) {
     landing_source_id: null, landing_source_key: landing().source_key, landing_source_page: landing().source_page,
     landing_content_hash: CONTENT_HASH, status: 1, deleted: 0,
   };
+  if (!includeLandingSourcePage) delete relationRow.landing_source_page;
   const relationCandidate = {
     schemaVersion: 'armor-canonical-relation-candidate/v1', executable: false,
     executionBlocker: 'registered-full-chain-executor-required',
@@ -140,6 +142,87 @@ test('composes one typed full-chain graph and declares landing, maint, relation,
   assert.deepEqual(projection.references, [{ column: 'id', target: `relation.relation_armor_sets|${KEY}` }]);
   assert.equal(result.recoveryIntent.operationId, 'canonical-armor-ingestion');
   assert.match(result.recoveryIntent.intentSha256, /^sha256:[0-9a-f]{64}$/);
+  assert.doesNotThrow(() => validateArmorCanonicalFullChainIntent(result));
+});
+
+test('resolves the landing page for relation references from the exact frozen landing insert', () => {
+  const landingMaint = structuredClone(landingMaintIntent());
+  const candidate = projectionCandidate(landingMaint, { includeLandingSourcePage: false });
+
+  const result = buildArmorCanonicalFullChainIntent({
+    landingMaintIntent: landingMaint,
+    projectionCandidate: candidate,
+    writeTimestamp: WRITE_TIME,
+  });
+
+  const relation = result.relationIntent.insertPlans.find(plan => plan.table === 'relation_armor_sets');
+  assert.ok(relation.references.some(reference => reference.column === 'landing_source_id'
+    && reference.target === 'local.source_dataset_landings|armor_sets_raw|terraria.wiki.gg|wiki.module.armorsetbonuses|Module:ArmorSetBonuses'));
+  assert.equal(Object.hasOwn(relation.nonGeneratedFields, 'landing_source_page'), false);
+});
+
+test('rejects a relation update whose landing id points to a different content version', () => {
+  const landingMaint = landingMaintIntent();
+  const candidate = projectionCandidate(landingMaint);
+  const relationCandidate = candidate.relationCandidate;
+  const after = { ...relationCandidate.changes.relation_armor_sets.inserts[0], id: 101, landing_source_id: 10 };
+  relationCandidate.changes.relation_armor_sets.inserts = [];
+  relationCandidate.changes.relation_armor_sets.updates = [{
+    before: { ...after, landing_source_id: null }, after, changedColumns: ['landing_source_id'],
+  }];
+  relationCandidate.expectedRows.relation_armor_sets = [after];
+  relationCandidate.unresolvedGeneratedIds = [];
+  {
+    const { candidateSha256: _ignored, ...body } = relationCandidate;
+    relationCandidate.candidateSha256 = digest(body);
+  }
+  candidate.changes.projection_armor_sets.inserts = [];
+  candidate.unresolvedGeneratedIds = [];
+  {
+    const { candidateSha256: _ignored, ...body } = candidate;
+    candidate.candidateSha256 = digest(body);
+  }
+
+  assert.throws(() => buildArmorCanonicalFullChainIntent({
+    landingMaintIntent: landingMaint,
+    projectionCandidate: candidate,
+    writeTimestamp: WRITE_TIME,
+  }), /landing id.*content hash|landing lineage/i);
+});
+
+test('composes a full-chain intent when the relation/projection candidate has only updates', () => {
+  const landingMaint = structuredClone(landingMaintIntent());
+  const candidate = projectionCandidate(landingMaint);
+  candidate.relationCandidate.changes.relation_armor_sets.inserts = [];
+  candidate.relationCandidate.changes.relation_armor_sets.updates = [{
+    before: { ...candidate.relationCandidate.expectedRows.relation_armor_sets[0], id: 101 },
+    after: { ...candidate.relationCandidate.expectedRows.relation_armor_sets[0], id: 101, status: 1 },
+    changedColumns: ['status'],
+  }];
+  candidate.relationCandidate.unresolvedGeneratedIds = [];
+  {
+    const { candidateSha256: _ignored, ...body } = candidate.relationCandidate;
+    candidate.relationCandidate.candidateSha256 = digest(body);
+  }
+  candidate.changes.projection_armor_sets.inserts = [];
+  candidate.changes.projection_armor_sets.updates = [{
+    before: { ...candidate.expectedRows.projection_armor_sets[0], id: 201 },
+    after: { ...candidate.expectedRows.projection_armor_sets[0], id: 201, status: 1 },
+    changedColumns: ['status'],
+  }];
+  candidate.unresolvedGeneratedIds = [];
+  candidate.acceptance = { status: 'dependencies-satisfied', runtimeVerified: false, blockers: [] };
+  {
+    const { candidateSha256: _ignored, ...body } = candidate;
+    candidate.candidateSha256 = digest(body);
+  }
+
+  const result = buildArmorCanonicalFullChainIntent({
+    landingMaintIntent: landingMaint,
+    projectionCandidate: candidate,
+    writeTimestamp: WRITE_TIME,
+  });
+  assert.deepEqual(result.relationIntent.insertPlans, []);
   assert.doesNotThrow(() => validateArmorCanonicalFullChainIntent(result));
 });
 

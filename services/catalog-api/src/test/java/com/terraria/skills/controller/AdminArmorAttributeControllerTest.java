@@ -1,6 +1,7 @@
 package com.terraria.skills.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,6 +18,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -52,6 +54,20 @@ class AdminArmorAttributeControllerTest {
             .andExpect(jsonPath("$.data.rowsWithEffects").value(115))
             .andExpect(jsonPath("$.data.slotCounts.head").value(86))
             .andExpect(jsonPath("$.data.sectionCounts.hardmode").value(110));
+    }
+
+    @Test
+    void shouldCountTypedArmorItemPageEffectsAlongsideAttributeCellEffects() throws Exception {
+        when(jdbcTemplate.queryForObject(anyString(), any(Class.class))).thenReturn(230L, 230L, 0L, 292L, 228L, 115L);
+        when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of(), List.of());
+
+        mockMvc.perform(get("/admin/armor-attributes/summary"))
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate, times(6)).queryForObject(sqlCaptor.capture(), any(Class.class));
+        org.junit.jupiter.api.Assertions.assertTrue(sqlCaptor.getAllValues().stream()
+            .anyMatch(sql -> sql.contains("source_kind IN ('armor_attribute_cell','armor_item_page')")));
     }
 
     @Test
@@ -102,6 +118,15 @@ class AdminArmorAttributeControllerTest {
             .andExpect(jsonPath("$.data.effects[0].statKey").value("damage_bonus"))
             .andExpect(jsonPath("$.data.effects[0].valueDecimal").value(10.0000))
             .andExpect(jsonPath("$.data.effects[0].unit").value("percent"))
+            .andExpect(jsonPath("$.data.effects[0].sourceKind").value("armor_attribute_cell"))
+            .andExpect(jsonPath("$.data.effects[0].sourceMaintRecordKey").value("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+            .andExpect(jsonPath("$.data.effects[0].sourceMaintId").value(123))
+            .andExpect(jsonPath("$.data.effects[0].landingSourceId").value(456))
+            .andExpect(jsonPath("$.data.effects[0].landingSourceKey").value("wiki.page.hallowed"))
+            .andExpect(jsonPath("$.data.effects[0].landingContentHash").value("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"))
+            .andExpect(jsonPath("$.data.effects[0].sourceProvider").value("terraria.wiki.gg"))
+            .andExpect(jsonPath("$.data.effects[0].sourcePage").value("盔甲属性表"))
+            .andExpect(jsonPath("$.data.effects[0].sourceRevisionTimestamp").exists())
             .andExpect(jsonPath("$.data.effects[1].statKey").value("crit_chance"))
             .andExpect(jsonPath("$.data.effects[2].statKey").value("melee_speed"));
     }
@@ -172,7 +197,16 @@ class AdminArmorAttributeControllerTest {
             Map.entry("unit", "percent"),
             Map.entry("condition_text", ""),
             Map.entry("raw_text", rawText),
-            Map.entry("parse_status", "parsed")
+            Map.entry("parse_status", "parsed"),
+            Map.entry("source_maint_table", "maint_armor_attribute_rows"),
+            Map.entry("source_maint_record_key", "a".repeat(64)),
+            Map.entry("source_maint_id", 123L),
+            Map.entry("landing_source_id", 456L),
+            Map.entry("landing_source_key", "wiki.page.hallowed"),
+            Map.entry("landing_content_hash", "b".repeat(64)),
+            Map.entry("source_provider", "terraria.wiki.gg"),
+            Map.entry("source_page", "盔甲属性表"),
+            Map.entry("source_revision_timestamp", Timestamp.from(Instant.parse("2026-01-31T20:21:00Z")))
         );
     }
 }

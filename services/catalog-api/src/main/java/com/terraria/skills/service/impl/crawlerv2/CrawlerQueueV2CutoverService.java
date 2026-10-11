@@ -43,7 +43,18 @@ public final class CrawlerQueueV2CutoverService {
         String requestedBy = requireOperator(operator);
         synchronized (operationLock) {
             CrawlerQueueEngineRouter.CutoverState existing = router.readDurableState();
-            String epoch = usableExistingEpoch(existing, request.getCutoverId());
+            CrawlerQueueV2Repository.CutoverRecord completedRecord = repository.readCutover(request.getCutoverId()).orElse(null);
+            String epoch = completedCutoverEpoch(completedRecord);
+            if (blank(epoch)) {
+                epoch = usableExistingEpoch(existing, request.getCutoverId());
+            } else if (existing != null
+                && existing.mode() != CrawlerQueueEngineMode.V1
+                && (!Objects.equals(existing.stateStoreEpoch(), epoch) || existing.firstLiveMutationAt() == null)) {
+                if (existing.mutationReservationAt() == null && existing.firstLiveMutationAt() == null) {
+                    router.repairMaintenanceMarker(request.getCutoverId(), epoch);
+                }
+                existing = router.readDurableState();
+            }
             if (blank(epoch)) {
                 epoch = requireEpoch();
             }
@@ -424,6 +435,16 @@ public final class CrawlerQueueV2CutoverService {
             throw stateStoreReset("已有 cutover 与请求 cutoverId 不一致");
         }
         return state.stateStoreEpoch();
+    }
+
+    private String completedCutoverEpoch(CrawlerQueueV2Repository.CutoverRecord record) {
+        if (record == null || !"completed".equals(record.status())) {
+            return null;
+        }
+        if (blank(record.cutoverId()) || blank(record.stateStoreEpoch())) {
+            throw stateStoreReset("completed cutover 记录缺少 cutoverId 或 epoch");
+        }
+        return record.stateStoreEpoch();
     }
 
     private String requireOperator(String operator) {

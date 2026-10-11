@@ -286,6 +286,13 @@ class AdminArmorSetControllerTest {
                 && "summon".equals(effect.get("classScope"))
                 && "percent".equals(effect.get("unit"))
                 && "10.0".equals(String.valueOf(effect.get("valueDecimal")))
+                && "armor_attribute_cell".equals(effect.get("sourceKind"))
+                && "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".equals(effect.get("sourceMaintRecordKey"))
+                && Long.valueOf(123L).equals(effect.get("sourceMaintId"))
+                && Long.valueOf(456L).equals(effect.get("landingSourceId"))
+                && "wiki.page.hallowed".equals(effect.get("landingSourceKey"))
+                && "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".equals(effect.get("landingContentHash"))
+                && "terraria.wiki.gg".equals(effect.get("sourceProvider"))
         ));
         assertTrue(hoodEffects.stream().anyMatch(effect ->
             "minion_capacity".equals(effect.get("statKey"))
@@ -1070,6 +1077,15 @@ class AdminArmorSetControllerTest {
             row.put("condition_text", null);
             row.put("raw_text", rawText);
             row.put("parse_status", "parsed");
+            row.put("source_maint_table", "maint_armor_attribute_rows");
+            row.put("source_maint_record_key", "a".repeat(64));
+            row.put("source_maint_id", 123L);
+            row.put("landing_source_id", 456L);
+            row.put("landing_source_key", "wiki.page.hallowed");
+            row.put("landing_content_hash", "b".repeat(64));
+            row.put("source_provider", "terraria.wiki.gg");
+            row.put("source_page", "盔甲属性表");
+            row.put("source_revision_timestamp", "2026-01-31 20:21:00");
             return row;
         }
 

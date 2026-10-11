@@ -99,6 +99,22 @@ test('retains unmatched history and validates the frozen transition hash', () =>
   assert.throws(() => validateArmorSourceEvidenceTransition(drifted), /hash|duplicate|summary/i);
 });
 
+test('keeps the transition hash stable when MySQL date values round-trip through JSON', () => {
+  const current = landing({
+    id: 21,
+    source_revision_timestamp: new Date('2026-09-25T03:00:00.000Z'),
+    fetched_at: new Date('2026-09-25T03:01:00.000Z'),
+    parsed_at: new Date('2026-09-25T03:01:00.000Z'),
+  });
+  const incoming = landing({
+    source_revision_timestamp: new Date('2026-09-25T03:00:00.000Z'),
+    fetched_at: new Date('2026-09-25T03:01:00.000Z'),
+    parsed_at: new Date('2026-09-25T03:01:00.000Z'),
+  });
+  const result = buildArmorSourceEvidenceTransition({ currentRows: [current], incomingRows: [incoming] });
+  assert.doesNotThrow(() => validateArmorSourceEvidenceTransition(JSON.parse(JSON.stringify(result))));
+});
+
 for (const [label, overrides] of [
   ['allocated ID', { id: 123 }],
   ['retired marker', { is_current: 0 }],

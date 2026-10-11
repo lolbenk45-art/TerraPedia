@@ -121,3 +121,35 @@ Two local artifacts were checked as possible substitutes and rejected:
 
 The only valid next source step remains a fresh 64-key image collection with the
 existing verified cache bytes reused where their source identity matches.
+
+## Fresh 64-set image proposal and retained-cache contract — 2026-09-30 continuation
+
+The fresh revision-bound image source now has 64 set keys and 431 rows, including
+12 new Shroomite rows. The prior completed cache result is reused as 315 verified
+file receipts covering 419 compatible rows. Each retained receipt was read back
+from the local MinIO object path and its bytes matched the prior receipt hash;
+the 12 new source downloads carry their explicit CDN transfer evidence.
+
+The first draft exposed a contract gap: reconstructing the old proposal from
+MinIO bytes loses the original CDN transfer proof for optimized files. The cache
+operation now uses `armor-image-cache-proposal/v2`, which binds the complete
+current source payload, the retained receipt set, and the prior completed result
+payload/source lineage; only uncovered assets carry source bytes. The proposal
+validator rejects missing or failed history, source metadata drift, receipt URL
+drift, and altered historical payloads. Retained objects are read back again
+before any new upload.
+
+Read-only artifacts:
+
+- proposal: `reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.proposal.json`
+- execution manifest: `reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.manifest.json`
+- authorization request: `reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.request.json`
+- proposal SHA: `sha256:8f2d76c5790c8d5f46b1db21f9a465aa14d506a4fd3868426f771a0781add6af`
+- request SHA: `sha256:a9f5a572e5189e2ed7298dd217210bc28b386d760a21e50f17f661c0a083b685`
+
+Validation: cache contract tests pass `37/37`; combined cache runner,
+registration and manifest tests pass `111/111`; the real proposal revalidates as
+`64 sets / 431 rows / 315 retained files / 12 new assets`. The request remains
+`AWAITING_OWNER`. No MinIO upload, database write, landing/import, permit
+consumption, Redis mutation, scheduler activation, API readback, or browser check
+was performed.

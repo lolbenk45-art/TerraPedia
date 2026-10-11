@@ -153,6 +153,43 @@ test('builds a detached frozen typed intent with exact generated and reference d
   assert.match(intent.intentSha256, /^sha256:[0-9a-f]{64}$/);
 });
 
+test('permits an update-only intent when the candidate has no remaining inserts', () => {
+  const frozen = candidate();
+  frozen.relationCandidate.changes.relation_armor_sets.inserts = [];
+  frozen.relationCandidate.changes.relation_armor_sets.updates = [{
+    before: { ...frozen.relationCandidate.expectedRows.relation_armor_sets[0], id: 101 },
+    after: { ...frozen.relationCandidate.expectedRows.relation_armor_sets[0], id: 101, status: 1 },
+    changedColumns: ['status'],
+  }];
+  frozen.relationCandidate.unresolvedGeneratedIds = [];
+  frozen.relationCandidate.candidateSha256 = digestWithout(frozen.relationCandidate, 'candidateSha256');
+  frozen.changes.projection_armor_sets.inserts = [];
+  frozen.changes.projection_armor_sets.updates = [{
+    before: { ...frozen.expectedRows.projection_armor_sets[0], id: 201 },
+    after: { ...frozen.expectedRows.projection_armor_sets[0], id: 201, status: 1 },
+    changedColumns: ['status'],
+  }];
+  frozen.unresolvedGeneratedIds = [];
+  frozen.acceptance = { status: 'dependencies-satisfied', runtimeVerified: false, blockers: [] };
+  frozen.candidateSha256 = digestWithout(frozen, 'candidateSha256');
+
+  const intent = buildArmorCanonicalIntent({
+    candidate: frozen,
+    insertPlans: [],
+    writeTimestamp: '2026-09-24T04:10:00Z',
+  });
+  assert.deepEqual(intent.insertPlans, []);
+  assert.doesNotThrow(() => validateArmorCanonicalIntent(intent));
+});
+
+test('rejects an empty plan list when the candidate still contains inserts', () => {
+  assert.throws(() => buildArmorCanonicalIntent({
+    candidate: candidate(),
+    insertPlans: [],
+    writeTimestamp: '2026-09-24T04:10:00Z',
+  }), /frozen candidate inserts|insert plans/i);
+});
+
 test('rejects executable candidates, candidate hash drift and non-second write timestamps', () => {
   assert.throws(() => buildIntent({ candidate: candidate({ executable: true }) }), /executable/i);
   assert.throws(() => buildIntent({ candidate: candidate({ candidateSha256: `sha256:${'b'.repeat(64)}` }) }), /candidate.*hash/i);

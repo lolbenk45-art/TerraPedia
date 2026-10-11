@@ -108,7 +108,9 @@ public class CrawlerQueueV2ApplicationService {
         String resumeMode = effectiveResumeMode(action, command.resumeMode());
         Instant now = clock.instant();
         String queueId = "queue-" + UUID.randomUUID();
-        String attemptId = "attempt-" + UUID.randomUUID();
+        String attemptId = command.requestedAttemptId() == null
+            ? "attempt-" + UUID.randomUUID()
+            : command.requestedAttemptId();
         String dedupeKey = lane + ":" + action.actionId()
             + (command.sourceDispatchIdentity() == null
                 ? ":" + resumeMode
@@ -228,7 +230,13 @@ public class CrawlerQueueV2ApplicationService {
             artifactStore.bindSourceDispatchIdentity(attemptId, command.sourceDispatchIdentity());
             artifactStore.writeOperationPlan(
                 attemptId,
-                planSnapshot(action, now, command.sourceDispatchIdentity())
+                planSnapshot(
+                    action,
+                    now,
+                    command.sourceDispatchIdentity(),
+                    command.automaticBindingPath(),
+                    command.automaticBindingSha256()
+                )
             );
         } catch (RuntimeException exception) {
             throw new CrawlerQueueV2Exception(
@@ -578,7 +586,7 @@ public class CrawlerQueueV2ApplicationService {
         artifactStore.bindSourceDispatchIdentity(nextAttemptId, prior.sourceDispatchIdentity());
         artifactStore.writeOperationPlan(
             nextAttemptId,
-            planSnapshot(action, now, prior.sourceDispatchIdentity())
+            priorPlanSnapshot(action, now, prior)
         );
         reconciler.reconcileNow();
         return fromAttempt(result == null || result.attempt() == null ? next : result.attempt());
@@ -939,14 +947,32 @@ public class CrawlerQueueV2ApplicationService {
     private static CrawlerOperationPlanSnapshot planSnapshot(
         CrawlerMonitorActionDefinition action,
         Instant capturedAt,
-        SourceDispatchIdentity sourceDispatchIdentity
+        SourceDispatchIdentity sourceDispatchIdentity,
+        String automaticBindingPath,
+        String automaticBindingSha256
     ) {
         return new CrawlerOperationPlanSnapshot(
             action.operationId(), action.actionId(), action.labelZh(), action.mode(),
             action.networkAccess(), action.sourceLocator(), action.fileWriteSummary(),
             action.databaseAccess(), action.estimatedRequests(), action.estimatedRecords(),
             action.pauseSupported(), action.resumeSupported(), action.resumeStatePath(),
-            action.confirmationLevel(), capturedAt, sourceDispatchIdentity
+            action.confirmationLevel(), capturedAt, sourceDispatchIdentity,
+            automaticBindingPath, automaticBindingSha256
+        );
+    }
+
+    private CrawlerOperationPlanSnapshot priorPlanSnapshot(
+        CrawlerMonitorActionDefinition action,
+        Instant capturedAt,
+        CrawlerQueueV2Attempt prior
+    ) {
+        CrawlerOperationPlanSnapshot priorPlan = artifactStore.readOperationPlan(prior.attemptId()).orElse(null);
+        return planSnapshot(
+            action,
+            capturedAt,
+            prior.sourceDispatchIdentity(),
+            priorPlan == null ? null : priorPlan.automaticBindingPath(),
+            priorPlan == null ? null : priorPlan.automaticBindingSha256()
         );
     }
 
@@ -973,7 +999,7 @@ public class CrawlerQueueV2ApplicationService {
         CrawlerMonitorActionDefinition action,
         Instant capturedAt
     ) {
-        return planSnapshot(action, capturedAt, null);
+        return planSnapshot(action, capturedAt, null, null, null);
     }
 
     private record AttemptArtifacts(
@@ -1401,6 +1427,28 @@ public class CrawlerQueueV2ApplicationService {
         if ("v2-automation".equals(command.requestedBy()) && command.sourceDispatchIdentity() == null) {
             throw new IllegalArgumentException("scheduler-owned V2 enqueue 必须携带 sourceDispatchIdentity");
         }
+        if (!"v2-automation".equals(command.requestedBy())
+            && (command.automaticBindingPath() != null || command.automaticBindingSha256() != null)) {
+            throw new IllegalArgumentException("manual V2 enqueue 不可携带 automatic binding");
+        }
+        if (command.automaticBindingPath() != null ^ command.automaticBindingSha256() != null) {
+            throw new IllegalArgumentException("automatic binding path/hash 必须同时提供");
+        }
+        if (command.requestedAttemptId() != null
+            && (!"v2-automation".equals(command.requestedBy())
+                || !"domain-source-armor-sets".equals(command.actionId())
+                || command.automaticBindingPath() == null)) {
+            throw new IllegalArgumentException("requestedAttemptId 仅可用于 scheduler-owned Armor binding");
+        }
+        if ("domain-source-armor-sets".equals(command.actionId())
+            && "v2-automation".equals(command.requestedBy())
+            && (command.automaticBindingPath() == null || command.requestedAttemptId() == null)) {
+            throw new IllegalArgumentException("scheduler-owned Armor binding 必须携带 attemptId");
+        }
+        if (command.requestedAttemptId() != null
+            && !command.requestedAttemptId().matches("^attempt-[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")) {
+            throw new IllegalArgumentException("requestedAttemptId 格式无效");
+        }
     }
 
     private static void requireControl(ControlCommand command) {
@@ -1462,7 +1510,10 @@ public class CrawlerQueueV2ApplicationService {
         String resumeMode,
         String requestedBy,
         String legacyQueueId,
-        SourceDispatchIdentity sourceDispatchIdentity
+        SourceDispatchIdentity sourceDispatchIdentity,
+        String automaticBindingPath,
+        String automaticBindingSha256,
+        String requestedAttemptId
     ) {
         public EnqueueCommand(
             String domain,
@@ -1472,7 +1523,35 @@ public class CrawlerQueueV2ApplicationService {
             String requestedBy,
             String legacyQueueId
         ) {
-            this(domain, actionId, lane, resumeMode, requestedBy, legacyQueueId, null);
+            this(domain, actionId, lane, resumeMode, requestedBy, legacyQueueId, null, null, null, null);
+        }
+
+        public EnqueueCommand(
+            String domain,
+            String actionId,
+            String lane,
+            String resumeMode,
+            String requestedBy,
+            String legacyQueueId,
+            SourceDispatchIdentity sourceDispatchIdentity
+        ) {
+            this(domain, actionId, lane, resumeMode, requestedBy, legacyQueueId,
+                sourceDispatchIdentity, null, null, null);
+        }
+
+        public EnqueueCommand(
+            String domain,
+            String actionId,
+            String lane,
+            String resumeMode,
+            String requestedBy,
+            String legacyQueueId,
+            SourceDispatchIdentity sourceDispatchIdentity,
+            String automaticBindingPath,
+            String automaticBindingSha256
+        ) {
+            this(domain, actionId, lane, resumeMode, requestedBy, legacyQueueId,
+                sourceDispatchIdentity, automaticBindingPath, automaticBindingSha256, null);
         }
     }
 

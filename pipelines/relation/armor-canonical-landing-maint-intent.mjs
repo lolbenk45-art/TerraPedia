@@ -25,6 +25,12 @@ function stable(value) {
   return JSON.stringify(canonical(value));
 }
 
+function compareStable(left, right) {
+  const leftKey = stable(left);
+  const rightKey = stable(right);
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+}
+
 function hash(value) {
   return `sha256:${createHash('sha256').update(stable(value), 'utf8').digest('hex')}`;
 }
@@ -214,8 +220,10 @@ function buildBody({ landingTransition, landingCurrentRows, maintBaselineRows, m
   const landingBaseline = validateLandingBaseline(landingCurrentRows);
   const normalizedMaintBaselineRows = structuredClone(maintBaselineRows);
   for (const table of MAINT_TABLES) {
-    normalizedMaintBaselineRows[table].sort((left, right) => stable([left.text_key, left.image_role, left.source_file_title])
-      .localeCompare(stable([right.text_key, right.image_role, right.source_file_title])));
+    normalizedMaintBaselineRows[table].sort((left, right) => compareStable(
+      [left.text_key, left.image_role, left.source_file_title],
+      [right.text_key, right.image_role, right.source_file_title],
+    ));
   }
   validateMaintBaseline(normalizedMaintBaselineRows);
   validateMaintCandidate(maintCandidate);

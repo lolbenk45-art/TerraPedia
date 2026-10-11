@@ -7,6 +7,7 @@ const prefix = 'https://media.example.test/terrapedia-images/items/';
 const at = '2026-09-24T01:00:00.000Z';
 const revision = '2026-09-23T23:00:00.000Z';
 const hash = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const textHash = (value) => `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`;
 
 function fixture() {
   const module = {
@@ -85,6 +86,47 @@ test('accepts a namespaced canonical module landing while preserving the exact s
   assert.equal(result.changes.maint_armor_sets.inserts[0].landing_source_key, input.landingRows[0].source_key);
 });
 
+test('validates enriched set effect page lineage and effect text hash', async () => {
+  const input = fixture();
+  const payload = JSON.parse(input.landingRows[0].payload_json);
+  const effectText = '套装奖励：+1 防御';
+  payload.armorSets[0].effectText = effectText;
+  payload.armorSets[0].effectTextEvidenceHash = `sha256:${'e'.repeat(64)}`;
+  payload.armorSets[0].effectTextSource = {
+    provider: 'terraria.wiki.gg', locale: 'zh', kind: 'set_page', pageTitle: 'Wood armor',
+    revisionId: 101, revisionTimestamp: revision, contentHash: `sha256:${'f'.repeat(64)}`,
+    effectTextHash: textHash(effectText),
+  };
+  input.landingRows[0].payload_json = JSON.stringify(payload);
+  input.landingRows[0].content_hash = hash(payload);
+  const result = await buildArmorCanonicalMaintCandidate(input);
+  assert.equal(result.summary.inserts, 2);
+  assert.equal(JSON.parse(result.changes.maint_armor_sets.inserts[0].raw_json).effectTextSource.revisionId, 101);
+});
+
+for (const [label, mutate] of [
+  ['effect text hash drift', (record) => { record.effectText = '套装奖励：+2 防御'; }],
+  ['missing source lineage', (record) => { delete record.effectTextSource; }],
+  ['invalid page revision', (record) => { record.effectTextSource.revisionId = 0; }],
+]) {
+  test(`rejects forged enriched effect evidence: ${label}`, async () => {
+    const input = fixture();
+    const payload = JSON.parse(input.landingRows[0].payload_json);
+    const effectText = '套装奖励：+1 防御';
+    payload.armorSets[0].effectText = effectText;
+    payload.armorSets[0].effectTextEvidenceHash = `sha256:${'e'.repeat(64)}`;
+    payload.armorSets[0].effectTextSource = {
+      provider: 'terraria.wiki.gg', locale: 'zh', kind: 'set_page', pageTitle: 'Wood armor',
+      revisionId: 101, revisionTimestamp: revision, contentHash: `sha256:${'f'.repeat(64)}`,
+      effectTextHash: textHash(effectText),
+    };
+    mutate(payload.armorSets[0]);
+    input.landingRows[0].payload_json = JSON.stringify(payload);
+    input.landingRows[0].content_hash = hash(payload);
+    await assert.rejects(buildArmorCanonicalMaintCandidate(input), /effect text source|effect text evidence|lineage/i);
+  });
+}
+
 test('rejects an image landing that omits one module set key', async () => {
   const input = fixture();
   changePayload(input, 0, payload => {
@@ -121,6 +163,29 @@ test('changed module content preserves existing maint IDs and record keys, retai
   assert.equal(repeated.summary.updates, 0);
 });
 
+test('unmaterialized matching landing IDs preserve existing maint lineage and reject changed sources', async () => {
+  const input = fixture();
+  input.currentRows = (await buildArmorCanonicalMaintCandidate(input)).expectedRows;
+  input.currentRows.maint_armor_sets[0].id = 50;
+  input.currentRows.maint_armor_set_images[0].id = 60;
+  const originalIds = {
+    sets: input.currentRows.maint_armor_sets[0].landing_source_id,
+    images: input.currentRows.maint_armor_set_images[0].landing_source_id,
+  };
+  for (const row of input.landingRows) delete row.id;
+
+  const result = await buildArmorCanonicalMaintCandidate({ ...input, allowUnmaterializedLandingIds: true });
+  assert.equal(result.summary.updates, 0);
+  assert.equal(result.expectedRows.maint_armor_sets[0].landing_source_id, originalIds.sets);
+  assert.equal(result.expectedRows.maint_armor_set_images[0].landing_source_id, originalIds.images);
+
+  changePayload(input, 1, payload => { payload.armorSetImages[0].sortOrder = 3; });
+  await assert.rejects(
+    buildArmorCanonicalMaintCandidate({ ...input, allowUnmaterializedLandingIds: true }),
+    /cannot clear landing source ID|unmaterialized landing/i,
+  );
+});
+
 test('image reorder/content updates preserve image identity independently of content hash and sort order', async () => {
   const input = fixture();
   input.currentRows = (await buildArmorCanonicalMaintCandidate(input)).expectedRows;
@@ -141,7 +206,7 @@ test('DB JSON/date representations do not manufacture updates', async () => {
   for (const rows of Object.values(input.currentRows)) {
     for (const [index, row] of rows.entries()) {
       row.id = index + 1;
-      if (row.is_primary != null) row.is_primary = Number(row.is_primary);
+      if (row.is_primary != null) row.is_primary = String(Number(row.is_primary));
       for (const key of Object.keys(row)) {
         if (key.endsWith('_json')) row[key] = JSON.parse(row[key]);
         if (key.endsWith('_timestamp') || key.endsWith('_at')) {

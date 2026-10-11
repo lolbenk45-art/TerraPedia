@@ -8,6 +8,7 @@ import {
 import {
   validateArmorCanonicalLandingMaintIntent,
 } from './armor-canonical-landing-maint-intent.mjs';
+import { inspectArmorCanonicalLandingLineage } from './armor-canonical-landing-lineage.mjs';
 
 export const ARMOR_CANONICAL_FULL_CHAIN_SCHEMA = 'armor-canonical-full-chain-intent/v1';
 export const ARMOR_CANONICAL_RECOVERY_INTENT_SCHEMA = 'armor-canonical-recovery-intent/v1';
@@ -73,18 +74,41 @@ function relationLogicalKey(table, row) {
   return text(table === 'projection_armor_sets' ? row.text_key : row.record_key, `Armor ${table} logical key`);
 }
 
-function relationSourceLandingTarget(row, landingPlans) {
-  if (row.landing_source_id != null) {
-    if (!positiveId(row.landing_source_id)) throw new Error('Armor relation landing_source_id is malformed');
-    return null;
-  }
+function relationSourceLandingTarget(row, landingPlans, landingCurrentRows) {
   const sourceTable = text(row.source_maint_table, 'Armor relation source maint table');
   const datasetType = sourceTable === 'maint_armor_sets' ? 'armor_sets_raw'
     : sourceTable === 'maint_armor_set_images' ? 'armor_set_images_raw' : null;
   if (!datasetType) throw new Error(`Armor relation source maint table is outside the full-chain scope: ${sourceTable}`);
-  const target = `local.source_dataset_landings|${[datasetType, row.source_provider, row.landing_source_key, row.landing_source_page]
-    .map((value) => text(value, 'Armor relation landing identity')).join('|')}`;
-  if (!landingPlans.has(target)) throw new Error(`Armor relation landing reference is not a landing insert: ${target}`);
+  const provider = text(row.source_provider, 'Armor relation source provider');
+  const sourceKey = text(row.landing_source_key, 'Armor relation landing source key');
+  const sourcePage = row.landing_source_page == null ? null : text(row.landing_source_page, 'Armor relation landing source page');
+  const contentHash = text(row.landing_content_hash, 'Armor relation landing content hash');
+  if (row.landing_source_id != null) {
+    if (!positiveId(row.landing_source_id)) throw new Error('Armor relation landing_source_id is malformed');
+    if (!Array.isArray(landingCurrentRows)) throw new Error('Armor frozen landing baseline is required to verify relation landing IDs');
+    const matches = landingCurrentRows.filter(landing => landing.id === row.landing_source_id);
+    if (matches.length !== 1) throw new Error(`Armor relation landing id does not resolve to one frozen landing row: ${row.landing_source_id}`);
+    const [landing] = matches;
+    if (landing.dataset_type !== datasetType || landing.provider !== provider || landing.source_key !== sourceKey
+        || (sourcePage != null && landing.source_page !== sourcePage) || landing.content_hash !== contentHash) {
+      throw new Error(`Armor relation landing id does not match source identity/content hash: ${row.landing_source_id}`);
+    }
+    return null;
+  }
+  const matches = [...landingPlans.entries()].filter(([, plan]) => plan.nonGeneratedFields.dataset_type === datasetType
+    && plan.nonGeneratedFields.provider === provider
+    && plan.nonGeneratedFields.source_key === sourceKey);
+  if (matches.length !== 1) {
+    throw new Error(`Armor relation landing reference does not resolve to one exact landing insert: ${datasetType}|${provider}|${sourceKey}`);
+  }
+  const [target, plan] = matches[0];
+  const landingPage = text(plan.nonGeneratedFields.source_page, 'Armor landing plan source page');
+  if (row.landing_source_page != null && row.landing_source_page !== landingPage) {
+    throw new Error(`Armor relation landing page drifted from its exact landing insert: ${target}`);
+  }
+  if (plan.nonGeneratedFields.content_hash !== contentHash) {
+    throw new Error(`Armor relation landing content hash drifted from its exact landing insert: ${target}`);
+  }
   return target;
 }
 
@@ -101,10 +125,10 @@ function relationSourceMaintTarget(row, maintPlans) {
   return target;
 }
 
-function fieldsAndReferences(table, row, landingPlans, maintPlans, relationPlans) {
+function fieldsAndReferences(table, row, landingPlans, maintPlans, relationPlans, landingCurrentRows) {
   const references = [];
   if (table !== 'projection_armor_sets') {
-    const landingTarget = relationSourceLandingTarget(row, landingPlans);
+    const landingTarget = relationSourceLandingTarget(row, landingPlans, landingCurrentRows);
     if (landingTarget) references.push({ column: 'landing_source_id', target: landingTarget });
     const maintTarget = relationSourceMaintTarget(row, maintPlans);
     if (maintTarget) references.push({ column: 'source_maint_id', target: maintTarget });
@@ -126,6 +150,7 @@ function assertSourceGraph(landingMaintIntent, projectionCandidate) {
   const maintCandidate = landingMaintIntent.snapshots?.maintCandidate;
   plain(maintCandidate, 'Armor maint candidate');
   same(relationCandidate.sourceSnapshotSha256, maintCandidate.sourceSnapshotSha256, 'Armor relation source snapshot');
+  same(relationCandidate.inputSnapshots.landingCurrentRows, landingMaintIntent.snapshots.landingCurrentRows, 'Armor relation landing baseline');
   same(relationCandidate.maintBaselineSha256, hash(relationCandidate.inputSnapshots.maintInput.currentRows), 'Armor relation maint baseline');
   same(landingMaintIntent.snapshots.maintBaselineRows, relationCandidate.inputSnapshots.maintInput.currentRows, 'Armor maint baseline');
   same(maintCandidate.managedImageUrlPrefixes, relationCandidate.managedImageUrlPrefixes, 'Armor managed image policy');
@@ -145,6 +170,9 @@ function assertSourceGraph(landingMaintIntent, projectionCandidate) {
 
 function buildRelationPlans(projectionCandidate, landingMaintIntent) {
   const relationCandidate = projectionCandidate.relationCandidate;
+  const landingCurrentRows = landingMaintIntent.snapshots.landingCurrentRows;
+  const lineageIssues = inspectArmorCanonicalLandingLineage({ relationCandidate, landingCurrentRows });
+  if (lineageIssues.length) throw new Error(`Armor relation landing lineage mismatch: ${stable(lineageIssues[0])}`);
   const landingPlans = new Map(landingMaintIntent.insertPlans
     .filter(plan => plan.databaseRole === 'local')
     .map(plan => [planIdentity(plan), plan]));
@@ -154,10 +182,15 @@ function buildRelationPlans(projectionCandidate, landingMaintIntent) {
   const relationPlans = new Map();
   const plans = [];
   for (const table of RELATION_TABLES) {
+    if (table !== 'relation_armor_set_items') {
+      for (const update of relationCandidate.changes[table]?.updates ?? []) {
+        relationSourceLandingTarget(update.after, landingPlans, landingCurrentRows);
+      }
+    }
     for (const row of relationCandidate.changes[table]?.inserts ?? []) {
       const logicalKey = relationLogicalKey(table, row);
       const identity = `relation.${table}|${logicalKey}`;
-      const { references, nonGeneratedFields } = fieldsAndReferences(table, row, landingPlans, maintPlans, relationPlans);
+      const { references, nonGeneratedFields } = fieldsAndReferences(table, row, landingPlans, maintPlans, relationPlans, landingCurrentRows);
       const plan = {
         databaseRole: 'relation', table, logicalKey, primaryKeyColumn: 'id',
         generatedColumns: ['id', 'created_at', 'updated_at'], nonGeneratedFields, references,
@@ -169,14 +202,13 @@ function buildRelationPlans(projectionCandidate, landingMaintIntent) {
   for (const row of projectionCandidate.changes.projection_armor_sets?.inserts ?? []) {
     const logicalKey = relationLogicalKey('projection_armor_sets', row);
     const identity = `relation.projection_armor_sets|${logicalKey}`;
-    const { references, nonGeneratedFields } = fieldsAndReferences('projection_armor_sets', row, landingPlans, maintPlans, relationPlans);
+    const { references, nonGeneratedFields } = fieldsAndReferences('projection_armor_sets', row, landingPlans, maintPlans, relationPlans, landingCurrentRows);
     plans.push({
       databaseRole: 'relation', table: 'projection_armor_sets', logicalKey, primaryKeyColumn: 'id',
       generatedColumns: ['created_at', 'updated_at'], nonGeneratedFields, references,
     });
     relationPlans.set(identity, plans.at(-1));
   }
-  if (!plans.length) throw new Error('Armor full-chain relation/projection insert plans are empty');
   return { plans, landingPlans, maintPlans, relationPlans };
 }
 
@@ -189,6 +221,7 @@ function buildRecoveryIntent({ landingMaintIntent, relationIntent, projectionCan
     landingMaintIntentSha256: landingMaintIntent.intentSha256,
     relationIntentSha256: relationIntent.intentSha256,
     candidateSha256: projectionCandidate.candidateSha256,
+    partialPolicy: projectionCandidate.partialPolicy ?? null,
     dependencyGraph,
   };
   return Object.freeze({ ...body, intentSha256: hash(body) });
@@ -237,6 +270,7 @@ export function buildArmorCanonicalFullChainIntent({
     executable: false,
     executionBlocker: 'registered-full-chain-executor-required',
     writeTimestamp,
+    partialPolicy: projectionCandidate.partialPolicy ?? null,
     landingMaintIntent,
     relationIntent,
     recoveryIntent,
@@ -260,6 +294,11 @@ export function validateArmorCanonicalFullChainIntent(value) {
   hashValue(value.recoveryIntent.intentSha256, 'Armor recovery intent hash');
   const { intentSha256: _recoveryHash, ...recoveryBody } = value.recoveryIntent;
   if (hash(recoveryBody) !== value.recoveryIntent.intentSha256) throw new Error('Armor recovery intent hash drifted');
+  const candidatePolicy = value.relationIntent.candidateSnapshot?.partialPolicy ?? null;
+  if (stable(value.partialPolicy ?? null) !== stable(candidatePolicy)
+      || stable(value.recoveryIntent.partialPolicy ?? null) !== stable(candidatePolicy)) {
+    throw new Error('Armor full-chain partial policy drifted from candidate');
+  }
   for (const key of ['landingToMaint', 'maintToRelation', 'landingToRelation', 'relationToProjection']) {
     if (!Array.isArray(value.dependencyGraph?.[key])) throw new Error(`Armor full-chain dependency graph ${key} is missing`);
   }
