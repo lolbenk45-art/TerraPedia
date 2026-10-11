@@ -57,7 +57,7 @@ export function parseWindowArgs(argv = []) {
   return Object.freeze(parsed);
 }
 
-export function buildBuffAutomationTestIdentity(runId, logicalDb = TEST_REDIS_DB) {
+export function buildBuffAutomationTestIdentity(runId, logicalDb = TEST_REDIS_DB, { validateWindow = true } = {}) {
   const normalized = requireText(runId, 'run ID');
   const slug = normalized.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 3) || 'run';
   const hash = createHash('sha256').update(normalized, 'utf8').digest('hex').slice(0, 16);
@@ -74,7 +74,7 @@ export function buildBuffAutomationTestIdentity(runId, logicalDb = TEST_REDIS_DB
     epoch: `epoch-${runKey}`,
   };
   const identity = Object.freeze({ profile: 't1', runId: normalized, runKey, databases, redis });
-  assertTestWindowResources(identity);
+  if (validateWindow) assertTestWindowResources(identity);
   return identity;
 }
 
@@ -96,7 +96,7 @@ export function assertTestWindowResources(identity) {
   }
   const logicalDb = Number(identity.redis?.logicalDb);
   assertAutomationRedisLogicalDb(logicalDb, 'Buff test window Redis logical DB');
-  if ([14, 15, 16].includes(logicalDb)) throw new Error('Buff test window cannot use Redis DB14, DB15, or DB16');
+  if (logicalDb !== TEST_REDIS_DB) throw new Error('Buff test window Redis logical DB must be DB13');
   if (!/^terrapedia:crawler:wiki-monitor:v2:test:[^:]+:$/.test(identity.redis?.namespace ?? '')) {
     throw new Error('Buff test window Redis namespace must be run-derived fixture scope');
   }

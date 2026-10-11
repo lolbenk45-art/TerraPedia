@@ -28,10 +28,11 @@ test('database roles and test profiles are closed enums', () => {
   assert.deepEqual(TEST_PROFILES, ['unit', 't0', 't1', 't2-readonly']);
 });
 
-test('isolated automation Redis DBs exclude reserved DB14 through DB16', () => {
+test('isolated automation Redis DBs allow the explicit Buff replay DB18 and exclude reserved DB14 through DB17', () => {
   assert.equal(assertAutomationRedisLogicalDb(13), 13);
-  for (const value of [14, 15, 16, '13']) {
-    assert.throws(() => assertAutomationRedisLogicalDb(value), /integer from 1 through 13/i);
+  assert.equal(assertAutomationRedisLogicalDb(18), 18);
+  for (const value of [14, 15, 16, 17, '13']) {
+    assert.throws(() => assertAutomationRedisLogicalDb(value), /1 through 13|18/i);
   }
 });
 
@@ -126,7 +127,7 @@ test('wrong profile, purpose, credential, server, or redis identity fails closed
     { ...trusted, redis: { ...trusted.redis, logicalDb: 14 } },
     { ...observed, redis: { ...observed.redis, logicalDb: 14 } },
     't0', names.runKey,
-  ), /Redis logical DB.*1 through 13/i);
+  ), /Redis logical DB.*1 through 13|18/i);
 });
 
 test('missing expected database or redis fingerprints fail closed', (t) => {

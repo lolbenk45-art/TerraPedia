@@ -4,9 +4,10 @@ import path from 'node:path';
 
 export const DATABASE_ROLES = Object.freeze(['maint', 'relation', 'local']);
 export const TEST_PROFILES = Object.freeze(['unit', 't0', 't1', 't2-readonly']);
-// DB14 is owned by Armor, DB15 by user-auth E2E, and DB16 by Buff V2.
+// DB14-DB17 are reserved by other local owners; DB18 is the explicit Buff source replay lane.
 export const AUTOMATION_REDIS_LOGICAL_DB_MIN = 1;
 export const AUTOMATION_REDIS_LOGICAL_DB_MAX = 13;
+export const AUTOMATION_REDIS_LOGICAL_DB_EXTRA = 18;
 export const FORMAL_DATABASES = Object.freeze({
   local: 'terria_v1_local',
   maint: 'terria_v1_maint',
@@ -16,8 +17,8 @@ export const FORMAL_DATABASES = Object.freeze({
 export function assertAutomationRedisLogicalDb(value, label = 'Redis logical DB') {
   if (!Number.isInteger(value)
       || value < AUTOMATION_REDIS_LOGICAL_DB_MIN
-      || value > AUTOMATION_REDIS_LOGICAL_DB_MAX) {
-    throw new Error(`${label} must be an integer from ${AUTOMATION_REDIS_LOGICAL_DB_MIN} through ${AUTOMATION_REDIS_LOGICAL_DB_MAX}`);
+      || (value > AUTOMATION_REDIS_LOGICAL_DB_MAX && value !== AUTOMATION_REDIS_LOGICAL_DB_EXTRA)) {
+    throw new Error(`${label} must be an integer from ${AUTOMATION_REDIS_LOGICAL_DB_MIN} through ${AUTOMATION_REDIS_LOGICAL_DB_MAX} or ${AUTOMATION_REDIS_LOGICAL_DB_EXTRA}`);
   }
   return value;
 }

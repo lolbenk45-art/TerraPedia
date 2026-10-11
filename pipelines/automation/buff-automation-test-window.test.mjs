@@ -41,7 +41,7 @@ test('identity rejects formal and reserved Redis targets', () => {
   assert.match(identity.databases.local, /^terria_v1_automation_acceptance_/);
   assert.equal(identity.redis.logicalDb, TEST_REDIS_DB);
   assert.doesNotThrow(() => assertTestWindowResources(identity));
-  for (const logicalDb of [14, 15, 16, 0, 17]) {
+  for (const logicalDb of [14, 15, 16, 17, 18, 0]) {
     assert.throws(() => assertTestWindowResources({ ...identity, redis: { ...identity.redis, logicalDb } }), /Redis logical DB/i);
   }
   assert.throws(() => assertTestWindowResources({
