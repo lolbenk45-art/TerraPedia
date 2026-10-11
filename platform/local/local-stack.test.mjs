@@ -51,6 +51,17 @@ test('legacy backend profile keeps local stack database url overrideable', () =>
   assert.doesNotMatch(source, /url:\s*jdbc:mysql:\/\/localhost:3306\/terria_v1_local/);
 });
 
+test('local stack example uses token secrets accepted by backend startup validation', () => {
+  const example = JSON.parse(fs.readFileSync('platform/local/config/local-stack.config.example.json', 'utf8'));
+  const adminSecret = example.auth?.admin?.tokenSecret;
+  const userSecret = example.auth?.user?.tokenSecret;
+
+  assert.equal(typeof adminSecret, 'string');
+  assert.equal(typeof userSecret, 'string');
+  assert.ok(adminSecret.length >= 32);
+  assert.ok(userSecret.length >= 32);
+});
+
 test('start writes a sanitized run manifest with preflight and health details', () => {
   const source = startSource();
 

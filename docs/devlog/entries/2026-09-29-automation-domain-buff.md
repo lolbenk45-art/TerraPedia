@@ -4049,6 +4049,46 @@ Next action:
 
 - Retain the passed artifact and focused validation as the manual test-window evidence. Keep the production Buff scheduler disabled and wait for a real Buff source delta before any fresh Phase 0 or production authorization work. Do not reuse the blocked run key or old permits/decisions.
 
+### Buff runtime startup/API repair - 2026-10-11 19:15 CST
+
+Status: ready-for-commit. This continuation repaired two runtime acceptance defects
+found while restoring the Buff worktree backend on `18105`:
+
+- The local example config used 30/29-character token-secret placeholders,
+  while `AdminAuthProperties` and `UserAuthProperties` require at least 32
+  characters. Both placeholders now satisfy the existing validation contract,
+  with a `platform/local/local-stack.test.mjs` regression.
+- The first read-only API probe reached health but returned `500` from
+  `/admin/crawler-automation/overview`. MyBatis constructor mapping received a
+  MySQL `DATETIME` and two SQL `NULL` projection columns, which did not match
+  `DomainSummary`'s record constructor. The mapper now formats the timestamp as
+  a string; the DTO adds a MyBatis boundary overload that normalizes null
+  projections to empty lists. Focused DTO/service tests cover the contract.
+
+Evidence:
+
+- Current backend JAR rebuilt from this worktree and started on `18105` with
+  Redis `6380/DB15`, read-only automation, disabled scheduler control, disabled
+  queue cutover, Flyway disabled, and no MinIO/mail side effects.
+- `GET /api/actuator/health`, `/api/admin/crawler-automation/overview`,
+  `/api/admin/crawler-automation/profile`,
+  `/api/admin/crawler-monitor/v2/automation`,
+  `/api/admin/crawler-monitor/v2/automation/preflight`, and
+  `/api/admin/crawler-monitor/overview` all returned HTTP `200`.
+- Control remains `enabled=false`; the V2 preflight reports `databaseWrites=false`
+  and `networkAccess=false`. Redis DB15 remains `PONG` with the existing eight
+  state keys and no live attempt/index/lease keys. SQL automation attempts and
+  reservations are `0/0`, active write-fence readback is `0`, and formal Buff
+  counts remain `388/400/400/400`.
+- No control mutation, `/v2/automation/sweep`, scheduler dispatch, formal table,
+  or production Buff data write occurred.
+
+Validation: local-stack tests `39/39`; backend focused tests
+`CrawlerAutomationServiceImplTest,CrawlerAutomationOverviewDTOTest` `7/7`;
+backend package, `node --check`, and `git diff --check` passed. The repair is
+scoped for a focused commit; the remaining dirty Buff history and generated
+artifacts are intentionally outside this commit.
+
 ### Final five-minute window and production isolation readback — 2026-10-11 02:27 CST
 
 - The planned command `bash ./platform/local/run-buff-automation-test-window.sh --fixture-profile=t1 --window-minutes=5` passed with artifact `.local/tmp/buff-automation-test-window-buf_af1a32a9649740f9.json` (`0600`, `status=passed`). Fresh run key: `buf_af1a32a9649740f9`; fixture hash: `sha256:aa72b1afb6d103868bcb91d7763f00453083fe9c8d2aca7891dbcc4cc546a179`; natural attempt: `attempt-1358bd60-3bd7-4245-a18b-a5bd89ba0020`.

@@ -1,9 +1,17 @@
 # Current Devlog
 
-Last updated: 2026-10-11 17:14 CST by Codex
+Last updated: 2026-10-11 19:15 CST by Codex
 
 Active branch: `feat/automation-domain-buff`
 Active focus: Keep production Buff automatic-ingestion acceptance on backend `18105` and Redis `6380/DB15` disabled until a real source delta and fresh authorization. A new 9/9 source probe at 2026-10-11 09:55 CST confirms Buff current/previous/ingested fingerprint `a512db8c...` with `changed=false`; fresh production read-only preflight at 09:58 CST confirms disabled control and zero live work. The latest real current-Wiki source re-crawl and isolated T1 replay passed on Redis DB18 at 17:14 CST, but its artifact explicitly has `production_source_delta=false`; it validates the current source and isolated chain, not production changed-only dispatch. Armor remains owner-isolated on `18104/DB14`; DB16 is retained historical state only.
+
+## Buff runtime startup/API repair - 2026-10-11 19:15 CST
+
+- Rebuilt the current Buff backend JAR and reproduced the missing-runtime startup failure on `18105`: the local example token secrets were 30/29 characters while backend validation requires at least 32. Extended both example values and added a local-stack regression test for the minimum length.
+- A read-only HTTP probe then found `GET /admin/crawler-automation/overview` returning `500`: MyBatis constructor mapping could not map MySQL `DATETIME` plus SQL `NULL` columns into `CrawlerAutomationOverviewDTO.DomainSummary`. The mapper now formats `completed_at` as an ISO-like string, and the DTO has a boundary constructor that normalizes MyBatis `Object` null projections to empty lists. Added focused DTO/service tests.
+- Current rebuilt runtime is healthy on `18105`/Redis `6380/DB15` with `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=true`, scheduler control disabled, and queue cutover disabled. Health, automation overview/profile, V2 automation, preflight, and monitor overview all returned HTTP `200`; Buff control remains `enabled=false` and read-only.
+- Read-only state remained unchanged: DB15 Redis has the existing 8 state keys, no Redis live-attempt/index/lease keys, SQL automation attempts/reservations are `0/0`, active write-fence query is `0`, and formal Buff counts remain `388/400/400/400`. No scheduler/control endpoint, `/v2/automation/sweep`, formal table, or production Buff data write was performed.
+- Validation: `node --test platform/local/local-stack.test.mjs` (`39/39`), `mvn -Dtest=CrawlerAutomationServiceImplTest,CrawlerAutomationOverviewDTOTest test` (`7/7`), backend package, `node --check`, and `git diff --check` pass. The focused commit contains only this startup/API repair and its evidence.
 
 ## Fresh current-Wiki re-crawl #3 and isolated replay on DB18 - 2026-10-11 17:14 CST
 

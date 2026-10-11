@@ -41,6 +41,38 @@ public record CrawlerAutomationOverviewDTO(
             );
         }
 
+        /**
+         * MyBatis supplies SQL NULL projection columns as Object when it uses
+         * constructor mapping for this record. Keep that boundary tolerant and
+         * normalize the values in the canonical constructor below.
+         */
+        public DomainSummary(
+            String domainId,
+            String automationLevel,
+            String operationalState,
+            String lastRunId,
+            String lastRunStatus,
+            String lastRunCompletedAt,
+            Object activeAlerts,
+            Object disabledReasons
+        ) {
+            this(
+                domainId,
+                automationLevel,
+                operationalState,
+                lastRunId,
+                lastRunStatus,
+                lastRunCompletedAt,
+                activeAlerts instanceof List<?> alerts
+                    ? alerts.stream().map(String::valueOf).toList()
+                    : List.of(),
+                disabledReasons instanceof List<?> reasons
+                    ? reasons.stream().filter(CrawlerAutomationOverviewDTO.DisabledReason.class::isInstance)
+                        .map(CrawlerAutomationOverviewDTO.DisabledReason.class::cast).toList()
+                    : List.of()
+            );
+        }
+
         public DomainSummary {
             activeAlerts = activeAlerts == null ? List.of() : List.copyOf(activeAlerts);
             disabledReasons = disabledReasons == null ? List.of() : List.copyOf(disabledReasons);

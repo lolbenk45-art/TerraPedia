@@ -128,6 +128,32 @@ class CrawlerAutomationServiceImplTest {
         assertEquals(List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED"), reasonCodes(domain));
     }
 
+    @Test
+    void overviewDomainSummaryKeepsMapperCompletedAtAsString() {
+        when(runMapper.findActiveDomainSummaries()).thenReturn(List.of(
+            new CrawlerAutomationOverviewDTO.DomainSummary(
+                "buffs",
+                "L2",
+                "ACTIVE",
+                "buffs-run-1",
+                "COMMITTED",
+                "2026-10-11T19:05:00",
+                List.of()
+            )
+        ));
+        var service = new CrawlerAutomationServiceImpl(
+            runMapper, policyMapper, approvalMapper, policyService,
+            CrawlerMonitorActionRegistry.defaults(), true
+        );
+
+        CrawlerAutomationOverviewDTO.DomainSummary domain = service.getOverview().domains().stream()
+            .filter(item -> "buffs".equals(item.domainId()))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals("2026-10-11T19:05:00", domain.lastRunCompletedAt());
+    }
+
     private static CrawlerAutomationOverviewDTO.DomainSummary domain(
         String domainId,
         String automationLevel,

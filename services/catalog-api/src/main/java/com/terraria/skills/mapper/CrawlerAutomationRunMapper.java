@@ -20,7 +20,7 @@ public interface CrawlerAutomationRunMapper extends BaseMapper<CrawlerAutomation
                p.operational_state AS operationalState,
                r.run_id AS lastRunId,
                r.status AS lastRunStatus,
-               r.completed_at AS lastRunCompletedAt,
+               DATE_FORMAT(r.completed_at, '%Y-%m-%dT%H:%i:%s') AS lastRunCompletedAt,
                NULL AS activeAlerts,
                NULL AS disabledReasons
         FROM crawler_automation_policy p
